@@ -1,0 +1,253 @@
+"use client";
+
+// =============================================================
+// 서식 입력 에디터 (공통 컴포넌트)
+// -------------------------------------------------------------
+// 굵게 / 기울임 / 밑줄 / 글머리 기호 / 번호 목록을 지원합니다.
+//
+//   variant="full" : 박스 상단에 툴바 (질문·공지 작성용)
+//   variant="chat" : 박스 하단에 툴바 + 종이비행기 전송 버튼 (채팅용)
+//
+// children으로 추가 도구(이미지 첨부, 그리기 등)를 툴바에 끼워
+// 넣을 수 있습니다. 내용은 HTML 문자열로 onChange에 전달되며,
+// 저장·표시 전에 lib/html.js의 sanitizeHtml()로 정화합니다.
+// 입력 내용을 비우려면 부모에서 key 값을 바꿔 다시 마운트하세요.
+// =============================================================
+import { useEffect, useRef, useState } from "react";
+
+// ───── 툴바 아이콘 (선 스타일 SVG) ─────
+const svgProps = {
+  width: 17,
+  height: 17,
+  viewBox: "0 0 24 24",
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 2,
+  strokeLinecap: "round",
+  strokeLinejoin: "round",
+};
+
+function IconUl() {
+  return (
+    <svg {...svgProps}>
+      <circle cx="4" cy="6" r="1.5" fill="currentColor" stroke="none" />
+      <circle cx="4" cy="12" r="1.5" fill="currentColor" stroke="none" />
+      <circle cx="4" cy="18" r="1.5" fill="currentColor" stroke="none" />
+      <line x1="9" y1="6" x2="20" y2="6" />
+      <line x1="9" y1="12" x2="20" y2="12" />
+      <line x1="9" y1="18" x2="20" y2="18" />
+    </svg>
+  );
+}
+
+function IconOl() {
+  return (
+    <svg {...svgProps}>
+      <text x="2" y="8.5" fontSize="8" fill="currentColor" stroke="none">
+        1
+      </text>
+      <text x="2" y="15" fontSize="8" fill="currentColor" stroke="none">
+        2
+      </text>
+      <text x="2" y="21.5" fontSize="8" fill="currentColor" stroke="none">
+        3
+      </text>
+      <line x1="10" y1="6" x2="20" y2="6" />
+      <line x1="10" y1="12" x2="20" y2="12" />
+      <line x1="10" y1="18" x2="20" y2="18" />
+    </svg>
+  );
+}
+
+export function IconImage() {
+  return (
+    <svg {...svgProps}>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <circle cx="9" cy="10" r="1.6" fill="currentColor" stroke="none" />
+      <path d="M5 18l5-5 4 4 2.5-2.5L21 19" />
+    </svg>
+  );
+}
+
+export function IconPen() {
+  return (
+    <svg {...svgProps}>
+      <path d="M17 3l4 4L7 21H3v-4L17 3z" />
+    </svg>
+  );
+}
+
+function IconSend() {
+  return (
+    <svg {...svgProps} width={16} height={16}>
+      <path d="M22 2L11 13" />
+      <path d="M22 2l-7 20-4-9-9-4 20-7z" />
+    </svg>
+  );
+}
+
+// 서식 명령 정의 (null은 구분선)
+const COMMANDS = [
+  {
+    cmd: "bold",
+    title: "굵게 (Ctrl+B)",
+    icon: <b className="rte-glyph">B</b>,
+  },
+  {
+    cmd: "italic",
+    title: "기울임 (Ctrl+I)",
+    icon: <i className="rte-glyph rte-serif">I</i>,
+  },
+  {
+    cmd: "underline",
+    title: "밑줄 (Ctrl+U)",
+    icon: <u className="rte-glyph">U</u>,
+  },
+  null,
+  { cmd: "insertUnorderedList", title: "글머리 기호", icon: <IconUl /> },
+  { cmd: "insertOrderedList", title: "번호 목록", icon: <IconOl /> },
+];
+
+export default function RichTextEditor({
+  variant = "full", // "full" | "chat"
+  small = false, // true면 낮은 입력 높이 (공지 등 좁은 영역용)
+  initialHtml = "", // 처음부터 채워 둘 내용 (예: 실행기에서 넘어온 코드)
+  onChange,
+  placeholder = "",
+  onSend, // chat 전용: 전송 실행 (Enter로도 전송)
+  sendDisabled = false,
+  children, // 툴바에 끼워 넣을 추가 도구 (첨부, 그리기 등)
+}) {
+  const ref = useRef(null);
+  const [active, setActive] = useState({}); // 현재 커서 위치의 서식 상태
+
+  // 초기 내용 채우기 (마운트 시 한 번만)
+  useEffect(() => {
+    if (initialHtml && ref.current && !ref.current.innerHTML) {
+      ref.current.innerHTML = initialHtml;
+      onChange(initialHtml);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 커서를 움직일 때마다 어떤 서식이 켜져 있는지 추적해 버튼 강조
+  useEffect(() => {
+    function update() {
+      const sel = window.getSelection();
+      if (!sel || !ref.current || !ref.current.contains(sel.anchorNode)) {
+        return;
+      }
+      const next = {};
+      COMMANDS.forEach((c) => {
+        if (c) next[c.cmd] = document.queryCommandState(c.cmd);
+      });
+      setActive(next);
+    }
+    document.addEventListener("selectionchange", update);
+    return () => document.removeEventListener("selectionchange", update);
+  }, []);
+
+  function exec(command) {
+    ref.current?.focus();
+    document.execCommand(command, false, null);
+    onChange(ref.current.innerHTML);
+  }
+
+  function handleInput() {
+    onChange(ref.current.innerHTML);
+  }
+
+  // 커서가 목록(li) 안에 있으면 Enter는 '새 항목 추가'로 동작해야 함
+  function isInList() {
+    let node = window.getSelection()?.anchorNode;
+    while (node && node !== ref.current) {
+      if (node.nodeName === "LI") return true;
+      node = node.parentNode;
+    }
+    return false;
+  }
+
+  function handleKeyDown(e) {
+    if (!onSend) return;
+    if (
+      e.key === "Enter" &&
+      !e.shiftKey &&
+      !e.nativeEvent.isComposing &&
+      !isInList()
+    ) {
+      e.preventDefault();
+      onSend();
+    }
+  }
+
+  // 툴바 버튼: onMouseDown에서 preventDefault → 에디터의
+  // 글자 선택(selection)이 풀리지 않은 채 서식이 적용됩니다.
+  const toolbar = (
+    <div className="rte-toolbar">
+      {variant === "chat" && children}
+      {variant === "chat" && children && <span className="rte-divider" />}
+
+      {COMMANDS.map((c, i) =>
+        c === null ? (
+          <span key={`d${i}`} className="rte-divider" />
+        ) : (
+          <button
+            key={c.cmd}
+            type="button"
+            title={c.title}
+            className={`rte-tool ${active[c.cmd] ? "active" : ""}`}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => exec(c.cmd)}
+          >
+            {c.icon}
+          </button>
+        )
+      )}
+
+      {variant === "full" && children && <span className="rte-divider" />}
+      {variant === "full" && children}
+
+      {variant === "chat" && (
+        <button
+          type="button"
+          className="rte-send"
+          title="전송 (Enter)"
+          disabled={sendDisabled}
+          onClick={onSend}
+        >
+          <IconSend />
+        </button>
+      )}
+    </div>
+  );
+
+  const area = (
+    <div
+      ref={ref}
+      className="rte-area"
+      contentEditable
+      suppressContentEditableWarning
+      data-placeholder={placeholder}
+      onInput={handleInput}
+      onKeyDown={handleKeyDown}
+    />
+  );
+
+  return (
+    <div
+      className={`rte rte-${variant} ${small ? "rte-sm" : ""}`}
+    >
+      {variant === "full" ? (
+        <>
+          {toolbar}
+          {area}
+        </>
+      ) : (
+        <>
+          {area}
+          {toolbar}
+        </>
+      )}
+    </div>
+  );
+}

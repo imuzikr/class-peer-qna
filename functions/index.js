@@ -1,0 +1,216 @@
+// =============================================================
+// Cloud Functions — 서버에서 동작하는 코드
+// -------------------------------------------------------------
+// 클라이언트(브라우저)는 조작될 수 있으므로, 아래 세 종류의 작업은
+// Firebase 서버에서 실행됩니다.
+//
+//   [1] 데이터 무결성  : 답변 생성/삭제 시 answerCount를 서버가 집계
+//   [2] 역할 부여      : 관리자/교사/학생 역할을 커스텀 클레임으로 지정
+//   [3] 알림·예약 작업 : 새 답변 알림 발송, 주간 답변왕 집계
+//
+// 배포: 프로젝트 루트에서
+//   npm install -g firebase-tools
+//   firebase login
+//   cd functions && npm install && cd ..
+//   firebase deploy --only functions
+// ※ Cloud Functions는 Blaze(종량제) 요금제에서만 배포됩니다.
+//   학급 규모 사용량은 대부분 무료 한도 안에서 처리됩니다.
+// =============================================================
+const {
+  onDocumentCreated,
+  onDocumentDeleted,
+} = require("firebase-functions/v2/firestore");
+const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { onSchedule } = require("firebase-functions/v2/scheduler");
+const { setGlobalOptions } = require("firebase-functions/v2");
+const admin = require("firebase-admin");
+
+admin.initializeApp();
+const db = admin.firestore();
+
+// 서울 리전에서 실행
+setGlobalOptions({ region: "asia-northeast3" });
+
+// 역할 종류와 최초 관리자 이메일
+// (첫 관리자는 아직 admin 클레임이 없으므로, 이 이메일로 로그인한
+//  계정에 한해 스스로 역할을 부여할 수 있게 허용합니다.)
+const ROLES = ["admin", "teacher", "student"];
+const INITIAL_ADMIN_EMAIL = "iseoul72@gmail.com";
+
+// =============================================================
+// [1] 데이터 무결성 — answerCount 서버 집계
+// -------------------------------------------------------------
+// 클라이언트가 직접 카운트를 올리면 조작·동시성 문제가 생기므로,
+// answers 하위 컬렉션에 문서가 생기고/지워질 때 서버가 집계합니다.
+// (이 함수를 배포한 뒤에는 lib/store.js의 addAnswer 안에 있는
+//  updateDoc(... increment(1)) 부분을 삭제하세요. 중복 집계 방지)
+// =============================================================
+exports.onAnswerCreated = onDocumentCreated(
+  "questions/{questionId}/answers/{answerId}",
+  async (event) => {
+    const { questionId } = event.params;
+    const answer = event.data.data();
+    const questionRef = db.doc(`questions/${questionId}`);
+
+    // 1) 답변 수 +1 (서버에서만 수행 → 조작 불가, 동시 답변에도 안전)
+    await questionRef.update({
+      answerCount: admin.firestore.FieldValue.increment(1),
+    });
+
+    // 2) [3-알림] 질문 작성자에게 알림 (자기 질문에 단 답변은 제외)
+    const questionSnap = await questionRef.get();
+    if (!questionSnap.exists) return;
+    const question = questionSnap.data();
+    if (question.authorId === answer.authorId) return;
+
+    // 2-a) 인앱 알림 문서 생성 — 클라이언트가 users/{uid}/notifications를
+    //      구독하면 화면에 알림 목록을 띄울 수 있습니다.
+    await db.collection(`users/${question.authorId}/notifications`).add({
+      type: "new_answer",
+      questionId,
+      questionTitle: question.title,
+      answerAuthorName: answer.authorName,
+      read: false,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // 2-b) FCM 푸시 발송 — 클라이언트가 알림 권한을 받아
+    //      users/{uid} 문서의 fcmTokens 배열에 토큰을 저장해 두면 발송됩니다.
+    const userSnap = await db.doc(`users/${question.authorId}`).get();
+    const tokens = userSnap.get("fcmTokens") || [];
+    if (tokens.length === 0) return;
+
+    const result = await admin.messaging().sendEachForMulticast({
+      tokens,
+      notification: {
+        title: "새 답변이 달렸어요!",
+        body: `${answer.authorName}님이 "${question.title}"에 답변했습니다.`,
+      },
+      data: { questionId },
+    });
+
+    // 만료된 토큰은 정리
+    const deadTokens = tokens.filter(
+      (_, i) => result.responses[i].error != null
+    );
+    if (deadTokens.length > 0) {
+      await db.doc(`users/${question.authorId}`).update({
+        fcmTokens: admin.firestore.FieldValue.arrayRemove(...deadTokens),
+      });
+    }
+  }
+);
+
+// 답변이 삭제되면 카운트 -1
+exports.onAnswerDeleted = onDocumentDeleted(
+  "questions/{questionId}/answers/{answerId}",
+  async (event) => {
+    await db.doc(`questions/${event.params.questionId}`).update({
+      answerCount: admin.firestore.FieldValue.increment(-1),
+    });
+  }
+);
+
+// =============================================================
+// [2] 역할 부여 — 커스텀 클레임 (admin / teacher / student)
+// -------------------------------------------------------------
+// 역할은 클라이언트가 스스로 정할 수 없고, 이 함수를 통해서만
+// 부여됩니다. 부여된 클레임은 Firestore 보안 규칙에서
+// request.auth.token.role 로 검사할 수 있습니다.
+//   예) notices 쓰기: request.auth.token.role in ['admin', 'teacher']
+//
+// 클라이언트 호출 예시:
+//   import { getFunctions, httpsCallable } from "firebase/functions";
+//   const fn = httpsCallable(getFunctions(undefined, "asia-northeast3"), "setUserRole");
+//   await fn({ uid: "대상_유저_uid", role: "teacher" });
+// =============================================================
+exports.setUserRole = onCall(async (request) => {
+  // 로그인 필수
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "로그인이 필요합니다.");
+  }
+
+  // 호출 권한: 이미 admin이거나, 최초 관리자 이메일 본인
+  const callerIsAdmin = request.auth.token.role === "admin";
+  const callerIsInitialAdmin =
+    request.auth.token.email === INITIAL_ADMIN_EMAIL &&
+    request.auth.token.email_verified === true;
+  if (!callerIsAdmin && !callerIsInitialAdmin) {
+    throw new HttpsError("permission-denied", "역할을 부여할 권한이 없습니다.");
+  }
+
+  // 입력 검증
+  const { uid, role } = request.data || {};
+  if (typeof uid !== "string" || !ROLES.includes(role)) {
+    throw new HttpsError(
+      "invalid-argument",
+      `uid와 role(${ROLES.join("/")})을 올바르게 전달해 주세요.`
+    );
+  }
+
+  // 1) 인증 토큰에 역할 기록 (보안 규칙에서 사용)
+  await admin.auth().setCustomUserClaims(uid, { role });
+
+  // 2) 화면 표시용으로 사용자 문서에도 기록
+  await db.doc(`users/${uid}`).set({ role }, { merge: true });
+
+  return { ok: true, uid, role };
+});
+
+// =============================================================
+// [3] 예약 작업 — 주간 답변왕 집계
+// -------------------------------------------------------------
+// 매주 월요일 오전 9시(서울)에 지난 7일간의 답변 수를 집계해
+// stats/weeklyTop 문서에 저장하고, 공지사항으로도 게시합니다.
+// ※ collectionGroup("answers") 쿼리는 최초 실행 시 색인이 필요할 수
+//   있습니다. 함수 로그의 오류 메시지에 있는 링크를 누르면
+//   Firebase 콘솔에서 한 번의 클릭으로 색인이 생성됩니다.
+// =============================================================
+exports.weeklyTopAnswerers = onSchedule(
+  { schedule: "every monday 09:00", timeZone: "Asia/Seoul" },
+  async () => {
+    const weekAgo = admin.firestore.Timestamp.fromMillis(
+      Date.now() - 7 * 24 * 60 * 60 * 1000
+    );
+
+    // 지난 7일간 모든 질문의 답변을 모아 작성자별로 집계
+    const snap = await db
+      .collectionGroup("answers")
+      .where("createdAt", ">=", weekAgo)
+      .get();
+
+    const countByUser = new Map();
+    snap.forEach((doc) => {
+      const { authorId, authorName } = doc.data();
+      const cur = countByUser.get(authorId) ?? { authorName, count: 0 };
+      cur.count += 1;
+      countByUser.set(authorId, cur);
+    });
+
+    const top = [...countByUser.entries()]
+      .map(([authorId, v]) => ({ authorId, ...v }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 3);
+
+    // 집계 결과 저장
+    await db.doc("stats/weeklyTop").set({
+      top,
+      totalAnswers: snap.size,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // 공지사항으로 게시
+    if (top.length > 0) {
+      const lines = top
+        .map((t, i) => `${i + 1}위 ${t.authorName} (${t.count}개)`)
+        .join(" · ");
+      await db.collection("notices").add({
+        title: "🏆 이번 주 답변왕",
+        content: `지난 한 주 동안 가장 많이 답변해 준 친구들입니다. ${lines}. 모두 고마워요!`,
+        authorId: "system",
+        authorName: "배움나눔 봇",
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    }
+  }
+);
