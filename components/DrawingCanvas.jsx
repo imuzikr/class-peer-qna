@@ -3,15 +3,18 @@
 // =============================================================
 // 그리기 캔버스 모달
 // -------------------------------------------------------------
-// 마우스·터치로 자유롭게 그리거나(펜/지우개), 도형 도구를 선택해
-// 드래그하면 사각형·원·직선·화살표를 삽입할 수 있습니다.
-// 도형은 드래그하는 동안 실시간 미리보기가 표시됩니다.
+// 그린 내용을 "도형 객체 목록"으로 저장하고 매번 캔버스를 다시
+// 그리는 구조입니다. 덕분에 다음이 가능합니다:
+//   · 🧽 지우개      — 문지른 부분만 지움 (픽셀 지우개)
+//   · ✂️ 획 지우개   — 클릭한 획/도형 전체를 한 번에 지움
+//   · 🖱️ 선택        — 획/도형을 클릭해 드래그로 이동 (Delete로 삭제)
+//   · ↩️/↪️          — 되돌리기/다시 실행 (Ctrl+Z / Ctrl+Y)
 // '그림 첨부'를 누르면 캔버스 내용이 이미지(data URL)로 변환되어
 // 질문 작성 폼의 첨부 이미지로 들어갑니다.
 // =============================================================
 import { useEffect, useRef, useState } from "react";
 
-const COLORS = ["#1f2333", "#e5484d", "#4f6ef7", "#16a34a", "#f59e0b"];
+const COLORS = ["#262625", "#c04a3f", "#d97757", "#3d7a4a", "#d4a017"];
 const SIZES = [
   { label: "가늘게", value: 3 },
   { label: "보통", value: 6 },
@@ -23,28 +26,279 @@ const TOOLS = [
   { id: "ellipse", label: "⚪ 원" },
   { id: "line", label: "╱ 직선" },
   { id: "arrow", label: "↗ 화살표" },
+  { id: "select", label: "🖱️ 선택" },
   { id: "eraser", label: "🧽 지우개" },
+  { id: "eraser-stroke", label: "✂️ 획 지우개" },
 ];
+
+let shapeSeq = 1;
+
+// ---------- 좌표 유틸 ----------
+
+// 점 p와 선분 a-b 사이의 거리
+function segDist(p, a, b) {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const len2 = dx * dx + dy * dy;
+  if (len2 === 0) return Math.hypot(p.x - a.x, p.y - a.y);
+  let t = ((p.x - a.x) * dx + (p.y - a.y) * dy) / len2;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
+}
+
+// 도형의 경계 상자 {x1, y1, x2, y2}
+function bboxOf(s) {
+  const pts = s.points ?? [s.a, s.b];
+  const xs = pts.map((p) => p.x);
+  const ys = pts.map((p) => p.y);
+  const pad = s.size / 2 + 4;
+  return {
+    x1: Math.min(...xs) - pad,
+    y1: Math.min(...ys) - pad,
+    x2: Math.max(...xs) + pad,
+    y2: Math.max(...ys) + pad,
+  };
+}
+
+// 점 p가 도형 s에 닿았는지 검사
+// allowInside: true면 도형 안쪽 클릭도 인정 (선택 도구용)
+function hitTest(s, p, allowInside) {
+  const tol = Math.max(10, s.size / 2 + 8);
+
+  if (s.tool === "pen") {
+    const pts = s.points;
+    if (pts.length === 1) return Math.hypot(p.x - pts[0].x, p.y - pts[0].y) < tol;
+    for (let i = 1; i < pts.length; i++) {
+      if (segDist(p, pts[i - 1], pts[i]) < tol) return true;
+    }
+    return false;
+  }
+
+  if (s.tool === "line" || s.tool === "arrow") {
+    return segDist(p, s.a, s.b) < tol;
+  }
+
+  const box = bboxOf(s);
+  const inside =
+    p.x > box.x1 && p.x < box.x2 && p.y > box.y1 && p.y < box.y2;
+
+  if (s.tool === "rect") {
+    if (allowInside && inside) return true;
+    // 테두리 네 변 근처인지 검사
+    const a = s.a;
+    const b = s.b;
+    const c1 = { x: a.x, y: a.y };
+    const c2 = { x: b.x, y: a.y };
+    const c3 = { x: b.x, y: b.y };
+    const c4 = { x: a.x, y: b.y };
+    return (
+      segDist(p, c1, c2) < tol ||
+      segDist(p, c2, c3) < tol ||
+      segDist(p, c3, c4) < tol ||
+      segDist(p, c4, c1) < tol
+    );
+  }
+
+  if (s.tool === "ellipse") {
+    if (allowInside && inside) return true;
+    const cx = (s.a.x + s.b.x) / 2;
+    const cy = (s.a.y + s.b.y) / 2;
+    const rx = Math.max(1, Math.abs(s.b.x - s.a.x) / 2);
+    const ry = Math.max(1, Math.abs(s.b.y - s.a.y) / 2);
+    const v = Math.hypot((p.x - cx) / rx, (p.y - cy) / ry);
+    const band = tol / Math.min(rx, ry);
+    return Math.abs(v - 1) < band;
+  }
+
+  return false;
+}
+
+// 도형을 (dx, dy)만큼 이동한 새 도형을 반환 (원본은 그대로 둠)
+function moveShape(s, dx, dy) {
+  if (s.points) {
+    return { ...s, points: s.points.map((p) => ({ x: p.x + dx, y: p.y + dy })) };
+  }
+  return {
+    ...s,
+    a: { x: s.a.x + dx, y: s.a.y + dy },
+    b: { x: s.b.x + dx, y: s.b.y + dy },
+  };
+}
 
 export default function DrawingCanvas({ onSave, onClose }) {
   const canvasRef = useRef(null);
-  const drawing = useRef(false);
-  const last = useRef(null); // 펜/지우개: 직전 좌표
-  const startPos = useRef(null); // 도형: 드래그 시작 좌표
-  const snapshot = useRef(null); // 도형 미리보기용 캔버스 백업
+
+  // 그린 도형 목록 + 되돌리기/다시 실행 스택 (ref로 관리, UI 갱신은 tick)
+  const shapesRef = useRef([]);
+  const pastRef = useRef([]); // 되돌리기용 이전 상태들
+  const futureRef = useRef([]); // 다시 실행용 상태들
+  const selectedRef = useRef(null); // 선택된 도형 id
+  const [, setTick] = useState(0);
+  const rerender = () => setTick((t) => t + 1);
+
+  // 그리는 중 상태
+  const drawingRef = useRef(false);
+  const draftRef = useRef(null); // 그리는 중인 도형 (아직 미확정)
+  const dragRef = useRef(null); // 선택 도구의 드래그 정보
+
   const [tool, setTool] = useState("pen");
   const [color, setColor] = useState(COLORS[0]);
   const [size, setSize] = useState(SIZES[1].value);
+  const toolRef = useRef(tool);
+  toolRef.current = tool;
 
-  const isShapeTool = ["rect", "ellipse", "line", "arrow"].includes(tool);
+  // ---------- 렌더링 ----------
 
-  // 처음에 흰 배경으로 채움 (JPEG 저장 시 검은 배경 방지)
-  useEffect(() => {
+  function drawShapeObj(ctx, s) {
+    ctx.strokeStyle = s.isEraser ? "#ffffff" : s.color;
+    ctx.lineWidth = s.isEraser ? s.size * 4 : s.size;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.beginPath();
+
+    if (s.tool === "pen") {
+      const pts = s.points;
+      ctx.moveTo(pts[0].x, pts[0].y);
+      if (pts.length === 1) ctx.lineTo(pts[0].x + 0.01, pts[0].y);
+      for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+      ctx.stroke();
+      return;
+    }
+    if (s.tool === "rect") {
+      ctx.strokeRect(s.a.x, s.a.y, s.b.x - s.a.x, s.b.y - s.a.y);
+      return;
+    }
+    if (s.tool === "ellipse") {
+      ctx.ellipse(
+        (s.a.x + s.b.x) / 2,
+        (s.a.y + s.b.y) / 2,
+        Math.abs(s.b.x - s.a.x) / 2,
+        Math.abs(s.b.y - s.a.y) / 2,
+        0,
+        0,
+        Math.PI * 2
+      );
+      ctx.stroke();
+      return;
+    }
+    // 직선 (화살표도 몸통은 직선)
+    ctx.moveTo(s.a.x, s.a.y);
+    ctx.lineTo(s.b.x, s.b.y);
+    ctx.stroke();
+
+    if (s.tool === "arrow") {
+      const angle = Math.atan2(s.b.y - s.a.y, s.b.x - s.a.x);
+      const head = Math.max(14, s.size * 3);
+      ctx.beginPath();
+      ctx.moveTo(s.b.x, s.b.y);
+      ctx.lineTo(
+        s.b.x - head * Math.cos(angle - Math.PI / 6),
+        s.b.y - head * Math.sin(angle - Math.PI / 6)
+      );
+      ctx.moveTo(s.b.x, s.b.y);
+      ctx.lineTo(
+        s.b.x - head * Math.cos(angle + Math.PI / 6),
+        s.b.y - head * Math.sin(angle + Math.PI / 6)
+      );
+      ctx.stroke();
+    }
+  }
+
+  // 전체 다시 그리기 (draft: 그리는 중인 도형, showSelection: 선택 표시 여부)
+  function renderAll(draft = null, showSelection = true) {
     const c = canvasRef.current;
+    if (!c) return;
     const ctx = c.getContext("2d");
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, c.width, c.height);
+    shapesRef.current.forEach((s) => drawShapeObj(ctx, s));
+    if (draft) drawShapeObj(ctx, draft);
+
+    // 선택된 도형은 테라코타 점선 상자로 표시
+    const sel = showSelection
+      ? shapesRef.current.find((s) => s.id === selectedRef.current)
+      : null;
+    if (sel) {
+      const box = bboxOf(sel);
+      ctx.save();
+      ctx.setLineDash([6, 4]);
+      ctx.strokeStyle = "#d97757";
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(box.x1, box.y1, box.x2 - box.x1, box.y2 - box.y1);
+      ctx.restore();
+    }
+  }
+
+  useEffect(() => {
+    renderAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // 도구를 바꾸면 선택 해제
+  useEffect(() => {
+    if (tool !== "select" && selectedRef.current) {
+      selectedRef.current = null;
+      renderAll();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tool]);
+
+  // ---------- 히스토리 ----------
+
+  // 변경 확정: 이전 상태를 되돌리기 스택에 쌓고 새 상태로 교체
+  function commit(newShapes) {
+    pastRef.current.push(shapesRef.current);
+    futureRef.current = [];
+    shapesRef.current = newShapes;
+    renderAll();
+    rerender();
+  }
+
+  function undo() {
+    if (pastRef.current.length === 0) return;
+    futureRef.current.unshift(shapesRef.current);
+    shapesRef.current = pastRef.current.pop();
+    selectedRef.current = null;
+    renderAll();
+    rerender();
+  }
+
+  function redo() {
+    if (futureRef.current.length === 0) return;
+    pastRef.current.push(shapesRef.current);
+    shapesRef.current = futureRef.current.shift();
+    selectedRef.current = null;
+    renderAll();
+    rerender();
+  }
+
+  // 선택된 도형 삭제 (Delete 키 / 획 지우개와 동일한 효과)
+  function deleteSelected() {
+    if (!selectedRef.current) return;
+    const next = shapesRef.current.filter((s) => s.id !== selectedRef.current);
+    selectedRef.current = null;
+    commit(next);
+  }
+
+  // 단축키: Ctrl+Z 되돌리기, Ctrl+Y(또는 Ctrl+Shift+Z) 다시 실행, Delete 삭제
+  useEffect(() => {
+    function onKey(e) {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        e.shiftKey ? redo() : undo();
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y") {
+        e.preventDefault();
+        redo();
+      } else if (e.key === "Delete" && toolRef.current === "select") {
+        deleteSelected();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ---------- 포인터 입력 ----------
 
   // 화면 좌표 → 캔버스 내부 좌표 변환 (마우스/터치 공용)
   function getPos(e) {
@@ -57,109 +311,117 @@ export default function DrawingCanvas({ onSave, onClose }) {
     };
   }
 
-  function setStroke(ctx) {
-    ctx.strokeStyle = tool === "eraser" ? "#ffffff" : color;
-    ctx.lineWidth = tool === "eraser" ? size * 4 : size;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-  }
-
-  // 시작점(a) → 끝점(b)으로 도형 그리기
-  function drawShape(ctx, a, b) {
-    setStroke(ctx);
-    ctx.beginPath();
-    if (tool === "rect") {
-      ctx.strokeRect(a.x, a.y, b.x - a.x, b.y - a.y);
-      return;
+  // p 위치의 도형 찾기 (위에 그린 것부터, 픽셀 지우개 자국은 제외)
+  function findShapeAt(p, allowInside) {
+    const list = shapesRef.current;
+    for (let i = list.length - 1; i >= 0; i--) {
+      if (list[i].isEraser) continue;
+      if (hitTest(list[i], p, allowInside)) return list[i];
     }
-    if (tool === "ellipse") {
-      ctx.ellipse(
-        (a.x + b.x) / 2,
-        (a.y + b.y) / 2,
-        Math.abs(b.x - a.x) / 2,
-        Math.abs(b.y - a.y) / 2,
-        0,
-        0,
-        Math.PI * 2
-      );
-      ctx.stroke();
-      return;
-    }
-    // 직선 (화살표도 몸통은 직선)
-    ctx.moveTo(a.x, a.y);
-    ctx.lineTo(b.x, b.y);
-    ctx.stroke();
-
-    if (tool === "arrow") {
-      // 화살촉: 선 끝에서 양쪽으로 30도 벌어진 두 획
-      const angle = Math.atan2(b.y - a.y, b.x - a.x);
-      const head = Math.max(14, size * 3);
-      ctx.beginPath();
-      ctx.moveTo(b.x, b.y);
-      ctx.lineTo(
-        b.x - head * Math.cos(angle - Math.PI / 6),
-        b.y - head * Math.sin(angle - Math.PI / 6)
-      );
-      ctx.moveTo(b.x, b.y);
-      ctx.lineTo(
-        b.x - head * Math.cos(angle + Math.PI / 6),
-        b.y - head * Math.sin(angle + Math.PI / 6)
-      );
-      ctx.stroke();
-    }
+    return null;
   }
 
   function start(e) {
-    drawing.current = true;
-    const p = getPos(e);
-    last.current = p;
-    startPos.current = p;
-    if (isShapeTool) {
-      // 미리보기를 위해 현재 화면을 백업해 둠
-      const c = canvasRef.current;
-      snapshot.current = c
-        .getContext("2d")
-        .getImageData(0, 0, c.width, c.height);
-    }
-  }
-
-  function move(e) {
-    if (!drawing.current) return;
-    const ctx = canvasRef.current.getContext("2d");
     const p = getPos(e);
 
-    if (isShapeTool) {
-      // 백업을 복원한 뒤 현재 드래그 위치까지의 도형을 그림 → 미리보기
-      ctx.putImageData(snapshot.current, 0, 0);
-      drawShape(ctx, startPos.current, p);
+    // 선택 도구: 도형을 집어 이동 시작
+    if (tool === "select") {
+      const s = findShapeAt(p, true);
+      selectedRef.current = s?.id ?? null;
+      dragRef.current = s
+        ? { startP: p, orig: s, before: shapesRef.current, moved: false }
+        : null;
+      renderAll();
       return;
     }
 
-    // 펜/지우개: 직전 좌표에서 현재 좌표까지 선을 이어 그림
-    setStroke(ctx);
-    ctx.beginPath();
-    ctx.moveTo(last.current.x, last.current.y);
-    ctx.lineTo(p.x, p.y);
-    ctx.stroke();
-    last.current = p;
+    // 획 지우개: 클릭한 도형 전체 삭제
+    if (tool === "eraser-stroke") {
+      const s = findShapeAt(p, false);
+      if (s) commit(shapesRef.current.filter((x) => x.id !== s.id));
+      return;
+    }
+
+    // 펜/지우개/도형: 새 도형 그리기 시작
+    drawingRef.current = true;
+    if (tool === "pen" || tool === "eraser") {
+      draftRef.current = {
+        id: `s${shapeSeq++}`,
+        tool: "pen",
+        color,
+        size,
+        isEraser: tool === "eraser",
+        points: [p],
+      };
+    } else {
+      draftRef.current = { id: `s${shapeSeq++}`, tool, color, size, a: p, b: p };
+    }
+    renderAll(draftRef.current);
+  }
+
+  function move(e) {
+    const p = getPos(e);
+
+    // 선택 도구: 드래그한 만큼 도형 이동
+    if (tool === "select") {
+      const d = dragRef.current;
+      if (!d || !selectedRef.current) return;
+      const dx = p.x - d.startP.x;
+      const dy = p.y - d.startP.y;
+      if (!d.moved && Math.hypot(dx, dy) > 2) d.moved = true;
+      if (d.moved) {
+        shapesRef.current = shapesRef.current.map((s) =>
+          s.id === selectedRef.current ? moveShape(d.orig, dx, dy) : s
+        );
+        renderAll();
+      }
+      return;
+    }
+
+    if (!drawingRef.current || !draftRef.current) return;
+    if (draftRef.current.points) draftRef.current.points.push(p);
+    else draftRef.current.b = p;
+    renderAll(draftRef.current);
   }
 
   function end() {
-    drawing.current = false;
-    snapshot.current = null; // 도형 확정 (마지막 미리보기가 그대로 남음)
+    // 선택 도구: 이동이 있었다면 히스토리에 확정
+    if (tool === "select") {
+      const d = dragRef.current;
+      if (d?.moved) {
+        pastRef.current.push(d.before);
+        futureRef.current = [];
+        rerender();
+      }
+      dragRef.current = null;
+      return;
+    }
+
+    if (drawingRef.current && draftRef.current) {
+      commit([...shapesRef.current, draftRef.current]);
+    }
+    drawingRef.current = false;
+    draftRef.current = null;
   }
 
   function clearAll() {
-    const c = canvasRef.current;
-    const ctx = c.getContext("2d");
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, c.width, c.height);
+    if (shapesRef.current.length === 0) return;
+    selectedRef.current = null;
+    commit([]);
   }
 
   function handleSave() {
+    renderAll(null, false); // 선택 점선 상자는 빼고 그리기
     onSave(canvasRef.current.toDataURL("image/jpeg", 0.85));
     onClose();
   }
+
+  const cursor =
+    tool === "select"
+      ? "default"
+      : tool === "eraser-stroke"
+      ? "pointer"
+      : "crosshair";
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
@@ -179,12 +441,16 @@ export default function DrawingCanvas({ onSave, onClose }) {
                 key={c}
                 type="button"
                 className={`color-swatch ${
-                  tool !== "eraser" && color === c ? "active" : ""
+                  tool !== "eraser" && tool !== "eraser-stroke" && color === c
+                    ? "active"
+                    : ""
                 }`}
                 style={{ background: c }}
                 onClick={() => {
                   setColor(c);
-                  if (tool === "eraser") setTool("pen");
+                  if (tool === "eraser" || tool === "eraser-stroke") {
+                    setTool("pen");
+                  }
                 }}
                 aria-label={`색상 ${c}`}
               />
@@ -215,6 +481,24 @@ export default function DrawingCanvas({ onSave, onClose }) {
                 {s.label}
               </button>
             ))}
+            <button
+              type="button"
+              className="btn-ghost"
+              onClick={undo}
+              disabled={pastRef.current.length === 0}
+              title="되돌리기 (Ctrl+Z)"
+            >
+              ↩️ 되돌리기
+            </button>
+            <button
+              type="button"
+              className="btn-ghost"
+              onClick={redo}
+              disabled={futureRef.current.length === 0}
+              title="다시 실행 (Ctrl+Y)"
+            >
+              ↪️ 다시 실행
+            </button>
             <button type="button" className="btn-ghost" onClick={clearAll}>
               🗑 전체 지우기
             </button>
@@ -227,6 +511,7 @@ export default function DrawingCanvas({ onSave, onClose }) {
           width={800}
           height={500}
           className="draw-canvas"
+          style={{ cursor }}
           onMouseDown={start}
           onMouseMove={move}
           onMouseUp={end}

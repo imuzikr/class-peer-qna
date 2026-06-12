@@ -1,17 +1,28 @@
 :root {
-  --primary: #4f6ef7;
-  --primary-dark: #3a55d9;
-  --primary-light: #eef1fe;
-  --sidebar-bg: #2b2d42;
-  --sidebar-text: #c8cce0;
-  --sidebar-active: #4f6ef7;
-  --bg: #f4f5f9;
+  /* Claude 시그니처 테라코타/코럴 */
+  --primary: #d97757;
+  --primary-dark: #b85c3f;
+  --primary-light: #f8ece5;
+  /* 따뜻한 차콜 사이드바 */
+  --sidebar-bg: #262625;
+  --sidebar-text: #c2c0b6;
+  --sidebar-active: #d97757;
+  /* 따뜻한 오프화이트/크림 배경 */
+  --bg: #faf9f5;
+  --bg-deep: #f5f4ef;
   --card-bg: #ffffff;
-  --border: #e3e6ef;
-  --text: #1f2333;
-  --text-sub: #6b7186;
-  --danger: #e5484d;
-  --radius: 12px;
+  --border: #e8e5dd;
+  --neutral: #ebe9e2;
+  --dark: #1a1a18;
+  --text: #3d3d3a;
+  --text-sub: #8a8a82;
+  --danger: #c04a3f;
+  --radius: 16px;
+  --radius-btn: 12px;
+  --shadow-soft: 0 1px 3px rgba(46, 36, 26, 0.06), 0 4px 14px rgba(46, 36, 26, 0.05);
+  --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", "Noto Serif KR",
+    Batang, serif;
+  --font-mono: "Consolas", "D2Coding", "SF Mono", "Courier New", monospace;
 }
 
 * {
@@ -27,6 +38,17 @@ body {
   color: var(--text);
 }
 
+/* 헤딩은 클래식한 세리프 — Claude의 "종이와 잉크" 무드 */
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--dark);
+}
+
 button {
   font-family: inherit;
   cursor: pointer;
@@ -38,7 +60,7 @@ select {
   font-family: inherit;
   font-size: 14px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-btn);
   padding: 10px 12px;
   width: 100%;
   background: #fff;
@@ -47,8 +69,9 @@ select {
 input:focus,
 textarea:focus,
 select:focus {
-  outline: 2px solid var(--primary);
-  border-color: transparent;
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(217, 119, 87, 0.18);
 }
 
 /* ===================== 랜딩 페이지 ===================== */
@@ -57,7 +80,7 @@ select:focus {
   display: flex;
   flex-direction: column;
   /* public/landing-image.png — 학생 일러스트 배경 */
-  background-color: #ffffff;
+  background-color: var(--bg);
   background-image: url("/landing-image.png");
   background-size: cover;
   background-position: center bottom;
@@ -72,17 +95,18 @@ select:focus {
   padding: 14px 28px;
   margin: 16px 24px 0;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.45);
-  backdrop-filter: blur(14px) saturate(160%);
-  -webkit-backdrop-filter: blur(14px) saturate(160%);
-  border: 1px solid rgba(255, 255, 255, 0.65);
-  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
+  background: rgba(250, 249, 245, 0.55);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 8px 32px rgba(70, 50, 35, 0.08);
 }
 
 .landing-logo {
-  font-weight: 800;
-  font-size: 20px;
-  color: var(--primary-dark);
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: 21px;
+  color: var(--dark);
 }
 
 .landing-actions {
@@ -95,19 +119,19 @@ select:focus {
 }
 
 .btn-outline {
-  background: rgba(255, 255, 255, 0.35);
+  background: rgba(250, 249, 245, 0.5);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  border: 1.5px solid rgba(79, 110, 247, 0.7);
+  border: 1.5px solid rgba(217, 119, 87, 0.75);
   color: var(--primary-dark);
-  border-radius: 8px;
+  border-radius: var(--radius-btn);
   padding: 10px 20px;
   font-size: 15px;
   font-weight: 700;
 }
 
 .btn-outline:hover {
-  background: rgba(238, 241, 254, 0.8);
+  background: rgba(248, 236, 229, 0.85);
 }
 
 /* 중앙 여백: 타이틀 + 상세 설명 */
@@ -121,11 +145,19 @@ select:focus {
 }
 
 .hero h1 {
+  font-family: var(--font-serif);
   font-size: clamp(40px, 6vw, 64px);
-  font-weight: 900;
-  color: var(--primary-dark);
-  letter-spacing: -1px;
+  font-weight: 700;
+  color: var(--dark);
+  letter-spacing: -1.5px;
   text-shadow: 0 2px 12px rgba(255, 255, 255, 0.9);
+}
+
+/* 제목 일부 강조용 — 테라코타 포인트 */
+.hero h1 em,
+.hero h1 .accent {
+  font-style: normal;
+  color: var(--primary);
 }
 
 .hero-sub {
@@ -138,11 +170,11 @@ select:focus {
 
 /* 글래스 카드: 타이틀 + 설명을 감싸는 반투명 유리판 */
 .hero-glass {
-  background: rgba(255, 255, 255, 0.4);
-  backdrop-filter: blur(16px) saturate(160%);
-  -webkit-backdrop-filter: blur(16px) saturate(160%);
-  border: 1px solid rgba(255, 255, 255, 0.65);
-  box-shadow: 0 12px 40px rgba(31, 38, 135, 0.12);
+  background: rgba(250, 249, 245, 0.55);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 12px 40px rgba(70, 50, 35, 0.1);
   border-radius: 28px;
   padding: 44px 52px;
   max-width: 720px;
@@ -153,13 +185,13 @@ select:focus {
   max-width: 560px;
   font-size: 15px;
   line-height: 1.8;
-  color: #444a60;
+  color: #5e5d56;
 }
 
 /* 로그인/회원가입 모달도 글래스 스타일 */
 .modal-auth {
   max-width: 420px;
-  background: rgba(255, 255, 255, 0.72);
+  background: rgba(250, 249, 245, 0.85);
   backdrop-filter: blur(20px) saturate(160%);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
   border: 1px solid rgba(255, 255, 255, 0.7);
@@ -175,26 +207,27 @@ select:focus {
   flex: 1;
   padding: 10px;
   border: none;
-  border-radius: 8px;
-  background: #f0f1f6;
+  border-radius: var(--radius-btn);
+  background: var(--neutral);
   color: var(--text-sub);
   font-size: 15px;
   font-weight: 600;
 }
 
 .tab-row button.active {
-  background: var(--primary);
-  color: #fff;
+  background: var(--dark);
+  color: #faf9f5;
 }
 
 .btn-primary {
   background: var(--primary);
   color: #fff;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-btn);
   padding: 12px;
   font-size: 15px;
   font-weight: 700;
+  transition: background 0.15s;
 }
 
 .btn-primary:hover {
@@ -202,12 +235,12 @@ select:focus {
 }
 
 .dev-note {
-  background: #fff8e6;
-  border: 1px solid #f5dd9d;
-  border-radius: 8px;
+  background: #f7f2e4;
+  border: 1px solid #e5d9b3;
+  border-radius: var(--radius-btn);
   padding: 10px 12px;
   font-size: 13px;
-  color: #8a6d1a;
+  color: #8a6d3a;
   line-height: 1.6;
 }
 
@@ -240,9 +273,108 @@ select:focus {
 }
 
 .topbar .logo {
-  font-weight: 800;
-  font-size: 18px;
-  color: var(--primary-dark);
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: 19px;
+  color: var(--dark);
+}
+
+/* 상단바 왼쪽: 로고 + 접속 사용자 프로필 */
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.topbar-divider {
+  width: 1px;
+  height: 22px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+/* 익명 프로필 — 동그라미 아바타 + 닉네임 */
+.profile {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--primary-light);
+  border: 1.5px solid #ecbfa9;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  flex-shrink: 0;
+}
+
+.profile-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+  min-width: 0;
+}
+
+.profile-text strong {
+  font-size: 14px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ===================== 게시물 작성자 프로필 ===================== */
+.author {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+/* 관리자에게만 클릭 가능 표시 */
+.author-clickable {
+  cursor: pointer;
+}
+
+.author-clickable:hover .author-name {
+  text-decoration: underline;
+  text-decoration-color: var(--primary);
+  text-underline-offset: 3px;
+}
+
+/* 카드/채팅용 작은 아바타 */
+.avatar-sm {
+  width: 22px;
+  height: 22px;
+  font-size: 12px;
+  border-width: 1px;
+}
+
+.author-name {
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 관리자가 클릭했을 때 나타나는 실명 칩 */
+.author-real {
+  background: var(--dark);
+  color: #faf9f5;
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .topbar .user-area {
@@ -264,9 +396,24 @@ select:focus {
 .btn-ghost {
   background: none;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-btn);
   padding: 6px 12px;
   font-size: 13px;
+  color: var(--text-sub);
+}
+
+.btn-ghost:hover {
+  background: var(--neutral);
+  color: var(--text);
+}
+
+.btn-ghost:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.btn-ghost:disabled:hover {
+  background: none;
   color: var(--text-sub);
 }
 
@@ -287,9 +434,12 @@ select:focus {
 }
 
 .keyword-col h2 {
-  font-size: 12px;
-  letter-spacing: 1px;
-  color: #8c91ad;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #87867f;
   padding: 0 10px 10px;
 }
 
@@ -318,6 +468,10 @@ select:focus {
   font-weight: 700;
 }
 
+.keyword-item.active .keyword-count {
+  background: rgba(255, 255, 255, 0.22);
+}
+
 .keyword-count {
   font-size: 12px;
   background: rgba(255, 255, 255, 0.12);
@@ -344,6 +498,93 @@ select:focus {
   font-size: 19px;
 }
 
+.feed-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ===================== 피드 필터 드롭다운 ===================== */
+.filter-wrap {
+  position: relative;
+}
+
+.filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  background: #fff;
+}
+
+/* 기본값(모든 글)이 아닌 필터가 켜져 있으면 강조 */
+.filter-btn.filter-on {
+  background: var(--primary-light);
+  border-color: #ecbfa9;
+  color: var(--primary-dark);
+  font-weight: 700;
+}
+
+/* 바깥 클릭으로 닫기 위한 투명 배경 */
+.filter-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+}
+
+.filter-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  width: 220px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 12px 36px rgba(46, 36, 26, 0.16);
+  padding: 10px;
+  z-index: 81;
+}
+
+.filter-title {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--text-sub);
+  padding: 4px 12px 10px;
+}
+
+.filter-item {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  border: none;
+  background: none;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  color: var(--text);
+  text-align: left;
+  margin-bottom: 2px;
+}
+
+.filter-item:hover {
+  background: var(--bg-deep);
+}
+
+.filter-item.active {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  font-weight: 700;
+}
+
+.filter-icon {
+  font-size: 15px;
+  width: 22px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
 .question-card {
   background: var(--card-bg);
   border: 1px solid var(--border);
@@ -351,11 +592,12 @@ select:focus {
   padding: 18px 20px;
   margin-bottom: 12px;
   cursor: pointer;
+  box-shadow: var(--shadow-soft);
   transition: box-shadow 0.15s, transform 0.15s;
 }
 
 .question-card:hover {
-  box-shadow: 0 6px 18px rgba(40, 50, 120, 0.1);
+  box-shadow: 0 6px 20px rgba(46, 36, 26, 0.1);
   transform: translateY(-1px);
 }
 
@@ -397,6 +639,10 @@ select:focus {
   font-size: 13px;
   color: var(--primary);
   font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
 }
 
 .empty-note {
@@ -425,9 +671,10 @@ select:focus {
 }
 
 .notice-item {
+  background: var(--bg);
   border: 1px solid var(--border);
   border-left: 4px solid var(--primary);
-  border-radius: 8px;
+  border-radius: var(--radius-btn);
   padding: 12px 14px;
   margin-bottom: 10px;
 }
@@ -445,8 +692,9 @@ select:focus {
 
 .notice-item time {
   display: block;
+  font-family: var(--font-mono);
   font-size: 11px;
-  color: #a0a4b8;
+  color: #a8a69d;
   margin-top: 6px;
 }
 
@@ -454,7 +702,7 @@ select:focus {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(15, 18, 40, 0.55);
+  background: rgba(38, 38, 37, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -464,7 +712,7 @@ select:focus {
 
 .modal {
   background: #fff;
-  border-radius: 16px;
+  border-radius: 20px;
   width: 100%;
   max-width: 640px;
   max-height: 85vh;
@@ -572,9 +820,34 @@ select:focus {
 .qa-left {
   flex: 1;
   min-width: 0;
-  padding: 28px;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
   border-right: 1px solid var(--border);
+}
+
+/* 본문 스크롤 영역 (qa-foot은 아래에 고정) */
+.qa-left-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 28px;
+}
+
+/* 왼쪽 하단 고정 푸터 — 나도 궁금해요 + 수정 */
+.qa-foot {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 28px;
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+}
+
+/* 수정 버튼은 오른쪽 끝으로 */
+.qa-edit {
+  margin-left: auto;
+  background: #fff;
 }
 
 .qa-title {
@@ -742,13 +1015,27 @@ select:focus {
   align-self: flex-start;
 }
 
+/* 카드 본문: 텍스트(왼쪽) + 섬네일(오른쪽) */
+.card-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.card-main {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 첨부/그리기 이미지 섬네일 — 정사각형 미리보기 */
 .card-thumb {
-  margin-top: 10px;
-  max-height: 130px;
-  max-width: 100%;
-  border-radius: 8px;
+  width: 76px;
+  height: 76px;
+  border-radius: 10px;
   border: 1px solid var(--border);
   object-fit: cover;
+  background: #fff;
+  flex-shrink: 0;
 }
 
 /* ===================== 질문 상태 토글 (궁금해요/해결됐어요) ===================== */
@@ -769,25 +1056,70 @@ select:focus {
 }
 
 .status-toggle.open {
-  background: #fff1e0;
-  color: #c2570c;
-  border-color: #f8b878;
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  border-color: #ecbfa9;
 }
 
 .status-toggle.resolved {
-  background: #e3f9e9;
-  color: #15803d;
-  border-color: #86e3a5;
+  background: #e9f0e6;
+  color: #3d7a4a;
+  border-color: #b3d0b4;
 }
 
 /* 해결된 질문 카드는 왼쪽에 초록 띠 표시 */
 .question-card.is-resolved {
-  border-left: 4px solid #22c55e;
+  border-left: 4px solid #5c9e68;
 }
 
 /* 상세 모달 안의 토글: 오른쪽 위 닫기(×) 버튼과 겹치지 않게 여백 확보 */
 .qa-status {
   margin-right: 22px;
+}
+
+/* ===================== 나도 궁금해요 버튼 ===================== */
+/* 카드 오른쪽 아래 + 상세 모달 왼쪽 하단에서 사용.
+   1인 1회 — 누르면 채워진(on) 상태가 되고 다시 누르면 취소됩니다. */
+.metoo-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1.5px solid #ecbfa9;
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+  transition: transform 0.12s, background 0.15s, box-shadow 0.12s;
+}
+
+.metoo-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 3px 10px rgba(46, 36, 26, 0.12);
+}
+
+/* 내가 이미 누른 상태 — 테라코타로 채움 */
+.metoo-btn.on {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+.metoo-count {
+  min-width: 22px;
+  text-align: center;
+  background: #fff;
+  border-radius: 999px;
+  padding: 1px 7px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.metoo-btn.on .metoo-count {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
 }
 
 /* ===================== 그리기 캔버스 ===================== */
@@ -867,7 +1199,7 @@ select:focus {
 
 .rte:focus-within {
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(79, 110, 247, 0.13);
+  box-shadow: 0 0 0 3px rgba(217, 119, 87, 0.16);
 }
 
 .rte-toolbar {
@@ -895,13 +1227,13 @@ select:focus {
   border: none;
   background: none;
   border-radius: 8px;
-  color: #6b7186;
+  color: var(--text-sub);
   cursor: pointer;
   flex-shrink: 0;
 }
 
 .rte-tool:hover {
-  background: #f0f1f6;
+  background: var(--neutral);
   color: var(--text);
 }
 
@@ -949,7 +1281,7 @@ select:focus {
 }
 
 .rte-send:disabled {
-  background: #cdd2e4;
+  background: #d9d6cb;
   cursor: default;
 }
 
@@ -980,7 +1312,7 @@ select:focus {
 /* 비어 있을 때 회색 안내 문구 표시 */
 .rte-area:empty::before {
   content: attr(data-placeholder);
-  color: #a0a4b8;
+  color: #a8a69d;
   pointer-events: none;
 }
 
@@ -989,9 +1321,9 @@ select:focus {
 .qa-content pre,
 .chat-bubble pre,
 .notice-item pre {
-  background: #1e2233;
-  color: #e6e9f5;
-  font-family: "Consolas", "D2Coding", "Courier New", monospace;
+  background: var(--dark);
+  color: #ede9e0;
+  font-family: var(--font-mono);
   font-size: 13px;
   line-height: 1.6;
   padding: 12px 14px;
@@ -1059,7 +1391,7 @@ pre code {
   max-width: 92vw;
   background: #fff;
   border-left: 1px solid var(--border);
-  box-shadow: -12px 0 40px rgba(20, 24, 60, 0.18);
+  box-shadow: -12px 0 40px rgba(46, 36, 26, 0.15);
   display: flex;
   flex-direction: column;
   padding: 18px;
@@ -1098,7 +1430,7 @@ pre code {
 .py-resizer:hover {
   background: linear-gradient(
     to right,
-    rgba(79, 110, 247, 0.35),
+    rgba(217, 119, 87, 0.35),
     transparent
   );
 }
@@ -1184,24 +1516,24 @@ pre code {
 }
 
 .py-editor .cm-scroller {
-  font-family: "Consolas", "D2Coding", "Courier New", monospace;
+  font-family: var(--font-mono);
   line-height: 1.6;
 }
 
 .py-editor .cm-gutters {
-  background: #f4f5f9;
-  color: #a0a4b8;
+  background: var(--bg-deep);
+  color: #a8a69d;
   border-right: 1px solid var(--border);
 }
 
 /* 코드 입력창 */
 .py-code {
-  font-family: "Consolas", "D2Coding", "Courier New", monospace;
+  font-family: var(--font-mono);
   font-size: 13.5px;
   line-height: 1.6;
   min-height: 200px;
   resize: vertical;
-  background: #f8f9fc;
+  background: var(--bg);
   white-space: pre;
   overflow-x: auto;
 }
@@ -1230,10 +1562,10 @@ pre code {
   flex: 1;
   min-height: 120px;
   overflow-y: auto;
-  background: #1e2233;
+  background: var(--dark);
   border-radius: 10px;
   padding: 12px 14px;
-  font-family: "Consolas", "D2Coding", "Courier New", monospace;
+  font-family: var(--font-mono);
   font-size: 13px;
   line-height: 1.6;
 }
@@ -1242,26 +1574,26 @@ pre code {
   display: block;
   white-space: pre-wrap;
   word-break: break-all;
-  color: #d7dbed;
+  color: #dcd9ce;
 }
 
 .py-line.err {
-  color: #ff8a8d;
+  color: #ff9b8a;
 }
 
 .py-line.result {
-  color: #8ad6ff;
+  color: #e8a87c;
 }
 
 .py-line.info {
-  color: #8c91ad;
+  color: #87867f;
 }
 
 /* ===================== 데모 모드 배너 ===================== */
 .demo-banner {
-  background: #fff3f3;
-  border-bottom: 1px solid #f3c5c7;
-  color: #a4373c;
+  background: #faeee9;
+  border-bottom: 1px solid #ecc9b8;
+  color: #a4543c;
   font-size: 13px;
   text-align: center;
   padding: 7px 16px;

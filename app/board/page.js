@@ -13,22 +13,24 @@ import {
 } from "@/lib/store";
 import { isFirebaseConfigured } from "@/lib/firebase";
 import { codeBlockHtml } from "@/lib/html";
-import { getCurrentUser } from "@/lib/user";
 import KeywordSidebar from "@/components/KeywordSidebar";
 import QuestionCard from "@/components/QuestionCard";
 import QuestionModal from "@/components/QuestionModal";
 import NewQuestionForm from "@/components/NewQuestionForm";
 import NoticePanel from "@/components/NoticePanel";
 import PythonRunner from "@/components/PythonRunner";
+import UserProfile from "@/components/UserProfile";
+import FilterMenu, { applyFilter } from "@/components/FilterMenu";
+import { getCurrentUser } from "@/lib/user";
 
 export default function BoardPage() {
   const router = useRouter();
-  const user = getCurrentUser();
 
   const [questions, setQuestions] = useState([]);
   const [notices, setNotices] = useState([]);
   const [keywordDocs, setKeywordDocs] = useState([]); // {id, name, order}
   const [keyword, setKeyword] = useState("전체");
+  const [filter, setFilter] = useState("all"); // 피드 필터 (FilterMenu)
   const [selectedId, setSelectedId] = useState(null);
   const [writing, setWriting] = useState(false);
   const [pyOpen, setPyOpen] = useState(false); // 파이썬 실행 패널
@@ -61,11 +63,12 @@ export default function BoardPage() {
     return c;
   }, [questions, keywordNames]);
 
-  // 선택된 키워드로 필터링
-  const filtered =
+  // 선택된 키워드로 필터링 → 그 위에 피드 필터(미해결/내 글 등) 적용
+  const byKeyword =
     keyword === "전체"
       ? questions
       : questions.filter((q) => q.keyword === keyword);
+  const filtered = applyFilter(byKeyword, filter, getCurrentUser().uid);
 
   // 모달에 표시할 질문 (목록이 갱신되면 answerCount도 함께 갱신되도록 id로 찾음)
   const selectedQuestion = questions.find((q) => q.id === selectedId) ?? null;
@@ -81,7 +84,12 @@ export default function BoardPage() {
       )}
 
       <header className="topbar">
-        <span className="logo">📚 배움나눔</span>
+        {/* 왼쪽: 로고 + 접속 사용자 프로필 (익명 닉네임) */}
+        <div className="topbar-left">
+          <span className="logo">📚 배움나눔</span>
+          <span className="topbar-divider" aria-hidden="true" />
+          <UserProfile />
+        </div>
         <div className="user-area">
           <button
             className={`btn-ghost ${pyOpen ? "py-btn-active" : ""}`}
@@ -89,9 +97,6 @@ export default function BoardPage() {
           >
             🐍 파이썬 실행기
           </button>
-          <span className="user-badge">
-            {user.displayName} ({user.uid})
-          </span>
           <button className="btn-ghost" onClick={() => router.push("/")}>
             로그아웃
           </button>
@@ -116,14 +121,19 @@ export default function BoardPage() {
                 {filtered.length}개
               </span>
             </h2>
-            <button className="btn-primary" onClick={() => setWriting(true)}>
-              ✏️ 질문하기
-            </button>
+            <div className="feed-actions">
+              <FilterMenu value={filter} onChange={setFilter} />
+              <button className="btn-primary" onClick={() => setWriting(true)}>
+                ✏️ 질문하기
+              </button>
+            </div>
           </div>
 
           {filtered.length === 0 ? (
             <p className="empty-note">
-              아직 질문이 없어요. 첫 번째 질문을 올려 보세요!
+              {filter === "all"
+                ? "아직 질문이 없어요. 첫 번째 질문을 올려 보세요!"
+                : "이 필터에 해당하는 질문이 없어요."}
             </p>
           ) : (
             filtered.map((q) => (
@@ -143,6 +153,7 @@ export default function BoardPage() {
       {selectedQuestion && (
         <QuestionModal
           question={selectedQuestion}
+          keywords={keywordNames}
           onClose={() => setSelectedId(null)}
         />
       )}

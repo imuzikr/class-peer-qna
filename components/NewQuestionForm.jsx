@@ -1,8 +1,9 @@
 "use client";
 
-// 새 질문 작성 모달 — 키워드 + 제목 + 내용(서식 지원) + 이미지 첨부 + 그리기
+// 새 질문 작성 + 수정 모달 — 키워드 + 제목 + 내용(서식 지원) + 이미지 첨부 + 그리기
+// question prop이 있으면 "수정 모드"로 동작합니다 (기존 내용을 미리 채움).
 import { useState } from "react";
-import { KEYWORDS, addQuestion } from "@/lib/store";
+import { KEYWORDS, addQuestion, updateQuestion } from "@/lib/store";
 import { getCurrentUser } from "@/lib/user";
 import { sanitizeHtml, stripHtml } from "@/lib/html";
 import { readImageAsDataUrl } from "@/lib/image";
@@ -13,16 +14,30 @@ export default function NewQuestionForm({
   defaultKeyword,
   keywords = [], // 데이터에서 내려받은 키워드 목록 (이름 배열)
   initialContent = "", // 미리 채워 둘 내용 (파이썬 실행기의 '질문 만들기')
+  question = null, // 수정할 기존 질문 (있으면 수정 모드)
   onClose,
 }) {
+  const editing = !!question;
   // 아직 로드 전이면 기본 키워드로 폴백
-  const list = keywords.length > 0 ? keywords : KEYWORDS;
+  let list = keywords.length > 0 ? keywords : KEYWORDS;
+  // 수정 모드에서 기존 키워드가 목록에 없어도 선택 가능하도록 보존
+  if (editing && !list.includes(question.keyword)) {
+    list = [...list, question.keyword];
+  }
   const [keyword, setKeyword] = useState(
-    list.includes(defaultKeyword) ? defaultKeyword : list[0]
+    editing
+      ? question.keyword
+      : list.includes(defaultKeyword)
+      ? defaultKeyword
+      : list[0]
   );
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState(initialContent); // 서식(HTML) 내용
-  const [imageUrl, setImageUrl] = useState(null);
+  const [title, setTitle] = useState(editing ? question.title : "");
+  const [content, setContent] = useState(
+    editing ? question.content : initialContent
+  ); // 서식(HTML) 내용
+  const [imageUrl, setImageUrl] = useState(
+    editing ? question.imageUrl ?? null : null
+  );
   const [drawing, setDrawing] = useState(false); // 그리기 캔버스 열림 여부
   const [saving, setSaving] = useState(false);
 
@@ -43,12 +58,17 @@ export default function NewQuestionForm({
     if (!title.trim() || stripHtml(html).length === 0) return;
     setSaving(true);
     try {
-      await addQuestion(getCurrentUser(), {
+      const data = {
         title: title.trim(),
         content: html,
         keyword,
         imageUrl,
-      });
+      };
+      if (editing) {
+        await updateQuestion(question.id, data);
+      } else {
+        await addQuestion(getCurrentUser(), data);
+      }
       onClose();
     } finally {
       setSaving(false);
@@ -59,7 +79,7 @@ export default function NewQuestionForm({
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
-          <h3>✏️ 새 질문 올리기</h3>
+          <h3>{editing ? "✏️ 질문 수정하기" : "✏️ 새 질문 올리기"}</h3>
           <button className="btn-close" onClick={onClose} aria-label="닫기">
             ×
           </button>
@@ -85,7 +105,7 @@ export default function NewQuestionForm({
           {/* 서식 입력창 — 툴바에 이미지 첨부·그리기 도구 포함 */}
           <RichTextEditor
             variant="full"
-            initialHtml={initialContent}
+            initialHtml={editing ? question.content : initialContent}
             onChange={setContent}
             placeholder="어떤 부분이 이해되지 않는지 구체적으로 적어 주세요. (예: 교과서 몇 쪽, 어떤 개념, 어디까지 풀었는지)"
           >
@@ -126,7 +146,13 @@ export default function NewQuestionForm({
           )}
 
           <button type="submit" className="btn-primary" disabled={saving}>
-            {saving ? "등록 중..." : "질문 등록"}
+            {saving
+              ? editing
+                ? "저장 중..."
+                : "등록 중..."
+              : editing
+              ? "수정 저장"
+              : "질문 등록"}
           </button>
         </form>
 

@@ -73,7 +73,10 @@ export default function NoticePanel({ notices }) {
         <div className="notice-item" key={n.id}>
           <h4>{n.title}</h4>
           <p dangerouslySetInnerHTML={{ __html: sanitizeHtml(n.content) }} />
-          <time>{formatTime(n.createdAt)}</time>
+          {/* 공지 작성자는 항상 "선생님"으로 표시됩니다 */}
+          <time>
+            👩‍🏫 {n.authorName ?? "선생님"} · {formatTime(n.createdAt)}
+          </time>
         </div>
       ))}
     </aside>
