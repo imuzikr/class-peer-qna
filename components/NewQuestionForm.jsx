@@ -77,7 +77,8 @@ export default function NewQuestionForm({
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      {/* 상세 모달(modal-wide)과 같은 크기로 맞춘 작성 폼 */}
+      <div className="modal modal-form" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <h3>{editing ? "✏️ 질문 수정하기" : "✏️ 새 질문 올리기"}</h3>
           <button className="btn-close" onClick={onClose} aria-label="닫기">

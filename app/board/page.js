@@ -21,6 +21,7 @@ import NoticePanel from "@/components/NoticePanel";
 import PythonRunner from "@/components/PythonRunner";
 import UserProfile from "@/components/UserProfile";
 import FilterMenu, { applyFilter } from "@/components/FilterMenu";
+import RoleSwitcher from "@/components/RoleSwitcher";
 import { getCurrentUser } from "@/lib/user";
 
 export default function BoardPage() {
@@ -46,6 +47,14 @@ export default function BoardPage() {
       unsubN();
       unsubK();
     };
+  }, []);
+
+  // [개발용] 관리자/학생 보기 전환 시 화면 전체를 새 역할로 다시 그림
+  const [, setRoleTick] = useState(0);
+  useEffect(() => {
+    const onRoleChange = () => setRoleTick((t) => t + 1);
+    window.addEventListener("role-change", onRoleChange);
+    return () => window.removeEventListener("role-change", onRoleChange);
   }, []);
 
   // 키워드 이름 목록 (order 순서대로)
@@ -91,6 +100,8 @@ export default function BoardPage() {
           <UserProfile />
         </div>
         <div className="user-area">
+          {/* 개발용 — 관리자/학생 화면 전환 */}
+          <RoleSwitcher />
           <button
             className={`btn-ghost ${pyOpen ? "py-btn-active" : ""}`}
             onClick={() => setPyOpen(!pyOpen)}

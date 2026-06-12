@@ -417,6 +417,30 @@ select:focus {
   color: var(--text-sub);
 }
 
+/* [개발용] 관리자/학생 보기 전환 토글 */
+.role-switch {
+  display: inline-flex;
+  gap: 2px;
+  background: var(--neutral);
+  border-radius: 999px;
+  padding: 3px;
+}
+
+.role-switch button {
+  border: none;
+  background: none;
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-sub);
+}
+
+.role-switch button.active {
+  background: var(--dark);
+  color: #faf9f5;
+}
+
 .three-cols {
   display: flex;
   flex: 1;
@@ -794,6 +818,18 @@ select:focus {
 .form-row select {
   width: 140px;
   flex-shrink: 0;
+}
+
+/* ===================== 질문 작성/수정 모달 ===================== */
+/* 상세 모달(modal-wide)과 같은 폭. 입력 영역도 넉넉하게 키워서
+   글이 길어도 스크롤 없이 편하게 쓸 수 있습니다. */
+.modal-form {
+  max-width: 1000px;
+}
+
+.modal-form .rte-full .rte-area {
+  min-height: 320px;
+  max-height: 52vh;
 }
 
 /* ===================== 질문 상세 모달 (2열 구조) ===================== */
