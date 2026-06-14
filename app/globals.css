@@ -2075,6 +2075,19 @@ pre code {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: box-shadow 0.15s, background 0.15s;
+}
+
+.admin-stat:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.admin-stat.is-active {
+  background: var(--primary-light);
+  box-shadow: 0 0 0 2px var(--primary);
 }
 
 .admin-stat span {
@@ -2504,4 +2517,80 @@ pre code {
   .report-charts {
     grid-template-columns: 1fr;
   }
+}
+
+/* 통계 카드 드릴다운 패널 */
+.stat-detail {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.stat-detail-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.stat-detail-head h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--dark);
+}
+
+.stat-detail-count {
+  font-size: 13px;
+  color: var(--text-sub);
+}
+
+.stat-detail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.stat-detail-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text);
+  transition: background 0.12s;
+}
+
+.stat-detail-item:hover {
+  background: var(--bg);
+}
+
+.stat-detail-title {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stat-detail-badge {
+  font-size: 12px;
+  color: var(--text-sub);
+  white-space: nowrap;
+}
+
+.stat-detail-item time {
+  font-size: 12px;
+  color: var(--text-sub);
+  white-space: nowrap;
 }

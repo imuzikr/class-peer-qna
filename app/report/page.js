@@ -30,14 +30,34 @@ function shortDate(date) {
   return `${date.getMonth() + 1}/${date.getDate()}`;
 }
 
-function StatCard({ label, value, tone }) {
+function StatCard({ label, value, tone, isActive, onClick }) {
   return (
-    <div className={`admin-stat ${tone ? `tone-${tone}` : ""}`}>
+    <button
+      type="button"
+      className={`admin-stat${tone ? ` tone-${tone}` : ""}${isActive ? " is-active" : ""}`}
+      onClick={onClick}
+    >
       <span>{label}</span>
       <strong>{value}</strong>
-    </div>
+    </button>
   );
 }
+
+const STAT_LABELS = {
+  ask: "내 질문",
+  answer: "내 답변",
+  resolved: "해결된 질문",
+  metoo: "받은 궁금해요",
+  pin: "상단 고정 질문",
+};
+
+const STAT_EMPTY = {
+  ask: "아직 질문을 올리지 않았어요.",
+  answer: "아직 답변을 남기지 않았어요.",
+  resolved: "해결된 질문이 없어요.",
+  metoo: "궁금해요를 받은 질문이 없어요.",
+  pin: "상단 고정된 질문이 없어요.",
+};
 
 function EmptyPanel({ children }) {
   return <div className="admin-empty">{children}</div>;
@@ -132,6 +152,7 @@ export default function StudentReportPage() {
   const [answersByQuestion, setAnswersByQuestion] = useState({});
   const [reflectOpen, setReflectOpen] = useState(true); // 내 회고 모음 펼침 여부
   const reflectDefaultApplied = useRef(false); // 기본 펼침/접힘을 한 번만 자동 적용
+  const [activeStatKey, setActiveStatKey] = useState(null); // 통계 카드 드릴다운
 
   useEffect(() => {
     const unsubQ = subscribeQuestions(setQuestions);
@@ -193,6 +214,72 @@ export default function StudentReportPage() {
             toDate(b.reflection.createdAt) - toDate(a.reflection.createdAt)
         )
     : [];
+  // 통계 카드 드릴다운 목록
+  const statDetailItems = useMemo(() => {
+    switch (activeStatKey) {
+      case "ask":
+        return myQuestions.map((q) => ({
+          key: q.id,
+          questionId: q.id,
+          keyword: q.keyword,
+          title: q.title,
+          badge: q.resolved ? "✅ 해결됨" : "🙋 미해결",
+          time: q.createdAt,
+        }));
+      case "answer": {
+        const seen = new Set();
+        return myAnswerEvents
+          .filter((e) => {
+            if (seen.has(e.question.id)) return false;
+            seen.add(e.question.id);
+            return true;
+          })
+          .map((e) => ({
+            key: `a-${e.question.id}`,
+            questionId: e.question.id,
+            keyword: e.question.keyword,
+            title: e.question.title,
+            badge: null,
+            time: e.answer.createdAt,
+          }));
+      }
+      case "resolved":
+        return myQuestions
+          .filter((q) => q.resolved)
+          .map((q) => ({
+            key: q.id,
+            questionId: q.id,
+            keyword: q.keyword,
+            title: q.title,
+            badge: null,
+            time: q.createdAt,
+          }));
+      case "metoo":
+        return myQuestions
+          .filter((q) => getMeTooCount(q) > 0)
+          .sort((a, b) => getMeTooCount(b) - getMeTooCount(a))
+          .map((q) => ({
+            key: q.id,
+            questionId: q.id,
+            keyword: q.keyword,
+            title: q.title,
+            badge: `🙋 ${getMeTooCount(q)}`,
+            time: q.createdAt,
+          }));
+      case "pin":
+        return myQuestions.filter(isPinnedQuestion).map((q) => ({
+          key: q.id,
+          questionId: q.id,
+          keyword: q.keyword,
+          title: q.title,
+          badge: "📌 고정",
+          time: q.createdAt,
+        }));
+      default:
+        return [];
+    }
+  }, [activeStatKey, myQuestions, myAnswerEvents]);
+
   // 회고가 처음 로드될 때 한 번만 — 5개 이상이면 접힌 채로 시작합니다.
   // (이후 사용자가 직접 펼치고 접는 건 그대로 유지됩니다.)
   useEffect(() => {
@@ -263,12 +350,53 @@ export default function StudentReportPage() {
         </section>
 
         <section className="admin-stats-grid">
-          <StatCard label="내 질문" value={myQuestions.length} tone="ask" />
-          <StatCard label="내 답변" value={myAnswerEvents.length} tone="answer" />
-          <StatCard label="해결된 질문" value={resolvedQuestions} tone="done" />
-          <StatCard label="받은 궁금해요" value={totalMeToo} tone="metoo" />
-          <StatCard label="상단 고정 질문" value={pinnedQuestions} tone="pin" />
+          {[
+            { key: "ask", label: "내 질문", value: myQuestions.length, tone: "ask" },
+            { key: "answer", label: "내 답변", value: myAnswerEvents.length, tone: "answer" },
+            { key: "resolved", label: "해결된 질문", value: resolvedQuestions, tone: "done" },
+            { key: "metoo", label: "받은 궁금해요", value: totalMeToo, tone: "metoo" },
+            { key: "pin", label: "상단 고정 질문", value: pinnedQuestions, tone: "pin" },
+          ].map(({ key, label, value, tone }) => (
+            <StatCard
+              key={key}
+              label={label}
+              value={value}
+              tone={tone}
+              isActive={activeStatKey === key}
+              onClick={() => setActiveStatKey((k) => (k === key ? null : key))}
+            />
+          ))}
         </section>
+
+        {activeStatKey && (
+          <section className="stat-detail">
+            <div className="stat-detail-head">
+              <h3>{STAT_LABELS[activeStatKey]}</h3>
+              <span className="stat-detail-count">{statDetailItems.length}건</span>
+            </div>
+            {statDetailItems.length === 0 ? (
+              <EmptyPanel>{STAT_EMPTY[activeStatKey]}</EmptyPanel>
+            ) : (
+              <div className="stat-detail-list">
+                {statDetailItems.map((item) => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    className="stat-detail-item"
+                    onClick={() => router.push(`/board?open=${item.questionId}`)}
+                  >
+                    <span className="keyword-chip"># {item.keyword}</span>
+                    <span className="stat-detail-title">{item.title}</span>
+                    {item.badge && (
+                      <span className="stat-detail-badge">{item.badge}</span>
+                    )}
+                    <time>{formatTime(item.time)}</time>
+                  </button>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
 
         <section className="report-reflection">
           <div className="admin-panel-head">

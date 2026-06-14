@@ -52,6 +52,18 @@ export default function BoardPage() {
     };
   }, []);
 
+  // 학습 리포트에서 ?open=<id>로 넘어오면 해당 질문 모달을 자동 열기
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const openId = params.get("open");
+    if (openId) {
+      setSelectedId(openId);
+      const url = new URL(window.location.href);
+      url.searchParams.delete("open");
+      window.history.replaceState({}, "", url.toString());
+    }
+  }, []);
+
   // [개발용] 관리자/학생 보기 전환 시 화면 전체를 새 역할로 다시 그림
   const [, setRoleTick] = useState(0);
   useEffect(() => {
