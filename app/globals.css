@@ -2085,9 +2085,30 @@ pre code {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
+/* 선택 상태 — 카드별 강조색(tone)과 같은 계열로 표시합니다. */
 .admin-stat.is-active {
+  box-shadow: 0 0 0 2px var(--primary);
+}
+
+.admin-stat.tone-ask.is-active {
   background: var(--primary-light);
   box-shadow: 0 0 0 2px var(--primary);
+}
+
+.admin-stat.tone-answer.is-active,
+.admin-stat.tone-done.is-active {
+  background: #eef5ef;
+  box-shadow: 0 0 0 2px #5c9e68;
+}
+
+.admin-stat.tone-metoo.is-active {
+  background: #fbf3df;
+  box-shadow: 0 0 0 2px #d4a72c;
+}
+
+.admin-stat.tone-pin.is-active {
+  background: #f4ece0;
+  box-shadow: 0 0 0 2px #8a5a12;
 }
 
 .admin-stat span {
