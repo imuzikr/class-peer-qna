@@ -3,17 +3,32 @@
 // 2단: 질문 카드 — 내용 일부만 미리 보여주고, 클릭하면 상세 모달이 열립니다.
 // 오른쪽 위의 상태 토글(🙋 궁금해요 / ✅ 해결됐어요)을 누르면
 // 카드를 열지 않고도 해결 상태를 전환할 수 있습니다.
-import { formatTime, setQuestionResolved } from "@/lib/store";
+// 카드에서 해결 시 회고가 없으므로 자동으로 "나중에 쓸게요" 상태가 됩니다.
+import {
+  formatTime,
+  setQuestionResolved,
+  setQuestionResolvedLater,
+} from "@/lib/store";
 import { stripHtml } from "@/lib/html";
+import { getCurrentUser, isAdmin } from "@/lib/user";
 import MeTooButton from "./MeTooButton";
 import AuthorBadge from "./AuthorBadge";
 
 export default function QuestionCard({ question, onClick }) {
+  const user = getCurrentUser();
   const resolved = !!question.resolved;
+  const mine = question.authorId === user.uid;
+  const showPending =
+    question.reflectionPending && (mine || isAdmin(user));
 
   function toggleResolved(e) {
     e.stopPropagation(); // 카드 클릭(모달 열기)으로 번지지 않도록
-    setQuestionResolved(question.id, !resolved);
+    if (resolved) {
+      setQuestionResolved(question.id, false);
+    } else {
+      // 카드에서 해결 시 회고 모달을 띄울 수 없으므로 "나중에" 상태로 전환
+      setQuestionResolvedLater(question.id);
+    }
   }
 
   return (
@@ -61,6 +76,15 @@ export default function QuestionCard({ question, onClick }) {
           💬 답변 {question.answerCount ?? 0}개
           {question.imageUrl && (
             <span style={{ marginLeft: 8 }}>📎 이미지</span>
+          )}
+          {/* 회고 대기 배지 — 작성자 본인과 교사에게만 표시됩니다 */}
+          {showPending && (
+            <span
+              className={`reflect-pending-badge ${mine ? "mine" : "teacher"}`}
+              title={mine ? "회고를 아직 남기지 않았어요" : "이 학생이 아직 회고를 남기지 않았어요"}
+            >
+              📝 {mine ? "회고 남기기" : "회고 대기"}
+            </span>
           )}
         </span>
         {/* 카드 오른쪽 아래 — 모달을 열지 않고도 누를 수 있습니다 */}

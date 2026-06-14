@@ -12,7 +12,7 @@ import {
   formatTime,
   setQuestionResolved,
 } from "@/lib/store";
-import { getCurrentUser } from "@/lib/user";
+import { getCurrentUser, isAdmin } from "@/lib/user";
 import { sanitizeHtml, stripHtml } from "@/lib/html";
 import { readImageAsDataUrl } from "@/lib/image";
 import RichTextEditor, { IconImage, IconPen } from "./RichTextEditor";
@@ -24,7 +24,8 @@ import AuthorBadge from "./AuthorBadge";
 
 export default function QuestionModal({ question, keywords = [], onClose }) {
   const user = getCurrentUser();
-  const mine = question.authorId === user.uid; // 내가 쓴 질문인지
+  const mine = question.authorId === user.uid;
+  const admin = isAdmin(user);
   const [answers, setAnswers] = useState([]);
   const [content, setContent] = useState(""); // 입력 중인 HTML
   const [answerImage, setAnswerImage] = useState(null); // 첨부 이미지
@@ -123,6 +124,28 @@ export default function QuestionModal({ question, keywords = [], onClose }) {
                 </button>
               </div>
               <h3 className="qa-title">{question.title}</h3>
+
+              {/* 회고 대기 알림 배너 — 작성자 본인과 교사에게 각각 다른 메시지 */}
+              {question.reflectionPending && mine && (
+                <div className="reflect-reminder mine">
+                  <span>
+                    📝 나중에 쓰겠다고 했던 회고가 아직 남아 있어요.
+                  </span>
+                  <button
+                    type="button"
+                    className="btn-ghost reflect-reminder-btn"
+                    onClick={() => setReflecting(true)}
+                  >
+                    지금 남기기
+                  </button>
+                </div>
+              )}
+              {question.reflectionPending && !mine && admin && (
+                <div className="reflect-reminder teacher">
+                  📋 이 학생이 아직 회고를 남기지 않았어요
+                </div>
+              )}
+
               <div
                 className="qa-content"
                 dangerouslySetInnerHTML={{
@@ -283,6 +306,7 @@ export default function QuestionModal({ question, keywords = [], onClose }) {
           <ReflectionModal
             question={question}
             user={user}
+            isPending={!!question.reflectionPending}
             onClose={() => setReflecting(false)}
           />
         )}

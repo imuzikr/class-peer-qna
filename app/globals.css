@@ -880,6 +880,59 @@ select:focus {
   border-color: var(--primary);
 }
 
+/* 카드 하단 회고 대기 배지 */
+.reflect-pending-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 10px;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-weight: 500;
+}
+
+.reflect-pending-badge.mine {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+}
+
+.reflect-pending-badge.teacher {
+  background: #e8f0fe;
+  color: #3a5fb7;
+}
+
+/* 모달 내 회고 대기 알림 배너 */
+.reflect-reminder {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  font-size: 13px;
+}
+
+.reflect-reminder.mine {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  border-left: 3px solid var(--primary);
+}
+
+.reflect-reminder.teacher {
+  background: #e8f0fe;
+  color: #3a5fb7;
+  border-left: 3px solid #4a6fcf;
+}
+
+.reflect-reminder-btn {
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 4px 10px;
+}
+
 .reflect-actions {
   display: flex;
   justify-content: space-between;
