@@ -5,11 +5,13 @@
 // 카드를 열지 않고도 해결 상태를 전환할 수 있습니다.
 import { formatTime, setQuestionResolved } from "@/lib/store";
 import { stripHtml } from "@/lib/html";
+import { isPinnedQuestion } from "@/lib/questionRanking";
 import MeTooButton from "./MeTooButton";
 import AuthorBadge from "./AuthorBadge";
 
 export default function QuestionCard({ question, onClick }) {
   const resolved = !!question.resolved;
+  const pinned = isPinnedQuestion(question);
 
   function toggleResolved(e) {
     e.stopPropagation(); // 카드 클릭(모달 열기)으로 번지지 않도록
@@ -18,11 +20,18 @@ export default function QuestionCard({ question, onClick }) {
 
   return (
     <article
-      className={`question-card ${resolved ? "is-resolved" : ""}`}
+      className={`question-card ${resolved ? "is-resolved" : ""} ${
+        pinned ? "is-pinned" : ""
+      }`}
       onClick={onClick}
     >
       <div className="card-meta">
         <span className="keyword-chip"># {question.keyword}</span>
+        {pinned && (
+          <span className="pin-chip" title="나도 궁금해요 5회 이상">
+            📌 상단 고정
+          </span>
+        )}
         {/* 작성자 프로필 — 관리자는 클릭해서 실명 확인 가능 */}
         <AuthorBadge
           name={question.authorName}

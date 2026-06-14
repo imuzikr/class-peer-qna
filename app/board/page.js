@@ -22,7 +22,9 @@ import PythonRunner from "@/components/PythonRunner";
 import UserProfile from "@/components/UserProfile";
 import FilterMenu, { applyFilter } from "@/components/FilterMenu";
 import RoleSwitcher from "@/components/RoleSwitcher";
-import { getCurrentUser } from "@/lib/user";
+import { isAdmin } from "@/lib/user";
+import { sortPinnedQuestions } from "@/lib/questionRanking";
+import { useCurrentUser } from "@/lib/useCurrentUser";
 
 export default function BoardPage() {
   const router = useRouter();
@@ -36,6 +38,7 @@ export default function BoardPage() {
   const [writing, setWriting] = useState(false);
   const [pyOpen, setPyOpen] = useState(false); // 파이썬 실행 패널
   const [askCode, setAskCode] = useState(null); // 실행기에서 넘어온 코드
+  const user = useCurrentUser();
 
   // 실시간 구독 (컴포넌트가 사라지면 자동 해제)
   useEffect(() => {
@@ -77,7 +80,9 @@ export default function BoardPage() {
     keyword === "전체"
       ? questions
       : questions.filter((q) => q.keyword === keyword);
-  const filtered = applyFilter(byKeyword, filter, getCurrentUser().uid);
+  const filtered = sortPinnedQuestions(
+    applyFilter(byKeyword, filter, user?.uid ?? "")
+  );
 
   // 모달에 표시할 질문 (목록이 갱신되면 answerCount도 함께 갱신되도록 id로 찾음)
   const selectedQuestion = questions.find((q) => q.id === selectedId) ?? null;
@@ -102,6 +107,16 @@ export default function BoardPage() {
         <div className="user-area">
           {/* 개발용 — 관리자/학생 화면 전환 */}
           <RoleSwitcher />
+          {user && isAdmin(user) && (
+            <button className="btn-ghost" onClick={() => router.push("/admin")}>
+              📊 관리자 대시보드
+            </button>
+          )}
+          {user && !isAdmin(user) && (
+            <button className="btn-ghost" onClick={() => router.push("/report")}>
+              📈 학습 리포트
+            </button>
+          )}
           <button
             className={`btn-ghost ${pyOpen ? "py-btn-active" : ""}`}
             onClick={() => setPyOpen(!pyOpen)}

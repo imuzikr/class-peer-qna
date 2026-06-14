@@ -11,8 +11,10 @@ import {
   addAnswer,
   formatTime,
   setQuestionResolved,
+  setUnderstoodAnswer,
 } from "@/lib/store";
-import { getCurrentUser } from "@/lib/user";
+import { getCurrentUser, isAdmin } from "@/lib/user";
+import { isFirebaseConfigured } from "@/lib/firebase";
 import { sanitizeHtml, stripHtml } from "@/lib/html";
 import { readImageAsDataUrl } from "@/lib/image";
 import RichTextEditor, { IconImage, IconPen } from "./RichTextEditor";
@@ -32,6 +34,7 @@ export default function QuestionModal({ question, keywords = [], onClose }) {
   const [saving, setSaving] = useState(false);
   const [resetKey, setResetKey] = useState(0); // 전송 후 에디터 비우기
   const scrollRef = useRef(null);
+  const understoodAnswerId = question.understoodAnswerId ?? null;
 
   useEffect(() => {
     const unsubscribe = subscribeAnswers(question.id, setAnswers);
@@ -70,6 +73,16 @@ export default function QuestionModal({ question, keywords = [], onClose }) {
       setSaving(false);
     }
   }
+
+  function handleUnderstood(answerId) {
+    setUnderstoodAnswer(
+      question.id,
+      understoodAnswerId === answerId ? null : answerId
+    );
+  }
+
+  const canManageUnderstood =
+    question.authorId === user.uid || isAdmin(user) || !isFirebaseConfigured;
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
@@ -176,6 +189,10 @@ export default function QuestionModal({ question, keywords = [], onClose }) {
                   time={a.createdAt}
                   html={a.content}
                   imageUrl={a.imageUrl}
+                  understood={understoodAnswerId === a.id}
+                  showUnderstoodIcon
+                  canMarkUnderstood={canManageUnderstood && a.authorId !== user.uid}
+                  onToggleUnderstood={() => handleUnderstood(a.id)}
                 />
               ))}
 
@@ -256,6 +273,19 @@ export default function QuestionModal({ question, keywords = [], onClose }) {
   );
 }
 
+function IconTipsAndUpdates() {
+  return (
+    <svg
+      className="understood-icon"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d="M4 10H2V8h2v2Zm18 0h-2V8h2v2ZM5.65 5.05 4.25 3.65l1.4-1.4 1.4 1.4-1.4 1.4Zm12.7 0-1.4-1.4 1.4-1.4 1.4 1.4-1.4 1.4ZM11 22c-.55 0-1.02-.2-1.41-.59C9.2 21.02 9 20.55 9 20h6c0 .55-.2 1.02-.59 1.41-.39.39-.86.59-1.41.59h-2Zm-3-3v-2h8v2H8Zm.25-3c-1.32-.78-2.36-1.78-3.11-3A7.1 7.1 0 0 1 4 9.25c0-2.2.78-4.08 2.34-5.64C7.9 2.05 9.78 1.27 12 1.27s4.1.78 5.66 2.34C19.22 5.17 20 7.05 20 9.25c0 1.4-.38 2.65-1.14 3.75-.75 1.22-1.79 2.22-3.11 3H8.25Zm.65-2h6.2c.9-.58 1.61-1.28 2.13-2.11.51-.84.77-1.72.77-2.64 0-1.65-.59-3.06-1.76-4.24C15.06 3.84 13.65 3.25 12 3.25s-3.06.59-4.24 1.76C6.59 6.19 6 7.6 6 9.25c0 .92.26 1.8.77 2.64.52.83 1.23 1.53 2.13 2.11Z" />
+    </svg>
+  );
+}
+
 // 채팅 말풍선 한 개 — 내 글은 오른쪽, 다른 사람 글은 왼쪽에 표시
 function ChatMessage({
   mine,
@@ -267,12 +297,44 @@ function ChatMessage({
   html,
   imageUrl,
   badge,
+  understood = false,
+  showUnderstoodIcon = false,
+  canMarkUnderstood = false,
+  onToggleUnderstood,
 }) {
   const hasText = stripHtml(html ?? "").length > 0;
   return (
-    <div className={`chat-msg ${mine ? "mine" : ""}`}>
+    <div className={`chat-msg ${mine ? "mine" : ""} ${understood ? "understood" : ""}`}>
       <div className="chat-meta">
         {badge && <span className="chat-badge">{badge}</span>}
+        {showUnderstoodIcon && (
+          canMarkUnderstood ? (
+            <button
+              type="button"
+              className={`understood-bulb ${understood ? "on" : ""}`}
+              onClick={onToggleUnderstood}
+              aria-label={
+                understood
+                  ? "이해됐어요 표시 해제"
+                  : "이 답변으로 이해됐어요 표시"
+              }
+              title={
+                understood
+                  ? "이해됐어요 표시 해제"
+                  : "이 답변으로 이해됐어요"
+              }
+            >
+              <IconTipsAndUpdates />
+            </button>
+          ) : (
+            <span
+              className={`understood-bulb readonly ${understood ? "on" : ""}`}
+              title={understood ? "질문자가 이해됐어요로 표시한 답변" : "답변"}
+            >
+              <IconTipsAndUpdates />
+            </span>
+          )
+        )}
         {/* 작성자 프로필 — 관리자는 클릭해서 실명 확인 가능 */}
         <AuthorBadge name={author} emoji={emoji} realName={realName} uid={uid} />
         {" · "}
