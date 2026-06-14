@@ -1,14 +1,10 @@
 "use client";
 
 // 2단: 질문 카드 — 내용 일부만 미리 보여주고, 클릭하면 상세 모달이 열립니다.
-// 오른쪽 위의 상태 토글(🙋 궁금해요 / ✅ 해결됐어요)을 누르면
-// 카드를 열지 않고도 해결 상태를 전환할 수 있습니다.
-// 카드에서 해결 시 회고가 없으므로 자동으로 "나중에 쓸게요" 상태가 됩니다.
-import {
-  formatTime,
-  setQuestionResolved,
-  setQuestionResolvedLater,
-} from "@/lib/store";
+// 상태(🙋 궁금해요 / ✅ 해결됐어요)는 표시 전용 배지입니다.
+// 해결 처리는 반드시 상세 모달의 회고 흐름을 거치도록 했기 때문에,
+// 카드에서 모달 없이 해결로 바꾸는 동작은 두지 않습니다.
+import { formatTime } from "@/lib/store";
 import { stripHtml } from "@/lib/html";
 import { getCurrentUser, isAdmin } from "@/lib/user";
 import { isPinnedQuestion } from "@/lib/questionRanking";
@@ -21,16 +17,6 @@ export default function QuestionCard({ question, onClick }) {
   const mine = question.authorId === user.uid;
   const pinned = isPinnedQuestion(question);
   const showPending = question.reflectionPending && (mine || isAdmin(user));
-
-  function toggleResolved(e) {
-    e.stopPropagation(); // 카드 클릭(모달 열기)으로 번지지 않도록
-    if (resolved) {
-      setQuestionResolved(question.id, false);
-    } else {
-      // 카드에서 해결 시 회고 모달을 띄울 수 없으므로 "나중에" 상태로 전환
-      setQuestionResolvedLater(question.id);
-    }
-  }
 
   return (
     <article
@@ -55,14 +41,12 @@ export default function QuestionCard({ question, onClick }) {
         />
         <span>·</span>
         <time>{formatTime(question.createdAt)}</time>
-        <button
-          type="button"
-          className={`status-toggle ${resolved ? "resolved" : "open"}`}
-          onClick={toggleResolved}
-          title="클릭해서 상태 바꾸기"
+        <span
+          className={`status-badge ${resolved ? "resolved" : "open"}`}
+          title={resolved ? "해결된 질문" : "아직 궁금한 질문"}
         >
           {resolved ? "✅ 해결됐어요" : "🙋 궁금해요"}
-        </button>
+        </span>
       </div>
       {/* 본문(왼쪽) + 첨부/그리기 이미지 섬네일(오른쪽) */}
       <div className="card-body">

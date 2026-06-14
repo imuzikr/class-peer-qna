@@ -182,6 +182,15 @@ export default function StudentReportPage() {
   const dailyStats = buildDailyStats(myQuestions, myAnswerEvents);
   const events = recentEvents(myQuestions, myAnswerEvents);
   const reflection = weeklyReflection(myQuestions, myAnswerEvents, keywordStats);
+  // 내가 남긴 회고들 — 질문 문서의 reflection을 최신순으로 모읍니다.
+  const myReflections = user
+    ? questions
+        .filter((q) => q.reflection && q.reflection.authorId === user.uid)
+        .sort(
+          (a, b) =>
+            toDate(b.reflection.createdAt) - toDate(a.reflection.createdAt)
+        )
+    : [];
   const maxKeyword = Math.max(1, ...keywordStats.map((item) => item.count));
   const maxDaily = Math.max(1, ...dailyStats.map((day) => day.asked + day.answered));
   const totalActivity = myQuestions.length + myAnswerEvents.length;
@@ -253,8 +262,8 @@ export default function StudentReportPage() {
 
         <section className="report-reflection">
           <div className="admin-panel-head">
-            <h2>이번 주 회고</h2>
-            <span>성장 기록</span>
+            <h2>이번 주 학습 길잡이</h2>
+            <span>활동 요약</span>
           </div>
           <div className="reflection-grid">
             {reflection.map((item) => (
@@ -263,6 +272,41 @@ export default function StudentReportPage() {
               </div>
             ))}
           </div>
+        </section>
+
+        <section className="admin-activity-panel reflection-collection">
+          <div className="admin-panel-head">
+            <h2>📒 내 회고 모음</h2>
+            <span>{myReflections.length}개</span>
+          </div>
+          {myReflections.length === 0 ? (
+            <EmptyPanel>
+              질문이 해결되면 “이렇게 이해했어요”를 한 줄 남겨 보세요.
+              여기에 모여 나만의 학습 기록이 됩니다.
+            </EmptyPanel>
+          ) : (
+            <div className="reflection-cards">
+              {myReflections.map((item) => (
+                <div className="reflection-card" key={item.id}>
+                  <div className="reflection-card-head">
+                    <span className="keyword-chip"># {item.keyword}</span>
+                    <strong>{item.title}</strong>
+                    <time>{formatTime(item.reflection.createdAt)}</time>
+                  </div>
+                  {item.reflection.learned && (
+                    <p className="reflection-learned">
+                      💡 {item.reflection.learned}
+                    </p>
+                  )}
+                  {item.reflection.next && (
+                    <p className="reflection-next">
+                      🔎 더 알고 싶은 점 — {item.reflection.next}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </section>
 
         <section className="admin-charts report-charts">

@@ -1324,6 +1324,30 @@ button.understood-bulb:hover {
   border-color: #b3d0b4;
 }
 
+/* 카드의 상태 표시 — 클릭 불가(상태 변경은 상세 모달의 회고 흐름에서만) */
+.status-badge {
+  margin-left: auto;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 800;
+  border: 1.5px solid transparent;
+  flex-shrink: 0;
+  cursor: default;
+}
+
+.status-badge.open {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  border-color: #ecbfa9;
+}
+
+.status-badge.resolved {
+  background: #e9f0e6;
+  color: #3d7a4a;
+  border-color: #b3d0b4;
+}
+
 /* 해결된 질문 카드는 왼쪽에 초록 띠 표시 */
 .question-card.is-resolved {
   border-left: 4px solid #5c9e68;
@@ -2385,6 +2409,53 @@ pre code {
   font-size: 13px;
   line-height: 1.6;
   color: var(--text);
+}
+
+/* 내 회고 모음 — 실제 회고 기록 카드 */
+.reflection-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.reflection-card {
+  background: var(--primary-light);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--primary);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.reflection-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.reflection-card-head strong {
+  font-size: 14px;
+  color: var(--text);
+}
+
+.reflection-card-head time {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-sub);
+}
+
+.reflection-card .reflection-learned {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text);
+}
+
+.reflection-card .reflection-next {
+  margin-top: 8px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-sub);
 }
 
 .report-charts {
