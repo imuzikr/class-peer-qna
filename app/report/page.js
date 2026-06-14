@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   formatTime,
@@ -131,6 +131,7 @@ export default function StudentReportPage() {
   const [keywordDocs, setKeywordDocs] = useState([]);
   const [answersByQuestion, setAnswersByQuestion] = useState({});
   const [reflectOpen, setReflectOpen] = useState(true); // 내 회고 모음 펼침 여부
+  const reflectDefaultApplied = useRef(false); // 기본 펼침/접힘을 한 번만 자동 적용
 
   useEffect(() => {
     const unsubQ = subscribeQuestions(setQuestions);
@@ -192,6 +193,14 @@ export default function StudentReportPage() {
             toDate(b.reflection.createdAt) - toDate(a.reflection.createdAt)
         )
     : [];
+  // 회고가 처음 로드될 때 한 번만 — 5개 이상이면 접힌 채로 시작합니다.
+  // (이후 사용자가 직접 펼치고 접는 건 그대로 유지됩니다.)
+  useEffect(() => {
+    if (reflectDefaultApplied.current || myReflections.length === 0) return;
+    reflectDefaultApplied.current = true;
+    setReflectOpen(myReflections.length < 5);
+  }, [myReflections.length]);
+
   const maxKeyword = Math.max(1, ...keywordStats.map((item) => item.count));
   const maxDaily = Math.max(1, ...dailyStats.map((day) => day.asked + day.answered));
   const totalActivity = myQuestions.length + myAnswerEvents.length;
