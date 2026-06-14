@@ -832,6 +832,88 @@ select:focus {
   max-height: 52vh;
 }
 
+/* ===================== 한 줄 정리(회고) 모달 ===================== */
+.modal-reflect {
+  max-width: 520px;
+}
+
+.reflect-lead {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text-sub);
+  margin-bottom: 18px;
+}
+
+.reflect-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.reflect-field label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--primary-dark);
+}
+
+.reflect-field label .hint {
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--text-sub);
+}
+
+.reflect-field textarea {
+  width: 100%;
+  min-height: 64px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.6;
+  resize: vertical;
+}
+
+.reflect-field textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.reflect-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+/* 저장된 한 줄 정리 — 질문 상세 왼쪽에 표시 */
+.qa-reflection {
+  margin-top: 16px;
+  background: var(--primary-light);
+  border-left: 3px solid var(--primary);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.qa-reflection h4 {
+  font-size: 13px;
+  color: var(--primary-dark);
+  margin-bottom: 6px;
+}
+
+.qa-reflection p {
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.qa-reflection-next {
+  margin-top: 8px;
+  color: var(--text-sub);
+  font-size: 13px;
+}
+
 /* ===================== 질문 상세 모달 (2열 구조) ===================== */
 .modal-wide {
   max-width: 1000px;

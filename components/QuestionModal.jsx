@@ -19,6 +19,7 @@ import RichTextEditor, { IconImage, IconPen } from "./RichTextEditor";
 import DrawingCanvas from "./DrawingCanvas";
 import MeTooButton from "./MeTooButton";
 import NewQuestionForm from "./NewQuestionForm";
+import ReflectionModal from "./ReflectionModal";
 import AuthorBadge from "./AuthorBadge";
 
 export default function QuestionModal({ question, keywords = [], onClose }) {
@@ -29,6 +30,7 @@ export default function QuestionModal({ question, keywords = [], onClose }) {
   const [answerImage, setAnswerImage] = useState(null); // 첨부 이미지
   const [drawing, setDrawing] = useState(false); // 그리기 캔버스 열림
   const [editing, setEditing] = useState(false); // 질문 수정 모달 열림
+  const [reflecting, setReflecting] = useState(false); // 한 줄 정리 모달 열림
   const [saving, setSaving] = useState(false);
   const [resetKey, setResetKey] = useState(0); // 전송 후 에디터 비우기
   const scrollRef = useRef(null);
@@ -53,6 +55,16 @@ export default function QuestionModal({ question, keywords = [], onClose }) {
     }
     setAnswerImage(await readImageAsDataUrl(file));
     e.target.value = ""; // 같은 파일 재선택 가능하도록
+  }
+
+  // 상태 토글: "해결됐어요"로 바꿀 때는 한 줄 정리 모달을 먼저 띄우고,
+  // 해결을 취소(다시 궁금해요)할 때는 바로 전환합니다.
+  function handleResolveToggle() {
+    if (question.resolved) {
+      setQuestionResolved(question.id, false);
+    } else {
+      setReflecting(true);
+    }
   }
 
   async function handleSend() {
@@ -104,9 +116,7 @@ export default function QuestionModal({ question, keywords = [], onClose }) {
                   className={`status-toggle qa-status ${
                     question.resolved ? "resolved" : "open"
                   }`}
-                  onClick={() =>
-                    setQuestionResolved(question.id, !question.resolved)
-                  }
+                  onClick={handleResolveToggle}
                   title="클릭해서 상태 바꾸기"
                 >
                   {question.resolved ? "✅ 해결됐어요" : "🙋 궁금해요"}
@@ -130,6 +140,22 @@ export default function QuestionModal({ question, keywords = [], onClose }) {
                   />
                 </figure>
               )}
+
+              {/* 해결하며 남긴 한 줄 정리 — 모두가 보며 서로의 이해를 배웁니다 */}
+              {question.reflection &&
+                (question.reflection.learned || question.reflection.next) && (
+                  <div className="qa-reflection">
+                    <h4>💡 이렇게 이해했어요</h4>
+                    {question.reflection.learned && (
+                      <p>{question.reflection.learned}</p>
+                    )}
+                    {question.reflection.next && (
+                      <p className="qa-reflection-next">
+                        🔎 더 알고 싶은 점 — {question.reflection.next}
+                      </p>
+                    )}
+                  </div>
+                )}
             </div>
 
             {/* 왼쪽 하단 고정 — 나도 궁금해요 + (내 글이면) 수정 버튼 */}
@@ -249,6 +275,15 @@ export default function QuestionModal({ question, keywords = [], onClose }) {
             question={question}
             keywords={keywords}
             onClose={() => setEditing(false)}
+          />
+        )}
+
+        {/* 한 줄 정리 — "해결됐어요"를 누르면 떠서 이해의 전환점을 남깁니다 */}
+        {reflecting && (
+          <ReflectionModal
+            question={question}
+            user={user}
+            onClose={() => setReflecting(false)}
           />
         )}
       </div>
