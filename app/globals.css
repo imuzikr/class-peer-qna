@@ -2411,11 +2411,48 @@ pre code {
   color: var(--text);
 }
 
-/* 내 회고 모음 — 실제 회고 기록 카드 */
+/* 내 회고 모음 — 아코디언 헤더(클릭해서 펼침/접기) */
+.reflection-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0 0 2px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.reflection-toggle h2 {
+  font-size: 16px;
+}
+
+.reflection-toggle .reflection-count {
+  font-size: 13px;
+  color: var(--text-sub);
+}
+
+.reflection-toggle .reflection-chevron {
+  margin-left: auto;
+  font-size: 14px;
+  color: var(--text-sub);
+  transition: transform 0.18s ease;
+}
+
+.reflection-toggle.open .reflection-chevron {
+  transform: rotate(180deg);
+}
+
+/* 내 회고 모음 — 실제 회고 기록 카드 (많아지면 내부 스크롤로 높이 제한) */
 .reflection-cards {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  max-height: 340px;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .reflection-card {
