@@ -851,21 +851,21 @@ select:focus {
 
 /* ===================== 한 줄 정리(회고) 모달 ===================== */
 .modal-reflect {
-  max-width: 520px;
+  max-width: 680px;
 }
 
 .reflect-lead {
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.7;
   color: var(--text-sub);
-  margin-bottom: 18px;
+  margin-bottom: 20px;
 }
 
 .reflect-field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-bottom: 16px;
+  gap: 8px;
+  margin-bottom: 20px;
 }
 
 .reflect-field label {
@@ -882,14 +882,19 @@ select:focus {
 
 .reflect-field textarea {
   width: 100%;
-  min-height: 64px;
+  min-height: 120px;
   border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 10px 12px;
+  padding: 12px 14px;
   font-family: inherit;
-  font-size: 14px;
-  line-height: 1.6;
+  font-size: 15px;
+  line-height: 1.7;
   resize: vertical;
+}
+
+/* '더 알고 싶은 점'은 선택 입력이라 조금 낮게 */
+.reflect-field.reflect-field-optional textarea {
+  min-height: 88px;
 }
 
 .reflect-field textarea:focus {

@@ -108,7 +108,7 @@ export default function ReflectionModal({
           />
         </div>
 
-        <div className="reflect-field">
+        <div className="reflect-field reflect-field-optional">
           <label htmlFor="reflect-next">
             아직 더 알고 싶은 점이 있나요?{" "}
             <span className="hint">선택 — 다음 학습의 실마리가 돼요</span>
