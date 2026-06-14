@@ -101,6 +101,9 @@ export default function QuestionModal({ question, keywords = [], onClose }) {
   const canManageUnderstood =
     question.authorId === user.uid || isAdmin(user) || !isFirebaseConfigured;
 
+  // 해결됐지만 아직 회고가 없는 질문 — 회고 입구를 노출할지 판단
+  const needsReflection = question.resolved && !question.reflection;
+
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal modal-wide" onClick={(e) => e.stopPropagation()}>
@@ -142,22 +145,25 @@ export default function QuestionModal({ question, keywords = [], onClose }) {
               </div>
               <h3 className="qa-title">{question.title}</h3>
 
-              {/* 회고 대기 알림 배너 — 작성자 본인과 교사에게 각각 다른 메시지 */}
-              {question.reflectionPending && mine && (
+              {/* 회고 입구 — 해결됐지만 회고가 없는 질문에 항상 노출됩니다.
+                  작성자 본인에게는 작성 버튼, 교사에게는 현황을 보여줍니다. */}
+              {needsReflection && mine && (
                 <div className="reflect-reminder mine">
                   <span>
-                    📝 나중에 쓰겠다고 했던 회고가 아직 남아 있어요.
+                    {question.reflectionPending
+                      ? "📝 나중에 쓰겠다고 했던 회고가 아직 남아 있어요."
+                      : "📝 이 질문, 어떻게 이해했는지 한 줄로 남겨볼까요?"}
                   </span>
                   <button
                     type="button"
                     className="btn-ghost reflect-reminder-btn"
                     onClick={() => setReflecting(true)}
                   >
-                    지금 남기기
+                    {question.reflectionPending ? "지금 남기기" : "회고 쓰기"}
                   </button>
                 </div>
               )}
-              {question.reflectionPending && !mine && admin && (
+              {needsReflection && !mine && admin && (
                 <div className="reflect-reminder teacher">
                   📋 이 학생이 아직 회고를 남기지 않았어요
                 </div>
