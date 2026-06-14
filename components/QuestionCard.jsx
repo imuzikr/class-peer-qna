@@ -11,6 +11,7 @@ import {
 } from "@/lib/store";
 import { stripHtml } from "@/lib/html";
 import { getCurrentUser, isAdmin } from "@/lib/user";
+import { isPinnedQuestion } from "@/lib/questionRanking";
 import MeTooButton from "./MeTooButton";
 import AuthorBadge from "./AuthorBadge";
 
@@ -18,8 +19,8 @@ export default function QuestionCard({ question, onClick }) {
   const user = getCurrentUser();
   const resolved = !!question.resolved;
   const mine = question.authorId === user.uid;
-  const showPending =
-    question.reflectionPending && (mine || isAdmin(user));
+  const pinned = isPinnedQuestion(question);
+  const showPending = question.reflectionPending && (mine || isAdmin(user));
 
   function toggleResolved(e) {
     e.stopPropagation(); // 카드 클릭(모달 열기)으로 번지지 않도록
@@ -33,11 +34,18 @@ export default function QuestionCard({ question, onClick }) {
 
   return (
     <article
-      className={`question-card ${resolved ? "is-resolved" : ""}`}
+      className={`question-card ${resolved ? "is-resolved" : ""} ${
+        pinned ? "is-pinned" : ""
+      }`}
       onClick={onClick}
     >
       <div className="card-meta">
         <span className="keyword-chip"># {question.keyword}</span>
+        {pinned && (
+          <span className="pin-chip" title="나도 궁금해요 5회 이상">
+            📌 상단 고정
+          </span>
+        )}
         {/* 작성자 프로필 — 관리자는 클릭해서 실명 확인 가능 */}
         <AuthorBadge
           name={question.authorName}

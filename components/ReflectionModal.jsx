@@ -27,7 +27,8 @@ import {
 export default function ReflectionModal({
   question,
   user,
-  isPending = false, // true: 대기 상태에서 다시 열린 경우
+  isPending = false,     // true: 대기 상태에서 다시 열린 경우
+  pendingAnswerId = null, // "이해됐어요" 경로에서 넘어온 답변 id
   onClose,
 }) {
   const [learned, setLearned] = useState("");
@@ -36,30 +37,34 @@ export default function ReflectionModal({
 
   const canSave = learned.trim().length > 0;
 
-  // 회고를 저장하고 (필요하면) 해결 상태로 전환
+  // 회고 저장: 이해됐어요 경로면 understoodAnswerId도 함께 확정합니다.
   async function handleSave() {
     if (!canSave || saving) return;
     setSaving(true);
     try {
-      await addReflection(user, question.id, {
-        learned: learned.trim(),
-        next: next.trim(),
-      });
-      // resolved가 아직 false인 경우(첫 해결)를 위해 항상 true로 설정
-      await setQuestionResolved(question.id, true);
+      await addReflection(
+        user,
+        question.id,
+        { learned: learned.trim(), next: next.trim() },
+        pendingAnswerId  // null이면 무시됨
+      );
+      // addReflection이 understoodAnswerId + resolved를 처리하지 않는 경우(일반 해결 경로)
+      if (!pendingAnswerId) {
+        await setQuestionResolved(question.id, true);
+      }
       onClose();
     } finally {
       setSaving(false);
     }
   }
 
-  // "나중에 쓸게요" — 처음 해결 시에만 스토어 호출, 이미 pending이면 모달만 닫음
+  // "나중에 쓸게요": 이해됐어요 경로면 understoodAnswerId도 같이 보존합니다.
   async function handleLater() {
     if (saving) return;
     if (!isPending) {
       setSaving(true);
       try {
-        await setQuestionResolvedLater(question.id);
+        await setQuestionResolvedLater(question.id, pendingAnswerId);
       } finally {
         setSaving(false);
       }
