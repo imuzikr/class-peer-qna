@@ -97,11 +97,11 @@ export default function StudyQuestionPeek({ question, onClose, onBackToList }) {
 
         <div className="study-peek-foot">
           {onBackToList && (
-            <button className="study-chip ghost" onClick={onBackToList}>
+            <button className="btn-ghost" onClick={onBackToList}>
               ← 다른 질문 보기
             </button>
           )}
-          <button className="btn-primary" onClick={onClose}>
+          <button className="btn-ghost" onClick={onClose}>
             작성으로 돌아가기
           </button>
         </div>

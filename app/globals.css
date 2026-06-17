@@ -3132,6 +3132,16 @@ pre code {
   justify-content: flex-end;
 }
 
+/* 모달 푸터의 두 버튼을 동일한 크기·중립(외곽선) 스타일로 통일 */
+.study-card-modal-save-row > .btn-ghost,
+.study-peek-foot > .btn-ghost {
+  padding: 9px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  min-width: 96px;
+  text-align: center;
+}
+
 /* 삭제 확인 인라인 */
 .study-delete-confirm {
   display: flex;
