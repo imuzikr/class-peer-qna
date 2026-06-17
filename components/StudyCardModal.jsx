@@ -264,7 +264,16 @@ export default function StudyCardModal({
       {peekQuestion && (
         <StudyQuestionPeek
           question={peekQuestion}
-          onClose={() => setPeekQuestion(null)}
+          // 작성으로 돌아가기: 미리보기를 닫고 관련 질문 목록도 접어 작성에 집중
+          onClose={() => {
+            setPeekQuestion(null);
+            setShowRelated(false);
+          }}
+          // 다른 질문 보기: 미리보기만 닫고 관련 질문 목록은 펼친 채 두기
+          onBackToList={() => {
+            setPeekQuestion(null);
+            setShowRelated(true);
+          }}
         />
       )}
     </div>

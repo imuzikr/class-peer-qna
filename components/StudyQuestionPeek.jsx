@@ -10,7 +10,7 @@
 import { useEffect, useState } from "react";
 import { subscribeAnswers, formatTime } from "@/lib/store";
 
-export default function StudyQuestionPeek({ question, onClose }) {
+export default function StudyQuestionPeek({ question, onClose, onBackToList }) {
   const [answers, setAnswers] = useState([]);
 
   useEffect(() => {
@@ -96,6 +96,11 @@ export default function StudyQuestionPeek({ question, onClose }) {
         </div>
 
         <div className="study-peek-foot">
+          {onBackToList && (
+            <button className="study-chip ghost" onClick={onBackToList}>
+              ← 다른 질문 보기
+            </button>
+          )}
           <button className="btn-primary" onClick={onClose}>
             작성으로 돌아가기
           </button>

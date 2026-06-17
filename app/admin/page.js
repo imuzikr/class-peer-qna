@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   formatTime,
   subscribeAnswers,
@@ -162,11 +163,18 @@ function EmptyPanel({ children }) {
 }
 
 export default function AdminDashboardPage() {
+  const router = useRouter();
   const user = useCurrentUser();
   const [questions, setQuestions] = useState([]);
   const [keywordDocs, setKeywordDocs] = useState([]);
   const [answersByQuestion, setAnswersByQuestion] = useState({});
   const [selectedId, setSelectedId] = useState(null);
+
+  // 관리자 대시보드는 관리자 전용 — 학생 보기로 바뀌면 학습 리포트로 이동
+  const isStudent = user ? !isAdmin(user) : false;
+  useEffect(() => {
+    if (isStudent) router.replace("/report");
+  }, [isStudent, router]);
 
   useEffect(() => {
     const unsubQ = subscribeQuestions(setQuestions);
@@ -235,6 +243,16 @@ export default function AdminDashboardPage() {
   const askRatio = totalActivity === 0 ? 0 : Math.round((selectedQuestions.length / totalActivity) * 100);
   const answerRatio = 100 - askRatio;
 
+  // 학생 보기로 전환된 경우 대시보드를 그리지 않고 이동 대기 화면을 보여줍니다
+  if (isStudent) {
+    return (
+      <div className="admin-shell">
+        <TopNav active="admin" />
+        <p className="empty-note">학습 리포트로 이동 중…</p>
+      </div>
+    );
+  }
+
   return (
     <div className="admin-shell">
       {!isFirebaseConfigured && (
@@ -277,12 +295,6 @@ export default function AdminDashboardPage() {
         </aside>
 
         <main className="admin-main">
-          {user && !isAdmin(user) && (
-            <div className="admin-warning">
-              관리자 보기로 전환하면 실명과 학습 활동 분석을 확인할 수 있습니다.
-            </div>
-          )}
-
           {selected ? (
             <>
               <section className="admin-hero">

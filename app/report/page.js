@@ -13,6 +13,7 @@ import {
 } from "@/lib/store";
 import { isFirebaseConfigured } from "@/lib/firebase";
 import { stripHtml } from "@/lib/html";
+import { isAdmin } from "@/lib/user";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import { getMeTooCount, isPinnedQuestion } from "@/lib/questionRanking";
 import TopNav from "@/components/TopNav";
@@ -156,6 +157,12 @@ export default function StudentReportPage() {
   const [activeStatKey, setActiveStatKey] = useState(null); // 통계 카드 드릴다운
   const [studyBoards, setStudyBoards] = useState([]);
   const [cardsByBoard, setCardsByBoard] = useState({}); // boardId -> cards[]
+
+  // 학습 리포트는 학생 화면 — 관리자 보기로 바뀌면 관리자 대시보드로 이동
+  const isTeacher = user ? isAdmin(user) : false;
+  useEffect(() => {
+    if (isTeacher) router.replace("/admin");
+  }, [isTeacher, router]);
 
   useEffect(() => {
     const unsubQ = subscribeQuestions(setQuestions);
@@ -327,6 +334,16 @@ export default function StudentReportPage() {
     totalActivity === 0 ? 0 : Math.round((myQuestions.length / totalActivity) * 100);
   const answerRatio = totalActivity === 0 ? 0 : 100 - askRatio;
   const latestActivity = events[0]?.createdAt ? formatTime(events[0].createdAt) : "아직 없음";
+
+  // 관리자 보기로 전환된 경우 리포트를 그리지 않고 이동 대기 화면을 보여줍니다
+  if (isTeacher) {
+    return (
+      <div className="admin-shell report-shell">
+        <TopNav active="report" />
+        <p className="empty-note">관리자 대시보드로 이동 중…</p>
+      </div>
+    );
+  }
 
   return (
     <div className="admin-shell report-shell">
