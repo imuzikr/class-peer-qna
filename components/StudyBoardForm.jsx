@@ -11,7 +11,7 @@ import { useState } from "react";
 import { addStudyBoard } from "@/lib/store";
 import { getCurrentUser } from "@/lib/user";
 
-export default function StudyBoardForm({ keywords = [], onClose }) {
+export default function StudyBoardForm({ keywords = [], classId = null, onClose }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [linkKeyword, setLinkKeyword] = useState(false);
@@ -28,6 +28,7 @@ export default function StudyBoardForm({ keywords = [], onClose }) {
         type: "student",
         description: description.trim(),
         keyword: linkKeyword ? keyword : null,
+        classId,
       });
       onClose();
     } finally {

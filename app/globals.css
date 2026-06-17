@@ -2702,6 +2702,116 @@ pre code {
   font-size: 14px;
 }
 
+.study-class-name {
+  color: var(--primary-dark);
+  font-weight: 700;
+}
+
+/* 교사 반 도구 (선택 · 입장 코드 · 반/보드 추가) */
+.study-class-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.study-class-select {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  background: #fff;
+  cursor: pointer;
+}
+
+.study-join-code {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--primary-dark);
+  background: var(--primary-light);
+  border-radius: 999px;
+  padding: 6px 12px;
+}
+
+/* 학생 반 입장 화면 */
+.class-entry {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+.class-entry-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: var(--shadow-soft);
+  padding: 36px 32px;
+  max-width: 420px;
+  width: 100%;
+  text-align: center;
+}
+
+.class-entry-emoji {
+  font-size: 40px;
+  margin-bottom: 8px;
+}
+
+.class-entry-card h2 {
+  font-family: var(--font-serif);
+  font-size: 22px;
+  color: var(--dark);
+  margin-bottom: 8px;
+}
+
+.class-entry-card p {
+  color: var(--text-sub);
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+.class-entry-form {
+  display: flex;
+  gap: 8px;
+}
+
+.class-entry-input {
+  flex: 1;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 16px;
+  font-family: var(--font-mono);
+  letter-spacing: 2px;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.class-entry-error {
+  margin-top: 12px;
+  color: #c0392b;
+  font-size: 13px;
+}
+
+.class-entry-hint {
+  margin-top: 18px;
+  font-size: 12px;
+  color: var(--text-sub);
+}
+
+.class-entry-hint code {
+  background: #f2efe9;
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-family: var(--font-mono);
+}
+
 /* 가로 스크롤 컬럼 영역 */
 .study-columns {
   flex: 1;

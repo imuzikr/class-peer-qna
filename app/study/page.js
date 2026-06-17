@@ -1,41 +1,72 @@
 "use client";
 
 // =============================================================
-// 공부방 — 수업의 연장. Trello/Padlet 스타일 가로 컬럼 보드.
-//   [수업 안내] (교사 전용 게시) + [수업 보드…] (학생 결과물)
+// 공부방 — 수업의 연장. 반(클래스)별 Trello/Padlet 스타일 보드.
+//   · 질문 게시판은 전체 공유 공간, 공부방은 "반별" 공간입니다.
+//   · 학생: 입장 코드로 반에 들어와 그 반의 보드만 봅니다.
+//   · 교사: 상단 드롭다운으로 반을 고르고, 반을 새로 만들 수 있습니다.
 // 키워드를 연계한 보드에서는 카드에서 바로 질문하고(질문하기),
 // 관련 질문을 모아 볼 수 있습니다.
 // =============================================================
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { subscribeStudyBoards, subscribeQuestions, subscribeKeywords } from "@/lib/store";
+import {
+  subscribeStudyBoards,
+  subscribeQuestions,
+  subscribeKeywords,
+  subscribeClasses,
+  addClass,
+} from "@/lib/store";
 import { isFirebaseConfigured } from "@/lib/firebase";
-import { isAdmin } from "@/lib/user";
+import { isAdmin, getCurrentUser } from "@/lib/user";
+import { getSelectedClassId, setSelectedClassId } from "@/lib/classroom";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import TopNav from "@/components/TopNav";
 import StudyBoardColumn from "@/components/StudyBoardColumn";
 import StudyBoardForm from "@/components/StudyBoardForm";
 import NewQuestionForm from "@/components/NewQuestionForm";
+import ClassEntry from "@/components/ClassEntry";
 import Toast from "@/components/Toast";
 
 export default function StudyPage() {
   const router = useRouter();
   const user = useCurrentUser();
+  const [classes, setClasses] = useState([]);
   const [boards, setBoards] = useState([]);
   const [questions, setQuestions] = useState([]);
   const [keywordDocs, setKeywordDocs] = useState([]);
+  // 학생이 입장한 반(세션 기준)과 교사가 보고 있는 반(화면 상태)은 별개입니다.
+  // 그래야 같은 탭에서 역할을 바꿔 봐도 서로 간섭하지 않습니다.
+  const [studentClassId, setStudentClassId] = useState(null);
+  const [teacherClassId, setTeacherClassId] = useState(null);
   const [addingBoard, setAddingBoard] = useState(false);
+  const [creatingClass, setCreatingClass] = useState(false);
+  const [newClassName, setNewClassName] = useState("");
   const [askKeyword, setAskKeyword] = useState(null); // "질문하기"로 새 질문 작성
   const [toast, setToast] = useState("");
 
   useEffect(() => {
+    const unsubC = subscribeClasses(setClasses);
     const unsubB = subscribeStudyBoards(setBoards);
     const unsubQ = subscribeQuestions(setQuestions);
     const unsubK = subscribeKeywords(setKeywordDocs);
     return () => {
+      unsubC();
       unsubB();
       unsubQ();
       unsubK();
+    };
+  }, []);
+
+  // 학생이 세션에 입장해 둔 반을 읽고, 반/역할이 바뀌면 다시 평가합니다
+  useEffect(() => {
+    const sync = () => setStudentClassId(getSelectedClassId());
+    sync();
+    window.addEventListener("class-change", sync);
+    window.addEventListener("role-change", sync);
+    return () => {
+      window.removeEventListener("class-change", sync);
+      window.removeEventListener("role-change", sync);
     };
   }, []);
 
@@ -45,10 +76,36 @@ export default function StudyPage() {
     [keywordDocs]
   );
 
+  // 교사는 반을 고르지 않았으면 첫 번째 반을 기본 선택합니다(화면 상태만 사용)
+  useEffect(() => {
+    if (!admin || classes.length === 0) return;
+    const valid = teacherClassId && classes.some((c) => c.id === teacherClassId);
+    if (!valid) setTeacherClassId(classes[0].id);
+  }, [admin, classes, teacherClassId]);
+
+  const classId = admin ? teacherClassId : studentClassId;
+  const currentClass = classes.find((c) => c.id === classId) ?? null;
+  const classBoards = useMemo(
+    () => boards.filter((b) => b.classId === classId),
+    [boards, classId]
+  );
+
   // 카드에서 관련 질문 클릭 → 게시판에서 해당 질문 모달 열기
   function openQuestion(id) {
     router.push(`/board?open=${id}`);
   }
+
+  async function handleCreateClass(e) {
+    e.preventDefault();
+    if (!newClassName.trim()) return;
+    const created = await addClass(getCurrentUser(), newClassName);
+    setNewClassName("");
+    setCreatingClass(false);
+    setTeacherClassId(created.id); // 새로 만든 반으로 전환(교사 화면)
+  }
+
+  // 학생이 아직 반에 입장하지 않았으면 입장 화면을 보여줍니다
+  const showEntry = user && !admin && !classId;
 
   return (
     <div className="board-shell study-shell">
@@ -62,45 +119,143 @@ export default function StudyPage() {
 
       <TopNav active="study" />
 
-      <main className="study-main">
-        <div className="study-head">
-          <div>
-            <h1>🧩 공부방</h1>
-            <p>수업 자료를 확인하고, 활동 결과물을 카드로 남겨 보세요.</p>
+      {showEntry ? (
+        <ClassEntry />
+      ) : (
+        <main className="study-main">
+          <div className="study-head">
+            <div>
+              <h1>🧩 공부방</h1>
+              {currentClass ? (
+                <p>
+                  <strong className="study-class-name">
+                    {currentClass.name}
+                  </strong>{" "}
+                  — 수업 자료를 확인하고, 활동 결과물을 카드로 남겨 보세요.
+                </p>
+              ) : (
+                <p>수업 자료를 확인하고, 활동 결과물을 카드로 남겨 보세요.</p>
+              )}
+            </div>
+
+            {/* 교사: 반 선택 + 입장 코드 + 반 만들기 + 보드 추가 */}
+            {admin && (
+              <div className="study-class-tools">
+                {classes.length > 0 && (
+                  <select
+                    className="study-class-select"
+                    value={classId ?? ""}
+                    onChange={(e) => setTeacherClassId(e.target.value)}
+                    aria-label="반 선택"
+                  >
+                    {classes.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                {currentClass && (
+                  <span className="study-join-code" title="학생에게 알려 줄 입장 코드">
+                    🔑 {currentClass.joinCode}
+                  </span>
+                )}
+                <button
+                  className="btn-ghost"
+                  onClick={() => setCreatingClass(true)}
+                >
+                  ➕ 반 만들기
+                </button>
+                {currentClass && (
+                  <button
+                    className="btn-primary"
+                    onClick={() => setAddingBoard(true)}
+                  >
+                    ➕ 수업 보드 추가
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* 학생: 다른 반으로 전환 (입장 코드 다시 입력) */}
+            {!admin && currentClass && (
+              <button
+                className="btn-ghost"
+                onClick={() => setSelectedClassId(null)}
+              >
+                🚪 반 나가기
+              </button>
+            )}
           </div>
-          {admin && (
-            <button className="btn-primary" onClick={() => setAddingBoard(true)}>
-              ➕ 수업 보드 추가
-            </button>
+
+          {/* 본문 */}
+          {admin && classes.length === 0 ? (
+            <p className="empty-note">
+              아직 만든 반이 없어요. ‘반 만들기’로 첫 반을 추가하고 학생에게
+              입장 코드를 알려 주세요.
+            </p>
+          ) : classBoards.length === 0 ? (
+            <p className="empty-note">
+              {admin
+                ? "이 반에는 아직 보드가 없어요. ‘수업 보드 추가’로 첫 활동을 만들어 보세요."
+                : "아직 열린 수업 보드가 없어요."}
+            </p>
+          ) : (
+            <div className="study-columns">
+              {classBoards.map((board) => (
+                <StudyBoardColumn
+                  key={board.id}
+                  board={board}
+                  user={user}
+                  isTeacher={admin}
+                  questions={questions}
+                  onAsk={(kw) => setAskKeyword(kw)}
+                  onOpenQuestion={openQuestion}
+                />
+              ))}
+            </div>
           )}
-        </div>
+        </main>
+      )}
 
-        {boards.length === 0 ? (
-          <p className="empty-note">
-            {admin
-              ? "아직 보드가 없어요. ‘수업 보드 추가’로 첫 활동을 만들어 보세요."
-              : "아직 열린 수업 보드가 없어요."}
-          </p>
-        ) : (
-          <div className="study-columns">
-            {boards.map((board) => (
-              <StudyBoardColumn
-                key={board.id}
-                board={board}
-                user={user}
-                isTeacher={admin}
-                questions={questions}
-                onAsk={(kw) => setAskKeyword(kw)}
-                onOpenQuestion={openQuestion}
+      {/* 반 만들기 모달 */}
+      {creatingClass && (
+        <div className="modal-backdrop" onClick={() => setCreatingClass(false)}>
+          <div className="modal modal-form" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-head">
+              <h3>➕ 새 반 만들기</h3>
+              <button
+                className="btn-close"
+                onClick={() => setCreatingClass(false)}
+                aria-label="닫기"
+              >
+                ×
+              </button>
+            </div>
+            <form className="form-grid" onSubmit={handleCreateClass}>
+              <input
+                type="text"
+                placeholder="반 이름 (예: 3학년 3반, 수요일 코딩반)"
+                value={newClassName}
+                onChange={(e) => setNewClassName(e.target.value)}
+                autoFocus
               />
-            ))}
+              <p className="study-link-hint">
+                반을 만들면 입장 코드가 자동으로 생성됩니다. 학생에게 그 코드를
+                알려 주면 해당 반 공부방에 입장할 수 있어요.
+              </p>
+              <button type="submit" className="btn-primary">
+                반 만들기
+              </button>
+            </form>
           </div>
-        )}
-      </main>
+        </div>
+      )}
 
-      {addingBoard && (
+      {addingBoard && currentClass && (
         <StudyBoardForm
           keywords={keywordNames}
+          classId={currentClass.id}
           onClose={() => setAddingBoard(false)}
         />
       )}
