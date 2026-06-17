@@ -15,10 +15,9 @@ import {
   subscribeStudyCards,
   updateStudyBoard,
   deleteStudyBoard,
-  deleteStudyCard,
 } from "@/lib/store";
 import StudyCard from "./StudyCard";
-import StudyCardForm from "./StudyCardForm";
+import StudyCardModal from "./StudyCardModal";
 
 export default function StudyBoardColumn({
   board,
@@ -29,8 +28,8 @@ export default function StudyBoardColumn({
   onOpenQuestion,
 }) {
   const [cards, setCards] = useState([]);
-  const [formCard, setFormCard] = useState(null); // 수정할 카드
-  const [adding, setAdding] = useState(false);
+  const [selectedCard, setSelectedCard] = useState(null); // 클릭한 기존 카드
+  const [creating, setCreating] = useState(false);        // 새 카드 작성 모드
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
@@ -50,23 +49,30 @@ export default function StudyBoardColumn({
 
   // 카드 추가 가능 여부
   const canAddNotice = isNotice && isTeacher && !locked;
-  const canAddStudent = !isNotice && !locked && !myCard; // 학생/교사 모두 1개 제약
+  const canAddStudent = !isNotice && !locked && !myCard;
   const canAdd = canAddNotice || canAddStudent;
 
-  // 연계 키워드의 관련 질문 (학생 보드 + keyword 있을 때)
+  // 연계 키워드의 관련 질문
   const relatedQuestions = board.keyword
     ? questions.filter((q) => q.keyword === board.keyword)
     : [];
 
-  async function handleDeleteCard(card) {
-    if (!confirm("이 카드를 삭제할까요?")) return;
-    await deleteStudyCard(board.id, card.id);
+  // 기존 카드를 클릭했을 때 canEdit 계산
+  function canEditCard(card) {
+    return !locked && !!user && (card.authorId === user.uid || isTeacher);
   }
 
   async function handleDeleteBoard() {
-    if (!confirm(`'${board.title}' 보드를 삭제할까요? 카드도 함께 삭제됩니다.`)) return;
+    if (
+      !confirm(
+        `'${board.title}' 보드를 삭제할까요? 카드도 함께 삭제됩니다.`
+      )
+    )
+      return;
     await deleteStudyBoard(board.id);
   }
+
+  const modalOpen = selectedCard !== null || creating;
 
   return (
     <section className={`study-column ${isNotice ? "is-notice" : ""}`}>
@@ -96,7 +102,9 @@ export default function StudyBoardColumn({
               {board.viewMode === "shared" ? "👥 함께 보기" : "🔒 나만 보기"}
             </span>
           )}
-          {locked && <span className="study-mode-chip locked">🔏 보기 전용</span>}
+          {locked && (
+            <span className="study-mode-chip locked">🔏 보기 전용</span>
+          )}
         </div>
 
         {/* 교사 설정 패널 */}
@@ -108,7 +116,8 @@ export default function StudyBoardColumn({
                 className="study-chip"
                 onClick={() =>
                   updateStudyBoard(board.id, {
-                    viewMode: board.viewMode === "shared" ? "private" : "shared",
+                    viewMode:
+                      board.viewMode === "shared" ? "private" : "shared",
                   })
                 }
               >
@@ -140,18 +149,7 @@ export default function StudyBoardColumn({
           <StudyCard
             key={card.id}
             card={card}
-            board={board}
-            mine={user && card.authorId === user.uid}
-            canEdit={
-              !locked &&
-              user &&
-              (card.authorId === user.uid || isTeacher)
-            }
-            relatedQuestions={relatedQuestions}
-            onEdit={(c) => setFormCard(c)}
-            onDelete={handleDeleteCard}
-            onAsk={onAsk}
-            onOpenQuestion={onOpenQuestion}
+            onClick={() => setSelectedCard(card)}
           />
         ))}
 
@@ -166,23 +164,43 @@ export default function StudyBoardColumn({
         )}
 
         {canAdd && (
-          <button className="study-add-card" onClick={() => setAdding(true)}>
+          <button className="study-add-card" onClick={() => setCreating(true)}>
             ＋ {isNotice ? "카드 추가" : "내 카드 작성"}
           </button>
         )}
         {!isNotice && myCard && !locked && (
-          <p className="study-one-card-note">한 보드에는 카드를 하나만 만들 수 있어요.</p>
+          <p className="study-one-card-note">
+            한 보드에는 카드를 하나만 만들 수 있어요.
+          </p>
         )}
       </div>
 
-      {(adding || formCard) && (
-        <StudyCardForm
+      {/* 카드 클릭 → 통합 모달 */}
+      {modalOpen && (
+        <StudyCardModal
           board={board}
-          card={formCard}
+          card={creating ? null : selectedCard}
+          canEdit={
+            creating
+              ? canAdd
+              : selectedCard
+              ? canEditCard(selectedCard)
+              : false
+          }
+          mine={
+            creating
+              ? true
+              : selectedCard
+              ? user && selectedCard.authorId === user.uid
+              : false
+          }
+          relatedQuestions={relatedQuestions}
           onClose={() => {
-            setAdding(false);
-            setFormCard(null);
+            setSelectedCard(null);
+            setCreating(false);
           }}
+          onAsk={onAsk}
+          onOpenQuestion={onOpenQuestion}
         />
       )}
     </section>

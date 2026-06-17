@@ -2864,13 +2864,25 @@ pre code {
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 12px;
+  cursor: pointer;
+  transition: box-shadow 0.15s, transform 0.12s;
+}
+
+.study-card:hover {
+  box-shadow: 0 4px 14px rgba(46, 36, 26, 0.1);
+  transform: translateY(-1px);
+}
+
+.study-card:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
 }
 
 .study-card-head {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .study-card-author {
@@ -2880,9 +2892,48 @@ pre code {
   min-width: 0;
 }
 
-.study-card-head time {
+.study-card-time {
   font-size: 11px;
   color: var(--text-sub);
+  flex-shrink: 0;
+}
+
+.study-card-preview {
+  font-size: 13px;
+  color: var(--text-sub);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 0;
+}
+
+/* 모달 내 카드 본문 */
+.study-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0 12px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 12px;
+}
+
+.study-card-meta strong {
+  font-size: 14px;
+  color: var(--text);
+  flex: 1;
+}
+
+.study-card-meta-time {
+  font-size: 12px;
+  color: var(--text-sub);
+}
+
+.study-card-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 8px;
 }
 
 .study-card-body {
@@ -2906,18 +2957,57 @@ pre code {
   border-radius: 8px;
 }
 
-.study-card-foot {
+/* 모달 하단 액션 영역 */
+.study-card-modal-foot {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  margin-top: 10px;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  margin-top: 12px;
 }
 
-.study-card-manage {
-  margin-left: auto;
+.study-card-modal-links {
   display: flex;
-  gap: 6px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.study-card-modal-save-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+/* 삭제 확인 인라인 */
+.study-delete-confirm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.study-delete-warn {
+  font-size: 13px;
+  color: #c0392b;
+  font-weight: 600;
+  flex: 1;
+  min-width: 0;
+}
+
+/* 관련 질문(모달 내 버전) */
+.study-related-modal {
+  margin-top: 4px;
+}
+
+/* modal-study-card 너비 */
+.modal-study-card {
+  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
 }
 
 .study-chip {
