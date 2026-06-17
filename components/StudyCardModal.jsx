@@ -234,7 +234,7 @@ export default function StudyCardModal({
                   </div>
                 ) : (
                   <button
-                    className="btn-ghost"
+                    className="btn-primary"
                     onClick={() => setConfirmDelete(true)}
                   >
                     🗑 삭제
@@ -242,7 +242,7 @@ export default function StudyCardModal({
                 )
               )}
               <button
-                className="btn-ghost"
+                className="btn-primary"
                 onClick={handleSave}
                 disabled={saving}
               >

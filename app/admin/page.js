@@ -185,15 +185,26 @@ export default function AdminDashboardPage() {
     };
   }, []);
 
+  // 답변 구독은 "질문 id 집합"이 바뀔 때만 다시 연결합니다.
+  // (questions 배열은 좋아요/해결 등으로 매번 새 참조가 되므로 그대로
+  //  의존성에 쓰면 모든 답변 리스너가 매 업데이트마다 재구독되어 느려집니다.)
+  const questionIdsKey = useMemo(
+    () => [...new Set(questions.map((q) => q.id))].sort().join(","),
+    [questions]
+  );
   useEffect(() => {
-    setAnswersByQuestion({});
-    const unsubs = questions.map((question) =>
-      subscribeAnswers(question.id, (answers) => {
-        setAnswersByQuestion((prev) => ({ ...prev, [question.id]: answers }));
+    if (!questionIdsKey) {
+      setAnswersByQuestion({});
+      return;
+    }
+    const ids = questionIdsKey.split(",");
+    const unsubs = ids.map((id) =>
+      subscribeAnswers(id, (answers) => {
+        setAnswersByQuestion((prev) => ({ ...prev, [id]: answers }));
       })
     );
     return () => unsubs.forEach((unsubscribe) => unsubscribe());
-  }, [questions]);
+  }, [questionIdsKey]);
 
   const keywordNames = useMemo(
     () => keywordDocs.map((keyword) => keyword.name),

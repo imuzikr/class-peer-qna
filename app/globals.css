@@ -3132,9 +3132,9 @@ pre code {
   justify-content: flex-end;
 }
 
-/* 모달 푸터의 두 버튼을 동일한 크기·중립(외곽선) 스타일로 통일 */
-.study-card-modal-save-row > .btn-ghost,
-.study-peek-foot > .btn-ghost {
+/* 모달 푸터의 두 버튼을 동일한 크기·주황(강조) 색으로 통일 */
+.study-card-modal-save-row > .btn-primary,
+.study-peek-foot > .btn-primary {
   padding: 9px 18px;
   font-size: 14px;
   font-weight: 600;

@@ -175,26 +175,44 @@ export default function StudentReportPage() {
     };
   }, []);
 
-  // 보드별 카드 구독 — 공부방 활동 집계용
+  // 보드별 카드 구독 — 보드 id 집합이 바뀔 때만 재연결 (배열 참조 변경 무시)
+  const boardIdsKey = useMemo(
+    () => [...new Set(studyBoards.map((b) => b.id))].sort().join(","),
+    [studyBoards]
+  );
   useEffect(() => {
-    setCardsByBoard({});
-    const unsubs = studyBoards.map((board) =>
-      subscribeStudyCards(board.id, (cards) => {
-        setCardsByBoard((prev) => ({ ...prev, [board.id]: cards }));
+    if (!boardIdsKey) {
+      setCardsByBoard({});
+      return;
+    }
+    const ids = boardIdsKey.split(",");
+    const unsubs = ids.map((id) =>
+      subscribeStudyCards(id, (cards) => {
+        setCardsByBoard((prev) => ({ ...prev, [id]: cards }));
       })
     );
     return () => unsubs.forEach((u) => u());
-  }, [studyBoards]);
+  }, [boardIdsKey]);
 
+  // 답변 구독 — 질문 id 집합이 바뀔 때만 재연결 (좋아요/해결 등 잦은
+  // 업데이트로 questions 배열 참조가 바뀌어도 리스너를 재생성하지 않음)
+  const questionIdsKey = useMemo(
+    () => [...new Set(questions.map((q) => q.id))].sort().join(","),
+    [questions]
+  );
   useEffect(() => {
-    setAnswersByQuestion({});
-    const unsubs = questions.map((question) =>
-      subscribeAnswers(question.id, (answers) => {
-        setAnswersByQuestion((prev) => ({ ...prev, [question.id]: answers }));
+    if (!questionIdsKey) {
+      setAnswersByQuestion({});
+      return;
+    }
+    const ids = questionIdsKey.split(",");
+    const unsubs = ids.map((id) =>
+      subscribeAnswers(id, (answers) => {
+        setAnswersByQuestion((prev) => ({ ...prev, [id]: answers }));
       })
     );
     return () => unsubs.forEach((unsubscribe) => unsubscribe());
-  }, [questions]);
+  }, [questionIdsKey]);
 
   const keywordNames = useMemo(
     () => keywordDocs.map((keyword) => keyword.name),
