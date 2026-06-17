@@ -3010,6 +3010,104 @@ pre code {
   max-height: 90vh;
 }
 
+/* 관련 질문 읽기 전용 미리보기 (편집 모달 위에 겹침) */
+.study-peek-backdrop {
+  z-index: 110;
+  background: rgba(38, 38, 37, 0.35);
+}
+
+.modal-peek {
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  max-height: 85vh;
+}
+
+.study-peek-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.study-peek-readonly {
+  font-size: 12px;
+  color: var(--text-sub);
+  background: #f2efe9;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-weight: 600;
+}
+
+.study-peek-body {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.study-peek-answers {
+  margin-top: 18px;
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+}
+
+.study-peek-answers h4 {
+  font-size: 13px;
+  color: var(--text-sub);
+  margin-bottom: 10px;
+}
+
+.study-peek-answers h4 span {
+  color: var(--primary-dark);
+  font-weight: 700;
+}
+
+.study-peek-answer {
+  background: #faf8f4;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+
+.study-peek-answer.understood {
+  border-color: #e7b78f;
+  background: #fff8ef;
+}
+
+.study-peek-answer-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.study-peek-answer-head time {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-sub);
+}
+
+.study-peek-understood {
+  font-size: 11px;
+  font-weight: 700;
+  color: #8a5a12;
+  background: #fff4d7;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.study-peek-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  margin-top: 12px;
+}
+
 .study-chip {
   border: 1px solid var(--border);
   background: #fff;

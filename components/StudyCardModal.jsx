@@ -20,6 +20,7 @@ import { sanitizeHtml, stripHtml } from "@/lib/html";
 import { readImageAsDataUrl } from "@/lib/image";
 import RichTextEditor, { IconImage, IconPen } from "./RichTextEditor";
 import DrawingCanvas from "./DrawingCanvas";
+import StudyQuestionPeek from "./StudyQuestionPeek";
 
 export default function StudyCardModal({
   board,
@@ -41,6 +42,7 @@ export default function StudyCardModal({
   const [saving, setSaving] = useState(false);
   const [showRelated, setShowRelated] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [peekQuestion, setPeekQuestion] = useState(null); // 읽기 전용으로 들여다보는 질문
 
   async function handleFile(e) {
     const file = e.target.files?.[0];
@@ -195,10 +197,7 @@ export default function StudyCardModal({
                   <button
                     key={q.id}
                     className="study-related-item"
-                    onClick={() => {
-                      onOpenQuestion?.(q.id);
-                      onClose();
-                    }}
+                    onClick={() => setPeekQuestion(q)}
                   >
                     <span
                       className={`mini-status ${q.resolved ? "done" : "open"}`}
@@ -262,6 +261,15 @@ export default function StudyCardModal({
         <DrawingCanvas
           onSave={(dataUrl) => setImageUrl(dataUrl)}
           onClose={() => setDrawing(false)}
+        />
+      )}
+
+      {/* 읽기 전용 질문 미리보기 — 편집 모달은 그대로 떠 있어 초안이 보존됩니다 */}
+      {peekQuestion && (
+        <StudyQuestionPeek
+          question={peekQuestion}
+          onClose={() => setPeekQuestion(null)}
+          onOpenFull={(id) => onOpenQuestion?.(id)}
         />
       )}
     </div>
