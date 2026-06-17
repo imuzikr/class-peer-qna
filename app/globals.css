@@ -2720,6 +2720,8 @@ pre code {
 }
 
 .study-class-select {
+  width: auto; /* 전역 select { width:100% } 무시 — 제목 옆에 인라인 배치 */
+  max-width: 240px;
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 7px 12px;
