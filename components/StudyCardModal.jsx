@@ -30,7 +30,6 @@ export default function StudyCardModal({
   relatedQuestions = [],
   onClose,
   onAsk,
-  onOpenQuestion,
 }) {
   const isNew = card === null;
   const linked = !!board.keyword;
@@ -166,10 +165,7 @@ export default function StudyCardModal({
             <div className="study-card-modal-links">
               <button
                 className="study-chip"
-                onClick={() => {
-                  onAsk?.(board.keyword);
-                  onClose();
-                }}
+                onClick={() => onAsk?.(board.keyword)}
               >
                 ❓ 질문하기
               </button>
@@ -269,7 +265,6 @@ export default function StudyCardModal({
         <StudyQuestionPeek
           question={peekQuestion}
           onClose={() => setPeekQuestion(null)}
-          onOpenFull={(id) => onOpenQuestion?.(id)}
         />
       )}
     </div>

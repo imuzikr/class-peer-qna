@@ -2707,19 +2707,22 @@ pre code {
   font-weight: 700;
 }
 
-/* 교사 반 도구 (선택 · 입장 코드 · 반/보드 추가) */
-.study-class-tools {
+/* 제목 + 교사 도구(반 선택 · 코드 · 반 만들기) 한 줄 */
+.study-head-main {
+  min-width: 0;
+}
+
+.study-title-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   flex-wrap: wrap;
-  flex-shrink: 0;
 }
 
 .study-class-select {
   border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 8px 12px;
+  padding: 7px 12px;
   font-size: 14px;
   font-weight: 600;
   color: var(--text);
@@ -2727,15 +2730,23 @@ pre code {
   cursor: pointer;
 }
 
-.study-join-code {
+/* 입장 코드 토글 버튼 */
+.study-code-btn {
   font-family: var(--font-mono);
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 1px;
   color: var(--primary-dark);
   background: var(--primary-light);
+  border: 1px solid transparent;
   border-radius: 999px;
-  padding: 6px 12px;
+  padding: 7px 14px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.study-code-btn:hover {
+  border-color: var(--primary);
 }
 
 /* 학생 반 입장 화면 */
@@ -2838,6 +2849,35 @@ pre code {
 .study-column.is-notice {
   background: #fffaf0;
   border-color: #e8d9b8;
+}
+
+/* 보드 추가 — 항상 마지막 보드 오른쪽에 오는 컬럼형 버튼 */
+.study-add-board-col {
+  flex: 0 0 220px;
+  width: 220px;
+  align-self: flex-start;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 18px;
+  border: 2px dashed var(--border);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--primary);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.study-add-board-col:hover {
+  background: var(--primary-light);
+  border-color: var(--primary);
+}
+
+.study-add-board-plus {
+  font-size: 18px;
 }
 
 .study-column-head {
@@ -3211,7 +3251,7 @@ pre code {
 .study-peek-foot {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 8px;
   padding-top: 12px;
   border-top: 1px solid var(--border);

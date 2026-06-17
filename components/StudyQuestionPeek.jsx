@@ -4,13 +4,13 @@
 // 공부방 카드 편집 중 — 관련 질문을 "읽기 전용"으로 들여다보는 미리보기.
 // -------------------------------------------------------------
 // 카드 편집 모달 위에 겹쳐 떠서, 작성 중이던 초안은 그대로 보존됩니다.
-// 답변 작성·궁금해요 등 상호작용은 의도적으로 막아 작성에 집중하게 합니다.
-// 더 자세히 보거나 답하고 싶으면 "게시판에서 열기"로 이동합니다.
+// 답변 작성·궁금해요 등 상호작용은 의도적으로 막아 작성에 집중하게 하는
+// "참고 전용" 화면입니다. 닫으면 곧장 카드 작성으로 돌아갑니다.
 // =============================================================
 import { useEffect, useState } from "react";
 import { subscribeAnswers, formatTime } from "@/lib/store";
 
-export default function StudyQuestionPeek({ question, onClose, onOpenFull }) {
+export default function StudyQuestionPeek({ question, onClose }) {
   const [answers, setAnswers] = useState([]);
 
   useEffect(() => {
@@ -96,9 +96,6 @@ export default function StudyQuestionPeek({ question, onClose, onOpenFull }) {
         </div>
 
         <div className="study-peek-foot">
-          <button className="study-chip ghost" onClick={() => onOpenFull?.(question.id)}>
-            게시판에서 열기 ↗
-          </button>
           <button className="btn-primary" onClick={onClose}>
             작성으로 돌아가기
           </button>

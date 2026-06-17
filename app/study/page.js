@@ -9,7 +9,6 @@
 // 관련 질문을 모아 볼 수 있습니다.
 // =============================================================
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   subscribeStudyBoards,
   subscribeQuestions,
@@ -29,7 +28,6 @@ import ClassEntry from "@/components/ClassEntry";
 import Toast from "@/components/Toast";
 
 export default function StudyPage() {
-  const router = useRouter();
   const user = useCurrentUser();
   const [classes, setClasses] = useState([]);
   const [boards, setBoards] = useState([]);
@@ -42,6 +40,7 @@ export default function StudyPage() {
   const [addingBoard, setAddingBoard] = useState(false);
   const [creatingClass, setCreatingClass] = useState(false);
   const [newClassName, setNewClassName] = useState("");
+  const [showCode, setShowCode] = useState(false); // 입장 코드 표시 토글
   const [askKeyword, setAskKeyword] = useState(null); // "질문하기"로 새 질문 작성
   const [toast, setToast] = useState("");
 
@@ -90,11 +89,6 @@ export default function StudyPage() {
     [boards, classId]
   );
 
-  // 카드에서 관련 질문 클릭 → 게시판에서 해당 질문 모달 열기
-  function openQuestion(id) {
-    router.push(`/board?open=${id}`);
-  }
-
   async function handleCreateClass(e) {
     e.preventDefault();
     if (!newClassName.trim()) return;
@@ -124,9 +118,49 @@ export default function StudyPage() {
       ) : (
         <main className="study-main">
           <div className="study-head">
-            <div>
-              <h1>🧩 공부방</h1>
-              {currentClass ? (
+            <div className="study-head-main">
+              {/* 교사: 제목 오른쪽에 반 선택 · 코드 · 반 만들기 */}
+              <div className="study-title-row">
+                <h1>🧩 공부방</h1>
+                {admin && classes.length > 0 && (
+                  <select
+                    className="study-class-select"
+                    value={classId ?? ""}
+                    onChange={(e) => {
+                      setTeacherClassId(e.target.value);
+                      setShowCode(false); // 반 바뀌면 코드 다시 숨김
+                    }}
+                    aria-label="반 선택"
+                  >
+                    {classes.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                {admin && currentClass && (
+                  <button
+                    className="study-code-btn"
+                    onClick={() => setShowCode((v) => !v)}
+                    title="학생에게 알려 줄 입장 코드"
+                  >
+                    🔑 {showCode ? currentClass.joinCode : "입장 코드"}
+                  </button>
+                )}
+                {admin && (
+                  <button
+                    className="btn-ghost"
+                    onClick={() => setCreatingClass(true)}
+                  >
+                    ➕ 반 만들기
+                  </button>
+                )}
+              </div>
+
+              {admin ? (
+                <p>수업 자료를 확인하고, 활동 결과물을 카드로 남겨 보세요.</p>
+              ) : currentClass ? (
                 <p>
                   <strong className="study-class-name">
                     {currentClass.name}
@@ -137,45 +171,6 @@ export default function StudyPage() {
                 <p>수업 자료를 확인하고, 활동 결과물을 카드로 남겨 보세요.</p>
               )}
             </div>
-
-            {/* 교사: 반 선택 + 입장 코드 + 반 만들기 + 보드 추가 */}
-            {admin && (
-              <div className="study-class-tools">
-                {classes.length > 0 && (
-                  <select
-                    className="study-class-select"
-                    value={classId ?? ""}
-                    onChange={(e) => setTeacherClassId(e.target.value)}
-                    aria-label="반 선택"
-                  >
-                    {classes.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                )}
-                {currentClass && (
-                  <span className="study-join-code" title="학생에게 알려 줄 입장 코드">
-                    🔑 {currentClass.joinCode}
-                  </span>
-                )}
-                <button
-                  className="btn-ghost"
-                  onClick={() => setCreatingClass(true)}
-                >
-                  ➕ 반 만들기
-                </button>
-                {currentClass && (
-                  <button
-                    className="btn-primary"
-                    onClick={() => setAddingBoard(true)}
-                  >
-                    ➕ 수업 보드 추가
-                  </button>
-                )}
-              </div>
-            )}
 
             {/* 학생: 다른 반으로 전환 (입장 코드 다시 입력) */}
             {!admin && currentClass && (
@@ -194,12 +189,8 @@ export default function StudyPage() {
               아직 만든 반이 없어요. ‘반 만들기’로 첫 반을 추가하고 학생에게
               입장 코드를 알려 주세요.
             </p>
-          ) : classBoards.length === 0 ? (
-            <p className="empty-note">
-              {admin
-                ? "이 반에는 아직 보드가 없어요. ‘수업 보드 추가’로 첫 활동을 만들어 보세요."
-                : "아직 열린 수업 보드가 없어요."}
-            </p>
+          ) : !admin && classBoards.length === 0 ? (
+            <p className="empty-note">아직 열린 수업 보드가 없어요.</p>
           ) : (
             <div className="study-columns">
               {classBoards.map((board) => (
@@ -210,9 +201,18 @@ export default function StudyPage() {
                   isTeacher={admin}
                   questions={questions}
                   onAsk={(kw) => setAskKeyword(kw)}
-                  onOpenQuestion={openQuestion}
                 />
               ))}
+              {/* 보드 추가는 항상 마지막 보드 오른쪽에 옵니다 (교사 전용) */}
+              {admin && currentClass && (
+                <button
+                  className="study-add-board-col"
+                  onClick={() => setAddingBoard(true)}
+                >
+                  <span className="study-add-board-plus">＋</span>
+                  수업 보드 추가
+                </button>
+              )}
             </div>
           )}
         </main>

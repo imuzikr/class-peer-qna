@@ -25,7 +25,6 @@ export default function StudyBoardColumn({
   isTeacher,
   questions = [],
   onAsk,
-  onOpenQuestion,
 }) {
   const [cards, setCards] = useState([]);
   const [selectedCard, setSelectedCard] = useState(null); // 클릭한 기존 카드
@@ -200,7 +199,6 @@ export default function StudyBoardColumn({
             setCreating(false);
           }}
           onAsk={onAsk}
-          onOpenQuestion={onOpenQuestion}
         />
       )}
     </section>
