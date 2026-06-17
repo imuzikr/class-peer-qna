@@ -69,7 +69,7 @@ export default function NewQuestionForm({
       } else {
         await addQuestion(getCurrentUser(), data);
       }
-      onClose();
+      onClose(true); // 등록/수정 성공 — 호출부에서 토스트 등에 활용
     } finally {
       setSaving(false);
     }

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   formatTime,
   subscribeAnswers,
@@ -12,8 +11,7 @@ import {
 import { isFirebaseConfigured } from "@/lib/firebase";
 import { isAdmin } from "@/lib/user";
 import { useCurrentUser } from "@/lib/useCurrentUser";
-import UserProfile from "@/components/UserProfile";
-import RoleSwitcher from "@/components/RoleSwitcher";
+import TopNav from "@/components/TopNav";
 import { getMeTooCount, isPinnedQuestion } from "@/lib/questionRanking";
 
 const DAY_MS = 1000 * 60 * 60 * 24;
@@ -164,7 +162,6 @@ function EmptyPanel({ children }) {
 }
 
 export default function AdminDashboardPage() {
-  const router = useRouter();
   const user = useCurrentUser();
   const [questions, setQuestions] = useState([]);
   const [keywordDocs, setKeywordDocs] = useState([]);
@@ -248,24 +245,7 @@ export default function AdminDashboardPage() {
         </div>
       )}
 
-      <header className="topbar">
-        <div className="topbar-left">
-          <button className="logo logo-button" onClick={() => router.push("/board")}>
-            📚 배움나눔
-          </button>
-          <span className="topbar-divider" aria-hidden="true" />
-          <UserProfile />
-        </div>
-        <div className="user-area">
-          <RoleSwitcher />
-          <button className="btn-ghost" onClick={() => router.push("/board")}>
-            질문 게시판
-          </button>
-          <button className="btn-ghost" onClick={() => router.push("/")}>
-            로그아웃
-          </button>
-        </div>
-      </header>
+      <TopNav active="admin" />
 
       <div className="admin-layout">
         <aside className="student-panel">

@@ -24,7 +24,13 @@ import NewQuestionForm from "./NewQuestionForm";
 import ReflectionModal from "./ReflectionModal";
 import AuthorBadge from "./AuthorBadge";
 
-export default function QuestionModal({ question, keywords = [], onClose }) {
+export default function QuestionModal({
+  question,
+  keywords = [],
+  studyKeywords = [], // 공부방 보드와 연계된 키워드 목록
+  onBackToStudy, // "수업으로 돌아가기" 클릭 핸들러
+  onClose,
+}) {
   const user = getCurrentUser();
   const mine = question.authorId === user.uid;
   const admin = isAdmin(user);
@@ -104,6 +110,10 @@ export default function QuestionModal({ question, keywords = [], onClose }) {
   // 해결됐지만 아직 회고가 없는 질문 — 회고 입구를 노출할지 판단
   const needsReflection = question.resolved && !question.reflection;
 
+  // 이 질문의 키워드가 공부방 보드와 연계돼 있으면 "수업으로 돌아가기" 활성화
+  const linkedToStudy =
+    !!onBackToStudy && studyKeywords.includes(question.keyword);
+
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal modal-wide" onClick={(e) => e.stopPropagation()}>
@@ -144,6 +154,17 @@ export default function QuestionModal({ question, keywords = [], onClose }) {
                 </button>
               </div>
               <h3 className="qa-title">{question.title}</h3>
+
+              {/* 수업 연계 — 공부방 보드와 같은 키워드면 수업으로 돌아갈 수 있습니다 */}
+              {linkedToStudy && (
+                <button
+                  type="button"
+                  className="back-to-study"
+                  onClick={onBackToStudy}
+                >
+                  📚 수업으로 돌아가기
+                </button>
+              )}
 
               {/* 회고 입구 — 해결됐지만 회고가 없는 질문에 항상 노출됩니다.
                   작성자 본인에게는 작성 버튼, 교사에게는 현황을 보여줍니다. */}

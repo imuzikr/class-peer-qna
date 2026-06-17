@@ -10,6 +10,7 @@ import {
   subscribeQuestions,
   subscribeNotices,
   subscribeKeywords,
+  subscribeStudyBoards,
 } from "@/lib/store";
 import { isFirebaseConfigured } from "@/lib/firebase";
 import { codeBlockHtml } from "@/lib/html";
@@ -19,10 +20,8 @@ import QuestionModal from "@/components/QuestionModal";
 import NewQuestionForm from "@/components/NewQuestionForm";
 import NoticePanel from "@/components/NoticePanel";
 import PythonRunner from "@/components/PythonRunner";
-import UserProfile from "@/components/UserProfile";
+import TopNav from "@/components/TopNav";
 import FilterMenu, { applyFilter } from "@/components/FilterMenu";
-import RoleSwitcher from "@/components/RoleSwitcher";
-import { isAdmin } from "@/lib/user";
 import { sortPinnedQuestions } from "@/lib/questionRanking";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 
@@ -32,6 +31,7 @@ export default function BoardPage() {
   const [questions, setQuestions] = useState([]);
   const [notices, setNotices] = useState([]);
   const [keywordDocs, setKeywordDocs] = useState([]); // {id, name, order}
+  const [studyBoards, setStudyBoards] = useState([]); // 공부방 보드 (수업으로 돌아가기 연계)
   const [keyword, setKeyword] = useState("전체");
   const [filter, setFilter] = useState("all"); // 피드 필터 (FilterMenu)
   const [selectedId, setSelectedId] = useState(null);
@@ -45,21 +45,26 @@ export default function BoardPage() {
     const unsubQ = subscribeQuestions(setQuestions);
     const unsubN = subscribeNotices(setNotices);
     const unsubK = subscribeKeywords(setKeywordDocs);
+    const unsubB = subscribeStudyBoards(setStudyBoards);
     return () => {
       unsubQ();
       unsubN();
       unsubK();
+      unsubB();
     };
   }, []);
 
-  // 학습 리포트에서 ?open=<id>로 넘어오면 해당 질문 모달을 자동 열기
+  // ?open=<id> → 해당 질문 모달 자동 열기 / ?py=1 → 파이썬 실행기 자동 열기
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const openId = params.get("open");
-    if (openId) {
-      setSelectedId(openId);
+    const py = params.get("py");
+    if (openId) setSelectedId(openId);
+    if (py === "1") setPyOpen(true);
+    if (openId || py) {
       const url = new URL(window.location.href);
       url.searchParams.delete("open");
+      url.searchParams.delete("py");
       window.history.replaceState({}, "", url.toString());
     }
   }, []);
@@ -99,6 +104,12 @@ export default function BoardPage() {
   // 모달에 표시할 질문 (목록이 갱신되면 answerCount도 함께 갱신되도록 id로 찾음)
   const selectedQuestion = questions.find((q) => q.id === selectedId) ?? null;
 
+  // 공부방 보드와 연계된 키워드 집합 — "수업으로 돌아가기" 버튼 활성화 판단
+  const studyKeywords = useMemo(
+    () => studyBoards.map((b) => b.keyword).filter(Boolean),
+    [studyBoards]
+  );
+
   return (
     <div className="board-shell">
       {!isFirebaseConfigured && (
@@ -109,37 +120,11 @@ export default function BoardPage() {
         </div>
       )}
 
-      <header className="topbar">
-        {/* 왼쪽: 로고 + 접속 사용자 프로필 (익명 닉네임) */}
-        <div className="topbar-left">
-          <span className="logo">📚 배움나눔</span>
-          <span className="topbar-divider" aria-hidden="true" />
-          <UserProfile />
-        </div>
-        <div className="user-area">
-          {/* 개발용 — 관리자/학생 화면 전환 */}
-          <RoleSwitcher />
-          {user && isAdmin(user) && (
-            <button className="btn-ghost" onClick={() => router.push("/admin")}>
-              📊 관리자 대시보드
-            </button>
-          )}
-          {user && !isAdmin(user) && (
-            <button className="btn-ghost" onClick={() => router.push("/report")}>
-              📈 학습 리포트
-            </button>
-          )}
-          <button
-            className={`btn-ghost ${pyOpen ? "py-btn-active" : ""}`}
-            onClick={() => setPyOpen(!pyOpen)}
-          >
-            🐍 파이썬 실행기
-          </button>
-          <button className="btn-ghost" onClick={() => router.push("/")}>
-            로그아웃
-          </button>
-        </div>
-      </header>
+      <TopNav
+        active="board"
+        onPython={() => setPyOpen((v) => !v)}
+        pyActive={pyOpen}
+      />
 
       <div className="three-cols">
         {/* 1단: 키워드 */}
@@ -192,7 +177,9 @@ export default function BoardPage() {
         <QuestionModal
           question={selectedQuestion}
           keywords={keywordNames}
+          studyKeywords={studyKeywords}
           onClose={() => setSelectedId(null)}
+          onBackToStudy={() => router.push("/study")}
         />
       )}
       {writing && (

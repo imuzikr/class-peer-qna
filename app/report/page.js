@@ -7,14 +7,15 @@ import {
   subscribeAnswers,
   subscribeKeywords,
   subscribeQuestions,
+  subscribeStudyBoards,
+  subscribeStudyCards,
   toDate,
 } from "@/lib/store";
 import { isFirebaseConfigured } from "@/lib/firebase";
-import { isAdmin } from "@/lib/user";
+import { stripHtml } from "@/lib/html";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import { getMeTooCount, isPinnedQuestion } from "@/lib/questionRanking";
-import UserProfile from "@/components/UserProfile";
-import RoleSwitcher from "@/components/RoleSwitcher";
+import TopNav from "@/components/TopNav";
 
 const DAY_MS = 1000 * 60 * 60 * 24;
 
@@ -153,15 +154,30 @@ export default function StudentReportPage() {
   const [reflectOpen, setReflectOpen] = useState(true); // 내 회고 모음 펼침 여부
   const reflectDefaultApplied = useRef(false); // 기본 펼침/접힘을 한 번만 자동 적용
   const [activeStatKey, setActiveStatKey] = useState(null); // 통계 카드 드릴다운
+  const [studyBoards, setStudyBoards] = useState([]);
+  const [cardsByBoard, setCardsByBoard] = useState({}); // boardId -> cards[]
 
   useEffect(() => {
     const unsubQ = subscribeQuestions(setQuestions);
     const unsubK = subscribeKeywords(setKeywordDocs);
+    const unsubB = subscribeStudyBoards(setStudyBoards);
     return () => {
       unsubQ();
       unsubK();
+      unsubB();
     };
   }, []);
+
+  // 보드별 카드 구독 — 공부방 활동 집계용
+  useEffect(() => {
+    setCardsByBoard({});
+    const unsubs = studyBoards.map((board) =>
+      subscribeStudyCards(board.id, (cards) => {
+        setCardsByBoard((prev) => ({ ...prev, [board.id]: cards }));
+      })
+    );
+    return () => unsubs.forEach((u) => u());
+  }, [studyBoards]);
 
   useEffect(() => {
     setAnswersByQuestion({});
@@ -214,6 +230,22 @@ export default function StudentReportPage() {
             toDate(b.reflection.createdAt) - toDate(a.reflection.createdAt)
         )
     : [];
+
+  // 공부방 활동 — 내가 작성한 카드를 보드별로 모읍니다 (수업 안내 보드 제외).
+  const myStudyCards = useMemo(() => {
+    if (!user) return [];
+    const studentBoards = studyBoards.filter((b) => b.type !== "notice");
+    return studentBoards
+      .map((board) => {
+        const card = (cardsByBoard[board.id] ?? []).find(
+          (c) => c.authorId === user.uid
+        );
+        return card ? { board, card } : null;
+      })
+      .filter(Boolean)
+      .sort((a, b) => toDate(b.card.createdAt) - toDate(a.card.createdAt));
+  }, [studyBoards, cardsByBoard, user]);
+  const studentBoardCount = studyBoards.filter((b) => b.type !== "notice").length;
   // 통계 카드 드릴다운 목록
   const statDetailItems = useMemo(() => {
     switch (activeStatKey) {
@@ -306,29 +338,7 @@ export default function StudentReportPage() {
         </div>
       )}
 
-      <header className="topbar">
-        <div className="topbar-left">
-          <button className="logo logo-button" onClick={() => router.push("/board")}>
-            📚 배움나눔
-          </button>
-          <span className="topbar-divider" aria-hidden="true" />
-          <UserProfile />
-        </div>
-        <div className="user-area">
-          <RoleSwitcher />
-          {user && isAdmin(user) && (
-            <button className="btn-ghost" onClick={() => router.push("/admin")}>
-              관리자 대시보드
-            </button>
-          )}
-          <button className="btn-ghost" onClick={() => router.push("/board")}>
-            질문 게시판
-          </button>
-          <button className="btn-ghost" onClick={() => router.push("/")}>
-            로그아웃
-          </button>
-        </div>
-      </header>
+      <TopNav active="report" />
 
       <main className="admin-main report-main">
         {!user ? (
@@ -397,6 +407,63 @@ export default function StudentReportPage() {
             )}
           </section>
         )}
+
+        <section className="study-report">
+          <div className="admin-panel-head">
+            <h2>🧩 공부방 활동</h2>
+            <span>
+              {studentBoardCount > 0
+                ? `${myStudyCards.length} / ${studentBoardCount} 보드 제출`
+                : "활동 보드 없음"}
+            </span>
+          </div>
+          {studentBoardCount === 0 ? (
+            <EmptyPanel>아직 열린 수업 보드가 없어요.</EmptyPanel>
+          ) : (
+            <>
+              {/* 보드별 제출 현황 막대 */}
+              <div className="study-report-bar">
+                <div
+                  className="study-report-fill"
+                  style={{
+                    width: `${(myStudyCards.length / studentBoardCount) * 100}%`,
+                  }}
+                />
+              </div>
+              {myStudyCards.length === 0 ? (
+                <EmptyPanel>
+                  아직 작성한 카드가 없어요.{" "}
+                  <button
+                    className="link-button"
+                    onClick={() => router.push("/study")}
+                  >
+                    공부방으로 가기 →
+                  </button>
+                </EmptyPanel>
+              ) : (
+                <div className="study-report-list">
+                  {myStudyCards.map(({ board, card }) => (
+                    <button
+                      key={board.id}
+                      type="button"
+                      className="study-report-item"
+                      onClick={() => router.push("/study")}
+                    >
+                      {board.keyword && (
+                        <span className="keyword-chip"># {board.keyword}</span>
+                      )}
+                      <span className="study-report-title">{board.title}</span>
+                      <span className="study-report-preview">
+                        {stripHtml(card.content)}
+                      </span>
+                      <time>{formatTime(card.createdAt)}</time>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </section>
 
         <section className="report-reflection">
           <div className="admin-panel-head">
