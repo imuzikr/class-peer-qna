@@ -35,12 +35,16 @@ export default function TopNav({ active, onPython, pyActive = false }) {
         </button>
         <span className="topbar-divider" aria-hidden="true" />
         <nav className="topnav-menu">
-          <button
-            className={`btn-ghost ${active === "study" ? "nav-active" : ""}`}
-            onClick={() => router.push("/study")}
-          >
-            🧩 공부방
-          </button>
+          {active === "study" ? (
+            // 공부방에 있을 때는 "질문 게시판"으로 돌아가는 버튼으로 바뀝니다
+            <button className="btn-ghost" onClick={() => router.push("/board")}>
+              💬 질문 게시판
+            </button>
+          ) : (
+            <button className="btn-ghost" onClick={() => router.push("/study")}>
+              🧩 공부방
+            </button>
+          )}
           <button
             className={`btn-ghost ${pyActive ? "py-btn-active" : ""}`}
             onClick={handlePython}
