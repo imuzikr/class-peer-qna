@@ -15,6 +15,7 @@ import {
 import { isFirebaseConfigured } from "@/lib/firebase";
 import { codeBlockHtml } from "@/lib/html";
 import KeywordSidebar from "@/components/KeywordSidebar";
+import KeywordManager from "@/components/KeywordManager";
 import QuestionCard from "@/components/QuestionCard";
 import QuestionModal from "@/components/QuestionModal";
 import NewQuestionForm from "@/components/NewQuestionForm";
@@ -24,6 +25,7 @@ import TopNav from "@/components/TopNav";
 import FilterMenu, { applyFilter } from "@/components/FilterMenu";
 import { sortPinnedQuestions } from "@/lib/questionRanking";
 import { useCurrentUser } from "@/lib/useCurrentUser";
+import { isAdmin } from "@/lib/user";
 
 export default function BoardPage() {
   const router = useRouter();
@@ -38,7 +40,9 @@ export default function BoardPage() {
   const [writing, setWriting] = useState(false);
   const [pyOpen, setPyOpen] = useState(false); // 파이썬 실행 패널
   const [askCode, setAskCode] = useState(null); // 실행기에서 넘어온 코드
+  const [managingKeywords, setManagingKeywords] = useState(false);
   const user = useCurrentUser();
+  const admin = user ? isAdmin(user) : false;
 
   // 실시간 구독 (컴포넌트가 사라지면 자동 해제)
   useEffect(() => {
@@ -133,6 +137,8 @@ export default function BoardPage() {
           selected={keyword}
           onSelect={setKeyword}
           counts={counts}
+          isAdmin={admin}
+          onManage={() => setManagingKeywords(true)}
         />
 
         {/* 2단: 질문 게시판 */}
@@ -184,13 +190,20 @@ export default function BoardPage() {
       )}
       {writing && (
         <NewQuestionForm
-          defaultKeyword={askCode ? "정보" : keyword}
+          defaultKeyword={keyword === "전체" ? "" : keyword}
           keywords={keywordNames}
           initialContent={askCode ? codeBlockHtml(askCode) : ""}
           onClose={() => {
             setWriting(false);
             setAskCode(null);
           }}
+        />
+      )}
+
+      {managingKeywords && (
+        <KeywordManager
+          keywords={keywordDocs}
+          onClose={() => setManagingKeywords(false)}
         />
       )}
 

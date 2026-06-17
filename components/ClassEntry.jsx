@@ -61,7 +61,7 @@ export default function ClassEntry() {
         {!isFirebaseConfigured && (
           <p className="class-entry-hint">
             데모 코드 — <code>MATH31</code> (3학년 1반) · <code>INFO32</code>{" "}
-            (3학년 2반)
+            (3학년 2반) · <code>BOND33</code> (3학년 3반)
           </p>
         )}
       </div>
