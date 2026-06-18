@@ -77,6 +77,15 @@ export function IconPen() {
   );
 }
 
+function IconCode() {
+  return (
+    <svg {...svgProps}>
+      <polyline points="16 18 22 12 16 6" />
+      <polyline points="8 6 2 12 8 18" />
+    </svg>
+  );
+}
+
 function IconSend() {
   return (
     <svg {...svgProps} width={16} height={16}>
@@ -106,6 +115,8 @@ const COMMANDS = [
   null,
   { cmd: "insertUnorderedList", title: "글머리 기호", icon: <IconUl /> },
   { cmd: "insertOrderedList", title: "번호 목록", icon: <IconOl /> },
+  null,
+  { cmd: "codeBlock", title: "코드 블록 (</>)", icon: <IconCode />, custom: true },
 ];
 
 export default function RichTextEditor({
@@ -153,6 +164,15 @@ export default function RichTextEditor({
     onChange(ref.current.innerHTML);
   }
 
+  function insertCodeBlock() {
+    ref.current?.focus();
+    const sel = window.getSelection();
+    const selectedText = sel && !sel.isCollapsed ? sel.toString() : "";
+    const html = `<pre><code>${selectedText || " "}</code></pre>`;
+    document.execCommand("insertHTML", false, html);
+    onChange(ref.current.innerHTML);
+  }
+
   function handleInput() {
     onChange(ref.current.innerHTML);
   }
@@ -197,7 +217,7 @@ export default function RichTextEditor({
             title={c.title}
             className={`rte-tool ${active[c.cmd] ? "active" : ""}`}
             onMouseDown={(e) => e.preventDefault()}
-            onClick={() => exec(c.cmd)}
+            onClick={() => c.custom ? insertCodeBlock() : exec(c.cmd)}
           >
             {c.icon}
           </button>
