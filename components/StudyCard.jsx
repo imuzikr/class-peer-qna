@@ -41,20 +41,16 @@ export default function StudyCard({ card, onClick, isTeacher = false }) {
         <time className="study-card-time">{formatTime(card.createdAt)}</time>
       </div>
 
-      <div className="study-card-content-row">
-        <div className="study-card-texts">
-          {card.title && <p className="study-card-title">{card.title}</p>}
-          {preview && <p className="study-card-preview" aria-hidden="true">{preview}</p>}
+      {card.title && <p className="study-card-title">{card.title}</p>}
+
+      {/* 이미지 첨부가 있으면 full-width 썸네일, 없으면 invisible 텍스트로 높이 유지 */}
+      {thumbAtt ? (
+        <div className="study-card-thumb-wrap">
+          <img className="study-card-thumb" src={thumbAtt.dataUrl} alt="" aria-hidden="true" />
         </div>
-        {thumbAtt && (
-          <img
-            className="study-card-thumb"
-            src={thumbAtt.dataUrl}
-            alt=""
-            aria-hidden="true"
-          />
-        )}
-      </div>
+      ) : (
+        preview && <p className="study-card-preview" aria-hidden="true">{preview}</p>
+      )}
     </article>
   );
 }
