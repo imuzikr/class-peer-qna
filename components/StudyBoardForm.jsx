@@ -3,9 +3,9 @@
 // =============================================================
 // 공부방 보드 추가 모달 (교사 전용)
 // -------------------------------------------------------------
-// 제목 + 설명 + 주제 키워드 연계(선택).
-// 키워드를 연계하면 학생 카드에서 "질문하기"/"관련 질문"이 활성화되고,
-// 질문 게시판에서는 "수업으로 돌아가기"가 활성화됩니다. 기본값은 미연결.
+// · 제목 행 오른쪽에 토글로 "질문 게시판 연계하기" 설정
+// · 연계 ON 시 키워드 칩을 복수로 선택 가능 (제목 바로 아래)
+// · 설명 입력 (선택)
 // =============================================================
 import { useState } from "react";
 import { addStudyBoard } from "@/lib/store";
@@ -15,8 +15,14 @@ export default function StudyBoardForm({ keywords = [], classId = null, onClose 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [linkKeyword, setLinkKeyword] = useState(false);
-  const [keyword, setKeyword] = useState(keywords[0] ?? "");
+  const [selectedKeywords, setSelectedKeywords] = useState([]);
   const [saving, setSaving] = useState(false);
+
+  function toggleKeyword(kw) {
+    setSelectedKeywords((prev) =>
+      prev.includes(kw) ? prev.filter((k) => k !== kw) : [...prev, kw]
+    );
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -27,7 +33,7 @@ export default function StudyBoardForm({ keywords = [], classId = null, onClose 
         title: title.trim(),
         type: "student",
         description: description.trim(),
-        keyword: linkKeyword ? keyword : null,
+        keywords: linkKeyword ? selectedKeywords : [],
         classId,
       });
       onClose();
@@ -47,40 +53,56 @@ export default function StudyBoardForm({ keywords = [], classId = null, onClose 
         </div>
 
         <form className="form-grid" onSubmit={handleSubmit}>
-          <input
-            type="text"
-            placeholder="보드 제목 (예: 2단원 - 수열의 합 탐구)"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            autoFocus
-          />
+          {/* 제목 + 연계 토글 */}
+          <div className="study-board-form-title-row">
+            <input
+              type="text"
+              placeholder="보드 제목 (예: 이온 결합 모형 탐구)"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              autoFocus
+            />
+            <label
+              className="toggle-switch"
+              title="질문 게시판 주제와 연계하기"
+            >
+              <input
+                type="checkbox"
+                checked={linkKeyword}
+                onChange={(e) => setLinkKeyword(e.target.checked)}
+              />
+              <span className="toggle-track" />
+              <span className="toggle-label">연계하기</span>
+            </label>
+          </div>
+
+          {/* 키워드 칩 (연계 ON일 때) */}
+          {linkKeyword && (
+            <div className="study-keyword-chips">
+              {keywords.map((kw) => (
+                <button
+                  key={kw}
+                  type="button"
+                  className={`study-keyword-chip${selectedKeywords.includes(kw) ? " selected" : ""}`}
+                  onClick={() => toggleKeyword(kw)}
+                >
+                  # {kw}
+                </button>
+              ))}
+              {keywords.length === 0 && (
+                <p className="study-link-hint">
+                  키워드를 먼저 추가해 주세요.
+                </p>
+              )}
+            </div>
+          )}
+
           <textarea
             className="study-board-desc-input"
             placeholder="활동 안내를 적어 주세요. (선택)"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />
-
-          <label className="study-link-toggle">
-            <input
-              type="checkbox"
-              checked={linkKeyword}
-              onChange={(e) => setLinkKeyword(e.target.checked)}
-            />
-            <span>질문 게시판 주제와 연계하기</span>
-          </label>
-          {linkKeyword && (
-            <select value={keyword} onChange={(e) => setKeyword(e.target.value)}>
-              {keywords.map((kw) => (
-                <option key={kw} value={kw}>
-                  # {kw}
-                </option>
-              ))}
-            </select>
-          )}
-          <p className="study-link-hint">
-            연계하면 학생이 카드에서 바로 질문하고 관련 질문을 모아 볼 수 있어요.
-          </p>
 
           <button type="submit" className="btn-primary" disabled={saving}>
             {saving ? "만드는 중..." : "보드 만들기"}

@@ -110,7 +110,9 @@ export default function BoardPage() {
 
   // 공부방 보드와 연계된 키워드 집합 — "수업으로 돌아가기" 버튼 활성화 판단
   const studyKeywords = useMemo(
-    () => studyBoards.map((b) => b.keyword).filter(Boolean),
+    () => studyBoards.flatMap((b) =>
+      Array.isArray(b.keywords) ? b.keywords : (b.keyword ? [b.keyword] : [])
+    ).filter(Boolean),
     [studyBoards]
   );
 

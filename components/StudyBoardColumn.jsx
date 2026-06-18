@@ -69,8 +69,14 @@ export default function StudyBoardColumn({
   const canAddStudent = !isNotice && !locked && !myCard;
   const canAdd = canAddNotice || canAddStudent;
 
-  const relatedQuestions = board.keyword
-    ? questions.filter((q) => q.keyword === board.keyword)
+  // 이전 단일 keyword 필드와 새 keywords 배열 모두 지원
+  const boardKeywords = Array.isArray(board.keywords)
+    ? board.keywords
+    : board.keyword
+    ? [board.keyword]
+    : [];
+  const relatedQuestions = boardKeywords.length > 0
+    ? questions.filter((q) => boardKeywords.includes(q.keyword))
     : [];
 
   function canEditCard(card) {

@@ -27,7 +27,12 @@ export default function StudyCardModal({
   onAsk,
 }) {
   const isNew = card === null;
-  const linked = !!board.keyword;
+  const boardKeywords = Array.isArray(board.keywords)
+    ? board.keywords
+    : board.keyword
+    ? [board.keyword]
+    : [];
+  const linked = boardKeywords.length > 0;
   const isTeacherCard = card?.authorId?.startsWith?.("teacher_");
 
   const [title, setTitle] = useState(isNew ? "" : (card.title ?? ""));
@@ -171,7 +176,7 @@ export default function StudyCardModal({
             <div className="study-card-modal-links">
               <button
                 className="study-chip"
-                onClick={() => onAsk?.(board.keyword)}
+                onClick={() => onAsk?.(boardKeywords[0] ?? null)}
               >
                 ❓ 질문하기
               </button>
@@ -180,8 +185,7 @@ export default function StudyCardModal({
                 onClick={() => setShowRelated((v) => !v)}
                 aria-expanded={showRelated}
               >
-                🔗 관련 질문{" "}
-                {relatedQuestions.length > 0 && `(${relatedQuestions.length})`}
+                🔗 관련 질문{relatedQuestions.length > 0 && ` (${relatedQuestions.length})`}
               </button>
             </div>
           )}

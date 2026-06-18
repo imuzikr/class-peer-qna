@@ -20,10 +20,12 @@ import { isFirebaseConfigured } from "@/lib/firebase";
 import { isAdmin, getCurrentUser } from "@/lib/user";
 import { getSelectedClassId, setSelectedClassId } from "@/lib/classroom";
 import { useCurrentUser } from "@/lib/useCurrentUser";
+import { codeBlockHtml } from "@/lib/html";
 import TopNav from "@/components/TopNav";
 import StudyBoardColumn from "@/components/StudyBoardColumn";
 import StudyBoardForm from "@/components/StudyBoardForm";
 import NewQuestionForm from "@/components/NewQuestionForm";
+import PythonRunner from "@/components/PythonRunner";
 import ClassEntry from "@/components/ClassEntry";
 import Toast from "@/components/Toast";
 
@@ -42,6 +44,8 @@ export default function StudyPage() {
   const [newClassName, setNewClassName] = useState("");
   const [showCode, setShowCode] = useState(false); // 입장 코드 표시 토글
   const [askKeyword, setAskKeyword] = useState(null); // "질문하기"로 새 질문 작성
+  const [askCode, setAskCode] = useState(null);     // 파이썬 실행기에서 넘어온 코드
+  const [pyOpen, setPyOpen] = useState(false);      // 파이썬 실행 패널
   const [toast, setToast] = useState("");
 
   useEffect(() => {
@@ -111,7 +115,11 @@ export default function StudyPage() {
         </div>
       )}
 
-      <TopNav active="study" />
+      <TopNav
+        active="study"
+        onPython={() => setPyOpen((v) => !v)}
+        pyActive={pyOpen}
+      />
 
       {showEntry ? (
         <ClassEntry />
@@ -260,19 +268,29 @@ export default function StudyPage() {
         />
       )}
 
-      {askKeyword && (
+      {(askKeyword !== null || askCode !== null) && (
         <NewQuestionForm
-          defaultKeyword={askKeyword}
+          defaultKeyword={askKeyword ?? ""}
           keywords={keywordNames}
+          initialContent={askCode ? codeBlockHtml(askCode) : ""}
           onClose={(submitted) => {
             setAskKeyword(null);
-            // 공부방에 머무르며 토스트로 알림 (게시판으로 이동하지 않음)
+            setAskCode(null);
             if (submitted === true) {
               setToast("질문이 게시판에 등록됐어요. 공부방에서 계속 활동하세요!");
             }
           }}
         />
       )}
+
+      <PythonRunner
+        open={pyOpen}
+        onClose={() => setPyOpen(false)}
+        onAskQuestion={(code) => {
+          setAskCode(code);
+          setAskKeyword(null);
+        }}
+      />
 
       <Toast message={toast} onDone={() => setToast("")} />
     </div>
