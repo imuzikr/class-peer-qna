@@ -3,9 +3,13 @@
 import { formatTime } from "@/lib/store";
 import { stripHtml } from "@/lib/html";
 
+const IMAGE_EXTS = new Set(["jpg", "jpeg", "png", "gif", "webp"]);
+
 export default function StudyCard({ card, onClick, isTeacher = false }) {
   const isTeacherCard = card.authorId?.startsWith?.("teacher_");
   const preview = stripHtml(card.content ?? "").slice(0, 120);
+  const attachCount = card.attachments?.length ?? 0;
+  const thumbAtt = card.attachments?.find((a) => IMAGE_EXTS.has(a.ext));
 
   return (
     <article
@@ -29,13 +33,28 @@ export default function StudyCard({ card, onClick, isTeacher = false }) {
             <strong>{card.authorRealName || card.authorName}</strong>
           )}
         </div>
+        {attachCount > 0 && (
+          <span className="study-card-attach-count" aria-label={`첨부 파일 ${attachCount}개`}>
+            📎{attachCount}
+          </span>
+        )}
         <time className="study-card-time">{formatTime(card.createdAt)}</time>
       </div>
-      {card.title && <p className="study-card-title">{card.title}</p>}
-      {preview && <p className="study-card-preview" aria-hidden="true">{preview}</p>}
-      {(card.attachments?.length ?? 0) > 0 && (
-        <p className="study-card-attach-badge">📎 파일 {card.attachments.length}개</p>
-      )}
+
+      <div className="study-card-content-row">
+        <div className="study-card-texts">
+          {card.title && <p className="study-card-title">{card.title}</p>}
+          {preview && <p className="study-card-preview" aria-hidden="true">{preview}</p>}
+        </div>
+        {thumbAtt && (
+          <img
+            className="study-card-thumb"
+            src={thumbAtt.dataUrl}
+            alt=""
+            aria-hidden="true"
+          />
+        )}
+      </div>
     </article>
   );
 }

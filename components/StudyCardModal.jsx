@@ -57,8 +57,14 @@ export default function StudyCardModal({
   }
 
   // 허용 확장자 → 표시용 레이블
-  const FILE_EXTS = { html: "HTML", htm: "HTML", txt: "TXT", csv: "CSV", xlsx: "XLSX", xls: "XLS", py: "PY" };
-  const MAX_FILE_BYTES = 200 * 1024; // 200KB (base64 후 ~270KB, Firestore 1MB 여유 확보)
+  const FILE_EXTS = {
+    html: "HTML", htm: "HTML", txt: "TXT", csv: "CSV",
+    xlsx: "XLSX", xls: "XLS", py: "PY",
+    jpg: "JPG", jpeg: "JPG", png: "PNG", gif: "GIF", webp: "WEBP",
+  };
+  const IMAGE_EXTS = new Set(["jpg", "jpeg", "png", "gif", "webp"]);
+  const MAX_FILE_BYTES = 200 * 1024;         // 200KB (텍스트/코드 계열)
+  const MAX_IMAGE_BYTES = 5 * 1024 * 1024;   // 5MB (이미지는 압축 후 저장)
   const MAX_ATTACH_COUNT = 3;
 
   async function handleFileAttach(e) {
@@ -67,18 +73,25 @@ export default function StudyCardModal({
     if (!file) return;
     const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
     if (!FILE_EXTS[ext]) {
-      alert("HTML, TXT, CSV, Excel(.xlsx/.xls) 파일만 첨부할 수 있습니다.");
+      alert("HTML, TXT, CSV, Excel, Python, 이미지(JPG/PNG/GIF/WEBP) 파일만 첨부할 수 있습니다.");
       return;
     }
-    if (file.size > MAX_FILE_BYTES) {
-      alert(`파일 크기는 200KB 이하여야 합니다. (현재: ${Math.round(file.size / 1024)}KB)`);
+    const isImage = IMAGE_EXTS.has(ext);
+    if (file.size > (isImage ? MAX_IMAGE_BYTES : MAX_FILE_BYTES)) {
+      alert(isImage
+        ? `이미지 파일은 5MB 이하여야 합니다. (현재: ${(file.size / 1024 / 1024).toFixed(1)}MB)`
+        : `파일 크기는 200KB 이하여야 합니다. (현재: ${Math.round(file.size / 1024)}KB)`
+      );
       return;
     }
     if (attachments.length >= MAX_ATTACH_COUNT) {
       alert(`파일은 최대 ${MAX_ATTACH_COUNT}개까지 첨부할 수 있습니다.`);
       return;
     }
-    const dataUrl = await readFileAsDataUrl(file);
+    // 이미지는 자동 압축(900px JPEG 80%), 그 외는 원본 그대로
+    const dataUrl = isImage
+      ? await readImageAsDataUrl(file)
+      : await readFileAsDataUrl(file);
     setAttachments((prev) => [
       ...prev,
       { id: `f${Date.now()}`, name: file.name, ext, size: file.size, dataUrl },
@@ -200,7 +213,7 @@ export default function StudyCardModal({
                       + 파일 추가
                       <input
                         type="file"
-                        accept=".html,.htm,.txt,.csv,.xlsx,.xls,.py"
+                        accept=".html,.htm,.txt,.csv,.xlsx,.xls,.py,.jpg,.jpeg,.png,.gif,.webp"
                         onChange={handleFileAttach}
                         hidden
                       />

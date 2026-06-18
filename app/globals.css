@@ -1315,6 +1315,11 @@ button.understood-bulb:hover {
 .attach-file-ext.ext-htm  { background: #fff3e0; color: #e65100; }
 .attach-file-ext.ext-txt  { background: #f3e5f5; color: #6a1b9a; }
 .attach-file-ext.ext-py   { background: #e3f2fd; color: #1565c0; }
+.attach-file-ext.ext-jpg,
+.attach-file-ext.ext-jpeg,
+.attach-file-ext.ext-png,
+.attach-file-ext.ext-gif,
+.attach-file-ext.ext-webp { background: #fce4ec; color: #880e4f; }
 
 .attach-file-name {
   flex: 1;
@@ -1350,12 +1355,6 @@ button.understood-bulb:hover {
   padding: 3px 10px;
 }
 
-/* 공부방 카드 첨부 파일 배지 */
-.study-card-attach-badge {
-  font-size: 11px;
-  color: var(--text-sub);
-  margin: 2px 0 0;
-}
 
 /* ===================== 이미지 첨부 ===================== */
 .attach-row {
@@ -3197,6 +3196,37 @@ pre code {
   font-size: 11px;
   color: var(--text-sub);
   flex-shrink: 0;
+}
+
+/* 헤더 첨부 파일 카운트 배지 */
+.study-card-attach-count {
+  font-size: 11px;
+  color: var(--text-sub);
+  flex-shrink: 0;
+  letter-spacing: -0.5px;
+}
+
+/* 카드 본문 — 텍스트 영역 + 썸네일 */
+.study-card-content-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  min-height: 0;
+}
+
+.study-card-texts {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 이미지 첨부 썸네일 */
+.study-card-thumb {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 6px;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
 }
 
 /* 교사 전용 정렬 버튼 */
