@@ -2883,12 +2883,20 @@ pre code {
 /* 교사 관리 영역 — 보드 정보 카드 */
 .study-board-info {
   margin: 12px 12px 0;
-  padding: 12px 14px 14px;
-  background: var(--card-bg);
+  background: var(--primary-light);
   border: 1px solid var(--border);
   border-radius: 12px;
   flex-shrink: 0;
   box-shadow: 0 1px 3px rgba(46, 36, 26, 0.06);
+  overflow: hidden;
+}
+
+.study-board-info-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px 10px;
+  background: var(--primary-light);
 }
 
 .is-notice .study-board-info {
@@ -2896,10 +2904,8 @@ pre code {
   border-color: #e8d9b8;
 }
 
-.study-board-info-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.is-notice .study-board-info-head {
+  background: #fffbf0;
 }
 
 .study-board-info-head h3 {
@@ -2924,10 +2930,21 @@ pre code {
 }
 
 .study-column-desc {
-  margin-top: 6px;
   font-size: 13px;
   line-height: 1.5;
   color: var(--text-sub);
+  padding: 8px 14px 12px;
+  background: var(--card-bg);
+  /* 3줄 고정 높이: font-size(13px) × line-height(1.5) × 3줄 + 상하 padding */
+  height: calc(13px * 1.5 * 3 + 8px + 12px);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+.is-notice .study-column-desc {
+  background: #fffbf0;
 }
 
 .study-column-tags {
@@ -2961,7 +2978,7 @@ pre code {
 
 /* 교사 설정 패널 */
 .study-settings {
-  margin-top: 10px;
+  margin: 0 14px 10px;
   padding: 10px;
   background: #fff;
   border: 1px solid var(--border);
@@ -3072,7 +3089,7 @@ pre code {
 .study-sort {
   display: flex;
   gap: 4px;
-  padding: 6px 0 2px;
+  padding: 6px 14px 10px;
   flex-wrap: wrap;
 }
 
