@@ -1314,6 +1314,7 @@ button.understood-bulb:hover {
 .attach-file-ext.ext-html,
 .attach-file-ext.ext-htm  { background: #fff3e0; color: #e65100; }
 .attach-file-ext.ext-txt  { background: #f3e5f5; color: #6a1b9a; }
+.attach-file-ext.ext-py   { background: #e3f2fd; color: #1565c0; }
 
 .attach-file-name {
   flex: 1;

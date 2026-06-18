@@ -57,7 +57,7 @@ export default function StudyCardModal({
   }
 
   // 허용 확장자 → 표시용 레이블
-  const FILE_EXTS = { html: "HTML", htm: "HTML", txt: "TXT", csv: "CSV", xlsx: "XLSX", xls: "XLS" };
+  const FILE_EXTS = { html: "HTML", htm: "HTML", txt: "TXT", csv: "CSV", xlsx: "XLSX", xls: "XLS", py: "PY" };
   const MAX_FILE_BYTES = 200 * 1024; // 200KB (base64 후 ~270KB, Firestore 1MB 여유 확보)
   const MAX_ATTACH_COUNT = 3;
 
@@ -199,7 +199,7 @@ export default function StudyCardModal({
                     + 파일 추가
                     <input
                       type="file"
-                      accept=".html,.htm,.txt,.csv,.xlsx,.xls"
+                      accept=".html,.htm,.txt,.csv,.xlsx,.xls,.py"
                       onChange={handleFileAttach}
                       hidden
                     />
@@ -228,7 +228,7 @@ export default function StudyCardModal({
                 )}
               </div>
             </>
-          ) : (
+          ) : card ? (
             <>
               {card.title && (
                 <h4 className="study-card-read-title">{card.title}</h4>
@@ -270,7 +270,7 @@ export default function StudyCardModal({
                 </div>
               )}
             </>
-          )}
+          ) : null}
         </div>
 
         {/* 하단 액션 영역 */}
