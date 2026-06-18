@@ -8,7 +8,10 @@
 //     viewMode='private'(기본) → 학생은 자기 카드만, 교사는 전부
 //     viewMode='shared'        → 모두가 서로의 카드를 봄
 //     editMode='locked'        → 작성/수정 잠금(보기 전용)
-// 교사는 ⚙️로 보기/편집 모드를 바꾸고 보드를 삭제할 수 있습니다.
+//
+// [레이아웃]
+// · 교사 정보 카드: 보드 제목·설명·정렬·설정 — 독립 카드로 고정
+// · 학생 카드 영역: 학생이 제출한 카드 목록
 // =============================================================
 import { useEffect, useState } from "react";
 import {
@@ -28,11 +31,11 @@ export default function StudyBoardColumn({
   onAsk,
 }) {
   const [cards, setCards] = useState([]);
-  const [selectedCard, setSelectedCard] = useState(null); // 클릭한 기존 카드
-  const [creating, setCreating] = useState(false);        // 새 카드 작성 모드
+  const [selectedCard, setSelectedCard] = useState(null);
+  const [creating, setCreating] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [sortKey, setSortKey] = useState("time");   // "time" | "studentId"
-  const [sortDir, setSortDir] = useState("asc");    // "asc" | "desc"
+  const [sortKey, setSortKey] = useState("time");
+  const [sortDir, setSortDir] = useState("asc");
 
   useEffect(() => {
     const unsub = subscribeStudyCards(board.id, setCards);
@@ -43,13 +46,11 @@ export default function StudyBoardColumn({
   const locked = board.editMode === "locked";
   const myCard = user ? cards.find((c) => c.authorId === user.uid) : null;
 
-  // 화면에 보일 카드 결정
   let visibleCards = cards;
   if (!isTeacher && !isNotice && board.viewMode === "private") {
     visibleCards = myCard ? [myCard] : [];
   }
 
-  // 교사용 정렬 적용
   if (isTeacher && !isNotice) {
     visibleCards = [...visibleCards].sort((a, b) => {
       let cmp = 0;
@@ -64,28 +65,20 @@ export default function StudyBoardColumn({
     });
   }
 
-  // 카드 추가 가능 여부
   const canAddNotice = isNotice && isTeacher && !locked;
   const canAddStudent = !isNotice && !locked && !myCard;
   const canAdd = canAddNotice || canAddStudent;
 
-  // 연계 키워드의 관련 질문
   const relatedQuestions = board.keyword
     ? questions.filter((q) => q.keyword === board.keyword)
     : [];
 
-  // 기존 카드를 클릭했을 때 canEdit 계산
   function canEditCard(card) {
     return !locked && !!user && (card.authorId === user.uid || isTeacher);
   }
 
   async function handleDeleteBoard() {
-    if (
-      !confirm(
-        `'${board.title}' 보드를 삭제할까요? 카드도 함께 삭제됩니다.`
-      )
-    )
-      return;
+    if (!confirm(`'${board.title}' 보드를 삭제할까요? 카드도 함께 삭제됩니다.`)) return;
     await deleteStudyBoard(board.id);
   }
 
@@ -98,8 +91,9 @@ export default function StudyBoardColumn({
 
   return (
     <section className={`study-column ${isNotice ? "is-notice" : ""}`}>
-      <header className="study-column-head">
-        <div className="study-column-title">
+      {/* ── 교사 관리 영역 (독립 카드) ── */}
+      <div className="study-board-info">
+        <div className="study-board-info-head">
           <h3>{board.title}</h3>
           {isTeacher && !isNotice && (
             <button
@@ -112,41 +106,34 @@ export default function StudyBoardColumn({
             </button>
           )}
         </div>
+
         {board.description && (
           <p className="study-column-desc">{board.description}</p>
         )}
 
-        {/* 교사 정렬 버튼 */}
+        {/* 교사 전용 정렬 버튼 */}
         {isTeacher && !isNotice && (
           <div className="study-sort">
             <button
               className={`study-sort-btn${sortKey === "studentId" && sortDir === "asc" ? " active" : ""}`}
               onClick={() => setSortKeyDir("studentId", "asc")}
               title="학번 오름차순"
-            >
-              학번↑
-            </button>
+            >학번↑</button>
             <button
               className={`study-sort-btn${sortKey === "studentId" && sortDir === "desc" ? " active" : ""}`}
               onClick={() => setSortKeyDir("studentId", "desc")}
               title="학번 내림차순"
-            >
-              학번↓
-            </button>
+            >학번↓</button>
             <button
               className={`study-sort-btn${sortKey === "time" && sortDir === "asc" ? " active" : ""}`}
               onClick={() => setSortKeyDir("time", "asc")}
               title="제출 빠른 순"
-            >
-              제출↑
-            </button>
+            >제출↑</button>
             <button
               className={`study-sort-btn${sortKey === "time" && sortDir === "desc" ? " active" : ""}`}
               onClick={() => setSortKeyDir("time", "desc")}
               title="제출 늦은 순"
-            >
-              제출↓
-            </button>
+            >제출↓</button>
           </div>
         )}
 
@@ -159,8 +146,7 @@ export default function StudyBoardColumn({
                 className="study-chip"
                 onClick={() =>
                   updateStudyBoard(board.id, {
-                    viewMode:
-                      board.viewMode === "shared" ? "private" : "shared",
+                    viewMode: board.viewMode === "shared" ? "private" : "shared",
                   })
                 }
               >
@@ -185,8 +171,9 @@ export default function StudyBoardColumn({
             </button>
           </div>
         )}
-      </header>
+      </div>
 
+      {/* ── 학생 카드 목록 ── */}
       <div className="study-column-cards">
         {visibleCards.map((card) => (
           <StudyCard
@@ -219,7 +206,6 @@ export default function StudyBoardColumn({
         )}
       </div>
 
-      {/* 카드 클릭 → 통합 모달 */}
       {modalOpen && (
         <StudyCardModal
           board={board}

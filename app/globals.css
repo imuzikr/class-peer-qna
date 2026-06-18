@@ -2882,19 +2882,29 @@ pre code {
   font-size: 18px;
 }
 
-.study-column-head {
-  padding: 14px 14px 10px;
-  border-bottom: 1px solid var(--border);
+/* 교사 관리 영역 — 보드 정보 카드 */
+.study-board-info {
+  margin: 12px 12px 0;
+  padding: 12px 14px 14px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
   flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(46, 36, 26, 0.06);
 }
 
-.study-column-title {
+.is-notice .study-board-info {
+  background: #fffbf0;
+  border-color: #e8d9b8;
+}
+
+.study-board-info-head {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.study-column-title h3 {
+.study-board-info-head h3 {
   font-size: 15px;
   font-weight: 700;
   color: var(--dark);
@@ -3090,6 +3100,52 @@ pre code {
   background: var(--primary);
   border-color: var(--primary);
   color: #fff;
+}
+
+/* 카드 목록에서 보이는 제목 */
+.study-card-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--dark);
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 모달 작성/수정 모드 제목 입력 */
+.study-card-title-input {
+  width: 100%;
+  padding: 9px 12px;
+  font-size: 15px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--dark);
+  outline: none;
+  margin-bottom: 10px;
+  font-family: inherit;
+}
+
+.study-card-title-input:focus {
+  border-color: var(--primary);
+  background: #fff;
+}
+
+.study-card-title-input::placeholder {
+  color: var(--text-sub);
+  font-weight: 400;
+}
+
+/* 모달 읽기 모드 제목 */
+.study-card-read-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--dark);
+  font-family: var(--font-serif);
+  margin-bottom: 12px;
+  line-height: 1.4;
 }
 
 .study-card-preview {

@@ -2,11 +2,6 @@
 
 // =============================================================
 // 공부방 카드 통합 모달 — 읽기 + 수정 + 삭제 + 질문하기 + 관련 질문
-// -------------------------------------------------------------
-// · card=null     → 새 카드 작성 모드
-// · card=object   → 기존 카드 보기/수정 모드
-// · canEdit=true  → RichTextEditor가 열린 채로 시작 (자동 편집 가능)
-// · canEdit=false → 읽기 전용
 // =============================================================
 import { useState } from "react";
 import {
@@ -35,13 +30,14 @@ export default function StudyCardModal({
   const linked = !!board.keyword;
   const isTeacherCard = card?.authorId?.startsWith?.("teacher_");
 
+  const [title, setTitle] = useState(isNew ? "" : (card.title ?? ""));
   const [content, setContent] = useState(isNew ? "" : (card.content ?? ""));
   const [imageUrl, setImageUrl] = useState(isNew ? null : (card.imageUrl ?? null));
   const [drawing, setDrawing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showRelated, setShowRelated] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [peekQuestion, setPeekQuestion] = useState(null); // 읽기 전용으로 들여다보는 질문
+  const [peekQuestion, setPeekQuestion] = useState(null);
 
   async function handleFile(e) {
     const file = e.target.files?.[0];
@@ -60,9 +56,9 @@ export default function StudyCardModal({
     setSaving(true);
     try {
       if (isNew) {
-        await addStudyCard(getCurrentUser(), board.id, { content: html, imageUrl });
+        await addStudyCard(getCurrentUser(), board.id, { title: title.trim(), content: html, imageUrl });
       } else {
-        await updateStudyCard(board.id, card.id, { content: html, imageUrl });
+        await updateStudyCard(board.id, card.id, { title: title.trim(), content: html, imageUrl });
       }
       onClose();
     } finally {
@@ -108,6 +104,14 @@ export default function StudyCardModal({
         <div className="study-card-modal-body">
           {canEdit ? (
             <>
+              <input
+                type="text"
+                className="study-card-title-input"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="제목을 입력하세요"
+                maxLength={60}
+              />
               <RichTextEditor
                 variant="full"
                 initialHtml={isNew ? "" : card.content}
@@ -143,6 +147,9 @@ export default function StudyCardModal({
             </>
           ) : (
             <>
+              {card.title && (
+                <h4 className="study-card-read-title">{card.title}</h4>
+              )}
               <div
                 className="study-card-body"
                 dangerouslySetInnerHTML={{ __html: card.content }}
@@ -160,7 +167,6 @@ export default function StudyCardModal({
 
         {/* 하단 액션 영역 */}
         <div className="study-card-modal-foot">
-          {/* 질문하기 + 관련 질문 (내 카드이고 키워드 연동됐을 때) */}
           {mine && linked && (
             <div className="study-card-modal-links">
               <button
@@ -180,7 +186,6 @@ export default function StudyCardModal({
             </div>
           )}
 
-          {/* 관련 질문 아코디언 */}
           {mine && linked && showRelated && (
             <div className="study-related study-related-modal">
               {relatedQuestions.length === 0 ? (
@@ -195,9 +200,7 @@ export default function StudyCardModal({
                     className="study-related-item"
                     onClick={() => setPeekQuestion(q)}
                   >
-                    <span
-                      className={`mini-status ${q.resolved ? "done" : "open"}`}
-                    >
+                    <span className={`mini-status ${q.resolved ? "done" : "open"}`}>
                       {q.resolved ? "✅" : "🙋"}
                     </span>
                     <span className="study-related-title">{q.title}</span>
@@ -210,7 +213,6 @@ export default function StudyCardModal({
             </div>
           )}
 
-          {/* 저장 / 삭제 */}
           {canEdit && (
             <div className="study-card-modal-save-row">
               {!isNew && (
@@ -219,24 +221,15 @@ export default function StudyCardModal({
                     <span className="study-delete-warn">
                       ⚠️ 이 카드는 삭제 후 복구할 수 없습니다.
                     </span>
-                    <button
-                      className="study-chip danger"
-                      onClick={handleDelete}
-                    >
+                    <button className="study-chip danger" onClick={handleDelete}>
                       정말 삭제
                     </button>
-                    <button
-                      className="study-chip ghost"
-                      onClick={() => setConfirmDelete(false)}
-                    >
+                    <button className="study-chip ghost" onClick={() => setConfirmDelete(false)}>
                       취소
                     </button>
                   </div>
                 ) : (
-                  <button
-                    className="btn-primary"
-                    onClick={() => setConfirmDelete(true)}
-                  >
+                  <button className="btn-primary" onClick={() => setConfirmDelete(true)}>
                     🗑 삭제
                   </button>
                 )
@@ -260,20 +253,11 @@ export default function StudyCardModal({
         />
       )}
 
-      {/* 읽기 전용 질문 미리보기 — 편집 모달은 그대로 떠 있어 초안이 보존됩니다 */}
       {peekQuestion && (
         <StudyQuestionPeek
           question={peekQuestion}
-          // 작성으로 돌아가기: 미리보기를 닫고 관련 질문 목록도 접어 작성에 집중
-          onClose={() => {
-            setPeekQuestion(null);
-            setShowRelated(false);
-          }}
-          // 다른 질문 보기: 미리보기만 닫고 관련 질문 목록은 펼친 채 두기
-          onBackToList={() => {
-            setPeekQuestion(null);
-            setShowRelated(true);
-          }}
+          onClose={() => { setPeekQuestion(null); setShowRelated(false); }}
+          onBackToList={() => { setPeekQuestion(null); setShowRelated(true); }}
         />
       )}
     </div>
