@@ -46,6 +46,7 @@ export default function StudyPage() {
   const [askKeyword, setAskKeyword] = useState(null); // "질문하기"로 새 질문 작성
   const [askCode, setAskCode] = useState(null);     // 파이썬 실행기에서 넘어온 코드
   const [pyOpen, setPyOpen] = useState(false);      // 파이썬 실행 패널
+  const [cardModalOpen, setCardModalOpen] = useState(false); // StudyBoardColumn 모달
   const [toast, setToast] = useState("");
 
   useEffect(() => {
@@ -209,6 +210,7 @@ export default function StudyPage() {
                   isTeacher={admin}
                   questions={questions}
                   onAsk={(kw) => setAskKeyword(kw)}
+                  onModalChange={setCardModalOpen}
                 />
               ))}
               {/* 보드 추가는 항상 마지막 보드 오른쪽에 옵니다 (교사 전용) */}
@@ -290,6 +292,7 @@ export default function StudyPage() {
           setAskCode(code);
           setAskKeyword(null);
         }}
+        hasModalOpen={cardModalOpen || creatingClass || addingBoard || (askKeyword !== null || askCode !== null)}
       />
 
       <Toast message={toast} onDone={() => setToast("")} />

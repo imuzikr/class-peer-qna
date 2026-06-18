@@ -218,6 +218,7 @@ export default function BoardPage() {
           setAskCode(code);
           setWriting(true);
         }}
+        hasModalOpen={selectedQuestion !== null || writing || managingKeywords}
       />
     </div>
   );

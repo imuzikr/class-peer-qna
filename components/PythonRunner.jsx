@@ -74,7 +74,7 @@ for i in range(1, 6):
     print(f"{i}단계: {'★' * i}")
 `;
 
-export default function PythonRunner({ open, onClose, onAskQuestion }) {
+export default function PythonRunner({ open, onClose, onAskQuestion, hasModalOpen = false }) {
   const [stdinText, setStdinText] = useState("홍길동");
   const [lines, setLines] = useState([]); // 출력 줄 목록 {type, text}
   const [status, setStatus] = useState("idle"); // idle | loading | running
@@ -219,26 +219,33 @@ export default function PythonRunner({ open, onClose, onAskQuestion }) {
     setStatus("idle");
   }
 
+  // 모달이 열려 있으면 전체 화면 모드 강제 해제
+  const effectiveFull = full && !hasModalOpen;
+
   return (
     <aside
-      className={`py-panel ${open ? "open" : ""} ${full ? "full" : ""} ${
+      className={`py-panel ${open ? "open" : ""} ${effectiveFull ? "full" : ""} ${
         dragging ? "dragging" : ""
       }`}
-      style={full ? undefined : { width }}
+      style={effectiveFull ? undefined : { width }}
     >
-      {/* 왼쪽 가장자리 크기 조절 핸들 (전체 화면에서는 숨김) */}
-      {!full && <div className="py-resizer" onMouseDown={startResize} />}
+      {/* 왼쪽 가장자리 크기 조절 핸들 — 전체 화면이나 모달 위에 떠 있을 때는 숨김 */}
+      {!effectiveFull && !hasModalOpen && (
+        <div className="py-resizer" onMouseDown={startResize} />
+      )}
 
       <div className="py-head">
         <h3>🐍 파이썬 실행기</h3>
         <div className="py-head-actions">
-          <button
-            className="btn-ghost"
-            onClick={() => setFull(!full)}
-            title={full ? "원래 크기로" : "전체 화면"}
-          >
-            {full ? "🗗 축소" : "⛶ 전체 화면"}
-          </button>
+          {!hasModalOpen && (
+            <button
+              className="btn-ghost"
+              onClick={() => setFull(!full)}
+              title={full ? "원래 크기로" : "전체 화면"}
+            >
+              {full ? "🗗 축소" : "⛶ 전체 화면"}
+            </button>
+          )}
           <button className="btn-close" onClick={onClose} aria-label="닫기">
             ×
           </button>

@@ -1677,7 +1677,7 @@ pre code {
   flex-direction: column;
   padding: 18px;
   gap: 10px;
-  z-index: 90; /* 모달(100)보다는 아래 */
+  z-index: 105; /* 모달(100) 위, peek(110) 아래 */
   transform: translateX(105%);
   transition: transform 0.25s ease;
 }

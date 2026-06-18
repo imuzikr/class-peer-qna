@@ -29,6 +29,7 @@ export default function StudyBoardColumn({
   isTeacher,
   questions = [],
   onAsk,
+  onModalChange,
 }) {
   const [cards, setCards] = useState([]);
   const [selectedCard, setSelectedCard] = useState(null);
@@ -94,6 +95,10 @@ export default function StudyBoardColumn({
   }
 
   const modalOpen = selectedCard !== null || creating;
+
+  useEffect(() => {
+    onModalChange?.(modalOpen);
+  }, [modalOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <section className={`study-column ${isNotice ? "is-notice" : ""}`}>
