@@ -195,15 +195,17 @@ export default function StudyCardModal({
               <div className="attach-files-section">
                 <div className="attach-files-header">
                   <span className="attach-files-label">📎 파일 첨부</span>
-                  <label className="btn-ghost attach-add-btn" title="HTML, TXT, CSV, Excel 파일 (최대 200KB, 3개)">
-                    + 파일 추가
-                    <input
-                      type="file"
-                      accept=".html,.htm,.txt,.csv,.xlsx,.xls,.py"
-                      onChange={handleFileAttach}
-                      hidden
-                    />
-                  </label>
+                  {mine && (
+                    <label className="btn-ghost attach-add-btn" title="HTML, TXT, CSV, Excel, Python 파일 (최대 200KB, 3개)">
+                      + 파일 추가
+                      <input
+                        type="file"
+                        accept=".html,.htm,.txt,.csv,.xlsx,.xls,.py"
+                        onChange={handleFileAttach}
+                        hidden
+                      />
+                    </label>
+                  )}
                 </div>
                 {attachments.length > 0 && (
                   <ul className="attach-file-list">
@@ -214,14 +216,24 @@ export default function StudyCardModal({
                         </span>
                         <span className="attach-file-name">{att.name}</span>
                         <span className="attach-file-size">{formatFileSize(att.size)}</span>
-                        <button
-                          type="button"
-                          className="attach-file-del"
-                          onClick={() => removeAttachment(att.id)}
-                          aria-label="삭제"
-                        >
-                          ✕
-                        </button>
+                        {mine ? (
+                          <button
+                            type="button"
+                            className="attach-file-del"
+                            onClick={() => removeAttachment(att.id)}
+                            aria-label="삭제"
+                          >
+                            ✕
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="btn-ghost attach-download-btn"
+                            onClick={() => downloadAttachment(att)}
+                          >
+                            ⬇ 다운로드
+                          </button>
+                        )}
                       </li>
                     ))}
                   </ul>
