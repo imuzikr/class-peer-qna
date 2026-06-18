@@ -77,15 +77,6 @@ export function IconPen() {
   );
 }
 
-function IconCode() {
-  return (
-    <svg {...svgProps}>
-      <polyline points="16 18 22 12 16 6" />
-      <polyline points="8 6 2 12 8 18" />
-    </svg>
-  );
-}
-
 function IconSend() {
   return (
     <svg {...svgProps} width={16} height={16}>
@@ -116,7 +107,7 @@ const COMMANDS = [
   { cmd: "insertUnorderedList", title: "글머리 기호", icon: <IconUl /> },
   { cmd: "insertOrderedList", title: "번호 목록", icon: <IconOl /> },
   null,
-  { cmd: "codeBlock", title: "코드 블록 (</>)", icon: <IconCode />, custom: true },
+  { cmd: "codeBlock", title: "코드 블록 (</>)", icon: <code className="rte-glyph rte-code-glyph">&lt;/&gt;</code>, custom: true },
 ];
 
 export default function RichTextEditor({
@@ -187,16 +178,77 @@ export default function RichTextEditor({
     return false;
   }
 
+  // 커서가 들어 있는 <pre> 요소를 반환 (없으면 null)
+  function getContainingPre() {
+    let node = window.getSelection()?.anchorNode;
+    while (node && node !== ref.current) {
+      if (node.nodeName === "PRE") return node;
+      node = node.parentNode;
+    }
+    return null;
+  }
+
+  // 커서가 node의 맨 끝에 있는지 확인
+  function isAtEndOf(node) {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return false;
+    const range = sel.getRangeAt(0);
+    if (!range.collapsed) return false;
+    const endRange = document.createRange();
+    endRange.selectNodeContents(node);
+    return range.compareBoundaryPoints(Range.END_TO_END, endRange) === 0;
+  }
+
+  // <pre> 블록 뒤에 빈 단락을 만들고 커서를 이동 (코드 블록 탈출)
+  function escapeCodeBlock(pre) {
+    const code = pre.querySelector("code") ?? pre;
+    const text = code.textContent;
+    // 탈출용으로 추가된 빈 마지막 줄이 있으면 제거
+    if (text.endsWith("\n")) code.textContent = text.slice(0, -1);
+    let next = pre.nextSibling;
+    // 뒤에 편집 가능한 블록이 없으면 새로 만들기
+    while (next && next.nodeType === Node.TEXT_NODE) next = next.nextSibling;
+    if (!next) {
+      next = document.createElement("div");
+      next.innerHTML = "<br>";
+      pre.after(next);
+    }
+    const sel = window.getSelection();
+    const r = document.createRange();
+    r.setStart(next, 0);
+    r.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(r);
+    onChange(ref.current.innerHTML);
+  }
+
   function handleKeyDown(e) {
-    if (!onSend) return;
-    if (
-      e.key === "Enter" &&
-      !e.shiftKey &&
-      !e.nativeEvent.isComposing &&
-      !isInList()
-    ) {
-      e.preventDefault();
-      onSend();
+    if (e.nativeEvent.isComposing) return;
+
+    if (e.key === "Enter" && !e.shiftKey) {
+      const pre = getContainingPre();
+      if (pre) {
+        // 코드 블록 안: 마지막 줄이 비어 있으면(= Enter를 두 번 누른 상황) 블록 탈출
+        if (isAtEndOf(pre) && (pre.textContent.endsWith("\n") || pre.textContent === "")) {
+          e.preventDefault();
+          escapeCodeBlock(pre);
+        }
+        // 그 외에는 브라우저 기본 동작(줄바꿈) 유지
+        return;
+      }
+      // 코드 블록 밖 — chat 모드에서는 전송
+      if (onSend && !isInList()) {
+        e.preventDefault();
+        onSend();
+      }
+    }
+
+    if (e.key === "ArrowDown") {
+      const pre = getContainingPre();
+      if (pre && isAtEndOf(pre)) {
+        e.preventDefault();
+        escapeCodeBlock(pre);
+      }
     }
   }
 

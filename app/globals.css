@@ -1637,6 +1637,15 @@ button.understood-bulb:hover {
   font-family: Georgia, "Times New Roman", serif;
 }
 
+code.rte-code-glyph {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: -0.5px;
+  font-weight: 700;
+  font-style: normal;
+  text-decoration: none;
+}
+
 .rte-divider {
   width: 1px;
   height: 18px;

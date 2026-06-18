@@ -237,15 +237,15 @@ export default function PythonRunner({ open, onClose, onAskQuestion, hasModalOpe
       <div className="py-head">
         <h3>🐍 파이썬 실행기</h3>
         <div className="py-head-actions">
-          {!hasModalOpen && (
-            <button
-              className="btn-ghost"
-              onClick={() => setFull(!full)}
-              title={full ? "원래 크기로" : "전체 화면"}
-            >
-              {full ? "🗗 축소" : "⛶ 전체 화면"}
-            </button>
-          )}
+          <button
+            className="btn-ghost"
+            style={{ visibility: hasModalOpen ? "hidden" : "visible" }}
+            onClick={() => setFull(!full)}
+            title={full ? "원래 크기로" : "전체 화면"}
+            tabIndex={hasModalOpen ? -1 : 0}
+          >
+            {full ? "🗗 축소" : "⛶ 전체 화면"}
+          </button>
           <button className="btn-close" onClick={onClose} aria-label="닫기">
             ×
           </button>
