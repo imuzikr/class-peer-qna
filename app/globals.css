@@ -3094,13 +3094,15 @@ pre code {
 
 .study-card-preview {
   font-size: 13px;
-  color: var(--text-sub);
   line-height: 1.5;
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
   margin: 0;
+  visibility: hidden;
+  color: transparent;
+  user-select: none;
 }
 
 /* 모달 내 카드 본문 */

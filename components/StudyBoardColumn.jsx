@@ -138,14 +138,14 @@ export default function StudyBoardColumn({
               onClick={() => setSortKeyDir("time", "asc")}
               title="제출 빠른 순"
             >
-              시각↑
+              제출↑
             </button>
             <button
               className={`study-sort-btn${sortKey === "time" && sortDir === "desc" ? " active" : ""}`}
               onClick={() => setSortKeyDir("time", "desc")}
               title="제출 늦은 순"
             >
-              시각↓
+              제출↓
             </button>
           </div>
         )}

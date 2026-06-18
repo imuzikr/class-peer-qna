@@ -31,7 +31,7 @@ export default function StudyCard({ card, onClick, isTeacher = false }) {
         </div>
         <time className="study-card-time">{formatTime(card.createdAt)}</time>
       </div>
-      {preview && <p className="study-card-preview">{preview}</p>}
+      {preview && <p className="study-card-preview" aria-hidden="true" />}
     </article>
   );
 }
