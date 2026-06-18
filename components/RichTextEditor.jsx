@@ -188,17 +188,6 @@ export default function RichTextEditor({
     return null;
   }
 
-  // 커서가 node의 맨 끝에 있는지 확인
-  function isAtEndOf(node) {
-    const sel = window.getSelection();
-    if (!sel || sel.rangeCount === 0) return false;
-    const range = sel.getRangeAt(0);
-    if (!range.collapsed) return false;
-    const endRange = document.createRange();
-    endRange.selectNodeContents(node);
-    return range.compareBoundaryPoints(Range.END_TO_END, endRange) === 0;
-  }
-
   // <pre> 블록 뒤로 커서를 이동 (내용은 그대로, 코드 블록 탈출)
   function escapeCodeBlock(pre) {
     let next = pre.nextSibling;
@@ -230,15 +219,6 @@ export default function RichTextEditor({
       if (onSend && !isInList()) {
         e.preventDefault();
         onSend();
-      }
-    }
-
-    // ↓ 화살표: 블록 맨 끝이면 탈출
-    if (e.key === "ArrowDown") {
-      const pre = getContainingPre();
-      if (pre && isAtEndOf(pre)) {
-        e.preventDefault();
-        escapeCodeBlock(pre);
       }
     }
 
