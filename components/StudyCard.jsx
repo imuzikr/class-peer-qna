@@ -3,7 +3,7 @@
 import { formatTime } from "@/lib/store";
 import { stripHtml } from "@/lib/html";
 
-export default function StudyCard({ card, onClick }) {
+export default function StudyCard({ card, onClick, isTeacher = false }) {
   const isTeacherCard = card.authorId?.startsWith?.("teacher_");
   const preview = stripHtml(card.content ?? "").slice(0, 120);
 
@@ -19,9 +19,16 @@ export default function StudyCard({ card, onClick }) {
         <span className="avatar avatar-sm" aria-hidden="true">
           {card.authorEmoji ?? (isTeacherCard ? "🧑‍🏫" : "🙂")}
         </span>
-        <strong className="study-card-author">
-          {card.authorRealName || card.authorName}
-        </strong>
+        <div className="study-card-author">
+          {isTeacher && !isTeacherCard && card.authorStudentId ? (
+            <>
+              <span className="study-card-studentid">{card.authorStudentId}</span>
+              <strong>{card.authorRealName || card.authorName}</strong>
+            </>
+          ) : (
+            <strong>{card.authorRealName || card.authorName}</strong>
+          )}
+        </div>
         <time className="study-card-time">{formatTime(card.createdAt)}</time>
       </div>
       {preview && <p className="study-card-preview">{preview}</p>}
