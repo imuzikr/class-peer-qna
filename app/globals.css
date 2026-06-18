@@ -1252,6 +1252,110 @@ button.understood-bulb:hover {
   }
 }
 
+/* ===================== 파일 첨부 ===================== */
+.attach-files-section {
+  margin-top: 10px;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+
+.attach-files-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.attach-files-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-sub);
+  margin: 0 0 6px;
+}
+
+.attach-add-btn {
+  cursor: pointer;
+  font-size: 12px;
+  padding: 3px 10px;
+}
+
+.attach-file-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.attach-file-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--card-bg);
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.attach-file-ext {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 5px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  background: var(--primary-light);
+  color: var(--primary);
+}
+.attach-file-ext.ext-csv  { background: #e8f5e9; color: #2e7d32; }
+.attach-file-ext.ext-xlsx,
+.attach-file-ext.ext-xls  { background: #e8f5e9; color: #1b5e20; }
+.attach-file-ext.ext-html,
+.attach-file-ext.ext-htm  { background: #fff3e0; color: #e65100; }
+.attach-file-ext.ext-txt  { background: #f3e5f5; color: #6a1b9a; }
+
+.attach-file-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.attach-file-size {
+  font-size: 11px;
+  color: var(--text-sub);
+  flex-shrink: 0;
+}
+
+.attach-file-del {
+  flex-shrink: 0;
+  padding: 2px 7px;
+  font-size: 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-sub);
+  border-radius: 4px;
+  line-height: 1;
+}
+.attach-file-del:hover { background: var(--primary-light); color: var(--danger, #c0392b); }
+
+.attach-download-btn {
+  flex-shrink: 0;
+  font-size: 12px;
+  padding: 3px 10px;
+}
+
+/* 공부방 카드 첨부 파일 배지 */
+.study-card-attach-badge {
+  font-size: 11px;
+  color: var(--text-sub);
+  margin: 2px 0 0;
+}
+
 /* ===================== 이미지 첨부 ===================== */
 .attach-row {
   display: flex;

@@ -33,6 +33,9 @@ export default function StudyCard({ card, onClick, isTeacher = false }) {
       </div>
       {card.title && <p className="study-card-title">{card.title}</p>}
       {preview && <p className="study-card-preview" aria-hidden="true">{preview}</p>}
+      {(card.attachments?.length ?? 0) > 0 && (
+        <p className="study-card-attach-badge">📎 파일 {card.attachments.length}개</p>
+      )}
     </article>
   );
 }
