@@ -2843,14 +2843,12 @@ pre code {
   display: flex;
   flex-direction: column;
   background: var(--bg);
-  border: 1px solid var(--border);
   border-radius: 12px;
   overflow: hidden;
 }
 
 .study-column.is-notice {
   background: #fffaf0;
-  border-color: #e8d9b8;
 }
 
 /* 보드 추가 — 항상 마지막 보드 오른쪽에 오는 컬럼형 버튼 */
