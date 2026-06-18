@@ -3100,7 +3100,6 @@ pre code {
   -webkit-box-orient: vertical;
   overflow: hidden;
   margin: 0;
-  visibility: hidden;
   color: transparent;
   user-select: none;
 }
