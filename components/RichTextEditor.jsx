@@ -199,14 +199,9 @@ export default function RichTextEditor({
     return range.compareBoundaryPoints(Range.END_TO_END, endRange) === 0;
   }
 
-  // <pre> 블록 뒤에 빈 단락을 만들고 커서를 이동 (코드 블록 탈출)
+  // <pre> 블록 뒤로 커서를 이동 (내용은 그대로, 코드 블록 탈출)
   function escapeCodeBlock(pre) {
-    const code = pre.querySelector("code") ?? pre;
-    const text = code.textContent;
-    // 탈출용으로 추가된 빈 마지막 줄이 있으면 제거
-    if (text.endsWith("\n")) code.textContent = text.slice(0, -1);
     let next = pre.nextSibling;
-    // 뒤에 편집 가능한 블록이 없으면 새로 만들기
     while (next && next.nodeType === Node.TEXT_NODE) next = next.nextSibling;
     if (!next) {
       next = document.createElement("div");
@@ -228,24 +223,29 @@ export default function RichTextEditor({
     if (e.key === "Enter" && !e.shiftKey) {
       const pre = getContainingPre();
       if (pre) {
-        // 코드 블록 안: 마지막 줄이 비어 있으면(= Enter를 두 번 누른 상황) 블록 탈출
-        if (isAtEndOf(pre) && (pre.textContent.endsWith("\n") || pre.textContent === "")) {
-          e.preventDefault();
-          escapeCodeBlock(pre);
-        }
-        // 그 외에는 브라우저 기본 동작(줄바꿈) 유지
+        // 코드 블록 안에서는 Enter를 브라우저 기본(줄바꿈)에 맡김
+        // 탈출: ↓ 화살표(블록 끝) 또는 Escape
         return;
       }
-      // 코드 블록 밖 — chat 모드에서는 전송
       if (onSend && !isInList()) {
         e.preventDefault();
         onSend();
       }
     }
 
+    // ↓ 화살표: 블록 맨 끝이면 탈출
     if (e.key === "ArrowDown") {
       const pre = getContainingPre();
       if (pre && isAtEndOf(pre)) {
+        e.preventDefault();
+        escapeCodeBlock(pre);
+      }
+    }
+
+    // Escape: 코드 블록 어디서든 탈출
+    if (e.key === "Escape") {
+      const pre = getContainingPre();
+      if (pre) {
         e.preventDefault();
         escapeCodeBlock(pre);
       }
