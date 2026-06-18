@@ -92,19 +92,6 @@ export default function StudyBoardColumn({
         {board.description && (
           <p className="study-column-desc">{board.description}</p>
         )}
-        <div className="study-column-tags">
-          {board.keyword && (
-            <span className="keyword-chip"># {board.keyword}</span>
-          )}
-          {!isNotice && (
-            <span className={`study-mode-chip ${board.viewMode}`}>
-              {board.viewMode === "shared" ? "👥 함께 보기" : "🔒 나만 보기"}
-            </span>
-          )}
-          {locked && (
-            <span className="study-mode-chip locked">🔏 보기 전용</span>
-          )}
-        </div>
 
         {/* 교사 설정 패널 */}
         {settingsOpen && isTeacher && !isNotice && (
