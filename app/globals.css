@@ -960,8 +960,8 @@ select:focus {
   color: #fff;
   border: none;
   border-radius: var(--radius-btn);
-  padding: 8px 18px;
-  font-size: 14px;
+  padding: 12px;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s;
