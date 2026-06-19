@@ -2018,6 +2018,7 @@ pre code {
   padding: 7px 16px;
   flex-shrink: 0;
 }
+.demo-banner-short { display: none; }
 
 /* ===================== 관리자 대시보드 ===================== */
 .admin-shell {
@@ -4533,43 +4534,84 @@ pre code {
    ============================================================= */
 @media (max-width: 768px) {
 
-  /* ── TopNav ── */
+  /* ──────────────────────────────────────────────────────────
+     TopNav: 로고 + 현재 페이지 드롭다운 + 아바타 만 남기기
+     ────────────────────────────────────────────────────────── */
   .topbar {
-    padding: 0 12px;
+    padding: 0 14px;
     height: 52px;
+    gap: 0;
   }
+  .topbar-left { gap: 8px; }
   .topbar-divider { display: none; }
 
-  /* 파이썬 실행기 · 리포트 · 관리자 버튼 숨김 (로고+학습공간 드롭다운만 유지) */
-  .topnav-menu .btn-ghost:not(.topnav-drop-btn) {
-    display: none;
+  /* 파이썬·리포트·관리자 버튼 숨김 */
+  .topnav-menu .btn-ghost:not(.topnav-drop-btn) { display: none; }
+
+  /* 드롭다운 버튼 압축 */
+  .topnav-drop-btn { padding: 5px 10px; font-size: 13px; }
+  .topnav-drop-chevron { display: none; }
+
+  /* 역할 전환 스위치 숨김 (개발용) */
+  .role-switch { display: none; }
+
+  /* 사용자 아바타만 남기고 이름 숨김 */
+  .profile { cursor: default; }
+  .profile-text { display: none; }
+  .avatar { width: 32px; height: 32px; font-size: 16px; }
+
+  /* 로그아웃 버튼 최소화 */
+  .user-area { gap: 4px; }
+  .user-area .btn-ghost:last-child {
+    font-size: 12px;
+    padding: 5px 8px;
+    color: var(--text-sub);
   }
 
-  /* 오른쪽 사용자 영역 압축 */
-  .user-area { gap: 6px; }
-  .user-area .btn-ghost { font-size: 12px; padding: 4px 8px; }
+  /* ──────────────────────────────────────────────────────────
+     데모 배너: 모바일용 짧은 버전 표시
+     ────────────────────────────────────────────────────────── */
+  .demo-banner { padding: 5px 14px; font-size: 11px; text-align: left; }
+  .demo-banner-full { display: none; }
+  .demo-banner-short { display: inline; }
 
-  /* ── 게시판 3단 → 피드만 표시 ── */
+  /* ──────────────────────────────────────────────────────────
+     게시판: 피드만 전체 너비 사용
+     ────────────────────────────────────────────────────────── */
   .three-cols { flex-direction: column; }
   .keyword-col { display: none; }
   .notice-col { display: none; }
-  .feed-col { padding: 12px 14px; }
+  .feed-col { padding: 14px 14px 80px; }
+
   .feed-head {
     flex-wrap: wrap;
     gap: 8px;
-    padding: 0 0 10px;
+    margin-bottom: 12px;
   }
-  .feed-head h1 { font-size: 18px; }
-  .feed-actions { flex-wrap: wrap; gap: 6px; }
+  .feed-head h1 { font-size: 17px; }
+  .feed-actions { gap: 6px; }
 
-  /* ── 공부방 레이아웃 ── */
+  /* 질문 카드 */
+  .question-card { padding: 14px 14px 12px; }
+  .question-card-title { font-size: 15px; }
+  .question-card-meta { font-size: 11px; gap: 6px; }
+
+  /* ──────────────────────────────────────────────────────────
+     공부방 레이아웃
+     ────────────────────────────────────────────────────────── */
   .study-body { position: relative; }
-  .study-cols-wrap { padding: 0 10px; }
-  .study-head { flex-direction: column; align-items: flex-start; gap: 8px; padding-top: 12px; }
-  .study-head h1 { font-size: 18px; }
+  .study-cols-wrap { padding: 0 10px 80px; }
+
+  .study-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding-top: 14px;
+  }
+  .study-head h1 { font-size: 17px; }
   .study-title-row { flex-wrap: wrap; gap: 6px; }
 
-  /* 보드 컬럼: 가로 스크롤 + 스냅 */
+  /* 보드 컬럼: 가로 스냅 스크롤 */
   .study-columns {
     gap: 10px;
     scroll-snap-type: x mandatory;
@@ -4578,57 +4620,53 @@ pre code {
   }
   .study-column {
     flex: 0 0 88vw;
-    scroll-snap-align: start;
     max-width: 88vw;
+    scroll-snap-align: start;
   }
   .study-add-board-col { flex: 0 0 160px; }
 
-  /* ── KWL 패널 모바일 오버레이 ── */
+  /* ──────────────────────────────────────────────────────────
+     KWL 패널: 왼쪽에서 슬라이드인 오버레이
+     ────────────────────────────────────────────────────────── */
   .kwl-panel {
     display: none;
     position: fixed;
-    top: 0; right: 0; bottom: 0;
-    left: 0;
+    top: 0; left: 0; bottom: 0;
     z-index: 500;
-    width: 100%;
-    max-width: 340px;
-    padding-top: 52px; /* TopNav 높이만큼 */
+    width: 88vw;
+    max-width: 320px;
+    padding-top: 52px;
     overflow-y: auto;
-    box-shadow: 4px 0 24px rgba(0,0,0,0.35);
+    box-shadow: 6px 0 32px rgba(0,0,0,0.4);
   }
-  .kwl-panel.kwl-panel--open {
-    display: flex;
-  }
+  .kwl-panel.kwl-panel--open { display: flex; }
 
-  /* KWL 모바일 배경 오버레이 */
   .kwl-mobile-backdrop {
     display: block;
     position: fixed;
     inset: 0;
     z-index: 499;
-    background: rgba(0,0,0,0.4);
+    background: rgba(0,0,0,0.45);
   }
 
-  /* KWL 패널 내 닫기 버튼 */
   .kwl-mobile-close {
     display: flex;
     align-items: center;
     justify-content: center;
     position: absolute;
-    top: 58px;
+    top: 56px;
     right: 10px;
     width: 28px;
     height: 28px;
-    background: rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.12);
     border: none;
     border-radius: 50%;
     color: var(--sidebar-text);
     font-size: 18px;
+    line-height: 1;
     cursor: pointer;
-    z-index: 1;
   }
 
-  /* KWL FAB (열기 버튼) */
   .kwl-fab {
     display: flex;
     align-items: center;
@@ -4641,16 +4679,18 @@ pre code {
     color: #fff;
     border: none;
     border-radius: 24px;
-    padding: 10px 16px;
+    padding: 11px 18px;
     font-size: 14px;
     font-weight: 600;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.22);
+    box-shadow: 0 4px 18px rgba(217,119,87,0.45);
     cursor: pointer;
     transition: transform 0.15s, background 0.15s;
   }
-  .kwl-fab:hover { background: var(--primary-dark, #c86844); transform: translateY(-1px); }
+  .kwl-fab:active { background: #c86844; transform: scale(0.96); }
 
-  /* ── 모달: 아래에서 슬라이드업 ── */
+  /* ──────────────────────────────────────────────────────────
+     모달: 하단 슬라이드업 시트
+     ────────────────────────────────────────────────────────── */
   .modal-backdrop {
     align-items: flex-end;
     padding: 0;
@@ -4658,20 +4698,21 @@ pre code {
   .modal {
     max-width: 100%;
     width: 100%;
-    border-radius: 18px 18px 0 0;
+    border-radius: 20px 20px 0 0;
     max-height: 90vh;
-    padding: 20px 16px 32px;
+    padding: 20px 16px 36px;
     margin: 0;
   }
   .modal-wide {
     max-width: 100%;
     width: 100%;
-    border-radius: 18px 18px 0 0;
+    border-radius: 20px 20px 0 0;
     max-height: 92vh;
     padding: 0;
     margin: 0;
   }
-  .modal-form { padding: 20px 16px 28px; }
+  .modal-form { padding: 20px 16px 32px; }
+
   .qa-grid {
     flex-direction: column;
     height: auto;
@@ -4682,34 +4723,27 @@ pre code {
     flex: 0 0 auto;
     border-right: none;
     border-bottom: 1px solid var(--border);
-    max-height: 45vh;
+    max-height: 40vh;
+    overflow-y: auto;
   }
-  .qa-right { flex: 1; min-height: 0; }
+  .qa-right { flex: 1; min-height: 200px; }
 
-  /* ── 터치 영역 확보 ── */
-  .btn-primary,
-  .kwl-save-btn,
-  .study-column-header-btn,
-  .filter-btn {
-    min-height: 44px;
-  }
+  /* ──────────────────────────────────────────────────────────
+     터치 영역 확보 (최소 44px)
+     ────────────────────────────────────────────────────────── */
+  .btn-primary { min-height: 44px; font-size: 15px; }
+  .kwl-save-btn { min-height: 44px; }
+  .filter-btn { min-height: 40px; }
   .vote-btn { min-height: 40px; min-width: 40px; }
-
-  /* ── 카드 padding 조정 ── */
-  .question-card { padding: 12px 14px; }
-  .study-column-card { padding: 10px 12px; }
-
-  /* ── 데모 배너 ── */
-  .demo-banner { font-size: 11px; padding: 6px 12px; }
 }
 
-/* 480px 이하 — 더 좁은 화면 추가 조정 */
+/* ── 480px 이하: 더 좁은 화면 ── */
 @media (max-width: 480px) {
-  .topbar-left .logo { font-size: 14px; }
-  .topnav-drop-btn { font-size: 13px; padding: 4px 8px; }
+  .topbar { padding: 0 10px; }
+  .topbar-left .logo { font-size: 15px; }
+  .topnav-drop-btn { font-size: 12px; padding: 4px 8px; }
   .study-column { flex: 0 0 92vw; max-width: 92vw; }
-  .modal { padding: 16px 12px 28px; }
-  .feed-head h1 { font-size: 16px; }
-  .kwl-panel { max-width: 100%; }
-  .kwl-fab { bottom: 16px; right: 12px; padding: 9px 14px; font-size: 13px; }
+  .modal { padding: 16px 14px 32px; }
+  .kwl-panel { width: 92vw; max-width: 92vw; }
+  .kwl-fab { bottom: 16px; right: 12px; padding: 10px 14px; font-size: 13px; }
 }

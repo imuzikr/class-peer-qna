@@ -135,9 +135,8 @@ export default function BoardPage() {
     <div className="board-shell">
       {!isFirebaseConfigured && (
         <div className="demo-banner">
-          ⚠️ 데모 모드 — Firebase 설정 전이라 데이터가 브라우저에만 임시
-          저장됩니다 (새로고침 시 초기화). <code>lib/firebase.js</code>에
-          설정값을 입력하면 Firestore에 저장됩니다.
+          <span className="demo-banner-full">⚠️ 데모 모드 — Firebase 설정 전이라 데이터가 브라우저에만 임시 저장됩니다 (새로고침 시 초기화). <code>lib/firebase.js</code>에 설정값을 입력하면 Firestore에 저장됩니다.</span>
+          <span className="demo-banner-short">⚠️ 데모 모드 — 새로고침 시 초기화됩니다</span>
         </div>
       )}
 
