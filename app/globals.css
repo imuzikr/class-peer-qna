@@ -955,9 +955,23 @@ select:focus {
   padding: 4px 10px;
 }
 
+.btn-later {
+  background: #e8956c;
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-btn);
+  padding: 8px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-later:hover { background: #df8458; }
+.btn-later:disabled { opacity: 0.55; cursor: not-allowed; }
+
 .reflect-actions {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   gap: 10px;
   margin-top: 4px;

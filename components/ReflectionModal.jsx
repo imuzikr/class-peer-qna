@@ -124,7 +124,7 @@ export default function ReflectionModal({
         <div className="reflect-actions">
           <button
             type="button"
-            className="btn-ghost"
+            className="btn-later"
             onClick={handleLater}
             disabled={saving}
           >
