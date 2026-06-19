@@ -3350,7 +3350,8 @@ pre code {
 .study-card-modal-body {
   flex: 1;
   overflow-y: auto;
-  padding-bottom: 8px;
+  padding-bottom: 24px;
+  min-height: 280px;
 }
 
 .study-card-body {
@@ -3432,6 +3433,7 @@ pre code {
 /* modal-study-card 너비 */
 .modal-study-card {
   max-width: 640px;
+  min-height: 480px;
   display: flex;
   flex-direction: column;
   max-height: 90vh;
