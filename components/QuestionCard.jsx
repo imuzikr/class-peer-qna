@@ -28,8 +28,8 @@ export default function QuestionCard({ question, onClick }) {
       <div className="card-meta">
         <span className="keyword-chip"># {question.keyword}</span>
         {pinned && (
-          <span className="pin-chip" title="나도 궁금해요 5회 이상">
-            📌<span className="pin-label"> 상단 고정</span>
+          <span className="pin-chip" title="상단 고정 — 나도 궁금해요 5회 이상">
+            📌
           </span>
         )}
         {/* 작성자 프로필 — 관리자는 클릭해서 실명 확인 가능 */}
@@ -45,7 +45,7 @@ export default function QuestionCard({ question, onClick }) {
           className={`status-badge ${resolved ? "resolved" : "open"}`}
           title={resolved ? "해결된 질문" : "아직 궁금한 질문"}
         >
-          {resolved ? "✅ 해결됐어요" : "🙋 궁금해요"}
+          {resolved ? "✅" : "🙋"}
         </span>
       </div>
       {/* 본문(왼쪽) + 첨부/그리기 이미지 섬네일(오른쪽) */}
