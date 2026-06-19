@@ -664,7 +664,6 @@ select:focus {
 .pin-chip {
   background: #fff4d7;
   color: #8a5a12;
-  border: 1px solid #ead08f;
   border-radius: 999px;
   padding: 3px 8px;
   font-size: 14px;
@@ -1461,7 +1460,6 @@ button.understood-bulb:hover {
   padding: 5px 8px;
   font-size: 15px;
   line-height: 1;
-  border: 1.5px solid transparent;
   flex-shrink: 0;
   cursor: default;
 }
@@ -1469,13 +1467,11 @@ button.understood-bulb:hover {
 .status-badge.open {
   background: var(--primary-light);
   color: var(--primary-dark);
-  border-color: #ecbfa9;
 }
 
 .status-badge.resolved {
   background: #e9f0e6;
   color: #3d7a4a;
-  border-color: #b3d0b4;
 }
 
 /* 해결된 질문 카드는 왼쪽에 초록 띠 표시 */
