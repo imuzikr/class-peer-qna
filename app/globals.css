@@ -3214,6 +3214,15 @@ pre code {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  cursor: pointer;
+  transition: border-color 0.1s;
+}
+.kwl-entry:hover { border-color: var(--primary, #e07a5f); }
+
+.kwl-entry--open .kwl-history-row p {
+  white-space: pre-wrap;
+  overflow: visible;
+  text-overflow: unset;
 }
 
 .kwl-history-count {

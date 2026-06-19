@@ -15,8 +15,15 @@ function formatDateLabel(dateStr) {
 }
 
 function KwlEntry({ entry }) {
+  const [expanded, setExpanded] = useState(false);
   return (
-    <div className="kwl-entry">
+    <div
+      className={`kwl-entry${expanded ? " kwl-entry--open" : ""}`}
+      onClick={() => setExpanded((v) => !v)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => e.key === "Enter" && setExpanded((v) => !v)}
+    >
       {entry.K && (
         <div className="kwl-history-row">
           <span className="kwl-badge kwl-badge-k">K</span>
