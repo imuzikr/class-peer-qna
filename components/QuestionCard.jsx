@@ -29,7 +29,7 @@ export default function QuestionCard({ question, onClick }) {
         <span className="keyword-chip"># {question.keyword}</span>
         {pinned && (
           <span className="pin-chip" title="나도 궁금해요 5회 이상">
-            📌 상단 고정
+            📌<span className="pin-label"> 상단 고정</span>
           </span>
         )}
         {/* 작성자 프로필 — 관리자는 클릭해서 실명 확인 가능 */}

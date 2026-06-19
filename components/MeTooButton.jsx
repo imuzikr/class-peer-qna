@@ -33,7 +33,7 @@ export default function MeTooButton({ question }) {
           : "나도 궁금하면 눌러 보세요 (1인 1회)"
       }
     >
-      🙋 나도 궁금해요
+      🙋<span className="metoo-label"> 나도 궁금해요</span>
       <span className="metoo-count">{ids.length}</span>
     </button>
   );

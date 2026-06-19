@@ -658,6 +658,7 @@ select:focus {
   border-radius: 999px;
   padding: 3px 10px;
   font-size: 12px;
+  white-space: nowrap;
 }
 
 .pin-chip {
@@ -4727,6 +4728,18 @@ pre code {
     overflow-y: auto;
   }
   .qa-right { flex: 1; min-height: 200px; }
+
+  /* ──────────────────────────────────────────────────────────
+     카드 내 텍스트 레이블 숨김 → 아이콘+숫자만 표시
+     ────────────────────────────────────────────────────────── */
+
+  /* 🙋 나도 궁금해요 → 🙋 + 숫자 */
+  .metoo-label { display: none; }
+  .metoo-btn { padding: 6px 10px; gap: 4px; }
+
+  /* 📌 상단 고정 → 📌 만 */
+  .pin-label { display: none; }
+  .pin-chip { padding: 3px 7px; }
 
   /* ──────────────────────────────────────────────────────────
      터치 영역 확보 (최소 44px)
