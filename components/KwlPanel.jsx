@@ -1,66 +1,87 @@
 "use client";
 
-// KWL 사이드 패널 — 공부방 왼쪽에 항상 표시되는 수업 단위 KWL 작성 공간
-// K(알고 있었던 것) / W(알고 싶은 것) / L(새롭게 알게 된 것)
-// 탭: 오늘 작성 | 지난 기록
+// KWL 사이드 패널 — 공부방 왼쪽 고정 패널
+// 저장마다 새 항목이 누적되고, 저장 후 입력창은 초기화됩니다.
 import { useEffect, useState } from "react";
-import { subscribeMyKwl, subscribeAllKwl, subscribeMyAllKwl, saveKwl } from "@/lib/store";
+import { subscribeMyTodayKwl, subscribeAllKwl, subscribeMyAllKwl, addKwl } from "@/lib/store";
 
 function getToday() {
-  return new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  return new Date().toISOString().slice(0, 10);
 }
 
 function formatDateLabel(dateStr) {
-  // "2026-06-19" → "6월 19일 (목)"
   const d = new Date(dateStr + "T00:00:00");
   return d.toLocaleDateString("ko-KR", { month: "long", day: "numeric", weekday: "short" });
+}
+
+function KwlEntry({ entry }) {
+  return (
+    <div className="kwl-entry">
+      {entry.K && (
+        <div className="kwl-history-row">
+          <span className="kwl-badge kwl-badge-k">K</span>
+          <p>{entry.K}</p>
+        </div>
+      )}
+      {entry.W && (
+        <div className="kwl-history-row">
+          <span className="kwl-badge kwl-badge-w">W</span>
+          <p>{entry.W}</p>
+        </div>
+      )}
+      {entry.L && (
+        <div className="kwl-history-row">
+          <span className="kwl-badge kwl-badge-l">L</span>
+          <p>{entry.L}</p>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function KwlPanel({ classId, user, isTeacher, onAsk }) {
   const today = getToday();
 
-  const [tab, setTab] = useState("today"); // "today" | "history"
+  const [tab, setTab] = useState("today");
   const [K, setK] = useState("");
   const [W, setW] = useState("");
   const [L, setL] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [allEntries, setAllEntries] = useState([]);   // 교사: 오늘 전체
+  const [todayEntries, setTodayEntries] = useState([]);
+  const [allEntries, setAllEntries] = useState([]);
   const [showAllW, setShowAllW] = useState(false);
-  const [history, setHistory] = useState([]);          // 내 누적 기록
+  const [history, setHistory] = useState([]);
   const [expandedDate, setExpandedDate] = useState(null);
 
-  // 내 오늘 KWL 구독
+  // 오늘 내 항목 구독
   useEffect(() => {
     if (!classId || !user) return;
-    return subscribeMyKwl(classId, user.uid, today, (entry) => {
-      if (entry) {
-        setK(entry.K ?? "");
-        setW(entry.W ?? "");
-        setL(entry.L ?? "");
-      }
-    });
+    return subscribeMyTodayKwl(classId, user.uid, today, setTodayEntries);
   }, [classId, user?.uid, today]);
 
-  // 교사: 오늘 전체 학생 KWL 구독
+  // 교사: 오늘 전체 학생 구독
   useEffect(() => {
     if (!isTeacher || !classId) return;
     return subscribeAllKwl(classId, today, setAllEntries);
   }, [isTeacher, classId, today]);
 
-  // 기록 탭 열릴 때 내 전체 KWL 구독
+  // 기록 탭: 내 전체 항목 구독 (오늘 포함)
   useEffect(() => {
     if (tab !== "history" || !classId || !user) return;
-    return subscribeMyAllKwl(classId, user.uid, (entries) => {
-      setHistory(entries.filter((e) => e.date !== today));
-    });
+    return subscribeMyAllKwl(classId, user.uid, setHistory);
   }, [tab, classId, user?.uid, today]);
 
   async function handleSave() {
     if (!classId || !user) return;
+    if (!K.trim() && !W.trim() && !L.trim()) return;
     setSaving(true);
     try {
-      await saveKwl(classId, user, today, { K, W, L });
+      await addKwl(classId, user, today, { K, W, L });
+      // 저장 후 입력창 초기화
+      setK("");
+      setW("");
+      setL("");
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } finally {
@@ -70,6 +91,14 @@ export default function KwlPanel({ classId, user, isTeacher, onAsk }) {
 
   const allW = allEntries.filter((e) => e.W?.trim() && e.userId !== user?.uid);
   const isEmpty = !K.trim() && !W.trim() && !L.trim();
+
+  // 기록 탭: 날짜별로 그룹화
+  const historyByDate = history.reduce((acc, entry) => {
+    if (!acc[entry.date]) acc[entry.date] = [];
+    acc[entry.date].push(entry);
+    return acc;
+  }, {});
+  const historyDates = Object.keys(historyByDate).sort((a, b) => b.localeCompare(a));
 
   if (!classId || !user) return null;
 
@@ -97,7 +126,7 @@ export default function KwlPanel({ classId, user, isTeacher, onAsk }) {
         <>
           <div className="kwl-panel-date">{formatDateLabel(today)}</div>
 
-          {/* K */}
+          {/* 입력 폼 */}
           <div className="kwl-section">
             <label className="kwl-label">
               <span className="kwl-badge kwl-badge-k">K</span>
@@ -112,7 +141,6 @@ export default function KwlPanel({ classId, user, isTeacher, onAsk }) {
             />
           </div>
 
-          {/* W */}
           <div className="kwl-section">
             <div className="kwl-label-row">
               <label className="kwl-label">
@@ -124,7 +152,6 @@ export default function KwlPanel({ classId, user, isTeacher, onAsk }) {
                   type="button"
                   className="kwl-ask-btn"
                   onClick={() => onAsk(W.trim())}
-                  title="W를 질문 게시판에 올리기"
                 >
                   ❓ 질문으로
                 </button>
@@ -139,7 +166,6 @@ export default function KwlPanel({ classId, user, isTeacher, onAsk }) {
             />
           </div>
 
-          {/* L */}
           <div className="kwl-section">
             <label className="kwl-label">
               <span className="kwl-badge kwl-badge-l">L</span>
@@ -162,6 +188,18 @@ export default function KwlPanel({ classId, user, isTeacher, onAsk }) {
           >
             {saving ? "저장 중..." : saved ? "✓ 저장됨" : "저장"}
           </button>
+
+          {/* 오늘 저장된 항목 목록 */}
+          {todayEntries.length > 0 && (
+            <div className="kwl-today-entries">
+              <p className="kwl-today-entries-label">
+                오늘 저장된 항목 ({todayEntries.length})
+              </p>
+              {todayEntries.map((entry) => (
+                <KwlEntry key={entry.id} entry={entry} />
+              ))}
+            </div>
+          )}
 
           {/* 교사: 학생 W 모아보기 */}
           {isTeacher && allW.length > 0 && (
@@ -192,42 +230,33 @@ export default function KwlPanel({ classId, user, isTeacher, onAsk }) {
       ) : (
         /* 기록 탭 */
         <div className="kwl-history">
-          {history.length === 0 ? (
-            <p className="kwl-history-empty">아직 지난 기록이 없어요.</p>
+          {historyDates.length === 0 ? (
+            <p className="kwl-history-empty">아직 저장된 기록이 없어요.</p>
           ) : (
             <ul className="kwl-history-list">
-              {history.map((entry) => {
-                const open = expandedDate === entry.date;
+              {historyDates.map((date) => {
+                const open = expandedDate === date;
+                const entries = historyByDate[date];
                 return (
-                  <li key={entry.id} className="kwl-history-item">
+                  <li key={date} className="kwl-history-item">
                     <button
                       type="button"
                       className="kwl-history-toggle"
-                      onClick={() => setExpandedDate(open ? null : entry.date)}
+                      onClick={() => setExpandedDate(open ? null : date)}
                     >
-                      <span className="kwl-history-date">{formatDateLabel(entry.date)}</span>
+                      <span className="kwl-history-date">
+                        {formatDateLabel(date)}
+                        {entries.length > 1 && (
+                          <span className="kwl-history-count"> ×{entries.length}</span>
+                        )}
+                      </span>
                       <span className="kwl-chevron">{open ? "▴" : "▾"}</span>
                     </button>
                     {open && (
                       <div className="kwl-history-body">
-                        {entry.K && (
-                          <div className="kwl-history-row">
-                            <span className="kwl-badge kwl-badge-k">K</span>
-                            <p>{entry.K}</p>
-                          </div>
-                        )}
-                        {entry.W && (
-                          <div className="kwl-history-row">
-                            <span className="kwl-badge kwl-badge-w">W</span>
-                            <p>{entry.W}</p>
-                          </div>
-                        )}
-                        {entry.L && (
-                          <div className="kwl-history-row">
-                            <span className="kwl-badge kwl-badge-l">L</span>
-                            <p>{entry.L}</p>
-                          </div>
-                        )}
+                        {entries.map((entry) => (
+                          <KwlEntry key={entry.id} entry={entry} />
+                        ))}
                       </div>
                     )}
                   </li>

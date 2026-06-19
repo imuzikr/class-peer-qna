@@ -3170,6 +3170,38 @@ pre code {
   flex: 1;
 }
 
+.kwl-today-entries {
+  margin-top: 12px;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+
+.kwl-today-entries-label {
+  font-size: 11px;
+  color: var(--text-sub);
+  margin: 0 0 8px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.kwl-entry {
+  background: var(--card-bg, #fff);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.kwl-history-count {
+  font-size: 11px;
+  color: var(--text-sub);
+  font-weight: 400;
+}
+
 .study-head {
   display: flex;
   align-items: flex-start;
