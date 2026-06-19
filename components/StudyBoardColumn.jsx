@@ -232,7 +232,10 @@ export default function StudyBoardColumn({
             creating
               ? true
               : selectedCard
-              ? user && selectedCard.authorId === user.uid
+              ? !!(user && (
+                  selectedCard.authorId === user.uid ||
+                  (isNotice && isTeacher)
+                ))
               : false
           }
           relatedQuestions={relatedQuestions}
