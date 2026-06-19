@@ -528,6 +528,17 @@ select:focus {
   gap: 8px;
 }
 
+/* feed-actions 안의 모든 버튼을 동일 높이로 통일 */
+.feed-actions .btn-primary,
+.feed-actions .filter-btn {
+  height: 36px;
+  padding-top: 0;
+  padding-bottom: 0;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+}
+
 /* ===================== 피드 필터 드롭다운 ===================== */
 .filter-wrap {
   position: relative;
