@@ -3017,12 +3017,109 @@ pre code {
   line-height: 1.45;
 }
 
+/* ── KWL 탭 ── */
+.kwl-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 10px;
+  margin-bottom: 2px;
+}
+
+.kwl-tab {
+  flex: 1;
+  background: none;
+  border: none;
+  color: #87867f;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.kwl-tab:hover { background: rgba(255,255,255,0.07); color: #c5c4bc; }
+.kwl-tab.active {
+  background: rgba(255,255,255,0.12);
+  color: #e8e8e4;
+}
+
+.kwl-panel-date {
+  font-size: 11px;
+  color: #5c5b55;
+  margin-bottom: 4px;
+}
+
+/* ── KWL 지난 기록 탭 ── */
+.kwl-history { flex: 1; overflow-y: auto; }
+
+.kwl-history-empty {
+  font-size: 12px;
+  color: #5c5b55;
+  text-align: center;
+  margin-top: 24px;
+}
+
+.kwl-history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.kwl-history-item {
+  border-radius: 7px;
+  overflow: hidden;
+  background: rgba(255,255,255,0.04);
+}
+
+.kwl-history-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: none;
+  border: none;
+  color: #c5c4bc;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px 10px;
+  cursor: pointer;
+  text-align: left;
+}
+.kwl-history-toggle:hover { background: rgba(255,255,255,0.06); }
+
+.kwl-history-date { flex: 1; }
+
+.kwl-history-body {
+  padding: 4px 10px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kwl-history-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.kwl-history-row p {
+  font-size: 12px;
+  color: #87867f;
+  margin: 0;
+  line-height: 1.5;
+  flex: 1;
+}
+
 .study-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  padding: 20px 24px 0;
+  padding-top: 20px;
   margin-bottom: 16px;
   flex-shrink: 0;
 }

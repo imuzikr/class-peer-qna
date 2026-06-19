@@ -128,73 +128,7 @@ export default function StudyPage() {
         <ClassEntry />
       ) : (
         <main className="study-main">
-          <div className="study-head">
-            <div className="study-head-main">
-              {/* 교사: 제목 오른쪽에 반 선택 · 코드 · 반 만들기 */}
-              <div className="study-title-row">
-                <h1>🧩 공부방</h1>
-                {admin && classes.length > 0 && (
-                  <select
-                    className="study-class-select"
-                    value={classId ?? ""}
-                    onChange={(e) => {
-                      setTeacherClassId(e.target.value);
-                      setShowCode(false); // 반 바뀌면 코드 다시 숨김
-                    }}
-                    aria-label="반 선택"
-                  >
-                    {classes.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                )}
-                {admin && currentClass && (
-                  <button
-                    className="study-code-btn"
-                    onClick={() => setShowCode((v) => !v)}
-                    title="학생에게 알려 줄 입장 코드"
-                  >
-                    🔑 {showCode ? currentClass.joinCode : "입장 코드"}
-                  </button>
-                )}
-                {admin && (
-                  <button
-                    className="btn-ghost"
-                    onClick={() => setCreatingClass(true)}
-                  >
-                    ➕ 반 만들기
-                  </button>
-                )}
-              </div>
-
-              {admin ? (
-                <p>수업 자료를 확인하고, 활동 결과물을 카드로 남겨 보세요.</p>
-              ) : currentClass ? (
-                <p>
-                  <strong className="study-class-name">
-                    {currentClass.name}
-                  </strong>{" "}
-                  — 수업 자료를 확인하고, 활동 결과물을 카드로 남겨 보세요.
-                </p>
-              ) : (
-                <p>수업 자료를 확인하고, 활동 결과물을 카드로 남겨 보세요.</p>
-              )}
-            </div>
-
-            {/* 학생: 다른 반으로 전환 (입장 코드 다시 입력) */}
-            {!admin && currentClass && (
-              <button
-                className="btn-ghost"
-                onClick={() => setSelectedClassId(null)}
-              >
-                🚪 반 나가기
-              </button>
-            )}
-          </div>
-
-          {/* 본문 — KWL 사이드 패널 + 보드 컬럼 */}
+          {/* 본문 — KWL 사이드 패널 + 보드 컬럼 (사이드바와 동일 높이) */}
           <div className="study-body">
             <KwlPanel
               classId={classId}
@@ -203,6 +137,70 @@ export default function StudyPage() {
               onAsk={(text) => setAskKwlW(text)}
             />
             <div className="study-cols-wrap">
+              {/* 제목 영역 — cols-wrap 안에 위치해 보드 컬럼과 정렬됨 */}
+              <div className="study-head">
+                <div className="study-head-main">
+                  <div className="study-title-row">
+                    <h1>🧩 공부방</h1>
+                    {admin && classes.length > 0 && (
+                      <select
+                        className="study-class-select"
+                        value={classId ?? ""}
+                        onChange={(e) => {
+                          setTeacherClassId(e.target.value);
+                          setShowCode(false);
+                        }}
+                        aria-label="반 선택"
+                      >
+                        {classes.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                    {admin && currentClass && (
+                      <button
+                        className="study-code-btn"
+                        onClick={() => setShowCode((v) => !v)}
+                        title="학생에게 알려 줄 입장 코드"
+                      >
+                        🔑 {showCode ? currentClass.joinCode : "입장 코드"}
+                      </button>
+                    )}
+                    {admin && (
+                      <button
+                        className="btn-ghost"
+                        onClick={() => setCreatingClass(true)}
+                      >
+                        ➕ 반 만들기
+                      </button>
+                    )}
+                  </div>
+
+                  {admin ? (
+                    <p>수업 자료를 확인하고, 활동 결과물을 카드로 남겨 보세요.</p>
+                  ) : currentClass ? (
+                    <p>
+                      <strong className="study-class-name">
+                        {currentClass.name}
+                      </strong>{" "}
+                      — 수업 자료를 확인하고, 활동 결과물을 카드로 남겨 보세요.
+                    </p>
+                  ) : (
+                    <p>수업 자료를 확인하고, 활동 결과물을 카드로 남겨 보세요.</p>
+                  )}
+                </div>
+
+                {!admin && currentClass && (
+                  <button
+                    className="btn-ghost"
+                    onClick={() => setSelectedClassId(null)}
+                  >
+                    🚪 반 나가기
+                  </button>
+                )}
+              </div>
               {admin && classes.length === 0 ? (
                 <p className="empty-note">
                   아직 만든 반이 없어요. ‘반 만들기’로 첫 반을 추가하고 학생에게
