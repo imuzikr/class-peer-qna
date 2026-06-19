@@ -3302,6 +3302,7 @@ pre code {
 .study-card-preview {
   font-size: 13px;
   line-height: 1.5;
+  min-height: calc(13px * 1.5 * 3); /* 내용 없어도 3줄 높이 보장 */
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;

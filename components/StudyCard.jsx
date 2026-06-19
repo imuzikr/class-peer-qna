@@ -49,7 +49,7 @@ export default function StudyCard({ card, onClick, isTeacher = false }) {
           <img className="study-card-thumb" src={thumbAtt.dataUrl} alt="" aria-hidden="true" />
         </div>
       ) : (
-        preview && <p className="study-card-preview" aria-hidden="true">{preview}</p>
+        <p className="study-card-preview" aria-hidden="true">{preview}</p>
       )}
     </article>
   );
