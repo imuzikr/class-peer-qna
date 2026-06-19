@@ -3871,6 +3871,109 @@ pre code {
   color: var(--primary);
 }
 
+/* ── 사이드바 내 회고 섹션 ── */
+.reflect-sidebar-section {
+  margin-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 12px;
+}
+
+.reflect-sidebar-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  background: none;
+  border: none;
+  color: #87867f;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  padding: 0 10px 8px;
+  cursor: pointer;
+  text-align: left;
+}
+.reflect-sidebar-toggle:hover { color: #c5c4bc; }
+
+.reflect-sidebar-count {
+  background: rgba(255, 255, 255, 0.12);
+  color: #c5c4bc;
+  border-radius: 999px;
+  font-size: 11px;
+  padding: 1px 6px;
+  font-family: var(--font-sans, sans-serif);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.reflect-sidebar-chevron {
+  margin-left: auto;
+  font-size: 10px;
+  opacity: 0.6;
+}
+
+.reflect-sidebar-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.reflect-sidebar-item {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--sidebar-text);
+  transition: background 0.12s;
+}
+.reflect-sidebar-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.reflect-sidebar-kw {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  color: #e8956c;
+  letter-spacing: 0.3px;
+  margin-bottom: 3px;
+}
+
+.reflect-sidebar-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #e8e8e4;
+  margin: 0 0 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.reflect-sidebar-learned {
+  font-size: 11px;
+  color: #87867f;
+  margin: 0 0 4px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.45;
+}
+
+.reflect-sidebar-time {
+  font-size: 10px;
+  color: #5c5b55;
+}
+
 /* ===================== 키워드 관리 모달 ===================== */
 .modal-keyword-mgr {
   max-width: 480px;

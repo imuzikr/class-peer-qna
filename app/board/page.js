@@ -108,6 +108,21 @@ export default function BoardPage() {
   // 모달에 표시할 질문 (목록이 갱신되면 answerCount도 함께 갱신되도록 id로 찾음)
   const selectedQuestion = questions.find((q) => q.id === selectedId) ?? null;
 
+  // 내 회고 목록 — 최신순
+  const myReflections = useMemo(
+    () =>
+      user
+        ? questions
+            .filter((q) => q.reflection && q.reflection.authorId === user.uid)
+            .sort(
+              (a, b) =>
+                new Date(b.reflection.createdAt) -
+                new Date(a.reflection.createdAt)
+            )
+        : [],
+    [questions, user]
+  );
+
   // 공부방 보드와 연계된 키워드 집합 — "수업으로 돌아가기" 버튼 활성화 판단
   const studyKeywords = useMemo(
     () => studyBoards.flatMap((b) =>
@@ -141,6 +156,8 @@ export default function BoardPage() {
           counts={counts}
           isAdmin={admin}
           onManage={() => setManagingKeywords(true)}
+          reflections={myReflections}
+          onReflectionClick={(id) => setSelectedId(id)}
         />
 
         {/* 2단: 질문 게시판 */}
