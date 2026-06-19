@@ -237,6 +237,7 @@ export default function KwlPanel({ classId, user, isTeacher, onAsk }) {
               {historyDates.map((date) => {
                 const open = expandedDate === date;
                 const entries = historyByDate[date];
+                const preview = entries[0]?.K || entries[0]?.W || entries[0]?.L || "";
                 return (
                   <li key={date} className="kwl-history-item">
                     <button
@@ -244,10 +245,15 @@ export default function KwlPanel({ classId, user, isTeacher, onAsk }) {
                       className="kwl-history-toggle"
                       onClick={() => setExpandedDate(open ? null : date)}
                     >
-                      <span className="kwl-history-date">
-                        {formatDateLabel(date)}
-                        {entries.length > 1 && (
-                          <span className="kwl-history-count"> ×{entries.length}</span>
+                      <span className="kwl-history-toggle-inner">
+                        <span className="kwl-history-date">
+                          {formatDateLabel(date)}
+                          {entries.length > 1 && (
+                            <span className="kwl-history-count"> ×{entries.length}</span>
+                          )}
+                        </span>
+                        {!open && preview && (
+                          <span className="kwl-history-preview">{preview}</span>
                         )}
                       </span>
                       <span className="kwl-chevron">{open ? "▴" : "▾"}</span>
