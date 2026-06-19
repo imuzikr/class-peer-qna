@@ -2771,6 +2771,62 @@ pre code {
   font-weight: 700;
 }
 
+/* ── TopNav 학습 공간 드롭다운 ── */
+.topnav-drop-wrap {
+  position: relative;
+}
+
+.topnav-drop-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 14px;
+}
+
+.topnav-drop-chevron {
+  font-size: 9px;
+  opacity: 0.6;
+}
+
+.topnav-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 200;
+  min-width: 150px;
+}
+
+.topnav-drop-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  border-radius: 7px;
+  padding: 9px 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+  transition: background 0.1s;
+}
+.topnav-drop-item:hover { background: var(--neutral); }
+.topnav-drop-item.active {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  font-weight: 700;
+}
+
 /* ===================== 토스트 알림 ===================== */
 .toast {
   position: fixed;

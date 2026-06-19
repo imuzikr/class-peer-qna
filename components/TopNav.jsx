@@ -3,13 +3,10 @@
 // =============================================================
 // 공통 상단 내비게이션
 // -------------------------------------------------------------
-// 왼쪽: 배움나눔 로고 ｜ 공부방 ｜ 파이썬 실행기 ｜ (학습 리포트|관리자 대시보드)
+// 왼쪽: 배움나눔 로고 ｜ 학습 공간 드롭다운(공부방·질문게시판) ｜ 파이썬 실행기 ｜ (리포트|관리자)
 // 오른쪽: 역할 전환(개발용) ｜ 사용자 프로필 ｜ 로그아웃
-//
-// 파이썬 실행기는 게시판 페이지의 슬라이드 패널입니다.
-//  - 게시판에서는 onPython으로 패널을 직접 토글합니다.
-//  - 다른 페이지에서는 /board?py=1 로 이동해 패널을 엽니다.
 // =============================================================
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { isAdmin } from "@/lib/user";
 import { useCurrentUser } from "@/lib/useCurrentUser";
@@ -20,31 +17,67 @@ export default function TopNav({ active, onPython, pyActive = false }) {
   const router = useRouter();
   const user = useCurrentUser();
   const admin = user ? isAdmin(user) : false;
+  const [navOpen, setNavOpen] = useState(false);
+  const dropRef = useRef(null);
+
+  // 드롭다운 바깥 클릭 시 닫기
+  useEffect(() => {
+    if (!navOpen) return;
+    function onDown(e) {
+      if (!dropRef.current?.contains(e.target)) setNavOpen(false);
+    }
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [navOpen]);
 
   function handlePython() {
     if (onPython) onPython();
     else router.push("/board?py=1");
   }
 
+  function go(path) {
+    setNavOpen(false);
+    router.push(path);
+  }
+
   return (
     <header className="topbar">
       {/* 왼쪽: 로고 + 주요 메뉴 */}
       <div className="topbar-left">
-        <button className="logo logo-button" onClick={() => router.push("/board")}>
+        <button className="logo logo-button" onClick={() => go("/board")}>
           📚 배움나눔
         </button>
         <span className="topbar-divider" aria-hidden="true" />
         <nav className="topnav-menu">
-          {active === "study" ? (
-            // 공부방에 있을 때는 "질문 게시판"으로 돌아가는 버튼으로 바뀝니다
-            <button className="btn-ghost" onClick={() => router.push("/board")}>
-              💬 질문 게시판
+
+          {/* 학습 공간 드롭다운 — 공부방 · 질문게시판 */}
+          <div className="topnav-drop-wrap" ref={dropRef}>
+            <button
+              className={`btn-ghost topnav-drop-btn ${active === "board" || active === "study" ? "nav-active" : ""}`}
+              onClick={() => setNavOpen((v) => !v)}
+            >
+              {active === "study" ? "🧩 공부방" : active === "board" ? "💬 질문게시판" : "🗂 학습 공간"}
+              <span className="topnav-drop-chevron">{navOpen ? "▴" : "▾"}</span>
             </button>
-          ) : (
-            <button className="btn-ghost" onClick={() => router.push("/study")}>
-              🧩 공부방
-            </button>
-          )}
+
+            {navOpen && (
+              <div className="topnav-dropdown">
+                <button
+                  className={`topnav-drop-item ${active === "board" ? "active" : ""}`}
+                  onClick={() => go("/board")}
+                >
+                  💬 질문 게시판
+                </button>
+                <button
+                  className={`topnav-drop-item ${active === "study" ? "active" : ""}`}
+                  onClick={() => go("/study")}
+                >
+                  🧩 공부방
+                </button>
+              </div>
+            )}
+          </div>
+
           <button
             className={`btn-ghost ${pyActive ? "py-btn-active" : ""}`}
             onClick={handlePython}
@@ -54,14 +87,14 @@ export default function TopNav({ active, onPython, pyActive = false }) {
           {admin ? (
             <button
               className={`btn-ghost ${active === "admin" ? "nav-active" : ""}`}
-              onClick={() => router.push("/admin")}
+              onClick={() => go("/admin")}
             >
               📊 관리자 대시보드
             </button>
           ) : (
             <button
               className={`btn-ghost ${active === "report" ? "nav-active" : ""}`}
-              onClick={() => router.push("/report")}
+              onClick={() => go("/report")}
             >
               📈 학습 리포트
             </button>
@@ -73,7 +106,7 @@ export default function TopNav({ active, onPython, pyActive = false }) {
       <div className="user-area">
         <RoleSwitcher />
         <UserProfile />
-        <button className="btn-ghost" onClick={() => router.push("/")}>
+        <button className="btn-ghost" onClick={() => go("/")}>
           로그아웃
         </button>
       </div>
