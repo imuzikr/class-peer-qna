@@ -122,29 +122,29 @@ export default function StudyBoardColumn({
           <p className="study-column-desc">{board.description}</p>
         )}
 
-        {/* 교사 전용 정렬 버튼 */}
+        {/* 교사 전용 정렬 버튼 — 클릭 시 ↑↓ 토글 */}
         {isTeacher && !isNotice && (
           <div className="study-sort">
             <button
-              className={`study-sort-btn${sortKey === "studentId" && sortDir === "asc" ? " active" : ""}`}
-              onClick={() => setSortKeyDir("studentId", "asc")}
-              title="학번 오름차순"
-            >학번↑</button>
+              className={`study-sort-btn${sortKey === "studentId" ? " active" : ""}`}
+              onClick={() => setSortKeyDir(
+                "studentId",
+                sortKey === "studentId" && sortDir === "asc" ? "desc" : "asc"
+              )}
+              title={sortKey === "studentId" && sortDir === "desc" ? "학번 내림차순" : "학번 오름차순"}
+            >
+              학번 {sortKey === "studentId" ? (sortDir === "asc" ? "↑" : "↓") : "↕"}
+            </button>
             <button
-              className={`study-sort-btn${sortKey === "studentId" && sortDir === "desc" ? " active" : ""}`}
-              onClick={() => setSortKeyDir("studentId", "desc")}
-              title="학번 내림차순"
-            >학번↓</button>
-            <button
-              className={`study-sort-btn${sortKey === "time" && sortDir === "asc" ? " active" : ""}`}
-              onClick={() => setSortKeyDir("time", "asc")}
-              title="제출 빠른 순"
-            >제출↑</button>
-            <button
-              className={`study-sort-btn${sortKey === "time" && sortDir === "desc" ? " active" : ""}`}
-              onClick={() => setSortKeyDir("time", "desc")}
-              title="제출 늦은 순"
-            >제출↓</button>
+              className={`study-sort-btn${sortKey === "time" ? " active" : ""}`}
+              onClick={() => setSortKeyDir(
+                "time",
+                sortKey === "time" && sortDir === "asc" ? "desc" : "asc"
+              )}
+              title={sortKey === "time" && sortDir === "desc" ? "제출 늦은 순" : "제출 빠른 순"}
+            >
+              제출 {sortKey === "time" ? (sortDir === "asc" ? "↑" : "↓") : "↕"}
+            </button>
           </div>
         )}
 

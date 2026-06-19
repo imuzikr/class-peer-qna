@@ -3574,8 +3574,8 @@ pre code {
 .study-card {
   background: #fff;
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 12px;
+  border-radius: 12px;
+  padding: 16px;
   cursor: pointer;
   transition: box-shadow 0.15s, transform 0.12s;
 }
@@ -3652,10 +3652,10 @@ pre code {
 }
 
 .study-sort-btn {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
-  padding: 3px 8px;
-  border-radius: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
   border: 1px solid var(--border);
   background: #fff;
   color: var(--text-sub);
