@@ -49,6 +49,7 @@ export default function StudyPage() {
   const [askKwlW, setAskKwlW] = useState(null);    // KWL W칸에서 넘어온 텍스트
   const [pyOpen, setPyOpen] = useState(false);      // 파이썬 실행 패널
   const [cardModalOpen, setCardModalOpen] = useState(false); // StudyBoardColumn 모달
+  const [kwlMobileOpen, setKwlMobileOpen] = useState(false); // 모바일 KWL 패널
   const [toast, setToast] = useState("");
 
   useEffect(() => {
@@ -135,6 +136,8 @@ export default function StudyPage() {
               user={user}
               isTeacher={admin}
               onAsk={(text) => setAskKwlW(text)}
+              mobileOpen={kwlMobileOpen}
+              onMobileClose={() => setKwlMobileOpen(false)}
             />
             <div className="study-cols-wrap">
               {/* 제목 영역 — cols-wrap 안에 위치해 보드 컬럼과 정렬됨 */}
@@ -235,6 +238,25 @@ export default function StudyPage() {
             </div>
           </div>
         </main>
+      )}
+
+      {/* 모바일 KWL 열기 버튼 (FAB) */}
+      {classId && user && !kwlMobileOpen && (
+        <button
+          className="kwl-fab"
+          onClick={() => setKwlMobileOpen(true)}
+          aria-label="KWL 패널 열기"
+        >
+          📝 KWL
+        </button>
+      )}
+
+      {/* KWL 패널 열릴 때 배경 오버레이 */}
+      {kwlMobileOpen && (
+        <div
+          className="kwl-mobile-backdrop"
+          onClick={() => setKwlMobileOpen(false)}
+        />
       )}
 
       {/* 반 만들기 모달 */}

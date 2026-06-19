@@ -46,7 +46,7 @@ function KwlEntry({ entry }) {
   );
 }
 
-export default function KwlPanel({ classId, user, isTeacher, onAsk }) {
+export default function KwlPanel({ classId, user, isTeacher, onAsk, mobileOpen, onMobileClose }) {
   const today = getToday();
 
   const [tab, setTab] = useState("today");
@@ -110,7 +110,13 @@ export default function KwlPanel({ classId, user, isTeacher, onAsk }) {
   if (!classId || !user) return null;
 
   return (
-    <aside className="kwl-panel">
+    <aside className={`kwl-panel${mobileOpen ? " kwl-panel--open" : ""}`}>
+      {/* 모바일 닫기 버튼 */}
+      {onMobileClose && (
+        <button className="kwl-mobile-close" onClick={onMobileClose} aria-label="닫기">
+          ×
+        </button>
+      )}
       {/* 탭 */}
       <div className="kwl-tabs">
         <button
