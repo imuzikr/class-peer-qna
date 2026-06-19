@@ -2816,7 +2816,205 @@ pre code {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  padding: 20px 24px 0;
+  /* padding은 study-head와 study-cols-wrap에서 각각 처리 */
+}
+
+/* KWL 패널 + 보드 컬럼 나란히 */
+.study-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* 보드 컬럼 영역 래퍼 */
+.study-cols-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0 24px;
+}
+
+.study-cols-wrap .empty-note {
+  margin-top: 20px;
+}
+
+/* ── KWL 사이드 패널 ── */
+.kwl-panel {
+  width: 220px;
+  flex-shrink: 0;
+  background: var(--sidebar-bg);
+  color: var(--sidebar-text);
+  overflow-y: auto;
+  padding: 20px 14px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.kwl-panel-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.kwl-panel-title {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #c5c4bc;
+}
+
+.kwl-panel-date {
+  font-size: 11px;
+  color: #5c5b55;
+}
+
+.kwl-section {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.kwl-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.kwl-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #87867f;
+  letter-spacing: 0.3px;
+}
+
+.kwl-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 800;
+  font-family: var(--font-mono);
+  flex-shrink: 0;
+}
+
+.kwl-badge-k { background: #3d5a80; color: #d0e4f7; }
+.kwl-badge-w { background: #6b4c2a; color: #f5dfc0; }
+.kwl-badge-l { background: #2e6b3e; color: #c2eacb; }
+
+.kwl-textarea {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 7px;
+  color: #e8e8e4;
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 8px 10px;
+  resize: none;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.kwl-textarea::placeholder { color: #5c5b55; }
+
+.kwl-textarea:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.kwl-ask-btn {
+  background: none;
+  border: none;
+  color: #e8956c;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 0;
+  white-space: nowrap;
+}
+.kwl-ask-btn:hover { text-decoration: underline; }
+
+.kwl-save-btn {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-btn);
+  padding: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  width: 100%;
+}
+.kwl-save-btn:hover:not(:disabled) { background: var(--primary-dark); }
+.kwl-save-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* 교사: 학생 W 모아보기 */
+.kwl-all-w {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 10px;
+  margin-top: 4px;
+}
+
+.kwl-all-w-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: none;
+  border: none;
+  color: #87867f;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  gap: 4px;
+}
+.kwl-all-w-toggle:hover { color: #c5c4bc; }
+
+.kwl-chevron { font-size: 9px; opacity: 0.7; }
+
+.kwl-all-w-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kwl-all-w-item {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  padding: 7px 9px;
+}
+
+.kwl-all-w-author {
+  font-size: 10px;
+  color: #5c5b55;
+  display: block;
+  margin-bottom: 3px;
+}
+
+.kwl-all-w-text {
+  font-size: 12px;
+  color: #c5c4bc;
+  margin: 0;
+  line-height: 1.45;
 }
 
 .study-head {
@@ -2824,6 +3022,7 @@ pre code {
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
+  padding: 20px 24px 0;
   margin-bottom: 16px;
   flex-shrink: 0;
 }

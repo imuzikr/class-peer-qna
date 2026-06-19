@@ -28,6 +28,7 @@ import NewQuestionForm from "@/components/NewQuestionForm";
 import PythonRunner from "@/components/PythonRunner";
 import ClassEntry from "@/components/ClassEntry";
 import Toast from "@/components/Toast";
+import KwlPanel from "@/components/KwlPanel";
 
 export default function StudyPage() {
   const user = useCurrentUser();
@@ -45,6 +46,7 @@ export default function StudyPage() {
   const [showCode, setShowCode] = useState(false); // 입장 코드 표시 토글
   const [askKeyword, setAskKeyword] = useState(null); // "질문하기"로 새 질문 작성
   const [askCode, setAskCode] = useState(null);     // 파이썬 실행기에서 넘어온 코드
+  const [askKwlW, setAskKwlW] = useState(null);    // KWL W칸에서 넘어온 텍스트
   const [pyOpen, setPyOpen] = useState(false);      // 파이썬 실행 패널
   const [cardModalOpen, setCardModalOpen] = useState(false); // StudyBoardColumn 모달
   const [toast, setToast] = useState("");
@@ -192,39 +194,48 @@ export default function StudyPage() {
             )}
           </div>
 
-          {/* 본문 */}
-          {admin && classes.length === 0 ? (
-            <p className="empty-note">
-              아직 만든 반이 없어요. ‘반 만들기’로 첫 반을 추가하고 학생에게
-              입장 코드를 알려 주세요.
-            </p>
-          ) : !admin && classBoards.length === 0 ? (
-            <p className="empty-note">아직 열린 수업 보드가 없어요.</p>
-          ) : (
-            <div className="study-columns">
-              {classBoards.map((board) => (
-                <StudyBoardColumn
-                  key={board.id}
-                  board={board}
-                  user={user}
-                  isTeacher={admin}
-                  questions={questions}
-                  onAsk={(kw) => setAskKeyword(kw)}
-                  onModalChange={setCardModalOpen}
-                />
-              ))}
-              {/* 보드 추가는 항상 마지막 보드 오른쪽에 옵니다 (교사 전용) */}
-              {admin && currentClass && (
-                <button
-                  className="study-add-board-col"
-                  onClick={() => setAddingBoard(true)}
-                >
-                  <span className="study-add-board-plus">＋</span>
-                  수업 보드 추가
-                </button>
+          {/* 본문 — KWL 사이드 패널 + 보드 컬럼 */}
+          <div className="study-body">
+            <KwlPanel
+              classId={classId}
+              user={user}
+              isTeacher={admin}
+              onAsk={(text) => setAskKwlW(text)}
+            />
+            <div className="study-cols-wrap">
+              {admin && classes.length === 0 ? (
+                <p className="empty-note">
+                  아직 만든 반이 없어요. ‘반 만들기’로 첫 반을 추가하고 학생에게
+                  입장 코드를 알려 주세요.
+                </p>
+              ) : !admin && classBoards.length === 0 ? (
+                <p className="empty-note">아직 열린 수업 보드가 없어요.</p>
+              ) : (
+                <div className="study-columns">
+                  {classBoards.map((board) => (
+                    <StudyBoardColumn
+                      key={board.id}
+                      board={board}
+                      user={user}
+                      isTeacher={admin}
+                      questions={questions}
+                      onAsk={(kw) => setAskKeyword(kw)}
+                      onModalChange={setCardModalOpen}
+                    />
+                  ))}
+                  {admin && currentClass && (
+                    <button
+                      className="study-add-board-col"
+                      onClick={() => setAddingBoard(true)}
+                    >
+                      <span className="study-add-board-plus">＋</span>
+                      수업 보드 추가
+                    </button>
+                  )}
+                </div>
               )}
             </div>
-          )}
+          </div>
         </main>
       )}
 
@@ -270,14 +281,19 @@ export default function StudyPage() {
         />
       )}
 
-      {(askKeyword !== null || askCode !== null) && (
+      {(askKeyword !== null || askCode !== null || askKwlW !== null) && (
         <NewQuestionForm
           defaultKeyword={askKeyword ?? ""}
           keywords={keywordNames}
-          initialContent={askCode ? codeBlockHtml(askCode) : ""}
+          initialContent={
+            askCode ? codeBlockHtml(askCode) :
+            askKwlW ? `<p>${askKwlW}</p>` :
+            ""
+          }
           onClose={(submitted) => {
             setAskKeyword(null);
             setAskCode(null);
+            setAskKwlW(null);
             if (submitted === true) {
               setToast("질문이 게시판에 등록됐어요. 공부방에서 계속 활동하세요!");
             }
