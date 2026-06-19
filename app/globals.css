@@ -662,10 +662,7 @@ select:focus {
 }
 
 .pin-chip {
-  background: #fff4d7;
-  color: #8a5a12;
-  border-radius: 999px;
-  padding: 3px 8px;
+  padding: 3px 4px;
   font-size: 14px;
   line-height: 1;
   white-space: nowrap;
@@ -1456,22 +1453,11 @@ button.understood-bulb:hover {
 /* 카드의 상태 표시 — 클릭 불가(상태 변경은 상세 모달의 회고 흐름에서만) */
 .status-badge {
   margin-left: auto;
-  border-radius: 999px;
-  padding: 5px 8px;
+  padding: 3px 4px;
   font-size: 15px;
   line-height: 1;
   flex-shrink: 0;
   cursor: default;
-}
-
-.status-badge.open {
-  background: var(--primary-light);
-  color: var(--primary-dark);
-}
-
-.status-badge.resolved {
-  background: #e9f0e6;
-  color: #3d7a4a;
 }
 
 /* 해결된 질문 카드는 왼쪽에 초록 띠 표시 */
