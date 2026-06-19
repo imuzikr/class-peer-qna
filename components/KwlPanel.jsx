@@ -66,13 +66,10 @@ export default function KwlPanel({ classId, user, isTeacher, onAsk }) {
     return subscribeAllKwl(classId, today, setAllEntries);
   }, [isTeacher, classId, today]);
 
-  // 기록 탭: 내 전체 과거 항목 구독
+  // 기록 탭: 내 전체 항목 구독 (오늘 포함)
   useEffect(() => {
     if (tab !== "history" || !classId || !user) return;
-    return subscribeMyAllKwl(classId, user.uid, (entries) => {
-      // 오늘 제외한 과거 항목
-      setHistory(entries.filter((e) => e.date !== today));
-    });
+    return subscribeMyAllKwl(classId, user.uid, setHistory);
   }, [tab, classId, user?.uid, today]);
 
   async function handleSave() {
@@ -234,7 +231,7 @@ export default function KwlPanel({ classId, user, isTeacher, onAsk }) {
         /* 기록 탭 */
         <div className="kwl-history">
           {historyDates.length === 0 ? (
-            <p className="kwl-history-empty">아직 지난 기록이 없어요.</p>
+            <p className="kwl-history-empty">아직 저장된 기록이 없어요.</p>
           ) : (
             <ul className="kwl-history-list">
               {historyDates.map((date) => {
