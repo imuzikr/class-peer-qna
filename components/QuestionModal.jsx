@@ -44,7 +44,8 @@ export default function QuestionModal({
   const [saving, setSaving] = useState(false);
   const [resetKey, setResetKey] = useState(0); // 전송 후 에디터 비우기
   const [qExpanded, setQExpanded] = useState(false); // 모바일: 질문 접기/펼치기
-  const scrollRef = useRef(null);
+  const scrollRef = useRef(null);    // 모바일: qa-grid 단일 스크롤 컨테이너
+  const chatScrollRef = useRef(null); // 데스크톱: chat-scroll 컨테이너
   const understoodAnswerId = question.understoodAnswerId ?? null;
 
   useEffect(() => {
@@ -53,9 +54,10 @@ export default function QuestionModal({
   }, [question.id]);
 
   // 새 메시지가 오면 대화방을 맨 아래로 스크롤
+  // 모바일(qa-grid)·데스크톱(chat-scroll) 양쪽 처리
   useEffect(() => {
-    const el = scrollRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    if (chatScrollRef.current) chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
   }, [answers]);
 
   async function handleFile(e) {
@@ -126,20 +128,20 @@ export default function QuestionModal({
           ×
         </button>
 
-        <div className="qa-grid">
+        <div className="qa-grid" ref={scrollRef}>
+          {/* 모바일 전용: 스크롤해도 항상 상단에 고정되는 제목 탭 */}
+          <button
+            type="button"
+            className="qa-mobile-header"
+            onClick={() => setQExpanded((v) => !v)}
+            aria-expanded={qExpanded}
+          >
+            <span className="qa-expand-chevron">{qExpanded ? "▴" : "▾"}</span>
+            <span className="qa-mobile-title">{question.title}</span>
+          </button>
+
           {/* ── 왼쪽: 질문 본문 + 첨부 이미지 ── */}
           <section className={`qa-left${qExpanded ? " qa-left--expanded" : ""}`}>
-            {/* 모바일 전용: 항상 보이는 제목 탭 — 클릭하면 질문 본문을 펼칩니다 */}
-            <button
-              type="button"
-              className="qa-mobile-header"
-              onClick={() => setQExpanded((v) => !v)}
-              aria-expanded={qExpanded}
-            >
-              <span className="qa-expand-chevron">{qExpanded ? "▴" : "▾"}</span>
-              <span className="qa-mobile-title">{question.title}</span>
-            </button>
-
             {/* 본문은 스크롤되고, 아래 qa-foot은 항상 보입니다 */}
             <div className="qa-left-scroll">
               <div className="card-meta">
@@ -257,7 +259,7 @@ export default function QuestionModal({
           <section className="qa-right">
             <div className="chat-head">💬 대화 {answers.length + 1}개</div>
 
-            <div className="chat-scroll" ref={scrollRef}>
+            <div className="chat-scroll" ref={chatScrollRef}>
               {/* 첫 메시지: 질문 */}
               <ChatMessage
                 mine={question.authorId === user.uid}
