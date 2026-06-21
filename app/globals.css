@@ -4803,8 +4803,10 @@ pre code {
   /* qa-right: 투명 래퍼 — 자식들이 qa-grid 플렉스 아이템으로 편입 */
   .qa-right { display: contents; }
 
-  /* 채팅 메시지: 독립 스크롤 해제 — qa-grid 스크롤로 통합 */
+  /* 채팅 메시지: 독립 스크롤 해제 — qa-grid 스크롤로 통합
+     flex:none 으로 데스크톱 flex:1 무효화 → 내용 높이만큼 자연 확장 */
   .chat-scroll {
+    flex: none;
     overflow-y: visible;
     min-height: 50vh;
   }
