@@ -209,19 +209,6 @@ export default function RichTextEditor({
   function handleKeyDown(e) {
     if (e.nativeEvent.isComposing) return;
 
-    if (e.key === "Enter" && !e.shiftKey) {
-      const pre = getContainingPre();
-      if (pre) {
-        // 코드 블록 안에서는 Enter를 브라우저 기본(줄바꿈)에 맡김
-        // 탈출: ↓ 화살표(블록 끝) 또는 Escape
-        return;
-      }
-      if (onSend && !isInList()) {
-        e.preventDefault();
-        onSend();
-      }
-    }
-
     // Escape: 코드 블록 어디서든 탈출
     if (e.key === "Escape") {
       const pre = getContainingPre();
