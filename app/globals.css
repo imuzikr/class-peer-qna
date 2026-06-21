@@ -4744,12 +4744,11 @@ pre code {
     overflow: hidden;
   }
 
-  /* 왼쪽(질문) 영역: 기본 접힘 */
+  /* 왼쪽(질문) 영역: 기본 접힘 — display:none이 하위 요소를 숨기므로 overflow:hidden 불필요 */
   .qa-left {
     flex: 0 0 auto;
     border-right: none;
     border-bottom: 1px solid var(--border);
-    overflow: hidden;
   }
 
   /* 모바일 전용 제목 탭 */
@@ -4788,8 +4787,12 @@ pre code {
   .qa-foot { display: none; }
   .qa-left.qa-left--expanded .qa-left-scroll {
     display: block;
+    flex: none;          /* 데스크톱 flex:1 무효화 — 높이 붕괴 방지 */
+    min-height: 0;       /* 명시적 0으로 리셋 */
     max-height: 45vh;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch; /* iOS Safari 터치 스크롤 */
+    padding: 16px;       /* 데스크톱 28px → 모바일 16px */
   }
   .qa-left.qa-left--expanded .qa-foot {
     display: flex;
