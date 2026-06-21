@@ -4817,6 +4817,12 @@ pre code {
   }
   .chat-compose { flex-shrink: 0; background: #fff; }
 
+  /* ── 에디터 툴바: 버튼 축소 → 전송 버튼 화면 밖으로 삐져나오지 않도록 ── */
+  .rte-toolbar { padding: 4px; gap: 1px; }
+  .rte-tool { width: 26px; height: 26px; border-radius: 6px; }
+  .rte-divider { margin: 0 3px; }
+  .rte-send { width: 30px; height: 30px; border-radius: 8px; }
+
   /* ──────────────────────────────────────────────────────────
      카드 내 텍스트 레이블 숨김 → 아이콘+숫자만 표시
      ────────────────────────────────────────────────────────── */
