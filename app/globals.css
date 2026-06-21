@@ -4738,8 +4738,10 @@ pre code {
   .modal-form { padding: 20px 16px 32px; }
 
   .qa-grid {
+    display: flex;       /* 명시적 선언 */
     flex: 1;
     min-height: 0;
+    height: auto;        /* 760px 블록의 height:80vh 덮어씀 */
     flex-direction: column;
     overflow: hidden;
   }
@@ -4810,6 +4812,8 @@ pre code {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
   }
   .chat-compose { flex-shrink: 0; background: #fff; }
 
