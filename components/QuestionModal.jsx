@@ -43,6 +43,7 @@ export default function QuestionModal({
   const [pendingAnswerId, setPendingAnswerId] = useState(null); // 이해됐어요 클릭 시 대기 중인 답변 id
   const [saving, setSaving] = useState(false);
   const [resetKey, setResetKey] = useState(0); // 전송 후 에디터 비우기
+  const [qExpanded, setQExpanded] = useState(false); // 모바일: 질문 접기/펼치기
   const scrollRef = useRef(null);
   const understoodAnswerId = question.understoodAnswerId ?? null;
 
@@ -127,7 +128,18 @@ export default function QuestionModal({
 
         <div className="qa-grid">
           {/* ── 왼쪽: 질문 본문 + 첨부 이미지 ── */}
-          <section className="qa-left">
+          <section className={`qa-left${qExpanded ? " qa-left--expanded" : ""}`}>
+            {/* 모바일 전용: 항상 보이는 제목 탭 — 클릭하면 질문 본문을 펼칩니다 */}
+            <button
+              type="button"
+              className="qa-mobile-header"
+              onClick={() => setQExpanded((v) => !v)}
+              aria-expanded={qExpanded}
+            >
+              <span className="qa-expand-chevron">{qExpanded ? "▴" : "▾"}</span>
+              <span className="qa-mobile-title">{question.title}</span>
+            </button>
+
             {/* 본문은 스크롤되고, 아래 qa-foot은 항상 보입니다 */}
             <div className="qa-left-scroll">
               <div className="card-meta">
