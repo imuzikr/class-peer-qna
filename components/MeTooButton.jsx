@@ -9,15 +9,17 @@
 //   이미 누른 사람이 다시 누르면 취소됩니다.
 // =============================================================
 import { setMeToo } from "@/lib/store";
-import { getCurrentUser } from "@/lib/user";
+import { useCurrentUser } from "@/lib/useCurrentUser";
+import { IconAsk } from "./StatusIcons";
 
 export default function MeTooButton({ question }) {
-  const user = getCurrentUser();
+  const user = useCurrentUser();
   const ids = question.meTooIds ?? [];
-  const clicked = ids.includes(user.uid);
+  const clicked = user ? ids.includes(user.uid) : false;
 
   function handleClick(e) {
-    e.stopPropagation(); // 카드 클릭(모달 열기)으로 번지지 않도록
+    e.stopPropagation();
+    if (!user) return;
     setMeToo(user, question.id, !clicked);
   }
 
@@ -33,7 +35,7 @@ export default function MeTooButton({ question }) {
           : "나도 궁금하면 눌러 보세요 (1인 1회)"
       }
     >
-      🙋 나도 궁금해요
+      <IconAsk size={16} /> 나도 궁금해요
       <span className="metoo-count">{ids.length}</span>
     </button>
   );

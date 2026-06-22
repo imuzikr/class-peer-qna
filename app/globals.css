@@ -1458,11 +1458,14 @@ button.understood-bulb:hover {
 .status-badge {
   margin-left: auto;
   padding: 3px 4px;
-  font-size: 15px;
   line-height: 1;
   flex-shrink: 0;
   cursor: default;
+  display: inline-flex;
+  align-items: center;
 }
+.status-badge.open { color: var(--primary); }
+.status-badge.resolved { color: #5c9e68; }
 
 /* 해결된 질문 카드는 왼쪽에 초록 띠 표시 */
 .question-card.is-resolved {
@@ -4048,8 +4051,11 @@ pre code {
 .mini-status {
   grid-row: 1 / 3;
   align-self: center;
-  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
 }
+.mini-status.open { color: var(--primary); }
+.mini-status.done { color: #5c9e68; }
 
 .study-related-title {
   font-size: 13px;

@@ -9,6 +9,7 @@
 // =============================================================
 import { useEffect, useState } from "react";
 import { subscribeAnswers, formatTime } from "@/lib/store";
+import { IconAsk, IconSolved } from "./StatusIcons";
 
 export default function StudyQuestionPeek({ question, onClose, onBackToList }) {
   const [answers, setAnswers] = useState([]);
@@ -31,7 +32,7 @@ export default function StudyQuestionPeek({ question, onClose, onBackToList }) {
         <div className="modal-head">
           <h3>
             <span className={`mini-status ${question.resolved ? "done" : "open"}`}>
-              {question.resolved ? "✅" : "🙋"}
+              {question.resolved ? <IconSolved size={16} /> : <IconAsk size={16} />}
             </span>{" "}
             {question.title}
           </h3>

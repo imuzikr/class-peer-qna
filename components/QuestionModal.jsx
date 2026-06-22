@@ -18,6 +18,7 @@ import { isFirebaseConfigured } from "@/lib/firebase";
 import { sanitizeHtml, stripHtml } from "@/lib/html";
 import { readImageAsDataUrl } from "@/lib/image";
 import RichTextEditor, { IconImage, IconPen } from "./RichTextEditor";
+import { IconAsk, IconSolved } from "./StatusIcons";
 import DrawingCanvas from "./DrawingCanvas";
 import MeTooButton from "./MeTooButton";
 import NewQuestionForm from "./NewQuestionForm";
@@ -164,7 +165,9 @@ export default function QuestionModal({
                   onClick={handleResolveToggle}
                   title="클릭해서 상태 바꾸기"
                 >
-                  {question.resolved ? "✅ 해결됐어요" : "🙋 궁금해요"}
+                  {question.resolved
+                    ? <><IconSolved size={17} /> 해결됐어요</>
+                    : <><IconAsk size={17} /> 궁금해요</>}
                 </button>
               </div>
               <h3 className="qa-title">{question.title}</h3>

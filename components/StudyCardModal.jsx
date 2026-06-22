@@ -16,6 +16,7 @@ import { readImageAsDataUrl, readFileAsDataUrl, formatFileSize } from "@/lib/ima
 import RichTextEditor, { IconImage, IconPen } from "./RichTextEditor";
 import DrawingCanvas from "./DrawingCanvas";
 import StudyQuestionPeek from "./StudyQuestionPeek";
+import { IconAsk, IconSolved } from "./StatusIcons";
 
 export default function StudyCardModal({
   board,
@@ -333,7 +334,7 @@ export default function StudyCardModal({
                     onClick={() => setPeekQuestion(q)}
                   >
                     <span className={`mini-status ${q.resolved ? "done" : "open"}`}>
-                      {q.resolved ? "✅" : "🙋"}
+                      {q.resolved ? <IconSolved size={16} /> : <IconAsk size={16} />}
                     </span>
                     <span className="study-related-title">{q.title}</span>
                     <span className="study-related-preview">
