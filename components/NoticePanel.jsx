@@ -7,6 +7,7 @@ import { getCurrentUser, isAdmin } from "@/lib/user";
 import { sanitizeHtml, stripHtml } from "@/lib/html";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import RichTextEditor from "./RichTextEditor";
+import { IconNotice } from "./StatusIcons";
 
 export default function NoticePanel({ notices }) {
   const user = useCurrentUser();
@@ -32,7 +33,7 @@ export default function NoticePanel({ notices }) {
   return (
     <aside className="notice-col">
       <h2>
-        📢 공지사항
+        <IconNotice size={20} /> 공지사항
         {/* 공지 작성은 관리자/교사 전용 (isAdmin 관문) */}
         {isAdmin(user) && (
           <button className="btn-ghost" onClick={() => setWriting(!writing)}>

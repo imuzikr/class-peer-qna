@@ -192,3 +192,53 @@ export function IconPythonRunner({ size = 18, className = "" }) {
     </svg>
   );
 }
+
+export function IconNotice({ size = 18, className = "" }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      aria-hidden="true"
+    >
+      <path
+        d="M5.3 10.35v3.3c0 .58.47 1.05 1.05 1.05h2.12l6.13 3.18c.7.36 1.53-.15 1.53-.93V7.05c0-.78-.83-1.29-1.53-.93L8.47 9.3H6.35c-.58 0-1.05.47-1.05 1.05Z"
+        stroke="currentColor"
+        strokeWidth="1.65"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M8.5 9.35v5.3"
+        stroke="currentColor"
+        strokeWidth="1.65"
+        strokeLinecap="round"
+      />
+      <path
+        d="M18.55 9.05c.75.75 1.15 1.79 1.15 2.95s-.4 2.2-1.15 2.95"
+        stroke="currentColor"
+        strokeWidth="1.55"
+        strokeLinecap="round"
+        opacity="0.6"
+      />
+      <path
+        d="M20.65 7.1c1.2 1.2 1.85 2.91 1.85 4.9s-.65 3.7-1.85 4.9"
+        stroke="currentColor"
+        strokeWidth="1.35"
+        strokeLinecap="round"
+        opacity="0.4"
+      />
+      <path
+        d="M6.5 14.7 7.35 18c.13.51.59.86 1.11.86h1.01"
+        stroke="currentColor"
+        strokeWidth="1.45"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="4.05" cy="6.15" r="1.05" fill="currentColor" opacity="0.5" />
+    </svg>
+  );
+}

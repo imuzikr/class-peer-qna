@@ -723,6 +723,7 @@ select:focus {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 6px;
 }
 
 .notice-item {
