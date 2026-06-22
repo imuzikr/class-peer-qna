@@ -694,6 +694,11 @@ select:focus {
   justify-content: space-between;
   gap: 10px;
 }
+.card-foot > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
 
 .empty-note {
   text-align: center;

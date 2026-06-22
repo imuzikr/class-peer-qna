@@ -18,7 +18,7 @@ import { isFirebaseConfigured } from "@/lib/firebase";
 import { sanitizeHtml, stripHtml } from "@/lib/html";
 import { readImageAsDataUrl } from "@/lib/image";
 import RichTextEditor, { IconImage, IconPen } from "./RichTextEditor";
-import { IconAsk, IconSolved } from "./StatusIcons";
+import { IconAsk, IconSolved, IconAnswer } from "./StatusIcons";
 import DrawingCanvas from "./DrawingCanvas";
 import MeTooButton from "./MeTooButton";
 import NewQuestionForm from "./NewQuestionForm";
@@ -260,7 +260,7 @@ export default function QuestionModal({
 
           {/* ── 오른쪽: 채팅형 대화방 ── */}
           <section className="qa-right">
-            <div className="chat-head">💬 대화 {answers.length + 1}개</div>
+            <div className="chat-head"><IconAnswer size={20} /> 대화 {answers.length + 1}개</div>
 
             <div className="chat-scroll" ref={chatScrollRef}>
               {/* 첫 메시지: 질문 */}

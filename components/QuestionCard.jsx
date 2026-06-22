@@ -9,7 +9,7 @@ import { stripHtml } from "@/lib/html";
 import { isAdmin } from "@/lib/user";
 import { isPinnedQuestion } from "@/lib/questionRanking";
 import { useCurrentUser } from "@/lib/useCurrentUser";
-import { IconAsk, IconSolved } from "./StatusIcons";
+import { IconAsk, IconSolved, IconAnswer } from "./StatusIcons";
 import MeTooButton from "./MeTooButton";
 import AuthorBadge from "./AuthorBadge";
 
@@ -67,7 +67,7 @@ export default function QuestionCard({ question, onClick }) {
       </div>
       <div className="card-foot">
         <span>
-          💬 답변 {question.answerCount ?? 0}개
+          <IconAnswer size={22} /> 답변 {question.answerCount ?? 0}개
           {question.imageUrl && (
             <span style={{ marginLeft: 8 }}>📎 이미지</span>
           )}
