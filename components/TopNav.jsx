@@ -12,7 +12,7 @@ import { isAdmin } from "@/lib/user";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import UserProfile from "./UserProfile";
 import RoleSwitcher from "./RoleSwitcher";
-import { IconReport } from "./StatusIcons";
+import { IconReport, IconPythonRunner } from "./StatusIcons";
 
 export default function TopNav({ active, onPython, pyActive = false }) {
   const router = useRouter();
@@ -83,7 +83,7 @@ export default function TopNav({ active, onPython, pyActive = false }) {
             className={`btn-ghost ${pyActive ? "py-btn-active" : ""}`}
             onClick={handlePython}
           >
-            🐍 파이썬 실행기
+            <IconPythonRunner size={20} /> 파이썬 실행기
           </button>
           {admin ? (
             <button
@@ -97,7 +97,7 @@ export default function TopNav({ active, onPython, pyActive = false }) {
               className={`btn-ghost ${active === "report" ? "nav-active" : ""}`}
               onClick={() => go("/report")}
             >
-              <IconReport size={17} /> 학습 리포트
+              <IconReport size={20} /> 학습 리포트
             </button>
           )}
         </nav>

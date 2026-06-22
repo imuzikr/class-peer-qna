@@ -44,7 +44,7 @@ export default function QuestionCard({ question, onClick }) {
         <span>·</span>
         <time>{formatTime(question.createdAt)}</time>
         <span className={`status-badge ${resolved ? "resolved" : "open"}`}>
-          {resolved ? <IconSolved size={22} /> : <IconAsk size={22} />}
+          {resolved ? <IconSolved size={24} /> : <IconAsk size={24} />}
           {resolved ? "해결된 질문" : "미해결 질문"}
         </span>
       </div>
@@ -65,7 +65,7 @@ export default function QuestionCard({ question, onClick }) {
       </div>
       <div className="card-foot">
         <span>
-          <IconAnswer size={22} /> 답변 {question.answerCount ?? 0}개
+          <IconAnswer size={24} /> 답변 {question.answerCount ?? 0}개
           {question.imageUrl && (
             <span style={{ marginLeft: 8 }}>📎 이미지</span>
           )}
