@@ -4,6 +4,7 @@
 // 저장마다 새 항목이 누적되고, 저장 후 입력창은 초기화됩니다.
 import { useEffect, useState } from "react";
 import { subscribeMyTodayKwl, subscribeAllKwl, subscribeMyAllKwl, addKwl } from "@/lib/store";
+import { IconKwlK, IconKwlW, IconKwlL } from "@/components/StatusIcons";
 
 function getToday() {
   return new Date().toISOString().slice(0, 10);
@@ -26,19 +27,19 @@ function KwlEntry({ entry }) {
     >
       {entry.K && (
         <div className="kwl-history-row">
-          <span className="kwl-badge kwl-badge-k">K</span>
+          <IconKwlK size={22} />
           <p>{entry.K}</p>
         </div>
       )}
       {entry.W && (
         <div className="kwl-history-row">
-          <span className="kwl-badge kwl-badge-w">W</span>
+          <IconKwlW size={22} />
           <p>{entry.W}</p>
         </div>
       )}
       {entry.L && (
         <div className="kwl-history-row">
-          <span className="kwl-badge kwl-badge-l">L</span>
+          <IconKwlL size={22} />
           <p>{entry.L}</p>
         </div>
       )}
@@ -142,7 +143,7 @@ export default function KwlPanel({ classId, user, isTeacher, onAsk, mobileOpen, 
           {/* 입력 폼 */}
           <div className="kwl-section">
             <label className="kwl-label">
-              <span className="kwl-badge kwl-badge-k">K</span>
+              <IconKwlK size={22} />
               알고 있었던 것
             </label>
             <textarea
@@ -157,7 +158,7 @@ export default function KwlPanel({ classId, user, isTeacher, onAsk, mobileOpen, 
           <div className="kwl-section">
             <div className="kwl-label-row">
               <label className="kwl-label">
-                <span className="kwl-badge kwl-badge-w">W</span>
+                <IconKwlW size={22} />
                 알고 싶은 것
               </label>
               {W.trim() && onAsk && (
@@ -181,7 +182,7 @@ export default function KwlPanel({ classId, user, isTeacher, onAsk, mobileOpen, 
 
           <div className="kwl-section">
             <label className="kwl-label">
-              <span className="kwl-badge kwl-badge-l">L</span>
+              <IconKwlL size={22} />
               새롭게 알게 된 것
             </label>
             <textarea
