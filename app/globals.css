@@ -277,6 +277,9 @@ select:focus {
   font-weight: 700;
   font-size: 19px;
   color: var(--dark);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 /* 상단바 왼쪽: 로고 + 접속 사용자 프로필 */

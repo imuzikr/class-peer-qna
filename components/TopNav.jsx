@@ -12,7 +12,7 @@ import { isAdmin } from "@/lib/user";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import UserProfile from "./UserProfile";
 import RoleSwitcher from "./RoleSwitcher";
-import { IconReport, IconPythonRunner } from "./StatusIcons";
+import { IconReport, IconPythonRunner, IconLogo } from "./StatusIcons";
 
 export default function TopNav({ active, onPython, pyActive = false }) {
   const router = useRouter();
@@ -46,7 +46,7 @@ export default function TopNav({ active, onPython, pyActive = false }) {
       {/* 왼쪽: 로고 + 주요 메뉴 */}
       <div className="topbar-left">
         <button className="logo logo-button" onClick={() => go("/board")}>
-          📚 배움나눔
+          <IconLogo size={30} /> 배움나눔
         </button>
         <span className="topbar-divider" aria-hidden="true" />
         <nav className="topnav-menu">

@@ -275,3 +275,16 @@ export function IconKwlL({ size = 22, className = "" }) {
     </svg>
   );
 }
+
+export function IconLogo({ size = 28, className = "" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">
+      <path d="M7.85 5.45c0-1.2.97-2.18 2.18-2.18h7.72c1.2 0 2.18.98 2.18 2.18v4.45c0 1.2-.98 2.18-2.18 2.18h-.7l.4 2.02c.08.4-.37.7-.7.46l-3.33-2.48h-3.39c-1.21 0-2.18-.98-2.18-2.18V5.45Z" stroke="#8A6258" strokeWidth="1.55" strokeLinejoin="round"/>
+      <path d="M7.85 6.25c0-1.2.97-2.18 2.18-2.18h7.72c1.2 0 2.18.98 2.18 2.18v4.45c0 1.2-.98 2.18-2.18 2.18h-.7l.4 2.02c.08.4-.37.7-.7.46l-3.33-2.48h-3.39c-1.21 0-2.18-.98-2.18-2.18V6.25Z" stroke="#8A6258" strokeWidth="1.55" strokeLinejoin="round"/>
+      <path d="M3.15 10.85c0-1.22.98-2.2 2.2-2.2h6.82c1.22 0 2.2.98 2.2 2.2v3.88c0 1.22-.98 2.2-2.2 2.2H9.4l-3.25 2.42c-.33.24-.78-.06-.7-.46l.37-1.96h-.47c-1.22 0-2.2-.98-2.2-2.2v-3.88Z" fill="#FFFDF9" stroke="#3A312E" strokeWidth="1.65" strokeLinejoin="round"/>
+      <path d="M6.65 12.6h4.05M6.65 14.5H9.2" stroke="#3A312E" strokeWidth="1.35" strokeLinecap="round"/>
+      <circle cx="17.8" cy="6.25" r=".82" fill="#8A6258"/>
+      <circle cx="17.8" cy="7.05" r=".82" fill="#8A6258"/>
+    </svg>
+  );
+}
