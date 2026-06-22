@@ -33,7 +33,9 @@ export default function NoticePanel({ notices }) {
   return (
     <aside className="notice-col">
       <h2>
-        <IconNotice size={20} /> 공지사항
+        <span className="notice-col-title">
+          <IconNotice size={26} /> 공지사항
+        </span>
         {/* 공지 작성은 관리자/교사 전용 (isAdmin 관문) */}
         {isAdmin(user) && (
           <button className="btn-ghost" onClick={() => setWriting(!writing)}>

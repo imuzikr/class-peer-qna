@@ -718,12 +718,17 @@ select:focus {
 }
 
 .notice-col h2 {
-  font-size: 15px;
-  margin-bottom: 14px;
+  font-size: 16px;
+  margin-bottom: 18px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
+  gap: 8px;
+}
+.notice-col-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .notice-item {
