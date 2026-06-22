@@ -43,11 +43,9 @@ export default function QuestionCard({ question, onClick }) {
         />
         <span>·</span>
         <time>{formatTime(question.createdAt)}</time>
-        <span
-          className={`status-badge ${resolved ? "resolved" : "open"}`}
-          title={resolved ? "해결된 질문" : "아직 궁금한 질문"}
-        >
-          {resolved ? <IconSolved size={26} /> : <IconAsk size={26} />}
+        <span className={`status-badge ${resolved ? "resolved" : "open"}`}>
+          {resolved ? <IconSolved size={22} /> : <IconAsk size={22} />}
+          {resolved ? "해결된 질문" : "미해결 질문"}
         </span>
       </div>
       {/* 본문(왼쪽) + 첨부/그리기 이미지 섬네일(오른쪽) */}

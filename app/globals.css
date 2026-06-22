@@ -1462,15 +1462,25 @@ button.understood-bulb:hover {
 /* 카드의 상태 표시 — 클릭 불가(상태 변경은 상세 모달의 회고 흐름에서만) */
 .status-badge {
   margin-left: auto;
-  padding: 3px 4px;
+  padding: 4px 10px 4px 7px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
   line-height: 1;
   flex-shrink: 0;
   cursor: default;
   display: inline-flex;
   align-items: center;
+  gap: 4px;
 }
-.status-badge.open { color: var(--primary); }
-.status-badge.resolved { color: #5c9e68; }
+.status-badge.open {
+  color: var(--primary);
+  background: var(--primary-light);
+}
+.status-badge.resolved {
+  color: #3e7e47;
+  background: #e6f4e8;
+}
 
 /* 해결된 질문 카드는 왼쪽에 초록 띠 표시 */
 .question-card.is-resolved {
