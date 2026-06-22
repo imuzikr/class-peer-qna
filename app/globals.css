@@ -2769,6 +2769,9 @@ pre code {
 
 .topnav-menu .btn-ghost {
   font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .btn-ghost.nav-active {

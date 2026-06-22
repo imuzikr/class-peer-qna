@@ -12,6 +12,7 @@ import { isAdmin } from "@/lib/user";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import UserProfile from "./UserProfile";
 import RoleSwitcher from "./RoleSwitcher";
+import { IconReport } from "./StatusIcons";
 
 export default function TopNav({ active, onPython, pyActive = false }) {
   const router = useRouter();
@@ -96,7 +97,7 @@ export default function TopNav({ active, onPython, pyActive = false }) {
               className={`btn-ghost ${active === "report" ? "nav-active" : ""}`}
               onClick={() => go("/report")}
             >
-              📈 학습 리포트
+              <IconReport size={17} /> 학습 리포트
             </button>
           )}
         </nav>

@@ -1,4 +1,4 @@
-// 궁금해요 / 해결됐어요 / 답변 수 아이콘
+// 궁금해요 / 해결됐어요 / 답변 수 / 학습 리포트 아이콘
 
 export function IconAsk({ size = 20, className = "" }) {
   return (
@@ -98,6 +98,46 @@ export function IconSolved({ size = 20, className = "" }) {
       <path
         d="M18.92 4.25 19.2 5c.04.11.13.2.24.24l.75.28-.75.28a.45.45 0 0 0-.24.24l-.28.75-.28-.75a.45.45 0 0 0-.24-.24l-.75-.28.75-.28a.45.45 0 0 0 .24-.24l.28-.75Z"
         fill="currentColor"
+      />
+    </svg>
+  );
+}
+
+export function IconReport({ size = 18, className = "" }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      aria-hidden="true"
+    >
+      <path
+        d="M6.5 4.75h8.05L18 8.2v10.55c0 .83-.67 1.5-1.5 1.5h-10c-.83 0-1.5-.67-1.5-1.5V6.25c0-.83.67-1.5 1.5-1.5Z"
+        stroke="currentColor"
+        strokeWidth="1.55"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M14.45 4.9v2.35c0 .58.47 1.05 1.05 1.05h2.35"
+        stroke="currentColor"
+        strokeWidth="1.55"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M8.05 15.55v-2.1M11.5 15.55v-4.35M14.95 15.55V9.95"
+        stroke="currentColor"
+        strokeWidth="1.55"
+        strokeLinecap="round"
+      />
+      <path
+        d="M7.7 17.9h7.9"
+        stroke="currentColor"
+        strokeWidth="1.35"
+        strokeLinecap="round"
       />
     </svg>
   );
