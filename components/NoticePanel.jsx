@@ -5,9 +5,11 @@ import { useState } from "react";
 import { addNotice, formatTime } from "@/lib/store";
 import { getCurrentUser, isAdmin } from "@/lib/user";
 import { sanitizeHtml, stripHtml } from "@/lib/html";
+import { useCurrentUser } from "@/lib/useCurrentUser";
 import RichTextEditor from "./RichTextEditor";
 
 export default function NoticePanel({ notices }) {
+  const user = useCurrentUser();
   const [writing, setWriting] = useState(false);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState(""); // 서식(HTML) 내용
@@ -32,7 +34,7 @@ export default function NoticePanel({ notices }) {
       <h2>
         📢 공지사항
         {/* 공지 작성은 관리자/교사 전용 (isAdmin 관문) */}
-        {isAdmin(getCurrentUser()) && (
+        {isAdmin(user) && (
           <button className="btn-ghost" onClick={() => setWriting(!writing)}>
             {writing ? "닫기" : "+ 작성"}
           </button>
@@ -72,7 +74,7 @@ export default function NoticePanel({ notices }) {
       {notices.map((n) => (
         <div className="notice-item" key={n.id}>
           <h4>{n.title}</h4>
-          <p dangerouslySetInnerHTML={{ __html: sanitizeHtml(n.content) }} />
+          <div className="notice-content" dangerouslySetInnerHTML={{ __html: sanitizeHtml(n.content) }} />
           {/* 공지 작성자는 항상 "선생님"으로 표시됩니다 */}
           <time>
             👩‍🏫 {n.authorName ?? "선생님"} · {formatTime(n.createdAt)}
