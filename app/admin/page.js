@@ -169,6 +169,7 @@ export default function AdminDashboardPage() {
   const [keywordDocs, setKeywordDocs] = useState([]);
   const [answersByQuestion, setAnswersByQuestion] = useState({});
   const [selectedId, setSelectedId] = useState(null);
+  const [pendingOpen, setPendingOpen] = useState(true);
 
   // 관리자 대시보드는 관리자 전용 — 학생 보기로 바뀌면 학습 리포트로 이동
   const isStudent = user ? !isAdmin(user) : false;
@@ -227,6 +228,13 @@ export default function AdminDashboardPage() {
     [answerEvents, questions]
   );
 
+  const allPendingReflections = useMemo(
+    () => questions.filter(
+      (q) => q.reflectionPending && q.authorId && !q.authorId.startsWith("teacher_")
+    ),
+    [questions]
+  );
+
   useEffect(() => {
     if (!selectedId && students.length > 0) {
       setSelectedId(students[0].id);
@@ -275,6 +283,37 @@ export default function AdminDashboardPage() {
       )}
 
       <TopNav active="admin" />
+
+      {allPendingReflections.length > 0 && (
+        <div className="pending-section pending-global">
+          <button
+            type="button"
+            className={`reflection-toggle ${pendingOpen ? "open" : ""}`}
+            onClick={() => setPendingOpen((v) => !v)}
+          >
+            <h2>📝 회고 미완료</h2>
+            <span className="reflection-count">{allPendingReflections.length}건</span>
+            <span className="reflection-chevron" aria-hidden="true">▾</span>
+          </button>
+          {pendingOpen && (
+            <div className="stat-detail-list">
+              {allPendingReflections.map((q) => (
+                <button
+                  key={q.id}
+                  type="button"
+                  className="stat-detail-item"
+                  onClick={() => router.push(`/board?open=${q.id}`)}
+                >
+                  <span className="student-mini">{q.authorEmoji || "🙂"} {q.authorName || "익명"} · #{q.keyword}</span>
+                  <span className="stat-detail-title">{q.title}</span>
+                  <span />
+                  <time>{formatTime(q.createdAt)}</time>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="admin-layout">
         <aside className="student-panel">

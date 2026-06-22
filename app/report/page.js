@@ -256,6 +256,11 @@ export default function StudentReportPage() {
         )
     : [];
 
+  // "나중에 쓸게요"로 미뤄둔 회고 목록
+  const myPendingReflections = user
+    ? myQuestions.filter((q) => q.reflectionPending)
+    : [];
+
   // 공부방 활동 — 내가 작성한 카드를 보드별로 모읍니다 (수업 안내 보드 제외).
   const myStudyCards = useMemo(() => {
     if (!user) return [];
@@ -412,6 +417,30 @@ export default function StudentReportPage() {
             />
           ))}
         </section>
+
+        {myPendingReflections.length > 0 && (
+          <section className="pending-section">
+            <div className="admin-panel-head">
+              <h2>📝 회고 미완료</h2>
+              <span>{myPendingReflections.length}건 · 나중에 쓸게요로 미뤄둔 회고예요</span>
+            </div>
+            <div className="stat-detail-list">
+              {myPendingReflections.map((q) => (
+                <button
+                  key={q.id}
+                  type="button"
+                  className="stat-detail-item"
+                  onClick={() => router.push(`/board?open=${q.id}`)}
+                >
+                  <span className="keyword-chip"># {q.keyword}</span>
+                  <span className="stat-detail-title">{q.title}</span>
+                  <span className="stat-detail-badge">✏️ 지금 쓰기</span>
+                  <time>{formatTime(q.createdAt)}</time>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
 
         {activeStatKey && (
           <section className="stat-detail">

@@ -2767,6 +2767,38 @@ pre code {
   white-space: nowrap;
 }
 
+/* ===================== 회고 미완료 섹션 ===================== */
+.pending-section {
+  background: #fffbf3;
+  border: 1.5px solid #e8a817;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+}
+
+.pending-section .admin-panel-head h2 {
+  color: #92400e;
+}
+
+.pending-section .admin-panel-head > span {
+  color: #a16207;
+  font-size: 13px;
+}
+
+.pending-global {
+  margin: 0;
+  padding: 10px 24px 14px;
+  border-radius: 0;
+  border: none;
+  border-bottom: 1.5px solid #e8a817;
+}
+
+.student-mini {
+  font-size: 13px;
+  color: var(--text-sub);
+  white-space: nowrap;
+}
+
 /* ===================== 상단 내비게이션 메뉴 ===================== */
 .topnav-menu {
   display: flex;
