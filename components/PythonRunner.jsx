@@ -11,7 +11,7 @@
 // - 실행 엔진: Pyodide(WebAssembly)를 Web Worker에서 실행, 15초 제한
 // =============================================================
 import { useEffect, useRef, useState } from "react";
-import { IconPythonRunner, IconKeyboard } from "@/components/StatusIcons";
+import { IconPythonRunner, IconKeyboard, IconAnswer } from "@/components/StatusIcons";
 import { EditorView, basicSetup } from "codemirror";
 import { keymap } from "@codemirror/view";
 import { indentWithTab } from "@codemirror/commands";
@@ -298,7 +298,7 @@ export default function PythonRunner({ open, onClose, onAskQuestion, hasModalOpe
                   if (code.trim()) onAskQuestion(code);
                 }}
               >
-                💬 질문 만들기
+                <IconAnswer size={18} /> 질문 만들기
               </button>
             )}
             <button className="btn-ghost" onClick={() => setLines([])}>
