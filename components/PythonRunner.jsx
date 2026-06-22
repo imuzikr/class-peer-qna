@@ -11,6 +11,7 @@
 // - 실행 엔진: Pyodide(WebAssembly)를 Web Worker에서 실행, 15초 제한
 // =============================================================
 import { useEffect, useRef, useState } from "react";
+import { IconPythonRunner, IconKeyboard } from "@/components/StatusIcons";
 import { EditorView, basicSetup } from "codemirror";
 import { keymap } from "@codemirror/view";
 import { indentWithTab } from "@codemirror/commands";
@@ -235,7 +236,7 @@ export default function PythonRunner({ open, onClose, onAskQuestion, hasModalOpe
       )}
 
       <div className="py-head">
-        <h3>🐍 파이썬 실행기</h3>
+        <h3><IconPythonRunner size={26} /> 파이썬 실행기</h3>
         <div className="py-head-actions">
           <button
             className="btn-ghost"
@@ -260,7 +261,7 @@ export default function PythonRunner({ open, onClose, onAskQuestion, hasModalOpe
 
         <div className="py-right">
           <label className="py-label">
-            ⌨️ 입력값 — input()이 읽어 갈 내용 (한 줄에 하나씩)
+            <IconKeyboard size={22} /> 입력값 — input()이 읽어 갈 내용 (한 줄에 하나씩)
           </label>
           <textarea
             className="py-code py-stdin"

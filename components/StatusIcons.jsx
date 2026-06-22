@@ -288,3 +288,15 @@ export function IconLogo({ size = 28, className = "" }) {
     </svg>
   );
 }
+
+export function IconKeyboard({ size = 20, className = "" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">
+      <path d="M6.2 8.05c.12-.76.78-1.3 1.55-1.3h8.5c.77 0 1.43.54 1.55 1.3l.98 6.2c.15.95-.58 1.8-1.55 1.8H6.77c-.97 0-1.7-.85-1.55-1.8l.98-6.2Z" fill="#FFFDF9" stroke="#3A312E" strokeWidth="1.55" strokeLinejoin="round"/>
+      <path d="M7.1 16.05h9.8c.78 0 1.48-.5 1.7-1.25l.18-.6" stroke="#8A6258" strokeWidth="1.25" strokeLinecap="round"/>
+      <path d="M9.35 11.48h5.3" stroke="#3A312E" strokeWidth="1.45" strokeLinecap="round"/>
+      <path d="m9.35 10.4-1.35 1.35 1.35 1.35M14.65 10.4 16 11.75l-1.35 1.35" stroke="#3A312E" strokeWidth="1.35" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M12.82 10.18 11.18 13.32" stroke="#3A312E" strokeWidth="1.25" strokeLinecap="round"/>
+    </svg>
+  );
+}

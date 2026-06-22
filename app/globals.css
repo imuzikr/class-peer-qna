@@ -1915,7 +1915,10 @@ pre code {
 }
 
 .py-head h3 {
-  font-size: 16px;
+  font-size: 17px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .py-btn-active {
@@ -1964,9 +1967,12 @@ pre code {
 }
 
 .py-label {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-sub);
   margin-bottom: -4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .py-stdin {
