@@ -292,11 +292,11 @@ export function IconLogo({ size = 28, className = "" }) {
 export function IconWrite({ size = 20, className = "" }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">
-      <path d="M6.25 16.9 7.1 13.2 15.65 4.65c.7-.7 1.84-.7 2.54 0l1.16 1.16c.7.7.7 1.84 0 2.54L10.8 16.9l-3.7.85c-.52.12-.97-.33-.85-.85Z" fill="#FFF7ED" stroke="#3A312E" strokeWidth="1.45" strokeLinejoin="round"/>
-      <path d="m14.35 5.95 3.7 3.7" stroke="#8A6258" strokeWidth="1.45" strokeLinecap="round"/>
-      <path d="M7.1 13.2 10.8 16.9" stroke="#3A312E" strokeWidth="1.25" strokeLinecap="round"/>
-      <path d="m6.6 16.98 2.05-.47-1.58-1.58-.47 2.05Z" fill="#8A6258"/>
-      <path d="M4.65 19.35h6.2" stroke="#FFF7ED" strokeWidth="1.5" strokeLinecap="round"/>
+      <path d="M6.25 16.9 7.1 13.2 15.65 4.65c.7-.7 1.84-.7 2.54 0l1.16 1.16c.7.7.7 1.84 0 2.54L10.8 16.9l-3.7.85c-.52.12-.97-.33-.85-.85Z" fill="transparent" stroke="white" strokeWidth="1.45" strokeLinejoin="round"/>
+      <path d="m14.35 5.95 3.7 3.7" stroke="white" strokeWidth="1.45" strokeLinecap="round"/>
+      <path d="M7.1 13.2 10.8 16.9" stroke="white" strokeWidth="1.25" strokeLinecap="round"/>
+      <path d="m6.6 16.98 2.05-.47-1.58-1.58-.47 2.05Z" fill="white"/>
+      <path d="M4.65 19.35h6.2" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
     </svg>
   );
 }
