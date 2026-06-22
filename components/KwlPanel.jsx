@@ -27,19 +27,19 @@ function KwlEntry({ entry }) {
     >
       {entry.K && (
         <div className="kwl-history-row">
-          <IconKwlK size={22} />
+          <IconKwlK size={26} />
           <p>{entry.K}</p>
         </div>
       )}
       {entry.W && (
         <div className="kwl-history-row">
-          <IconKwlW size={22} />
+          <IconKwlW size={26} />
           <p>{entry.W}</p>
         </div>
       )}
       {entry.L && (
         <div className="kwl-history-row">
-          <IconKwlL size={22} />
+          <IconKwlL size={26} />
           <p>{entry.L}</p>
         </div>
       )}
@@ -143,7 +143,7 @@ export default function KwlPanel({ classId, user, isTeacher, onAsk, mobileOpen, 
           {/* 입력 폼 */}
           <div className="kwl-section">
             <label className="kwl-label">
-              <IconKwlK size={22} />
+              <IconKwlK size={26} />
               알고 있었던 것
             </label>
             <textarea
@@ -158,7 +158,7 @@ export default function KwlPanel({ classId, user, isTeacher, onAsk, mobileOpen, 
           <div className="kwl-section">
             <div className="kwl-label-row">
               <label className="kwl-label">
-                <IconKwlW size={22} />
+                <IconKwlW size={26} />
                 알고 싶은 것
               </label>
               {W.trim() && onAsk && (
@@ -182,7 +182,7 @@ export default function KwlPanel({ classId, user, isTeacher, onAsk, mobileOpen, 
 
           <div className="kwl-section">
             <label className="kwl-label">
-              <IconKwlL size={22} />
+              <IconKwlL size={26} />
               새롭게 알게 된 것
             </label>
             <textarea

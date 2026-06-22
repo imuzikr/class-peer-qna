@@ -2908,7 +2908,7 @@ pre code {
 
 /* ── KWL 사이드 패널 ── */
 .kwl-panel {
-  width: 220px;
+  width: 300px;
   flex-shrink: 0;
   background: var(--sidebar-bg);
   color: var(--sidebar-text);
@@ -2937,14 +2937,14 @@ pre code {
 }
 
 .kwl-panel-date {
-  font-size: 11px;
+  font-size: 13px;
   color: #5c5b55;
 }
 
 .kwl-section {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 7px;
 }
 
 .kwl-label-row {
@@ -2956,8 +2956,8 @@ pre code {
 .kwl-label {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 11px;
+  gap: 8px;
+  font-size: 14px;
   font-weight: 600;
   color: #87867f;
   letter-spacing: 0.3px;
@@ -2984,11 +2984,11 @@ pre code {
   width: 100%;
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 7px;
+  border-radius: 8px;
   color: #e8e8e4;
-  font-size: 12px;
-  line-height: 1.5;
-  padding: 8px 10px;
+  font-size: 14px;
+  line-height: 1.6;
+  padding: 10px 12px;
   resize: none;
   font-family: inherit;
   box-sizing: border-box;
@@ -3097,6 +3097,7 @@ pre code {
   background: none;
   border: none;
   color: #87867f;
+  font-size: 14px;
   font-size: 12px;
   font-weight: 600;
   padding: 5px 0;
@@ -3111,9 +3112,9 @@ pre code {
 }
 
 .kwl-panel-date {
-  font-size: 11px;
+  font-size: 13px;
   color: #5c5b55;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 /* ── KWL 지난 기록 탭 ── */
