@@ -166,8 +166,8 @@ export default function QuestionModal({
                   title="클릭해서 상태 바꾸기"
                 >
                   {question.resolved
-                    ? <><IconSolved size={17} /> 해결됐어요</>
-                    : <><IconAsk size={17} /> 궁금해요</>}
+                    ? <><IconSolved size={22} /> 해결됐어요</>
+                    : <><IconAsk size={22} /> 궁금해요</>}
                 </button>
               </div>
               <h3 className="qa-title">{question.title}</h3>

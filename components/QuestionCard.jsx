@@ -47,7 +47,7 @@ export default function QuestionCard({ question, onClick }) {
           className={`status-badge ${resolved ? "resolved" : "open"}`}
           title={resolved ? "해결된 질문" : "아직 궁금한 질문"}
         >
-          {resolved ? <IconSolved size={18} /> : <IconAsk size={18} />}
+          {resolved ? <IconSolved size={26} /> : <IconAsk size={26} />}
         </span>
       </div>
       {/* 본문(왼쪽) + 첨부/그리기 이미지 섬네일(오른쪽) */}

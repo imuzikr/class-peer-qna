@@ -32,7 +32,7 @@ export default function StudyQuestionPeek({ question, onClose, onBackToList }) {
         <div className="modal-head">
           <h3>
             <span className={`mini-status ${question.resolved ? "done" : "open"}`}>
-              {question.resolved ? <IconSolved size={16} /> : <IconAsk size={16} />}
+              {question.resolved ? <IconSolved size={20} /> : <IconAsk size={20} />}
             </span>{" "}
             {question.title}
           </h3>

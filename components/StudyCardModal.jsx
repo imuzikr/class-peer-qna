@@ -334,7 +334,7 @@ export default function StudyCardModal({
                     onClick={() => setPeekQuestion(q)}
                   >
                     <span className={`mini-status ${q.resolved ? "done" : "open"}`}>
-                      {q.resolved ? <IconSolved size={16} /> : <IconAsk size={16} />}
+                      {q.resolved ? <IconSolved size={20} /> : <IconAsk size={20} />}
                     </span>
                     <span className="study-related-title">{q.title}</span>
                     <span className="study-related-preview">
