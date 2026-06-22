@@ -23,6 +23,7 @@ import NoticePanel from "@/components/NoticePanel";
 import PythonRunner from "@/components/PythonRunner";
 import TopNav from "@/components/TopNav";
 import FilterMenu, { applyFilter } from "@/components/FilterMenu";
+import { IconWrite } from "@/components/StatusIcons";
 import { sortPinnedQuestions } from "@/lib/questionRanking";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import { isAdmin } from "@/lib/user";
@@ -171,7 +172,7 @@ export default function BoardPage() {
             <div className="feed-actions">
               <FilterMenu value={filter} onChange={setFilter} />
               <button className="btn-primary" onClick={() => setWriting(true)}>
-                ✏️ 질문하기
+                <IconWrite size={18} /> 질문하기
               </button>
             </div>
           </div>
