@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   formatTime,
@@ -152,8 +152,6 @@ export default function StudentReportPage() {
   const [questions, setQuestions] = useState([]);
   const [keywordDocs, setKeywordDocs] = useState([]);
   const [answersByQuestion, setAnswersByQuestion] = useState({});
-  const [reflectOpen, setReflectOpen] = useState(true); // 내 회고 모음 펼침 여부
-  const reflectDefaultApplied = useRef(false); // 기본 펼침/접힘을 한 번만 자동 적용
   const [activeStatKey, setActiveStatKey] = useState(null); // 통계 카드 드릴다운
   const [studyBoards, setStudyBoards] = useState([]);
   const [cardsByBoard, setCardsByBoard] = useState({}); // boardId -> cards[]
@@ -342,14 +340,6 @@ export default function StudentReportPage() {
     }
   }, [activeStatKey, myQuestions, myAnswerEvents]);
 
-  // 회고가 처음 로드될 때 한 번만 — 5개 이상이면 접힌 채로 시작합니다.
-  // (이후 사용자가 직접 펼치고 접는 건 그대로 유지됩니다.)
-  useEffect(() => {
-    if (reflectDefaultApplied.current || myReflections.length === 0) return;
-    reflectDefaultApplied.current = true;
-    setReflectOpen(myReflections.length < 5);
-  }, [myReflections.length]);
-
   const maxKeyword = Math.max(1, ...keywordStats.map((item) => item.count));
   const maxDaily = Math.max(1, ...dailyStats.map((day) => day.asked + day.answered));
   const totalActivity = myQuestions.length + myAnswerEvents.length;
@@ -380,7 +370,72 @@ export default function StudentReportPage() {
 
       <TopNav active="report" />
 
-      <main className="admin-main report-main">
+      <div className="report-layout">
+        {/* 왼쪽: 회고 사이드 패널 */}
+        <aside className="report-side">
+          {myPendingReflections.length > 0 && (
+            <>
+              <div className="side-section-head pending-head">
+                <h3>📝 회고 미완료</h3>
+                <span>{myPendingReflections.length}건</span>
+              </div>
+              <div className="side-ref-list">
+                {myPendingReflections.map((q) => (
+                  <button
+                    key={q.id}
+                    type="button"
+                    className="side-ref-item pending"
+                    onClick={() => router.push(`/board?open=${q.id}`)}
+                  >
+                    <div className="side-ref-top">
+                      <span className="keyword-chip"># {q.keyword}</span>
+                      <time>{formatTime(q.createdAt)}</time>
+                    </div>
+                    <div className="side-ref-title">{q.title}</div>
+                    <div className="side-ref-sub">
+                      <span>회고를 기다리고 있어요</span>
+                      <span className="side-ref-action">✏️ 쓰기</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+              <div className="side-divider" />
+            </>
+          )}
+
+          <div className="side-section-head">
+            <h3>📒 내 회고 모음</h3>
+            <span>{myReflections.length}개</span>
+          </div>
+          {myReflections.length === 0 ? (
+            <p className="side-empty">
+              질문이 해결되면 한 줄 회고를 남겨 보세요. 여기에 모여 나만의 학습 기록이 됩니다.
+            </p>
+          ) : (
+            <div className="side-ref-list">
+              {myReflections.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className="side-ref-item"
+                  onClick={() => router.push(`/board?open=${item.id}`)}
+                >
+                  <div className="side-ref-top">
+                    <span className="keyword-chip"># {item.keyword}</span>
+                    <time>{formatTime(item.reflection.createdAt)}</time>
+                  </div>
+                  <div className="side-ref-title">{item.title}</div>
+                  {item.reflection.learned && (
+                    <div className="side-ref-preview">💡 {item.reflection.learned}</div>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </aside>
+
+        {/* 오른쪽: 통계 및 활동 */}
+        <main className="report-main">
         {!user ? (
           <EmptyPanel>학습 리포트를 불러오는 중입니다.</EmptyPanel>
         ) : (
@@ -417,30 +472,6 @@ export default function StudentReportPage() {
             />
           ))}
         </section>
-
-        {myPendingReflections.length > 0 && (
-          <section className="pending-section">
-            <div className="admin-panel-head">
-              <h2>📝 회고 미완료</h2>
-              <span>{myPendingReflections.length}건 · 나중에 쓸게요로 미뤄둔 회고예요</span>
-            </div>
-            <div className="stat-detail-list">
-              {myPendingReflections.map((q) => (
-                <button
-                  key={q.id}
-                  type="button"
-                  className="stat-detail-item"
-                  onClick={() => router.push(`/board?open=${q.id}`)}
-                >
-                  <span className="keyword-chip"># {q.keyword}</span>
-                  <span className="stat-detail-title">{q.title}</span>
-                  <span className="stat-detail-badge">✏️ 지금 쓰기</span>
-                  <time>{formatTime(q.createdAt)}</time>
-                </button>
-              ))}
-            </div>
-          </section>
-        )}
 
         {activeStatKey && (
           <section className="stat-detail">
@@ -541,48 +572,6 @@ export default function StudentReportPage() {
               </div>
             ))}
           </div>
-        </section>
-
-        <section className="admin-activity-panel reflection-collection">
-          <button
-            type="button"
-            className={`reflection-toggle ${reflectOpen ? "open" : ""}`}
-            onClick={() => setReflectOpen((v) => !v)}
-            aria-expanded={reflectOpen}
-          >
-            <h2>📒 내 회고 모음</h2>
-            <span className="reflection-count">{myReflections.length}개</span>
-            <span className="reflection-chevron" aria-hidden="true">▾</span>
-          </button>
-          {reflectOpen &&
-            (myReflections.length === 0 ? (
-              <EmptyPanel>
-                질문이 해결되면 “이렇게 이해했어요”를 한 줄 남겨 보세요.
-                여기에 모여 나만의 학습 기록이 됩니다.
-              </EmptyPanel>
-            ) : (
-              <div className="reflection-cards">
-                {myReflections.map((item) => (
-                  <div className="reflection-card" key={item.id}>
-                    <div className="reflection-card-head">
-                      <span className="keyword-chip"># {item.keyword}</span>
-                      <strong>{item.title}</strong>
-                      <time>{formatTime(item.reflection.createdAt)}</time>
-                    </div>
-                    {item.reflection.learned && (
-                      <p className="reflection-learned">
-                        💡 {item.reflection.learned}
-                      </p>
-                    )}
-                    {item.reflection.next && (
-                      <p className="reflection-next">
-                        🔎 더 알고 싶은 점 — {item.reflection.next}
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ))}
         </section>
 
         <section className="admin-charts report-charts">
@@ -691,7 +680,8 @@ export default function StudentReportPage() {
         </section>
           </>
         )}
-      </main>
+        </main>
+      </div>
     </div>
   );
 }
