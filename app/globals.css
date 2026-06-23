@@ -440,8 +440,8 @@ select:focus {
 }
 
 .role-switch button.active {
-  background: var(--dark);
-  color: #faf9f5;
+  background: var(--primary);
+  color: #fff;
 }
 
 .three-cols {

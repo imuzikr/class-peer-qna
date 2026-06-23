@@ -22,7 +22,7 @@ export default function StudyCard({ card, onClick, isTeacher = false }) {
     >
       <div className="study-card-head">
         <span className="avatar avatar-sm" aria-hidden="true">
-          {card.authorEmoji ?? (isTeacherCard ? <IconTeacher size={22} /> : "🙂")}
+          {isTeacherCard ? <IconTeacher size={22} /> : (card.authorEmoji ?? "🙂")}
         </span>
         <div className="study-card-author">
           {isTeacher && !isTeacherCard && card.authorStudentId ? (

@@ -153,7 +153,7 @@ export default function StudyCardModal({
         {!isNew && (
           <div className="study-card-meta">
             <span className="avatar avatar-sm" aria-hidden="true">
-              {card.authorEmoji ?? (isTeacherCard ? <IconTeacher size={22} /> : "🙂")}
+              {isTeacherCard ? <IconTeacher size={22} /> : (card.authorEmoji ?? "🙂")}
             </span>
             <strong>{card.authorRealName || card.authorName}</strong>
             <time className="study-card-meta-time">{formatTime(card.createdAt)}</time>
