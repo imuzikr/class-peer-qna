@@ -437,11 +437,18 @@ select:focus {
   font-size: 12px;
   font-weight: 600;
   color: var(--text-sub);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .role-switch button.active {
   background: var(--primary);
   color: #fff;
+}
+
+.role-switch button.active svg {
+  filter: brightness(0) invert(1);
 }
 
 .three-cols {

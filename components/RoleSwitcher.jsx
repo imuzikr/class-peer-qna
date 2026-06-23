@@ -12,8 +12,8 @@ import { getCurrentUser, setRoleOverride } from "@/lib/user";
 import { IconTeacher, IconStudent } from "./StatusIcons";
 
 const ROLES = [
-  { id: "admin", icon: <IconTeacher size={16} />, label: "관리자" },
-  { id: "student", icon: <IconStudent size={16} />, label: "학생" },
+  { id: "admin", Icon: IconTeacher, label: "관리자" },
+  { id: "student", Icon: IconStudent, label: "학생" },
 ];
 
 export default function RoleSwitcher() {
@@ -34,14 +34,14 @@ export default function RoleSwitcher() {
       className="role-switch"
       title="개발용 — 관리자/학생 화면을 전환해서 확인할 수 있어요"
     >
-      {ROLES.map((r) => (
+      {ROLES.map(({ id, Icon, label }) => (
         <button
-          key={r.id}
+          key={id}
           type="button"
-          className={role === r.id ? "active" : ""}
-          onClick={() => choose(r.id)}
+          className={role === id ? "active" : ""}
+          onClick={() => choose(id)}
         >
-          {r.icon} {r.label}
+          <Icon size={20} /> {label}
         </button>
       ))}
     </div>
