@@ -301,6 +301,19 @@ export function IconWrite({ size = 20, className = "" }) {
   );
 }
 
+export function IconSchool({ size = 20, className = "" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">
+      <path d="M4.75 10.15 12 5.15l7.25 5" stroke="#3A312E" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M6.25 10.55h11.5v8.45H6.25v-8.45Z" fill="#FFF7ED" stroke="#3A312E" strokeWidth="1.55" strokeLinejoin="round"/>
+      <path d="M10.05 19v-4.1c0-.58.47-1.05 1.05-1.05h1.8c.58 0 1.05.47 1.05 1.05V19" stroke="#3A312E" strokeWidth="1.45" strokeLinejoin="round"/>
+      <circle cx="9.05" cy="12.9" r=".72" fill="#8A6258"/>
+      <circle cx="14.95" cy="12.9" r=".72" fill="#8A6258"/>
+      <path d="M4.4 19h15.2" stroke="#3A312E" strokeWidth="1.45" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
 export function IconTrash({ size = 20, className = "" }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">

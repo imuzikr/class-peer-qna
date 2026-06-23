@@ -12,7 +12,7 @@ import { isAdmin } from "@/lib/user";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import UserProfile from "./UserProfile";
 import RoleSwitcher from "./RoleSwitcher";
-import { IconReport, IconPythonRunner, IconLogo, IconAnswer } from "./StatusIcons";
+import { IconReport, IconPythonRunner, IconLogo, IconAnswer, IconSchool } from "./StatusIcons";
 
 export default function TopNav({ active, onPython, pyActive = false }) {
   const router = useRouter();
@@ -57,7 +57,7 @@ export default function TopNav({ active, onPython, pyActive = false }) {
               className={`btn-ghost topnav-drop-btn ${active === "board" || active === "study" ? "nav-active" : ""}`}
               onClick={() => setNavOpen((v) => !v)}
             >
-              {active === "study" ? "🧩 공부방" : active === "board" ? <><IconAnswer size={20} /> 질문게시판</> : "🗂 학습 공간"}
+              <IconSchool size={20} /> 학습 공간
               <span className="topnav-drop-chevron">{navOpen ? "▴" : "▾"}</span>
             </button>
 
@@ -67,7 +67,7 @@ export default function TopNav({ active, onPython, pyActive = false }) {
                   className={`topnav-drop-item ${active === "board" ? "active" : ""}`}
                   onClick={() => go("/board")}
                 >
-                  <IconAnswer size={18} /> 질문 게시판
+                  <IconAnswer size={18} /> 질문방
                 </button>
                 <button
                   className={`topnav-drop-item ${active === "study" ? "active" : ""}`}
