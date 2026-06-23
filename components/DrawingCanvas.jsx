@@ -15,6 +15,7 @@
 // =============================================================
 import { useEffect, useRef, useState } from "react";
 import { readImageAsDataUrl } from "@/lib/image";
+import { IconTrash } from "./StatusIcons";
 
 const COLORS = ["#262625", "#c04a3f", "#d97757", "#3d7a4a", "#d4a017"];
 const SIZES = [
@@ -717,7 +718,7 @@ export default function DrawingCanvas({ onSave, onClose }) {
               ↪️ 다시 실행
             </button>
             <button type="button" className="btn-ghost" onClick={clearAll}>
-              🗑 전체 지우기
+              <IconTrash size={16} /> 전체 지우기
             </button>
           </div>
         </div>

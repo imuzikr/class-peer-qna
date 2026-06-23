@@ -19,7 +19,7 @@ import { isFirebaseConfigured } from "@/lib/firebase";
 import { sanitizeHtml, stripHtml } from "@/lib/html";
 import { readImageAsDataUrl } from "@/lib/image";
 import RichTextEditor, { IconImage, IconPen } from "./RichTextEditor";
-import { IconAsk, IconSolved, IconAnswer } from "./StatusIcons";
+import { IconAsk, IconSolved, IconAnswer, IconTrash } from "./StatusIcons";
 import DrawingCanvas from "./DrawingCanvas";
 import MeTooButton from "./MeTooButton";
 import NewQuestionForm from "./NewQuestionForm";
@@ -276,7 +276,7 @@ export default function QuestionModal({
                   onClick={() => setConfirmingDelete(true)}
                   title="질문 삭제"
                 >
-                  🗑 삭제
+                  <IconTrash size={16} /> 삭제
                 </button>
               )}
             </div>
@@ -405,10 +405,10 @@ export default function QuestionModal({
       {/* 삭제 확인 모달 */}
       {confirmingDelete && (
         <ConfirmModal
-          icon="🗑"
+          icon={<IconTrash size={40} />}
           title="질문 삭제"
           preview={question.title}
-          description="이 질문과 모든 답변이 영구 삭제됩니다. 삭제 후 복구할 수 없습니다."
+          description={"이 질문과 모든 답변이 영구 삭제됩니다.\n삭제 후 복구할 수 없습니다."}
           confirmLabel="삭제하기"
           danger
           onConfirm={handleDelete}

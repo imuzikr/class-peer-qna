@@ -9,6 +9,7 @@
 // =============================================================
 import { useState } from "react";
 import { addKeyword, renameKeyword, deleteKeyword } from "@/lib/store";
+import { IconTrash } from "./StatusIcons";
 
 export default function KeywordManager({ keywords, onClose }) {
   const [newName, setNewName] = useState("");
@@ -136,7 +137,7 @@ export default function KeywordManager({ keywords, onClose }) {
                       title="삭제"
                       onClick={() => setConfirmDeleteId(kw.id)}
                     >
-                      🗑
+                      <IconTrash size={16} />
                     </button>
                   </div>
                 </>

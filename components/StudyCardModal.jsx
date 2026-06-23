@@ -16,7 +16,7 @@ import { readImageAsDataUrl, readFileAsDataUrl, formatFileSize } from "@/lib/ima
 import RichTextEditor, { IconImage, IconPen } from "./RichTextEditor";
 import DrawingCanvas from "./DrawingCanvas";
 import StudyQuestionPeek from "./StudyQuestionPeek";
-import { IconAsk, IconSolved } from "./StatusIcons";
+import { IconAsk, IconSolved, IconTrash } from "./StatusIcons";
 
 export default function StudyCardModal({
   board,
@@ -363,7 +363,7 @@ export default function StudyCardModal({
                   </div>
                 ) : (
                   <button className="btn-primary" onClick={() => setConfirmDelete(true)}>
-                    🗑 삭제
+                    <IconTrash size={16} /> 삭제
                   </button>
                 )
               )}

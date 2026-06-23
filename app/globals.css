@@ -3000,6 +3000,7 @@ pre code {
   color: var(--text-sub);
   line-height: 1.65;
   margin-bottom: 24px;
+  white-space: pre-wrap;
 }
 
 .confirm-actions {
@@ -3016,7 +3017,7 @@ pre code {
 }
 
 .confirm-confirm {
-  flex: 1.4;
+  flex: 1;
   padding: 10px 0;
   font-size: 15px;
   font-weight: 700;

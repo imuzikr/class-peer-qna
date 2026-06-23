@@ -22,6 +22,7 @@ import {
 } from "@/lib/store";
 import StudyCard from "./StudyCard";
 import StudyCardModal from "./StudyCardModal";
+import { IconTrash } from "./StatusIcons";
 
 export default function StudyBoardColumn({
   board,
@@ -178,7 +179,7 @@ export default function StudyBoardColumn({
               </button>
             </label>
             <button className="study-chip danger" onClick={handleDeleteBoard}>
-              🗑 보드 삭제
+              <IconTrash size={15} /> 보드 삭제
             </button>
           </div>
         )}

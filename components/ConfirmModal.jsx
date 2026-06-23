@@ -1,9 +1,11 @@
 "use client";
 
+import { IconTrash } from "./StatusIcons";
+
 export default function ConfirmModal({
-  icon = "🗑",
+  icon,
   title,
-  preview,       // 대상 이름/제목 미리보기 (선택)
+  preview,
   description,
   confirmLabel = "확인",
   cancelLabel = "취소",
@@ -11,6 +13,8 @@ export default function ConfirmModal({
   onConfirm,
   onClose,
 }) {
+  const iconNode = icon !== undefined ? icon : <IconTrash size={40} />;
+
   return (
     <div
       className="modal-backdrop confirm-backdrop"
@@ -24,7 +28,7 @@ export default function ConfirmModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="confirm-icon-wrap">
-          <span className="confirm-icon">{icon}</span>
+          <span className="confirm-icon">{iconNode}</span>
         </div>
 
         <h3 id="confirm-title" className="confirm-title">{title}</h3>
