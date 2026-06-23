@@ -25,6 +25,7 @@ const ANIMALS = [
 ];
 
 export default function StudentEditModal({ student, onClose }) {
+  const [editing, setEditing] = useState(false);
   const [emoji, setEmoji] = useState(student.emoji);
   const [name, setName] = useState(student.name);
   const [realName, setRealName] = useState(student.realName ?? "");
@@ -32,6 +33,19 @@ export default function StudentEditModal({ student, onClose }) {
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+
+  function handleStartEdit() {
+    setEditing(true);
+  }
+
+  function handleCancelEdit() {
+    setEmoji(student.emoji);
+    setName(student.name);
+    setRealName(student.realName ?? "");
+    setEmail(student.email ?? "");
+    setPickerOpen(false);
+    setEditing(false);
+  }
 
   async function handleSave() {
     if (!name.trim() || saving) return;
@@ -69,19 +83,25 @@ export default function StudentEditModal({ student, onClose }) {
             ×
           </button>
 
-          <h2 className="student-edit-title">프로필 편집</h2>
+          <h2 className="student-edit-title">
+            {editing ? "프로필 편집" : "프로필"}
+          </h2>
 
           <div className="student-edit-emoji-row">
             <div className="student-edit-emoji-wrap">
-              <button
-                type="button"
-                className="student-edit-emoji-btn"
-                onClick={() => setPickerOpen((v) => !v)}
-                title="이모지 변경"
-              >
-                {emoji}
-              </button>
-              {pickerOpen && (
+              {editing ? (
+                <button
+                  type="button"
+                  className="student-edit-emoji-btn"
+                  onClick={() => setPickerOpen((v) => !v)}
+                  title="이모지 변경"
+                >
+                  {emoji}
+                </button>
+              ) : (
+                <div className="student-edit-emoji-btn readonly">{emoji}</div>
+              )}
+              {pickerOpen && editing && (
                 <div className="emoji-picker" role="listbox" aria-label="이모지 선택">
                   {ANIMALS.map((a) => (
                     <button
@@ -102,54 +122,81 @@ export default function StudentEditModal({ student, onClose }) {
                 </div>
               )}
             </div>
-            <p className="student-edit-emoji-hint">클릭해서 변경</p>
+            {editing && <p className="student-edit-emoji-hint">클릭해서 변경</p>}
           </div>
 
           <div className="student-edit-fields">
-            <label className="student-edit-field">
+            <div className="student-edit-field">
               <span>닉네임</span>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="익명 닉네임"
-                maxLength={30}
-              />
-            </label>
-            <label className="student-edit-field">
+              {editing ? (
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="익명 닉네임"
+                  maxLength={30}
+                  autoFocus
+                />
+              ) : (
+                <div className="student-edit-value">{name || "—"}</div>
+              )}
+            </div>
+            <div className="student-edit-field">
               <span>실명</span>
-              <input
-                type="text"
-                value={realName}
-                onChange={(e) => setRealName(e.target.value)}
-                placeholder="실명 (선택)"
-                maxLength={30}
-              />
-            </label>
-            <label className="student-edit-field">
+              {editing ? (
+                <input
+                  type="text"
+                  value={realName}
+                  onChange={(e) => setRealName(e.target.value)}
+                  placeholder="실명 (선택)"
+                  maxLength={30}
+                />
+              ) : (
+                <div className="student-edit-value">{realName || "—"}</div>
+              )}
+            </div>
+            <div className="student-edit-field">
               <span>이메일</span>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="구글 계정 이메일 (선택)"
-                maxLength={100}
-              />
-            </label>
+              {editing ? (
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="구글 계정 이메일 (선택)"
+                  maxLength={100}
+                />
+              ) : (
+                <div className="student-edit-value">{email || "—"}</div>
+              )}
+            </div>
           </div>
 
           <div className="student-edit-actions">
-            <button type="button" className="btn-ghost" onClick={onClose}>
-              취소
-            </button>
             <button
               type="button"
-              className="btn-primary"
-              onClick={handleSave}
-              disabled={!name.trim() || saving}
+              className="btn-ghost"
+              onClick={editing ? handleCancelEdit : onClose}
             >
-              {saving ? "저장 중…" : "저장"}
+              취소
             </button>
+            {editing ? (
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={handleSave}
+                disabled={!name.trim() || saving}
+              >
+                {saving ? "저장 중…" : "저장"}
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={handleStartEdit}
+              >
+                편집
+              </button>
+            )}
           </div>
 
           <div className="student-edit-danger">

@@ -3197,6 +3197,23 @@ pre code {
   border-color: var(--primary);
 }
 
+.student-edit-value {
+  padding: 9px 12px;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1.5px solid transparent;
+  border-radius: 8px;
+  min-height: 38px;
+}
+
+.student-edit-emoji-btn.readonly {
+  cursor: default;
+  border-style: solid;
+  border-color: var(--border);
+  pointer-events: none;
+}
+
 .student-edit-actions {
   display: flex;
   gap: 10px;
