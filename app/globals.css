@@ -2106,12 +2106,8 @@ pre code {
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 10px;
   border: 1px solid transparent;
-  background: transparent;
   border-radius: 10px;
-  padding: 10px;
-  text-align: left;
 }
 
 .student-row:hover {
@@ -2121,6 +2117,46 @@ pre code {
 .student-row.active {
   background: var(--primary-light);
   border-color: #ecbfa9;
+}
+
+.student-row-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: transparent;
+  border: none;
+  padding: 10px;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 10px 0 0 10px;
+}
+
+.student-more-btn {
+  flex-shrink: 0;
+  padding: 8px 10px;
+  background: transparent;
+  border: none;
+  color: var(--text-sub);
+  font-size: 15px;
+  letter-spacing: 1.5px;
+  cursor: pointer;
+  border-radius: 0 10px 10px 0;
+  opacity: 0;
+  transition: opacity 0.15s;
+  line-height: 1;
+}
+
+.student-row:hover .student-more-btn,
+.student-row.active .student-more-btn {
+  opacity: 1;
+}
+
+.student-more-btn:hover {
+  background: var(--neutral);
+  color: var(--text);
+  opacity: 1;
 }
 
 .student-main {
@@ -3039,6 +3075,141 @@ pre code {
 
 .confirm-confirm.danger:hover {
   background: #b91c1c;
+}
+
+/* ===================== 학생 프로필 편집 모달 ===================== */
+
+.student-edit-modal {
+  max-width: 380px;
+  padding: 28px 28px 22px;
+}
+
+.student-edit-title {
+  font-size: 17px;
+  font-weight: 700;
+  margin-bottom: 24px;
+  padding-right: 28px;
+}
+
+.student-edit-emoji-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.student-edit-emoji-wrap {
+  position: relative;
+}
+
+.student-edit-emoji-btn {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 2px dashed var(--border);
+  background: var(--bg);
+  font-size: 30px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s;
+}
+
+.student-edit-emoji-btn:hover {
+  border-color: var(--primary);
+}
+
+.student-edit-emoji-hint {
+  font-size: 12px;
+  color: var(--text-sub);
+}
+
+.emoji-picker {
+  position: absolute;
+  top: 70px;
+  left: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 8px;
+  z-index: 10;
+  width: 224px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+}
+
+.emoji-pick-btn {
+  width: 36px;
+  height: 36px;
+  font-size: 20px;
+  border: 1.5px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.1s;
+}
+
+.emoji-pick-btn:hover {
+  background: var(--bg);
+}
+
+.emoji-pick-btn.active {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+
+.student-edit-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.student-edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.student-edit-field > span {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-sub);
+}
+
+.student-edit-field input {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  background: var(--bg);
+  box-sizing: border-box;
+}
+
+.student-edit-field input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.student-edit-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 24px;
+  justify-content: flex-end;
+}
+
+.student-edit-danger {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-start;
 }
 
 /* ===================== 회고 미완료 섹션 ===================== */

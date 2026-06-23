@@ -1,0 +1,168 @@
+"use client";
+
+import { useState } from "react";
+import { updateStudentProfile, deleteStudent } from "@/lib/store";
+import ConfirmModal from "./ConfirmModal";
+import { IconTrash } from "./StatusIcons";
+
+const ANIMALS = [
+  { name: "달팽이", emoji: "🐌" },
+  { name: "돌고래", emoji: "🐬" },
+  { name: "판다", emoji: "🐼" },
+  { name: "나무늘보", emoji: "🦥" },
+  { name: "고슴도치", emoji: "🦔" },
+  { name: "수달", emoji: "🦦" },
+  { name: "펭귄", emoji: "🐧" },
+  { name: "부엉이", emoji: "🦉" },
+  { name: "다람쥐", emoji: "🐿️" },
+  { name: "고래", emoji: "🐋" },
+  { name: "여우", emoji: "🦊" },
+  { name: "거북이", emoji: "🐢" },
+  { name: "문어", emoji: "🐙" },
+  { name: "코알라", emoji: "🐨" },
+  { name: "토끼", emoji: "🐰" },
+  { name: "햄스터", emoji: "🐹" },
+];
+
+export default function StudentEditModal({ student, onClose }) {
+  const [emoji, setEmoji] = useState(student.emoji);
+  const [name, setName] = useState(student.name);
+  const [realName, setRealName] = useState(student.realName ?? "");
+  const [saving, setSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  async function handleSave() {
+    if (!name.trim() || saving) return;
+    setSaving(true);
+    try {
+      await updateStudentProfile(student.id, {
+        name: name.trim(),
+        emoji,
+        realName: realName.trim(),
+      });
+      onClose();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDelete() {
+    await deleteStudent(student.id);
+    onClose();
+  }
+
+  return (
+    <>
+      <div className="modal-backdrop" onClick={onClose}>
+        <div
+          className="modal student-edit-modal"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            className="btn-close modal-close-float"
+            onClick={onClose}
+            aria-label="닫기"
+          >
+            ×
+          </button>
+
+          <h2 className="student-edit-title">프로필 편집</h2>
+
+          <div className="student-edit-emoji-row">
+            <div className="student-edit-emoji-wrap">
+              <button
+                type="button"
+                className="student-edit-emoji-btn"
+                onClick={() => setPickerOpen((v) => !v)}
+                title="이모지 변경"
+              >
+                {emoji}
+              </button>
+              {pickerOpen && (
+                <div className="emoji-picker" role="listbox" aria-label="이모지 선택">
+                  {ANIMALS.map((a) => (
+                    <button
+                      key={a.emoji}
+                      type="button"
+                      role="option"
+                      aria-selected={emoji === a.emoji}
+                      className={`emoji-pick-btn${emoji === a.emoji ? " active" : ""}`}
+                      title={a.name}
+                      onClick={() => {
+                        setEmoji(a.emoji);
+                        setPickerOpen(false);
+                      }}
+                    >
+                      {a.emoji}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <p className="student-edit-emoji-hint">클릭해서 변경</p>
+          </div>
+
+          <div className="student-edit-fields">
+            <label className="student-edit-field">
+              <span>닉네임</span>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="익명 닉네임"
+                maxLength={30}
+              />
+            </label>
+            <label className="student-edit-field">
+              <span>실명</span>
+              <input
+                type="text"
+                value={realName}
+                onChange={(e) => setRealName(e.target.value)}
+                placeholder="실명 (선택)"
+                maxLength={30}
+              />
+            </label>
+          </div>
+
+          <div className="student-edit-actions">
+            <button type="button" className="btn-ghost" onClick={onClose}>
+              취소
+            </button>
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={handleSave}
+              disabled={!name.trim() || saving}
+            >
+              {saving ? "저장 중…" : "저장"}
+            </button>
+          </div>
+
+          <div className="student-edit-danger">
+            <button
+              type="button"
+              className="btn-ghost qa-delete"
+              onClick={() => setConfirmDelete(true)}
+            >
+              <IconTrash size={15} /> 탈퇴 처리
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {confirmDelete && (
+        <ConfirmModal
+          title="학생 탈퇴 처리"
+          preview={`${emoji} ${name}`}
+          description={"이 학생의 모든 질문·답변·학습 데이터가\n영구 삭제됩니다. 복구할 수 없습니다."}
+          confirmLabel="탈퇴 처리"
+          danger
+          onConfirm={handleDelete}
+          onClose={() => setConfirmDelete(false)}
+        />
+      )}
+    </>
+  );
+}

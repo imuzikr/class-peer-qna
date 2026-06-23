@@ -14,6 +14,7 @@ import { isAdmin } from "@/lib/user";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import TopNav from "@/components/TopNav";
 import { getMeTooCount, isPinnedQuestion } from "@/lib/questionRanking";
+import StudentEditModal from "@/components/StudentEditModal";
 
 const DAY_MS = 1000 * 60 * 60 * 24;
 
@@ -170,6 +171,7 @@ export default function AdminDashboardPage() {
   const [answersByQuestion, setAnswersByQuestion] = useState({});
   const [selectedId, setSelectedId] = useState(null);
   const [pendingOpen, setPendingOpen] = useState(true);
+  const [editingStudent, setEditingStudent] = useState(null);
 
   // 관리자 대시보드는 관리자 전용 — 학생 보기로 바뀌면 학습 리포트로 이동
   const isStudent = user ? !isAdmin(user) : false;
@@ -327,18 +329,32 @@ export default function AdminDashboardPage() {
           ) : (
             <div className="student-list">
               {students.map((student) => (
-                <button
+                <div
                   key={student.id}
                   className={`student-row ${student.id === selectedId ? "active" : ""}`}
-                  onClick={() => setSelectedId(student.id)}
                 >
-                  <span className="avatar avatar-sm">{student.emoji}</span>
-                  <span className="student-main">
-                    <strong>{student.name}</strong>
-                    <small>{student.realName || "실명 미등록"}</small>
-                  </span>
-                  <span className="student-count">{student.asked + student.answered}</span>
-                </button>
+                  <button
+                    type="button"
+                    className="student-row-main"
+                    onClick={() => setSelectedId(student.id)}
+                  >
+                    <span className="avatar avatar-sm">{student.emoji}</span>
+                    <span className="student-main">
+                      <strong>{student.name}</strong>
+                      <small>{student.realName || "실명 미등록"}</small>
+                    </span>
+                    <span className="student-count">{student.asked + student.answered}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="student-more-btn"
+                    onClick={() => setEditingStudent(student)}
+                    title="프로필 편집"
+                    aria-label={`${student.name} 프로필 편집`}
+                  >
+                    ···
+                  </button>
+                </div>
               ))}
             </div>
           )}
@@ -476,6 +492,13 @@ export default function AdminDashboardPage() {
           )}
         </main>
       </div>
+
+      {editingStudent && (
+        <StudentEditModal
+          student={editingStudent}
+          onClose={() => setEditingStudent(null)}
+        />
+      )}
     </div>
   );
 }
