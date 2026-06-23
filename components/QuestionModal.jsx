@@ -12,6 +12,7 @@ import {
   formatTime,
   setQuestionResolved,
   setUnderstoodAnswer,
+  deleteQuestion,
 } from "@/lib/store";
 import { getCurrentUser, isAdmin } from "@/lib/user";
 import { isFirebaseConfigured } from "@/lib/firebase";
@@ -74,12 +75,22 @@ export default function QuestionModal({
 
   // 상태 토글: "해결됐어요"로 바꿀 때는 한 줄 정리 모달을 먼저 띄우고,
   // 해결을 취소(다시 궁금해요)할 때는 바로 전환합니다.
+  // 답변이 없는 상태에서는 해결로 전환할 수 없습니다.
   function handleResolveToggle() {
     if (question.resolved) {
       setQuestionResolved(question.id, false);
-    } else {
+    } else if (answers.length > 0) {
       setReflecting(true);
     }
+  }
+
+  async function handleDelete() {
+    const confirmed = window.confirm(
+      `"${question.title}"\n\n이 질문과 모든 답변이 영구 삭제됩니다. 삭제 후 복구할 수 없습니다.\n\n정말 삭제하시겠습니까?`
+    );
+    if (!confirmed) return;
+    await deleteQuestion(question.id);
+    onClose();
   }
 
   async function handleSend() {
@@ -161,9 +172,14 @@ export default function QuestionModal({
                   type="button"
                   className={`status-toggle qa-status ${
                     question.resolved ? "resolved" : "open"
-                  }`}
+                  }${!question.resolved && answers.length === 0 ? " disabled" : ""}`}
                   onClick={handleResolveToggle}
-                  title="클릭해서 상태 바꾸기"
+                  disabled={!question.resolved && answers.length === 0}
+                  title={
+                    !question.resolved && answers.length === 0
+                      ? "답변이 있어야 해결로 바꿀 수 있어요"
+                      : "클릭해서 상태 바꾸기"
+                  }
                 >
                   {question.resolved
                     ? <><IconSolved size={22} /> 해결됐어요</>
@@ -253,6 +269,16 @@ export default function QuestionModal({
                   title="질문 내용 고치기"
                 >
                   ✏️ 수정
+                </button>
+              )}
+              {(mine || admin) && (
+                <button
+                  type="button"
+                  className="btn-ghost qa-delete"
+                  onClick={handleDelete}
+                  title="질문 삭제"
+                >
+                  🗑 삭제
                 </button>
               )}
             </div>

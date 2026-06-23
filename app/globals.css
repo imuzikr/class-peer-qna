@@ -1083,6 +1083,16 @@ select:focus {
   background: #fff;
 }
 
+/* 삭제 버튼 */
+.qa-delete {
+  background: #fff;
+  color: #b91c1c;
+}
+
+.qa-delete:hover {
+  background: #fef2f2;
+}
+
 .qa-title {
   font-size: 20px;
   line-height: 1.4;
@@ -1466,6 +1476,14 @@ button.understood-bulb:hover {
   background: #e9f0e6;
   color: #3d7a4a;
   border-color: #b3d0b4;
+}
+
+.status-toggle.disabled,
+.status-toggle:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 /* 카드의 상태 표시 — 클릭 불가(상태 변경은 상세 모달의 회고 흐름에서만) */
