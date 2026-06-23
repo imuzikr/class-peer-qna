@@ -28,6 +28,7 @@ export default function StudentEditModal({ student, onClose }) {
   const [emoji, setEmoji] = useState(student.emoji);
   const [name, setName] = useState(student.name);
   const [realName, setRealName] = useState(student.realName ?? "");
+  const [email, setEmail] = useState(student.email ?? "");
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -40,6 +41,7 @@ export default function StudentEditModal({ student, onClose }) {
         name: name.trim(),
         emoji,
         realName: realName.trim(),
+        email: email.trim(),
       });
       onClose();
     } finally {
@@ -122,6 +124,16 @@ export default function StudentEditModal({ student, onClose }) {
                 onChange={(e) => setRealName(e.target.value)}
                 placeholder="실명 (선택)"
                 maxLength={30}
+              />
+            </label>
+            <label className="student-edit-field">
+              <span>이메일</span>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="구글 계정 이메일 (선택)"
+                maxLength={100}
               />
             </label>
           </div>

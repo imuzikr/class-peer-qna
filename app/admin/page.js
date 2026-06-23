@@ -35,6 +35,7 @@ function collectStudent(map, item) {
     name: item.authorName ?? "익명 학생",
     emoji: item.authorEmoji ?? "🙂",
     realName: item.authorRealName ?? "",
+    email: item.authorEmail ?? "",
     asked: 0,
     answered: 0,
     meTooReceived: 0,
@@ -43,6 +44,7 @@ function collectStudent(map, item) {
   current.name = item.authorName ?? current.name;
   current.emoji = item.authorEmoji ?? current.emoji;
   current.realName = item.authorRealName ?? current.realName;
+  if (item.authorEmail) current.email = item.authorEmail;
   map.set(item.authorId, current);
   return current;
 }
