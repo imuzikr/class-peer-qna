@@ -41,7 +41,7 @@ export default function RoleSwitcher() {
           className={role === id ? "active" : ""}
           onClick={() => choose(id)}
         >
-          <Icon size={20} /> {label}
+          <Icon size={22} /> {label}
         </button>
       ))}
     </div>

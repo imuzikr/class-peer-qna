@@ -443,12 +443,8 @@ select:focus {
 }
 
 .role-switch button.active {
-  background: var(--dark);
-  color: #faf9f5;
-}
-
-.role-switch button.active svg {
-  filter: brightness(0) invert(1);
+  background: var(--primary);
+  color: #fff;
 }
 
 .three-cols {
