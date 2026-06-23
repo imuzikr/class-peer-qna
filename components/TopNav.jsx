@@ -12,7 +12,7 @@ import { isAdmin } from "@/lib/user";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import UserProfile from "./UserProfile";
 import RoleSwitcher from "./RoleSwitcher";
-import { IconReport, IconPythonRunner, IconLogo, IconAnswer, IconSchool } from "./StatusIcons";
+import { IconReport, IconPythonRunner, IconLogo, IconAnswer, IconSchool, IconBlackboard } from "./StatusIcons";
 
 export default function TopNav({ active, onPython, pyActive = false }) {
   const router = useRouter();
@@ -73,7 +73,7 @@ export default function TopNav({ active, onPython, pyActive = false }) {
                   className={`topnav-drop-item ${active === "study" ? "active" : ""}`}
                   onClick={() => go("/study")}
                 >
-                  🧩 공부방
+                  <IconBlackboard size={18} /> 공부방
                 </button>
               </div>
             )}
