@@ -443,8 +443,8 @@ select:focus {
 }
 
 .role-switch button.active {
-  background: var(--primary);
-  color: #fff;
+  background: var(--dark);
+  color: #faf9f5;
 }
 
 .role-switch button.active svg {
