@@ -9,10 +9,11 @@
 // =============================================================
 import { useEffect, useState } from "react";
 import { getCurrentUser, setRoleOverride } from "@/lib/user";
+import { IconTeacher } from "./StatusIcons";
 
 const ROLES = [
-  { id: "admin", label: "👩‍🏫 관리자" },
-  { id: "student", label: "🎓 학생" },
+  { id: "admin", icon: <IconTeacher size={16} />, label: "관리자" },
+  { id: "student", icon: "🎓", label: "학생" },
 ];
 
 export default function RoleSwitcher() {
@@ -40,7 +41,7 @@ export default function RoleSwitcher() {
           className={role === r.id ? "active" : ""}
           onClick={() => choose(r.id)}
         >
-          {r.label}
+          {r.icon} {r.label}
         </button>
       ))}
     </div>

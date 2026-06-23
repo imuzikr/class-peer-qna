@@ -12,7 +12,7 @@ import { isAdmin } from "@/lib/user";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import UserProfile from "./UserProfile";
 import RoleSwitcher from "./RoleSwitcher";
-import { IconReport, IconPythonRunner, IconLogo, IconAnswer, IconSchool, IconBlackboard } from "./StatusIcons";
+import { IconReport, IconPythonRunner, IconLogo, IconAnswer, IconSchool, IconBlackboard, IconTeacher } from "./StatusIcons";
 
 export default function TopNav({ active, onPython, pyActive = false }) {
   const router = useRouter();
@@ -90,7 +90,7 @@ export default function TopNav({ active, onPython, pyActive = false }) {
               className={`btn-ghost ${active === "admin" ? "nav-active" : ""}`}
               onClick={() => go("/admin")}
             >
-              📊 관리자 대시보드
+              <IconTeacher size={20} /> 관리자 대시보드
             </button>
           ) : (
             <button

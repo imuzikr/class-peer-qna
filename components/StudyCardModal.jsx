@@ -16,7 +16,7 @@ import { readImageAsDataUrl, readFileAsDataUrl, formatFileSize } from "@/lib/ima
 import RichTextEditor, { IconImage, IconPen } from "./RichTextEditor";
 import DrawingCanvas from "./DrawingCanvas";
 import StudyQuestionPeek from "./StudyQuestionPeek";
-import { IconAsk, IconSolved, IconTrash } from "./StatusIcons";
+import { IconAsk, IconSolved, IconTrash, IconTeacher } from "./StatusIcons";
 
 export default function StudyCardModal({
   board,
@@ -153,7 +153,7 @@ export default function StudyCardModal({
         {!isNew && (
           <div className="study-card-meta">
             <span className="avatar avatar-sm" aria-hidden="true">
-              {card.authorEmoji ?? (isTeacherCard ? "🧑‍🏫" : "🙂")}
+              {card.authorEmoji ?? (isTeacherCard ? <IconTeacher size={22} /> : "🙂")}
             </span>
             <strong>{card.authorRealName || card.authorName}</strong>
             <time className="study-card-meta-time">{formatTime(card.createdAt)}</time>

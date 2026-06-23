@@ -2,6 +2,7 @@
 
 import { formatTime } from "@/lib/store";
 import { stripHtml } from "@/lib/html";
+import { IconTeacher } from "./StatusIcons";
 
 const IMAGE_EXTS = new Set(["jpg", "jpeg", "png", "gif", "webp"]);
 
@@ -21,7 +22,7 @@ export default function StudyCard({ card, onClick, isTeacher = false }) {
     >
       <div className="study-card-head">
         <span className="avatar avatar-sm" aria-hidden="true">
-          {card.authorEmoji ?? (isTeacherCard ? "🧑‍🏫" : "🙂")}
+          {card.authorEmoji ?? (isTeacherCard ? <IconTeacher size={22} /> : "🙂")}
         </span>
         <div className="study-card-author">
           {isTeacher && !isTeacherCard && card.authorStudentId ? (
