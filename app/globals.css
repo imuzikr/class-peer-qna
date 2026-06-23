@@ -2936,6 +2936,110 @@ pre code {
   white-space: nowrap;
 }
 
+/* ===================== 확인 모달 (ConfirmModal) ===================== */
+.confirm-backdrop {
+  z-index: 200; /* 기존 모달 위에 표시 */
+}
+
+.confirm-modal {
+  background: #fff;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 400px;
+  padding: 32px 28px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  animation: confirm-in 0.18s ease;
+}
+
+@keyframes confirm-in {
+  from { transform: scale(0.92) translateY(8px); opacity: 0; }
+  to   { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.confirm-icon-wrap {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #fef2f2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  font-size: 26px;
+}
+
+.confirm-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--dark);
+  margin-bottom: 10px;
+}
+
+.confirm-preview {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 14px;
+  margin-bottom: 12px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.confirm-desc {
+  font-size: 14px;
+  color: var(--text-sub);
+  line-height: 1.65;
+  margin-bottom: 24px;
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+.confirm-cancel {
+  flex: 1;
+  padding: 10px 0;
+  font-size: 15px;
+  background: var(--bg);
+}
+
+.confirm-confirm {
+  flex: 1.4;
+  padding: 10px 0;
+  font-size: 15px;
+  font-weight: 700;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  background: var(--primary);
+  color: #fff;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.confirm-confirm:hover {
+  transform: scale(1.03);
+}
+
+.confirm-confirm.danger {
+  background: #dc2626;
+}
+
+.confirm-confirm.danger:hover {
+  background: #b91c1c;
+}
+
 /* ===================== 회고 미완료 섹션 ===================== */
 .pending-section {
   background: #fffbf3;

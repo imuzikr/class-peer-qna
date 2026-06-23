@@ -25,6 +25,7 @@ import MeTooButton from "./MeTooButton";
 import NewQuestionForm from "./NewQuestionForm";
 import ReflectionModal from "./ReflectionModal";
 import AuthorBadge from "./AuthorBadge";
+import ConfirmModal from "./ConfirmModal";
 
 export default function QuestionModal({
   question,
@@ -44,6 +45,7 @@ export default function QuestionModal({
   const [reflecting, setReflecting] = useState(false); // 한 줄 정리 모달 열림
   const [pendingAnswerId, setPendingAnswerId] = useState(null); // 이해됐어요 클릭 시 대기 중인 답변 id
   const [saving, setSaving] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [resetKey, setResetKey] = useState(0); // 전송 후 에디터 비우기
   const [qExpanded, setQExpanded] = useState(false); // 모바일: 질문 접기/펼치기
   const scrollRef = useRef(null);    // 모바일: qa-grid 단일 스크롤 컨테이너
@@ -85,10 +87,6 @@ export default function QuestionModal({
   }
 
   async function handleDelete() {
-    const confirmed = window.confirm(
-      `"${question.title}"\n\n이 질문과 모든 답변이 영구 삭제됩니다. 삭제 후 복구할 수 없습니다.\n\n정말 삭제하시겠습니까?`
-    );
-    if (!confirmed) return;
     await deleteQuestion(question.id);
     onClose();
   }
@@ -275,7 +273,7 @@ export default function QuestionModal({
                 <button
                   type="button"
                   className="btn-ghost qa-delete"
-                  onClick={handleDelete}
+                  onClick={() => setConfirmingDelete(true)}
                   title="질문 삭제"
                 >
                   🗑 삭제
@@ -403,6 +401,20 @@ export default function QuestionModal({
           />
         )}
       </div>
+
+      {/* 삭제 확인 모달 */}
+      {confirmingDelete && (
+        <ConfirmModal
+          icon="🗑"
+          title="질문 삭제"
+          preview={question.title}
+          description="이 질문과 모든 답변이 영구 삭제됩니다. 삭제 후 복구할 수 없습니다."
+          confirmLabel="삭제하기"
+          danger
+          onConfirm={handleDelete}
+          onClose={() => setConfirmingDelete(false)}
+        />
+      )}
     </div>
   );
 }
