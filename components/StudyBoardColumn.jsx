@@ -29,7 +29,7 @@ import { IconTrash, IconAddFeature } from "./StatusIcons";
 function buildActivityTemplate(activities) {
   if (!activities?.length) return "";
   return activities
-    .map((act, i) => `<p><strong>활동 ${i + 1}: ${act}</strong></p><p><br></p>`)
+    .map((act) => `<div class="activity-section"><h4 class="activity-title">${act}</h4><p><br></p></div>`)
     .join("");
 }
 

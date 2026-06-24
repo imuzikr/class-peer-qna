@@ -36,10 +36,15 @@ export default function StudyCardModal({
   const linked = boardKeywords.length > 0;
   const isTeacherCard = card?.authorId?.startsWith?.("teacher_");
 
+  const activities = board.activities ?? [];
+  const isActivityCard = isNew && activities.length > 0;
+
   const [title, setTitle] = useState(isNew ? "" : (card.title ?? ""));
   const [content, setContent] = useState(isNew ? "" : (card.content ?? ""));
   const [imageUrl, setImageUrl] = useState(isNew ? null : (card.imageUrl ?? null));
   const [attachments, setAttachments] = useState(isNew ? [] : (card.attachments ?? []));
+  const [activityTitles, setActivityTitles] = useState(() => activities.map((a) => a));
+  const [activityContents, setActivityContents] = useState(() => activities.map(() => ""));
   const [drawing, setDrawing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showRelated, setShowRelated] = useState(false);
@@ -111,14 +116,32 @@ export default function StudyCardModal({
   }
 
   async function handleSave() {
-    const html = sanitizeHtml(content);
-    if (stripHtml(html).length === 0 && !imageUrl && attachments.length === 0) return;
+    let htmlToSave, titleToSave;
+
+    if (isActivityCard) {
+      htmlToSave = activityTitles
+        .map((t, i) => {
+          const c = sanitizeHtml(activityContents[i]);
+          return `<div class="activity-section"><h4 class="activity-title">${t}</h4>${c}</div>`;
+        })
+        .join("");
+      titleToSave = "";
+      const hasContent = activityContents.some(
+        (c) => stripHtml(sanitizeHtml(c)).trim().length > 0
+      );
+      if (!hasContent && !imageUrl && attachments.length === 0) return;
+    } else {
+      htmlToSave = sanitizeHtml(content);
+      titleToSave = title.trim();
+      if (stripHtml(htmlToSave).length === 0 && !imageUrl && attachments.length === 0) return;
+    }
+
     setSaving(true);
     try {
       if (isNew) {
-        await addStudyCard(getCurrentUser(), board.id, { title: title.trim(), content: html, imageUrl, attachments });
+        await addStudyCard(getCurrentUser(), board.id, { title: titleToSave, content: htmlToSave, imageUrl, attachments });
       } else {
-        await updateStudyCard(board.id, card.id, { title: title.trim(), content: html, imageUrl, attachments });
+        await updateStudyCard(board.id, card.id, { title: titleToSave, content: htmlToSave, imageUrl, attachments });
       }
       onClose();
     } finally {
@@ -164,33 +187,68 @@ export default function StudyCardModal({
         <div className="study-card-modal-body">
           {canEdit ? (
             <>
-              <input
-                type="text"
-                className="study-card-title-input"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="제목을 입력하세요"
-                maxLength={60}
-              />
-              <RichTextEditor
-                variant="full"
-                initialHtml={isNew ? "" : card.content}
-                onChange={setContent}
-                placeholder="활동 결과물을 자유롭게 작성해 보세요. 글, 코드, 이미지 모두 담을 수 있어요."
-              >
-                <label className="rte-tool" title="이미지 첨부">
-                  <IconImage />
-                  <input type="file" accept="image/*" onChange={handleFile} hidden />
-                </label>
-                <button
-                  type="button"
-                  className="rte-tool"
-                  title="그리기"
-                  onClick={() => setDrawing(true)}
-                >
-                  <IconPen />
-                </button>
-              </RichTextEditor>
+              {isActivityCard ? (
+                /* 활동별 멀티 섹션 폼 */
+                activities.map((act, i) => (
+                  <div key={i} className="activity-form-section">
+                    <input
+                      type="text"
+                      className="study-card-title-input"
+                      value={activityTitles[i]}
+                      onChange={(e) => {
+                        const next = [...activityTitles];
+                        next[i] = e.target.value;
+                        setActivityTitles(next);
+                      }}
+                      placeholder={`활동 ${i + 1}`}
+                      maxLength={80}
+                    />
+                    <RichTextEditor
+                      variant="full"
+                      initialHtml=""
+                      onChange={(html) => {
+                        setActivityContents((prev) => {
+                          const next = [...prev];
+                          next[i] = html;
+                          return next;
+                        });
+                      }}
+                      placeholder="내용을 입력해 주세요."
+                    />
+                  </div>
+                ))
+              ) : (
+                /* 기본 단일 편집 폼 */
+                <>
+                  <input
+                    type="text"
+                    className="study-card-title-input"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="제목을 입력하세요"
+                    maxLength={60}
+                  />
+                  <RichTextEditor
+                    variant="full"
+                    initialHtml={isNew ? "" : card.content}
+                    onChange={setContent}
+                    placeholder="활동 결과물을 자유롭게 작성해 보세요. 글, 코드, 이미지 모두 담을 수 있어요."
+                  >
+                    <label className="rte-tool" title="이미지 첨부">
+                      <IconImage />
+                      <input type="file" accept="image/*" onChange={handleFile} hidden />
+                    </label>
+                    <button
+                      type="button"
+                      className="rte-tool"
+                      title="그리기"
+                      onClick={() => setDrawing(true)}
+                    >
+                      <IconPen />
+                    </button>
+                  </RichTextEditor>
+                </>
+              )}
 
               {imageUrl && (
                 <div className="attach-row">
