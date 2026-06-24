@@ -24,7 +24,7 @@ import {
 import { stripHtml } from "@/lib/html";
 import StudyCard from "./StudyCard";
 import StudyCardModal from "./StudyCardModal";
-import { IconTrash } from "./StatusIcons";
+import { IconTrash, IconAddFeature } from "./StatusIcons";
 
 function buildActivityTemplate(activities) {
   if (!activities?.length) return "";
@@ -44,8 +44,7 @@ export default function StudyBoardColumn({
   const [cards, setCards] = useState([]);
   const [selectedCard, setSelectedCard] = useState(null);
   const [creating, setCreating] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [footerOpen, setFooterOpen] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(false);
   const [sortKey, setSortKey] = useState("time");
   const [studentIdDir, setStudentIdDir] = useState("asc");
   const [timeDir, setTimeDir] = useState("asc");
@@ -168,30 +167,22 @@ export default function StudyBoardColumn({
           className={`study-board-info-head${isTeacher && !isNotice ? " clickable" : ""}`}
           onClick={
             isTeacher && !isNotice
-              ? () => setFooterOpen((v) => !v)
+              ? () => setPanelOpen((v) => !v)
               : undefined
           }
         >
           <h3>{board.title}</h3>
           {isTeacher && !isNotice && (
-            <span
-              className={`study-head-chevron${footerOpen ? " open" : ""}`}
-              aria-hidden="true"
-            >
-              ▾
-            </span>
-          )}
-          {isTeacher && !isNotice && (
             <button
-              className="study-gear"
+              className={`study-panel-toggle${panelOpen ? " open" : ""}`}
               onClick={(e) => {
                 e.stopPropagation();
-                setSettingsOpen((v) => !v);
+                setPanelOpen((v) => !v);
               }}
-              title="보드 설정"
-              aria-label="보드 설정"
+              title={panelOpen ? "접기" : "정렬·설정 펼치기"}
+              aria-label={panelOpen ? "패널 접기" : "패널 펼치기"}
             >
-              ⚙️
+              <IconAddFeature size={22} />
             </button>
           )}
         </div>
@@ -200,12 +191,12 @@ export default function StudyBoardColumn({
           <p className="study-column-desc">{board.description}</p>
         )}
 
-        {/* 정렬·활동 footer — 제목 카드 클릭 시 펼침 */}
+        {/* 정렬·활동·설정 패널 — 제목 카드 클릭 시 한 번에 펼침 */}
         {isTeacher && !isNotice && (
-          <div className={`study-sort-footer${footerOpen ? " open" : ""}`}>
+          <div className={`study-board-panel${panelOpen ? " open" : ""}`}>
             <div className="study-sort">
               <button
-                className={`study-sort-btn${sortKey === "studentId" ? " active" : ""}`}
+                className={`study-sort-btn study-sort-btn--studentid${sortKey === "studentId" ? " active" : ""}`}
                 onClick={() => {
                   setSortKey("studentId");
                   setStudentIdDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -215,7 +206,7 @@ export default function StudyBoardColumn({
                 학번 {studentIdDir === "asc" ? "↑" : "↓"}
               </button>
               <button
-                className={`study-sort-btn${sortKey === "time" ? " active" : ""}`}
+                className={`study-sort-btn study-sort-btn--time${sortKey === "time" ? " active" : ""}`}
                 onClick={() => {
                   setSortKey("time");
                   setTimeDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -225,47 +216,44 @@ export default function StudyBoardColumn({
                 제출 {timeDir === "asc" ? "↑" : "↓"}
               </button>
               <button
-                className="study-sort-btn study-activity-btn"
+                className="study-sort-btn study-sort-btn--activity"
                 onClick={openActivitiesModal}
               >
                 활동
               </button>
             </div>
-          </div>
-        )}
-
-        {/* 교사 설정 패널 */}
-        {settingsOpen && isTeacher && !isNotice && (
-          <div className="study-settings">
-            <label className="study-setting-row">
-              <span>공개 범위</span>
-              <button
-                className="study-chip"
-                onClick={() =>
-                  updateStudyBoard(board.id, {
-                    viewMode: board.viewMode === "shared" ? "private" : "shared",
-                  })
-                }
-              >
-                {board.viewMode === "shared" ? "👥 함께 보기" : "🔒 나만 보기"}
+            <div className="study-settings">
+              <label className="study-setting-row">
+                <span>공개 범위</span>
+                <button
+                  className="study-chip"
+                  onClick={() =>
+                    updateStudyBoard(board.id, {
+                      viewMode:
+                        board.viewMode === "shared" ? "private" : "shared",
+                    })
+                  }
+                >
+                  {board.viewMode === "shared" ? "👥 함께 보기" : "🔒 나만 보기"}
+                </button>
+              </label>
+              <label className="study-setting-row">
+                <span>편집 상태</span>
+                <button
+                  className="study-chip"
+                  onClick={() =>
+                    updateStudyBoard(board.id, {
+                      editMode: locked ? "open" : "locked",
+                    })
+                  }
+                >
+                  {locked ? "🔏 보기 전용" : "✏️ 편집 가능"}
+                </button>
+              </label>
+              <button className="study-chip danger" onClick={handleDeleteBoard}>
+                <IconTrash size={15} /> 보드 삭제
               </button>
-            </label>
-            <label className="study-setting-row">
-              <span>편집 상태</span>
-              <button
-                className="study-chip"
-                onClick={() =>
-                  updateStudyBoard(board.id, {
-                    editMode: locked ? "open" : "locked",
-                  })
-                }
-              >
-                {locked ? "🔏 보기 전용" : "✏️ 편집 가능"}
-              </button>
-            </label>
-            <button className="study-chip danger" onClick={handleDeleteBoard}>
-              <IconTrash size={15} /> 보드 삭제
-            </button>
+            </div>
           </div>
         )}
       </div>

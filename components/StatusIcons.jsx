@@ -367,6 +367,16 @@ export function IconTrash({ size = 20, className = "" }) {
   );
 }
 
+export function IconAddFeature({ size = 20, className = "" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">
+      <path d="M7.1 5.25h9.8c1.02 0 1.85.83 1.85 1.85v9.8c0 1.02-.83 1.85-1.85 1.85H7.1c-1.02 0-1.85-.83-1.85-1.85V7.1c0-1.02.83-1.85 1.85-1.85Z" fill="#FFF7ED" stroke="#3A312E" strokeWidth="1.55" strokeLinejoin="round"/>
+      <path d="M12 8.35v7.3M8.35 12h7.3" stroke="#3A312E" strokeWidth="1.75" strokeLinecap="round"/>
+      <path d="M16.55 4.35 16.85 5.15c.05.13.15.23.28.28l.8.3-.8.3a.5.5 0 0 0-.28.28l-.3.8-.3-.8a.5.5 0 0 0-.28-.28l-.8-.3.8-.3c.13-.05.23-.15.28-.28l.3-.8Z" fill="#8A6258"/>
+    </svg>
+  );
+}
+
 export function IconKeyboard({ size = 20, className = "" }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">

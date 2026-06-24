@@ -4209,48 +4209,70 @@ pre code {
 /* 교사 전용 정렬 버튼 */
 .study-sort {
   display: flex;
-  gap: 4px;
-  padding: 6px 14px 10px;
-  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 12px 8px;
 }
 
 .study-sort-btn {
+  flex: 1;
   font-size: 13px;
   font-weight: 600;
-  padding: 6px 14px;
+  padding: 7px 10px;
   border-radius: 999px;
   border: 1px solid var(--border);
   background: #fff;
   color: var(--text-sub);
   cursor: pointer;
-  transition: background 0.1s, color 0.1s, border-color 0.1s;
+  text-align: center;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 
-.study-sort-btn:hover {
-  background: var(--primary-light);
-  border-color: var(--primary);
-  color: var(--primary-dark);
+/* 학번 — 따뜻한 세이지 그린 */
+.study-sort-btn--studentid {
+  background: #EBF4F1;
+  color: #3B7A6A;
+  border-color: #B0CECA;
 }
-
-.study-sort-btn.active {
-  background: var(--primary);
-  border-color: var(--primary);
+.study-sort-btn--studentid:hover,
+.study-sort-btn--studentid.active {
+  background: #5A9E8A;
   color: #fff;
+  border-color: #5A9E8A;
 }
 
-/* 정렬/활동 footer — 접힘/펼침 */
-.study-sort-footer {
+/* 제출 — 프라이머리 오렌지 */
+.study-sort-btn--time {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  border-color: #EDCBB8;
+}
+.study-sort-btn--time:hover,
+.study-sort-btn--time.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+/* 활동 — 따뜻한 마호가니 브라운 */
+.study-sort-btn--activity {
+  background: #F1E9E7;
+  color: #8A6258;
+  border-color: #CCADA6;
+}
+.study-sort-btn--activity:hover {
+  background: #8A6258;
+  color: #fff;
+  border-color: #8A6258;
+}
+
+/* 정렬·활동·설정 패널 — 제목 카드 클릭 시 한 번에 펼침 */
+.study-board-panel {
   overflow: hidden;
   max-height: 0;
-  transition: max-height 0.25s ease;
+  transition: max-height 0.3s ease;
 }
-.study-sort-footer.open {
-  max-height: 60px;
-}
-
-/* '활동' 버튼 — 오른쪽 끝 */
-.study-activity-btn {
-  margin-left: auto;
+.study-board-panel.open {
+  max-height: 400px;
 }
 
 /* 제목 카드 클릭 영역 */
@@ -4262,17 +4284,22 @@ pre code {
   border-radius: 8px;
 }
 
-/* 펼침/접힘 화살표 */
-.study-head-chevron {
-  font-size: 14px;
-  color: var(--text-sub);
-  margin-left: 4px;
-  transition: transform 0.2s ease;
-  display: inline-block;
-  line-height: 1;
+/* + 토글 버튼 — 열릴 때 45° 회전해서 × 형태 */
+.study-panel-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  border-radius: 6px;
+  transition: transform 0.25s ease, background 0.15s;
 }
-.study-head-chevron.open {
-  transform: rotate(180deg);
+.study-panel-toggle:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+.study-panel-toggle.open {
+  transform: rotate(45deg);
 }
 
 /* 활동 설정 모달 */
