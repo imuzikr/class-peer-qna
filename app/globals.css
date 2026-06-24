@@ -4397,22 +4397,55 @@ pre code {
   margin-top: 4px;
 }
 
-/* 활동 섹션 — 폼(작성) + 읽기 공통 */
+/* 활동 폼 — activity-mode 바디는 스크롤을 리스트에 위임 */
+.study-card-modal-body.activity-mode {
+  overflow-y: hidden;
+  padding-bottom: 0;
+  min-height: 0;
+}
+
+/* 활동 섹션 목록 — 바디 전체 높이를 채우고 내부 스크롤 */
+.activity-form-list {
+  height: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 2px 2px 12px;
+  /* 스크롤 바가 레이아웃을 밀지 않도록 */
+  scrollbar-gutter: stable;
+}
+
+/* 각 섹션: 컨테이너 높이의 약 47% → 2개가 대부분의 공간을 차지하고
+   3번째부터는 아래에서 살짝 보이면서 스크롤 유도 */
 .activity-form-section {
+  flex: 0 0 calc(47% - 5px);
+  min-height: 0;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: 6px;
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 14px 14px 10px;
+  padding: 12px 12px 8px;
   background: var(--bg);
 }
-.activity-form-section + .activity-form-section {
-  margin-top: 10px;
-}
 .activity-form-section .study-card-title-input {
+  flex-shrink: 0;
   margin-bottom: 0;
   background: #fff;
+}
+/* RTE가 섹션의 남은 높이를 채우도록 */
+.activity-form-section .rte {
+  flex: 1;
+  min-height: 0;
+}
+/* 에디터 영역의 고정 높이 제한 제거 후 flex로 채움 */
+.activity-form-section .rte-full .rte-area {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+  overflow-y: auto;
 }
 
 /* 읽기 모드 활동 섹션 */

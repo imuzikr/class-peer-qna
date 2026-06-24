@@ -184,39 +184,41 @@ export default function StudyCardModal({
         )}
 
         {/* 본문 영역 */}
-        <div className="study-card-modal-body">
+        <div className={`study-card-modal-body${isActivityCard ? " activity-mode" : ""}`}>
           {canEdit ? (
             <>
               {isActivityCard ? (
-                /* 활동별 멀티 섹션 폼 */
-                activities.map((act, i) => (
-                  <div key={i} className="activity-form-section">
-                    <input
-                      type="text"
-                      className="study-card-title-input"
-                      value={activityTitles[i]}
-                      onChange={(e) => {
-                        const next = [...activityTitles];
-                        next[i] = e.target.value;
-                        setActivityTitles(next);
-                      }}
-                      placeholder={`활동 ${i + 1}`}
-                      maxLength={80}
-                    />
-                    <RichTextEditor
-                      variant="full"
-                      initialHtml=""
-                      onChange={(html) => {
-                        setActivityContents((prev) => {
-                          const next = [...prev];
-                          next[i] = html;
-                          return next;
-                        });
-                      }}
-                      placeholder="내용을 입력해 주세요."
-                    />
-                  </div>
-                ))
+                /* 활동별 멀티 섹션 폼 — 2개씩 표시, 3개 이상은 스크롤 */
+                <div className="activity-form-list">
+                  {activities.map((act, i) => (
+                    <div key={i} className="activity-form-section">
+                      <input
+                        type="text"
+                        className="study-card-title-input"
+                        value={activityTitles[i]}
+                        onChange={(e) => {
+                          const next = [...activityTitles];
+                          next[i] = e.target.value;
+                          setActivityTitles(next);
+                        }}
+                        placeholder={`활동 ${i + 1}`}
+                        maxLength={80}
+                      />
+                      <RichTextEditor
+                        variant="full"
+                        initialHtml=""
+                        onChange={(html) => {
+                          setActivityContents((prev) => {
+                            const next = [...prev];
+                            next[i] = html;
+                            return next;
+                          });
+                        }}
+                        placeholder="내용을 입력해 주세요."
+                      />
+                    </div>
+                  ))}
+                </div>
               ) : (
                 /* 기본 단일 편집 폼 */
                 <>
