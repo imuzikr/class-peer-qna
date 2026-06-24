@@ -2526,14 +2526,9 @@ pre code {
   align-items: flex-start;
 }
 
-.heatmap-left-section {
+.heatmap-body {
   flex: 1;
   min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.heatmap-body {
   display: flex;
   gap: 6px;
   align-items: flex-start;
@@ -2606,7 +2601,6 @@ pre code {
   gap: 3px;
   margin-top: 6px;
   justify-content: flex-end;
-  align-self: flex-end;
 }
 
 .heatmap-legend-text {
