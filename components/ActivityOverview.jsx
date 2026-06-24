@@ -42,7 +42,7 @@ export default function ActivityOverview({ values = [0, 0, 0, 0, 0] }) {
       <div className="overview-inner">
         {/* 왼쪽: 레이더 SVG */}
         {hasActivity ? (
-          <svg viewBox="0 0 220 200" width="148" height="135" aria-hidden="true" className="overview-svg">
+          <svg viewBox="0 0 220 200" width="172" height="157" aria-hidden="true" className="overview-svg">
             {GRID_LEVELS.map((g, gi) => (
               <polygon
                 key={gi}
