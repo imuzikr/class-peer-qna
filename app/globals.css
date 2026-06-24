@@ -2516,13 +2516,13 @@ pre code {
   background: #fff;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 16px;
+  padding: 16px 28px;
   margin-bottom: 16px;
 }
 
 .heatmap-outer {
   display: flex;
-  gap: 20px;
+  gap: 10px;
   align-items: flex-start;
 }
 
@@ -2614,7 +2614,7 @@ pre code {
   flex-shrink: 0;
   width: 320px;
   border-left: 1px solid var(--border);
-  padding-left: 16px;
+  padding-left: 12px;
   padding-top: 2px;
 }
 
