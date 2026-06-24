@@ -311,8 +311,8 @@ export default function AdminDashboardPage() {
                   >
                     <span className="avatar avatar-sm">{student.emoji}</span>
                     <span className="student-main">
-                      <strong>{student.name}</strong>
-                      <small>{student.realName || "실명 미등록"}</small>
+                      <strong>{student.realName || student.name}</strong>
+                      <small>{student.realName ? student.name : "실명 미등록"}</small>
                     </span>
                     <span className="student-count">{student.asked + student.answered}</span>
                   </button>

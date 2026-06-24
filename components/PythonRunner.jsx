@@ -249,6 +249,24 @@ export default function PythonRunner({ open, onClose, onAskQuestion, hasModalOpe
         <h3><IconPythonRunner size={26} /> 파이썬 실행기</h3>
         <div className="py-head-actions">
           <button
+            className="py-copy-btn"
+            onClick={copyCode}
+            title={copied ? "복사됨!" : "코드 복사"}
+            aria-label="코드 복사"
+          >
+            {copied ? (
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M5 13l4 4L19 7" stroke="#5c9e68" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            ) : (
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="copy-simple-title">
+                <title id="copy-simple-title">Copy</title>
+                <path d="M9.35 4.25h7.85c.9 0 1.65.74 1.65 1.65v9.85" stroke="#8A6258" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M6.95 7.25h7.7c.9 0 1.65.74 1.65 1.65v8.2c0 .9-.74 1.65-1.65 1.65h-7.7c-.9 0-1.65-.74-1.65-1.65V8.9c0-.9.74-1.65 1.65-1.65Z" fill="#FFF7ED" stroke="#3A312E" strokeWidth="1.55" strokeLinejoin="round"/>
+              </svg>
+            )}
+          </button>
+          <button
             className="btn-ghost"
             style={{ visibility: hasModalOpen ? "hidden" : "visible" }}
             onClick={() => setFull(!full)}
@@ -311,9 +329,6 @@ export default function PythonRunner({ open, onClose, onAskQuestion, hasModalOpe
                 <IconAnswer size={18} /> 질문 만들기
               </button>
             )}
-            <button className="btn-ghost" onClick={copyCode}>
-              {copied ? "✓ 복사됨" : "코드 복사"}
-            </button>
             <button className="btn-ghost" onClick={() => setLines([])}>
               출력 지우기
             </button>

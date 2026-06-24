@@ -1893,6 +1893,21 @@ pre code {
   gap: 8px;
 }
 
+.py-copy-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+.py-copy-btn:hover {
+  background: var(--neutral);
+}
+
 /* 본문 배치: 보통은 세로, 전체 화면은 좌우 분할 */
 .py-body {
   display: flex;
@@ -2980,13 +2995,15 @@ pre code {
 }
 
 .report-charts {
-  grid-template-columns: minmax(260px, 1fr) minmax(300px, 1.25fr) minmax(220px, 0.8fr);
+  grid-template-columns: repeat(4, 1fr);
 }
 
 @media (max-width: 900px) {
-  .reflection-grid,
-  .report-charts {
+  .reflection-grid {
     grid-template-columns: 1fr;
+  }
+  .report-charts {
+    grid-template-columns: 1fr 1fr;
   }
 
   .report-layout {

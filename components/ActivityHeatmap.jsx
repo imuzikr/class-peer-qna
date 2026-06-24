@@ -2,7 +2,7 @@
 
 import { toDate } from "@/lib/store";
 
-const WEEKS = 26;
+const WEEKS = 52;
 const LEVEL_COLORS = ["#ebe9e2", "#c8e6ca", "#8ec892", "#5c9e68", "#3a7a48"];
 const FUTURE_COLOR = "#f5f4ef";
 const DAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
