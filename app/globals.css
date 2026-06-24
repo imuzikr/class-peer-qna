@@ -2554,9 +2554,7 @@ pre code {
 }
 
 .heatmap-right {
-  flex: 1;
-  min-width: 0;
-  overflow-x: auto;
+  flex: 0 0 auto;
 }
 
 .heatmap-month-row {
