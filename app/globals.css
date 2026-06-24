@@ -2554,7 +2554,11 @@ pre code {
 }
 
 .heatmap-right {
-  flex: 0 0 auto;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
 }
 
 .heatmap-month-row {
