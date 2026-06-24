@@ -266,6 +266,11 @@ export default function AdminDashboardPage() {
   const askRatio = totalActivity === 0 ? 0 : Math.round((selectedQuestions.length / totalActivity) * 100);
   const answerRatio = 100 - askRatio;
 
+  const withReflection = selectedQuestions.filter((q) => q.reflection).length;
+  const reflectionRate = selectedQuestions.length === 0 ? 0 : Math.round((withReflection / selectedQuestions.length) * 100);
+
+  const resolveRate = selectedQuestions.length === 0 ? 0 : Math.round((resolvedQuestions / selectedQuestions.length) * 100);
+
   // 학생 보기로 전환된 경우 대시보드를 그리지 않고 이동 대기 화면을 보여줍니다
   if (isStudent) {
     return (
@@ -463,6 +468,56 @@ export default function AdminDashboardPage() {
                     <span><i className="legend-ask" />질문 {selectedQuestions.length}</span>
                     <span><i className="legend-answer" />답변 {selectedAnswers.length}</span>
                   </div>
+                </div>
+
+                <div className="admin-chart-panel compact">
+                  <div className="admin-panel-head">
+                    <h2>회고 완성률</h2>
+                    <span>{reflectionRate}% 완성</span>
+                  </div>
+                  {selectedQuestions.length === 0 ? (
+                    <EmptyPanel>질문 없음</EmptyPanel>
+                  ) : (
+                    <>
+                      <div
+                        className="donut"
+                        style={{
+                          background: `conic-gradient(#5c9e68 0 ${reflectionRate}%, #e8e5dd ${reflectionRate}% 100%)`,
+                        }}
+                      >
+                        <span>{withReflection}</span>
+                      </div>
+                      <div className="chart-legend centered">
+                        <span><i className="legend-answer" />작성 {withReflection}</span>
+                        <span><i className="legend-neutral" />미작성 {selectedQuestions.length - withReflection}</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <div className="admin-chart-panel compact">
+                  <div className="admin-panel-head">
+                    <h2>질문 해결 현황</h2>
+                    <span>{resolveRate}% 해결</span>
+                  </div>
+                  {selectedQuestions.length === 0 ? (
+                    <EmptyPanel>질문 없음</EmptyPanel>
+                  ) : (
+                    <>
+                      <div
+                        className="donut"
+                        style={{
+                          background: `conic-gradient(#5c9e68 0 ${resolveRate}%, var(--primary) ${resolveRate}% 100%)`,
+                        }}
+                      >
+                        <span>{resolvedQuestions}</span>
+                      </div>
+                      <div className="chart-legend centered">
+                        <span><i className="legend-answer" />해결 {resolvedQuestions}</span>
+                        <span><i className="legend-ask" />미해결 {selectedQuestions.length - resolvedQuestions}</span>
+                      </div>
+                    </>
+                  )}
                 </div>
               </section>
 
