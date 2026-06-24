@@ -79,6 +79,7 @@ export default function PythonRunner({ open, onClose, onAskQuestion, hasModalOpe
   const [stdinText, setStdinText] = useState("홍길동");
   const [lines, setLines] = useState([]); // 출력 줄 목록 {type, text}
   const [status, setStatus] = useState("idle"); // idle | loading | running
+  const [copied, setCopied] = useState(false);
   const [width, setWidth] = useState(440); // 패널 너비 (드래그로 조절)
   const [full, setFull] = useState(false); // 전체 화면 여부
   const [dragging, setDragging] = useState(false);
@@ -212,6 +213,15 @@ export default function PythonRunner({ open, onClose, onAskQuestion, hasModalOpe
   // 단축키 핸들러가 항상 최신 상태의 run을 부르도록 갱신
   runRef.current = run;
 
+  function copyCode() {
+    const code = viewRef.current?.state.doc.toString() ?? "";
+    if (!code.trim()) return;
+    navigator.clipboard.writeText(code).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
   function stop() {
     workerRef.current?.terminate();
     workerRef.current = null;
@@ -301,6 +311,9 @@ export default function PythonRunner({ open, onClose, onAskQuestion, hasModalOpe
                 <IconAnswer size={18} /> 질문 만들기
               </button>
             )}
+            <button className="btn-ghost" onClick={copyCode}>
+              {copied ? "✓ 복사됨" : "코드 복사"}
+            </button>
             <button className="btn-ghost" onClick={() => setLines([])}>
               출력 지우기
             </button>
