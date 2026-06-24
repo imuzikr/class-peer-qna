@@ -2522,7 +2522,7 @@ pre code {
 
 .heatmap-outer {
   display: flex;
-  gap: 10px;
+  gap: 0;
   align-items: flex-start;
 }
 
@@ -2612,7 +2612,8 @@ pre code {
   flex-shrink: 0;
   width: 350px;
   border-left: 1px solid var(--border);
-  padding-left: 16px;
+  margin-left: 20px;
+  padding-left: 20px;
   padding-top: 2px;
 }
 
