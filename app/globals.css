@@ -4404,22 +4404,23 @@ pre code {
   min-height: 0;
 }
 
-/* 활동 섹션 목록 — 바디 전체 높이를 채우고 내부 스크롤 */
+/* 활동 섹션 목록
+   530px = 섹션 240px × 2 + 간격 10px + 3번째 섹션 미리보기 40px
+   max-height로 작은 화면 대응 */
 .activity-form-list {
-  height: 100%;
+  height: 530px;
+  max-height: calc(90dvh - 160px);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 2px 2px 12px;
-  /* 스크롤 바가 레이아웃을 밀지 않도록 */
+  padding: 2px 2px 10px;
   scrollbar-gutter: stable;
 }
 
-/* 각 섹션: 컨테이너 높이의 약 47% → 2개가 대부분의 공간을 차지하고
-   3번째부터는 아래에서 살짝 보이면서 스크롤 유도 */
+/* 각 섹션: 고정 240px — 2개가 화면을 채우고 3번째는 아래서 40px 노출 */
 .activity-form-section {
-  flex: 0 0 calc(47% - 5px);
+  flex: 0 0 240px;
   min-height: 0;
   overflow: hidden;
   display: flex;
@@ -4435,12 +4436,16 @@ pre code {
   margin-bottom: 0;
   background: #fff;
 }
+/* 툴바는 줄어들지 않도록 */
+.activity-form-section .rte-toolbar {
+  flex-shrink: 0;
+}
 /* RTE가 섹션의 남은 높이를 채우도록 */
 .activity-form-section .rte {
   flex: 1;
   min-height: 0;
 }
-/* 에디터 영역의 고정 높이 제한 제거 후 flex로 채움 */
+/* 에디터 영역: 고정 높이 제한 제거, 넘치면 스크롤 */
 .activity-form-section .rte-full .rte-area {
   flex: 1;
   min-height: 0;
