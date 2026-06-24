@@ -2558,7 +2558,6 @@ pre code {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
 }
 
 .heatmap-month-row {
@@ -2569,12 +2568,12 @@ pre code {
 }
 
 .heatmap-month-cell {
-  width: 15px;
+  flex: 1;
+  min-width: 15px;
   font-size: 10px;
   color: var(--text-sub);
   white-space: nowrap;
   overflow: visible;
-  flex-shrink: 0;
 }
 
 .heatmap-grid {
@@ -2583,18 +2582,24 @@ pre code {
 }
 
 .heatmap-week {
+  flex: 1;
+  min-width: 13px;
   display: flex;
   flex-direction: column;
   gap: 2px;
-  flex-shrink: 0;
 }
 
 .heatmap-cell {
+  height: 15px;
+  border-radius: 3px;
+  cursor: default;
+}
+
+.heatmap-legend-swatch {
   width: 15px;
   height: 15px;
   border-radius: 3px;
   flex-shrink: 0;
-  cursor: default;
 }
 
 .heatmap-legend-row {

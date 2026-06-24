@@ -104,7 +104,7 @@ export default function ActivityHeatmap({ questions = [], answerEvents = [], ove
             <div className="heatmap-legend-row">
               <span className="heatmap-legend-text">적음</span>
               {LEVEL_COLORS.map((color, i) => (
-                <span key={i} className="heatmap-cell" style={{ background: color }} />
+                <span key={i} className="heatmap-legend-swatch" style={{ background: color }} />
               ))}
               <span className="heatmap-legend-text">많음</span>
             </div>
