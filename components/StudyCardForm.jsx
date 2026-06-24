@@ -14,9 +14,19 @@ import { readImageAsDataUrl } from "@/lib/image";
 import RichTextEditor, { IconImage, IconPen } from "./RichTextEditor";
 import DrawingCanvas from "./DrawingCanvas";
 
+function buildActivityTemplate(activities) {
+  if (!activities?.length) return "";
+  return activities
+    .map((act, i) => `<p><strong>활동 ${i + 1}: ${act}</strong></p><p><br></p>`)
+    .join("");
+}
+
 export default function StudyCardForm({ board, card = null, onClose }) {
   const editing = !!card;
-  const [content, setContent] = useState(editing ? card.content : "");
+  const initialHtml = editing
+    ? card.content
+    : buildActivityTemplate(board.activities ?? []);
+  const [content, setContent] = useState(initialHtml);
   const [imageUrl, setImageUrl] = useState(editing ? card.imageUrl ?? null : null);
   const [drawing, setDrawing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -65,7 +75,7 @@ export default function StudyCardForm({ board, card = null, onClose }) {
         <form className="form-grid" onSubmit={handleSubmit}>
           <RichTextEditor
             variant="full"
-            initialHtml={editing ? card.content : ""}
+            initialHtml={initialHtml}
             onChange={setContent}
             placeholder="활동 결과물을 자유롭게 작성해 보세요. 글, 코드, 이미지 모두 담을 수 있어요."
           >

@@ -4238,6 +4238,138 @@ pre code {
   color: #fff;
 }
 
+/* 정렬/활동 footer — 접힘/펼침 */
+.study-sort-footer {
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.25s ease;
+}
+.study-sort-footer.open {
+  max-height: 60px;
+}
+
+/* '활동' 버튼 — 오른쪽 끝 */
+.study-activity-btn {
+  margin-left: auto;
+}
+
+/* 제목 카드 클릭 영역 */
+.study-board-info-head.clickable {
+  cursor: pointer;
+}
+.study-board-info-head.clickable:hover {
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 8px;
+}
+
+/* 펼침/접힘 화살표 */
+.study-head-chevron {
+  font-size: 14px;
+  color: var(--text-sub);
+  margin-left: 4px;
+  transition: transform 0.2s ease;
+  display: inline-block;
+  line-height: 1;
+}
+.study-head-chevron.open {
+  transform: rotate(180deg);
+}
+
+/* 활동 설정 모달 */
+.study-activity-modal {
+  background: #fff;
+  border-radius: 14px;
+  padding: 20px;
+  width: 460px;
+  max-width: 94vw;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+}
+.study-activity-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.study-activity-modal-head h3 {
+  font-size: 16px;
+  font-weight: 700;
+}
+.study-activity-hint {
+  font-size: 13px;
+  color: var(--text-sub);
+  margin: -4px 0 0;
+}
+.study-activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.study-activity-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.study-activity-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary);
+  white-space: nowrap;
+  min-width: 48px;
+}
+.study-activity-input {
+  flex: 1;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  color: var(--dark);
+  background: var(--bg);
+}
+.study-activity-input:focus {
+  border-color: var(--primary);
+}
+.study-activity-del {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-sub);
+  padding: 4px 6px;
+  border-radius: 4px;
+  line-height: 1;
+}
+.study-activity-del:hover {
+  background: var(--border);
+  color: var(--dark);
+}
+.study-activity-add {
+  background: none;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  padding: 8px;
+  font-size: 13px;
+  color: var(--text-sub);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.15s, color 0.15s;
+}
+.study-activity-add:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.study-activity-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
 /* 카드 목록에서 보이는 제목 */
 .study-card-title {
   font-size: 13px;

@@ -17,12 +17,21 @@ import { useEffect, useState } from "react";
 import {
   subscribeStudyCards,
   updateStudyBoard,
+  updateStudyCard,
   deleteStudyBoard,
   toDate,
 } from "@/lib/store";
+import { stripHtml } from "@/lib/html";
 import StudyCard from "./StudyCard";
 import StudyCardModal from "./StudyCardModal";
 import { IconTrash } from "./StatusIcons";
+
+function buildActivityTemplate(activities) {
+  if (!activities?.length) return "";
+  return activities
+    .map((act, i) => `<p><strong>활동 ${i + 1}: ${act}</strong></p><p><br></p>`)
+    .join("");
+}
 
 export default function StudyBoardColumn({
   board,
@@ -36,8 +45,13 @@ export default function StudyBoardColumn({
   const [selectedCard, setSelectedCard] = useState(null);
   const [creating, setCreating] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [footerOpen, setFooterOpen] = useState(false);
   const [sortKey, setSortKey] = useState("time");
-  const [sortDir, setSortDir] = useState("asc");
+  const [studentIdDir, setStudentIdDir] = useState("asc");
+  const [timeDir, setTimeDir] = useState("asc");
+  const [activitiesOpen, setActivitiesOpen] = useState(false);
+  const [activitiesDraft, setActivitiesDraft] = useState([]);
+  const [savingActivities, setSavingActivities] = useState(false);
 
   useEffect(() => {
     const unsub = subscribeStudyCards(board.id, setCards);
@@ -53,6 +67,8 @@ export default function StudyBoardColumn({
     visibleCards = myCard ? [myCard] : [];
   }
 
+  const currentSortDir = sortKey === "studentId" ? studentIdDir : timeDir;
+
   if (isTeacher && !isNotice) {
     visibleCards = [...visibleCards].sort((a, b) => {
       let cmp = 0;
@@ -63,7 +79,7 @@ export default function StudyBoardColumn({
       } else {
         cmp = toDate(a.createdAt) - toDate(b.createdAt);
       }
-      return sortDir === "asc" ? cmp : -cmp;
+      return currentSortDir === "asc" ? cmp : -cmp;
     });
   }
 
@@ -90,9 +106,52 @@ export default function StudyBoardColumn({
     await deleteStudyBoard(board.id);
   }
 
-  function setSortKeyDir(key, dir) {
-    setSortKey(key);
-    setSortDir(dir);
+  function openActivitiesModal() {
+    setActivitiesDraft(
+      board.activities?.length ? [...board.activities] : [""]
+    );
+    setActivitiesOpen(true);
+  }
+
+  async function handleSaveActivities() {
+    const newActivities = activitiesDraft.filter((a) => a.trim().length > 0);
+
+    const studentCards = cards.filter(
+      (c) => !c.authorId?.startsWith("teacher_")
+    );
+    const hasContent = studentCards.some(
+      (c) => stripHtml(c.content ?? "").trim().length > 0
+    );
+
+    if (hasContent) {
+      alert(
+        "학생이 입력한 내용이 있어서 활동을 변경할 수 없어요.\n모든 학생 카드의 내용을 비운 후 다시 시도해 주세요."
+      );
+      return;
+    }
+
+    setSavingActivities(true);
+    try {
+      await updateStudyBoard(board.id, { activities: newActivities });
+
+      if (newActivities.length > 0) {
+        const templateHtml = buildActivityTemplate(newActivities);
+        await Promise.all(
+          studentCards.map((c) =>
+            updateStudyCard(board.id, c.id, {
+              title: c.title ?? "",
+              content: templateHtml,
+              imageUrl: c.imageUrl ?? null,
+              attachments: c.attachments ?? [],
+            })
+          )
+        );
+      }
+
+      setActivitiesOpen(false);
+    } finally {
+      setSavingActivities(false);
+    }
   }
 
   const modalOpen = selectedCard !== null || creating;
@@ -105,12 +164,30 @@ export default function StudyBoardColumn({
     <section className={`study-column ${isNotice ? "is-notice" : ""}`}>
       {/* ── 교사 관리 영역 (독립 카드) ── */}
       <div className="study-board-info">
-        <div className="study-board-info-head">
+        <div
+          className={`study-board-info-head${isTeacher && !isNotice ? " clickable" : ""}`}
+          onClick={
+            isTeacher && !isNotice
+              ? () => setFooterOpen((v) => !v)
+              : undefined
+          }
+        >
           <h3>{board.title}</h3>
+          {isTeacher && !isNotice && (
+            <span
+              className={`study-head-chevron${footerOpen ? " open" : ""}`}
+              aria-hidden="true"
+            >
+              ▾
+            </span>
+          )}
           {isTeacher && !isNotice && (
             <button
               className="study-gear"
-              onClick={() => setSettingsOpen((v) => !v)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setSettingsOpen((v) => !v);
+              }}
               title="보드 설정"
               aria-label="보드 설정"
             >
@@ -123,29 +200,37 @@ export default function StudyBoardColumn({
           <p className="study-column-desc">{board.description}</p>
         )}
 
-        {/* 교사 전용 정렬 버튼 — 클릭 시 ↑↓ 토글 */}
+        {/* 정렬·활동 footer — 제목 카드 클릭 시 펼침 */}
         {isTeacher && !isNotice && (
-          <div className="study-sort">
-            <button
-              className={`study-sort-btn${sortKey === "studentId" ? " active" : ""}`}
-              onClick={() => setSortKeyDir(
-                "studentId",
-                sortKey === "studentId" && sortDir === "asc" ? "desc" : "asc"
-              )}
-              title={sortKey === "studentId" && sortDir === "desc" ? "학번 내림차순" : "학번 오름차순"}
-            >
-              학번 {sortKey === "studentId" ? (sortDir === "asc" ? "↑" : "↓") : "↕"}
-            </button>
-            <button
-              className={`study-sort-btn${sortKey === "time" ? " active" : ""}`}
-              onClick={() => setSortKeyDir(
-                "time",
-                sortKey === "time" && sortDir === "asc" ? "desc" : "asc"
-              )}
-              title={sortKey === "time" && sortDir === "desc" ? "제출 늦은 순" : "제출 빠른 순"}
-            >
-              제출 {sortKey === "time" ? (sortDir === "asc" ? "↑" : "↓") : "↕"}
-            </button>
+          <div className={`study-sort-footer${footerOpen ? " open" : ""}`}>
+            <div className="study-sort">
+              <button
+                className={`study-sort-btn${sortKey === "studentId" ? " active" : ""}`}
+                onClick={() => {
+                  setSortKey("studentId");
+                  setStudentIdDir((d) => (d === "asc" ? "desc" : "asc"));
+                }}
+                title="학번 정렬"
+              >
+                학번 {studentIdDir === "asc" ? "↑" : "↓"}
+              </button>
+              <button
+                className={`study-sort-btn${sortKey === "time" ? " active" : ""}`}
+                onClick={() => {
+                  setSortKey("time");
+                  setTimeDir((d) => (d === "asc" ? "desc" : "asc"));
+                }}
+                title="제출 시간 정렬"
+              >
+                제출 {timeDir === "asc" ? "↑" : "↓"}
+              </button>
+              <button
+                className="study-sort-btn study-activity-btn"
+                onClick={openActivitiesModal}
+              >
+                활동
+              </button>
+            </div>
           </div>
         )}
 
@@ -217,6 +302,80 @@ export default function StudyBoardColumn({
           </p>
         )}
       </div>
+
+      {/* ── 활동 설정 모달 ── */}
+      {activitiesOpen && (
+        <div
+          className="modal-backdrop"
+          onClick={() => setActivitiesOpen(false)}
+        >
+          <div
+            className="study-activity-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="study-activity-modal-head">
+              <h3>활동 설정</h3>
+              <button
+                className="btn-close"
+                onClick={() => setActivitiesOpen(false)}
+                aria-label="닫기"
+              >
+                ×
+              </button>
+            </div>
+            <p className="study-activity-hint">
+              학생 카드에 제시할 활동 내용을 입력하세요.
+            </p>
+            <div className="study-activity-list">
+              {activitiesDraft.map((act, i) => (
+                <div key={i} className="study-activity-item">
+                  <span className="study-activity-label">활동 {i + 1}</span>
+                  <input
+                    className="study-activity-input"
+                    value={act}
+                    onChange={(e) => {
+                      const next = [...activitiesDraft];
+                      next[i] = e.target.value;
+                      setActivitiesDraft(next);
+                    }}
+                    placeholder={`활동 ${i + 1} 내용을 입력하세요`}
+                  />
+                  <button
+                    className="study-activity-del"
+                    onClick={() =>
+                      setActivitiesDraft(activitiesDraft.filter((_, j) => j !== i))
+                    }
+                    aria-label="삭제"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button
+              className="study-activity-add"
+              onClick={() => setActivitiesDraft([...activitiesDraft, ""])}
+            >
+              + 활동 추가
+            </button>
+            <div className="study-activity-actions">
+              <button
+                className="btn-ghost"
+                onClick={() => setActivitiesOpen(false)}
+              >
+                취소
+              </button>
+              <button
+                className="btn-primary"
+                onClick={handleSaveActivities}
+                disabled={savingActivities}
+              >
+                {savingActivities ? "저장 중..." : "저장"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {modalOpen && (
         <StudyCardModal
