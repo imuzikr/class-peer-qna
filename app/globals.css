@@ -2612,7 +2612,7 @@ pre code {
 /* ── 학습 균형 레이더 오버뷰 ── */
 .activity-overview {
   flex-shrink: 0;
-  width: 202px;
+  width: 320px;
   border-left: 1px solid var(--border);
   padding-left: 16px;
   padding-top: 2px;
@@ -2624,23 +2624,36 @@ pre code {
   color: var(--text-sub);
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  margin-bottom: 2px;
+  margin-bottom: 6px;
+}
+
+/* 레이더(좌) + 막대(우) 나란히 */
+.overview-inner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.overview-svg {
+  flex-shrink: 0;
 }
 
 .overview-empty {
-  height: 140px;
+  width: 148px;
+  height: 135px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 12px;
   color: var(--text-sub);
+  flex-shrink: 0;
 }
 
 .overview-bars {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  margin-top: 6px;
+  gap: 8px;
 }
 
 .overview-bar-row {
@@ -2658,21 +2671,21 @@ pre code {
 
 .overview-bar-track {
   flex: 1;
-  height: 4px;
+  height: 5px;
   background: var(--neutral);
-  border-radius: 2px;
+  border-radius: 3px;
   overflow: hidden;
 }
 
 .overview-bar-fill {
   height: 100%;
   background: var(--primary);
-  border-radius: 2px;
+  border-radius: 3px;
   transition: width 0.4s ease;
 }
 
 .overview-bar-pct {
-  width: 28px;
+  width: 32px;
   text-align: right;
   font-size: 11px;
   font-weight: 700;
