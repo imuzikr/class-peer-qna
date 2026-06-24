@@ -232,8 +232,18 @@ export default function AdminDashboardPage() {
 
   const withReflection = selectedQuestions.filter((q) => q.reflection).length;
   const reflectionRate = selectedQuestions.length === 0 ? 0 : Math.round((withReflection / selectedQuestions.length) * 100);
-
   const resolveRate = selectedQuestions.length === 0 ? 0 : Math.round((resolvedQuestions / selectedQuestions.length) * 100);
+
+  const maxAsked = Math.max(1, ...students.map((s) => s.asked));
+  const maxAnswered = Math.max(1, ...students.map((s) => s.answered));
+  const maxMeToo = Math.max(1, ...students.map((s) => s.meTooReceived));
+  const overviewValues = selected ? [
+    Math.min(selectedQuestions.length / maxAsked, 1),
+    Math.min(selectedAnswers.length / maxAnswered, 1),
+    resolveRate / 100,
+    reflectionRate / 100,
+    Math.min(totalMeToo / maxMeToo, 1),
+  ] : null;
 
   // 학생 보기로 전환된 경우 대시보드를 그리지 않고 이동 대기 화면을 보여줍니다
   if (isStudent) {
@@ -454,7 +464,7 @@ export default function AdminDashboardPage() {
                 </div>
               </section>
 
-              <ActivityHeatmap questions={selectedQuestions} answerEvents={selectedAnswers} />
+              <ActivityHeatmap questions={selectedQuestions} answerEvents={selectedAnswers} overviewValues={overviewValues} />
 
               <section className="admin-activity-panel">
                 <div className="admin-panel-head">

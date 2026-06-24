@@ -318,6 +318,14 @@ export default function StudentReportPage() {
   const resolveRate = myQuestions.length === 0 ? 0 : Math.round((resolvedQuestions / myQuestions.length) * 100);
   const latestActivity = events[0]?.createdAt ? formatTime(events[0].createdAt) : "아직 없음";
 
+  const overviewValues = [
+    Math.min(myQuestions.length / 10, 1),
+    Math.min(myAnswerEvents.length / 10, 1),
+    resolveRate / 100,
+    reflectionRate / 100,
+    Math.min(totalMeToo / 15, 1),
+  ];
+
   // 관리자 보기로 전환된 경우 리포트를 그리지 않고 이동 대기 화면을 보여줍니다
   if (isTeacher) {
     return (
@@ -643,7 +651,7 @@ export default function StudentReportPage() {
           </div>
         </section>
 
-        <ActivityHeatmap questions={myQuestions} answerEvents={myAnswerEvents} />
+        <ActivityHeatmap questions={myQuestions} answerEvents={myAnswerEvents} overviewValues={overviewValues} />
 
         <section className="admin-activity-panel">
           <div className="admin-panel-head">

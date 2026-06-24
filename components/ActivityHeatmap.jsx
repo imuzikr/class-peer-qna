@@ -1,6 +1,7 @@
 "use client";
 
 import { toDate } from "@/lib/store";
+import ActivityOverview from "./ActivityOverview";
 
 const WEEKS = 52;
 const LEVEL_COLORS = ["#ebe9e2", "#c8e6ca", "#8ec892", "#5c9e68", "#3a7a48"];
@@ -20,7 +21,7 @@ function dayKey(date) {
   return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
 }
 
-export default function ActivityHeatmap({ questions = [], answerEvents = [] }) {
+export default function ActivityHeatmap({ questions = [], answerEvents = [], overviewValues }) {
   const today = new Date();
 
   const activity = {};
@@ -33,7 +34,6 @@ export default function ActivityHeatmap({ questions = [], answerEvents = [] }) {
     activity[k] = (activity[k] ?? 0) + 1;
   });
 
-  // Align start to Sunday, WEEKS weeks ago
   const start = new Date();
   start.setDate(start.getDate() - start.getDay() - (WEEKS - 1) * 7);
   start.setHours(0, 0, 0, 0);
@@ -51,7 +51,9 @@ export default function ActivityHeatmap({ questions = [], answerEvents = [] }) {
       };
     });
     const firstMonth = days[0].date.getMonth();
-    const prevFirstMonth = w > 0 ? new Date(start.getFullYear(), start.getMonth(), start.getDate() + (w - 1) * 7).getMonth() : -1;
+    const prevFirstMonth = w > 0
+      ? new Date(start.getFullYear(), start.getMonth(), start.getDate() + (w - 1) * 7).getMonth()
+      : -1;
     return { days, monthLabel: firstMonth !== prevFirstMonth ? MONTH_NAMES[firstMonth] : null };
   });
 
@@ -64,48 +66,54 @@ export default function ActivityHeatmap({ questions = [], answerEvents = [] }) {
         <h2>학습 활동 기록</h2>
         <span>{totalCount}건 · {activeDays}일 활동</span>
       </div>
-      <div className="heatmap-body">
-        <div className="heatmap-day-col">
-          {DAY_LABELS.map((label, i) => (
-            <span key={i} className="heatmap-day-label">
-              {i % 2 !== 0 ? label : ""}
-            </span>
-          ))}
-        </div>
-        <div className="heatmap-right">
-          <div className="heatmap-month-row">
-            {weeks.map((week, wi) => (
-              <span key={wi} className="heatmap-month-cell">
-                {week.monthLabel ?? ""}
+      <div className="heatmap-outer">
+        <div className="heatmap-body">
+          <div className="heatmap-day-col">
+            {DAY_LABELS.map((label, i) => (
+              <span key={i} className="heatmap-day-label">
+                {i % 2 !== 0 ? label : ""}
               </span>
             ))}
           </div>
-          <div className="heatmap-grid">
-            {weeks.map((week, wi) => (
-              <div key={wi} className="heatmap-week">
-                {week.days.map((day, di) => (
-                  <div
-                    key={di}
-                    className="heatmap-cell"
-                    style={{
-                      background: day.isFuture
-                        ? FUTURE_COLOR
-                        : LEVEL_COLORS[getLevel(day.count)],
-                    }}
-                    title={day.isFuture ? "" : `${day.label}: ${day.count}건`}
-                  />
-                ))}
-              </div>
-            ))}
-          </div>
-          <div className="heatmap-legend-row">
-            <span className="heatmap-legend-text">적음</span>
-            {LEVEL_COLORS.map((color, i) => (
-              <span key={i} className="heatmap-cell" style={{ background: color }} />
-            ))}
-            <span className="heatmap-legend-text">많음</span>
+          <div className="heatmap-right">
+            <div className="heatmap-month-row">
+              {weeks.map((week, wi) => (
+                <span key={wi} className="heatmap-month-cell">
+                  {week.monthLabel ?? ""}
+                </span>
+              ))}
+            </div>
+            <div className="heatmap-grid">
+              {weeks.map((week, wi) => (
+                <div key={wi} className="heatmap-week">
+                  {week.days.map((day, di) => (
+                    <div
+                      key={di}
+                      className="heatmap-cell"
+                      style={{
+                        background: day.isFuture
+                          ? FUTURE_COLOR
+                          : LEVEL_COLORS[getLevel(day.count)],
+                      }}
+                      title={day.isFuture ? "" : `${day.label}: ${day.count}건`}
+                    />
+                  ))}
+                </div>
+              ))}
+            </div>
+            <div className="heatmap-legend-row">
+              <span className="heatmap-legend-text">적음</span>
+              {LEVEL_COLORS.map((color, i) => (
+                <span key={i} className="heatmap-cell" style={{ background: color }} />
+              ))}
+              <span className="heatmap-legend-text">많음</span>
+            </div>
           </div>
         </div>
+
+        {overviewValues && (
+          <ActivityOverview values={overviewValues} />
+        )}
       </div>
     </div>
   );
