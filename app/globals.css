@@ -2349,7 +2349,7 @@ pre code {
 
 .admin-charts {
   display: grid;
-  grid-template-columns: minmax(220px, 1.2fr) minmax(240px, 1.4fr) minmax(170px, 0.7fr) minmax(170px, 0.7fr) minmax(170px, 0.7fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 12px;
   margin-bottom: 16px;
 }
@@ -2496,6 +2496,97 @@ pre code {
   background: #c8c5bc;
 }
 
+/* ── 잔디 히트맵 ── */
+.heatmap-panel {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.heatmap-body {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.heatmap-day-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 20px;
+  flex-shrink: 0;
+}
+
+.heatmap-day-label {
+  font-size: 10px;
+  color: var(--text-sub);
+  height: 13px;
+  line-height: 13px;
+  width: 14px;
+  text-align: right;
+}
+
+.heatmap-right {
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.heatmap-month-row {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 4px;
+  min-height: 16px;
+}
+
+.heatmap-month-cell {
+  width: 13px;
+  font-size: 10px;
+  color: var(--text-sub);
+  white-space: nowrap;
+  overflow: visible;
+  flex-shrink: 0;
+}
+
+.heatmap-grid {
+  display: flex;
+  gap: 2px;
+}
+
+.heatmap-week {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.heatmap-cell {
+  width: 13px;
+  height: 13px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  cursor: default;
+}
+
+.heatmap-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 8px;
+  justify-content: flex-end;
+}
+
+.heatmap-legend-text {
+  font-size: 10px;
+  color: var(--text-sub);
+  margin: 0 2px;
+}
+
 .donut {
   width: 132px;
   height: 132px;
@@ -2589,6 +2680,13 @@ pre code {
 
   .admin-charts {
     grid-template-columns: 1fr 1fr;
+  }
+  .heatmap-cell {
+    width: 11px;
+    height: 11px;
+  }
+  .heatmap-month-cell {
+    width: 11px;
   }
 }
 

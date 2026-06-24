@@ -17,20 +17,9 @@ import { isAdmin } from "@/lib/user";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import { getMeTooCount, isPinnedQuestion } from "@/lib/questionRanking";
 import TopNav from "@/components/TopNav";
+import ActivityHeatmap from "@/components/ActivityHeatmap";
 
 const DAY_MS = 1000 * 60 * 60 * 24;
-
-function sameDay(a, b) {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
-}
-
-function shortDate(date) {
-  return `${date.getMonth() + 1}/${date.getDate()}`;
-}
 
 function StatCard({ label, value, tone, isActive, onClick }) {
   return (
@@ -82,27 +71,6 @@ function buildKeywordStats(questions, answerEvents, keywordNames) {
     .sort((a, b) => b.count - a.count || a.keyword.localeCompare(b.keyword, "ko"));
 }
 
-function buildDailyStats(questions, answerEvents) {
-  const today = new Date();
-  const days = Array.from({ length: 7 }, (_, index) => {
-    const date = new Date(today.getTime() - DAY_MS * (6 - index));
-    return { date, label: shortDate(date), asked: 0, answered: 0 };
-  });
-
-  questions.forEach((question) => {
-    const bucket = days.find((day) => sameDay(day.date, toDate(question.createdAt)));
-    if (bucket) bucket.asked += 1;
-  });
-
-  answerEvents.forEach((event) => {
-    const bucket = days.find((day) =>
-      sameDay(day.date, toDate(event.answer.createdAt))
-    );
-    if (bucket) bucket.answered += 1;
-  });
-
-  return days;
-}
 
 function recentEvents(questions, answerEvents) {
   const asked = questions.map((question) => ({
@@ -241,7 +209,6 @@ export default function StudentReportPage() {
     0
   );
   const keywordStats = buildKeywordStats(myQuestions, myAnswerEvents, keywordNames);
-  const dailyStats = buildDailyStats(myQuestions, myAnswerEvents);
   const events = recentEvents(myQuestions, myAnswerEvents);
   const reflection = weeklyReflection(myQuestions, myAnswerEvents, keywordStats);
   // 내가 남긴 회고들 — 질문 문서의 reflection을 최신순으로 모읍니다.
@@ -341,11 +308,14 @@ export default function StudentReportPage() {
   }, [activeStatKey, myQuestions, myAnswerEvents]);
 
   const maxKeyword = Math.max(1, ...keywordStats.map((item) => item.count));
-  const maxDaily = Math.max(1, ...dailyStats.map((day) => day.asked + day.answered));
   const totalActivity = myQuestions.length + myAnswerEvents.length;
   const askRatio =
     totalActivity === 0 ? 0 : Math.round((myQuestions.length / totalActivity) * 100);
   const answerRatio = totalActivity === 0 ? 0 : 100 - askRatio;
+
+  const withReflection = myQuestions.filter((q) => q.reflection).length;
+  const reflectionRate = myQuestions.length === 0 ? 0 : Math.round((withReflection / myQuestions.length) * 100);
+  const resolveRate = myQuestions.length === 0 ? 0 : Math.round((resolvedQuestions / myQuestions.length) * 100);
   const latestActivity = events[0]?.createdAt ? formatTime(events[0].createdAt) : "아직 없음";
 
   // 관리자 보기로 전환된 경우 리포트를 그리지 않고 이동 대기 화면을 보여줍니다
@@ -600,37 +570,6 @@ export default function StudentReportPage() {
             )}
           </div>
 
-          <div className="admin-chart-panel">
-            <div className="admin-panel-head">
-              <h2>최근 7일 학습 활동</h2>
-              <span>{totalActivity}건</span>
-            </div>
-            <div className="daily-chart">
-              {dailyStats.map((day) => (
-                <div className="daily-bar" key={day.label}>
-                  <div
-                    className="daily-stack"
-                    title={`${day.label} 질문 ${day.asked}건, 답변 ${day.answered}건`}
-                  >
-                    <span
-                      className="daily-answer"
-                      style={{ height: `${(day.answered / maxDaily) * 100}%` }}
-                    />
-                    <span
-                      className="daily-ask"
-                      style={{ height: `${(day.asked / maxDaily) * 100}%` }}
-                    />
-                  </div>
-                  <small>{day.label}</small>
-                </div>
-              ))}
-            </div>
-            <div className="chart-legend">
-              <span><i className="legend-ask" />질문</span>
-              <span><i className="legend-answer" />답변</span>
-            </div>
-          </div>
-
           <div className="admin-chart-panel compact">
             <div className="admin-panel-head">
               <h2>참여 균형</h2>
@@ -652,7 +591,59 @@ export default function StudentReportPage() {
               <span><i className="legend-answer" />답변 {myAnswerEvents.length}</span>
             </div>
           </div>
+
+          <div className="admin-chart-panel compact">
+            <div className="admin-panel-head">
+              <h2>회고 완성률</h2>
+              <span>{reflectionRate}% 완성</span>
+            </div>
+            {myQuestions.length === 0 ? (
+              <EmptyPanel>질문 없음</EmptyPanel>
+            ) : (
+              <>
+                <div
+                  className="donut"
+                  style={{
+                    background: `conic-gradient(#5c9e68 0 ${reflectionRate}%, #e8e5dd ${reflectionRate}% 100%)`,
+                  }}
+                >
+                  <span>{withReflection}</span>
+                </div>
+                <div className="chart-legend centered">
+                  <span><i className="legend-answer" />작성 {withReflection}</span>
+                  <span><i className="legend-neutral" />미작성 {myQuestions.length - withReflection}</span>
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="admin-chart-panel compact">
+            <div className="admin-panel-head">
+              <h2>질문 해결 현황</h2>
+              <span>{resolveRate}% 해결</span>
+            </div>
+            {myQuestions.length === 0 ? (
+              <EmptyPanel>질문 없음</EmptyPanel>
+            ) : (
+              <>
+                <div
+                  className="donut"
+                  style={{
+                    background: `conic-gradient(#5c9e68 0 ${resolveRate}%, var(--primary) ${resolveRate}% 100%)`,
+                  }}
+                >
+                  <span>{resolvedQuestions}</span>
+                </div>
+                <div className="chart-legend centered">
+                  <span><i className="legend-answer" />해결 {resolvedQuestions}</span>
+                  <span><i className="legend-ask" />미해결 {myQuestions.length - resolvedQuestions}</span>
+                </div>
+              </>
+            )}
+          </div>
         </section>
+
+        <ActivityHeatmap questions={myQuestions} answerEvents={myAnswerEvents} />
 
         <section className="admin-activity-panel">
           <div className="admin-panel-head">

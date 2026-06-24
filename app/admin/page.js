@@ -15,18 +15,9 @@ import { useCurrentUser } from "@/lib/useCurrentUser";
 import TopNav from "@/components/TopNav";
 import { getMeTooCount, isPinnedQuestion } from "@/lib/questionRanking";
 import StudentEditModal from "@/components/StudentEditModal";
+import ActivityHeatmap from "@/components/ActivityHeatmap";
 
 const DAY_MS = 1000 * 60 * 60 * 24;
-
-function sameDay(a, b) {
-  return a.getFullYear() === b.getFullYear()
-    && a.getMonth() === b.getMonth()
-    && a.getDate() === b.getDate();
-}
-
-function shortDate(date) {
-  return `${date.getMonth() + 1}/${date.getDate()}`;
-}
 
 function collectStudent(map, item) {
   if (!item.authorId || item.authorId.startsWith("teacher_")) return;
@@ -100,31 +91,6 @@ function buildKeywordStats(student, questions, answerEvents, keywordNames) {
     .sort((a, b) => b.count - a.count || a.keyword.localeCompare(b.keyword, "ko"));
 }
 
-function buildDailyStats(student, questions, answerEvents) {
-  const today = new Date();
-  const days = Array.from({ length: 7 }, (_, index) => {
-    const date = new Date(today.getTime() - DAY_MS * (6 - index));
-    return { date, label: shortDate(date), asked: 0, answered: 0 };
-  });
-
-  questions
-    .filter((question) => question.authorId === student?.id)
-    .forEach((question) => {
-      const date = toDate(question.createdAt);
-      const bucket = days.find((day) => sameDay(day.date, date));
-      if (bucket) bucket.asked += 1;
-    });
-
-  answerEvents
-    .filter((event) => event.answer.authorId === student?.id)
-    .forEach((event) => {
-      const date = toDate(event.answer.createdAt);
-      const bucket = days.find((day) => sameDay(day.date, date));
-      if (bucket) bucket.answered += 1;
-    });
-
-  return days;
-}
 
 function recentEvents(student, questions, answerEvents) {
   const asked = questions
@@ -258,10 +224,8 @@ export default function AdminDashboardPage() {
     0
   );
   const keywordStats = buildKeywordStats(selected, questions, answerEvents, keywordNames);
-  const dailyStats = buildDailyStats(selected, questions, answerEvents);
   const events = recentEvents(selected, questions, answerEvents);
   const maxKeyword = Math.max(1, ...keywordStats.map((item) => item.count));
-  const maxDaily = Math.max(1, ...dailyStats.map((day) => day.asked + day.answered));
   const totalActivity = selectedQuestions.length + selectedAnswers.length;
   const askRatio = totalActivity === 0 ? 0 : Math.round((selectedQuestions.length / totalActivity) * 100);
   const answerRatio = 100 - askRatio;
@@ -420,37 +384,6 @@ export default function AdminDashboardPage() {
                   )}
                 </div>
 
-                <div className="admin-chart-panel">
-                  <div className="admin-panel-head">
-                    <h2>최근 7일 활동</h2>
-                    <span>{totalActivity}건</span>
-                  </div>
-                  <div className="daily-chart">
-                    {dailyStats.map((day) => {
-                      const total = day.asked + day.answered;
-                      return (
-                        <div className="daily-bar" key={day.label}>
-                          <div className="daily-stack" title={`${day.label} ${total}건`}>
-                            <span
-                              className="daily-answer"
-                              style={{ height: `${(day.answered / maxDaily) * 100}%` }}
-                            />
-                            <span
-                              className="daily-ask"
-                              style={{ height: `${(day.asked / maxDaily) * 100}%` }}
-                            />
-                          </div>
-                          <small>{day.label}</small>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div className="chart-legend">
-                    <span><i className="legend-ask" />질문</span>
-                    <span><i className="legend-answer" />답변</span>
-                  </div>
-                </div>
-
                 <div className="admin-chart-panel compact">
                   <div className="admin-panel-head">
                     <h2>참여 균형</h2>
@@ -520,6 +453,8 @@ export default function AdminDashboardPage() {
                   )}
                 </div>
               </section>
+
+              <ActivityHeatmap questions={selectedQuestions} answerEvents={selectedAnswers} />
 
               <section className="admin-activity-panel">
                 <div className="admin-panel-head">
