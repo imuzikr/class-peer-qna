@@ -3,11 +3,17 @@
 // KWL 사이드 패널 — 공부방 왼쪽 고정 패널
 // 저장마다 새 항목이 누적되고, 저장 후 입력창은 초기화됩니다.
 import { useEffect, useState } from "react";
-import { subscribeMyTodayKwl, subscribeAllKwl, subscribeMyAllKwl, addKwl } from "@/lib/store";
+import { subscribeMyTodayKwl, subscribeAllKwl, subscribeMyAllKwl, addKwl, updateKwl } from "@/lib/store";
 import { IconKwlK, IconKwlW, IconKwlL } from "@/components/StatusIcons";
 
 function getToday() {
-  return new Date().toISOString().slice(0, 10);
+  // 로컬(사용자 시간대) 자정 기준 날짜 — UTC 기준이면 KST 오전 9시에
+  // 날짜가 바뀌므로, 한국 달력과 일치하도록 로컬 기준으로 계산합니다.
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
 function formatDateLabel(dateStr) {
@@ -17,6 +23,74 @@ function formatDateLabel(dateStr) {
 
 function KwlEntry({ entry }) {
   const [expanded, setExpanded] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [K, setK] = useState(entry.K ?? "");
+  const [W, setW] = useState(entry.W ?? "");
+  const [L, setL] = useState(entry.L ?? "");
+  const [saving, setSaving] = useState(false);
+
+  // 편집 중이 아닐 때만 외부 갱신(실시간 구독)을 입력값에 반영
+  useEffect(() => {
+    if (!editing) {
+      setK(entry.K ?? "");
+      setW(entry.W ?? "");
+      setL(entry.L ?? "");
+    }
+  }, [entry.K, entry.W, entry.L, editing]);
+
+  function startEdit(e) {
+    e.stopPropagation();
+    setEditing(true);
+  }
+  function cancelEdit(e) {
+    e.stopPropagation();
+    setK(entry.K ?? "");
+    setW(entry.W ?? "");
+    setL(entry.L ?? "");
+    setEditing(false);
+  }
+  async function saveEdit(e) {
+    e.stopPropagation();
+    if (!K.trim() && !W.trim() && !L.trim()) return;
+    setSaving(true);
+    try {
+      await updateKwl(entry, { K, W, L });
+      setEditing(false);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (editing) {
+    return (
+      <div className="kwl-entry kwl-entry--editing">
+        <div className="kwl-edit-row">
+          <IconKwlK size={22} />
+          <textarea className="kwl-edit-textarea" value={K} rows={2}
+            placeholder="알고 있던 것" onChange={(e) => setK(e.target.value)} />
+        </div>
+        <div className="kwl-edit-row">
+          <IconKwlW size={22} />
+          <textarea className="kwl-edit-textarea" value={W} rows={2}
+            placeholder="알고 싶은 것" onChange={(e) => setW(e.target.value)} />
+        </div>
+        <div className="kwl-edit-row">
+          <IconKwlL size={22} />
+          <textarea className="kwl-edit-textarea" value={L} rows={2}
+            placeholder="새롭게 알게 된 것" onChange={(e) => setL(e.target.value)} />
+        </div>
+        <div className="kwl-edit-actions">
+          <button type="button" className="kwl-edit-cancel" onClick={cancelEdit} disabled={saving}>
+            취소
+          </button>
+          <button type="button" className="kwl-edit-save" onClick={saveEdit} disabled={saving}>
+            {saving ? "저장 중…" : "저장"}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className={`kwl-entry${expanded ? " kwl-entry--open" : ""}`}
@@ -43,6 +117,9 @@ function KwlEntry({ entry }) {
           <p>{entry.L}</p>
         </div>
       )}
+      <button type="button" className="kwl-entry-edit-btn" onClick={startEdit} aria-label="수정">
+        ✏️ 수정
+      </button>
     </div>
   );
 }

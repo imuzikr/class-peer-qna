@@ -4005,6 +4005,82 @@ pre code {
   text-overflow: unset;
 }
 
+/* 오늘 항목 — 수정 버튼 / 인라인 편집 */
+.kwl-entry-edit-btn {
+  align-self: flex-end;
+  background: none;
+  border: none;
+  color: var(--text-sub);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+.kwl-entry-edit-btn:hover {
+  color: var(--primary, #e07a5f);
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.kwl-entry--editing {
+  cursor: default;
+}
+.kwl-entry--editing:hover {
+  border-color: var(--border);
+}
+
+.kwl-edit-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.kwl-edit-textarea {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 13px;
+  font-family: inherit;
+  resize: vertical;
+  background: var(--card-bg, #fff);
+  color: inherit;
+}
+.kwl-edit-textarea:focus {
+  outline: none;
+  border-color: var(--primary, #e07a5f);
+}
+
+.kwl-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.kwl-edit-cancel,
+.kwl-edit-save {
+  border: none;
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.kwl-edit-cancel {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--text-sub);
+}
+.kwl-edit-save {
+  background: var(--primary, #e07a5f);
+  color: #fff;
+}
+.kwl-edit-save:disabled,
+.kwl-edit-cancel:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
 .kwl-history-count {
   font-size: 11px;
   color: var(--text-sub);
