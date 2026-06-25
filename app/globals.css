@@ -2616,6 +2616,79 @@ pre code {
   margin: 0 2px;
 }
 
+/* ── 접속 시간대 히트맵 ── */
+.access-panel {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.access-grid-wrap {
+  overflow-x: auto;
+  margin-top: 10px;
+}
+
+.access-grid {
+  border-collapse: collapse;
+  font-size: 10px;
+}
+
+.access-grid th.access-hour {
+  font-weight: 600;
+  color: var(--text-sub);
+  text-align: left;
+  padding: 0 0 4px 1px;
+  white-space: nowrap;
+}
+
+.access-grid td.access-day {
+  color: var(--text-sub);
+  white-space: nowrap;
+  padding-right: 8px;
+  text-align: right;
+}
+
+.access-grid td.access-day .access-dow {
+  margin-left: 3px;
+  opacity: 0.7;
+}
+
+.access-cell {
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+  border: 1px solid #fff;
+  padding: 0;
+}
+
+.access-cell.hour-start {
+  border-left: 1px solid var(--border);
+}
+
+.access-legend {
+  display: flex;
+  gap: 14px;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+.access-legend span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-sub);
+}
+
+.access-legend i {
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
 /* ── 학습 균형 레이더 오버뷰 ── */
 .activity-overview {
   flex-shrink: 0;
