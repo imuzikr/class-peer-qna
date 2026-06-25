@@ -47,6 +47,61 @@ function fmtMinutes(m) {
   return `${m}분`;
 }
 
+// 단조 3차 보간(Fritsch–Carlson) — 점 사이에서 오버슈트(데이터에 없는 값
+// 으로 튐)가 없어, 0 아래로 내려가거나 봉우리가 부풀지 않습니다.
+// pts: [{x, y}] (x 오름차순), yBase: 영역 채움 바닥 y좌표.
+function monotonePaths(pts, yBase) {
+  const n = pts.length;
+  const f = (v) => v.toFixed(1);
+  if (n === 0) return { line: "", area: "" };
+  if (n === 1) {
+    const p = pts[0];
+    return { line: `M ${f(p.x)},${f(p.y)}`, area: `M ${f(p.x)},${f(yBase)} L ${f(p.x)},${f(p.y)} Z` };
+  }
+
+  const dx = [], s = [];
+  for (let i = 0; i < n - 1; i++) {
+    dx[i] = pts[i + 1].x - pts[i].x;
+    s[i] = (pts[i + 1].y - pts[i].y) / dx[i];
+  }
+
+  const m = new Array(n);
+  m[0] = s[0];
+  m[n - 1] = s[n - 2];
+  for (let i = 1; i < n - 1; i++) {
+    m[i] = s[i - 1] * s[i] <= 0 ? 0 : (s[i - 1] + s[i]) / 2;
+  }
+  // 단조성 보정: 인접 구간 범위를 넘지 않도록 접선 기울기를 제한
+  for (let i = 0; i < n - 1; i++) {
+    if (s[i] === 0) {
+      m[i] = 0;
+      m[i + 1] = 0;
+      continue;
+    }
+    const a = m[i] / s[i];
+    const b = m[i + 1] / s[i];
+    const h = a * a + b * b;
+    if (h > 9) {
+      const t = 3 / Math.sqrt(h);
+      m[i] = t * a * s[i];
+      m[i + 1] = t * b * s[i];
+    }
+  }
+
+  let segs = "";
+  for (let i = 0; i < n - 1; i++) {
+    const x1 = pts[i].x, y1 = pts[i].y, x2 = pts[i + 1].x, y2 = pts[i + 1].y;
+    const cp1x = x1 + dx[i] / 3, cp1y = y1 + (m[i] * dx[i]) / 3;
+    const cp2x = x2 - dx[i] / 3, cp2y = y2 - (m[i + 1] * dx[i]) / 3;
+    segs += ` C ${f(cp1x)},${f(cp1y)} ${f(cp2x)},${f(cp2y)} ${f(x2)},${f(y2)}`;
+  }
+
+  const first = pts[0], last = pts[n - 1];
+  const line = `M ${f(first.x)},${f(first.y)}${segs}`;
+  const area = `M ${f(first.x)},${f(yBase)} L ${f(first.x)},${f(first.y)}${segs} L ${f(last.x)},${f(yBase)} Z`;
+  return { line, area };
+}
+
 export default function AccessLineChart({ pings = [] }) {
   // 하루별 접속 버킷 수 → 분
   const byDay = new Map();
@@ -91,8 +146,10 @@ export default function AccessLineChart({ pings = [] }) {
   const x = (i) => padL + (n > 1 ? (i * innerW) / (n - 1) : innerW / 2);
   const y = (m) => padT + innerH * (1 - m / maxY);
 
-  const linePts = days.map((d, i) => `${x(i).toFixed(1)},${y(d.minutes).toFixed(1)}`).join(" ");
-  const areaPts = `${padL},${y(0).toFixed(1)} ${linePts} ${x(n - 1).toFixed(1)},${y(0).toFixed(1)}`;
+  // 단조 3차 보간(Fritsch–Carlson) — 모서리만 부드럽게, 값은 데이터 범위를
+  // 벗어나지 않음(오버슈트·음수 없음 → 왜곡 없음).
+  const pts = days.map((d, i) => ({ x: x(i), y: y(d.minutes) }));
+  const { line: lineD, area: areaD } = monotonePaths(pts, y(0));
 
   const yTicks = [];
   for (let t = 0; t <= maxY; t += 60) yTicks.push(t);
@@ -135,9 +192,9 @@ export default function AccessLineChart({ pings = [] }) {
           </g>
         ))}
 
-        {/* 영역 + 선 */}
-        <polygon points={areaPts} className="access-line-area" />
-        <polyline points={linePts} className="access-line-path" />
+        {/* 영역 + 선 (단조 곡선) */}
+        <path d={areaD} className="access-line-area" />
+        <path d={lineD} className="access-line-path" />
       </svg>
 
       <div className="access-line-foot">
