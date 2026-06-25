@@ -9,6 +9,7 @@
 // =============================================================
 import { useEffect, useState } from "react";
 import { subscribeAnswers, formatTime } from "@/lib/store";
+import { sanitizeHtml } from "@/lib/html";
 import { IconAsk, IconSolved } from "./StatusIcons";
 
 export default function StudyQuestionPeek({ question, onClose, onBackToList }) {
@@ -51,7 +52,7 @@ export default function StudyQuestionPeek({ question, onClose, onBackToList }) {
         <div className="study-peek-body">
           <div
             className="study-card-body"
-            dangerouslySetInnerHTML={{ __html: question.content }}
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(question.content) }}
           />
 
           <div className="study-peek-answers">
@@ -80,7 +81,7 @@ export default function StudyQuestionPeek({ question, onClose, onBackToList }) {
                     </div>
                     <div
                       className="study-card-body"
-                      dangerouslySetInnerHTML={{ __html: a.content }}
+                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(a.content) }}
                     />
                     {a.imageUrl && (
                       <img

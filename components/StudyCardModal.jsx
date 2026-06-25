@@ -321,7 +321,7 @@ export default function StudyCardModal({
               )}
               <div
                 className="study-card-body"
-                dangerouslySetInnerHTML={{ __html: card.content }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(card.content) }}
               />
               {card.imageUrl && (
                 <img
