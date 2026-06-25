@@ -571,16 +571,6 @@ export default function StudentReportPage() {
           </div>
         </section>
 
-        <AccessLineChart
-          pings={
-            presencePings.length > 0
-              ? presencePings
-              : !isFirebaseConfigured
-              ? demoAccessPings()
-              : []
-          }
-        />
-
         <section className="admin-stats-grid">
           {[
             { key: "ask", label: "내 질문", value: myQuestions.length, tone: "ask" },
@@ -725,6 +715,16 @@ export default function StudentReportPage() {
             </div>
           )}
         </section>
+
+        <AccessLineChart
+          pings={
+            presencePings.length > 0
+              ? presencePings
+              : !isFirebaseConfigured
+              ? demoAccessPings()
+              : []
+          }
+        />
           </>
         )}
         </main>
