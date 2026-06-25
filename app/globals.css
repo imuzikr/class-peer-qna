@@ -2620,6 +2620,76 @@ pre code {
   margin: 0 2px;
 }
 
+/* ── 관리자 뷰 탭 (학생별 / 학급 전체) ── */
+.admin-view-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.admin-view-tab {
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text-sub);
+  border-radius: 999px;
+  padding: 7px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.admin-view-tab.active {
+  background: var(--primary, #e07a5f);
+  border-color: var(--primary, #e07a5f);
+  color: #fff;
+}
+
+/* 학급 전체 통계 — 표 + 차트 2열 */
+.overview-charts {
+  grid-template-columns: 1.7fr 1fr;
+}
+
+.overview-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.overview-table th {
+  text-align: center;
+  color: var(--text-sub);
+  font-weight: 600;
+  font-size: 11px;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+}
+.overview-table th:first-child {
+  text-align: left;
+}
+
+.overview-table td {
+  padding: 7px 6px;
+  text-align: center;
+  border-bottom: 1px solid var(--neutral, #f0eee7);
+}
+
+.overview-table td.ov-name {
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.ov-unresolved {
+  font-size: 11px;
+  color: var(--primary-dark, #b85c4a);
+  background: rgba(224, 122, 95, 0.12);
+  border-radius: 4px;
+  padding: 1px 6px;
+  white-space: nowrap;
+}
+
 /* ── 학생 KWL 기록 패널 (관리자) ── */
 .kwl-record-list {
   display: flex;

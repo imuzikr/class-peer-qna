@@ -20,6 +20,7 @@ import StudentEditModal from "@/components/StudentEditModal";
 import ActivityHeatmap from "@/components/ActivityHeatmap";
 import AccessLineChart, { demoAccessPings } from "@/components/AccessLineChart";
 import StudentKwlPanel from "@/components/StudentKwlPanel";
+import ClassOverview from "@/components/ClassOverview";
 
 const DAY_MS = 1000 * 60 * 60 * 24;
 
@@ -233,6 +234,7 @@ export default function AdminDashboardPage() {
   const [activeStatKey, setActiveStatKey] = useState(null); // 통계 카드 드릴다운
   const [selectedPresence, setSelectedPresence] = useState([]); // 선택 학생 접속 기록
   const [selectedKwl, setSelectedKwl] = useState([]); // 선택 학생 KWL 기록
+  const [view, setView] = useState("students"); // 'students' | 'overview'
 
   // 관리자 대시보드는 관리자 전용 — 학생 보기로 바뀌면 학습 리포트로 이동
   const isStudent = user ? !isAdmin(user) : false;
@@ -457,7 +459,32 @@ export default function AdminDashboardPage() {
         </aside>
 
         <main className="admin-main">
-          {selected ? (
+          {students.length > 0 && (
+            <div className="admin-view-tabs">
+              <button
+                type="button"
+                className={`admin-view-tab ${view === "students" ? "active" : ""}`}
+                onClick={() => setView("students")}
+              >
+                학생별 분석
+              </button>
+              <button
+                type="button"
+                className={`admin-view-tab ${view === "overview" ? "active" : ""}`}
+                onClick={() => setView("overview")}
+              >
+                학급 전체 통계
+              </button>
+            </div>
+          )}
+          {view === "overview" ? (
+            <ClassOverview
+              questions={questions}
+              answerEvents={answerEvents}
+              students={students}
+              onOpenQuestion={(id) => router.push(`/board?open=${id}`)}
+            />
+          ) : selected ? (
             <>
               <section className="admin-hero">
                 <div>
