@@ -360,6 +360,8 @@ export default function AdminDashboardPage() {
                 </div>
               </section>
 
+              <ActivityHeatmap questions={selectedQuestions} answerEvents={selectedAnswers} overviewValues={overviewValues} />
+
               <section className="admin-stats-grid">
                 <StatCard label="올린 질문" value={selectedQuestions.length} tone="ask" />
                 <StatCard label="작성 답변" value={selectedAnswers.length} tone="answer" />
@@ -463,8 +465,6 @@ export default function AdminDashboardPage() {
                   )}
                 </div>
               </section>
-
-              <ActivityHeatmap questions={selectedQuestions} answerEvents={selectedAnswers} overviewValues={overviewValues} />
 
               <section className="admin-activity-panel">
                 <div className="admin-panel-head">

@@ -432,6 +432,8 @@ export default function StudentReportPage() {
           </div>
         </section>
 
+        <ActivityHeatmap questions={myQuestions} answerEvents={myAnswerEvents} overviewValues={overviewValues} />
+
         <section className="admin-stats-grid">
           {[
             { key: "ask", label: "내 질문", value: myQuestions.length, tone: "ask" },
@@ -650,8 +652,6 @@ export default function StudentReportPage() {
             )}
           </div>
         </section>
-
-        <ActivityHeatmap questions={myQuestions} answerEvents={myAnswerEvents} overviewValues={overviewValues} />
 
         <section className="admin-activity-panel">
           <div className="admin-panel-head">
