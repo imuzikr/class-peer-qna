@@ -9,18 +9,15 @@ import {
   subscribeQuestions,
   subscribeStudyBoards,
   subscribeStudyCards,
-  subscribeMyAllKwl,
   toDate,
 } from "@/lib/store";
 import { isFirebaseConfigured } from "@/lib/firebase";
 import { stripHtml } from "@/lib/html";
 import { isAdmin } from "@/lib/user";
 import { useCurrentUser } from "@/lib/useCurrentUser";
-import { getSelectedClassId } from "@/lib/classroom";
 import { getMeTooCount, isPinnedQuestion } from "@/lib/questionRanking";
 import TopNav from "@/components/TopNav";
 import ActivityHeatmap from "@/components/ActivityHeatmap";
-import KwlBarChart, { demoKwlEntries } from "@/components/KwlBarChart";
 
 const DAY_MS = 1000 * 60 * 60 * 24;
 
@@ -126,7 +123,6 @@ export default function StudentReportPage() {
   const [activeStatKey, setActiveStatKey] = useState(null); // 통계 카드 드릴다운
   const [studyBoards, setStudyBoards] = useState([]);
   const [cardsByBoard, setCardsByBoard] = useState({}); // boardId -> cards[]
-  const [kwlEntries, setKwlEntries] = useState([]); // 내 KWL 기록 (작성 추이 차트)
 
   // 학습 리포트는 학생 화면 — 관리자 보기로 바뀌면 관리자 대시보드로 이동
   const isTeacher = user ? isAdmin(user) : false;
@@ -144,22 +140,6 @@ export default function StudentReportPage() {
       unsubB();
     };
   }, []);
-
-  // 내 KWL 기록 구독 — 입장한 반과 사용자 기준 (반 변경 시 재연결)
-  const [classId, setClassId] = useState(null);
-  useEffect(() => {
-    const sync = () => setClassId(getSelectedClassId());
-    sync();
-    window.addEventListener("class-change", sync);
-    return () => window.removeEventListener("class-change", sync);
-  }, []);
-  useEffect(() => {
-    if (!classId || !user) {
-      setKwlEntries([]);
-      return;
-    }
-    return subscribeMyAllKwl(classId, user.uid, setKwlEntries);
-  }, [classId, user?.uid]);
 
   // 보드별 카드 구독 — 보드 id 집합이 바뀔 때만 재연결 (배열 참조 변경 무시)
   const boardIdsKey = useMemo(
@@ -430,16 +410,6 @@ export default function StudentReportPage() {
               ))}
             </div>
           )}
-
-          <KwlBarChart
-            entries={
-              kwlEntries.length > 0
-                ? kwlEntries
-                : !isFirebaseConfigured
-                ? demoKwlEntries()
-                : []
-            }
-          />
         </aside>
 
         {/* 오른쪽: 통계 및 활동 */}
