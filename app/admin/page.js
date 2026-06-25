@@ -7,6 +7,7 @@ import {
   subscribeAnswers,
   subscribeKeywords,
   subscribeQuestions,
+  subscribeUserPresence,
   toDate,
 } from "@/lib/store";
 import { isFirebaseConfigured } from "@/lib/firebase";
@@ -16,6 +17,7 @@ import TopNav from "@/components/TopNav";
 import { getMeTooCount, isPinnedQuestion } from "@/lib/questionRanking";
 import StudentEditModal from "@/components/StudentEditModal";
 import ActivityHeatmap from "@/components/ActivityHeatmap";
+import AccessLineChart, { demoAccessPings } from "@/components/AccessLineChart";
 
 const DAY_MS = 1000 * 60 * 60 * 24;
 
@@ -227,6 +229,7 @@ export default function AdminDashboardPage() {
   const [pendingOpen, setPendingOpen] = useState(true);
   const [editingStudent, setEditingStudent] = useState(null);
   const [activeStatKey, setActiveStatKey] = useState(null); // 통계 카드 드릴다운
+  const [selectedPresence, setSelectedPresence] = useState([]); // 선택 학생 접속 기록
 
   // 관리자 대시보드는 관리자 전용 — 학생 보기로 바뀌면 학습 리포트로 이동
   const isStudent = user ? !isAdmin(user) : false;
@@ -300,6 +303,15 @@ export default function AdminDashboardPage() {
       setSelectedId(students[0]?.id ?? null);
     }
   }, [selectedId, students]);
+
+  // 선택한 학생의 접속 기록 구독 (반 무관)
+  useEffect(() => {
+    if (!selectedId) {
+      setSelectedPresence([]);
+      return;
+    }
+    return subscribeUserPresence(selectedId, setSelectedPresence);
+  }, [selectedId]);
 
   const selected = students.find((student) => student.id === selectedId) ?? null;
   const selectedQuestions = questions.filter((question) => question.authorId === selected?.id);
@@ -620,6 +632,16 @@ export default function AdminDashboardPage() {
                   </div>
                 )}
               </section>
+
+              <AccessLineChart
+                pings={
+                  selectedPresence.length > 0
+                    ? selectedPresence
+                    : !isFirebaseConfigured
+                    ? demoAccessPings()
+                    : []
+                }
+              />
             </>
           ) : (
             <EmptyPanel>학생을 선택하면 활동 분석이 표시됩니다.</EmptyPanel>
