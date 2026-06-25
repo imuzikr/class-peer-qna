@@ -138,8 +138,8 @@ export default function AccessLineChart({ pings = [] }) {
   // y축 눈금을 1시간 단위 정수로 (라벨이 짧아 잘리지 않음)
   const maxY = Math.max(60, Math.ceil(maxMin / 60) * 60);
 
-  // SVG 좌표
-  const W = 960, H = 240;
+  // SVG 좌표 — 세로 눈금 간격을 압축(플롯 높이 200→60, 70% 짧게)
+  const W = 960, H = 100;
   const padL = 52, padR = 14, padT = 14, padB = 26;
   const innerW = W - padL - padR;
   const innerH = H - padT - padB;
