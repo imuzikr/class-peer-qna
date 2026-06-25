@@ -2391,7 +2391,7 @@ pre code {
 
 .bar-row {
   display: grid;
-  grid-template-columns: 46px minmax(0, 1fr) 24px;
+  grid-template-columns: 72px minmax(0, 1fr) 24px;
   align-items: center;
   gap: 10px;
   font-size: 13px;
@@ -2400,6 +2400,10 @@ pre code {
 .bar-row > span {
   color: var(--text);
   font-weight: 700;
+  /* 한국어는 어절(공백) 단위로 줄바꿈 — 글자 중간에서 끊기지 않게 */
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  line-height: 1.25;
 }
 
 .bar-row strong {
@@ -2614,6 +2618,53 @@ pre code {
   font-size: 10px;
   color: var(--text-sub);
   margin: 0 2px;
+}
+
+/* ── 학생 KWL 기록 패널 (관리자) ── */
+.kwl-record-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 4px;
+}
+
+.kwl-record-day {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.kwl-record-date {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-sub);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 4px;
+}
+
+.kwl-record-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  background: var(--card-bg, #faf9f6);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.kwl-record-entry .kwl-history-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.kwl-record-entry .kwl-history-row p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
 /* ── 접속 시간 추이 (선 그래프) ── */

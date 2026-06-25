@@ -8,6 +8,7 @@ import {
   subscribeKeywords,
   subscribeQuestions,
   subscribeUserPresence,
+  subscribeUserKwl,
   toDate,
 } from "@/lib/store";
 import { isFirebaseConfigured } from "@/lib/firebase";
@@ -18,6 +19,7 @@ import { getMeTooCount, isPinnedQuestion } from "@/lib/questionRanking";
 import StudentEditModal from "@/components/StudentEditModal";
 import ActivityHeatmap from "@/components/ActivityHeatmap";
 import AccessLineChart, { demoAccessPings } from "@/components/AccessLineChart";
+import StudentKwlPanel from "@/components/StudentKwlPanel";
 
 const DAY_MS = 1000 * 60 * 60 * 24;
 
@@ -230,6 +232,7 @@ export default function AdminDashboardPage() {
   const [editingStudent, setEditingStudent] = useState(null);
   const [activeStatKey, setActiveStatKey] = useState(null); // 통계 카드 드릴다운
   const [selectedPresence, setSelectedPresence] = useState([]); // 선택 학생 접속 기록
+  const [selectedKwl, setSelectedKwl] = useState([]); // 선택 학생 KWL 기록
 
   // 관리자 대시보드는 관리자 전용 — 학생 보기로 바뀌면 학습 리포트로 이동
   const isStudent = user ? !isAdmin(user) : false;
@@ -311,6 +314,15 @@ export default function AdminDashboardPage() {
       return;
     }
     return subscribeUserPresence(selectedId, setSelectedPresence);
+  }, [selectedId]);
+
+  // 선택한 학생의 KWL 기록 구독 (반 무관)
+  useEffect(() => {
+    if (!selectedId) {
+      setSelectedKwl([]);
+      return;
+    }
+    return subscribeUserKwl(selectedId, setSelectedKwl);
   }, [selectedId]);
 
   const selected = students.find((student) => student.id === selectedId) ?? null;
@@ -632,6 +644,8 @@ export default function AdminDashboardPage() {
                   </div>
                 )}
               </section>
+
+              <StudentKwlPanel entries={selectedKwl} />
 
               <AccessLineChart
                 pings={
