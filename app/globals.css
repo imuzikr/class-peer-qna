@@ -2631,11 +2631,19 @@ pre code {
 }
 
 .access-grid {
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 1px;
   font-size: 10px;
 }
 
-.access-grid th.access-hour {
+.access-grid th.access-corner {
+  position: sticky;
+  left: 0;
+  background: #fff;
+  z-index: 2;
+}
+
+.access-grid th.access-month {
   font-weight: 600;
   color: var(--text-sub);
   text-align: left;
@@ -2643,28 +2651,23 @@ pre code {
   white-space: nowrap;
 }
 
-.access-grid td.access-day {
+.access-grid td.access-hour-label {
+  position: sticky;
+  left: 0;
+  background: #fff;
   color: var(--text-sub);
   white-space: nowrap;
   padding-right: 8px;
   text-align: right;
-}
-
-.access-grid td.access-day .access-dow {
-  margin-left: 3px;
-  opacity: 0.7;
+  z-index: 1;
 }
 
 .access-cell {
-  width: 11px;
-  height: 11px;
+  width: 8px;
+  height: 10px;
+  min-width: 8px;
   border-radius: 2px;
-  border: 1px solid #fff;
   padding: 0;
-}
-
-.access-cell.hour-start {
-  border-left: 1px solid var(--border);
 }
 
 .access-legend {
