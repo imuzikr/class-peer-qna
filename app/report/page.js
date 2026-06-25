@@ -434,6 +434,105 @@ export default function StudentReportPage() {
 
         <ActivityHeatmap questions={myQuestions} answerEvents={myAnswerEvents} overviewValues={overviewValues} />
 
+        <section className="admin-charts report-charts">
+          <div className="admin-chart-panel">
+            <div className="admin-panel-head">
+              <h2>많이 나온 키워드</h2>
+              <span>{keywordStats.length}개 과목</span>
+            </div>
+            {keywordStats.length === 0 ? (
+              <EmptyPanel>질문이나 답변을 남기면 키워드가 쌓입니다.</EmptyPanel>
+            ) : (
+              <div className="keyword-bars">
+                {keywordStats.map((item) => (
+                  <div className="bar-row" key={item.keyword}>
+                    <span>{item.keyword}</span>
+                    <div className="bar-track">
+                      <div
+                        className="bar-fill"
+                        style={{ width: `${(item.count / maxKeyword) * 100}%` }}
+                      />
+                    </div>
+                    <strong>{item.count}</strong>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="admin-chart-panel compact">
+            <div className="admin-panel-head">
+              <h2>참여 균형</h2>
+              <span>{answerRatio}% 답변</span>
+            </div>
+            <div
+              className="donut"
+              style={{
+                background:
+                  totalActivity === 0
+                    ? "conic-gradient(var(--neutral) 0 100%)"
+                    : `conic-gradient(var(--primary) 0 ${askRatio}%, #5c9e68 ${askRatio}% 100%)`,
+              }}
+            >
+              <span>{totalActivity}</span>
+            </div>
+            <div className="chart-legend centered">
+              <span><i className="legend-ask" />질문 {myQuestions.length}</span>
+              <span><i className="legend-answer" />답변 {myAnswerEvents.length}</span>
+            </div>
+          </div>
+
+          <div className="admin-chart-panel compact">
+            <div className="admin-panel-head">
+              <h2>회고 완성률</h2>
+              <span>{reflectionRate}% 완성</span>
+            </div>
+            {myQuestions.length === 0 ? (
+              <EmptyPanel>질문 없음</EmptyPanel>
+            ) : (
+              <>
+                <div
+                  className="donut"
+                  style={{
+                    background: `conic-gradient(#5c9e68 0 ${reflectionRate}%, #e8e5dd ${reflectionRate}% 100%)`,
+                  }}
+                >
+                  <span>{withReflection}</span>
+                </div>
+                <div className="chart-legend centered">
+                  <span><i className="legend-answer" />작성 {withReflection}</span>
+                  <span><i className="legend-neutral" />미작성 {myQuestions.length - withReflection}</span>
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="admin-chart-panel compact">
+            <div className="admin-panel-head">
+              <h2>질문 해결 현황</h2>
+              <span>{resolveRate}% 해결</span>
+            </div>
+            {myQuestions.length === 0 ? (
+              <EmptyPanel>질문 없음</EmptyPanel>
+            ) : (
+              <>
+                <div
+                  className="donut"
+                  style={{
+                    background: `conic-gradient(#5c9e68 0 ${resolveRate}%, var(--primary) ${resolveRate}% 100%)`,
+                  }}
+                >
+                  <span>{resolvedQuestions}</span>
+                </div>
+                <div className="chart-legend centered">
+                  <span><i className="legend-answer" />해결 {resolvedQuestions}</span>
+                  <span><i className="legend-ask" />미해결 {myQuestions.length - resolvedQuestions}</span>
+                </div>
+              </>
+            )}
+          </div>
+        </section>
+
         <section className="admin-stats-grid">
           {[
             { key: "ask", label: "내 질문", value: myQuestions.length, tone: "ask" },
@@ -551,105 +650,6 @@ export default function StudentReportPage() {
                 {item}
               </div>
             ))}
-          </div>
-        </section>
-
-        <section className="admin-charts report-charts">
-          <div className="admin-chart-panel">
-            <div className="admin-panel-head">
-              <h2>많이 나온 키워드</h2>
-              <span>{keywordStats.length}개 과목</span>
-            </div>
-            {keywordStats.length === 0 ? (
-              <EmptyPanel>질문이나 답변을 남기면 키워드가 쌓입니다.</EmptyPanel>
-            ) : (
-              <div className="keyword-bars">
-                {keywordStats.map((item) => (
-                  <div className="bar-row" key={item.keyword}>
-                    <span>{item.keyword}</span>
-                    <div className="bar-track">
-                      <div
-                        className="bar-fill"
-                        style={{ width: `${(item.count / maxKeyword) * 100}%` }}
-                      />
-                    </div>
-                    <strong>{item.count}</strong>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="admin-chart-panel compact">
-            <div className="admin-panel-head">
-              <h2>참여 균형</h2>
-              <span>{answerRatio}% 답변</span>
-            </div>
-            <div
-              className="donut"
-              style={{
-                background:
-                  totalActivity === 0
-                    ? "conic-gradient(var(--neutral) 0 100%)"
-                    : `conic-gradient(var(--primary) 0 ${askRatio}%, #5c9e68 ${askRatio}% 100%)`,
-              }}
-            >
-              <span>{totalActivity}</span>
-            </div>
-            <div className="chart-legend centered">
-              <span><i className="legend-ask" />질문 {myQuestions.length}</span>
-              <span><i className="legend-answer" />답변 {myAnswerEvents.length}</span>
-            </div>
-          </div>
-
-          <div className="admin-chart-panel compact">
-            <div className="admin-panel-head">
-              <h2>회고 완성률</h2>
-              <span>{reflectionRate}% 완성</span>
-            </div>
-            {myQuestions.length === 0 ? (
-              <EmptyPanel>질문 없음</EmptyPanel>
-            ) : (
-              <>
-                <div
-                  className="donut"
-                  style={{
-                    background: `conic-gradient(#5c9e68 0 ${reflectionRate}%, #e8e5dd ${reflectionRate}% 100%)`,
-                  }}
-                >
-                  <span>{withReflection}</span>
-                </div>
-                <div className="chart-legend centered">
-                  <span><i className="legend-answer" />작성 {withReflection}</span>
-                  <span><i className="legend-neutral" />미작성 {myQuestions.length - withReflection}</span>
-                </div>
-              </>
-            )}
-          </div>
-
-          <div className="admin-chart-panel compact">
-            <div className="admin-panel-head">
-              <h2>질문 해결 현황</h2>
-              <span>{resolveRate}% 해결</span>
-            </div>
-            {myQuestions.length === 0 ? (
-              <EmptyPanel>질문 없음</EmptyPanel>
-            ) : (
-              <>
-                <div
-                  className="donut"
-                  style={{
-                    background: `conic-gradient(#5c9e68 0 ${resolveRate}%, var(--primary) ${resolveRate}% 100%)`,
-                  }}
-                >
-                  <span>{resolvedQuestions}</span>
-                </div>
-                <div className="chart-legend centered">
-                  <span><i className="legend-answer" />해결 {resolvedQuestions}</span>
-                  <span><i className="legend-ask" />미해결 {myQuestions.length - resolvedQuestions}</span>
-                </div>
-              </>
-            )}
           </div>
         </section>
 

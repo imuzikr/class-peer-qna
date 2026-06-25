@@ -118,12 +118,98 @@ function recentEvents(student, questions, answerEvents) {
     .slice(0, 6);
 }
 
-function StatCard({ label, value, tone }) {
+const STAT_LABELS = {
+  ask: "올린 질문",
+  answer: "작성 답변",
+  resolved: "해결 질문",
+  metoo: "받은 궁금해요",
+  pin: "상단 고정 질문",
+};
+
+const STAT_EMPTY = {
+  ask: "올린 질문이 없습니다.",
+  answer: "작성한 답변이 없습니다.",
+  resolved: "해결된 질문이 없습니다.",
+  metoo: "궁금해요를 받은 질문이 없습니다.",
+  pin: "상단 고정된 질문이 없습니다.",
+};
+
+// 통계 카드 드릴다운 — 선택한 학생의 질문/답변을 카드 종류별로 펼칩니다.
+function buildStatDetailItems(activeStatKey, questions, answerEvents) {
+  switch (activeStatKey) {
+    case "ask":
+      return questions.map((q) => ({
+        key: q.id,
+        questionId: q.id,
+        keyword: q.keyword,
+        title: q.title,
+        badge: q.resolved ? "✅ 해결됨" : "🙋 미해결",
+        time: q.createdAt,
+      }));
+    case "answer": {
+      const seen = new Set();
+      return answerEvents
+        .filter((e) => {
+          if (seen.has(e.question.id)) return false;
+          seen.add(e.question.id);
+          return true;
+        })
+        .map((e) => ({
+          key: `a-${e.question.id}`,
+          questionId: e.question.id,
+          keyword: e.question.keyword,
+          title: e.question.title,
+          badge: null,
+          time: e.answer.createdAt,
+        }));
+    }
+    case "resolved":
+      return questions
+        .filter((q) => q.resolved)
+        .map((q) => ({
+          key: q.id,
+          questionId: q.id,
+          keyword: q.keyword,
+          title: q.title,
+          badge: null,
+          time: q.createdAt,
+        }));
+    case "metoo":
+      return questions
+        .filter((q) => getMeTooCount(q) > 0)
+        .sort((a, b) => getMeTooCount(b) - getMeTooCount(a))
+        .map((q) => ({
+          key: q.id,
+          questionId: q.id,
+          keyword: q.keyword,
+          title: q.title,
+          badge: `🙋 ${getMeTooCount(q)}`,
+          time: q.createdAt,
+        }));
+    case "pin":
+      return questions.filter(isPinnedQuestion).map((q) => ({
+        key: q.id,
+        questionId: q.id,
+        keyword: q.keyword,
+        title: q.title,
+        badge: "📌 고정",
+        time: q.createdAt,
+      }));
+    default:
+      return [];
+  }
+}
+
+function StatCard({ label, value, tone, isActive, onClick }) {
   return (
-    <div className={`admin-stat ${tone ? `tone-${tone}` : ""}`}>
+    <button
+      type="button"
+      className={`admin-stat${tone ? ` tone-${tone}` : ""}${isActive ? " is-active" : ""}`}
+      onClick={onClick}
+    >
       <span>{label}</span>
       <strong>{value}</strong>
-    </div>
+    </button>
   );
 }
 
@@ -140,6 +226,7 @@ export default function AdminDashboardPage() {
   const [selectedId, setSelectedId] = useState(null);
   const [pendingOpen, setPendingOpen] = useState(true);
   const [editingStudent, setEditingStudent] = useState(null);
+  const [activeStatKey, setActiveStatKey] = useState(null); // 통계 카드 드릴다운
 
   // 관리자 대시보드는 관리자 전용 — 학생 보기로 바뀌면 학습 리포트로 이동
   const isStudent = user ? !isAdmin(user) : false;
@@ -233,6 +320,7 @@ export default function AdminDashboardPage() {
   const withReflection = selectedQuestions.filter((q) => q.reflection).length;
   const reflectionRate = selectedQuestions.length === 0 ? 0 : Math.round((withReflection / selectedQuestions.length) * 100);
   const resolveRate = selectedQuestions.length === 0 ? 0 : Math.round((resolvedQuestions / selectedQuestions.length) * 100);
+  const statDetailItems = buildStatDetailItems(activeStatKey, selectedQuestions, selectedAnswers);
 
   const maxAsked = Math.max(1, ...students.map((s) => s.asked));
   const maxAnswered = Math.max(1, ...students.map((s) => s.answered));
@@ -317,7 +405,10 @@ export default function AdminDashboardPage() {
                   <button
                     type="button"
                     className="student-row-main"
-                    onClick={() => setSelectedId(student.id)}
+                    onClick={() => {
+                      setSelectedId(student.id);
+                      setActiveStatKey(null);
+                    }}
                   >
                     <span className="avatar avatar-sm">{student.emoji}</span>
                     <span className="student-main">
@@ -361,14 +452,6 @@ export default function AdminDashboardPage() {
               </section>
 
               <ActivityHeatmap questions={selectedQuestions} answerEvents={selectedAnswers} overviewValues={overviewValues} />
-
-              <section className="admin-stats-grid">
-                <StatCard label="올린 질문" value={selectedQuestions.length} tone="ask" />
-                <StatCard label="작성 답변" value={selectedAnswers.length} tone="answer" />
-                <StatCard label="해결 질문" value={resolvedQuestions} tone="done" />
-                <StatCard label="받은 궁금해요" value={totalMeToo} tone="metoo" />
-                <StatCard label="상단 고정 질문" value={pinnedQuestions} tone="pin" />
-              </section>
 
               <section className="admin-charts">
                 <div className="admin-chart-panel">
@@ -465,6 +548,55 @@ export default function AdminDashboardPage() {
                   )}
                 </div>
               </section>
+
+              <section className="admin-stats-grid">
+                {[
+                  { key: "ask", label: "올린 질문", value: selectedQuestions.length, tone: "ask" },
+                  { key: "answer", label: "작성 답변", value: selectedAnswers.length, tone: "answer" },
+                  { key: "resolved", label: "해결 질문", value: resolvedQuestions, tone: "done" },
+                  { key: "metoo", label: "받은 궁금해요", value: totalMeToo, tone: "metoo" },
+                  { key: "pin", label: "상단 고정 질문", value: pinnedQuestions, tone: "pin" },
+                ].map(({ key, label, value, tone }) => (
+                  <StatCard
+                    key={key}
+                    label={label}
+                    value={value}
+                    tone={tone}
+                    isActive={activeStatKey === key}
+                    onClick={() => setActiveStatKey((k) => (k === key ? null : key))}
+                  />
+                ))}
+              </section>
+
+              {activeStatKey && (
+                <section className="stat-detail">
+                  <div className="stat-detail-head">
+                    <h3>{STAT_LABELS[activeStatKey]}</h3>
+                    <span className="stat-detail-count">{statDetailItems.length}건</span>
+                  </div>
+                  {statDetailItems.length === 0 ? (
+                    <EmptyPanel>{STAT_EMPTY[activeStatKey]}</EmptyPanel>
+                  ) : (
+                    <div className="stat-detail-list">
+                      {statDetailItems.map((item) => (
+                        <button
+                          key={item.key}
+                          type="button"
+                          className="stat-detail-item"
+                          onClick={() => router.push(`/board?open=${item.questionId}`)}
+                        >
+                          <span className="keyword-chip"># {item.keyword}</span>
+                          <span className="stat-detail-title">{item.title}</span>
+                          {item.badge && (
+                            <span className="stat-detail-badge">{item.badge}</span>
+                          )}
+                          <time>{formatTime(item.time)}</time>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              )}
 
               <section className="admin-activity-panel">
                 <div className="admin-panel-head">
