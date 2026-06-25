@@ -21,7 +21,7 @@ import { getSelectedClassId } from "@/lib/classroom";
 import { getMeTooCount, isPinnedQuestion } from "@/lib/questionRanking";
 import TopNav from "@/components/TopNav";
 import ActivityHeatmap from "@/components/ActivityHeatmap";
-import AccessHeatmap, { demoAccessPings } from "@/components/AccessHeatmap";
+import AccessLineChart, { demoAccessPings } from "@/components/AccessLineChart";
 
 const DAY_MS = 1000 * 60 * 60 * 24;
 
@@ -571,7 +571,7 @@ export default function StudentReportPage() {
           </div>
         </section>
 
-        <AccessHeatmap
+        <AccessLineChart
           pings={
             presencePings.length > 0
               ? presencePings

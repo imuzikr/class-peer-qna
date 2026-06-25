@@ -2616,7 +2616,7 @@ pre code {
   margin: 0 2px;
 }
 
-/* ── 접속 시간대 히트맵 ── */
+/* ── 접속 시간 추이 (선 그래프) ── */
 .access-panel {
   background: #fff;
   border: 1px solid var(--border);
@@ -2625,71 +2625,44 @@ pre code {
   margin-bottom: 16px;
 }
 
-.access-grid-wrap {
-  overflow-x: auto;
-  margin-top: 10px;
+.access-line {
+  width: 100%;
+  height: auto;
+  display: block;
+  margin-top: 8px;
 }
 
-.access-grid {
-  border-collapse: separate;
-  border-spacing: 1px;
-  font-size: 10px;
+.access-line-grid {
+  stroke: #e8e5dd;
+  stroke-width: 1;
 }
 
-.access-grid th.access-corner {
-  position: sticky;
-  left: 0;
-  background: #fff;
-  z-index: 2;
+.access-line-grid.faint {
+  stroke: #f0eee7;
 }
 
-.access-grid th.access-month {
-  font-weight: 600;
-  color: var(--text-sub);
-  text-align: left;
-  padding: 0 0 4px 1px;
-  white-space: nowrap;
+.access-line-axis {
+  fill: var(--text-sub);
+  font-size: 11px;
 }
 
-.access-grid td.access-hour-label {
-  position: sticky;
-  left: 0;
-  background: #fff;
-  color: var(--text-sub);
-  white-space: nowrap;
-  padding-right: 8px;
-  text-align: right;
-  z-index: 1;
+.access-line-area {
+  fill: rgba(92, 158, 104, 0.14);
 }
 
-.access-cell {
-  width: 8px;
-  height: 10px;
-  min-width: 8px;
-  border-radius: 2px;
-  padding: 0;
+.access-line-path {
+  fill: none;
+  stroke: #5c9e68;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
 }
 
-.access-legend {
-  display: flex;
-  gap: 14px;
-  justify-content: flex-end;
-  margin-top: 10px;
-}
-
-.access-legend span {
-  display: flex;
-  align-items: center;
-  gap: 4px;
+.access-line-foot {
+  margin-top: 8px;
   font-size: 11px;
   color: var(--text-sub);
-}
-
-.access-legend i {
-  width: 11px;
-  height: 11px;
-  border-radius: 2px;
-  display: inline-block;
+  text-align: right;
 }
 
 /* ── 학습 균형 레이더 오버뷰 ── */
