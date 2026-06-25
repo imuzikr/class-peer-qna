@@ -9,6 +9,10 @@ import {
   subscribeQuestions,
   subscribeUserPresence,
   subscribeUserKwl,
+  subscribeClasses,
+  subscribeStudyBoards,
+  subscribeStudyCards,
+  subscribeKwlAll,
   toDate,
 } from "@/lib/store";
 import { isFirebaseConfigured } from "@/lib/firebase";
@@ -21,6 +25,7 @@ import ActivityHeatmap from "@/components/ActivityHeatmap";
 import AccessLineChart, { demoAccessPings } from "@/components/AccessLineChart";
 import StudentKwlPanel from "@/components/StudentKwlPanel";
 import ClassOverview from "@/components/ClassOverview";
+import StudyRoomStats from "@/components/StudyRoomStats";
 
 const DAY_MS = 1000 * 60 * 60 * 24;
 
@@ -235,6 +240,10 @@ export default function AdminDashboardPage() {
   const [selectedPresence, setSelectedPresence] = useState([]); // 선택 학생 접속 기록
   const [selectedKwl, setSelectedKwl] = useState([]); // 선택 학생 KWL 기록
   const [view, setView] = useState("students"); // 'students' | 'overview'
+  const [classes, setClasses] = useState([]);
+  const [studyBoards, setStudyBoards] = useState([]);
+  const [cardsByBoard, setCardsByBoard] = useState({});
+  const [allKwl, setAllKwl] = useState([]);
 
   // 관리자 대시보드는 관리자 전용 — 학생 보기로 바뀌면 학습 리포트로 이동
   const isStudent = user ? !isAdmin(user) : false;
@@ -245,11 +254,36 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     const unsubQ = subscribeQuestions(setQuestions);
     const unsubK = subscribeKeywords(setKeywordDocs);
+    const unsubC = subscribeClasses(setClasses);
+    const unsubB = subscribeStudyBoards(setStudyBoards);
+    const unsubKwl = subscribeKwlAll(setAllKwl);
     return () => {
       unsubQ();
       unsubK();
+      unsubC();
+      unsubB();
+      unsubKwl();
     };
   }, []);
+
+  // 공부방 보드별 카드 구독 — 보드 id 집합이 바뀔 때만 재연결 (공부방별 통계용)
+  const boardIdsKey = useMemo(
+    () => [...new Set(studyBoards.map((b) => b.id))].sort().join(","),
+    [studyBoards]
+  );
+  useEffect(() => {
+    if (!boardIdsKey) {
+      setCardsByBoard({});
+      return;
+    }
+    const ids = boardIdsKey.split(",");
+    const unsubs = ids.map((id) =>
+      subscribeStudyCards(id, (cards) =>
+        setCardsByBoard((prev) => ({ ...prev, [id]: cards }))
+      )
+    );
+    return () => unsubs.forEach((u) => u());
+  }, [boardIdsKey]);
 
   // 답변 구독은 "질문 id 집합"이 바뀔 때만 다시 연결합니다.
   // (questions 배열은 좋아요/해결 등으로 매번 새 참조가 되므로 그대로
@@ -478,12 +512,20 @@ export default function AdminDashboardPage() {
             </div>
           )}
           {view === "overview" ? (
-            <ClassOverview
-              questions={questions}
-              answerEvents={answerEvents}
-              students={students}
-              onOpenQuestion={(id) => router.push(`/board?open=${id}`)}
-            />
+            <>
+              <ClassOverview
+                questions={questions}
+                answerEvents={answerEvents}
+                students={students}
+                onOpenQuestion={(id) => router.push(`/board?open=${id}`)}
+              />
+              <StudyRoomStats
+                classes={classes}
+                boards={studyBoards}
+                cardsByBoard={cardsByBoard}
+                kwl={allKwl}
+              />
+            </>
           ) : selected ? (
             <>
               <section className="admin-hero">

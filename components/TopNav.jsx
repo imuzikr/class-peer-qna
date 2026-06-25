@@ -82,22 +82,25 @@ export default function TopNav({ active, onPython, pyActive = false }) {
           <button
             className={`btn-ghost ${pyActive ? "py-btn-active" : ""}`}
             onClick={handlePython}
+            title="파이썬 실행기"
           >
-            <IconPythonRunner size={20} /> 파이썬 실행기
+            <IconPythonRunner size={20} /> <span className="nav-label">파이썬 실행기</span>
           </button>
           {admin ? (
             <button
               className={`btn-ghost ${active === "admin" ? "nav-active" : ""}`}
               onClick={() => go("/admin")}
+              title="관리자 대시보드"
             >
-              <IconTeacher size={20} /> 관리자 대시보드
+              <IconTeacher size={20} /> <span className="nav-label">관리자 대시보드</span>
             </button>
           ) : (
             <button
               className={`btn-ghost ${active === "report" ? "nav-active" : ""}`}
               onClick={() => go("/report")}
+              title="학습 리포트"
             >
-              <IconReport size={20} /> 학습 리포트
+              <IconReport size={20} /> <span className="nav-label">학습 리포트</span>
             </button>
           )}
         </nav>

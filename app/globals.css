@@ -2690,6 +2690,41 @@ pre code {
   white-space: nowrap;
 }
 
+/* 공부방별 통계 표 — 제출률/참여 막대 셀 */
+.study-stats-table .rate-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: center;
+}
+
+.study-stats-table .rate-track {
+  flex: 1;
+  max-width: 90px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--neutral, #eee);
+  overflow: hidden;
+}
+
+.study-stats-table .rate-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--primary, #e07a5f);
+}
+
+.study-stats-table .rate-fill.kwl {
+  background: #5c9e68;
+}
+
+.study-stats-table .rate-cell span {
+  font-size: 11px;
+  color: var(--text-sub);
+  white-space: nowrap;
+  min-width: 30px;
+  text-align: right;
+}
+
 /* ── 학생 KWL 기록 패널 (관리자) ── */
 .kwl-record-list {
   display: flex;
@@ -5776,8 +5811,9 @@ pre code {
   .topbar-left { gap: 8px; }
   .topbar-divider { display: none; }
 
-  /* 파이썬·리포트·관리자 버튼 숨김 */
-  .topnav-menu .btn-ghost:not(.topnav-drop-btn) { display: none; }
+  /* 파이썬·리포트·관리자 버튼 — 모바일에선 아이콘만 (라벨 숨김) */
+  .topnav-menu .btn-ghost:not(.topnav-drop-btn) .nav-label { display: none; }
+  .topnav-menu .btn-ghost:not(.topnav-drop-btn) { padding: 5px 8px; }
 
   /* 드롭다운 버튼 압축 */
   .topnav-drop-btn { padding: 5px 10px; font-size: 13px; }
