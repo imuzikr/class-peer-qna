@@ -10,7 +10,6 @@
 import { toDate } from "@/lib/store";
 
 const MONTH_NAMES = ["1월","2월","3월","4월","5월","6월","7월","8월","9월","10월","11월","12월"];
-const BUCKET_MIN = 10;
 
 // 데모 모드 미리보기용 — 최근 ~150일, 세션(연속 10분 버킷)으로 하루 총량에 변화.
 export function demoAccessPings() {
@@ -36,15 +35,6 @@ export function demoAccessPings() {
 
 function dayKey(d) {
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-}
-
-function fmtMinutes(m) {
-  if (m >= 60) {
-    const h = Math.floor(m / 60);
-    const r = m % 60;
-    return r ? `${h}시간 ${r}분` : `${h}시간`;
-  }
-  return `${m}분`;
 }
 
 // 단조 3차 보간(Fritsch–Carlson) — 점 사이에서 오버슈트(데이터에 없는 값
@@ -103,16 +93,33 @@ function monotonePaths(pts, yBase) {
 }
 
 export default function AccessLineChart({ pings = [] }) {
-  // 하루별 접속 버킷 수 → 분
-  const byDay = new Map();
+  // 하루별 접속 "횟수"(세션 수). 연속 접속(10분 버킷이 이어짐)은 1회로,
+  // 30분 넘게 끊겼다 다시 접속하면 새 1회로 셉니다. → 자리만 비운 채 오래
+  // 켜둬도(연속 접속) 횟수가 부풀지 않습니다.
+  const SESSION_GAP = 30 * 60 * 1000;
+  const bucketsByDay = new Map(); // dayKey -> [ms, ...]
   let earliest = null;
   pings.forEach((p) => {
     const d = toDate(p.bucket ?? p.lastSeen);
-    d.setHours(0, 0, 0, 0);
-    const k = dayKey(d);
-    byDay.set(k, (byDay.get(k) ?? 0) + 1);
-    if (!earliest || d < earliest) earliest = new Date(d);
+    const ms = d.getTime();
+    const day = new Date(d);
+    day.setHours(0, 0, 0, 0);
+    const k = dayKey(day);
+    if (!bucketsByDay.has(k)) bucketsByDay.set(k, []);
+    bucketsByDay.get(k).push(ms);
+    if (!earliest || day < earliest) earliest = new Date(day);
   });
+
+  const sessionCount = (times) => {
+    const sorted = [...times].sort((a, b) => a - b);
+    let count = 0;
+    let prev = null;
+    for (const t of sorted) {
+      if (prev === null || t - prev > SESSION_GAP) count += 1;
+      prev = t;
+    }
+    return count;
+  };
 
   // x축 범위: 가장 이른 접속일 ~ 오늘 (데이터 없으면 최근 30일)
   const today = new Date();
@@ -126,17 +133,17 @@ export default function AccessLineChart({ pings = [] }) {
     const k = dayKey(cur);
     days.push({
       date: new Date(cur),
-      minutes: (byDay.get(k) ?? 0) * BUCKET_MIN,
+      count: sessionCount(bucketsByDay.get(k) ?? []),
     });
     cur.setDate(cur.getDate() + 1);
   }
 
   const n = days.length;
-  const totalMin = days.reduce((s, d) => s + d.minutes, 0);
-  const activeDays = [...byDay.values()].filter(Boolean).length;
-  const maxMin = Math.max(30, ...days.map((d) => d.minutes));
-  // y축 눈금을 1시간 단위 정수로 (라벨이 짧아 잘리지 않음)
-  const maxY = Math.max(60, Math.ceil(maxMin / 60) * 60);
+  const totalCount = days.reduce((s, d) => s + d.count, 0);
+  const activeDays = bucketsByDay.size;
+  // y축 눈금: 정수 횟수
+  const maxY = Math.max(2, ...days.map((d) => d.count));
+  const yStep = Math.max(1, Math.ceil(maxY / 5));
 
   // SVG 좌표 — 세로 눈금 간격을 압축(플롯 높이 200→60, 70% 짧게)
   const W = 960, H = 100;
@@ -144,15 +151,15 @@ export default function AccessLineChart({ pings = [] }) {
   const innerW = W - padL - padR;
   const innerH = H - padT - padB;
   const x = (i) => padL + (n > 1 ? (i * innerW) / (n - 1) : innerW / 2);
-  const y = (m) => padT + innerH * (1 - m / maxY);
+  const y = (v) => padT + innerH * (1 - v / maxY);
 
   // 단조 3차 보간(Fritsch–Carlson) — 모서리만 부드럽게, 값은 데이터 범위를
   // 벗어나지 않음(오버슈트·음수 없음 → 왜곡 없음).
-  const pts = days.map((d, i) => ({ x: x(i), y: y(d.minutes) }));
+  const pts = days.map((d, i) => ({ x: x(i), y: y(d.count) }));
   const { line: lineD, area: areaD } = monotonePaths(pts, y(0));
 
   const yTicks = [];
-  for (let t = 0; t <= maxY; t += 60) yTicks.push(t);
+  for (let t = 0; t <= maxY; t += yStep) yTicks.push(t);
 
   // 월 시작 위치 (라벨 + 세로 격자)
   const monthMarks = [];
@@ -165,19 +172,19 @@ export default function AccessLineChart({ pings = [] }) {
   return (
     <div className="access-panel">
       <div className="admin-panel-head">
-        <h2>접속 시간 추이</h2>
+        <h2>접속 횟수 추이</h2>
         <span>
-          {activeDays > 0 ? `${activeDays}일 · 총 ${fmtMinutes(totalMin)}` : "접속 기록 없음"}
+          {activeDays > 0 ? `${activeDays}일 · 총 ${totalCount}회 접속` : "접속 기록 없음"}
         </span>
       </div>
 
-      <svg className="access-line" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="일별 접속 시간 추이">
+      <svg className="access-line" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="일별 접속 횟수 추이">
         {/* y 격자 + 눈금 */}
         {yTicks.map((t, i) => (
           <g key={i}>
             <line x1={padL} y1={y(t)} x2={W - padR} y2={y(t)} className="access-line-grid" />
             <text x={padL - 8} y={y(t) + 3} textAnchor="end" className="access-line-axis">
-              {t === 0 ? "0" : `${t / 60}시간`}
+              {t === 0 ? "0" : `${t}회`}
             </text>
           </g>
         ))}
@@ -198,7 +205,7 @@ export default function AccessLineChart({ pings = [] }) {
       </svg>
 
       <div className="access-line-foot">
-        <span>하루에 접속한 시간(10분 단위 합계)을 날짜순으로 표시합니다.</span>
+        <span>하루 접속 횟수(연속 접속은 1회, 30분 이상 끊겼다 다시 접속하면 새 1회)를 날짜순으로 표시합니다.</span>
       </div>
     </div>
   );
