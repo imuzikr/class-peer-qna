@@ -240,6 +240,7 @@ export default function AdminDashboardPage() {
   const [selectedPresence, setSelectedPresence] = useState([]); // 선택 학생 접속 기록
   const [selectedKwl, setSelectedKwl] = useState([]); // 선택 학생 KWL 기록
   const [view, setView] = useState("students"); // 'students' | 'overview'
+  const [selectedClassId, setSelectedClassId] = useState(null); // null = 전체 학급
   const [classes, setClasses] = useState([]);
   const [studyBoards, setStudyBoards] = useState([]);
   const [cardsByBoard, setCardsByBoard] = useState({});
@@ -333,6 +334,37 @@ export default function AdminDashboardPage() {
     ),
     [questions]
   );
+
+  // 학급 전체 통계 — 선택한 반(selectedClassId)의 참여 학생 집합.
+  // 질문은 반 구분이 없으므로, "그 반의 공부방/KWL에 참여한 학생"을 반의
+  // 명부로 보고 그들의 (전역) 질문·답변을 집계합니다. null = 전체 학급.
+  const classParticipantIds = useMemo(() => {
+    if (!selectedClassId) return null;
+    const ids = new Set();
+    studyBoards
+      .filter((b) => b.classId === selectedClassId && b.type !== "notice")
+      .forEach((b) =>
+        (cardsByBoard[b.id] ?? []).forEach((c) => {
+          if (c.authorId && !c.authorId.startsWith("teacher_")) ids.add(c.authorId);
+        })
+      );
+    allKwl
+      .filter((e) => e.classId === selectedClassId)
+      .forEach((e) => {
+        if (e.userId && !String(e.userId).startsWith("teacher_")) ids.add(e.userId);
+      });
+    return ids;
+  }, [selectedClassId, studyBoards, cardsByBoard, allKwl]);
+
+  const overviewStudents = classParticipantIds
+    ? students.filter((s) => classParticipantIds.has(s.id))
+    : students;
+  const overviewQuestions = classParticipantIds
+    ? questions.filter((q) => classParticipantIds.has(q.authorId))
+    : questions;
+  const overviewAnswerEvents = classParticipantIds
+    ? answerEvents.filter((e) => classParticipantIds.has(e.answer.authorId))
+    : answerEvents;
 
   useEffect(() => {
     if (!selectedId && students.length > 0) {
@@ -448,6 +480,36 @@ export default function AdminDashboardPage() {
 
       <div className="admin-layout">
         <aside className="student-panel">
+          {view === "overview" ? (
+            <>
+              <div className="admin-panel-head">
+                <h2>학급 목록</h2>
+                <span>{classes.length}개 반</span>
+              </div>
+              <div className="student-list">
+                <button
+                  type="button"
+                  className={`class-row ${selectedClassId === null ? "active" : ""}`}
+                  onClick={() => setSelectedClassId(null)}
+                >
+                  <span className="class-row-icon">🏫</span>
+                  <span className="student-main"><strong>전체 학급</strong></span>
+                </button>
+                {classes.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    className={`class-row ${selectedClassId === c.id ? "active" : ""}`}
+                    onClick={() => setSelectedClassId(c.id)}
+                  >
+                    <span className="class-row-icon">📚</span>
+                    <span className="student-main"><strong>{c.name}</strong></span>
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : (
+          <>
           <div className="admin-panel-head">
             <h2>학생 목록</h2>
             <span>{students.length}명</span>
@@ -490,6 +552,8 @@ export default function AdminDashboardPage() {
               ))}
             </div>
           )}
+          </>
+          )}
         </aside>
 
         <main className="admin-main">
@@ -514,9 +578,9 @@ export default function AdminDashboardPage() {
           {view === "overview" ? (
             <>
               <ClassOverview
-                questions={questions}
-                answerEvents={answerEvents}
-                students={students}
+                questions={overviewQuestions}
+                answerEvents={overviewAnswerEvents}
+                students={overviewStudents}
                 onOpenQuestion={(id) => router.push(`/board?open=${id}`)}
               />
               <StudyRoomStats
@@ -524,6 +588,7 @@ export default function AdminDashboardPage() {
                 boards={studyBoards}
                 cardsByBoard={cardsByBoard}
                 kwl={allKwl}
+                classId={selectedClassId}
               />
             </>
           ) : selected ? (

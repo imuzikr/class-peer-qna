@@ -2644,6 +2644,31 @@ pre code {
   color: #fff;
 }
 
+/* 학급 목록(사이드바, 학급 전체 통계 모드) */
+.class-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  color: var(--text);
+}
+.class-row:hover {
+  background: var(--neutral, #f3f1ec);
+}
+.class-row.active {
+  background: rgba(224, 122, 95, 0.1);
+  border-color: var(--primary, #e07a5f);
+}
+.class-row-icon {
+  font-size: 18px;
+}
+
 /* 학급 전체 통계 — 표 + 차트 2열 */
 .overview-charts {
   grid-template-columns: 1.7fr 1fr;

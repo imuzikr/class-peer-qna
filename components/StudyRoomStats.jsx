@@ -13,12 +13,16 @@ function EmptyPanel({ children }) {
   return <div className="admin-empty">{children}</div>;
 }
 
-export default function StudyRoomStats({ classes = [], boards = [], cardsByBoard = {}, kwl = [] }) {
+export default function StudyRoomStats({ classes = [], boards = [], cardsByBoard = {}, kwl = [], classId = null }) {
   const nameById = new Map(classes.map((c) => [c.id, c.name]));
+
+  // 특정 반이 선택되면 그 반만, 아니면 전체 반
+  const scopedBoards = classId ? boards.filter((b) => b.classId === classId) : boards;
+  const scopedKwl = classId ? kwl.filter((e) => e.classId === classId) : kwl;
 
   // 학생용 보드만(공지 제외) 반별로 그룹화
   const boardsByClass = new Map();
-  boards
+  scopedBoards
     .filter((b) => b.type !== "notice")
     .forEach((b) => {
       const cid = b.classId ?? "기타";
@@ -27,7 +31,7 @@ export default function StudyRoomStats({ classes = [], boards = [], cardsByBoard
     });
 
   const kwlByClass = new Map();
-  kwl.forEach((e) => {
+  scopedKwl.forEach((e) => {
     if (!isStudent(e.userId)) return;
     if (!kwlByClass.has(e.classId)) kwlByClass.set(e.classId, []);
     kwlByClass.get(e.classId).push(e);
