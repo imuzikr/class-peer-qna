@@ -513,7 +513,8 @@ select:focus {
 .feed-col {
   flex: 1;
   overflow-y: auto;
-  padding: 32px 40px;
+  /* 위 패딩 0 — 상단 고정 헤더가 스크롤 콘텐츠를 완전히 덮도록(여백은 헤더가 가짐) */
+  padding: 0 40px 32px;
   min-width: 0;
 }
 
@@ -521,7 +522,15 @@ select:focus {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 20px;
+  /* 피드 컬럼 스크롤 시 상단 고정 — 필터/인사이트/질문하기 항상 노출 */
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--bg);
+  padding: 20px 0 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 6px 8px -6px rgba(46, 36, 26, 0.08);
 }
 
 .feed-head h2 {
@@ -6002,7 +6011,7 @@ pre code {
   .three-cols { flex-direction: column; }
   .keyword-col { display: none; }
   .notice-col { display: none; }
-  .feed-col { padding: 14px 14px 80px; }
+  .feed-col { padding: 0 14px 80px; }
 
   .feed-head {
     flex-wrap: wrap;
