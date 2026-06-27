@@ -187,26 +187,31 @@ export default function QuestionModal({
               </div>
               <h3 className="qa-title">{question.title}</h3>
 
-              {/* 인사이트 목록에서 열었으면 목록으로 돌아가기 (작성자 본인만) */}
-              {onBackToInsight && mine && (
-                <button
-                  type="button"
-                  className="back-to-study back-to-insight"
-                  onClick={onBackToInsight}
-                >
-                  <IconInsight size={16} /> 인사이트로 돌아가기
-                </button>
-              )}
+              {/* 돌아가기 버튼들 — 한 줄에 중앙 정렬로 묶어 높이/정렬 일치 */}
+              {((onBackToInsight && mine) || linkedToStudy) && (
+                <div className="back-actions">
+                  {/* 인사이트 목록에서 열었으면 목록으로 돌아가기 (작성자 본인만) */}
+                  {onBackToInsight && mine && (
+                    <button
+                      type="button"
+                      className="back-to-study back-to-insight"
+                      onClick={onBackToInsight}
+                    >
+                      <IconInsight size={16} /> 인사이트로 돌아가기
+                    </button>
+                  )}
 
-              {/* 수업 연계 — 공부방 보드와 같은 키워드면 수업으로 돌아갈 수 있습니다 */}
-              {linkedToStudy && (
-                <button
-                  type="button"
-                  className="back-to-study"
-                  onClick={onBackToStudy}
-                >
-                  📚 수업으로 돌아가기
-                </button>
+                  {/* 수업 연계 — 공부방 보드와 같은 키워드면 수업으로 돌아갈 수 있습니다 */}
+                  {linkedToStudy && (
+                    <button
+                      type="button"
+                      className="back-to-study"
+                      onClick={onBackToStudy}
+                    >
+                      📚 수업으로 돌아가기
+                    </button>
+                  )}
+                </div>
               )}
 
               {/* 인사이트 입구 — 해결됐지만 인사이트가 없는 질문에 항상 노출됩니다.
