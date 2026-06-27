@@ -41,6 +41,7 @@ export default function BoardPage() {
   const [selectedId, setSelectedId] = useState(null);
   const [writing, setWriting] = useState(false);
   const [insightOpen, setInsightOpen] = useState(false); // 내 인사이트 모음 모달
+  const [fromInsight, setFromInsight] = useState(false); // 질문을 인사이트 목록에서 열었는지
   const [pyOpen, setPyOpen] = useState(false); // 파이썬 실행 패널
   const [askCode, setAskCode] = useState(null); // 실행기에서 넘어온 코드
   const [managingKeywords, setManagingKeywords] = useState(false);
@@ -211,8 +212,20 @@ export default function BoardPage() {
           question={selectedQuestion}
           keywords={keywordNames}
           studyKeywords={studyKeywords}
-          onClose={() => setSelectedId(null)}
+          onClose={() => {
+            setSelectedId(null);
+            setFromInsight(false);
+          }}
           onBackToStudy={() => router.push("/study")}
+          onBackToInsight={
+            fromInsight
+              ? () => {
+                  setSelectedId(null);
+                  setFromInsight(false);
+                  setInsightOpen(true);
+                }
+              : undefined
+          }
         />
       )}
       {writing && (
@@ -240,6 +253,7 @@ export default function BoardPage() {
           onClose={() => setInsightOpen(false)}
           onOpen={(id) => {
             setInsightOpen(false);
+            setFromInsight(true);
             setSelectedId(id);
           }}
         />

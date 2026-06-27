@@ -19,7 +19,7 @@ import { isFirebaseConfigured } from "@/lib/firebase";
 import { sanitizeHtml, stripHtml } from "@/lib/html";
 import { readImageAsDataUrl } from "@/lib/image";
 import RichTextEditor, { IconImage, IconPen } from "./RichTextEditor";
-import { IconAsk, IconSolved, IconAnswer, IconTrash } from "./StatusIcons";
+import { IconAsk, IconSolved, IconAnswer, IconTrash, IconInsight } from "./StatusIcons";
 import DrawingCanvas from "./DrawingCanvas";
 import MeTooButton from "./MeTooButton";
 import NewQuestionForm from "./NewQuestionForm";
@@ -32,6 +32,7 @@ export default function QuestionModal({
   keywords = [],
   studyKeywords = [], // 공부방 보드와 연계된 키워드 목록
   onBackToStudy, // "수업으로 돌아가기" 클릭 핸들러
+  onBackToInsight, // "인사이트로 돌아가기" — 내 인사이트 목록에서 열었을 때
   onClose,
 }) {
   const user = getCurrentUser();
@@ -185,6 +186,17 @@ export default function QuestionModal({
                 </button>
               </div>
               <h3 className="qa-title">{question.title}</h3>
+
+              {/* 인사이트 목록에서 열었으면 목록으로 돌아가기 (작성자 본인만) */}
+              {onBackToInsight && mine && (
+                <button
+                  type="button"
+                  className="back-to-study back-to-insight"
+                  onClick={onBackToInsight}
+                >
+                  <IconInsight size={16} /> 인사이트로 돌아가기
+                </button>
+              )}
 
               {/* 수업 연계 — 공부방 보드와 같은 키워드면 수업으로 돌아갈 수 있습니다 */}
               {linkedToStudy && (

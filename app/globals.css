@@ -5581,6 +5581,16 @@ pre code {
   background: #fdf3df;
 }
 
+/* 인사이트로 돌아가기 — 인사이트 테마 색 */
+.back-to-insight {
+  background: #fff7ed;
+  border-color: #e7d3c4;
+  color: #8a6258;
+}
+.back-to-insight:hover {
+  background: #fdeede;
+}
+
 /* 학습 리포트 — 공부방 활동 섹션 */
 .study-report {
   background: #fff;
