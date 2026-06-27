@@ -301,6 +301,15 @@ export function IconWrite({ size = 20, className = "" }) {
   );
 }
 
+export function IconInsight({ size = 20, className = "" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} role="img" aria-hidden="true">
+      <path d="M13.55 3.9 6.75 12.2h4.45l-1.1 7.9 7.15-9.72h-4.4l.7-6.48Z" fill="#FFF7ED" stroke="#3A312E" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M18.55 4.6 18.85 5.4c.05.13.15.23.28.28l.8.3-.8.3a.5.5 0 0 0-.28.28l-.3.8-.3-.8a.5.5 0 0 0-.28-.28l-.8-.3.8-.3c.13-.05.23-.15.28-.28l.3-.8Z" fill="#8A6258"/>
+    </svg>
+  );
+}
+
 export function IconStudent({ size = 20, className = "" }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">

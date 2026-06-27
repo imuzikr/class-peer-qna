@@ -107,7 +107,7 @@ export default function QuestionModal({
     }
   }
 
-  // "이해됐어요" 클릭: 토글 OFF는 직접 해제, 토글 ON은 회고 모달을 먼저 엽니다.
+  // "이해됐어요" 클릭: 토글 OFF는 직접 해제, 토글 ON은 인사이트 모달을 먼저 엽니다.
   function handleUnderstood(answerId) {
     if (understoodAnswerId === answerId) {
       setUnderstoodAnswer(question.id, null);
@@ -120,7 +120,7 @@ export default function QuestionModal({
   const canManageUnderstood =
     question.authorId === user.uid || isAdmin(user) || !isFirebaseConfigured;
 
-  // 해결됐지만 아직 회고가 없는 질문 — 회고 입구를 노출할지 판단
+  // 해결됐지만 아직 인사이트가 없는 질문 — 인사이트 입구를 노출할지 판단
   const needsReflection = question.resolved && !question.reflection;
 
   // 이 질문의 키워드가 공부방 보드와 연계돼 있으면 "수업으로 돌아가기" 활성화
@@ -197,13 +197,13 @@ export default function QuestionModal({
                 </button>
               )}
 
-              {/* 회고 입구 — 해결됐지만 회고가 없는 질문에 항상 노출됩니다.
+              {/* 인사이트 입구 — 해결됐지만 인사이트가 없는 질문에 항상 노출됩니다.
                   작성자 본인에게는 작성 버튼, 교사에게는 현황을 보여줍니다. */}
               {needsReflection && mine && (
                 <div className="reflect-reminder mine">
                   <span>
                     {question.reflectionPending
-                      ? "📝 나중에 쓰겠다고 했던 회고가 아직 남아 있어요."
+                      ? "📝 나중에 쓰겠다고 했던 인사이트가 아직 남아 있어요."
                       : "📝 이 질문, 어떻게 이해했는지 한 줄로 남겨볼까요?"}
                   </span>
                   <button
@@ -211,13 +211,13 @@ export default function QuestionModal({
                     className="btn-ghost reflect-reminder-btn"
                     onClick={() => setReflecting(true)}
                   >
-                    {question.reflectionPending ? "지금 남기기" : "회고 쓰기"}
+                    {question.reflectionPending ? "지금 남기기" : "인사이트 쓰기"}
                   </button>
                 </div>
               )}
               {needsReflection && !mine && admin && (
                 <div className="reflect-reminder teacher">
-                  📋 이 학생이 아직 회고를 남기지 않았어요
+                  📋 이 학생이 아직 인사이트를 남기지 않았어요
                 </div>
               )}
 

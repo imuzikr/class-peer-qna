@@ -3,7 +3,7 @@
 const AXES = 5;
 const CX = 110, CY = 105, R = 65;
 const LABEL_R = 84;
-const LABELS = ["질문", "답변", "해결", "회고", "공감"];
+const LABELS = ["질문", "답변", "해결", "인사이트", "공감"];
 const COLORS = {
   fill: "rgba(217,119,87,0.18)",
   stroke: "#d97757",

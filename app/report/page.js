@@ -249,7 +249,7 @@ export default function StudentReportPage() {
   const keywordStats = buildKeywordStats(myQuestions, myAnswerEvents, keywordNames);
   const events = recentEvents(myQuestions, myAnswerEvents);
   const reflection = weeklyReflection(myQuestions, myAnswerEvents, keywordStats);
-  // 내가 남긴 회고들 — 질문 문서의 reflection을 최신순으로 모읍니다.
+  // 내가 남긴 인사이트들 — 질문 문서의 reflection을 최신순으로 모읍니다.
   const myReflections = user
     ? questions
         .filter((q) => q.reflection && q.reflection.authorId === user.uid)
@@ -259,7 +259,7 @@ export default function StudentReportPage() {
         )
     : [];
 
-  // "나중에 쓸게요"로 미뤄둔 회고 목록
+  // "나중에 쓸게요"로 미뤄둔 인사이트 목록
   const myPendingReflections = user
     ? myQuestions.filter((q) => q.reflectionPending)
     : [];
@@ -387,12 +387,12 @@ export default function StudentReportPage() {
       <TopNav active="report" />
 
       <div className="report-layout">
-        {/* 왼쪽: 회고 사이드 패널 */}
+        {/* 왼쪽: 인사이트 사이드 패널 */}
         <aside className="report-side">
           {myPendingReflections.length > 0 && (
             <>
               <div className="side-section-head pending-head">
-                <h3>📝 회고 미완료</h3>
+                <h3>📝 인사이트 미완료</h3>
                 <span>{myPendingReflections.length}건</span>
               </div>
               <div className="side-ref-list">
@@ -409,7 +409,7 @@ export default function StudentReportPage() {
                     </div>
                     <div className="side-ref-title">{q.title}</div>
                     <div className="side-ref-sub">
-                      <span>회고를 기다리고 있어요</span>
+                      <span>인사이트를 기다리고 있어요</span>
                       <span className="side-ref-action">✏️ 쓰기</span>
                     </div>
                   </button>
@@ -420,12 +420,12 @@ export default function StudentReportPage() {
           )}
 
           <div className="side-section-head">
-            <h3>📒 내 회고 모음</h3>
+            <h3>📒 내 인사이트 모음</h3>
             <span>{myReflections.length}개</span>
           </div>
           {myReflections.length === 0 ? (
             <p className="side-empty">
-              질문이 해결되면 한 줄 회고를 남겨 보세요. 여기에 모여 나만의 학습 기록이 됩니다.
+              질문이 해결되면 한 줄 인사이트를 남겨 보세요. 여기에 모여 나만의 학습 기록이 됩니다.
             </p>
           ) : (
             <div className="side-ref-list">
@@ -522,7 +522,7 @@ export default function StudentReportPage() {
 
           <div className="admin-chart-panel compact">
             <div className="admin-panel-head">
-              <h2>회고 완성률</h2>
+              <h2>인사이트 완성률</h2>
               <span>{reflectionRate}% 완성</span>
             </div>
             {myQuestions.length === 0 ? (

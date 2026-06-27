@@ -1,20 +1,20 @@
 "use client";
 
 // =============================================================
-// 한 줄 정리(회고) 모달
+// 한 줄 정리(인사이트) 모달
 // -------------------------------------------------------------
 // [모드 1] isPending=false (처음 "해결됐어요" 클릭 시)
-//   · "정리하고 해결 완료" — 회고를 쓰고 해결
+//   · "정리하고 해결 완료" — 인사이트를 쓰고 해결
 //   · "나중에 쓸게요"       — 지금은 미루고 해결 (reflectionPending=true 표시)
 //
-// [모드 2] isPending=true (회고 대기 상태에서 "지금 남기기" 클릭 시)
-//   · "회고 저장"           — 뒤늦게 회고를 작성해 대기 표시 해제
+// [모드 2] isPending=true (인사이트 대기 상태에서 "지금 남기기" 클릭 시)
+//   · "인사이트 저장"           — 뒤늦게 인사이트를 작성해 대기 표시 해제
 //   · "다음에 쓸게요"       — 모달만 닫고 대기 상태 유지
 //
 // [설계 의도]
 //   "이해한 내용 요약"이 아닌 "이해의 전환점"을 묻습니다.
 //   무엇이 막혔다가 어떻게 풀렸는지는 답변에서 베껴 쓸 수 없는,
-//   학생 본인만 쓸 수 있는 문장입니다 → 진짜 생성적(generative) 회고.
+//   학생 본인만 쓸 수 있는 문장입니다 → 진짜 생성적(generative) 인사이트.
 //   learned 한 줄이라도 써야 저장 버튼이 활성화되어, 빈 칸 제출을 막습니다.
 // =============================================================
 import { useState } from "react";
@@ -37,7 +37,7 @@ export default function ReflectionModal({
 
   const canSave = learned.trim().length > 0;
 
-  // 회고 저장: 이해됐어요 경로면 understoodAnswerId도 함께 확정합니다.
+  // 인사이트 저장: 이해됐어요 경로면 understoodAnswerId도 함께 확정합니다.
   async function handleSave() {
     if (!canSave || saving) return;
     setSaving(true);
@@ -81,7 +81,7 @@ export default function ReflectionModal({
         <div className="modal-head">
           <h3>
             {isPending
-              ? "📝 나중에 쓰려고 했던 회고, 지금 남겨볼까요?"
+              ? "📝 나중에 쓰려고 했던 인사이트, 지금 남겨볼까요?"
               : "🎉 해결됐어요! 잠깐, 내 걸로 만들어 볼까요?"}
           </h3>
           <button className="btn-close" onClick={onClose} aria-label="닫기">
@@ -140,7 +140,7 @@ export default function ReflectionModal({
             {saving
               ? "저장 중..."
               : isPending
-              ? "회고 저장"
+              ? "인사이트 저장"
               : "정리하고 해결 완료"}
           </button>
         </div>

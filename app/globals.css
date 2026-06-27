@@ -536,13 +536,117 @@ select:focus {
 
 /* feed-actions 안의 모든 버튼을 동일 높이로 통일 */
 .feed-actions .btn-primary,
-.feed-actions .filter-btn {
+.feed-actions .filter-btn,
+.feed-actions .btn-insight {
   height: 36px;
   padding-top: 0;
   padding-bottom: 0;
   box-sizing: border-box;
   display: inline-flex;
   align-items: center;
+}
+
+/* 인사이트 보기 — 보조(고스트) 버튼 */
+.feed-actions .btn-insight {
+  gap: 6px;
+  padding-left: 12px;
+  padding-right: 12px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.feed-actions .btn-insight:hover {
+  border-color: var(--primary, #e07a5f);
+  color: var(--primary-dark, #b85c4a);
+}
+
+/* ===================== 내 인사이트 모음 모달 ===================== */
+.modal-insight {
+  width: min(560px, 92vw);
+  max-height: 82vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.insight-modal-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  margin-left: 8px;
+  border-radius: 999px;
+  background: var(--neutral, #f0eee7);
+  color: var(--text-sub);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.insight-modal-empty {
+  color: var(--text-sub);
+  font-size: 14px;
+  line-height: 1.6;
+  padding: 8px 2px 4px;
+}
+
+.insight-modal-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.insight-modal-item {
+  width: 100%;
+  text-align: left;
+  background: var(--card-bg, #faf9f6);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  cursor: pointer;
+}
+.insight-modal-item:hover {
+  border-color: var(--primary, #e07a5f);
+}
+
+.insight-modal-item-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.insight-modal-item-top time {
+  font-size: 12px;
+  color: var(--text-sub);
+}
+
+.insight-modal-item-title {
+  margin: 0 0 6px;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.insight-modal-item-learned,
+.insight-modal-item-next {
+  margin: 2px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-sub);
+  word-break: keep-all;
+}
+
+@media (max-width: 768px) {
+  .feed-actions .btn-insight-label { display: none; }
+  .feed-actions .btn-insight { padding-left: 10px; padding-right: 10px; }
 }
 
 /* ===================== 피드 필터 드롭다운 ===================== */
@@ -875,7 +979,7 @@ select:focus {
   max-height: 52vh;
 }
 
-/* ===================== 한 줄 정리(회고) 모달 ===================== */
+/* ===================== 한 줄 정리(인사이트) 모달 ===================== */
 .modal-reflect {
   max-width: 680px;
 }
@@ -928,7 +1032,7 @@ select:focus {
   border-color: var(--primary);
 }
 
-/* 카드 하단 회고 대기 배지 */
+/* 카드 하단 인사이트 대기 배지 */
 .reflect-pending-badge {
   display: inline-flex;
   align-items: center;
@@ -950,7 +1054,7 @@ select:focus {
   color: #3a5fb7;
 }
 
-/* 모달 내 회고 대기 알림 배너 */
+/* 모달 내 인사이트 대기 알림 배너 */
 .reflect-reminder {
   display: flex;
   align-items: center;
@@ -1489,7 +1593,7 @@ button.understood-bulb:hover {
   box-shadow: none;
 }
 
-/* 카드의 상태 표시 — 클릭 불가(상태 변경은 상세 모달의 회고 흐름에서만) */
+/* 카드의 상태 표시 — 클릭 불가(상태 변경은 상세 모달의 인사이트 흐름에서만) */
 .status-badge {
   margin-left: auto;
   padding: 2px 0;
@@ -3086,7 +3190,7 @@ pre code {
   padding: 20px 24px;
 }
 
-/* 사이드 회고 패널 */
+/* 사이드 인사이트 패널 */
 .side-section-head {
   display: flex;
   align-items: center;
@@ -3238,7 +3342,7 @@ pre code {
   color: var(--text);
 }
 
-/* 내 회고 모음 — 아코디언 헤더(클릭해서 펼침/접기) */
+/* 내 인사이트 모음 — 아코디언 헤더(클릭해서 펼침/접기) */
 .reflection-toggle {
   display: flex;
   align-items: center;
@@ -3272,7 +3376,7 @@ pre code {
   transform: rotate(180deg);
 }
 
-/* 내 회고 모음 — 실제 회고 기록 카드 (많아지면 내부 스크롤로 높이 제한) */
+/* 내 인사이트 모음 — 실제 인사이트 기록 카드 (많아지면 내부 스크롤로 높이 제한) */
 .reflection-cards {
   display: flex;
   flex-direction: column;
@@ -3679,7 +3783,7 @@ pre code {
   justify-content: flex-start;
 }
 
-/* ===================== 회고 미완료 섹션 ===================== */
+/* ===================== 인사이트 미완료 섹션 ===================== */
 .pending-section {
   background: #fffbf3;
   border: 1.5px solid #e8a817;
@@ -5587,7 +5691,7 @@ pre code {
   color: var(--primary);
 }
 
-/* ── 사이드바 내 회고 섹션 ── */
+/* ── 사이드바 내 인사이트 섹션 ── */
 .reflect-sidebar-section {
   margin-top: 20px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);

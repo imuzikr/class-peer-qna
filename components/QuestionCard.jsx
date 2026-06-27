@@ -2,7 +2,7 @@
 
 // 2단: 질문 카드 — 내용 일부만 미리 보여주고, 클릭하면 상세 모달이 열립니다.
 // 상태(🙋 궁금해요 / ✅ 해결됐어요)는 표시 전용 배지입니다.
-// 해결 처리는 반드시 상세 모달의 회고 흐름을 거치도록 했기 때문에,
+// 해결 처리는 반드시 상세 모달의 인사이트 흐름을 거치도록 했기 때문에,
 // 카드에서 모달 없이 해결로 바꾸는 동작은 두지 않습니다.
 import { formatTime } from "@/lib/store";
 import { stripHtml } from "@/lib/html";
@@ -69,13 +69,13 @@ export default function QuestionCard({ question, onClick }) {
           {question.imageUrl && (
             <span style={{ marginLeft: 8 }}>📎 이미지</span>
           )}
-          {/* 회고 대기 배지 — 작성자 본인과 교사에게만 표시됩니다 */}
+          {/* 인사이트 대기 배지 — 작성자 본인과 교사에게만 표시됩니다 */}
           {showPending && (
             <span
               className={`reflect-pending-badge ${mine ? "mine" : "teacher"}`}
-              title={mine ? "회고를 아직 남기지 않았어요" : "이 학생이 아직 회고를 남기지 않았어요"}
+              title={mine ? "인사이트를 아직 남기지 않았어요" : "이 학생이 아직 인사이트를 남기지 않았어요"}
             >
-              📝 {mine ? "회고 남기기" : "회고 대기"}
+              📝 {mine ? "인사이트 남기기" : "인사이트 대기"}
             </span>
           )}
         </span>

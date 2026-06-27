@@ -23,7 +23,8 @@ import NoticePanel from "@/components/NoticePanel";
 import PythonRunner from "@/components/PythonRunner";
 import TopNav from "@/components/TopNav";
 import FilterMenu, { applyFilter } from "@/components/FilterMenu";
-import { IconWrite } from "@/components/StatusIcons";
+import InsightModal from "@/components/InsightModal";
+import { IconWrite, IconInsight } from "@/components/StatusIcons";
 import { sortPinnedQuestions } from "@/lib/questionRanking";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import { isAdmin } from "@/lib/user";
@@ -39,6 +40,7 @@ export default function BoardPage() {
   const [filter, setFilter] = useState("all"); // 피드 필터 (FilterMenu)
   const [selectedId, setSelectedId] = useState(null);
   const [writing, setWriting] = useState(false);
+  const [insightOpen, setInsightOpen] = useState(false); // 내 인사이트 모음 모달
   const [pyOpen, setPyOpen] = useState(false); // 파이썬 실행 패널
   const [askCode, setAskCode] = useState(null); // 실행기에서 넘어온 코드
   const [managingKeywords, setManagingKeywords] = useState(false);
@@ -109,7 +111,7 @@ export default function BoardPage() {
   // 모달에 표시할 질문 (목록이 갱신되면 answerCount도 함께 갱신되도록 id로 찾음)
   const selectedQuestion = questions.find((q) => q.id === selectedId) ?? null;
 
-  // 내 회고 목록 — 최신순
+  // 내 인사이트 목록 — 최신순
   const myReflections = useMemo(
     () =>
       user
@@ -156,8 +158,6 @@ export default function BoardPage() {
           counts={counts}
           isAdmin={admin}
           onManage={() => setManagingKeywords(true)}
-          reflections={myReflections}
-          onReflectionClick={(id) => setSelectedId(id)}
         />
 
         {/* 2단: 질문 게시판 */}
@@ -171,6 +171,14 @@ export default function BoardPage() {
             </h2>
             <div className="feed-actions">
               <FilterMenu value={filter} onChange={setFilter} />
+              <button
+                className="btn-ghost btn-insight"
+                onClick={() => setInsightOpen(true)}
+                title="내 인사이트 모음"
+              >
+                <IconInsight size={18} />{" "}
+                <span className="btn-insight-label">인사이트 보기</span>
+              </button>
               <button className="btn-primary" onClick={() => setWriting(true)}>
                 <IconWrite size={18} /> 질문하기
               </button>
@@ -223,6 +231,17 @@ export default function BoardPage() {
         <KeywordManager
           keywords={keywordDocs}
           onClose={() => setManagingKeywords(false)}
+        />
+      )}
+
+      {insightOpen && (
+        <InsightModal
+          reflections={myReflections}
+          onClose={() => setInsightOpen(false)}
+          onOpen={(id) => {
+            setInsightOpen(false);
+            setSelectedId(id);
+          }}
         />
       )}
 

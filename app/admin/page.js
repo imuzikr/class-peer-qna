@@ -454,7 +454,7 @@ export default function AdminDashboardPage() {
             className={`reflection-toggle ${pendingOpen ? "open" : ""}`}
             onClick={() => setPendingOpen((v) => !v)}
           >
-            <h2>📝 회고 미완료</h2>
+            <h2>📝 인사이트 미완료</h2>
             <span className="reflection-count">{allPendingReflections.length}건</span>
             <span className="reflection-chevron" aria-hidden="true">▾</span>
           </button>
@@ -658,7 +658,7 @@ export default function AdminDashboardPage() {
 
                 <div className="admin-chart-panel compact">
                   <div className="admin-panel-head">
-                    <h2>회고 완성률</h2>
+                    <h2>인사이트 완성률</h2>
                     <span>{reflectionRate}% 완성</span>
                   </div>
                   {selectedQuestions.length === 0 ? (
