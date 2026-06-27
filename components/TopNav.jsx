@@ -12,7 +12,7 @@ import { isAdmin } from "@/lib/user";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import UserProfile from "./UserProfile";
 import RoleSwitcher from "./RoleSwitcher";
-import { IconReport, IconPythonRunner, IconLogo, IconAnswer, IconSchool, IconBlackboard, IconTeacher } from "./StatusIcons";
+import { IconReport, IconPythonRunner, IconLogo, IconAnswer, IconSchool, IconBlackboard, IconTeacher, IconLogout } from "./StatusIcons";
 
 export default function TopNav({ active, onPython, pyActive = false }) {
   const router = useRouter();
@@ -57,7 +57,7 @@ export default function TopNav({ active, onPython, pyActive = false }) {
               className={`btn-ghost topnav-drop-btn ${active === "board" || active === "study" ? "nav-active" : ""}`}
               onClick={() => setNavOpen((v) => !v)}
             >
-              <IconSchool size={20} /> 학습 공간
+              <IconSchool size={20} /> <span className="nav-label">학습 공간</span>
               <span className="topnav-drop-chevron">{navOpen ? "▴" : "▾"}</span>
             </button>
 
@@ -110,8 +110,8 @@ export default function TopNav({ active, onPython, pyActive = false }) {
       <div className="user-area">
         <RoleSwitcher />
         <UserProfile />
-        <button className="btn-ghost" onClick={() => go("/")}>
-          로그아웃
+        <button className="btn-ghost btn-logout" onClick={() => go("/")} title="로그아웃">
+          <IconLogout size={18} /> <span className="nav-label">로그아웃</span>
         </button>
       </div>
     </header>
