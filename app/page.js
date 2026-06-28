@@ -195,7 +195,7 @@ export default function LandingPage() {
                     onClick={handleGoogle}
                     disabled={busy}
                   >
-                    <GoogleMark /> Google로 계속하기
+                    <GoogleMark /> Google 계정으로 계속하기
                   </button>
                 </>
               )}

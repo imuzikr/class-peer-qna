@@ -196,25 +196,29 @@ select:focus {
 
 /* 로그인/회원가입 모달도 글래스 스타일 */
 .modal-auth {
-  max-width: 190px;
-  padding: 18px 16px 20px;
   background: rgba(250, 249, 245, 0.85);
   backdrop-filter: blur(20px) saturate(160%);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
   border: 1px solid rgba(255, 255, 255, 0.7);
 }
 
-/* 인증 모달 — 폭을 절반 수준으로 줄이고 내부 글자·여백도 비례 축소 */
-.modal-auth .modal-head { margin-bottom: 8px; }
-.modal-auth .modal-head h3 { font-size: 15px; }
-.modal-auth .tab-row { gap: 5px; margin-bottom: 6px; }
-.modal-auth .tab-row button { padding: 6px; font-size: 11px; }
-.modal-auth .form-grid { gap: 9px; margin-top: 2px; }
-.modal-auth .form-grid input { padding: 8px 10px; font-size: 12px; }
-.modal-auth .form-grid .btn-primary { padding: 8px; font-size: 12px; }
-.modal-auth .auth-error { font-size: 11px; padding: 6px 9px; }
-.modal-auth .auth-divider { font-size: 10px; gap: 8px; }
-.modal-auth .btn-google { padding: 8px; font-size: 11px; gap: 6px; }
+/* .modal 기본(max-width:640px)보다 우선하도록 specificity를 높임 */
+/* — 가로 폭만 절반(640 → 320px), 글자·높이는 그대로 */
+.modal.modal-auth {
+  max-width: 320px;
+}
+
+/* 인증 폼 — 항목 사이 여유 있게 (이전 상태) */
+.modal-auth .form-grid {
+  gap: 16px;
+  margin-top: 4px;
+}
+.modal-auth .form-grid input {
+  padding: 13px 14px;
+}
+.modal-auth .form-grid .btn-primary {
+  padding: 13px 14px;
+}
 
 .tab-row {
   display: flex;
