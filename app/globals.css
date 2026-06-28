@@ -1076,6 +1076,47 @@ select:focus {
   gap: 14px;
 }
 
+/* ===================== 입장 코드 크게 보기 모달 ===================== */
+/* 학생들이 교실 뒤에서도 읽을 수 있도록 코드를 크게 표시 */
+.modal.modal-joincode {
+  position: relative;
+  max-width: 640px;
+  width: 92vw;
+  text-align: center;
+  padding: 48px 40px 44px;
+}
+.joincode-close {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+}
+.joincode-class {
+  margin: 0 0 18px;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--text-sub);
+}
+.joincode-label {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  letter-spacing: 0.3em;
+  color: var(--text-sub);
+}
+.joincode-value {
+  margin: 0 0 22px;
+  font-family: var(--font-mono);
+  font-size: clamp(4rem, 18vw, 9rem);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: 0.12em;
+  color: var(--primary);
+}
+.joincode-hint {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--text-sub);
+}
+
 /* ===================== 한 줄 정리(인사이트) 모달 ===================== */
 .modal-reflect {
   max-width: 680px;

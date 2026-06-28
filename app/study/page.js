@@ -166,10 +166,10 @@ export default function StudyPage() {
                     {admin && currentClass && (
                       <button
                         className="study-code-btn"
-                        onClick={() => setShowCode((v) => !v)}
-                        title="학생에게 알려 줄 입장 코드"
+                        onClick={() => setShowCode(true)}
+                        title="학생에게 알려 줄 입장 코드 크게 보기"
                       >
-                        🔑 {showCode ? currentClass.joinCode : "입장 코드"}
+                        🔑 입장 코드
                       </button>
                     )}
                     {admin && (
@@ -258,6 +258,30 @@ export default function StudyPage() {
           className="kwl-mobile-backdrop"
           onClick={() => setKwlMobileOpen(false)}
         />
+      )}
+
+      {/* 입장 코드 크게 보기 모달 — 학생들이 멀리서도 볼 수 있게 */}
+      {showCode && currentClass && (
+        <div className="modal-backdrop" onClick={() => setShowCode(false)}>
+          <div
+            className="modal modal-joincode"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              className="btn-close joincode-close"
+              onClick={() => setShowCode(false)}
+              aria-label="닫기"
+            >
+              ×
+            </button>
+            <p className="joincode-class">{currentClass.name}</p>
+            <p className="joincode-label">입장 코드</p>
+            <p className="joincode-value">{currentClass.joinCode}</p>
+            <p className="joincode-hint">
+              공부방 입장 화면에서 이 코드를 입력하세요
+            </p>
+          </div>
+        </div>
       )}
 
       {/* 반 만들기 모달 */}
