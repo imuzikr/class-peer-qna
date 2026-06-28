@@ -263,7 +263,7 @@ export default function StudyPage() {
       {/* 반 만들기 모달 */}
       {creatingClass && (
         <div className="modal-backdrop" onClick={() => setCreatingClass(false)}>
-          <div className="modal modal-form" onClick={(e) => e.stopPropagation()}>
+          <div className="modal modal-class-create" onClick={(e) => e.stopPropagation()}>
             <div className="modal-head">
               <h3>➕ 새 반 만들기</h3>
               <button
