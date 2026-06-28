@@ -15,6 +15,7 @@ import { isFirebaseConfigured } from "@/lib/firebase";
 import { stripHtml } from "@/lib/html";
 import { isAdmin } from "@/lib/user";
 import { useCurrentUser } from "@/lib/useCurrentUser";
+import { useRequireAuth } from "@/lib/useRequireAuth";
 import { getMeTooCount, isPinnedQuestion } from "@/lib/questionRanking";
 import TopNav from "@/components/TopNav";
 import ActivityHeatmap from "@/components/ActivityHeatmap";
@@ -117,6 +118,7 @@ function weeklyReflection(questions, answerEvents, keywordStats) {
 export default function StudentReportPage() {
   const router = useRouter();
   const user = useCurrentUser();
+  useRequireAuth();
   const [questions, setQuestions] = useState([]);
   const [keywordDocs, setKeywordDocs] = useState([]);
   const [answersByQuestion, setAnswersByQuestion] = useState({});

@@ -17,6 +17,7 @@ import {
 import { isFirebaseConfigured } from "@/lib/firebase";
 import { isAdmin } from "@/lib/user";
 import { useCurrentUser } from "@/lib/useCurrentUser";
+import { useRequireAuth } from "@/lib/useRequireAuth";
 import TopNav from "@/components/TopNav";
 import { getMeTooCount, isPinnedQuestion } from "@/lib/questionRanking";
 import StudentEditModal from "@/components/StudentEditModal";
@@ -228,6 +229,7 @@ function EmptyPanel({ children }) {
 export default function AdminDashboardPage() {
   const router = useRouter();
   const user = useCurrentUser();
+  useRequireAuth();
   const [questions, setQuestions] = useState([]);
   const [keywordDocs, setKeywordDocs] = useState([]);
   const [answersByQuestion, setAnswersByQuestion] = useState({});

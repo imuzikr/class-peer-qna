@@ -27,6 +27,7 @@ import InsightModal from "@/components/InsightModal";
 import { IconWrite, IconInsight } from "@/components/StatusIcons";
 import { sortPinnedQuestions } from "@/lib/questionRanking";
 import { useCurrentUser } from "@/lib/useCurrentUser";
+import { useRequireAuth } from "@/lib/useRequireAuth";
 import { isAdmin } from "@/lib/user";
 
 export default function BoardPage() {
@@ -46,6 +47,7 @@ export default function BoardPage() {
   const [askCode, setAskCode] = useState(null); // 실행기에서 넘어온 코드
   const [managingKeywords, setManagingKeywords] = useState(false);
   const user = useCurrentUser();
+  useRequireAuth();
   const admin = user ? isAdmin(user) : false;
 
   // 실시간 구독 (컴포넌트가 사라지면 자동 해제)

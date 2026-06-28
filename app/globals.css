@@ -244,6 +244,55 @@ select:focus {
   line-height: 1.6;
 }
 
+/* 인증 — 오류/구분선/구글 버튼 */
+.auth-error {
+  margin: 0;
+  color: var(--danger, #c04a3f);
+  background: rgba(192, 74, 63, 0.08);
+  border: 1px solid rgba(192, 74, 63, 0.25);
+  border-radius: var(--radius-btn);
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-sub);
+  font-size: 12px;
+}
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.btn-google {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 12px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+}
+.btn-google:hover {
+  background: var(--neutral, #f3f1ec);
+}
+.btn-google:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
 @media (max-width: 720px) {
   .landing-top {
     padding: 16px;

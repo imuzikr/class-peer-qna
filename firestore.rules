@@ -1,0 +1,128 @@
+rules_version = '2';
+
+// =============================================================
+// Firestore 보안 규칙 — class-peer-qna
+// -------------------------------------------------------------
+// 원칙
+//  · 로그인하지 않으면 아무것도 못 읽고/못 씀 (기본 거부)
+//  · 내 글은 나만, 남의 글은 못 고침 (작성자 == request.auth.uid)
+//  · 교사/관리자(역할 클레임 또는 초기 관리자 이메일)는 관리 권한
+//  · 역할(role)은 클라이언트가 스스로 못 바꿈 — functions/setUserRole로만
+// 배포:  firebase deploy --only firestore:rules
+// =============================================================
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function uid() { return request.auth.uid; }
+    function userRole() { return request.auth.token.role; }
+
+    // 초기 관리자 — 아직 역할 클레임이 없어도 관리자 권한(부트스트랩)
+    function isInitialAdmin() {
+      return signedIn() && request.auth.token.email == 'iseoul72@gmail.com';
+    }
+    function isTeacher() {
+      return signedIn() &&
+        (userRole() == 'teacher' || userRole() == 'admin' || isInitialAdmin());
+    }
+    function isAdmin() {
+      return signedIn() && (userRole() == 'admin' || isInitialAdmin());
+    }
+    // 변경된 필드가 주어진 목록뿐인지 확인
+    function changedOnly(keys) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
+    }
+
+    // ── 사용자 프로필 ─────────────────────────────────────────
+    match /users/{userId} {
+      allow read: if signedIn();
+      // 본인만 생성, 가입 시 role은 'student' 고정 (스스로 승격 불가)
+      allow create: if signedIn() && userId == uid()
+                    && request.resource.data.role == 'student';
+      // 본인은 프로필 일부만 수정(역할 제외), 교사는 학생 프로필 관리 가능
+      allow update: if (signedIn() && userId == uid()
+                        && changedOnly(['email','realName','displayName','emoji','studentId','fcmTokens']))
+                    || isTeacher();
+      allow delete: if isAdmin();
+
+      // 인앱 알림 — 본인만
+      match /notifications/{nId} {
+        allow read, write: if signedIn() && userId == uid();
+      }
+    }
+
+    // ── 질문 ──────────────────────────────────────────────────
+    match /questions/{qId} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.authorId == uid();
+      allow update: if signedIn() && (
+        resource.data.authorId == uid()    // 작성자: 해결/인사이트/고정 등
+        || isTeacher()
+        || changedOnly(['meTooIds'])       // 누구나 '궁금해요' 토글
+        || changedOnly(['answerCount'])    // 답변 수(서버 함수 배포 전 클라 집계 허용)
+      );
+      allow delete: if signedIn() && (resource.data.authorId == uid() || isTeacher());
+
+      // ── 답변(하위 컬렉션) ──
+      match /answers/{aId} {
+        allow read: if signedIn();
+        allow create: if signedIn() && request.resource.data.authorId == uid();
+        allow update: if signedIn() && (
+          resource.data.authorId == uid()
+          || isTeacher()
+          // 질문 작성자가 '이해됐어요' 표시 — understood 필드만 변경 허용
+          || (changedOnly(['understood'])
+              && get(/databases/$(database)/documents/questions/$(qId)).data.authorId == uid())
+        );
+        allow delete: if signedIn() && (resource.data.authorId == uid() || isTeacher());
+      }
+    }
+
+    // ── 공지 — 교사만 작성 ────────────────────────────────────
+    match /notices/{nId} {
+      allow read: if signedIn();
+      allow write: if isTeacher();
+    }
+
+    // ── 키워드 — 읽기 모두, 최초 시드 위해 생성은 로그인 허용, 수정/삭제 교사 ──
+    match /keywords/{kId} {
+      allow read: if signedIn();
+      allow create: if signedIn();
+      allow update, delete: if isTeacher();
+    }
+
+    // ── 반(클래스) — 읽기 모두(입장 코드 조회), 쓰기 교사 ──
+    match /classes/{cId} {
+      allow read: if signedIn();
+      allow write: if isTeacher();
+    }
+
+    // ── 공부방 보드 — 교사 관리, 카드는 학생 본인(문서ID = uid) ──
+    match /studyBoards/{bId} {
+      allow read: if signedIn();
+      allow write: if isTeacher();
+
+      match /cards/{cardId} {
+        allow read: if signedIn();
+        // 카드 문서 ID == 작성자 uid → 보드당 1개 보장
+        allow create: if signedIn() && cardId == uid()
+                      && request.resource.data.authorId == uid();
+        allow update: if signedIn() && (cardId == uid() || isTeacher());
+        allow delete: if signedIn() && (cardId == uid() || isTeacher());
+      }
+    }
+
+    // ── KWL — 본인 작성/수정, 읽기는 교사 통계 위해 로그인 허용 ──
+    match /kwl/{kwlId} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.userId == uid();
+      allow update, delete: if signedIn() && (resource.data.userId == uid() || isTeacher());
+    }
+
+    // ── 통계/시스템 — Cloud Functions(admin SDK)만 쓰기 ──
+    match /stats/{doc} {
+      allow read: if isTeacher();
+      allow write: if false;
+    }
+  }
+}

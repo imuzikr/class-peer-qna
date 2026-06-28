@@ -20,6 +20,7 @@ import { isFirebaseConfigured } from "@/lib/firebase";
 import { isAdmin, getCurrentUser } from "@/lib/user";
 import { getSelectedClassId, setSelectedClassId } from "@/lib/classroom";
 import { useCurrentUser } from "@/lib/useCurrentUser";
+import { useRequireAuth } from "@/lib/useRequireAuth";
 import { codeBlockHtml } from "@/lib/html";
 import TopNav from "@/components/TopNav";
 import StudyBoardColumn from "@/components/StudyBoardColumn";
@@ -32,6 +33,7 @@ import KwlPanel from "@/components/KwlPanel";
 
 export default function StudyPage() {
   const user = useCurrentUser();
+  useRequireAuth();
   const [classes, setClasses] = useState([]);
   const [boards, setBoards] = useState([]);
   const [questions, setQuestions] = useState([]);

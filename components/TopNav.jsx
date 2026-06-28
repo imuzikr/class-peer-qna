@@ -9,6 +9,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { isAdmin } from "@/lib/user";
+import { isFirebaseConfigured } from "@/lib/firebase";
+import { signOutUser } from "@/lib/auth";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import UserProfile from "./UserProfile";
 import RoleSwitcher from "./RoleSwitcher";
@@ -39,6 +41,17 @@ export default function TopNav({ active, onPython, pyActive = false }) {
   function go(path) {
     setNavOpen(false);
     router.push(path);
+  }
+
+  async function handleLogout() {
+    if (isFirebaseConfigured) {
+      try {
+        await signOutUser();
+      } catch {
+        /* 무시하고 랜딩으로 */
+      }
+    }
+    router.push("/");
   }
 
   return (
@@ -106,11 +119,11 @@ export default function TopNav({ active, onPython, pyActive = false }) {
         </nav>
       </div>
 
-      {/* 오른쪽: 역할 전환 + 프로필 + 로그아웃 */}
+      {/* 오른쪽: 역할 전환(데모 전용) + 프로필 + 로그아웃 */}
       <div className="user-area">
-        <RoleSwitcher />
+        {!isFirebaseConfigured && <RoleSwitcher />}
         <UserProfile />
-        <button className="btn-ghost btn-logout" onClick={() => go("/")} title="로그아웃">
+        <button className="btn-ghost btn-logout" onClick={handleLogout} title="로그아웃">
           <IconLogout size={18} /> <span className="nav-label">로그아웃</span>
         </button>
       </div>
