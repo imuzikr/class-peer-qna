@@ -9,19 +9,15 @@ import {
   subscribeQuestions,
   subscribeStudyBoards,
   subscribeStudyCards,
-  subscribeMyPresence,
-  recordPresence,
   toDate,
 } from "@/lib/store";
 import { isFirebaseConfigured } from "@/lib/firebase";
 import { stripHtml } from "@/lib/html";
 import { isAdmin } from "@/lib/user";
 import { useCurrentUser } from "@/lib/useCurrentUser";
-import { getSelectedClassId } from "@/lib/classroom";
 import { getMeTooCount, isPinnedQuestion } from "@/lib/questionRanking";
 import TopNav from "@/components/TopNav";
 import ActivityHeatmap from "@/components/ActivityHeatmap";
-import AccessLineChart, { demoAccessPings } from "@/components/AccessLineChart";
 
 const DAY_MS = 1000 * 60 * 60 * 24;
 
@@ -127,8 +123,6 @@ export default function StudentReportPage() {
   const [activeStatKey, setActiveStatKey] = useState(null); // 통계 카드 드릴다운
   const [studyBoards, setStudyBoards] = useState([]);
   const [cardsByBoard, setCardsByBoard] = useState({}); // boardId -> cards[]
-  const [classId, setClassId] = useState(null);
-  const [presencePings, setPresencePings] = useState([]); // 내 접속 기록(10분 버킷)
 
   // 학습 리포트는 학생 화면 — 관리자 보기로 바뀌면 관리자 대시보드로 이동
   const isTeacher = user ? isAdmin(user) : false;
@@ -146,38 +140,6 @@ export default function StudentReportPage() {
       unsubB();
     };
   }, []);
-
-  // 입장한 반 동기화 (반 변경 시 갱신)
-  useEffect(() => {
-    const sync = () => setClassId(getSelectedClassId());
-    sync();
-    window.addEventListener("class-change", sync);
-    return () => window.removeEventListener("class-change", sync);
-  }, []);
-
-  // 내 접속 기록 구독
-  useEffect(() => {
-    if (!classId || !user) {
-      setPresencePings([]);
-      return;
-    }
-    return subscribeMyPresence(classId, user.uid, setPresencePings);
-  }, [classId, user?.uid]);
-
-  // 접속 핑(heartbeat) — 화면이 보이는 동안 1분마다 현재 10분 버킷을 기록
-  useEffect(() => {
-    if (!classId || !user) return;
-    const ping = () => {
-      if (document.visibilityState === "visible") recordPresence(classId, user);
-    };
-    ping();
-    const timer = setInterval(ping, 60 * 1000);
-    document.addEventListener("visibilitychange", ping);
-    return () => {
-      clearInterval(timer);
-      document.removeEventListener("visibilitychange", ping);
-    };
-  }, [classId, user?.uid]);
 
   // 보드별 카드 구독 — 보드 id 집합이 바뀔 때만 재연결 (배열 참조 변경 무시)
   const boardIdsKey = useMemo(
@@ -715,16 +677,6 @@ export default function StudentReportPage() {
             </div>
           )}
         </section>
-
-        <AccessLineChart
-          pings={
-            presencePings.length > 0
-              ? presencePings
-              : !isFirebaseConfigured
-              ? demoAccessPings()
-              : []
-          }
-        />
           </>
         )}
         </main>

@@ -5650,6 +5650,10 @@ pre code {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  /* 최대 5개까지 보이고, 그 이상은 스크롤 */
+  max-height: 230px;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .study-report-item {

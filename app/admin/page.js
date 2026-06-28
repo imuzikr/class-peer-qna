@@ -7,7 +7,6 @@ import {
   subscribeAnswers,
   subscribeKeywords,
   subscribeQuestions,
-  subscribeUserPresence,
   subscribeUserKwl,
   subscribeClasses,
   subscribeStudyBoards,
@@ -22,7 +21,6 @@ import TopNav from "@/components/TopNav";
 import { getMeTooCount, isPinnedQuestion } from "@/lib/questionRanking";
 import StudentEditModal from "@/components/StudentEditModal";
 import ActivityHeatmap from "@/components/ActivityHeatmap";
-import AccessLineChart, { demoAccessPings } from "@/components/AccessLineChart";
 import StudentKwlPanel from "@/components/StudentKwlPanel";
 import ClassOverview from "@/components/ClassOverview";
 import StudyRoomStats from "@/components/StudyRoomStats";
@@ -237,7 +235,6 @@ export default function AdminDashboardPage() {
   const [pendingOpen, setPendingOpen] = useState(true);
   const [editingStudent, setEditingStudent] = useState(null);
   const [activeStatKey, setActiveStatKey] = useState(null); // 통계 카드 드릴다운
-  const [selectedPresence, setSelectedPresence] = useState([]); // 선택 학생 접속 기록
   const [selectedKwl, setSelectedKwl] = useState([]); // 선택 학생 KWL 기록
   const [view, setView] = useState("students"); // 'students' | 'overview'
   const [selectedClassId, setSelectedClassId] = useState(null); // null = 전체 학급
@@ -374,15 +371,6 @@ export default function AdminDashboardPage() {
       setSelectedId(students[0]?.id ?? null);
     }
   }, [selectedId, students]);
-
-  // 선택한 학생의 접속 기록 구독 (반 무관)
-  useEffect(() => {
-    if (!selectedId) {
-      setSelectedPresence([]);
-      return;
-    }
-    return subscribeUserPresence(selectedId, setSelectedPresence);
-  }, [selectedId]);
 
   // 선택한 학생의 KWL 기록 구독 (반 무관)
   useEffect(() => {
@@ -780,16 +768,6 @@ export default function AdminDashboardPage() {
               </section>
 
               <StudentKwlPanel entries={selectedKwl} />
-
-              <AccessLineChart
-                pings={
-                  selectedPresence.length > 0
-                    ? selectedPresence
-                    : !isFirebaseConfigured
-                    ? demoAccessPings()
-                    : []
-                }
-              />
             </>
           ) : (
             <EmptyPanel>학생을 선택하면 활동 분석이 표시됩니다.</EmptyPanel>
