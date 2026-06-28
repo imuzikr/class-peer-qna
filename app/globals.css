@@ -170,7 +170,7 @@ select:focus {
 
 /* 글래스 카드: 타이틀 + 설명을 감싸는 반투명 유리판 */
 .hero-glass {
-  background: rgba(250, 249, 245, 0.55);
+  background: rgba(250, 249, 245, 0.34);
   backdrop-filter: blur(16px) saturate(140%);
   -webkit-backdrop-filter: blur(16px) saturate(140%);
   border: 1px solid rgba(255, 255, 255, 0.7);
@@ -184,17 +184,36 @@ select:focus {
   margin-top: 16px;
   max-width: 560px;
   font-size: 15px;
-  line-height: 1.8;
+  line-height: 1.7;
   color: #5e5d56;
+}
+.hero-desc p {
+  margin: 0 0 6px;
+}
+.hero-desc p:last-child {
+  margin-bottom: 0;
 }
 
 /* 로그인/회원가입 모달도 글래스 스타일 */
 .modal-auth {
-  max-width: 420px;
+  max-width: 360px;
+  padding: 30px 30px 34px;
   background: rgba(250, 249, 245, 0.85);
   backdrop-filter: blur(20px) saturate(160%);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
   border: 1px solid rgba(255, 255, 255, 0.7);
+}
+
+/* 인증 폼 — 항목 사이 여유 있게 */
+.modal-auth .form-grid {
+  gap: 16px;
+  margin-top: 4px;
+}
+.modal-auth .form-grid input {
+  padding: 13px 14px;
+}
+.modal-auth .form-grid .btn-primary {
+  padding: 13px 14px;
 }
 
 .tab-row {

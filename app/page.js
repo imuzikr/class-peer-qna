@@ -120,12 +120,12 @@ export default function LandingPage() {
         <div className="hero-glass">
           <h1>배움나눔</h1>
           <p className="hero-sub">함께 묻고 답하며 성장하는 우리들의 공부방</p>
-          <p className="hero-desc">
-            공부하다 막히는 부분이 있나요? 질문을 올리면 친구들이 답변을 달아
-            줍니다. 과목 키워드로 질문을 분류하고, 채팅처럼 이어지는 대화
-            속에서 서로의 생각을 나눠 보세요. 친구의 질문에 답하면서 내 실력도
-            함께 자랍니다.
-          </p>
+          <div className="hero-desc">
+            <p>공부하다 막히는 부분이 있나요?</p>
+            <p>질문을 올리면 친구들이 답변을 달아 줍니다.</p>
+            <p>과목 키워드로 질문을 분류하고, 채팅처럼 이어지는 대화 속에서 서로의 생각을 나눠 보세요.</p>
+            <p>친구의 질문에 답하면서 내 실력도 함께 자랍니다.</p>
+          </div>
         </div>
       </section>
 
