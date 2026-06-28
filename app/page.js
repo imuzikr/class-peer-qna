@@ -53,7 +53,6 @@ export default function LandingPage() {
   const [authMode, setAuthMode] = useState(null); // null | 'login' | 'signup'
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -76,7 +75,7 @@ export default function LandingPage() {
     setBusy(true);
     try {
       if (authMode === "signup") {
-        await signUpWithEmail(email.trim(), password, name.trim());
+        await signUpWithEmail(email.trim(), password);
       } else {
         await signInWithEmail(email.trim(), password);
       }
@@ -166,15 +165,6 @@ export default function LandingPage() {
             </div>
 
             <form className="form-grid" onSubmit={handleSubmit}>
-              {authMode === "signup" && (
-                <input
-                  type="text"
-                  placeholder="이름 (예: 김하늘)"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                />
-              )}
               <input
                 type="email"
                 placeholder="이메일"
