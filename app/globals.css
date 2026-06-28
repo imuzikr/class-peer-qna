@@ -170,7 +170,7 @@ select:focus {
 
 /* 글래스 카드: 타이틀 + 설명을 감싸는 반투명 유리판 */
 .hero-glass {
-  background: rgba(250, 249, 245, 0.34);
+  background: rgba(250, 249, 245, 0.18);
   backdrop-filter: blur(16px) saturate(140%);
   -webkit-backdrop-filter: blur(16px) saturate(140%);
   border: 1px solid rgba(255, 255, 255, 0.7);
@@ -196,8 +196,8 @@ select:focus {
 
 /* 로그인/회원가입 모달도 글래스 스타일 */
 .modal-auth {
-  max-width: 360px;
-  padding: 30px 30px 34px;
+  max-width: 320px;
+  padding: 30px 28px 34px;
   background: rgba(250, 249, 245, 0.85);
   backdrop-filter: blur(20px) saturate(160%);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
