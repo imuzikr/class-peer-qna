@@ -109,9 +109,11 @@ service cloud.firestore {
 
       match /cards/{cardId} {
         allow read: if signedIn();
-        // 카드 문서 ID == 작성자 uid → 보드당 1개 보장
-        allow create: if signedIn() && cardId == uid()
-                      && request.resource.data.authorId == uid();
+        // 학생: 카드 문서 ID == 작성자 uid → 보드당 1개 보장
+        // 교사: 보드당 여러 카드 허용(자동 ID) — authorId는 본인이어야 함
+        allow create: if signedIn()
+                      && request.resource.data.authorId == uid()
+                      && (cardId == uid() || isTeacher());
         allow update: if signedIn() && (cardId == uid() || isTeacher());
         allow delete: if signedIn() && (cardId == uid() || isTeacher());
       }

@@ -35,8 +35,9 @@ export default function StudyCardModal({
     ? [board.keyword]
     : [];
   const linked = boardKeywords.length > 0;
-  const isTeacherCard = card?.authorId?.startsWith?.("teacher_");
-  // 학생에겐 익명 닉네임만, 교사에겐 디렉터리의 실명을 표시
+  const isTeacherCard =
+    card?.authorId?.startsWith?.("teacher_") || card?.authorName === "선생님";
+  // 학생에겐 익명 닉네임만, 교사에겐 디렉터리의 실명을 표시 (교사 카드는 "선생님")
   const cardDisplayName = card
     ? (isAdmin(getCurrentUser()) && !isTeacherCard
         ? getDirectoryRealName(card.authorId)

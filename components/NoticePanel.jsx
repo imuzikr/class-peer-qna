@@ -2,7 +2,7 @@
 
 // 3단: 공지사항 패널 — 실시간 공지 목록 + 공지 작성(서식 지원)
 import { useState } from "react";
-import { addNotice, formatTime } from "@/lib/store";
+import { addNotice, formatTime, toDate } from "@/lib/store";
 import { getCurrentUser, isAdmin } from "@/lib/user";
 import { sanitizeHtml, stripHtml } from "@/lib/html";
 import { useCurrentUser } from "@/lib/useCurrentUser";
@@ -15,6 +15,13 @@ export default function NoticePanel({ notices }) {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState(""); // 서식(HTML) 내용
   const [resetKey, setResetKey] = useState(0);
+  const [sortDir, setSortDir] = useState("desc"); // 날짜 정렬: desc(최신순)/asc(오래된순)
+
+  // 날짜 기준 정렬 (토글)
+  const sortedNotices = [...notices].sort((a, b) => {
+    const diff = toDate(a.createdAt) - toDate(b.createdAt);
+    return sortDir === "asc" ? diff : -diff;
+  });
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -36,12 +43,22 @@ export default function NoticePanel({ notices }) {
         <span className="notice-col-title">
           <IconNotice size={26} /> 공지사항
         </span>
-        {/* 공지 작성은 관리자/교사 전용 (isAdmin 관문) */}
-        {isAdmin(user) && (
-          <button className="btn-ghost" onClick={() => setWriting(!writing)}>
-            {writing ? "닫기" : "+ 작성"}
+        <span className="notice-head-actions">
+          {/* 날짜 정렬 토글 — 한 버튼으로 오름/내림 전환 */}
+          <button
+            className="btn-ghost notice-sort-btn"
+            onClick={() => setSortDir((d) => (d === "desc" ? "asc" : "desc"))}
+            title={sortDir === "desc" ? "최신순 (클릭 시 오래된순)" : "오래된순 (클릭 시 최신순)"}
+          >
+            {sortDir === "desc" ? "↓ 최신순" : "↑ 오래된순"}
           </button>
-        )}
+          {/* 공지 작성은 관리자/교사 전용 (isAdmin 관문) */}
+          {isAdmin(user) && (
+            <button className="btn-ghost" onClick={() => setWriting(!writing)}>
+              {writing ? "닫기" : "+ 작성"}
+            </button>
+          )}
+        </span>
       </h2>
 
       {writing && (
@@ -74,7 +91,7 @@ export default function NoticePanel({ notices }) {
           등록된 공지가 없습니다.
         </p>
       )}
-      {notices.map((n) => (
+      {sortedNotices.map((n) => (
         <div className="notice-item" key={n.id}>
           <h4>{n.title}</h4>
           <div className="notice-content" dangerouslySetInnerHTML={{ __html: sanitizeHtml(n.content) }} />

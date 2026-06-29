@@ -7,8 +7,11 @@ import { IconTeacher } from "./StatusIcons";
 const IMAGE_EXTS = new Set(["jpg", "jpeg", "png", "gif", "webp"]);
 
 export default function StudyCard({ card, onClick, isTeacher = false }) {
-  const isTeacherCard = card.authorId?.startsWith?.("teacher_");
+  // 교사 카드: 데모는 "teacher_" 접두, 실서비스는 작성자명이 "선생님"(예약어)
+  const isTeacherCard =
+    card.authorId?.startsWith?.("teacher_") || card.authorName === "선생님";
   // 학생에게는 익명 닉네임만, 교사에게는 디렉터리의 실명·학번을 보여줍니다.
+  // (교사 본인 카드는 실명 대신 항상 "선생님")
   const dirUser = isTeacher && !isTeacherCard ? getDirectoryUser(card.authorId) : null;
   const displayName = dirUser?.realName || card.authorName;
   const studentId = dirUser?.studentId ?? card.authorStudentId ?? null;

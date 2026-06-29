@@ -85,7 +85,8 @@ export default function StudyBoardColumn({
   }
 
   const canAddNotice = isNotice && isTeacher && !locked;
-  const canAddStudent = !isNotice && !locked && !myCard;
+  // 교사는 보드당 여러 카드 가능(제한 없음), 학생은 카드 1개까지(myCard 없을 때만)
+  const canAddStudent = !isNotice && !locked && (isTeacher || !myCard);
   const canAdd = canAddNotice || canAddStudent;
 
   // 이전 단일 keyword 필드와 새 keywords 배열 모두 지원
@@ -283,10 +284,10 @@ export default function StudyBoardColumn({
 
         {canAdd && (
           <button className="study-add-card" onClick={() => setCreating(true)}>
-            ＋ {isNotice ? "카드 추가" : "내 카드 작성"}
+            ＋ {isNotice || isTeacher ? "카드 추가" : "내 카드 작성"}
           </button>
         )}
-        {!isNotice && myCard && !locked && (
+        {!isNotice && myCard && !locked && !isTeacher && (
           <p className="study-one-card-note">
             한 보드에는 카드를 하나만 만들 수 있어요.
           </p>

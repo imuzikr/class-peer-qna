@@ -928,6 +928,16 @@ select:focus {
   align-items: center;
   gap: 8px;
 }
+.notice-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.notice-sort-btn {
+  font-size: 12px;
+  white-space: nowrap;
+}
 
 .notice-item {
   background: var(--bg);
@@ -5586,7 +5596,7 @@ pre code {
 
 /* 보드 추가 폼 입력 */
 .study-board-desc-input {
-  min-height: 70px;
+  min-height: 350px;
   resize: vertical;
 }
 

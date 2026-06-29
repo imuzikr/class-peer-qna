@@ -14,7 +14,9 @@ import { getDirectoryRealName } from "@/lib/store";
 
 export default function AuthorBadge({ name, emoji, realName, uid }) {
   const [revealed, setRevealed] = useState(false);
-  const admin = isAdmin(getCurrentUser());
+  // 작성자가 교사면(예약어 "선생님") 실명을 드러내지 않습니다 — 항상 "선생님".
+  const isTeacherAuthor = name === "선생님";
+  const admin = isAdmin(getCurrentUser()) && !isTeacherAuthor;
   // 실명은 게시물에 저장하지 않으므로, 교사용 사용자 디렉터리에서 조회합니다.
   // (구버전 문서엔 realName prop이 남아 있을 수 있어 fallback으로 둡니다.)
   const resolvedRealName = getDirectoryRealName(uid) || realName;
