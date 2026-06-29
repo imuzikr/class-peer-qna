@@ -1,6 +1,6 @@
 "use client";
 
-import { formatTime, getDirectoryRealName } from "@/lib/store";
+import { formatTime, getDirectoryUser } from "@/lib/store";
 import { stripHtml } from "@/lib/html";
 import { IconTeacher } from "./StatusIcons";
 
@@ -8,10 +8,10 @@ const IMAGE_EXTS = new Set(["jpg", "jpeg", "png", "gif", "webp"]);
 
 export default function StudyCard({ card, onClick, isTeacher = false }) {
   const isTeacherCard = card.authorId?.startsWith?.("teacher_");
-  // 학생에게는 익명 닉네임만, 교사에게는 디렉터리의 실명을 보여줍니다.
-  const displayName =
-    (isTeacher && !isTeacherCard ? getDirectoryRealName(card.authorId) : null) ||
-    card.authorName;
+  // 학생에게는 익명 닉네임만, 교사에게는 디렉터리의 실명·학번을 보여줍니다.
+  const dirUser = isTeacher && !isTeacherCard ? getDirectoryUser(card.authorId) : null;
+  const displayName = dirUser?.realName || card.authorName;
+  const studentId = dirUser?.studentId ?? card.authorStudentId ?? null;
   const preview = stripHtml(card.content ?? "").slice(0, 120);
   const attachCount = card.attachments?.length ?? 0;
   const thumbAtt = card.attachments?.find((a) => IMAGE_EXTS.has(a.ext));
@@ -29,9 +29,9 @@ export default function StudyCard({ card, onClick, isTeacher = false }) {
           {isTeacherCard ? <IconTeacher size={22} /> : (card.authorEmoji ?? "🙂")}
         </span>
         <div className="study-card-author">
-          {isTeacher && !isTeacherCard && card.authorStudentId ? (
+          {isTeacher && !isTeacherCard && studentId ? (
             <>
-              <span className="study-card-studentid">{card.authorStudentId}</span>
+              <span className="study-card-studentid">{studentId}</span>
               <strong>{displayName}</strong>
             </>
           ) : (

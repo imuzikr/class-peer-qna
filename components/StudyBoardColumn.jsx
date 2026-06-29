@@ -19,6 +19,7 @@ import {
   updateStudyBoard,
   updateStudyCard,
   deleteStudyBoard,
+  getDirectoryUser,
   toDate,
 } from "@/lib/store";
 import { stripHtml } from "@/lib/html";
@@ -72,9 +73,10 @@ export default function StudyBoardColumn({
     visibleCards = [...visibleCards].sort((a, b) => {
       let cmp = 0;
       if (sortKey === "studentId") {
-        const aId = a.authorStudentId ?? "";
-        const bId = b.authorStudentId ?? "";
-        cmp = aId.localeCompare(bId, "ko", { numeric: true });
+        // 학번은 게시물에 없으므로 교사용 디렉터리에서 조회 (구버전 카드는 fallback)
+        const aId = getDirectoryUser(a.authorId)?.studentId ?? a.authorStudentId ?? "";
+        const bId = getDirectoryUser(b.authorId)?.studentId ?? b.authorStudentId ?? "";
+        cmp = String(aId).localeCompare(String(bId), "ko", { numeric: true });
       } else {
         cmp = toDate(a.createdAt) - toDate(b.createdAt);
       }
