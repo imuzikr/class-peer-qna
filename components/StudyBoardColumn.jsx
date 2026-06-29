@@ -19,6 +19,7 @@ import {
   updateStudyBoard,
   updateStudyCard,
   deleteStudyBoard,
+  duplicateStudyBoard,
   getDirectoryUser,
   toDate,
 } from "@/lib/store";
@@ -39,13 +40,21 @@ export default function StudyBoardColumn({
   user,
   isTeacher,
   questions = [],
+  classes = [],
   onAsk,
   onModalChange,
+  onDuplicated,
+  isDragging = false,
+  onBoardDragStart,
+  onBoardDragEnd,
+  onBoardDrop,
 }) {
   const [cards, setCards] = useState([]);
   const [selectedCard, setSelectedCard] = useState(null);
   const [creating, setCreating] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
+  const [duplicating, setDuplicating] = useState(false); // 다른 반으로 복제 모달
+  const [dragOver, setDragOver] = useState(false);
   const [sortKey, setSortKey] = useState("time");
   const [studentIdDir, setStudentIdDir] = useState("asc");
   const [timeDir, setTimeDir] = useState("asc");
@@ -108,6 +117,16 @@ export default function StudyBoardColumn({
     await deleteStudyBoard(board.id);
   }
 
+  // 다른 반으로 복제 — 학생 카드는 복사하지 않고 활동·공개범위만 유지
+  async function handleDuplicate(targetClass) {
+    await duplicateStudyBoard(board, targetClass.id, user);
+    setDuplicating(false);
+    onDuplicated?.(targetClass.name);
+  }
+
+  // 복제 대상 후보 — 현재 보드가 속한 반은 제외
+  const otherClasses = classes.filter((c) => c.id !== board.classId);
+
   function openActivitiesModal() {
     setActivitiesDraft(
       board.activities?.length ? [...board.activities] : [""]
@@ -163,16 +182,25 @@ export default function StudyBoardColumn({
   }, [modalOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <section className={`study-column ${isNotice ? "is-notice" : ""}`}>
+    <section
+      className={`study-column ${isNotice ? "is-notice" : ""}${isDragging ? " board-dragging" : ""}${dragOver ? " board-drag-over" : ""}`}
+      onDragOver={isTeacher ? (e) => { e.preventDefault(); setDragOver(true); } : undefined}
+      onDragLeave={isTeacher ? () => setDragOver(false) : undefined}
+      onDrop={isTeacher ? (e) => { e.preventDefault(); setDragOver(false); onBoardDrop?.(); } : undefined}
+    >
       {/* ── 교사 관리 영역 (독립 카드) ── */}
       <div className="study-board-info">
         <div
-          className={`study-board-info-head${isTeacher && !isNotice ? " clickable" : ""}`}
+          className={`study-board-info-head${isTeacher && !isNotice ? " clickable" : ""}${isTeacher ? " draggable" : ""}`}
+          draggable={isTeacher}
+          onDragStart={isTeacher ? () => onBoardDragStart?.() : undefined}
+          onDragEnd={isTeacher ? () => onBoardDragEnd?.() : undefined}
           onClick={
             isTeacher && !isNotice
               ? () => setPanelOpen((v) => !v)
               : undefined
           }
+          title={isTeacher ? "드래그해서 보드 순서 변경" : undefined}
         >
           <h3>{board.title}</h3>
           {isTeacher && !isNotice && (
@@ -253,6 +281,13 @@ export default function StudyBoardColumn({
                   {locked ? "🔏 보기 전용" : "✏️ 편집 가능"}
                 </button>
               </label>
+              <button
+                className="study-chip"
+                onClick={() => setDuplicating(true)}
+                title="이 보드를 다른 반으로 복제 (학생 기록은 초기화)"
+              >
+                📋 다른 반으로 복제
+              </button>
               <button className="study-chip danger" onClick={handleDeleteBoard}>
                 <IconTrash size={15} /> 보드 삭제
               </button>
@@ -396,6 +431,43 @@ export default function StudyBoardColumn({
           }}
           onAsk={onAsk}
         />
+      )}
+
+      {/* ── 다른 반으로 복제 모달 ── */}
+      {duplicating && (
+        <div className="modal-backdrop" onClick={() => setDuplicating(false)}>
+          <div className="modal modal-duplicate" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-head">
+              <h3>📋 다른 반으로 복제</h3>
+              <button className="btn-close" onClick={() => setDuplicating(false)} aria-label="닫기">
+                ×
+              </button>
+            </div>
+            <p className="study-link-hint">
+              <strong>{board.title}</strong> 보드를 복제할 반을 선택하세요.
+              학생이 작성한 카드는 복제되지 않고, 교사가 제시한 활동과 공개 범위만
+              그대로 옮겨집니다.
+            </p>
+            {otherClasses.length === 0 ? (
+              <p className="study-column-empty">복제할 다른 반이 없어요. 먼저 반을 만들어 주세요.</p>
+            ) : (
+              <div className="duplicate-class-list">
+                {otherClasses.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    className="duplicate-class-row"
+                    onClick={() => handleDuplicate(c)}
+                  >
+                    <span className="duplicate-class-icon">📚</span>
+                    <strong>{c.name}</strong>
+                    <span className="duplicate-class-go">복제 →</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </section>
   );

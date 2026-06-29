@@ -16,6 +16,7 @@ import {
   subscribeClasses,
   subscribeUserDirectory,
   addClass,
+  reorderStudyBoards,
 } from "@/lib/store";
 import { isFirebaseConfigured } from "@/lib/firebase";
 import { isAdmin, getCurrentUser } from "@/lib/user";
@@ -53,6 +54,7 @@ export default function StudyPage() {
   const [pyOpen, setPyOpen] = useState(false);      // 파이썬 실행 패널
   const [cardModalOpen, setCardModalOpen] = useState(false); // StudyBoardColumn 모달
   const [kwlMobileOpen, setKwlMobileOpen] = useState(false); // 모바일 KWL 패널
+  const [draggingBoardId, setDraggingBoardId] = useState(null); // 보드 순서 변경 DnD
   const [toast, setToast] = useState("");
 
   useEffect(() => {
@@ -115,6 +117,20 @@ export default function StudyPage() {
     setNewClassName("");
     setCreatingClass(false);
     setTeacherClassId(created.id); // 새로 만든 반으로 전환(교사 화면)
+  }
+
+  // 보드 순서 변경 — 헤더를 드래그해 다른 보드 위에 놓으면 그 자리로 이동
+  async function handleBoardDrop(targetId) {
+    const dragId = draggingBoardId;
+    setDraggingBoardId(null);
+    if (!dragId || dragId === targetId) return;
+    const ids = classBoards.map((b) => b.id);
+    const from = ids.indexOf(dragId);
+    const to = ids.indexOf(targetId);
+    if (from === -1 || to === -1) return;
+    ids.splice(from, 1);
+    ids.splice(to, 0, dragId);
+    await reorderStudyBoards(ids);
   }
 
   // 학생이 아직 반에 입장하지 않았으면 입장 화면을 보여줍니다
@@ -230,8 +246,16 @@ export default function StudyPage() {
                       user={user}
                       isTeacher={admin}
                       questions={questions}
+                      classes={classes}
                       onAsk={(kw) => setAskKeyword(kw)}
                       onModalChange={setCardModalOpen}
+                      onDuplicated={(className) =>
+                        setToast(`'${board.title}' 보드를 '${className}' 반으로 복제했어요.`)
+                      }
+                      isDragging={draggingBoardId === board.id}
+                      onBoardDragStart={() => setDraggingBoardId(board.id)}
+                      onBoardDragEnd={() => setDraggingBoardId(null)}
+                      onBoardDrop={() => handleBoardDrop(board.id)}
                     />
                   ))}
                   {admin && currentClass && (

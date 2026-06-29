@@ -5065,6 +5065,57 @@ pre code {
   border-radius: 8px;
 }
 
+/* 보드 순서 변경(드래그) — 헤더가 손잡이 */
+.study-board-info-head.draggable {
+  cursor: grab;
+}
+.study-board-info-head.draggable:active {
+  cursor: grabbing;
+}
+.study-column.board-dragging {
+  opacity: 0.45;
+}
+.study-column.board-drag-over {
+  outline: 2px dashed var(--primary);
+  outline-offset: 2px;
+  border-radius: var(--radius);
+}
+
+/* 다른 반으로 복제 모달 */
+.modal.modal-duplicate {
+  max-width: 380px;
+}
+.duplicate-class-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 6px;
+}
+.duplicate-class-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.1s, background 0.1s;
+}
+.duplicate-class-row:hover {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+.duplicate-class-row strong {
+  flex: 1;
+}
+.duplicate-class-go {
+  font-size: 12px;
+  color: var(--primary-dark);
+  font-weight: 600;
+}
+
 /* + 토글 버튼 — 열릴 때 45° 회전해서 × 형태 */
 .study-panel-toggle {
   background: none;
