@@ -11,6 +11,7 @@ import {
   subscribeNotices,
   subscribeKeywords,
   subscribeStudyBoards,
+  subscribeUserDirectory,
 } from "@/lib/store";
 import { isFirebaseConfigured } from "@/lib/firebase";
 import { codeBlockHtml } from "@/lib/html";
@@ -63,6 +64,13 @@ export default function BoardPage() {
       unsubB();
     };
   }, []);
+
+  // 교사/관리자만 사용자 디렉터리(실명) 구독 — 작성자 배지에서 실명 확인용.
+  // 학생은 보안 규칙상 users를 읽을 수 없으므로 구독하지 않습니다.
+  useEffect(() => {
+    if (!admin) return;
+    return subscribeUserDirectory(() => {});
+  }, [admin]);
 
   // ?open=<id> → 해당 질문 모달 자동 열기 / ?py=1 → 파이썬 실행기 자동 열기
   useEffect(() => {

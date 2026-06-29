@@ -1,6 +1,6 @@
 "use client";
 
-import { formatTime } from "@/lib/store";
+import { formatTime, getDirectoryRealName } from "@/lib/store";
 import { stripHtml } from "@/lib/html";
 import { IconTeacher } from "./StatusIcons";
 
@@ -8,6 +8,10 @@ const IMAGE_EXTS = new Set(["jpg", "jpeg", "png", "gif", "webp"]);
 
 export default function StudyCard({ card, onClick, isTeacher = false }) {
   const isTeacherCard = card.authorId?.startsWith?.("teacher_");
+  // 학생에게는 익명 닉네임만, 교사에게는 디렉터리의 실명을 보여줍니다.
+  const displayName =
+    (isTeacher && !isTeacherCard ? getDirectoryRealName(card.authorId) : null) ||
+    card.authorName;
   const preview = stripHtml(card.content ?? "").slice(0, 120);
   const attachCount = card.attachments?.length ?? 0;
   const thumbAtt = card.attachments?.find((a) => IMAGE_EXTS.has(a.ext));
@@ -28,10 +32,10 @@ export default function StudyCard({ card, onClick, isTeacher = false }) {
           {isTeacher && !isTeacherCard && card.authorStudentId ? (
             <>
               <span className="study-card-studentid">{card.authorStudentId}</span>
-              <strong>{card.authorRealName || card.authorName}</strong>
+              <strong>{displayName}</strong>
             </>
           ) : (
-            <strong>{card.authorRealName || card.authorName}</strong>
+            <strong>{displayName}</strong>
           )}
         </div>
         {attachCount > 0 && (

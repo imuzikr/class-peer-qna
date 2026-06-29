@@ -12,6 +12,7 @@ import {
   subscribeStudyBoards,
   subscribeStudyCards,
   subscribeKwlAll,
+  subscribeUserDirectory,
   toDate,
 } from "@/lib/store";
 import { isFirebaseConfigured } from "@/lib/firebase";
@@ -244,6 +245,7 @@ export default function AdminDashboardPage() {
   const [studyBoards, setStudyBoards] = useState([]);
   const [cardsByBoard, setCardsByBoard] = useState({});
   const [allKwl, setAllKwl] = useState([]);
+  const [directory, setDirectory] = useState([]); // users 디렉터리(실명·이메일)
 
   // 관리자 대시보드는 관리자 전용 — 학생 보기로 바뀌면 학습 리포트로 이동
   const isStudent = user ? !isAdmin(user) : false;
@@ -257,12 +259,14 @@ export default function AdminDashboardPage() {
     const unsubC = subscribeClasses(setClasses);
     const unsubB = subscribeStudyBoards(setStudyBoards);
     const unsubKwl = subscribeKwlAll(setAllKwl);
+    const unsubDir = subscribeUserDirectory(setDirectory);
     return () => {
       unsubQ();
       unsubK();
       unsubC();
       unsubB();
       unsubKwl();
+      unsubDir();
     };
   }, []);
 
@@ -322,9 +326,29 @@ export default function AdminDashboardPage() {
     [answersByQuestion, questions]
   );
 
+  // uid → 사용자 디렉터리(실명·이메일) 빠른 조회용
+  const directoryMap = useMemo(() => {
+    const m = new Map();
+    directory.forEach((u) => m.set(u.uid, u));
+    return m;
+  }, [directory]);
+
+  // 학생 행에 실명·이메일을 users 디렉터리에서 덮어씁니다.
+  // (게시물 문서엔 더 이상 실명·이메일이 없으므로 여기서 합칩니다.)
   const students = useMemo(
-    () => buildStudentRows(questions, answerEvents),
-    [answerEvents, questions]
+    () =>
+      buildStudentRows(questions, answerEvents).map((row) => {
+        const dir = directoryMap.get(row.id);
+        if (!dir) return row;
+        return {
+          ...row,
+          realName: dir.realName || row.realName,
+          email: dir.email || row.email,
+          name: dir.displayName || row.name,
+          emoji: dir.emoji || row.emoji,
+        };
+      }),
+    [answerEvents, questions, directoryMap]
   );
 
   const allPendingReflections = useMemo(

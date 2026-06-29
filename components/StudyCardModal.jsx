@@ -9,8 +9,9 @@ import {
   updateStudyCard,
   deleteStudyCard,
   formatTime,
+  getDirectoryRealName,
 } from "@/lib/store";
-import { getCurrentUser } from "@/lib/user";
+import { getCurrentUser, isAdmin } from "@/lib/user";
 import { sanitizeHtml, stripHtml } from "@/lib/html";
 import { readImageAsDataUrl, readFileAsDataUrl, formatFileSize } from "@/lib/image";
 import RichTextEditor, { IconImage, IconPen } from "./RichTextEditor";
@@ -35,6 +36,12 @@ export default function StudyCardModal({
     : [];
   const linked = boardKeywords.length > 0;
   const isTeacherCard = card?.authorId?.startsWith?.("teacher_");
+  // 학생에겐 익명 닉네임만, 교사에겐 디렉터리의 실명을 표시
+  const cardDisplayName = card
+    ? (isAdmin(getCurrentUser()) && !isTeacherCard
+        ? getDirectoryRealName(card.authorId)
+        : null) || card.authorName
+    : "";
 
   const activities = board.activities ?? [];
   const isActivityCard = isNew && activities.length > 0;
@@ -164,7 +171,7 @@ export default function StudyCardModal({
               ? "✏️ 내 카드 작성하기"
               : canEdit
               ? "✏️ 내 카드 수정하기"
-              : (card.authorRealName || card.authorName || "카드 보기")}
+              : (cardDisplayName || "카드 보기")}
             <span className="study-form-board"># {board.title}</span>
           </h3>
           <button className="btn-close" onClick={onClose} aria-label="닫기">
@@ -178,7 +185,7 @@ export default function StudyCardModal({
             <span className="avatar avatar-sm" aria-hidden="true">
               {isTeacherCard ? <IconTeacher size={22} /> : (card.authorEmoji ?? "🙂")}
             </span>
-            <strong>{card.authorRealName || card.authorName}</strong>
+            <strong>{cardDisplayName}</strong>
             <time className="study-card-meta-time">{formatTime(card.createdAt)}</time>
           </div>
         )}

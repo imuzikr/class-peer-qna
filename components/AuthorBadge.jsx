@@ -10,10 +10,14 @@
 // =============================================================
 import { useState } from "react";
 import { getCurrentUser, isAdmin } from "@/lib/user";
+import { getDirectoryRealName } from "@/lib/store";
 
 export default function AuthorBadge({ name, emoji, realName, uid }) {
   const [revealed, setRevealed] = useState(false);
   const admin = isAdmin(getCurrentUser());
+  // 실명은 게시물에 저장하지 않으므로, 교사용 사용자 디렉터리에서 조회합니다.
+  // (구버전 문서엔 realName prop이 남아 있을 수 있어 fallback으로 둡니다.)
+  const resolvedRealName = getDirectoryRealName(uid) || realName;
 
   function handleClick(e) {
     if (!admin) return; // 학생은 클릭해도 아무 일도 없음 (카드 클릭은 그대로 동작)
@@ -33,7 +37,7 @@ export default function AuthorBadge({ name, emoji, realName, uid }) {
       <strong className="author-name">{name}</strong>
       {admin && revealed && (
         <span className="author-real">
-          🔓 {realName ?? "정보 없음"}
+          🔓 {resolvedRealName || "정보 없음"}
           {uid ? ` (${uid})` : ""}
         </span>
       )}

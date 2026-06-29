@@ -14,6 +14,7 @@ import {
   subscribeQuestions,
   subscribeKeywords,
   subscribeClasses,
+  subscribeUserDirectory,
   addClass,
 } from "@/lib/store";
 import { isFirebaseConfigured } from "@/lib/firebase";
@@ -80,6 +81,14 @@ export default function StudyPage() {
   }, []);
 
   const admin = user ? isAdmin(user) : false;
+
+  // 교사/관리자만 사용자 디렉터리(실명) 구독 — 카드 작성자 실명 표시용.
+  // 학생은 보안 규칙상 users를 읽을 수 없으므로 구독하지 않습니다.
+  useEffect(() => {
+    if (!admin) return;
+    return subscribeUserDirectory(() => {});
+  }, [admin]);
+
   const keywordNames = useMemo(
     () => keywordDocs.map((k) => k.name),
     [keywordDocs]

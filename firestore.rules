@@ -34,8 +34,10 @@ service cloud.firestore {
     }
 
     // ── 사용자 프로필 ─────────────────────────────────────────
+    // 실명·이메일 등 식별 정보(PII)가 여기에만 있으므로, 읽기는 본인+교사로
+    // 제한합니다. (게시판 피드는 questions의 익명 닉네임만 쓰고 users는 안 읽음)
     match /users/{userId} {
-      allow read: if signedIn();
+      allow read: if signedIn() && (userId == uid() || isTeacher());
       // 본인만 생성, 가입 시 role은 'student' 고정 (스스로 승격 불가)
       allow create: if signedIn() && userId == uid()
                     && request.resource.data.role == 'student';
