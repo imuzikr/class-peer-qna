@@ -15,7 +15,10 @@ service cloud.firestore {
 
     function signedIn() { return request.auth != null; }
     function uid() { return request.auth.uid; }
-    function userRole() { return request.auth.token.role; }
+    // role 커스텀 클레임이 없는 사용자(일반 학생)도 안전하게 평가되도록
+    // 없는 키를 직접 읽지 않고 기본값('')과 함께 꺼낸다.
+    // (직접 request.auth.token.role를 읽으면 "Property role is undefined" 오류 → 거부)
+    function userRole() { return request.auth.token.get('role', ''); }
 
     // 초기 관리자 — 아직 역할 클레임이 없어도 관리자 권한(부트스트랩)
     function isInitialAdmin() {
