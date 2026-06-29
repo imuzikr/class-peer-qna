@@ -44,7 +44,7 @@ export default function StudyBoardForm({ keywords = [], classId = null, onClose 
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal modal-form" onClick={(e) => e.stopPropagation()}>
+      <div className="modal modal-study-board" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <h3>➕ 새 수업 보드 만들기</h3>
           <button className="btn-close" onClick={onClose} aria-label="닫기">
