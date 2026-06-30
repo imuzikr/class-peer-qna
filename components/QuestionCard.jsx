@@ -55,9 +55,9 @@ export default function QuestionCard({ question, onClick }) {
           {/* 서식 태그를 제거한 순수 텍스트로 미리보기 */}
           <p className="card-preview">{stripHtml(question.content)}</p>
         </div>
-        {question.imageUrl && (
+        {(question.imageUrl || question.images?.length) && (
           <img
-            src={question.imageUrl}
+            src={question.imageUrl || question.images[0]}
             alt="첨부 이미지 미리보기"
             className="card-thumb"
           />

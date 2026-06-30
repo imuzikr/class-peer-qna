@@ -41,7 +41,8 @@ export default function QuestionModal({
   const admin = isAdmin(user);
   const [answers, setAnswers] = useState([]);
   const [content, setContent] = useState(""); // 입력 중인 HTML
-  const [answerImage, setAnswerImage] = useState(null); // 첨부 이미지
+  const [answerImages, setAnswerImages] = useState([]); // 첨부 이미지(다중)
+  const ANSWER_MAX_IMAGES = 4;
   const [drawing, setDrawing] = useState(false); // 그리기 캔버스 열림
   const [editing, setEditing] = useState(false); // 질문 수정 모달 열림
   const [reflecting, setReflecting] = useState(false); // 한 줄 정리 모달 열림
@@ -71,14 +72,25 @@ export default function QuestionModal({
     if (!file) return;
     if (!file.type.startsWith("image/")) {
       alert("이미지 파일만 첨부할 수 있습니다.");
+      e.target.value = "";
+      return;
+    }
+    if (answerImages.length >= ANSWER_MAX_IMAGES) {
+      alert(`이미지는 최대 ${ANSWER_MAX_IMAGES}장까지 첨부할 수 있습니다.`);
+      e.target.value = "";
       return;
     }
     try {
-      setAnswerImage(await uploadImage(file));
+      const url = await uploadImage(file);
+      setAnswerImages((prev) => [...prev, url]);
     } catch {
       alert("이미지 업로드에 실패했어요. 잠시 후 다시 시도해 주세요.");
     }
     e.target.value = ""; // 같은 파일 재선택 가능하도록
+  }
+
+  function removeAnswerImage(i) {
+    setAnswerImages((prev) => prev.filter((_, idx) => idx !== i));
   }
 
   // 상태 토글: "해결됐어요"로 바꿀 때는 한 줄 정리 모달을 먼저 띄우고,
@@ -101,12 +113,12 @@ export default function QuestionModal({
     const html = sanitizeHtml(content);
     const hasText = stripHtml(html).length > 0;
     // 글이 없어도 이미지만으로 전송 가능
-    if ((!hasText && !answerImage) || saving) return;
+    if ((!hasText && answerImages.length === 0) || saving) return;
     setSaving(true);
     try {
-      await addAnswer(user, question.id, hasText ? html : "", answerImage);
+      await addAnswer(user, question.id, hasText ? html : "", null, answerImages);
       setContent("");
-      setAnswerImage(null);
+      setAnswerImages([]);
       setResetKey((k) => k + 1); // 에디터 비우기
     } finally {
       setSaving(false);
@@ -250,14 +262,22 @@ export default function QuestionModal({
                 }}
               />
 
-              {question.imageUrl && (
+              {(question.images?.length || question.imageUrl) && (
                 <figure className="qa-figure">
                   <figcaption>📎 첨부 이미지</figcaption>
-                  <ZoomableImage
-                    src={question.imageUrl}
-                    alt="질문 첨부 이미지"
-                    className="qa-image"
-                  />
+                  <div className="qa-image-grid">
+                    {[
+                      ...(question.imageUrl ? [question.imageUrl] : []),
+                      ...(question.images ?? []),
+                    ].map((src, i) => (
+                      <ZoomableImage
+                        key={i}
+                        src={src}
+                        alt="질문 첨부 이미지"
+                        className="qa-image"
+                      />
+                    ))}
+                  </div>
                 </figure>
               )}
 
@@ -332,6 +352,7 @@ export default function QuestionModal({
                   time={a.createdAt}
                   html={a.content}
                   imageUrl={a.imageUrl}
+                  images={a.images}
                   understood={understoodAnswerId === a.id}
                   showUnderstoodIcon
                   canMarkUnderstood={canManageUnderstood && a.authorId !== user.uid}
@@ -349,16 +370,21 @@ export default function QuestionModal({
 
             {/* 입력 영역: 첨부 미리보기 + 도구 + 서식 에디터 + 전송 */}
             <div className="chat-compose">
-              {answerImage && (
-                <div className="chat-attach-preview">
-                  <img src={answerImage} alt="첨부 미리보기" />
-                  <button
-                    type="button"
-                    className="btn-ghost"
-                    onClick={() => setAnswerImage(null)}
-                  >
-                    ✕ 첨부 취소
-                  </button>
+              {answerImages.length > 0 && (
+                <div className="chat-attach-preview attach-multi">
+                  {answerImages.map((src, i) => (
+                    <div key={i} className="attach-thumb">
+                      <img src={src} alt="첨부 미리보기" />
+                      <button
+                        type="button"
+                        className="attach-image-del"
+                        onClick={() => removeAnswerImage(i)}
+                        aria-label="첨부 취소"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
                 </div>
               )}
               {/* 입력창 — 하단 툴바에 첨부·그리기·서식 도구와 전송 버튼 */}
@@ -370,7 +396,7 @@ export default function QuestionModal({
                 onSend={handleSend}
                 sendDisabled={
                   saving ||
-                  (stripHtml(content).length === 0 && !answerImage)
+                  (stripHtml(content).length === 0 && answerImages.length === 0)
                 }
               >
                 <label className="rte-tool" title="이미지 첨부">
@@ -399,8 +425,13 @@ export default function QuestionModal({
         {drawing && (
           <DrawingCanvas
             onSave={async (dataUrl) => {
+              if (answerImages.length >= ANSWER_MAX_IMAGES) {
+                alert(`이미지는 최대 ${ANSWER_MAX_IMAGES}장까지 첨부할 수 있습니다.`);
+                return;
+              }
               try {
-                setAnswerImage(await uploadDataUrl(dataUrl, "drawing.png"));
+                const url = await uploadDataUrl(dataUrl, "drawing.png");
+                setAnswerImages((prev) => [...prev, url]);
               } catch {
                 alert("그림 업로드에 실패했어요. 잠시 후 다시 시도해 주세요.");
               }
@@ -470,6 +501,7 @@ function ChatMessage({
   time,
   html,
   imageUrl,
+  images,
   badge,
   understood = false,
   showUnderstoodIcon = false,
@@ -520,9 +552,9 @@ function ChatMessage({
             dangerouslySetInnerHTML={{ __html: sanitizeHtml(html) }}
           />
         )}
-        {imageUrl && (
-          <ZoomableImage src={imageUrl} alt="첨부 이미지" className="chat-image" />
-        )}
+        {[...(imageUrl ? [imageUrl] : []), ...(images ?? [])].map((src, i) => (
+          <ZoomableImage key={i} src={src} alt="첨부 이미지" className="chat-image" />
+        ))}
       </div>
     </div>
   );

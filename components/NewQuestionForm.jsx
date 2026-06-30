@@ -35,21 +35,40 @@ export default function NewQuestionForm({
   const [content, setContent] = useState(
     editing ? question.content : initialContent
   ); // 서식(HTML) 내용
-  const [imageUrl, setImageUrl] = useState(
-    editing ? question.imageUrl ?? null : null
+  // 다중 이미지 — 구버전 단일 imageUrl도 흡수해서 표시/편집
+  const [images, setImages] = useState(
+    editing
+      ? question.images?.length
+        ? question.images
+        : question.imageUrl
+        ? [question.imageUrl]
+        : []
+      : []
   );
   const [drawing, setDrawing] = useState(false); // 그리기 캔버스 열림 여부
   const [saving, setSaving] = useState(false);
+  const MAX_IMAGES = 4;
+
+  function removeImage(i) {
+    setImages((prev) => prev.filter((_, idx) => idx !== i));
+  }
 
   async function handleFile(e) {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) {
       alert("이미지 파일만 첨부할 수 있습니다.");
+      e.target.value = "";
+      return;
+    }
+    if (images.length >= MAX_IMAGES) {
+      alert(`이미지는 최대 ${MAX_IMAGES}장까지 첨부할 수 있습니다.`);
+      e.target.value = "";
       return;
     }
     try {
-      setImageUrl(await uploadImage(file));
+      const url = await uploadImage(file);
+      setImages((prev) => [...prev, url]);
     } catch {
       alert("이미지 업로드에 실패했어요. 잠시 후 다시 시도해 주세요.");
     }
@@ -66,7 +85,8 @@ export default function NewQuestionForm({
         title: title.trim(),
         content: html,
         keyword,
-        imageUrl,
+        imageUrl: null, // 신규는 images 배열만 사용(구버전 호환 필드는 비움)
+        images,
       };
       if (editing) {
         await updateQuestion(question.id, data);
@@ -133,20 +153,21 @@ export default function NewQuestionForm({
             </button>
           </RichTextEditor>
 
-          {imageUrl && (
-            <div className="attach-row">
-              <img
-                src={imageUrl}
-                alt="첨부 미리보기"
-                className="attach-preview"
-              />
-              <button
-                type="button"
-                className="btn-ghost"
-                onClick={() => setImageUrl(null)}
-              >
-                ✕ 첨부 취소
-              </button>
+          {images.length > 0 && (
+            <div className="attach-multi">
+              {images.map((src, i) => (
+                <div key={i} className="attach-thumb">
+                  <img src={src} alt="첨부 미리보기" className="attach-preview" />
+                  <button
+                    type="button"
+                    className="attach-image-del"
+                    onClick={() => removeImage(i)}
+                    aria-label="첨부 취소"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
             </div>
           )}
 
@@ -165,8 +186,13 @@ export default function NewQuestionForm({
         {drawing && (
           <DrawingCanvas
             onSave={async (dataUrl) => {
+              if (images.length >= MAX_IMAGES) {
+                alert(`이미지는 최대 ${MAX_IMAGES}장까지 첨부할 수 있습니다.`);
+                return;
+              }
               try {
-                setImageUrl(await uploadDataUrl(dataUrl, "drawing.png"));
+                const url = await uploadDataUrl(dataUrl, "drawing.png");
+                setImages((prev) => [...prev, url]);
               } catch {
                 alert("그림 업로드에 실패했어요. 잠시 후 다시 시도해 주세요.");
               }

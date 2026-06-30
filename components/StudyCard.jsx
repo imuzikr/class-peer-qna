@@ -18,6 +18,8 @@ export default function StudyCard({ card, onClick, isTeacher = false }) {
   const preview = stripHtml(card.content ?? "").slice(0, 120);
   const attachCount = card.attachments?.length ?? 0;
   const thumbAtt = card.attachments?.find((a) => IMAGE_EXTS.has(a.ext));
+  // 이미지가 첨부돼 있을 때만 썸네일 표시 — 본문 이미지(imageUrl) 또는 이미지 첨부
+  const thumbSrc = card.imageUrl || thumbAtt?.dataUrl || null;
 
   return (
     <article
@@ -51,10 +53,10 @@ export default function StudyCard({ card, onClick, isTeacher = false }) {
 
       {card.title && <p className="study-card-title">{card.title}</p>}
 
-      {/* 이미지 첨부가 있으면 full-width 썸네일, 없으면 invisible 텍스트로 높이 유지 */}
-      {thumbAtt ? (
+      {/* 이미지가 첨부됐을 때만 썸네일, 없으면 invisible 텍스트로 높이 유지 */}
+      {thumbSrc ? (
         <div className="study-card-thumb-wrap">
-          <img className="study-card-thumb" src={thumbAtt.dataUrl} alt="" aria-hidden="true" />
+          <img className="study-card-thumb" src={thumbSrc} alt="" aria-hidden="true" />
         </div>
       ) : (
         <p className="study-card-preview" aria-hidden="true">{preview}</p>

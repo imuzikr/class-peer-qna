@@ -83,13 +83,14 @@ export default function StudyQuestionPeek({ question, onClose, onBackToList }) {
                       className="study-card-body"
                       dangerouslySetInnerHTML={{ __html: sanitizeHtml(a.content) }}
                     />
-                    {a.imageUrl && (
+                    {[...(a.imageUrl ? [a.imageUrl] : []), ...(a.images ?? [])].map((src, i) => (
                       <img
-                        src={a.imageUrl}
+                        key={i}
+                        src={src}
                         alt="첨부 이미지"
                         className="study-card-image"
                       />
-                    )}
+                    ))}
                   </div>
                 );
               })
