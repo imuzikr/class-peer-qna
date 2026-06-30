@@ -849,9 +849,9 @@ select:focus {
 }
 
 .filter-icon {
-  font-size: 15px;
-  width: 22px;
-  height: 22px;
+  font-size: 19px;
+  width: 26px;
+  height: 26px;
   display: inline-flex;
   align-items: center;
   justify-content: center;

@@ -89,7 +89,7 @@ export default function FilterMenu({ value, onChange }) {
                 }}
               >
                 <span className="filter-icon" aria-hidden="true">
-                  {f.Icon ? <f.Icon size={18} /> : f.icon}
+                  {f.Icon ? <f.Icon size={23} /> : f.icon}
                 </span>
                 {f.label}
               </button>
