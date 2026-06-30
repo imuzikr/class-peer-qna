@@ -440,6 +440,17 @@ export function IconDuplicate({ size = 20, className = "" }) {
   );
 }
 
+export function IconMyPost({ size = 20, className = "" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">
+      <path d="M6.65 4.75h8.75l2.95 2.95v10.1c0 .8-.65 1.45-1.45 1.45H6.65c-.8 0-1.45-.65-1.45-1.45V6.2c0-.8.65-1.45 1.45-1.45Z" fill="#FFF7ED" stroke="#3A312E" strokeWidth="1.55" strokeLinejoin="round"/>
+      <path d="M15.35 4.92V7.1c0 .55.45 1 1 1h1.82" stroke="#3A312E" strokeWidth="1.35" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M8.15 11.2h4.1M8.15 13.35h3.2" stroke="#3A312E" strokeWidth="1.2" strokeLinecap="round"/>
+      <path d="M12.55 16.35 13 14.38l3.68-3.68c.37-.37.98-.37 1.35 0l.27.27c.37.37.37.98 0 1.35l-3.68 3.68-1.97.45c-.06.02-.12-.04-.1-.1Z" fill="#FFFDF9" stroke="#8A6258" strokeWidth="1.2" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
 export function IconKeyboard({ size = 20, className = "" }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">
