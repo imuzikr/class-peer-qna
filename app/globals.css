@@ -1129,6 +1129,47 @@ select:focus {
   max-width: 520px;
 }
 
+/* ===================== 이미지 확대(라이트박스) ===================== */
+.zoomable-img {
+  cursor: zoom-in;
+}
+.lightbox-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(20, 16, 12, 0.86);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  cursor: zoom-out;
+}
+.lightbox-img {
+  max-width: 95vw;
+  max-height: 92vh;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  cursor: default;
+}
+.lightbox-close {
+  position: fixed;
+  top: 18px;
+  right: 22px;
+  width: 42px;
+  height: 42px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-size: 26px;
+  line-height: 1;
+  cursor: pointer;
+}
+.lightbox-close:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
 /* ===================== 입장 코드 크게 보기 모달 ===================== */
 /* 학생들이 교실 뒤에서도 읽을 수 있도록 코드를 크게 표시 */
 .modal.modal-joincode {

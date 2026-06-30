@@ -18,6 +18,7 @@ import { uploadImage, uploadFile } from "@/lib/storageUpload";
 import RichTextEditor, { IconImage, IconPen } from "./RichTextEditor";
 import DrawingCanvas from "./DrawingCanvas";
 import StudyQuestionPeek from "./StudyQuestionPeek";
+import ZoomableImage from "./ZoomableImage";
 import { IconAsk, IconSolved, IconTrash, IconTeacher } from "./StatusIcons";
 
 export default function StudyCardModal({
@@ -273,7 +274,7 @@ export default function StudyCardModal({
 
               {imageUrl && (
                 <div className="attach-row">
-                  <img src={imageUrl} alt="첨부 미리보기" className="attach-preview" />
+                  <ZoomableImage src={imageUrl} alt="첨부 미리보기" className="attach-preview" />
                   <button
                     type="button"
                     className="btn-ghost"
@@ -343,7 +344,7 @@ export default function StudyCardModal({
                 dangerouslySetInnerHTML={{ __html: sanitizeHtml(card.content) }}
               />
               {card.imageUrl && (
-                <img
+                <ZoomableImage
                   src={card.imageUrl}
                   alt="첨부 이미지"
                   className="study-card-image"

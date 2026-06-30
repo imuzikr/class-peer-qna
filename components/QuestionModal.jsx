@@ -26,6 +26,7 @@ import NewQuestionForm from "./NewQuestionForm";
 import ReflectionModal from "./ReflectionModal";
 import AuthorBadge from "./AuthorBadge";
 import ConfirmModal from "./ConfirmModal";
+import ZoomableImage from "./ZoomableImage";
 
 export default function QuestionModal({
   question,
@@ -252,7 +253,7 @@ export default function QuestionModal({
               {question.imageUrl && (
                 <figure className="qa-figure">
                   <figcaption>📎 첨부 이미지</figcaption>
-                  <img
+                  <ZoomableImage
                     src={question.imageUrl}
                     alt="질문 첨부 이미지"
                     className="qa-image"
@@ -514,7 +515,7 @@ function ChatMessage({
           />
         )}
         {imageUrl && (
-          <img src={imageUrl} alt="첨부 이미지" className="chat-image" />
+          <ZoomableImage src={imageUrl} alt="첨부 이미지" className="chat-image" />
         )}
       </div>
     </div>
