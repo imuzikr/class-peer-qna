@@ -7,8 +7,9 @@
 // 실명/명부 없이 "어느 반인지"만 기억하므로 익명성은 그대로 유지됩니다.
 // =============================================================
 import { useState } from "react";
-import { findClassByCode } from "@/lib/store";
+import { findClassByCode, joinClass } from "@/lib/store";
 import { setSelectedClassId } from "@/lib/classroom";
+import { getCurrentUser } from "@/lib/user";
 import { isFirebaseConfigured } from "@/lib/firebase";
 
 export default function ClassEntry() {
@@ -27,6 +28,13 @@ export default function ClassEntry() {
         setError("입장 코드를 찾을 수 없어요. 코드를 다시 확인해 주세요.");
         return;
       }
+      if (found.expired) {
+        setError("만료된 입장 코드예요. 선생님께 새 코드를 요청해 주세요.");
+        return;
+      }
+      // 서버에 소속을 기록 → 기기를 바꿔도 로그인하면 그대로 입장 상태 유지
+      const user = getCurrentUser();
+      if (user) await joinClass(found.id, user);
       setSelectedClassId(found.id);
     } finally {
       setChecking(false);

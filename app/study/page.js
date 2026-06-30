@@ -15,8 +15,13 @@ import {
   subscribeKeywords,
   subscribeClasses,
   subscribeUserDirectory,
+  subscribeMyMemberships,
+  subscribeJoinCodes,
+  leaveClass,
+  regenerateJoinCode,
   addClass,
   reorderStudyBoards,
+  toDate,
 } from "@/lib/store";
 import { isFirebaseConfigured } from "@/lib/firebase";
 import { isAdmin, getCurrentUser } from "@/lib/user";
@@ -40,10 +45,12 @@ export default function StudyPage() {
   const [boards, setBoards] = useState([]);
   const [questions, setQuestions] = useState([]);
   const [keywordDocs, setKeywordDocs] = useState([]);
-  // 학생이 입장한 반(세션 기준)과 교사가 보고 있는 반(화면 상태)은 별개입니다.
-  // 그래야 같은 탭에서 역할을 바꿔 봐도 서로 간섭하지 않습니다.
-  const [studentClassId, setStudentClassId] = useState(null);
+  // 학생이 입장한 반(세션 선택 + 서버 소속)과 교사가 보고 있는 반(화면 상태)은 별개입니다.
+  const [localSelectedId, setLocalSelectedId] = useState(null); // 세션에서 고른 반
+  const [memberships, setMemberships] = useState([]); // 서버 소속(기기 무관)
   const [teacherClassId, setTeacherClassId] = useState(null);
+  const [joinCodesMap, setJoinCodesMap] = useState({}); // 교사: classId→{code,expiresAt}
+  const [regenerating, setRegenerating] = useState(false);
   const [addingBoard, setAddingBoard] = useState(false);
   const [creatingClass, setCreatingClass] = useState(false);
   const [newClassName, setNewClassName] = useState("");
@@ -70,9 +77,9 @@ export default function StudyPage() {
     };
   }, []);
 
-  // 학생이 세션에 입장해 둔 반을 읽고, 반/역할이 바뀌면 다시 평가합니다
+  // 세션에서 고른 반을 읽고, 반/역할이 바뀌면 다시 평가합니다
   useEffect(() => {
-    const sync = () => setStudentClassId(getSelectedClassId());
+    const sync = () => setLocalSelectedId(getSelectedClassId());
     sync();
     window.addEventListener("class-change", sync);
     window.addEventListener("role-change", sync);
@@ -84,12 +91,33 @@ export default function StudyPage() {
 
   const admin = user ? isAdmin(user) : false;
 
-  // 교사/관리자만 사용자 디렉터리(실명) 구독 — 카드 작성자 실명 표시용.
-  // 학생은 보안 규칙상 users를 읽을 수 없으므로 구독하지 않습니다.
+  // 학생: 서버 소속 구독 — 기기·캐시가 바뀌어도 로그인하면 소속이 따라옵니다.
+  useEffect(() => {
+    if (!user || admin) {
+      setMemberships([]);
+      return;
+    }
+    return subscribeMyMemberships(user.uid, setMemberships);
+  }, [user?.uid, admin]);
+
+  // 교사/관리자만 사용자 디렉터리(실명) + 입장 코드 구독.
+  // 학생은 보안 규칙상 users·joinCodes 목록을 읽을 수 없으므로 구독하지 않습니다.
   useEffect(() => {
     if (!admin) return;
-    return subscribeUserDirectory(() => {});
+    const unsubDir = subscribeUserDirectory(() => {});
+    const unsubCodes = subscribeJoinCodes(setJoinCodesMap);
+    return () => {
+      unsubDir();
+      unsubCodes();
+    };
   }, [admin]);
+
+  // 학생이 보고 있는 반: 세션 선택이 내 소속에 있으면 그것, 아니면 첫 소속
+  const membershipIds = useMemo(() => memberships.map((m) => m.classId), [memberships]);
+  const studentClassId =
+    localSelectedId && membershipIds.includes(localSelectedId)
+      ? localSelectedId
+      : membershipIds[0] ?? null;
 
   const keywordNames = useMemo(
     () => keywordDocs.map((k) => k.name),
@@ -105,6 +133,7 @@ export default function StudyPage() {
 
   const classId = admin ? teacherClassId : studentClassId;
   const currentClass = classes.find((c) => c.id === classId) ?? null;
+  const currentCode = joinCodesMap[classId] ?? null; // { code, expiresAt } | null
   const classBoards = useMemo(
     () => boards.filter((b) => b.classId === classId),
     [boards, classId]
@@ -117,6 +146,26 @@ export default function StudyPage() {
     setNewClassName("");
     setCreatingClass(false);
     setTeacherClassId(created.id); // 새로 만든 반으로 전환(교사 화면)
+  }
+
+  // 입장 코드 만료 여부 + 표시용 포맷
+  const codeExpired = currentCode?.expiresAt
+    ? toDate(currentCode.expiresAt) < new Date()
+    : false;
+  function formatExpiry(ts) {
+    return toDate(ts).toLocaleDateString("ko-KR", {
+      month: "long",
+      day: "numeric",
+    });
+  }
+  async function handleRegenerate() {
+    if (!classId) return;
+    setRegenerating(true);
+    try {
+      await regenerateJoinCode(classId, getCurrentUser());
+    } finally {
+      setRegenerating(false);
+    }
   }
 
   // 보드 순서 변경 — 헤더를 드래그해 다른 보드 위에 놓으면 그 자리로 이동
@@ -224,7 +273,10 @@ export default function StudyPage() {
                 {!admin && currentClass && (
                   <button
                     className="btn-ghost"
-                    onClick={() => setSelectedClassId(null)}
+                    onClick={async () => {
+                      if (user) await leaveClass(user.uid, classId);
+                      setSelectedClassId(null);
+                    }}
                   >
                     🚪 반 나가기
                   </button>
@@ -309,10 +361,24 @@ export default function StudyPage() {
             </button>
             <p className="joincode-class">{currentClass.name}</p>
             <p className="joincode-label">입장 코드</p>
-            <p className="joincode-value">{currentClass.joinCode}</p>
+            <p className="joincode-value">{currentCode?.code ?? "—"}</p>
             <p className="joincode-hint">
               공부방 입장 화면에서 이 코드를 입력하세요
             </p>
+            {currentCode?.expiresAt && (
+              <p className={`joincode-expiry${codeExpired ? " expired" : ""}`}>
+                {codeExpired
+                  ? "⚠️ 만료된 코드예요 — 재발급해 주세요"
+                  : `${formatExpiry(currentCode.expiresAt)}까지 유효`}
+              </p>
+            )}
+            <button
+              className="joincode-regen"
+              onClick={handleRegenerate}
+              disabled={regenerating}
+            >
+              {regenerating ? "재발급 중…" : "🔄 코드 재발급"}
+            </button>
           </div>
         </div>
       )}

@@ -1132,6 +1132,35 @@ select:focus {
   font-size: 1rem;
   color: var(--text-sub);
 }
+.joincode-expiry {
+  margin: 14px 0 0;
+  font-size: 0.95rem;
+  color: var(--text-sub);
+}
+.joincode-expiry.expired {
+  color: var(--danger);
+  font-weight: 600;
+}
+.joincode-regen {
+  margin-top: 18px;
+  padding: 9px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  background: #fff;
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.1s, background 0.1s;
+}
+.joincode-regen:hover {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+.joincode-regen:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
 
 /* ===================== 한 줄 정리(인사이트) 모달 ===================== */
 .modal-reflect {

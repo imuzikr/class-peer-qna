@@ -96,10 +96,27 @@ service cloud.firestore {
       allow update, delete: if isTeacher();
     }
 
-    // ── 반(클래스) — 읽기 모두(입장 코드 조회), 쓰기 교사 ──
+    // ── 반(클래스) — 이름은 비밀 아님(읽기 허용). 입장 코드는 여기 없음. ──
     match /classes/{cId} {
       allow read: if signedIn();
       allow write: if isTeacher();
+    }
+
+    // ── 입장 코드 — 문서 ID가 코드 자체. 열거(list) 차단이 핵심. ──
+    //  · get : 정확한 코드를 아는 사람만 1건 읽기(학생 입장 시)
+    //  · list: 교사만 — 일반 사용자는 코드들을 긁어모을 수 없음
+    //  · write: 교사만 발급/재발급/삭제
+    match /joinCodes/{code} {
+      allow get: if signedIn();
+      allow list: if isTeacher();
+      allow write: if isTeacher();
+    }
+
+    // ── 소속(멤버십) — 기기 바꿔도 유지. 본인 것만 보고/만들고/지움. ──
+    match /memberships/{mId} {
+      allow read: if signedIn() && (resource.data.uid == uid() || isTeacher());
+      allow create: if signedIn() && request.resource.data.uid == uid();
+      allow delete: if signedIn() && (resource.data.uid == uid() || isTeacher());
     }
 
     // ── 공부방 보드 — 교사 관리, 카드는 학생 본인(문서ID = uid) ──
