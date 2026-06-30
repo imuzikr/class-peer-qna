@@ -1,0 +1,38 @@
+rules_version = '2';
+
+// =============================================================
+// Firebase Storage 보안 규칙 — class-peer-qna
+// -------------------------------------------------------------
+// 첨부 이미지/파일 저장소. 경로: uploads/{uid}/{파일명}
+//  · 읽기 : 로그인한 사용자 (교실 내 공유)
+//  · 쓰기 : 본인 uid 폴더에만 + 용량/타입 제한
+//  · 삭제 : 본인만
+// 배포:  Firebase 콘솔 → Storage → 규칙 탭에 붙여넣고 게시
+//        (또는 firebase deploy --only storage)
+// =============================================================
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    match /uploads/{userId}/{fileName} {
+      // 로그인하면 읽기 가능 (다운로드 URL은 토큰 기반이라 공유 목적엔 충분)
+      allow read: if request.auth != null;
+
+      // 본인 폴더에만 업로드. 이미지는 6MB, 그 외 파일은 1MB로 제한.
+      allow write: if request.auth != null
+                   && request.auth.uid == userId
+                   && (
+                        (request.resource.contentType.matches('image/.*')
+                          && request.resource.size < 6 * 1024 * 1024)
+                        || request.resource.size < 1 * 1024 * 1024
+                      );
+
+      // 삭제는 본인만
+      allow delete: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // 그 외 경로는 전부 거부 (기본 차단)
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -6,7 +6,7 @@ import { useState } from "react";
 import { KEYWORDS, addQuestion, updateQuestion } from "@/lib/store";
 import { getCurrentUser } from "@/lib/user";
 import { sanitizeHtml, stripHtml } from "@/lib/html";
-import { readImageAsDataUrl } from "@/lib/image";
+import { uploadImage } from "@/lib/storageUpload";
 import RichTextEditor, { IconImage, IconPen } from "./RichTextEditor";
 import DrawingCanvas from "./DrawingCanvas";
 
@@ -48,7 +48,11 @@ export default function NewQuestionForm({
       alert("이미지 파일만 첨부할 수 있습니다.");
       return;
     }
-    setImageUrl(await readImageAsDataUrl(file));
+    try {
+      setImageUrl(await uploadImage(file));
+    } catch {
+      alert("이미지 업로드에 실패했어요. 잠시 후 다시 시도해 주세요.");
+    }
     e.target.value = "";
   }
 

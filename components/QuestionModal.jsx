@@ -17,7 +17,7 @@ import {
 import { getCurrentUser, isAdmin } from "@/lib/user";
 import { isFirebaseConfigured } from "@/lib/firebase";
 import { sanitizeHtml, stripHtml } from "@/lib/html";
-import { readImageAsDataUrl } from "@/lib/image";
+import { uploadImage } from "@/lib/storageUpload";
 import RichTextEditor, { IconImage, IconPen } from "./RichTextEditor";
 import { IconAsk, IconSolved, IconAnswer, IconTrash, IconInsight } from "./StatusIcons";
 import DrawingCanvas from "./DrawingCanvas";
@@ -72,7 +72,11 @@ export default function QuestionModal({
       alert("이미지 파일만 첨부할 수 있습니다.");
       return;
     }
-    setAnswerImage(await readImageAsDataUrl(file));
+    try {
+      setAnswerImage(await uploadImage(file));
+    } catch {
+      alert("이미지 업로드에 실패했어요. 잠시 후 다시 시도해 주세요.");
+    }
     e.target.value = ""; // 같은 파일 재선택 가능하도록
   }
 

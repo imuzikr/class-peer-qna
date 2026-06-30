@@ -13,7 +13,8 @@ import {
 } from "@/lib/store";
 import { getCurrentUser, isAdmin } from "@/lib/user";
 import { sanitizeHtml, stripHtml } from "@/lib/html";
-import { readImageAsDataUrl, readFileAsDataUrl, formatFileSize } from "@/lib/image";
+import { formatFileSize } from "@/lib/image";
+import { uploadImage, uploadFile } from "@/lib/storageUpload";
 import RichTextEditor, { IconImage, IconPen } from "./RichTextEditor";
 import DrawingCanvas from "./DrawingCanvas";
 import StudyQuestionPeek from "./StudyQuestionPeek";
@@ -66,7 +67,11 @@ export default function StudyCardModal({
       alert("이미지 파일만 첨부할 수 있습니다.");
       return;
     }
-    setImageUrl(await readImageAsDataUrl(file));
+    try {
+      setImageUrl(await uploadImage(file));
+    } catch {
+      alert("이미지 업로드에 실패했어요. 잠시 후 다시 시도해 주세요.");
+    }
     e.target.value = "";
   }
 
@@ -102,10 +107,14 @@ export default function StudyCardModal({
       alert(`파일은 최대 ${MAX_ATTACH_COUNT}개까지 첨부할 수 있습니다.`);
       return;
     }
-    // 이미지는 자동 압축(900px JPEG 80%), 그 외는 원본 그대로
-    const dataUrl = isImage
-      ? await readImageAsDataUrl(file)
-      : await readFileAsDataUrl(file);
+    // 이미지는 압축 후 업로드, 그 외 파일은 원본 업로드 → 다운로드 URL 저장
+    let dataUrl;
+    try {
+      dataUrl = isImage ? await uploadImage(file) : await uploadFile(file);
+    } catch {
+      alert("파일 업로드에 실패했어요. 잠시 후 다시 시도해 주세요.");
+      return;
+    }
     setAttachments((prev) => [
       ...prev,
       { id: `f${Date.now()}`, name: file.name, ext, size: file.size, dataUrl },
