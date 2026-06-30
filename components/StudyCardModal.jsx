@@ -122,6 +122,23 @@ export default function StudyCardModal({
     ]);
   }
 
+  // 그리기 결과는 첨부 이미지(attachments)로 추가 → 위 '이미지 첨부'와 함께 보존됩니다.
+  async function handleDrawingSave(dataUrl) {
+    if (attachments.length >= MAX_ATTACH_COUNT) {
+      alert(`파일은 최대 ${MAX_ATTACH_COUNT}개까지 첨부할 수 있습니다.`);
+      return;
+    }
+    try {
+      const url = await uploadDataUrl(dataUrl, "drawing.png");
+      setAttachments((prev) => [
+        ...prev,
+        { id: `f${Date.now()}`, name: "그림.png", ext: "png", size: 0, dataUrl: url },
+      ]);
+    } catch {
+      alert("그림 업로드에 실패했어요. 잠시 후 다시 시도해 주세요.");
+    }
+  }
+
   function removeAttachment(id) {
     setAttachments((prev) => prev.filter((a) => a.id !== id));
   }
@@ -303,33 +320,50 @@ export default function StudyCardModal({
                 </div>
                 {attachments.length > 0 && (
                   <ul className="attach-file-list">
-                    {attachments.map((att) => (
-                      <li key={att.id} className="attach-file-item">
-                        <span className={`attach-file-ext ext-${att.ext}`}>
-                          {FILE_EXTS[att.ext] ?? att.ext.toUpperCase()}
-                        </span>
-                        <span className="attach-file-name">{att.name}</span>
-                        <span className="attach-file-size">{formatFileSize(att.size)}</span>
-                        {mine ? (
-                          <button
-                            type="button"
-                            className="attach-file-del"
-                            onClick={() => removeAttachment(att.id)}
-                            aria-label="삭제"
-                          >
-                            ✕
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            className="btn-ghost attach-download-btn"
-                            onClick={() => downloadAttachment(att)}
-                          >
-                            ⬇ 다운로드
-                          </button>
-                        )}
-                      </li>
-                    ))}
+                    {attachments.map((att) =>
+                      IMAGE_EXTS.has(att.ext) ? (
+                        // 이미지·그리기 첨부는 썸네일로 보여주고 ✕로 제거
+                        <li key={att.id} className="attach-image-item editing">
+                          <img className="attach-image-thumb" src={att.dataUrl} alt={att.name} />
+                          {mine && (
+                            <button
+                              type="button"
+                              className="attach-image-del"
+                              onClick={() => removeAttachment(att.id)}
+                              aria-label="삭제"
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </li>
+                      ) : (
+                        <li key={att.id} className="attach-file-item">
+                          <span className={`attach-file-ext ext-${att.ext}`}>
+                            {FILE_EXTS[att.ext] ?? att.ext.toUpperCase()}
+                          </span>
+                          <span className="attach-file-name">{att.name}</span>
+                          <span className="attach-file-size">{formatFileSize(att.size)}</span>
+                          {mine ? (
+                            <button
+                              type="button"
+                              className="attach-file-del"
+                              onClick={() => removeAttachment(att.id)}
+                              aria-label="삭제"
+                            >
+                              ✕
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className="btn-ghost attach-download-btn"
+                              onClick={() => downloadAttachment(att)}
+                            >
+                              ⬇ 다운로드
+                            </button>
+                          )}
+                        </li>
+                      )
+                    )}
                   </ul>
                 )}
               </div>
@@ -356,22 +390,33 @@ export default function StudyCardModal({
                 <div className="attach-files-section">
                   <p className="attach-files-label">📎 첨부 파일</p>
                   <ul className="attach-file-list">
-                    {card.attachments.map((att) => (
-                      <li key={att.id} className="attach-file-item">
-                        <span className={`attach-file-ext ext-${att.ext}`}>
-                          {FILE_EXTS[att.ext] ?? att.ext.toUpperCase()}
-                        </span>
-                        <span className="attach-file-name">{att.name}</span>
-                        <span className="attach-file-size">{formatFileSize(att.size)}</span>
-                        <button
-                          type="button"
-                          className="btn-ghost attach-download-btn"
-                          onClick={() => downloadAttachment(att)}
-                        >
-                          ⬇ 다운로드
-                        </button>
-                      </li>
-                    ))}
+                    {card.attachments.map((att) =>
+                      IMAGE_EXTS.has(att.ext) ? (
+                        // 이미지 첨부(그리기 포함)는 보이게 표시 + 클릭 확대
+                        <li key={att.id} className="attach-image-item">
+                          <ZoomableImage
+                            src={att.dataUrl}
+                            alt={att.name}
+                            className="attach-image-thumb"
+                          />
+                        </li>
+                      ) : (
+                        <li key={att.id} className="attach-file-item">
+                          <span className={`attach-file-ext ext-${att.ext}`}>
+                            {FILE_EXTS[att.ext] ?? att.ext.toUpperCase()}
+                          </span>
+                          <span className="attach-file-name">{att.name}</span>
+                          <span className="attach-file-size">{formatFileSize(att.size)}</span>
+                          <button
+                            type="button"
+                            className="btn-ghost attach-download-btn"
+                            onClick={() => downloadAttachment(att)}
+                          >
+                            ⬇ 다운로드
+                          </button>
+                        </li>
+                      )
+                    )}
                   </ul>
                 </div>
               )}
@@ -461,13 +506,7 @@ export default function StudyCardModal({
 
       {drawing && (
         <DrawingCanvas
-          onSave={async (dataUrl) => {
-            try {
-              setImageUrl(await uploadDataUrl(dataUrl, "drawing.png"));
-            } catch {
-              alert("그림 업로드에 실패했어요. 잠시 후 다시 시도해 주세요.");
-            }
-          }}
+          onSave={handleDrawingSave}
           onClose={() => setDrawing(false)}
         />
       )}

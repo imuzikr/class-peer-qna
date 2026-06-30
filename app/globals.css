@@ -1145,6 +1145,39 @@ select:focus {
   margin: 6px 0;
 }
 
+/* 첨부 이미지(그리기 포함) 썸네일 */
+.attach-image-item {
+  position: relative;
+  list-style: none;
+  margin: 6px 0;
+}
+.attach-image-thumb {
+  max-width: 260px;
+  max-height: 220px;
+  width: auto;
+  height: auto;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  display: block;
+}
+.attach-image-del {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+.attach-image-del:hover {
+  background: rgba(0, 0, 0, 0.75);
+}
+
 /* ===================== 이미지 확대(라이트박스) ===================== */
 .zoomable-img {
   cursor: zoom-in;
