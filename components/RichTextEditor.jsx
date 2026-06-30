@@ -14,6 +14,7 @@
 // 입력 내용을 비우려면 부모에서 key 값을 바꿔 다시 마운트하세요.
 // =============================================================
 import { useEffect, useRef, useState } from "react";
+import { uploadImage } from "@/lib/storageUpload";
 
 // ───── 툴바 아이콘 (선 스타일 SVG) ─────
 const svgProps = {
@@ -168,6 +169,29 @@ export default function RichTextEditor({
     onChange(ref.current.innerHTML);
   }
 
+  // 본문에 이미지를 붙여넣으면 data URL이 문서에 박혀(1MB 한도·피드 부하) 문제이므로,
+  // Storage에 업로드하고 그 URL로 <img>를 삽입합니다. (데모 모드는 data URL 유지)
+  async function handlePaste(e) {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const it of items) {
+      if (it.type && it.type.startsWith("image/")) {
+        e.preventDefault();
+        const file = it.getAsFile();
+        if (!file) return;
+        try {
+          const url = await uploadImage(file);
+          ref.current?.focus();
+          document.execCommand("insertHTML", false, `<img src="${url}" alt="">`);
+          onChange(ref.current.innerHTML);
+        } catch {
+          alert("이미지 업로드에 실패했어요. 잠시 후 다시 시도해 주세요.");
+        }
+        return;
+      }
+    }
+  }
+
   // 커서가 목록(li) 안에 있으면 Enter는 '새 항목 추가'로 동작해야 함
   function isInList() {
     let node = window.getSelection()?.anchorNode;
@@ -269,6 +293,7 @@ export default function RichTextEditor({
       data-placeholder={placeholder}
       onInput={handleInput}
       onKeyDown={handleKeyDown}
+      onPaste={handlePaste}
     />
   );
 

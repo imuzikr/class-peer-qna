@@ -451,6 +451,16 @@ export function IconMyPost({ size = 20, className = "" }) {
   );
 }
 
+export function IconCuriousPost({ size = 20, className = "" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">
+      <path d="M6.65 4.75h8.75l2.95 2.95v10.1c0 .8-.65 1.45-1.45 1.45H6.65c-.8 0-1.45-.65-1.45-1.45V6.2c0-.8.65-1.45 1.45-1.45Z" fill="#FFF7ED" stroke="#3A312E" strokeWidth="1.55" strokeLinejoin="round"/>
+      <path d="M15.35 4.92V7.1c0 .55.45 1 1 1h1.82" stroke="#3A312E" strokeWidth="1.35" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M11.78 12c.25-.88 1.12-1.42 2.02-1.22.95.2 1.55 1.14 1.35 2.09-.33 1.55-2.2 2.55-4.48 3.2-1.78-1.54-3.05-3.22-2.72-4.77.2-.95 1.14-1.55 2.09-1.35.9.19 1.52 1.03 1.46 1.94l.28.11Z" fill="#FFFDF9" stroke="#8A6258" strokeWidth="1.2" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
 export function IconKeyboard({ size = 20, className = "" }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">

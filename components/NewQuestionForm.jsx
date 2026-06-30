@@ -6,7 +6,7 @@ import { useState } from "react";
 import { KEYWORDS, addQuestion, updateQuestion } from "@/lib/store";
 import { getCurrentUser } from "@/lib/user";
 import { sanitizeHtml, stripHtml } from "@/lib/html";
-import { uploadImage } from "@/lib/storageUpload";
+import { uploadImage, uploadDataUrl } from "@/lib/storageUpload";
 import RichTextEditor, { IconImage, IconPen } from "./RichTextEditor";
 import DrawingCanvas from "./DrawingCanvas";
 
@@ -164,7 +164,13 @@ export default function NewQuestionForm({
         {/* 그리기 캔버스 — 완료하면 그림이 첨부 이미지로 들어갑니다 */}
         {drawing && (
           <DrawingCanvas
-            onSave={(dataUrl) => setImageUrl(dataUrl)}
+            onSave={async (dataUrl) => {
+              try {
+                setImageUrl(await uploadDataUrl(dataUrl, "drawing.png"));
+              } catch {
+                alert("그림 업로드에 실패했어요. 잠시 후 다시 시도해 주세요.");
+              }
+            }}
             onClose={() => setDrawing(false)}
           />
         )}

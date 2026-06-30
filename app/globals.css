@@ -851,7 +851,10 @@ select:focus {
 .filter-icon {
   font-size: 15px;
   width: 22px;
-  text-align: center;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
 }
 
@@ -1127,6 +1130,19 @@ select:focus {
    .study-keyword-chips의 flex-wrap으로 좁아지면 자동 줄바꿈됨 */
 .modal.modal-study-board {
   max-width: 520px;
+}
+
+/* 본문(에디터/표시)에 들어간 인라인 이미지 크기 제한 */
+.rte-area img,
+.study-card-body img,
+.notice-content img,
+.qa-content img,
+.chat-text img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+  display: block;
+  margin: 6px 0;
 }
 
 /* ===================== 이미지 확대(라이트박스) ===================== */

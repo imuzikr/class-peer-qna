@@ -17,7 +17,7 @@ import {
 import { getCurrentUser, isAdmin } from "@/lib/user";
 import { isFirebaseConfigured } from "@/lib/firebase";
 import { sanitizeHtml, stripHtml } from "@/lib/html";
-import { uploadImage } from "@/lib/storageUpload";
+import { uploadImage, uploadDataUrl } from "@/lib/storageUpload";
 import RichTextEditor, { IconImage, IconPen } from "./RichTextEditor";
 import { IconAsk, IconSolved, IconAnswer, IconTrash, IconInsight } from "./StatusIcons";
 import DrawingCanvas from "./DrawingCanvas";
@@ -398,7 +398,13 @@ export default function QuestionModal({
         {/* 그리기 캔버스 — 완료하면 그림이 답변 첨부 이미지로 들어갑니다 */}
         {drawing && (
           <DrawingCanvas
-            onSave={(dataUrl) => setAnswerImage(dataUrl)}
+            onSave={async (dataUrl) => {
+              try {
+                setAnswerImage(await uploadDataUrl(dataUrl, "drawing.png"));
+              } catch {
+                alert("그림 업로드에 실패했어요. 잠시 후 다시 시도해 주세요.");
+              }
+            }}
             onClose={() => setDrawing(false)}
           />
         )}

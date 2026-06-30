@@ -14,7 +14,7 @@ import {
 import { getCurrentUser, isAdmin } from "@/lib/user";
 import { sanitizeHtml, stripHtml } from "@/lib/html";
 import { formatFileSize } from "@/lib/image";
-import { uploadImage, uploadFile } from "@/lib/storageUpload";
+import { uploadImage, uploadFile, uploadDataUrl } from "@/lib/storageUpload";
 import RichTextEditor, { IconImage, IconPen } from "./RichTextEditor";
 import DrawingCanvas from "./DrawingCanvas";
 import StudyQuestionPeek from "./StudyQuestionPeek";
@@ -461,7 +461,13 @@ export default function StudyCardModal({
 
       {drawing && (
         <DrawingCanvas
-          onSave={(dataUrl) => setImageUrl(dataUrl)}
+          onSave={async (dataUrl) => {
+            try {
+              setImageUrl(await uploadDataUrl(dataUrl, "drawing.png"));
+            } catch {
+              alert("그림 업로드에 실패했어요. 잠시 후 다시 시도해 주세요.");
+            }
+          }}
           onClose={() => setDrawing(false)}
         />
       )}
