@@ -168,11 +168,13 @@ export default function StudyCardModal({
         {/* 헤더 */}
         <div className="modal-head">
           <h3>
-            {isNew
-              ? "✏️ 내 카드 작성하기"
-              : canEdit
-              ? "✏️ 내 카드 수정하기"
-              : (cardDisplayName || "카드 보기")}
+            {isNew || canEdit ? (
+              <span className="study-form-title-pen">
+                <IconPen size={18} /> {isNew ? "내 카드 작성하기" : "내 카드 수정하기"}
+              </span>
+            ) : (
+              cardDisplayName || "카드 보기"
+            )}
             <span className="study-form-board"># {board.title}</span>
           </h3>
           <button className="btn-close" onClick={onClose} aria-label="닫기">

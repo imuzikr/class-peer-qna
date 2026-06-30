@@ -7,7 +7,7 @@ import { getCurrentUser, isAdmin } from "@/lib/user";
 import { sanitizeHtml, stripHtml } from "@/lib/html";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import RichTextEditor from "./RichTextEditor";
-import { IconNotice } from "./StatusIcons";
+import { IconNotice, IconTeacher } from "./StatusIcons";
 
 export default function NoticePanel({ notices }) {
   const user = useCurrentUser();
@@ -96,8 +96,8 @@ export default function NoticePanel({ notices }) {
           <h4>{n.title}</h4>
           <div className="notice-content" dangerouslySetInnerHTML={{ __html: sanitizeHtml(n.content) }} />
           {/* 공지 작성자는 항상 "선생님"으로 표시됩니다 */}
-          <time>
-            👩‍🏫 {n.authorName ?? "선생님"} · {formatTime(n.createdAt)}
+          <time className="notice-author">
+            <IconTeacher size={16} /> {n.authorName ?? "선생님"} · {formatTime(n.createdAt)}
           </time>
         </div>
       ))}

@@ -11,6 +11,7 @@
 import { useState } from "react";
 import { getCurrentUser, isAdmin } from "@/lib/user";
 import { getDirectoryRealName } from "@/lib/store";
+import { IconTeacher } from "@/components/StatusIcons";
 
 export default function AuthorBadge({ name, emoji, realName, uid }) {
   const [revealed, setRevealed] = useState(false);
@@ -34,7 +35,7 @@ export default function AuthorBadge({ name, emoji, realName, uid }) {
       title={admin ? "클릭하면 실제 사용자를 확인할 수 있어요 (관리자 전용)" : undefined}
     >
       <span className="avatar avatar-sm" aria-hidden="true">
-        {emoji ?? "🙂"}
+        {isTeacherAuthor ? <IconTeacher size={18} /> : emoji ?? "🙂"}
       </span>
       <strong className="author-name">{name}</strong>
       {admin && revealed && (

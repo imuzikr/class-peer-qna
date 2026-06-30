@@ -8,11 +8,14 @@
 // 가져다 씁니다.
 // =============================================================
 import { useState } from "react";
+import { IconAsk, IconSolved } from "./StatusIcons";
 
+// icon: 이모지(문자열) 또는 우리 앱 SVG 컴포넌트(Icon). 적절한 SVG가 있는
+// 항목만 컴포넌트로 바꾸고, 마땅한 게 없으면 이모지를 유지합니다.
 export const FILTERS = [
   { id: "all", label: "모든 글", icon: "📄" },
-  { id: "open", label: "미해결 질문", icon: "🙋" },
-  { id: "resolved", label: "해결된 질문", icon: "✅" },
+  { id: "open", label: "미해결 질문", Icon: IconAsk },
+  { id: "resolved", label: "해결된 질문", Icon: IconSolved },
   { id: "mine", label: "내 글", icon: "✍️" },
   { id: "metoo", label: "나도 궁금한 글", icon: "🤔" },
   { id: "popular", label: "인기글", icon: "⭐" },
@@ -86,7 +89,7 @@ export default function FilterMenu({ value, onChange }) {
                 }}
               >
                 <span className="filter-icon" aria-hidden="true">
-                  {f.icon}
+                  {f.Icon ? <f.Icon size={18} /> : f.icon}
                 </span>
                 {f.label}
               </button>

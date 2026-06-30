@@ -26,7 +26,8 @@ import {
 import { stripHtml } from "@/lib/html";
 import StudyCard from "./StudyCard";
 import StudyCardModal from "./StudyCardModal";
-import { IconTrash, IconAddFeature } from "./StatusIcons";
+import { IconTrash, IconAddFeature, IconLock, IconDuplicate } from "./StatusIcons";
+import { IconPen } from "./RichTextEditor";
 
 function buildActivityTemplate(activities) {
   if (!activities?.length) return "";
@@ -265,7 +266,11 @@ export default function StudyBoardColumn({
                     })
                   }
                 >
-                  {board.viewMode === "shared" ? "👥 함께 보기" : "🔒 나만 보기"}
+                  {board.viewMode === "shared" ? (
+                    <>👥 함께 보기</>
+                  ) : (
+                    <><IconLock size={15} /> 나만 보기</>
+                  )}
                 </button>
               </label>
               <label className="study-setting-row">
@@ -278,7 +283,11 @@ export default function StudyBoardColumn({
                     })
                   }
                 >
-                  {locked ? "🔏 보기 전용" : "✏️ 편집 가능"}
+                  {locked ? (
+                    <>🔏 보기 전용</>
+                  ) : (
+                    <><IconPen size={15} /> 편집 가능</>
+                  )}
                 </button>
               </label>
               <button
@@ -286,7 +295,7 @@ export default function StudyBoardColumn({
                 onClick={() => setDuplicating(true)}
                 title="이 보드를 다른 반으로 복제 (학생 기록은 초기화)"
               >
-                📋 다른 반으로 복제
+                <IconDuplicate size={15} /> 다른 반으로 복제
               </button>
               <button className="study-chip danger" onClick={handleDeleteBoard}>
                 <IconTrash size={15} /> 보드 삭제

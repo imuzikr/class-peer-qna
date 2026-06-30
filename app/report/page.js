@@ -19,6 +19,7 @@ import { useRequireAuth } from "@/lib/useRequireAuth";
 import { getMeTooCount, isPinnedQuestion } from "@/lib/questionRanking";
 import TopNav from "@/components/TopNav";
 import ActivityHeatmap from "@/components/ActivityHeatmap";
+import { IconRecord } from "@/components/StatusIcons";
 
 const DAY_MS = 1000 * 60 * 60 * 24;
 
@@ -384,7 +385,7 @@ export default function StudentReportPage() {
           )}
 
           <div className="side-section-head">
-            <h3>📒 내 인사이트 모음</h3>
+            <h3 className="side-section-title"><IconRecord size={18} /> 내 인사이트 모음</h3>
             <span>{myReflections.length}개</span>
           </div>
           {myReflections.length === 0 ? (

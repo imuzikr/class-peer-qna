@@ -336,12 +336,36 @@ export function IconStudent({ size = 20, className = "" }) {
 export function IconTeacher({ size = 20, className = "" }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">
-      <path d="M8.15 18.95v-1.1c0-1.7 1.38-3.08 3.08-3.08h1.54c1.7 0 3.08 1.38 3.08 3.08v1.1" fill="#FFF7ED" stroke="#3A312E" strokeWidth="1.0" strokeLinecap="round" strokeLinejoin="round"/>
-      <circle cx="12" cy="10" r="3.2" fill="#FFF7ED" stroke="#3A312E" strokeWidth="1.0"/>
-      <path d="M17.1 7.05h2.8v5.1h-2.8" stroke="#3A312E" strokeWidth="0.9" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M18.15 9.2h.9M18.15 10.35h.9" stroke="#8A6258" strokeWidth="0.7" strokeLinecap="round"/>
-      <path d="M15.2 13.15 17.1 11.7" stroke="#3A312E" strokeWidth="0.9" strokeLinecap="round"/>
-      <path d="M9.35 18.95h5.3" stroke="#8A6258" strokeWidth="0.85" strokeLinecap="round"/>
+      <path d="M8.55 9.75c0-2.05 1.55-3.7 3.45-3.7s3.45 1.65 3.45 3.7v.82c0 2.05-1.55 3.7-3.45 3.7s-3.45-1.65-3.45-3.7v-.82Z" fill="#FFF7ED" stroke="#3A312E" strokeWidth="1.55" strokeLinejoin="round"/>
+      <path d="M8.7 9.3c.75-1.65 2-2.48 3.82-2.48 1.12 0 2.08.36 2.78 1.05-.18.88-.72 1.48-1.62 1.78-.9.3-2.18.26-3.82-.12" fill="#3A312E"/>
+      <path d="M7.25 19v-.8c0-1.98 1.6-3.58 3.58-3.58h2.34c1.98 0 3.58 1.6 3.58 3.58v.8" fill="#FFF7ED"/>
+      <path d="M7.25 19v-.8c0-1.98 1.6-3.58 3.58-3.58h2.34c1.98 0 3.58 1.6 3.58 3.58v.8" stroke="#3A312E" strokeWidth="1.55" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M10.45 14.85 12 16.1l1.55-1.25" stroke="#3A312E" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M12 16.1 10.95 19M12 16.1 13.05 19" stroke="#8A6258" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
+export function IconKey({ size = 20, className = "" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">
+      <circle cx="8.15" cy="11.85" r="3.9" fill="#FFF7ED" stroke="#3A312E" strokeWidth="1.55"/>
+      <circle cx="8.15" cy="11.85" r="1.35" stroke="#8A6258" strokeWidth="1.25"/>
+      <path d="M12.05 11.85h7.15" stroke="#3A312E" strokeWidth="1.75" strokeLinecap="round"/>
+      <path d="M18.85 11.85v2.15h-2.05v1.85h-2.05v-4" stroke="#3A312E" strokeWidth="1.55" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M13.4 10.2h2.8" stroke="#8A6258" strokeWidth="1.25" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+export function IconRecord({ size = 20, className = "" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">
+      <path d="M7.1 4.75h10.15c.8 0 1.45.65 1.45 1.45v11.6c0 .8-.65 1.45-1.45 1.45H7.1c-.8 0-1.45-.65-1.45-1.45V6.2c0-.8.65-1.45 1.45-1.45Z" fill="#FFF7ED" stroke="#3A312E" strokeWidth="1.55" strokeLinejoin="round"/>
+      <path d="M8.35 4.75v14.5" stroke="#3A312E" strokeWidth="1.35" strokeLinecap="round"/>
+      <path d="M15.05 4.75v5.35l-1.45-.9-1.45.9V4.75" fill="#8A6258"/>
+      <path d="M10.65 11.45h4.85M10.65 13.75h4.85M10.65 16.05h3.05" stroke="#3A312E" strokeWidth="1.25" strokeLinecap="round"/>
+      <path d="M4.55 7.4h2.05M4.55 10.3h2.05M4.55 13.2h2.05" stroke="#8A6258" strokeWidth="1.2" strokeLinecap="round"/>
     </svg>
   );
 }
@@ -391,6 +415,27 @@ export function IconAddFeature({ size = 20, className = "" }) {
       <path d="M7.1 5.25h9.8c1.02 0 1.85.83 1.85 1.85v9.8c0 1.02-.83 1.85-1.85 1.85H7.1c-1.02 0-1.85-.83-1.85-1.85V7.1c0-1.02.83-1.85 1.85-1.85Z" fill="#FFF7ED" stroke="#3A312E" strokeWidth="1.55" strokeLinejoin="round"/>
       <path d="M12 8.35v7.3M8.35 12h7.3" stroke="#3A312E" strokeWidth="1.75" strokeLinecap="round"/>
       <path d="M16.55 4.35 16.85 5.15c.05.13.15.23.28.28l.8.3-.8.3a.5.5 0 0 0-.28.28l-.3.8-.3-.8a.5.5 0 0 0-.28-.28l-.8-.3.8-.3c.13-.05.23-.15.28-.28l.3-.8Z" fill="#8A6258"/>
+    </svg>
+  );
+}
+
+export function IconLock({ size = 20, className = "" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">
+      <path d="M7.25 10.35V8.7c0-2.62 2.13-4.75 4.75-4.75s4.75 2.13 4.75 4.75v1.65" stroke="#3A312E" strokeWidth="1.65" strokeLinecap="round"/>
+      <path d="M6.65 10.35h10.7c.9 0 1.65.74 1.65 1.65v5.4c0 .9-.74 1.65-1.65 1.65H6.65C5.74 19.05 5 18.3 5 17.4V12c0-.9.74-1.65 1.65-1.65Z" fill="#FFF7ED" stroke="#3A312E" strokeWidth="1.65" strokeLinejoin="round"/>
+      <path d="M12 13.35v2.75" stroke="#8A6258" strokeWidth="1.55" strokeLinecap="round"/>
+      <circle cx="12" cy="13.05" r=".72" fill="#8A6258"/>
+    </svg>
+  );
+}
+
+export function IconDuplicate({ size = 20, className = "" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">
+      <path d="M8.45 4.55h7.95c1 0 1.8.8 1.8 1.8v7.95" stroke="#8A6258" strokeWidth="1.55" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M5.8 7.7h8.9c1 0 1.8.8 1.8 1.8v8.15c0 1-.8 1.8-1.8 1.8H5.8c-1 0-1.8-.8-1.8-1.8V9.5c0-1 .8-1.8 1.8-1.8Z" fill="#FFF7ED" stroke="#3A312E" strokeWidth="1.6" strokeLinejoin="round"/>
+      <path d="M10.25 11.45v4.25M8.12 13.58h4.26" stroke="#3A312E" strokeWidth="1.55" strokeLinecap="round"/>
     </svg>
   );
 }

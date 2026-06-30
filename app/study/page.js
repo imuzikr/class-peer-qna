@@ -37,6 +37,7 @@ import PythonRunner from "@/components/PythonRunner";
 import ClassEntry from "@/components/ClassEntry";
 import Toast from "@/components/Toast";
 import KwlPanel from "@/components/KwlPanel";
+import { IconKey } from "@/components/StatusIcons";
 
 export default function StudyPage() {
   const user = useCurrentUser();
@@ -243,7 +244,7 @@ export default function StudyPage() {
                         onClick={() => setShowCode(true)}
                         title="학생에게 알려 줄 입장 코드 크게 보기"
                       >
-                        🔑 입장 코드
+                        <IconKey size={17} /> 입장 코드
                       </button>
                     )}
                     {admin && (

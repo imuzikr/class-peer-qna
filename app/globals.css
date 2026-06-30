@@ -475,6 +475,11 @@ select:focus {
   padding: 6px 12px;
   font-size: 13px;
   color: var(--text-sub);
+  /* 아이콘 + 글자 세로 중앙 정렬 (아이콘이 글자 기준선보다 내려가던 문제 해결) */
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  line-height: 1;
 }
 
 .btn-ghost:hover {
@@ -490,6 +495,38 @@ select:focus {
 .btn-ghost:disabled:hover {
   background: none;
   color: var(--text-sub);
+}
+
+/* 아이콘 + 글자 버튼 세로 중앙 정렬 일괄 (아이콘이 글자 기준선보다 내려가던 문제) */
+.status-toggle,
+.study-code-btn,
+.joincode-regen,
+.study-form-title-pen,
+.notice-author,
+.kwl-entry-edit-btn,
+.kwl-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  line-height: 1;
+}
+/* 공부방 설정 칩 — '복제·삭제'는 전체 폭을 유지하므로 inline-flex가 아닌 flex */
+.study-chip,
+.study-add-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  line-height: 1.1;
+}
+/* 인라인 SVG 아이콘 기본 정렬 보정 */
+.btn-ghost svg,
+.status-toggle svg,
+.study-chip svg,
+.metoo-btn svg,
+.filter-item svg {
+  flex-shrink: 0;
 }
 
 /* 로그아웃 — 아이콘 + 라벨 정렬 */

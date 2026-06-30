@@ -4,7 +4,8 @@
 // 저장마다 새 항목이 누적되고, 저장 후 입력창은 초기화됩니다.
 import { useEffect, useState } from "react";
 import { subscribeMyTodayKwl, subscribeAllKwl, subscribeMyAllKwl, addKwl, updateKwl } from "@/lib/store";
-import { IconKwlK, IconKwlW, IconKwlL } from "@/components/StatusIcons";
+import { IconKwlK, IconKwlW, IconKwlL, IconRecord } from "@/components/StatusIcons";
+import { IconPen } from "@/components/RichTextEditor";
 
 function getToday() {
   // 로컬(사용자 시간대) 자정 기준 날짜 — UTC 기준이면 KST 오전 9시에
@@ -118,7 +119,7 @@ function KwlEntry({ entry }) {
         </div>
       )}
       <button type="button" className="kwl-entry-edit-btn" onClick={startEdit} aria-label="수정">
-        ✏️ 수정
+        <IconPen size={14} /> 수정
       </button>
     </div>
   );
@@ -206,10 +207,10 @@ export default function KwlPanel({ classId, user, isTeacher, onAsk, mobileOpen, 
         </button>
         <button
           type="button"
-          className={`kwl-tab ${tab === "history" ? "active" : ""}`}
+          className={`kwl-tab kwl-tab--record ${tab === "history" ? "active" : ""}`}
           onClick={() => setTab("history")}
         >
-          📚 기록
+          <IconRecord size={16} /> 기록
         </button>
       </div>
 

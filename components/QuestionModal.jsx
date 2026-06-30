@@ -283,7 +283,7 @@ export default function QuestionModal({
                   onClick={() => setEditing(true)}
                   title="질문 내용 고치기"
                 >
-                  ✏️ 수정
+                  <IconPen size={15} /> 수정
                 </button>
               )}
               {(mine || admin) && (

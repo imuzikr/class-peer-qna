@@ -10,6 +10,7 @@
 //   useEffect 이후에만 이름을 표시합니다
 // =============================================================
 import { useCurrentUser } from "@/lib/useCurrentUser";
+import { IconTeacher } from "@/components/StatusIcons";
 
 export default function UserProfile() {
   const user = useCurrentUser();
@@ -25,7 +26,7 @@ export default function UserProfile() {
       }
     >
       <span className="avatar" aria-hidden="true">
-        {user ? user.emoji : "🙂"}
+        {isTeacher ? <IconTeacher size={20} /> : user ? user.emoji : "🙂"}
       </span>
       <span className="profile-text">
         <strong>{user ? user.displayName : "..."}</strong>
