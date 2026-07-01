@@ -20,6 +20,7 @@ import { sanitizeHtml, stripHtml } from "@/lib/html";
 import { uploadImage, uploadDataUrl } from "@/lib/storageUpload";
 import dynamic from "next/dynamic";
 import RichTextEditor, { IconImage, IconPen } from "./RichTextEditor";
+import UploadProgress from "./UploadProgress";
 import { IconAsk, IconSolved, IconAnswer, IconTrash, IconInsight } from "./StatusIcons";
 import MeTooButton from "./MeTooButton";
 import NewQuestionForm from "./NewQuestionForm";
@@ -45,6 +46,7 @@ export default function QuestionModal({
   const [answers, setAnswers] = useState([]);
   const [content, setContent] = useState(""); // 입력 중인 HTML
   const [answerImages, setAnswerImages] = useState([]); // 첨부 이미지(다중)
+  const [uploadPct, setUploadPct] = useState(null); // 첨부 업로드 진행률(null=대기)
   const ANSWER_MAX_IMAGES = 4;
   const [drawing, setDrawing] = useState(false); // 그리기 캔버스 열림
   const [editing, setEditing] = useState(false); // 질문 수정 모달 열림
@@ -83,11 +85,14 @@ export default function QuestionModal({
       e.target.value = "";
       return;
     }
+    setUploadPct(0);
     try {
-      const url = await uploadImage(file);
+      const url = await uploadImage(file, { onProgress: setUploadPct });
       setAnswerImages((prev) => [...prev, url]);
     } catch {
       alert("이미지 업로드에 실패했어요. 잠시 후 다시 시도해 주세요.");
+    } finally {
+      setUploadPct(null);
     }
     e.target.value = ""; // 같은 파일 재선택 가능하도록
   }
@@ -390,6 +395,7 @@ export default function QuestionModal({
                   ))}
                 </div>
               )}
+              <UploadProgress pct={uploadPct} />
               {/* 입력창 — 하단 툴바에 첨부·그리기·서식 도구와 전송 버튼 */}
               <RichTextEditor
                 key={resetKey}
@@ -432,11 +438,14 @@ export default function QuestionModal({
                 alert(`이미지는 최대 ${ANSWER_MAX_IMAGES}장까지 첨부할 수 있습니다.`);
                 return;
               }
+              setUploadPct(0);
               try {
-                const url = await uploadDataUrl(dataUrl, "drawing.png");
+                const url = await uploadDataUrl(dataUrl, "drawing.png", { onProgress: setUploadPct });
                 setAnswerImages((prev) => [...prev, url]);
               } catch {
                 alert("그림 업로드에 실패했어요. 잠시 후 다시 시도해 주세요.");
+              } finally {
+                setUploadPct(null);
               }
             }}
             onClose={() => setDrawing(false)}

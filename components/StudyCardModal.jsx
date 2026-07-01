@@ -22,6 +22,7 @@ import RichTextEditor, { IconImage, IconPen } from "./RichTextEditor";
 const DrawingCanvas = dynamic(() => import("./DrawingCanvas"), { ssr: false });
 import StudyQuestionPeek from "./StudyQuestionPeek";
 import ZoomableImage from "./ZoomableImage";
+import UploadProgress from "./UploadProgress";
 import { IconAsk, IconSolved, IconTrash, IconTeacher } from "./StatusIcons";
 
 export default function StudyCardModal({
@@ -63,6 +64,7 @@ export default function StudyCardModal({
   const [showRelated, setShowRelated] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [peekQuestion, setPeekQuestion] = useState(null);
+  const [uploadPct, setUploadPct] = useState(null); // 첨부 업로드 진행률
 
   async function handleFile(e) {
     const file = e.target.files?.[0];
@@ -71,10 +73,13 @@ export default function StudyCardModal({
       alert("이미지 파일만 첨부할 수 있습니다.");
       return;
     }
+    setUploadPct(0);
     try {
-      setImageUrl(await uploadImage(file));
+      setImageUrl(await uploadImage(file, { onProgress: setUploadPct }));
     } catch {
       alert("이미지 업로드에 실패했어요. 잠시 후 다시 시도해 주세요.");
+    } finally {
+      setUploadPct(null);
     }
     e.target.value = "";
   }
@@ -113,11 +118,16 @@ export default function StudyCardModal({
     }
     // 이미지는 압축 후 업로드, 그 외 파일은 원본 업로드 → 다운로드 URL 저장
     let dataUrl;
+    setUploadPct(0);
     try {
-      dataUrl = isImage ? await uploadImage(file) : await uploadFile(file);
+      dataUrl = isImage
+        ? await uploadImage(file, { onProgress: setUploadPct })
+        : await uploadFile(file, { onProgress: setUploadPct });
     } catch {
       alert("파일 업로드에 실패했어요. 잠시 후 다시 시도해 주세요.");
       return;
+    } finally {
+      setUploadPct(null);
     }
     setAttachments((prev) => [
       ...prev,
@@ -131,14 +141,17 @@ export default function StudyCardModal({
       alert(`파일은 최대 ${MAX_ATTACH_COUNT}개까지 첨부할 수 있습니다.`);
       return;
     }
+    setUploadPct(0);
     try {
-      const url = await uploadDataUrl(dataUrl, "drawing.png");
+      const url = await uploadDataUrl(dataUrl, "drawing.png", { onProgress: setUploadPct });
       setAttachments((prev) => [
         ...prev,
         { id: `f${Date.now()}`, name: "그림.png", ext: "png", size: 0, dataUrl: url },
       ]);
     } catch {
       alert("그림 업로드에 실패했어요. 잠시 후 다시 시도해 주세요.");
+    } finally {
+      setUploadPct(null);
     }
   }
 
@@ -291,6 +304,8 @@ export default function StudyCardModal({
                   </RichTextEditor>
                 </>
               )}
+
+              <UploadProgress pct={uploadPct} />
 
               {imageUrl && (
                 <div className="attach-row">

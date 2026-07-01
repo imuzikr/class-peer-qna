@@ -9,6 +9,7 @@ import { sanitizeHtml, stripHtml } from "@/lib/html";
 import { uploadImage, uploadDataUrl } from "@/lib/storageUpload";
 import dynamic from "next/dynamic";
 import RichTextEditor, { IconImage, IconPen } from "./RichTextEditor";
+import UploadProgress from "./UploadProgress";
 
 // 그리기 캔버스는 무거워 열 때만 로딩
 const DrawingCanvas = dynamic(() => import("./DrawingCanvas"), { ssr: false });
@@ -50,6 +51,7 @@ export default function NewQuestionForm({
   );
   const [drawing, setDrawing] = useState(false); // 그리기 캔버스 열림 여부
   const [saving, setSaving] = useState(false);
+  const [uploadPct, setUploadPct] = useState(null); // 첨부 업로드 진행률
   const MAX_IMAGES = 4;
 
   function removeImage(i) {
@@ -69,11 +71,14 @@ export default function NewQuestionForm({
       e.target.value = "";
       return;
     }
+    setUploadPct(0);
     try {
-      const url = await uploadImage(file);
+      const url = await uploadImage(file, { onProgress: setUploadPct });
       setImages((prev) => [...prev, url]);
     } catch {
       alert("이미지 업로드에 실패했어요. 잠시 후 다시 시도해 주세요.");
+    } finally {
+      setUploadPct(null);
     }
     e.target.value = "";
   }
@@ -156,6 +161,8 @@ export default function NewQuestionForm({
             </button>
           </RichTextEditor>
 
+          <UploadProgress pct={uploadPct} />
+
           {images.length > 0 && (
             <div className="attach-multi">
               {images.map((src, i) => (
@@ -193,11 +200,14 @@ export default function NewQuestionForm({
                 alert(`이미지는 최대 ${MAX_IMAGES}장까지 첨부할 수 있습니다.`);
                 return;
               }
+              setUploadPct(0);
               try {
-                const url = await uploadDataUrl(dataUrl, "drawing.png");
+                const url = await uploadDataUrl(dataUrl, "drawing.png", { onProgress: setUploadPct });
                 setImages((prev) => [...prev, url]);
               } catch {
                 alert("그림 업로드에 실패했어요. 잠시 후 다시 시도해 주세요.");
+              } finally {
+                setUploadPct(null);
               }
             }}
             onClose={() => setDrawing(false)}
