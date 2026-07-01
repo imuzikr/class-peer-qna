@@ -1,14 +1,35 @@
 /** @type {import('next').NextConfig} */
+
+// Content-Security-Policy — 앱이 실제로 쓰는 출처만 허용.
+//  · script/eval: Next 하이드레이션(inline) + Pyodide(wasm-eval) + jsDelivr CDN
+//  · connect: Firebase(Firestore/Auth/Storage/Installations = *.googleapis.com) + Pyodide CDN
+//  · img: Storage 등 https 이미지 + data/blob(미리보기·그리기)
+//  · worker/blob: 파이썬 실행 Web Worker
+//  · frame: 구글/Firebase 인증 팝업
+const csp = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net blob:",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob: https:",
+  "font-src 'self' data:",
+  "connect-src 'self' https://*.googleapis.com https://*.gstatic.com https://cdn.jsdelivr.net wss://*.firebaseio.com",
+  "worker-src 'self' blob:",
+  "frame-src 'self' https://class-peer-qna.firebaseapp.com https://accounts.google.com",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+].join("; ");
+
 const nextConfig = {
   reactStrictMode: true,
 
-  // 기본 보안 헤더 — 앱을 깨뜨리지 않는 안전한 항목만.
-  // (CSP는 Pyodide CDN·Firebase 등과 함께 별도로 신중히 잡아야 하므로 여기선 제외)
   async headers() {
     return [
       {
         source: "/:path*",
         headers: [
+          { key: "Content-Security-Policy", value: csp },
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "X-Frame-Options", value: "SAMEORIGIN" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
