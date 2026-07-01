@@ -1,9 +1,9 @@
 "use client";
 
 // KWL 사이드 패널 — 공부방 왼쪽 고정 패널
-// 저장마다 새 항목이 누적되고, 저장 후 입력창은 초기화됩니다.
+// 하루에 1개 항목만 유지(같은 날 저장 시 덮어쓰기), 저장 후 입력창은 초기화됩니다.
 import { useEffect, useState } from "react";
-import { subscribeMyTodayKwl, subscribeAllKwl, subscribeMyAllKwl, addKwl, updateKwl } from "@/lib/store";
+import { subscribeMyTodayKwl, subscribeAllKwl, subscribeMyAllKwl, addKwl, updateKwl, deleteKwl } from "@/lib/store";
 import { IconKwlK, IconKwlW, IconKwlL, IconRecord } from "@/components/StatusIcons";
 import { IconPen } from "@/components/RichTextEditor";
 
@@ -164,6 +164,11 @@ export default function KwlPanel({ classId, user, isTeacher, onAsk, mobileOpen, 
     setSaving(true);
     try {
       await addKwl(classId, user, today, { K, W, L });
+      // 과거에 append 방식으로 누적된 오늘의 중복 항목 정리 (표준 ID 1개만 남김)
+      const canonicalId = `${user.uid}_${classId}_${today}`;
+      await Promise.all(
+        todayEntries.filter((e) => e.id !== canonicalId).map((e) => deleteKwl(e))
+      );
       // 저장 후 입력창 초기화
       setK("");
       setW("");
