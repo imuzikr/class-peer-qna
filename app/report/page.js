@@ -8,7 +8,7 @@ import {
   subscribeKeywords,
   subscribeQuestions,
   subscribeStudyBoards,
-  subscribeStudyCards,
+  subscribeMyStudyCards,
   toDate,
 } from "@/lib/store";
 import { isFirebaseConfigured } from "@/lib/firebase";
@@ -130,7 +130,7 @@ export default function StudentReportPage() {
   const [answersByQuestion, setAnswersByQuestion] = useState({});
   const [activeStatKey, setActiveStatKey] = useState(null); // 통계 카드 드릴다운
   const [studyBoards, setStudyBoards] = useState([]);
-  const [cardsByBoard, setCardsByBoard] = useState({}); // boardId -> cards[]
+  const [myCards, setMyCards] = useState([]); // 내가 낸 공부방 카드(전체)
 
   // 학습 리포트는 학생 화면 — 관리자 보기로 바뀌면 관리자 대시보드로 이동
   const isTeacher = user ? isAdmin(user) : false;
@@ -149,24 +149,14 @@ export default function StudentReportPage() {
     };
   }, []);
 
-  // 보드별 카드 구독 — 보드 id 집합이 바뀔 때만 재연결 (배열 참조 변경 무시)
-  const boardIdsKey = useMemo(
-    () => [...new Set(studyBoards.map((b) => b.id))].sort().join(","),
-    [studyBoards]
-  );
+  // 내 공부방 카드만 구독 (반 격리 규칙에 맞게 — 남의/다른 반 카드는 읽지 않음)
   useEffect(() => {
-    if (!boardIdsKey) {
-      setCardsByBoard({});
+    if (!user) {
+      setMyCards([]);
       return;
     }
-    const ids = boardIdsKey.split(",");
-    const unsubs = ids.map((id) =>
-      subscribeStudyCards(id, (cards) => {
-        setCardsByBoard((prev) => ({ ...prev, [id]: cards }));
-      })
-    );
-    return () => unsubs.forEach((u) => u());
-  }, [boardIdsKey]);
+    return subscribeMyStudyCards(user.uid, setMyCards);
+  }, [user?.uid]);
 
   // 답변 구독 — 질문 id 집합이 바뀔 때만 재연결 (좋아요/해결 등 잦은
   // 업데이트로 questions 배열 참조가 바뀌어도 리스너를 재생성하지 않음)
@@ -237,17 +227,14 @@ export default function StudentReportPage() {
   // 공부방 활동 — 내가 작성한 카드를 보드별로 모읍니다 (수업 안내 보드 제외).
   const myStudyCards = useMemo(() => {
     if (!user) return [];
-    const studentBoards = studyBoards.filter((b) => b.type !== "notice");
-    return studentBoards
-      .map((board) => {
-        const card = (cardsByBoard[board.id] ?? []).find(
-          (c) => c.authorId === user.uid
-        );
-        return card ? { board, card } : null;
+    return myCards
+      .map((card) => {
+        const board = studyBoards.find((b) => b.id === card.boardId);
+        return board && board.type !== "notice" ? { board, card } : null;
       })
       .filter(Boolean)
       .sort((a, b) => toDate(b.card.createdAt) - toDate(a.card.createdAt));
-  }, [studyBoards, cardsByBoard, user]);
+  }, [studyBoards, myCards, user]);
   const studentBoardCount = studyBoards.filter((b) => b.type !== "notice").length;
   // 통계 카드 드릴다운 목록
   const statDetailItems = useMemo(() => {

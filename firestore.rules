@@ -130,7 +130,16 @@ service cloud.firestore {
       allow write: if isTeacher();
 
       match /cards/{cardId} {
-        allow read: if signedIn();
+        // 카드(학생 제출물) 읽기 — 반 격리:
+        //  · 교사: 전체
+        //  · 본인 카드: 항상
+        //  · 그 외: 그 보드가 속한 반의 멤버만 (다른 반 학생 열람 차단)
+        allow read: if signedIn() && (
+          isTeacher()
+          || resource.data.authorId == uid()
+          || exists(/databases/$(database)/documents/memberships/$(uid() + '_' +
+               get(/databases/$(database)/documents/studyBoards/$(bId)).data.classId))
+        );
         // 학생: 카드 문서 ID == 작성자 uid → 보드당 1개 보장
         // 교사: 보드당 여러 카드 허용(자동 ID) — authorId는 본인이어야 함
         allow create: if signedIn()
