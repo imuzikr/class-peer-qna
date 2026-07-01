@@ -93,6 +93,7 @@ export default function TopNav({ active, onPython, pyActive = false }) {
           </div>
 
           <button
+            data-py-toggle
             className={`btn-ghost ${pyActive ? "py-btn-active" : ""}`}
             onClick={handlePython}
             title="파이썬 실행기"

@@ -88,6 +88,20 @@ export default function PythonRunner({ open, onClose, onAskQuestion, hasModalOpe
   const runRef = useRef(() => {});
   const workerRef = useRef(null);
   const timerRef = useRef(null);
+  const panelRef = useRef(null);
+
+  // 패널 바깥을 클릭하면 실행기를 닫습니다.
+  // (모달이 떠 있을 땐 무시, 실행기 토글 버튼[data-py-toggle] 클릭도 무시)
+  useEffect(() => {
+    if (!open || hasModalOpen) return;
+    function onDown(e) {
+      if (panelRef.current?.contains(e.target)) return;
+      if (e.target.closest?.("[data-py-toggle]")) return;
+      onClose?.();
+    }
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [open, hasModalOpen, onClose]);
 
   // ── CodeMirror 에디터 생성 (한 번만) ──
   useEffect(() => {
@@ -235,6 +249,7 @@ export default function PythonRunner({ open, onClose, onAskQuestion, hasModalOpe
 
   return (
     <aside
+      ref={panelRef}
       className={`py-panel ${open ? "open" : ""} ${effectiveFull ? "full" : ""} ${
         dragging ? "dragging" : ""
       }`}
