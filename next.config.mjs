@@ -12,7 +12,7 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
-  "connect-src 'self' https://*.googleapis.com https://*.gstatic.com https://cdn.jsdelivr.net https://apis.google.com wss://*.firebaseio.com",
+  "connect-src 'self' https://*.googleapis.com https://*.gstatic.com https://cdn.jsdelivr.net https://apis.google.com wss://*.firebaseio.com data: blob:",
   "worker-src 'self' blob:",
   "frame-src 'self' https://class-peer-qna.firebaseapp.com https://apis.google.com https://accounts.google.com",
   "object-src 'none'",
