@@ -289,7 +289,7 @@ export default function PythonRunner({ open, onClose, onAskQuestion, hasModalOpe
 
         <div className="py-right">
           <label className="py-label">
-            <IconKeyboard size={22} /> 입력값 — input()이 읽어 갈 내용 (한 줄에 하나씩)
+            <IconKeyboard size={26} /> 입력값 — input()이 읽어 갈 내용 (한 줄에 하나씩)
           </label>
           <textarea
             className="py-code py-stdin"
@@ -306,11 +306,13 @@ export default function PythonRunner({ open, onClose, onAskQuestion, hasModalOpe
               disabled={status !== "idle"}
               title="Ctrl+Enter (Mac: Cmd+Enter)"
             >
-              {status === "loading"
-                ? "인터프리터 로딩..."
-                : status === "running"
-                ? "실행 중..."
-                : "▶ 실행 (Ctrl+Enter)"}
+              {status === "loading" ? (
+                "인터프리터 로딩..."
+              ) : status === "running" ? (
+                "실행 중..."
+              ) : (
+                <>▶ 실행 <span className="py-run-hint">Ctrl+Enter</span></>
+              )}
             </button>
             {status === "running" && (
               <button className="btn-ghost" onClick={stop}>
@@ -326,7 +328,7 @@ export default function PythonRunner({ open, onClose, onAskQuestion, hasModalOpe
                   if (code.trim()) onAskQuestion(code);
                 }}
               >
-                <IconAnswer size={18} /> 질문 만들기
+                <IconAnswer size={22} /> 질문 만들기
               </button>
             )}
             <button className="btn-ghost" onClick={() => setLines([])}>

@@ -2467,11 +2467,24 @@ pre code {
 
 .py-actions {
   display: flex;
+  flex-wrap: wrap; /* 공간이 부족하면 버튼 단위로만 줄바꿈(글자는 안 깨짐) */
+  align-items: center;
   gap: 8px;
 }
-
+/* 세 버튼 모두 글자 줄바꿈 방지 */
+.py-actions button {
+  white-space: nowrap;
+}
+/* 실행 버튼을 작게 — 나머지 두 버튼이 한 줄에 들어오도록 */
 .py-actions .btn-primary {
-  padding: 9px 18px;
+  padding: 8px 12px;
+  font-size: 13px;
+}
+.py-run-hint {
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.85;
+  margin-left: 2px;
 }
 
 /* 실행 결과 (터미널 느낌의 어두운 영역) */
