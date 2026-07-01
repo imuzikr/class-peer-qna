@@ -1,0 +1,52 @@
+{
+  "indexes": [
+    {
+      "//": "subscribeMyTodayKwl — 공부방 오늘 탭: classId==, userId==, date==, order createdAt asc",
+      "collectionGroup": "kwl",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "classId", "order": "ASCENDING" },
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "date", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "//": "subscribeMyAllKwl — 공부방 기록 탭: classId==, userId==, order createdAt desc",
+      "collectionGroup": "kwl",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "classId", "order": "ASCENDING" },
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "//": "subscribeUserKwl — 교사 대시보드 학생별: userId==, order createdAt desc",
+      "collectionGroup": "kwl",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "//": "subscribeAllKwl — 교사 오늘 전체: classId==, date==",
+      "collectionGroup": "kwl",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "classId", "order": "ASCENDING" },
+        { "fieldPath": "date", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "//": "subscribeMyStudyCards — 학생 리포트 내 카드: collectionGroup cards, authorId==",
+      "collectionGroup": "cards",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "authorId", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
