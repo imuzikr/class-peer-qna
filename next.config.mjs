@@ -8,13 +8,13 @@
 //  · frame: 구글/Firebase 인증 팝업
 const csp = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net blob:",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://apis.google.com https://*.gstatic.com blob:",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
-  "connect-src 'self' https://*.googleapis.com https://*.gstatic.com https://cdn.jsdelivr.net wss://*.firebaseio.com",
+  "connect-src 'self' https://*.googleapis.com https://*.gstatic.com https://cdn.jsdelivr.net https://apis.google.com wss://*.firebaseio.com",
   "worker-src 'self' blob:",
-  "frame-src 'self' https://class-peer-qna.firebaseapp.com https://accounts.google.com",
+  "frame-src 'self' https://class-peer-qna.firebaseapp.com https://apis.google.com https://accounts.google.com",
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
