@@ -63,7 +63,12 @@ service cloud.firestore {
       allow update: if signedIn() && (
         resource.data.authorId == uid()    // 작성자: 해결/인사이트/고정 등
         || isTeacher()
-        || changedOnly(['meTooIds'])       // 누구나 '궁금해요' 토글
+        // '궁금해요' 토글 — 내 uid만 추가/삭제 가능(남의 목록 위조 방지)
+        || (changedOnly(['meTooIds'])
+            && request.resource.data.meTooIds.toSet()
+                 .difference(resource.data.meTooIds.toSet()).hasOnly([uid()])
+            && resource.data.meTooIds.toSet()
+                 .difference(request.resource.data.meTooIds.toSet()).hasOnly([uid()]))
         || changedOnly(['answerCount'])    // 답변 수(서버 함수 배포 전 클라 집계 허용)
       );
       allow delete: if signedIn() && (resource.data.authorId == uid() || isTeacher());
@@ -131,14 +136,20 @@ service cloud.firestore {
         allow create: if signedIn()
                       && request.resource.data.authorId == uid()
                       && (cardId == uid() || isTeacher());
-        allow update: if signedIn() && (cardId == uid() || isTeacher());
+        // 학생 수정: 본인 카드 + 작성자 불변 + 보드가 잠금(locked) 아님. 교사는 전체.
+        allow update: if signedIn() && (
+          isTeacher()
+          || (cardId == uid()
+              && request.resource.data.authorId == resource.data.authorId
+              && get(/databases/$(database)/documents/studyBoards/$(bId)).data.editMode != 'locked')
+        );
         allow delete: if signedIn() && (cardId == uid() || isTeacher());
       }
     }
 
-    // ── KWL — 본인 작성/수정, 읽기는 교사 통계 위해 로그인 허용 ──
+    // ── KWL — 개인 성찰. 읽기는 본인 + 교사만(다른 학생은 못 봄) ──
     match /kwl/{kwlId} {
-      allow read: if signedIn();
+      allow read: if signedIn() && (resource.data.userId == uid() || isTeacher());
       allow create: if signedIn() && request.resource.data.userId == uid();
       allow update, delete: if signedIn() && (resource.data.userId == uid() || isTeacher());
     }
