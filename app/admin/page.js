@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import {
   formatTime,
@@ -22,11 +23,15 @@ import { useRequireAuth } from "@/lib/useRequireAuth";
 import TopNav from "@/components/TopNav";
 import { getMeTooCount, isPinnedQuestion } from "@/lib/questionRanking";
 import StudentEditModal from "@/components/StudentEditModal";
-import ActivityHeatmap from "@/components/ActivityHeatmap";
 import StudentKwlPanel from "@/components/StudentKwlPanel";
 import ClassOverview from "@/components/ClassOverview";
 import StudyRoomStats from "@/components/StudyRoomStats";
 import { IconSchool, IconBlackboard } from "@/components/StatusIcons";
+
+// 활동 히트맵·레이더 차트는 무거워 지연 로딩
+const ActivityHeatmap = dynamic(() => import("@/components/ActivityHeatmap"), {
+  ssr: false,
+});
 
 const DAY_MS = 1000 * 60 * 60 * 24;
 

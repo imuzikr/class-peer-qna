@@ -7,8 +7,11 @@ import { KEYWORDS, addQuestion, updateQuestion } from "@/lib/store";
 import { getCurrentUser } from "@/lib/user";
 import { sanitizeHtml, stripHtml } from "@/lib/html";
 import { uploadImage, uploadDataUrl } from "@/lib/storageUpload";
+import dynamic from "next/dynamic";
 import RichTextEditor, { IconImage, IconPen } from "./RichTextEditor";
-import DrawingCanvas from "./DrawingCanvas";
+
+// 그리기 캔버스는 무거워 열 때만 로딩
+const DrawingCanvas = dynamic(() => import("./DrawingCanvas"), { ssr: false });
 
 export default function NewQuestionForm({
   defaultKeyword,

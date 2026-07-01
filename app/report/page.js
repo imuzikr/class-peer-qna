@@ -17,9 +17,14 @@ import { isAdmin } from "@/lib/user";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import { useRequireAuth } from "@/lib/useRequireAuth";
 import { getMeTooCount, isPinnedQuestion } from "@/lib/questionRanking";
+import dynamic from "next/dynamic";
 import TopNav from "@/components/TopNav";
-import ActivityHeatmap from "@/components/ActivityHeatmap";
 import { IconRecord } from "@/components/StatusIcons";
+
+// 활동 히트맵·레이더 차트는 무거워 지연 로딩
+const ActivityHeatmap = dynamic(() => import("@/components/ActivityHeatmap"), {
+  ssr: false,
+});
 
 const DAY_MS = 1000 * 60 * 60 * 24;
 

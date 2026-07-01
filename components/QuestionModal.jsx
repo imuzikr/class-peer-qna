@@ -18,15 +18,18 @@ import { getCurrentUser, isAdmin } from "@/lib/user";
 import { isFirebaseConfigured } from "@/lib/firebase";
 import { sanitizeHtml, stripHtml } from "@/lib/html";
 import { uploadImage, uploadDataUrl } from "@/lib/storageUpload";
+import dynamic from "next/dynamic";
 import RichTextEditor, { IconImage, IconPen } from "./RichTextEditor";
 import { IconAsk, IconSolved, IconAnswer, IconTrash, IconInsight } from "./StatusIcons";
-import DrawingCanvas from "./DrawingCanvas";
 import MeTooButton from "./MeTooButton";
 import NewQuestionForm from "./NewQuestionForm";
 import ReflectionModal from "./ReflectionModal";
 import AuthorBadge from "./AuthorBadge";
 import ConfirmModal from "./ConfirmModal";
 import ZoomableImage from "./ZoomableImage";
+
+// 그리기 캔버스는 무거워 열 때만 로딩
+const DrawingCanvas = dynamic(() => import("./DrawingCanvas"), { ssr: false });
 
 export default function QuestionModal({
   question,

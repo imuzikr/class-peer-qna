@@ -23,6 +23,13 @@ export default function TopNav({ active, onPython, pyActive = false }) {
   const [navOpen, setNavOpen] = useState(false);
   const dropRef = useRef(null);
 
+  // 이동 가능성이 높은 라우트를 미리 프리페치 → 클릭 시 즉시 전환
+  useEffect(() => {
+    router.prefetch("/board");
+    router.prefetch("/study");
+    router.prefetch(admin ? "/admin" : "/report");
+  }, [admin, router]);
+
   // 드롭다운 바깥 클릭 시 닫기
   useEffect(() => {
     if (!navOpen) return;

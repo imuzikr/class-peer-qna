@@ -5,6 +5,7 @@
 //   [1단] 키워드(과목) 필터  [2단] 질문 카드 게시판  [3단] 공지사항
 // =============================================================
 import { useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import {
   subscribeQuestions,
@@ -21,7 +22,6 @@ import QuestionCard from "@/components/QuestionCard";
 import QuestionModal from "@/components/QuestionModal";
 import NewQuestionForm from "@/components/NewQuestionForm";
 import NoticePanel from "@/components/NoticePanel";
-import PythonRunner from "@/components/PythonRunner";
 import TopNav from "@/components/TopNav";
 import FilterMenu, { applyFilter } from "@/components/FilterMenu";
 import InsightModal from "@/components/InsightModal";
@@ -30,6 +30,11 @@ import { sortPinnedQuestions } from "@/lib/questionRanking";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import { useRequireAuth } from "@/lib/useRequireAuth";
 import { isAdmin } from "@/lib/user";
+
+// 파이썬 실행기(CodeMirror 등)는 무거워 지연 로딩 → 초기 로드/전환 속도 개선
+const PythonRunner = dynamic(() => import("@/components/PythonRunner"), {
+  ssr: false,
+});
 
 export default function BoardPage() {
   const router = useRouter();

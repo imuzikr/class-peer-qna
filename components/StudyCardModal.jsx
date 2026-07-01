@@ -15,8 +15,11 @@ import { getCurrentUser, isAdmin } from "@/lib/user";
 import { sanitizeHtml, stripHtml } from "@/lib/html";
 import { formatFileSize } from "@/lib/image";
 import { uploadImage, uploadFile, uploadDataUrl } from "@/lib/storageUpload";
+import dynamic from "next/dynamic";
 import RichTextEditor, { IconImage, IconPen } from "./RichTextEditor";
-import DrawingCanvas from "./DrawingCanvas";
+
+// 그리기 캔버스는 무거워 열 때만 로딩
+const DrawingCanvas = dynamic(() => import("./DrawingCanvas"), { ssr: false });
 import StudyQuestionPeek from "./StudyQuestionPeek";
 import ZoomableImage from "./ZoomableImage";
 import { IconAsk, IconSolved, IconTrash, IconTeacher } from "./StatusIcons";

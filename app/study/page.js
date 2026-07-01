@@ -9,6 +9,7 @@
 // 관련 질문을 모아 볼 수 있습니다.
 // =============================================================
 import { useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import {
   subscribeStudyBoards,
   subscribeQuestions,
@@ -33,11 +34,15 @@ import TopNav from "@/components/TopNav";
 import StudyBoardColumn from "@/components/StudyBoardColumn";
 import StudyBoardForm from "@/components/StudyBoardForm";
 import NewQuestionForm from "@/components/NewQuestionForm";
-import PythonRunner from "@/components/PythonRunner";
 import ClassEntry from "@/components/ClassEntry";
 import Toast from "@/components/Toast";
 import KwlPanel from "@/components/KwlPanel";
 import { IconKey } from "@/components/StatusIcons";
+
+// 파이썬 실행기(CodeMirror 등)는 무거워 지연 로딩 → 초기 로드/전환 속도 개선
+const PythonRunner = dynamic(() => import("@/components/PythonRunner"), {
+  ssr: false,
+});
 
 export default function StudyPage() {
   const user = useCurrentUser();
