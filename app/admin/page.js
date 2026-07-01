@@ -26,6 +26,7 @@ import ActivityHeatmap from "@/components/ActivityHeatmap";
 import StudentKwlPanel from "@/components/StudentKwlPanel";
 import ClassOverview from "@/components/ClassOverview";
 import StudyRoomStats from "@/components/StudyRoomStats";
+import { IconSchool, IconBlackboard } from "@/components/StatusIcons";
 
 const DAY_MS = 1000 * 60 * 60 * 24;
 
@@ -506,7 +507,7 @@ export default function AdminDashboardPage() {
                   className={`class-row ${selectedClassId === null ? "active" : ""}`}
                   onClick={() => setSelectedClassId(null)}
                 >
-                  <span className="class-row-icon">🏫</span>
+                  <span className="class-row-icon"><IconSchool size={20} /></span>
                   <span className="student-main"><strong>전체 학급</strong></span>
                 </button>
                 {classes.map((c) => (
@@ -516,7 +517,7 @@ export default function AdminDashboardPage() {
                     className={`class-row ${selectedClassId === c.id ? "active" : ""}`}
                     onClick={() => setSelectedClassId(c.id)}
                   >
-                    <span className="class-row-icon">📚</span>
+                    <span className="class-row-icon"><IconBlackboard size={20} /></span>
                     <span className="student-main"><strong>{c.name}</strong></span>
                   </button>
                 ))}

@@ -3130,6 +3130,10 @@ pre code {
 }
 .class-row-icon {
   font-size: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 /* 학급 전체 통계 — 표 + 차트 2열 */
