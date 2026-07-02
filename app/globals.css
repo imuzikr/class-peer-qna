@@ -1207,21 +1207,6 @@ select:focus {
   max-width: 100%;
 }
 
-/* 첨부 이미지(그리기 포함) 썸네일 */
-.attach-image-item {
-  position: relative;
-  list-style: none;
-  margin: 6px 0;
-}
-.attach-image-thumb {
-  max-width: 260px;
-  max-height: 220px;
-  width: auto;
-  height: auto;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  display: block;
-}
 .attach-image-del {
   position: absolute;
   top: 6px;
@@ -1238,6 +1223,48 @@ select:focus {
 }
 .attach-image-del:hover {
   background: rgba(0, 0, 0, 0.75);
+}
+
+/* 공부방 카드 — 이미지·그림 첨부 그리드 (2열, Claude 프롬프트창 스타일 X 버튼) */
+.attach-image-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-top: 10px;
+}
+.attach-image-cell {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--bg);
+}
+.attach-image-grid-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.attach-image-grid-del {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+.attach-image-grid-del:hover {
+  background: rgba(0, 0, 0, 0.8);
 }
 
 /* ===================== 이미지 확대(라이트박스) ===================== */

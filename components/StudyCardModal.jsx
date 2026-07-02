@@ -159,6 +159,24 @@ export default function StudyCardModal({
     setAttachments((prev) => prev.filter((a) => a.id !== id));
   }
 
+  // 첨부를 두 그룹으로 나눠 보여줍니다: 파일 목록(문서류) + 이미지 그리드(사진·그림).
+  // 메인 이미지(imageUrl)와 이미지 첨부를 한 그리드에 합쳐 보여주되,
+  // 실제 저장 필드는 그대로(imageUrl/attachments 분리) 유지합니다.
+  const fileAttachments = attachments.filter((a) => !IMAGE_EXTS.has(a.ext));
+  const imageItems = [
+    ...(imageUrl ? [{ id: "__main__", src: imageUrl, isMain: true }] : []),
+    ...attachments
+      .filter((a) => IMAGE_EXTS.has(a.ext))
+      .map((a) => ({ id: a.id, src: a.dataUrl, isMain: false })),
+  ];
+  const cardFileAttachments = (card?.attachments ?? []).filter((a) => !IMAGE_EXTS.has(a.ext));
+  const cardImageItems = [
+    ...(card?.imageUrl ? [{ id: "__main__", src: card.imageUrl }] : []),
+    ...(card?.attachments ?? [])
+      .filter((a) => IMAGE_EXTS.has(a.ext))
+      .map((a) => ({ id: a.id, src: a.dataUrl })),
+  ];
+
   function downloadAttachment(att) {
     const a = document.createElement("a");
     a.href = att.dataUrl;
@@ -307,25 +325,12 @@ export default function StudyCardModal({
 
               <UploadProgress pct={uploadPct} />
 
-              {imageUrl && (
-                <div className="attach-row">
-                  <ZoomableImage src={imageUrl} alt="첨부 미리보기" className="attach-preview" />
-                  <button
-                    type="button"
-                    className="btn-ghost"
-                    onClick={() => setImageUrl(null)}
-                  >
-                    ✕ 첨부 취소
-                  </button>
-                </div>
-              )}
-
-              {/* 파일 첨부 영역 (편집 모드) */}
+              {/* 파일 첨부 목록 (문서류만 — 이미지는 아래 그리드로) */}
               <div className="attach-files-section">
                 <div className="attach-files-header">
                   <span className="attach-files-label">📎 파일 첨부</span>
                   {mine && (
-                    <label className="btn-ghost attach-add-btn" title="HTML, TXT, CSV, Excel, Python 파일 (최대 200KB, 3개)">
+                    <label className="btn-ghost attach-add-btn" title="HTML, TXT, CSV, Excel, Python, 이미지 파일 (최대 200KB/5MB, 3개)">
                       + 파일 추가
                       <input
                         type="file"
@@ -336,55 +341,57 @@ export default function StudyCardModal({
                     </label>
                   )}
                 </div>
-                {attachments.length > 0 && (
+                {fileAttachments.length > 0 && (
                   <ul className="attach-file-list">
-                    {attachments.map((att) =>
-                      IMAGE_EXTS.has(att.ext) ? (
-                        // 이미지·그리기 첨부는 썸네일로 보여주고 ✕로 제거
-                        <li key={att.id} className="attach-image-item editing">
-                          <img className="attach-image-thumb" src={att.dataUrl} alt={att.name} />
-                          {mine && (
-                            <button
-                              type="button"
-                              className="attach-image-del"
-                              onClick={() => removeAttachment(att.id)}
-                              aria-label="삭제"
-                            >
-                              ✕
-                            </button>
-                          )}
-                        </li>
-                      ) : (
-                        <li key={att.id} className="attach-file-item">
-                          <span className={`attach-file-ext ext-${att.ext}`}>
-                            {FILE_EXTS[att.ext] ?? att.ext.toUpperCase()}
-                          </span>
-                          <span className="attach-file-name">{att.name}</span>
-                          <span className="attach-file-size">{formatFileSize(att.size)}</span>
-                          {mine ? (
-                            <button
-                              type="button"
-                              className="attach-file-del"
-                              onClick={() => removeAttachment(att.id)}
-                              aria-label="삭제"
-                            >
-                              ✕
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              className="btn-ghost attach-download-btn"
-                              onClick={() => downloadAttachment(att)}
-                            >
-                              ⬇ 다운로드
-                            </button>
-                          )}
-                        </li>
-                      )
-                    )}
+                    {fileAttachments.map((att) => (
+                      <li key={att.id} className="attach-file-item">
+                        <span className={`attach-file-ext ext-${att.ext}`}>
+                          {FILE_EXTS[att.ext] ?? att.ext.toUpperCase()}
+                        </span>
+                        <span className="attach-file-name">{att.name}</span>
+                        <span className="attach-file-size">{formatFileSize(att.size)}</span>
+                        {mine && (
+                          <button
+                            type="button"
+                            className="attach-file-del"
+                            onClick={() => removeAttachment(att.id)}
+                            aria-label="삭제"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </li>
+                    ))}
                   </ul>
                 )}
               </div>
+
+              {/* 이미지·그림 그리드 (2열) — 메인 이미지 + 이미지 첨부를 함께 표시 */}
+              {imageItems.length > 0 && (
+                <div className="attach-image-grid">
+                  {imageItems.map((item) => (
+                    <div key={item.id} className="attach-image-cell">
+                      <ZoomableImage
+                        src={item.src}
+                        alt="첨부 이미지"
+                        className="attach-image-grid-thumb"
+                      />
+                      {mine && (
+                        <button
+                          type="button"
+                          className="attach-image-grid-del"
+                          onClick={() =>
+                            item.isMain ? setImageUrl(null) : removeAttachment(item.id)
+                          }
+                          aria-label="삭제"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </>
           ) : card ? (
             <>
@@ -395,47 +402,44 @@ export default function StudyCardModal({
                 className="study-card-body"
                 dangerouslySetInnerHTML={{ __html: sanitizeHtml(card.content) }}
               />
-              {card.imageUrl && (
-                <ZoomableImage
-                  src={card.imageUrl}
-                  alt="첨부 이미지"
-                  className="study-card-image"
-                />
-              )}
 
-              {/* 파일 첨부 목록 (읽기 모드) */}
-              {(card.attachments?.length ?? 0) > 0 && (
+              {/* 파일 첨부 목록 (읽기 모드, 문서류만) */}
+              {cardFileAttachments.length > 0 && (
                 <div className="attach-files-section">
                   <p className="attach-files-label">📎 첨부 파일</p>
                   <ul className="attach-file-list">
-                    {card.attachments.map((att) =>
-                      IMAGE_EXTS.has(att.ext) ? (
-                        // 이미지 첨부(그리기 포함)는 보이게 표시 + 클릭 확대
-                        <li key={att.id} className="attach-image-item">
-                          <ZoomableImage
-                            src={att.dataUrl}
-                            alt={att.name}
-                            className="attach-image-thumb"
-                          />
-                        </li>
-                      ) : (
-                        <li key={att.id} className="attach-file-item">
-                          <span className={`attach-file-ext ext-${att.ext}`}>
-                            {FILE_EXTS[att.ext] ?? att.ext.toUpperCase()}
-                          </span>
-                          <span className="attach-file-name">{att.name}</span>
-                          <span className="attach-file-size">{formatFileSize(att.size)}</span>
-                          <button
-                            type="button"
-                            className="btn-ghost attach-download-btn"
-                            onClick={() => downloadAttachment(att)}
-                          >
-                            ⬇ 다운로드
-                          </button>
-                        </li>
-                      )
-                    )}
+                    {cardFileAttachments.map((att) => (
+                      <li key={att.id} className="attach-file-item">
+                        <span className={`attach-file-ext ext-${att.ext}`}>
+                          {FILE_EXTS[att.ext] ?? att.ext.toUpperCase()}
+                        </span>
+                        <span className="attach-file-name">{att.name}</span>
+                        <span className="attach-file-size">{formatFileSize(att.size)}</span>
+                        <button
+                          type="button"
+                          className="btn-ghost attach-download-btn"
+                          onClick={() => downloadAttachment(att)}
+                        >
+                          ⬇ 다운로드
+                        </button>
+                      </li>
+                    ))}
                   </ul>
+                </div>
+              )}
+
+              {/* 이미지·그림 그리드 (읽기 모드, 2열) */}
+              {cardImageItems.length > 0 && (
+                <div className="attach-image-grid">
+                  {cardImageItems.map((item) => (
+                    <div key={item.id} className="attach-image-cell">
+                      <ZoomableImage
+                        src={item.src}
+                        alt="첨부 이미지"
+                        className="attach-image-grid-thumb"
+                      />
+                    </div>
+                  ))}
                 </div>
               )}
             </>
