@@ -1001,7 +1001,6 @@ select:focus {
 }
 
 .notice-item time {
-  display: block;
   font-family: var(--font-mono);
   font-size: 11px;
   color: #a8a69d;
