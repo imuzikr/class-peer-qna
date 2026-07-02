@@ -41,7 +41,7 @@ export default function NoticePanel({ notices }) {
     <aside className="notice-col">
       <h2>
         <span className="notice-col-title">
-          <IconNotice size={26} /> 공지사항
+          <IconNotice size={32} /> 공지사항
         </span>
         <span className="notice-head-actions">
           {/* 날짜 정렬 토글 — 한 버튼으로 오름/내림 전환 */}

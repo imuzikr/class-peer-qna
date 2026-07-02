@@ -964,9 +964,10 @@ select:focus {
   gap: 8px;
 }
 .notice-col-title {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 8px;
+  line-height: 1;
 }
 .notice-head-actions {
   display: flex;
@@ -1617,6 +1618,10 @@ select:focus {
   color: var(--primary-dark);
   background: #fff;
   border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1;
 }
 
 .chat-scroll {
