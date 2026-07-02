@@ -66,16 +66,30 @@ export default function StudyCardModal({
   const [peekQuestion, setPeekQuestion] = useState(null);
   const [uploadPct, setUploadPct] = useState(null); // 첨부 업로드 진행률
 
+  // 이미지 첨부 — 예전엔 단일 imageUrl을 계속 교체했지만, 지금은 다른
+  // 첨부와 동일하게 attachments 배열에 누적됩니다(업로드 순서대로 표시).
   async function handleFile(e) {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) {
       alert("이미지 파일만 첨부할 수 있습니다.");
+      e.target.value = "";
       return;
     }
+    if (attachments.length >= MAX_ATTACH_COUNT) {
+      alert(`이미지는 최대 ${MAX_ATTACH_COUNT}개까지 첨부할 수 있습니다.`);
+      e.target.value = "";
+      return;
+    }
+    const rawExt = (file.name || "").split(".").pop()?.toLowerCase();
+    const ext = IMAGE_EXTS.has(rawExt) ? rawExt : "jpg";
     setUploadPct(0);
     try {
-      setImageUrl(await uploadImage(file, { onProgress: setUploadPct }));
+      const url = await uploadImage(file, { onProgress: setUploadPct });
+      setAttachments((prev) => [
+        ...prev,
+        { id: `f${Date.now()}`, name: file.name || "image.jpg", ext, size: file.size, dataUrl: url },
+      ]);
     } catch {
       alert("이미지 업로드에 실패했어요. 잠시 후 다시 시도해 주세요.");
     } finally {
