@@ -33,8 +33,9 @@ export default function ClassEntry() {
         return;
       }
       // 서버에 소속을 기록 → 기기를 바꿔도 로그인하면 그대로 입장 상태 유지
+      // 코드를 함께 보내 보안 규칙이 코드 유효성·만료를 서버에서 재검증합니다
       const user = getCurrentUser();
-      if (user) await joinClass(found.id, user);
+      if (user) await joinClass(found.id, user, code);
       setSelectedClassId(found.id);
     } finally {
       setChecking(false);
