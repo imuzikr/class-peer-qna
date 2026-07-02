@@ -107,7 +107,7 @@ export default function StudyCardModal({
   const IMAGE_EXTS = new Set(["jpg", "jpeg", "png", "gif", "webp"]);
   const MAX_FILE_BYTES = 200 * 1024;         // 200KB (텍스트/코드 계열)
   const MAX_IMAGE_BYTES = 5 * 1024 * 1024;   // 5MB (이미지는 압축 후 저장)
-  const MAX_ATTACH_COUNT = 3;
+  const MAX_ATTACH_COUNT = 5;
 
   async function handleFileAttach(e) {
     const file = e.target.files?.[0];
@@ -344,7 +344,7 @@ export default function StudyCardModal({
                 <div className="attach-files-header">
                   <span className="attach-files-label">📎 파일 첨부</span>
                   {mine && (
-                    <label className="btn-ghost attach-add-btn" title="HTML, TXT, CSV, Excel, Python, 이미지 파일 (최대 200KB/5MB, 3개)">
+                    <label className="btn-ghost attach-add-btn" title={`HTML, TXT, CSV, Excel, Python, 이미지 파일 (최대 200KB/5MB, ${MAX_ATTACH_COUNT}개)`}>
                       + 파일 추가
                       <input
                         type="file"
