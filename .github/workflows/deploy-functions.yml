@@ -1,0 +1,49 @@
+name: Deploy Cloud Functions
+
+# functions/ 코드가 main에 반영되면(또는 수동 실행하면) Cloud Functions에
+# 자동 배포합니다. Vercel이 프론트엔드를 자동 배포하는 것과 같은 방식으로,
+# 서버 코드(functions/index.js)도 push만 하면 반영되게 하기 위한 워크플로입니다.
+#
+# 사전 준비 (한 번만, 저장소 관리자가 GitHub에서 직접):
+#   1. Google Cloud Console → IAM & 관리자 → 서비스 계정 → 새 서비스 계정 생성
+#      (예: github-actions-deployer)
+#   2. 역할 부여: Firebase 관리자(Firebase Admin) — 배포에 필요한 권한 포함
+#   3. 그 서비스 계정 → 키 탭 → 키 추가 → JSON → 다운로드
+#   4. 이 저장소 → Settings → Secrets and variables → Actions
+#      → New repository secret
+#      이름: FIREBASE_SERVICE_ACCOUNT
+#      값:  다운로드한 JSON 파일 내용 전체를 붙여넣기
+#
+# 위 설정이 끝나면 이후로는 functions/ 변경 + push만으로 자동 배포되고,
+# Actions 탭에서 "Run workflow" 버튼으로 수동 실행도 가능합니다.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "functions/**"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 저장소 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Node.js 20 설치
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: functions 의존성 설치
+        run: npm ci
+        working-directory: functions
+
+      - name: 구글 클라우드 인증 (서비스 계정)
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+
+      - name: Cloud Functions 배포
+        run: npx firebase-tools deploy --only functions --project class-peer-qna --non-interactive
