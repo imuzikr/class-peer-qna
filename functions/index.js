@@ -158,6 +158,56 @@ exports.setUserRole = onCall(async (request) => {
 });
 
 // =============================================================
+// [2-b] 탈퇴 — 로그인 계정(Authentication) 삭제
+// -------------------------------------------------------------
+// 클라이언트는 "남의 계정"을 지울 수 없으므로(구글 정책), 계정 삭제는
+// 서버에서만 수행합니다. Firestore 데이터 삭제는 앱(deleteStudent)이
+// 규칙 아래에서 처리하고, 이 함수는 로그인 계정 자체를 제거해
+// 재가입(같은 이메일)이 가능하도록 하고 남아 있는 역할 클레임도 없앱니다.
+//
+// 권한 계층:
+//  · 최고 관리자: 누구나 삭제(단, 최고 관리자 계정 자신은 보호)
+//  · 선생님(중간 관리자): 학생 계정만 삭제 (다른 선생님/관리자 삭제 불가)
+// =============================================================
+exports.deleteAuthUser = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "로그인이 필요합니다.");
+  }
+  const callerRole = request.auth.token.role;
+  const callerIsAdmin =
+    callerRole === "admin" ||
+    (request.auth.token.email === INITIAL_ADMIN_EMAIL &&
+      request.auth.token.email_verified === true);
+  const callerIsTeacher = callerRole === "teacher" || callerIsAdmin;
+  if (!callerIsTeacher) {
+    throw new HttpsError("permission-denied", "탈퇴 처리 권한이 없습니다.");
+  }
+
+  const { uid } = request.data || {};
+  if (typeof uid !== "string" || !uid) {
+    throw new HttpsError("invalid-argument", "uid를 올바르게 전달해 주세요.");
+  }
+
+  // 대상 계정 확인 (이미 없으면 성공으로 간주)
+  const target = await admin.auth().getUser(uid).catch(() => null);
+  if (!target) return { ok: true, alreadyGone: true };
+
+  // 최고 관리자 계정은 삭제 불가
+  if (target.email === INITIAL_ADMIN_EMAIL) {
+    throw new HttpsError("permission-denied", "최고 관리자 계정은 삭제할 수 없습니다.");
+  }
+  // 선생님/관리자 계정 삭제는 최고 관리자만
+  const targetRole = target.customClaims && target.customClaims.role;
+  const targetIsStaff = targetRole === "teacher" || targetRole === "admin";
+  if (targetIsStaff && !callerIsAdmin) {
+    throw new HttpsError("permission-denied", "선생님 계정은 최고 관리자만 탈퇴 처리할 수 있습니다.");
+  }
+
+  await admin.auth().deleteUser(uid);
+  return { ok: true, uid };
+});
+
+// =============================================================
 // [3] 예약 작업 — 주간 답변왕 집계
 // -------------------------------------------------------------
 // 매주 월요일 오전 9시(서울)에 지난 7일간의 답변 수를 집계해
