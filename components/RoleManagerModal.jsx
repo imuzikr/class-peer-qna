@@ -39,13 +39,18 @@ export default function RoleManagerModal({ directory, onClose }) {
         text: `${matched.displayName || matched.email} 님을 '${ROLE_LABELS[role]}'(으)로 지정했어요. (본인이 재로그인해야 반영됩니다)`,
       });
     } catch (err) {
-      setMessage({
-        type: "error",
-        text:
-          err?.code === "functions/permission-denied"
-            ? "역할을 부여할 권한이 없습니다. (실제 관리자 계정으로 로그인했는지 확인해 주세요)"
-            : "역할 부여에 실패했어요. Cloud Functions가 배포돼 있는지 확인해 주세요.",
-      });
+      const code = err?.code ?? "";
+      let text;
+      if (code === "functions/permission-denied") {
+        text = "역할을 부여할 권한이 없습니다. (실제 관리자 계정으로 로그인했는지 확인해 주세요)";
+      } else if (code === "functions/not-found") {
+        text = "setUserRole 함수를 찾을 수 없어요. Cloud Functions가 아직 배포되지 않은 것 같습니다. (firebase deploy --only functions)";
+      } else if (code === "functions/unauthenticated") {
+        text = "로그인 상태가 아닙니다. 다시 로그인한 뒤 시도해 주세요.";
+      } else {
+        text = `역할 부여에 실패했어요. Cloud Functions가 배포돼 있는지 확인해 주세요. (${code || err?.message || "알 수 없는 오류"})`;
+      }
+      setMessage({ type: "error", text });
     } finally {
       setSubmitting(false);
     }
