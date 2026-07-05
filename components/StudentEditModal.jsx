@@ -25,6 +25,8 @@ const ANIMALS = [
 ];
 
 export default function StudentEditModal({ student, onClose }) {
+  const isTeacherTarget = student.role === "teacher" || student.role === "admin";
+  const roleWord = isTeacherTarget ? "선생님" : "학생";
   const [editing, setEditing] = useState(false);
   const [emoji, setEmoji] = useState(student.emoji);
   const [name, setName] = useState(student.name);
@@ -213,9 +215,9 @@ export default function StudentEditModal({ student, onClose }) {
 
       {confirmDelete && (
         <ConfirmModal
-          title="학생 탈퇴 처리"
-          preview={`${emoji} ${name}`}
-          description={"이 학생의 모든 질문·답변·학습 데이터가\n영구 삭제됩니다. 복구할 수 없습니다."}
+          title={`${roleWord} 탈퇴 처리`}
+          preview={`${emoji} ${isTeacherTarget ? realName || "선생님" : name}`}
+          description={`이 ${roleWord}의 모든 게시물·활동 데이터와 프로필이\n영구 삭제됩니다. 복구할 수 없습니다.`}
           confirmLabel="탈퇴 처리"
           danger
           onConfirm={handleDelete}

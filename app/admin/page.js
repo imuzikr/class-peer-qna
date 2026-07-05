@@ -415,8 +415,8 @@ export default function AdminDashboardPage() {
           const row = allRowMap.get(u.uid);
           return {
             id: u.uid,
-            name: u.displayName || "선생님",
-            emoji: u.emoji || "🧑‍🏫",
+            name: "선생님", // 교사는 닉네임 대신 항상 '선생님'
+            emoji: "🧑‍🏫",
             realName: u.realName || "",
             email: u.email || "",
             role: "teacher",

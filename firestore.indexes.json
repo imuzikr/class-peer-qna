@@ -46,6 +46,14 @@
       "fields": [
         { "fieldPath": "authorId", "order": "ASCENDING" }
       ]
+    },
+    {
+      "//": "deleteStudent — 탈퇴 시 작성자 답변 정리: collectionGroup answers, authorId==",
+      "collectionGroup": "answers",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "authorId", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []
