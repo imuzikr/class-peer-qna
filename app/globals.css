@@ -2639,6 +2639,13 @@ pre code {
   font-weight: 700;
 }
 
+/* 선생님 목록 소제목 — 학생 목록과 구분선으로 분리 */
+.admin-panel-head--sub {
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
 .student-list {
   display: flex;
   flex-direction: column;
@@ -4232,15 +4239,15 @@ pre code {
 }
 
 .role-manager-modal {
-  max-width: 420px;
-  padding: 28px 28px 22px;
+  max-width: 540px;
+  padding: 32px 34px 26px;
 }
 
 .role-manager-hint {
   font-size: 13px;
   color: var(--text-sub);
-  margin-bottom: 18px;
-  line-height: 1.5;
+  margin: 4px 0 18px;
+  line-height: 1.55;
 }
 
 .role-manager-field {
@@ -4277,15 +4284,15 @@ pre code {
 .role-pending {
   background: #fffbf3;
   border: 1.5px solid #e8a817;
-  border-radius: 10px;
-  padding: 12px 14px;
+  border-radius: 12px;
+  padding: 14px 16px;
   margin-bottom: 18px;
 }
 .role-pending-title {
   font-size: 13px;
   font-weight: 700;
   color: #a06a00;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 .role-pending-list {
   list-style: none;
@@ -4293,7 +4300,10 @@ pre code {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
+}
+.role-pending-item {
+  padding: 4px 0;
 }
 .role-pending-item {
   display: flex;

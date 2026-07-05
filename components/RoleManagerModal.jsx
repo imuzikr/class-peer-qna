@@ -18,7 +18,7 @@ import {
 } from "@/lib/store";
 import ConfirmModal from "./ConfirmModal";
 
-const ROLE_LABELS = { student: "학생", teacher: "교사", admin: "관리자" };
+const ROLE_LABELS = { student: "학생", teacher: "선생님", admin: "관리자" };
 
 function errorText(err) {
   const code = err?.code ?? "";
@@ -245,7 +245,7 @@ export default function RoleManagerModal({ directory, onClose }) {
           <span>부여할 역할</span>
           <select value={role} onChange={(e) => setRole(e.target.value)}>
             <option value="student">학생</option>
-            <option value="teacher">교사(선생님)</option>
+            <option value="teacher">선생님</option>
           </select>
         </div>
 

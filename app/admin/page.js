@@ -233,6 +233,36 @@ function EmptyPanel({ children }) {
   return <div className="admin-empty">{children}</div>;
 }
 
+// 좌측 패널의 사용자 행 (학생·선생님 공용)
+function PersonRow({ person, selectedId, onSelect, onEdit, teacher = false }) {
+  const subtitle = teacher
+    ? person.email || person.name
+    : person.realName
+    ? person.name
+    : "실명 미등록";
+  return (
+    <div className={`student-row ${person.id === selectedId ? "active" : ""}`}>
+      <button type="button" className="student-row-main" onClick={onSelect}>
+        <span className="avatar avatar-sm">{person.emoji}</span>
+        <span className="student-main">
+          <strong>{person.realName || person.name}</strong>
+          <small>{subtitle}</small>
+        </span>
+        <span className="student-count">{person.asked + person.answered}</span>
+      </button>
+      <button
+        type="button"
+        className="student-more-btn"
+        onClick={onEdit}
+        title="프로필 편집"
+        aria-label={`${person.name} 프로필 편집`}
+      >
+        ···
+      </button>
+    </div>
+  );
+}
+
 export default function AdminDashboardPage() {
   const router = useRouter();
   const user = useCurrentUser();
@@ -339,12 +369,24 @@ export default function AdminDashboardPage() {
     return m;
   }, [directory]);
 
-  // 학생 행에 실명·이메일을 users 디렉터리에서 덮어씁니다.
-  // (게시물 문서엔 더 이상 실명·이메일이 없으므로 여기서 합칩니다.)
-  // 교사·관리자는 '학생 목록'에서 제외 — 학생만 관리 대상으로 표시합니다.
+  // 최고 관리자 여부 (선생님 목록 표시용)
+  const isStrictAdmin = user?.role === "admin";
+
+  // 활동(질문·답변) 기반 전체 행 — 학생/선생님 분리에 함께 사용
+  const allRows = useMemo(
+    () => buildStudentRows(questions, answerEvents),
+    [questions, answerEvents]
+  );
+  const allRowMap = useMemo(
+    () => new Map(allRows.map((r) => [r.id, r])),
+    [allRows]
+  );
+
+  // 학생 목록 — 실명·이메일을 users 디렉터리에서 합칩니다.
+  // 교사·관리자는 제외(학생만 관리 대상으로 표시).
   const students = useMemo(
     () =>
-      buildStudentRows(questions, answerEvents)
+      allRows
         .filter((row) => {
           const dir = directoryMap.get(row.id);
           return !dir || (dir.role !== "teacher" && dir.role !== "admin");
@@ -361,8 +403,35 @@ export default function AdminDashboardPage() {
             role: dir.role,
           };
         }),
-    [answerEvents, questions, directoryMap]
+    [allRows, directoryMap]
   );
+
+  // 선생님 목록 — 디렉터리의 teacher 전원(활동 없어도 표시), 활동수는 있으면 합산.
+  const teachers = useMemo(
+    () =>
+      directory
+        .filter((u) => u.role === "teacher")
+        .map((u) => {
+          const row = allRowMap.get(u.uid);
+          return {
+            id: u.uid,
+            name: u.displayName || "선생님",
+            emoji: u.emoji || "🧑‍🏫",
+            realName: u.realName || "",
+            email: u.email || "",
+            role: "teacher",
+            asked: row?.asked ?? 0,
+            answered: row?.answered ?? 0,
+            meTooReceived: row?.meTooReceived ?? 0,
+            lastActiveAt: row?.lastActiveAt ?? null,
+          };
+        })
+        .sort((a, b) => (a.realName || a.name).localeCompare(b.realName || b.name, "ko")),
+    [directory, allRowMap]
+  );
+
+  // 선택 대상 조회는 학생+선생님을 합쳐서 (선생님도 클릭해 활동 분석 가능)
+  const people = useMemo(() => [...students, ...teachers], [students, teachers]);
 
   const allPendingReflections = useMemo(
     () => questions.filter(
@@ -405,11 +474,10 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     if (!selectedId && students.length > 0) {
       setSelectedId(students[0].id);
-    }
-    if (selectedId && !students.some((student) => student.id === selectedId)) {
+    } else if (selectedId && !people.some((p) => p.id === selectedId)) {
       setSelectedId(students[0]?.id ?? null);
     }
-  }, [selectedId, students]);
+  }, [selectedId, students, people]);
 
   // 선택한 학생의 KWL 기록 구독 (반 무관)
   useEffect(() => {
@@ -420,7 +488,7 @@ export default function AdminDashboardPage() {
     return subscribeUserKwl(selectedId, setSelectedKwl);
   }, [selectedId]);
 
-  const selected = students.find((student) => student.id === selectedId) ?? null;
+  const selected = people.find((p) => p.id === selectedId) ?? null;
   const selectedQuestions = questions.filter((question) => question.authorId === selected?.id);
   const selectedAnswers = answerEvents.filter((event) => event.answer.authorId === selected?.id);
   const resolvedQuestions = selectedQuestions.filter((question) => question.resolved).length;
@@ -547,44 +615,50 @@ export default function AdminDashboardPage() {
           ) : (
             <div className="student-list">
               {students.map((student) => (
-                <div
+                <PersonRow
                   key={student.id}
-                  className={`student-row ${student.id === selectedId ? "active" : ""}`}
-                >
-                  <button
-                    type="button"
-                    className="student-row-main"
-                    onClick={() => {
-                      setSelectedId(student.id);
-                      setActiveStatKey(null);
-                    }}
-                  >
-                    <span className="avatar avatar-sm">{student.emoji}</span>
-                    <span className="student-main">
-                      <strong>{student.realName || student.name}</strong>
-                      <small>{student.realName ? student.name : "실명 미등록"}</small>
-                    </span>
-                    <span className="student-count">{student.asked + student.answered}</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="student-more-btn"
-                    onClick={() => setEditingStudent(student)}
-                    title="프로필 편집"
-                    aria-label={`${student.name} 프로필 편집`}
-                  >
-                    ···
-                  </button>
-                </div>
+                  person={student}
+                  selectedId={selectedId}
+                  onSelect={() => {
+                    setSelectedId(student.id);
+                    setActiveStatKey(null);
+                  }}
+                  onEdit={() => setEditingStudent(student)}
+                />
               ))}
             </div>
+          )}
+
+          {/* 선생님 목록 — 최고 관리자만 (학생 목록 아래) */}
+          {isStrictAdmin && teachers.length > 0 && (
+            <>
+              <div className="admin-panel-head admin-panel-head--sub">
+                <h2>선생님 목록</h2>
+                <span>{teachers.length}명</span>
+              </div>
+              <div className="student-list">
+                {teachers.map((t) => (
+                  <PersonRow
+                    key={t.id}
+                    person={t}
+                    selectedId={selectedId}
+                    onSelect={() => {
+                      setSelectedId(t.id);
+                      setActiveStatKey(null);
+                    }}
+                    onEdit={() => setEditingStudent(t)}
+                    teacher
+                  />
+                ))}
+              </div>
+            </>
           )}
           </>
           )}
         </aside>
 
         <main className="admin-main">
-          {students.length > 0 && (
+          {people.length > 0 && (
             <div className="admin-view-tabs">
               <button
                 type="button"
