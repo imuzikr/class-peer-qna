@@ -51,9 +51,13 @@ service cloud.firestore {
       allow update: if (signedIn() && userId == uid()
                         && changedOnly(['email','realName','displayName','emoji','studentId','fcmTokens','requestedRole']))
                     || isTeacher();
-      // 탈퇴(계정 삭제): 관리자는 누구나, 교사는 학생 계정만.
+      // 탈퇴(계정 삭제): 관리자는 누구나, 교사는 '학생' 계정만.
+      //  · 부트스트랩 최고 관리자는 users.role이 'student'로 남아 있을 수 있으므로
+      //    이메일로도 명시 차단(교사가 최고 관리자를 삭제하지 못하게).
       allow delete: if isAdmin()
-                    || (isTeacher() && resource.data.role == 'student');
+                    || (isTeacher()
+                        && resource.data.role == 'student'
+                        && resource.data.get('email','') != 'iseoul72@gmail.com');
 
       // 인앱 알림 — 본인만
       match /notifications/{nId} {
