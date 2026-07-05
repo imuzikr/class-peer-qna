@@ -8,6 +8,7 @@
 // 키워드를 연계한 보드에서는 카드에서 바로 질문하고(질문하기),
 // 관련 질문을 모아 볼 수 있습니다.
 // =============================================================
+import { backdropClose } from "@/lib/modal";
 import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import {
@@ -353,7 +354,7 @@ export default function StudyPage() {
 
       {/* 입장 코드 크게 보기 모달 — 학생들이 멀리서도 볼 수 있게 */}
       {showCode && currentClass && (
-        <div className="modal-backdrop" onClick={() => setShowCode(false)}>
+        <div className="modal-backdrop" {...backdropClose(() => setShowCode(false))}>
           <div
             className="modal modal-joincode"
             onClick={(e) => e.stopPropagation()}
@@ -391,7 +392,7 @@ export default function StudyPage() {
 
       {/* 반 만들기 모달 */}
       {creatingClass && (
-        <div className="modal-backdrop" onClick={() => setCreatingClass(false)}>
+        <div className="modal-backdrop" {...backdropClose(() => setCreatingClass(false))}>
           <div className="modal modal-class-create" onClick={(e) => e.stopPropagation()}>
             <div className="modal-head">
               <h3>➕ 새 반 만들기</h3>

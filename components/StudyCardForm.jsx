@@ -6,6 +6,7 @@
 // 질문 작성 폼과 같은 리치 텍스트 + 이미지 첨부 + 그리기를 지원합니다.
 // card prop이 있으면 수정 모드로 동작합니다.
 // =============================================================
+import { backdropClose } from "@/lib/modal";
 import { useState } from "react";
 import { addStudyCard, updateStudyCard } from "@/lib/store";
 import { getCurrentUser } from "@/lib/user";
@@ -60,7 +61,7 @@ export default function StudyCardForm({ board, card = null, onClose }) {
   }
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop" {...backdropClose(onClose)}>
       <div className="modal modal-form" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <h3>

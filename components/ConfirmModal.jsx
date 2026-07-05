@@ -1,5 +1,6 @@
 "use client";
 
+import { backdropClose } from "@/lib/modal";
 import { IconTrash } from "./StatusIcons";
 
 export default function ConfirmModal({
@@ -18,7 +19,7 @@ export default function ConfirmModal({
   return (
     <div
       className="modal-backdrop confirm-backdrop"
-      onClick={onClose}
+      {...backdropClose(onClose)}
     >
       <div
         className="confirm-modal"

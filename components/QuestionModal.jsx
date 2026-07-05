@@ -5,6 +5,7 @@
 //   [왼쪽] 질문 내용(서식 지원) + 첨부 이미지 미리보기 + 상태 토글
 //   [오른쪽] 채팅형 대화방: 서식 입력 + 이미지 첨부 + 그리기
 // =============================================================
+import { backdropClose } from "@/lib/modal";
 import { useEffect, useRef, useState } from "react";
 import {
   subscribeAnswers,
@@ -154,7 +155,7 @@ export default function QuestionModal({
     !!onBackToStudy && studyKeywords.includes(question.keyword);
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop" {...backdropClose(onClose)}>
       <div className="modal modal-wide" onClick={(e) => e.stopPropagation()}>
         <button
           className="btn-close modal-close-float"

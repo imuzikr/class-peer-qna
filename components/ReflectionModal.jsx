@@ -17,6 +17,7 @@
 //   학생 본인만 쓸 수 있는 문장입니다 → 진짜 생성적(generative) 인사이트.
 //   learned 한 줄이라도 써야 저장 버튼이 활성화되어, 빈 칸 제출을 막습니다.
 // =============================================================
+import { backdropClose } from "@/lib/modal";
 import { useState } from "react";
 import {
   addReflection,
@@ -73,7 +74,7 @@ export default function ReflectionModal({
   }
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop" {...backdropClose(onClose)}>
       <div
         className="modal modal-reflect"
         onClick={(e) => e.stopPropagation()}

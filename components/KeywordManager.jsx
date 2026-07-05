@@ -7,6 +7,7 @@
 // · 새 키워드 추가
 // · lib/store.js 의 addKeyword / renameKeyword / deleteKeyword 사용
 // =============================================================
+import { backdropClose } from "@/lib/modal";
 import { useState } from "react";
 import { addKeyword, renameKeyword, deleteKeyword } from "@/lib/store";
 import { IconTrash } from "./StatusIcons";
@@ -51,7 +52,7 @@ export default function KeywordManager({ keywords, onClose }) {
   }
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop" {...backdropClose(onClose)}>
       <div
         className="modal modal-keyword-mgr"
         onClick={(e) => e.stopPropagation()}

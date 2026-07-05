@@ -7,6 +7,7 @@
 // · 연계 ON 시 키워드 칩을 복수로 선택 가능 (제목 바로 아래)
 // · 설명 입력 (선택)
 // =============================================================
+import { backdropClose } from "@/lib/modal";
 import { useState } from "react";
 import { addStudyBoard } from "@/lib/store";
 import { getCurrentUser } from "@/lib/user";
@@ -43,7 +44,7 @@ export default function StudyBoardForm({ keywords = [], classId = null, onClose 
   }
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop" {...backdropClose(onClose)}>
       <div className="modal modal-study-board" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <h3>➕ 새 수업 보드 만들기</h3>

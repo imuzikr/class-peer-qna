@@ -15,6 +15,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { isFirebaseConfigured } from "@/lib/firebase";
+import { backdropClose } from "@/lib/modal";
 import {
   signUpWithEmail,
   signInWithEmail,
@@ -139,7 +140,7 @@ export default function LandingPage() {
 
       {/* ── 로그인 / 회원가입 모달 ── */}
       {authMode && (
-        <div className="modal-backdrop" onClick={() => setAuthMode(null)}>
+        <div className="modal-backdrop" {...backdropClose(() => setAuthMode(null))}>
           <div
             className="modal modal-auth"
             onClick={(e) => e.stopPropagation()}

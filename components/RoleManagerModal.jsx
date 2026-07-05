@@ -9,6 +9,7 @@
 // 실제 권한 변경은 Cloud Functions(setUserRole)가 커스텀 클레임으로 부여합니다.
 // (대상 계정은 재로그인해야 반영)
 // =============================================================
+import { backdropClose } from "@/lib/modal";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   assignUserRole,
@@ -134,7 +135,7 @@ export default function RoleManagerModal({ directory, onClose }) {
   }
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop" {...backdropClose(onClose)}>
       <div className="modal role-manager-modal" onClick={(e) => e.stopPropagation()}>
         <button className="btn-close modal-close-float" onClick={onClose} aria-label="닫기">
           ×

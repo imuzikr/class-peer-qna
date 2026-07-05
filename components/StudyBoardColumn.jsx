@@ -13,6 +13,7 @@
 // · 교사 정보 카드: 보드 제목·설명·정렬·설정 — 독립 카드로 고정
 // · 학생 카드 영역: 학생이 제출한 카드 목록
 // =============================================================
+import { backdropClose } from "@/lib/modal";
 import { useEffect, useState } from "react";
 import {
   subscribeStudyCards,
@@ -342,7 +343,7 @@ export default function StudyBoardColumn({
       {activitiesOpen && (
         <div
           className="modal-backdrop"
-          onClick={() => setActivitiesOpen(false)}
+          {...backdropClose(() => setActivitiesOpen(false))}
         >
           <div
             className="study-activity-modal"
@@ -444,7 +445,7 @@ export default function StudyBoardColumn({
 
       {/* ── 다른 반으로 복제 모달 ── */}
       {duplicating && (
-        <div className="modal-backdrop" onClick={() => setDuplicating(false)}>
+        <div className="modal-backdrop" {...backdropClose(() => setDuplicating(false))}>
           <div className="modal modal-duplicate" onClick={(e) => e.stopPropagation()}>
             <div className="modal-head">
               <h3>📋 다른 반으로 복제</h3>

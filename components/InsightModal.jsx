@@ -5,12 +5,13 @@
 // reflections: 내 인사이트 배열 (question 객체, reflection 필드 포함)
 // onOpen(id): 항목 클릭 시 해당 질문 상세 모달 열기
 // =============================================================
+import { backdropClose } from "@/lib/modal";
 import { formatTime } from "@/lib/store";
 import { IconInsight } from "./StatusIcons";
 
 export default function InsightModal({ reflections = [], onClose, onOpen }) {
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop" {...backdropClose(onClose)}>
       <div className="modal modal-insight" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <h3>

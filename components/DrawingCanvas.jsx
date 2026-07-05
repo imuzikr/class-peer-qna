@@ -13,6 +13,7 @@
 // '그림 첨부'를 누르면 캔버스 내용이 이미지(data URL)로 변환되어
 // 질문 작성 폼의 첨부 이미지로 들어갑니다.
 // =============================================================
+import { backdropClose } from "@/lib/modal";
 import { useEffect, useRef, useState } from "react";
 import { readImageAsDataUrl } from "@/lib/image";
 import { IconTrash } from "./StatusIcons";
@@ -628,7 +629,7 @@ export default function DrawingCanvas({ onSave, onClose }) {
       : "crosshair";
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop" {...backdropClose(onClose)}>
       <div className="modal modal-canvas" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <h3>🎨 그리기</h3>

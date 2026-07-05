@@ -1,5 +1,6 @@
 "use client";
 
+import { backdropClose } from "@/lib/modal";
 import { useState } from "react";
 import { updateStudentProfile, deleteStudent } from "@/lib/store";
 import ConfirmModal from "./ConfirmModal";
@@ -72,7 +73,7 @@ export default function StudentEditModal({ student, onClose }) {
 
   return (
     <>
-      <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal-backdrop" {...backdropClose(onClose)}>
         <div
           className="modal student-edit-modal"
           onClick={(e) => e.stopPropagation()}

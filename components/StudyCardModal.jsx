@@ -3,6 +3,7 @@
 // =============================================================
 // 공부방 카드 통합 모달 — 읽기 + 수정 + 삭제 + 질문하기 + 관련 질문
 // =============================================================
+import { backdropClose } from "@/lib/modal";
 import { useState } from "react";
 import {
   addStudyCard,
@@ -238,7 +239,7 @@ export default function StudyCardModal({
   }
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop" {...backdropClose(onClose)}>
       <div className="modal modal-study-card" onClick={(e) => e.stopPropagation()}>
         {/* 헤더 */}
         <div className="modal-head">
