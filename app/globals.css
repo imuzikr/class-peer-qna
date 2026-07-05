@@ -4156,7 +4156,8 @@ pre code {
   color: var(--text-sub);
 }
 
-.student-edit-field input {
+.student-edit-field input,
+.student-edit-field select {
   width: 100%;
   padding: 9px 12px;
   border: 1.5px solid var(--border);
@@ -4166,7 +4167,8 @@ pre code {
   box-sizing: border-box;
 }
 
-.student-edit-field input:focus {
+.student-edit-field input:focus,
+.student-edit-field select:focus {
   outline: none;
   border-color: var(--primary);
 }
@@ -4202,6 +4204,55 @@ pre code {
   display: flex;
   justify-content: flex-start;
 }
+
+/* ===================== 관리자 도구 모음 / 역할 관리 ===================== */
+.admin-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+.role-manager-modal {
+  max-width: 420px;
+  padding: 28px 28px 22px;
+}
+
+.role-manager-hint {
+  font-size: 13px;
+  color: var(--text-sub);
+  margin-bottom: 18px;
+  line-height: 1.5;
+}
+
+.role-manager-field {
+  margin-bottom: 14px;
+}
+
+.role-manager-match {
+  font-size: 13px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  margin: -4px 0 14px;
+}
+.role-manager-match.found {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+}
+.role-manager-match.not-found {
+  background: var(--neutral);
+  color: var(--text-sub);
+}
+.role-manager-current {
+  color: var(--text-sub);
+}
+
+.role-manager-message {
+  font-size: 13px;
+  margin-top: 14px;
+  line-height: 1.5;
+}
+.role-manager-message.success { color: #2e7d32; }
+.role-manager-message.error { color: var(--danger); }
 
 /* ===================== 인사이트 미완료 섹션 ===================== */
 .pending-section {

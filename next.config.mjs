@@ -2,7 +2,8 @@
 
 // Content-Security-Policy — 앱이 실제로 쓰는 출처만 허용.
 //  · script/eval: Next 하이드레이션(inline) + Pyodide(wasm-eval) + jsDelivr CDN
-//  · connect: Firebase(Firestore/Auth/Storage/Installations = *.googleapis.com) + Pyodide CDN
+//  · connect: Firebase(Firestore/Auth/Storage/Installations = *.googleapis.com)
+//    + Cloud Functions(callable, *.cloudfunctions.net) + Pyodide CDN
 //  · img: Storage 등 https 이미지 + data/blob(미리보기·그리기)
 //  · worker/blob: 파이썬 실행 Web Worker
 //  · frame: 구글/Firebase 인증 팝업
@@ -12,7 +13,7 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
-  "connect-src 'self' https://*.googleapis.com https://*.gstatic.com https://cdn.jsdelivr.net https://apis.google.com wss://*.firebaseio.com data: blob:",
+  "connect-src 'self' https://*.googleapis.com https://*.gstatic.com https://cdn.jsdelivr.net https://apis.google.com https://*.cloudfunctions.net wss://*.firebaseio.com data: blob:",
   "worker-src 'self' blob:",
   "frame-src 'self' https://class-peer-qna.firebaseapp.com https://apis.google.com https://accounts.google.com",
   "object-src 'none'",

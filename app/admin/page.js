@@ -23,6 +23,7 @@ import { useRequireAuth } from "@/lib/useRequireAuth";
 import TopNav from "@/components/TopNav";
 import { getMeTooCount, isPinnedQuestion } from "@/lib/questionRanking";
 import StudentEditModal from "@/components/StudentEditModal";
+import RoleManagerModal from "@/components/RoleManagerModal";
 import StudentKwlPanel from "@/components/StudentKwlPanel";
 import ClassOverview from "@/components/ClassOverview";
 import StudyRoomStats from "@/components/StudyRoomStats";
@@ -243,6 +244,7 @@ export default function AdminDashboardPage() {
   const [selectedId, setSelectedId] = useState(null);
   const [pendingOpen, setPendingOpen] = useState(true);
   const [editingStudent, setEditingStudent] = useState(null);
+  const [roleManagerOpen, setRoleManagerOpen] = useState(false);
   const [activeStatKey, setActiveStatKey] = useState(null); // 통계 카드 드릴다운
   const [selectedKwl, setSelectedKwl] = useState([]); // 선택 학생 KWL 기록
   const [view, setView] = useState("students"); // 'students' | 'overview'
@@ -466,6 +468,18 @@ export default function AdminDashboardPage() {
       )}
 
       <TopNav active="admin" />
+
+      {isFirebaseConfigured && user?.role === "admin" && (
+        <div className="admin-toolbar">
+          <button
+            type="button"
+            className="btn-ghost"
+            onClick={() => setRoleManagerOpen(true)}
+          >
+            🛡️ 역할 관리
+          </button>
+        </div>
+      )}
 
       {allPendingReflections.length > 0 && (
         <div className="pending-section pending-global">
@@ -811,6 +825,13 @@ export default function AdminDashboardPage() {
         <StudentEditModal
           student={editingStudent}
           onClose={() => setEditingStudent(null)}
+        />
+      )}
+
+      {roleManagerOpen && (
+        <RoleManagerModal
+          directory={directory}
+          onClose={() => setRoleManagerOpen(false)}
         />
       )}
     </div>
