@@ -11,17 +11,32 @@ import { useRouter } from "next/navigation";
 import { isAdmin } from "@/lib/user";
 import { isFirebaseConfigured } from "@/lib/firebase";
 import { signOutUser } from "@/lib/auth";
+import { subscribeUserDirectory } from "@/lib/store";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import UserProfile from "./UserProfile";
 import RoleSwitcher from "./RoleSwitcher";
+import RoleManagerModal from "./RoleManagerModal";
 import { IconReport, IconPythonRunner, IconLogo, IconAnswer, IconSchool, IconBlackboard, IconTeacher, IconLogout } from "./StatusIcons";
 
 export default function TopNav({ active, onPython, pyActive = false }) {
   const router = useRouter();
   const user = useCurrentUser();
-  const admin = user ? isAdmin(user) : false;
+  const admin = user ? isAdmin(user) : false;       // 교사+관리자 (대시보드 접근)
+  const isStrictAdmin = user?.role === "admin";      // 관리자만 (역할 관리)
   const [navOpen, setNavOpen] = useState(false);
+  const [roleMgrOpen, setRoleMgrOpen] = useState(false);
+  const [directory, setDirectory] = useState([]);
   const dropRef = useRef(null);
+
+  // 관리자만 사용자 디렉터리를 구독(역할 관리·승인 대기 표시용)
+  useEffect(() => {
+    if (!isFirebaseConfigured || !isStrictAdmin) return;
+    return subscribeUserDirectory(setDirectory);
+  }, [isStrictAdmin]);
+
+  const pendingTeacherCount = directory.filter(
+    (u) => u.requestedRole === "teacher" && u.role !== "teacher" && u.role !== "admin"
+  ).length;
 
   // 이동 가능성이 높은 라우트를 미리 프리페치 → 클릭 시 즉시 전환
   useEffect(() => {
@@ -111,9 +126,12 @@ export default function TopNav({ active, onPython, pyActive = false }) {
             <button
               className={`btn-ghost ${active === "admin" ? "nav-active" : ""}`}
               onClick={() => go("/admin")}
-              title="관리자 대시보드"
+              title={isStrictAdmin ? "관리자 대시보드" : "선생님 대시보드"}
             >
-              <IconTeacher size={20} /> <span className="nav-label">관리자 대시보드</span>
+              <IconTeacher size={20} />{" "}
+              <span className="nav-label">
+                {isStrictAdmin ? "관리자 대시보드" : "선생님 대시보드"}
+              </span>
             </button>
           ) : (
             <button
@@ -124,8 +142,29 @@ export default function TopNav({ active, onPython, pyActive = false }) {
               <IconReport size={20} /> <span className="nav-label">학습 리포트</span>
             </button>
           )}
+
+          {/* 역할 관리 — 관리자만. 대시보드 버튼 오른쪽에 위치 */}
+          {isStrictAdmin && (
+            <button
+              className="btn-ghost topnav-role-btn"
+              onClick={() => setRoleMgrOpen(true)}
+              title="역할 관리"
+            >
+              🛡️ <span className="nav-label">역할 관리</span>
+              {pendingTeacherCount > 0 && (
+                <span className="role-badge">{pendingTeacherCount}</span>
+              )}
+            </button>
+          )}
         </nav>
       </div>
+
+      {roleMgrOpen && (
+        <RoleManagerModal
+          directory={directory}
+          onClose={() => setRoleMgrOpen(false)}
+        />
+      )}
 
       {/* 오른쪽: 역할 전환(데모 전용) + 프로필 + 로그아웃 */}
       <div className="user-area">

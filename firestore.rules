@@ -46,11 +46,14 @@ service cloud.firestore {
       // 본인만 생성, 가입 시 role은 'student' 고정 (스스로 승격 불가)
       allow create: if signedIn() && userId == uid()
                     && request.resource.data.role == 'student';
-      // 본인은 프로필 일부만 수정(역할 제외), 교사는 학생 프로필 관리 가능
+      // 본인은 프로필 일부 + 선생님 가입 신청(requestedRole)만 수정,
+      // 교사/관리자는 학생 프로필 관리 가능
       allow update: if (signedIn() && userId == uid()
-                        && changedOnly(['email','realName','displayName','emoji','studentId','fcmTokens']))
+                        && changedOnly(['email','realName','displayName','emoji','studentId','fcmTokens','requestedRole']))
                     || isTeacher();
-      allow delete: if isAdmin();
+      // 탈퇴(계정 삭제): 관리자는 누구나, 교사는 학생 계정만.
+      allow delete: if isAdmin()
+                    || (isTeacher() && resource.data.role == 'student');
 
       // 인앱 알림 — 본인만
       match /notifications/{nId} {

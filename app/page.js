@@ -51,10 +51,18 @@ function GoogleMark() {
 export default function LandingPage() {
   const router = useRouter();
   const [authMode, setAuthMode] = useState(null); // null | 'login' | 'signup'
+  const [signupRole, setSignupRole] = useState(null); // 회원가입 시 선택: 'student' | 'teacher'
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+
+  // 모드 전환 시 역할 선택·오류 초기화
+  function switchMode(mode) {
+    setAuthMode(mode);
+    setSignupRole(null);
+    setError("");
+  }
 
   // 이미 로그인되어 있으면 게시판으로
   useEffect(() => {
@@ -75,7 +83,7 @@ export default function LandingPage() {
     setBusy(true);
     try {
       if (authMode === "signup") {
-        await signUpWithEmail(email.trim(), password);
+        await signUpWithEmail(email.trim(), password, signupRole);
       } else {
         await signInWithEmail(email.trim(), password);
       }
@@ -91,7 +99,7 @@ export default function LandingPage() {
     setError("");
     setBusy(true);
     try {
-      await signInWithGoogle();
+      await signInWithGoogle(authMode === "signup" ? signupRole : null);
       router.push("/board");
     } catch (err) {
       setError(authErrorMessage(err?.code));
@@ -106,10 +114,10 @@ export default function LandingPage() {
       <header className="landing-top">
         <span className="landing-logo">📚 배움나눔</span>
         <div className="landing-actions">
-          <button className="btn-outline" onClick={() => setAuthMode("login")}>
+          <button className="btn-outline" onClick={() => switchMode("login")}>
             로그인
           </button>
-          <button className="btn-primary" onClick={() => setAuthMode("signup")}>
+          <button className="btn-primary" onClick={() => switchMode("signup")}>
             회원가입
           </button>
         </div>
@@ -151,20 +159,70 @@ export default function LandingPage() {
               <button
                 type="button"
                 className={authMode === "login" ? "active" : ""}
-                onClick={() => setAuthMode("login")}
+                onClick={() => switchMode("login")}
               >
                 로그인
               </button>
               <button
                 type="button"
                 className={authMode === "signup" ? "active" : ""}
-                onClick={() => setAuthMode("signup")}
+                onClick={() => switchMode("signup")}
               >
                 회원가입
               </button>
             </div>
 
+            {/* 회원가입 1단계 — 역할 선택 (실서비스만; 데모는 바로 입력) */}
+            {isFirebaseConfigured && authMode === "signup" && !signupRole ? (
+              <div className="signup-role-select">
+                <p className="signup-role-q">어떤 역할로 가입하시나요?</p>
+                <button
+                  type="button"
+                  className="signup-role-card"
+                  onClick={() => setSignupRole("student")}
+                >
+                  <span className="signup-role-emoji">🎒</span>
+                  <span className="signup-role-text">
+                    <strong>학생</strong>
+                    <small>질문하고 답하며, 공부방에 내 활동 카드를 남겨요.</small>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  className="signup-role-card"
+                  onClick={() => setSignupRole("teacher")}
+                >
+                  <span className="signup-role-emoji">🧑‍🏫</span>
+                  <span className="signup-role-text">
+                    <strong>선생님</strong>
+                    <small>공지·공부방 관리 등 교사 기능을 사용해요. (관리자 승인 후 활성화)</small>
+                  </span>
+                </button>
+              </div>
+            ) : (
             <form className="form-grid" onSubmit={handleSubmit}>
+              {authMode === "signup" && signupRole && (
+                <>
+                  <div className="signup-role-chosen">
+                    <span>
+                      {signupRole === "teacher" ? "🧑‍🏫 선생님" : "🎒 학생"}(으)로 가입
+                    </span>
+                    <button
+                      type="button"
+                      className="signup-role-change"
+                      onClick={() => setSignupRole(null)}
+                    >
+                      역할 변경
+                    </button>
+                  </div>
+                  {signupRole === "teacher" && (
+                    <p className="signup-role-note">
+                      선생님 권한은 <strong>관리자 승인 후</strong> 부여됩니다. 승인 전까지는
+                      학생으로 이용할 수 있어요.
+                    </p>
+                  )}
+                </>
+              )}
               <input
                 type="email"
                 placeholder="이메일"
@@ -207,6 +265,7 @@ export default function LandingPage() {
                 </div>
               )}
             </form>
+            )}
           </div>
         </div>
       )}
