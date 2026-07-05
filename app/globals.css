@@ -4322,6 +4322,26 @@ pre code {
   font-size: 12px;
 }
 
+/* 현재 선생님(중간 관리자) 관리 목록 */
+.role-teachers {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 18px;
+}
+.role-teachers-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+.role-danger-btn {
+  color: var(--danger);
+}
+.role-danger-btn:hover {
+  background: var(--primary-light);
+}
+
 /* 사용자 검색 콤보박스 */
 .role-combo {
   position: relative;

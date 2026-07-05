@@ -341,19 +341,26 @@ export default function AdminDashboardPage() {
 
   // 학생 행에 실명·이메일을 users 디렉터리에서 덮어씁니다.
   // (게시물 문서엔 더 이상 실명·이메일이 없으므로 여기서 합칩니다.)
+  // 교사·관리자는 '학생 목록'에서 제외 — 학생만 관리 대상으로 표시합니다.
   const students = useMemo(
     () =>
-      buildStudentRows(questions, answerEvents).map((row) => {
-        const dir = directoryMap.get(row.id);
-        if (!dir) return row;
-        return {
-          ...row,
-          realName: dir.realName || row.realName,
-          email: dir.email || row.email,
-          name: dir.displayName || row.name,
-          emoji: dir.emoji || row.emoji,
-        };
-      }),
+      buildStudentRows(questions, answerEvents)
+        .filter((row) => {
+          const dir = directoryMap.get(row.id);
+          return !dir || (dir.role !== "teacher" && dir.role !== "admin");
+        })
+        .map((row) => {
+          const dir = directoryMap.get(row.id);
+          if (!dir) return row;
+          return {
+            ...row,
+            realName: dir.realName || row.realName,
+            email: dir.email || row.email,
+            name: dir.displayName || row.name,
+            emoji: dir.emoji || row.emoji,
+            role: dir.role,
+          };
+        }),
     [answerEvents, questions, directoryMap]
   );
 

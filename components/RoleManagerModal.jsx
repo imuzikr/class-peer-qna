@@ -1,26 +1,29 @@
 "use client";
 
 // =============================================================
-// 역할 관리 (관리자 전용)
+// 역할 관리 (최고 관리자 전용)
 // -------------------------------------------------------------
-// · 선생님 가입 신청 승인/거절 (상단 대기 목록)
-// · 사용자를 검색·선택해 역할(학생/교사/관리자) 부여
-// 실제 권한 변경은 Cloud Functions(setUserRole)가 서버에서 커스텀
-// 클레임으로 부여합니다. (대상 계정은 재로그인해야 반영)
+// 권한 구조: 최고 관리자(1명) → 중간 관리자(선생님) → 학생
+//  · 선생님 승인/강등/탈퇴·역할 부여는 최고 관리자만 가능 (이 모달 자체가
+//    role==='admin'에게만 열립니다. 서버의 setUserRole도 관리자만 허용)
+// 실제 권한 변경은 Cloud Functions(setUserRole)가 커스텀 클레임으로 부여합니다.
+// (대상 계정은 재로그인해야 반영)
 // =============================================================
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   assignUserRole,
   approveTeacherRequest,
   dismissTeacherRequest,
+  deleteStudent,
 } from "@/lib/store";
+import ConfirmModal from "./ConfirmModal";
 
 const ROLE_LABELS = { student: "학생", teacher: "교사", admin: "관리자" };
 
 function errorText(err) {
   const code = err?.code ?? "";
   if (code === "functions/permission-denied")
-    return "역할을 부여할 권한이 없습니다. (실제 관리자 계정으로 로그인했는지 확인해 주세요)";
+    return "권한이 없습니다. (최고 관리자 계정으로 로그인했는지 확인해 주세요)";
   if (code === "functions/not-found")
     return "setUserRole 함수를 찾을 수 없어요. Cloud Functions가 배포되지 않은 것 같습니다.";
   if (code === "functions/unauthenticated")
@@ -39,13 +42,31 @@ export default function RoleManagerModal({ directory, onClose }) {
   const [role, setRole] = useState("teacher");
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState(null); // { type, text }
+  const [confirmDelete, setConfirmDelete] = useState(null); // 탈퇴 확인 대상(teacher)
+  const comboRef = useRef(null);
 
-  // 선생님 승인 대기 목록
+  // 콤보박스 바깥 클릭 시 목록 닫기 (닫히면 아래 버튼이 다시 보입니다)
+  useEffect(() => {
+    if (!listOpen) return;
+    function onDown(e) {
+      if (!comboRef.current?.contains(e.target)) setListOpen(false);
+    }
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [listOpen]);
+
+  // 선생님 승인 대기
   const pending = useMemo(
     () =>
       directory.filter(
         (u) => u.requestedRole === "teacher" && u.role !== "teacher" && u.role !== "admin"
       ),
+    [directory]
+  );
+
+  // 현재 선생님(중간 관리자) — 최고 관리자(admin)는 제외(자기 자신 관리 불가)
+  const teachers = useMemo(
+    () => directory.filter((u) => u.role === "teacher"),
     [directory]
   );
 
@@ -72,16 +93,13 @@ export default function RoleManagerModal({ directory, onClose }) {
     setMessage(null);
   }
 
-  async function handleAssign() {
-    if (!selected || submitting) return;
+  async function run(fn, successText) {
+    if (submitting) return;
     setSubmitting(true);
     setMessage(null);
     try {
-      await assignUserRole(selected.uid, role);
-      setMessage({
-        type: "success",
-        text: `${userLabel(selected)} 님을 '${ROLE_LABELS[role]}'(으)로 지정했어요. (본인이 재로그인해야 반영됩니다)`,
-      });
+      await fn();
+      setMessage({ type: "success", text: successText });
     } catch (err) {
       setMessage({ type: "error", text: errorText(err) });
     } finally {
@@ -89,35 +107,30 @@ export default function RoleManagerModal({ directory, onClose }) {
     }
   }
 
-  async function handleApprove(u) {
-    if (submitting) return;
-    setSubmitting(true);
-    setMessage(null);
-    try {
-      await approveTeacherRequest(u.uid);
-      setMessage({
-        type: "success",
-        text: `${userLabel(u)} 님을 선생님으로 승인했어요. (본인이 재로그인해야 반영됩니다)`,
-      });
-    } catch (err) {
-      setMessage({ type: "error", text: errorText(err) });
-    } finally {
-      setSubmitting(false);
-    }
-  }
+  const handleAssign = () =>
+    selected &&
+    run(
+      () => assignUserRole(selected.uid, role),
+      `${userLabel(selected)} 님을 '${ROLE_LABELS[role]}'(으)로 지정했어요. (본인이 재로그인해야 반영됩니다)`
+    );
 
-  async function handleReject(u) {
-    if (submitting) return;
-    setSubmitting(true);
-    setMessage(null);
-    try {
-      await dismissTeacherRequest(u.uid);
-      setMessage({ type: "success", text: `${userLabel(u)} 님의 선생님 신청을 거절했어요.` });
-    } catch (err) {
-      setMessage({ type: "error", text: errorText(err) });
-    } finally {
-      setSubmitting(false);
-    }
+  const handleApprove = (u) =>
+    run(
+      () => approveTeacherRequest(u.uid),
+      `${userLabel(u)} 님을 선생님으로 승인했어요. (본인이 재로그인해야 반영됩니다)`
+    );
+
+  const handleReject = (u) =>
+    run(() => dismissTeacherRequest(u.uid), `${userLabel(u)} 님의 선생님 신청을 거절했어요.`);
+
+  const handleDemote = (u) =>
+    run(
+      () => assignUserRole(u.uid, "student"),
+      `${userLabel(u)} 님을 학생으로 강등했어요. (본인이 재로그인해야 반영됩니다)`
+    );
+
+  function handleWithdraw(u) {
+    setConfirmDelete(u);
   }
 
   return (
@@ -141,21 +154,36 @@ export default function RoleManagerModal({ directory, onClose }) {
                     {u.email && <small>{u.email}</small>}
                   </span>
                   <span className="role-pending-actions">
-                    <button
-                      type="button"
-                      className="btn-ghost"
-                      onClick={() => handleReject(u)}
-                      disabled={submitting}
-                    >
+                    <button type="button" className="btn-ghost" onClick={() => handleReject(u)} disabled={submitting}>
                       거절
                     </button>
-                    <button
-                      type="button"
-                      className="btn-primary"
-                      onClick={() => handleApprove(u)}
-                      disabled={submitting}
-                    >
+                    <button type="button" className="btn-primary" onClick={() => handleApprove(u)} disabled={submitting}>
                       승인
+                    </button>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* 현재 선생님(중간 관리자) 관리 — 강등/탈퇴 */}
+        {teachers.length > 0 && (
+          <div className="role-teachers">
+            <p className="role-teachers-title">현재 선생님 ({teachers.length})</p>
+            <ul className="role-pending-list">
+              {teachers.map((u) => (
+                <li key={u.uid} className="role-pending-item">
+                  <span className="role-pending-user">
+                    🧑‍🏫 <strong>{userLabel(u)}</strong>
+                    {u.email && <small>{u.email}</small>}
+                  </span>
+                  <span className="role-pending-actions">
+                    <button type="button" className="btn-ghost" onClick={() => handleDemote(u)} disabled={submitting}>
+                      학생으로
+                    </button>
+                    <button type="button" className="btn-ghost role-danger-btn" onClick={() => handleWithdraw(u)} disabled={submitting}>
+                      탈퇴
                     </button>
                   </span>
                 </li>
@@ -169,10 +197,10 @@ export default function RoleManagerModal({ directory, onClose }) {
           로그인(회원가입)해 있어야 합니다.
         </p>
 
-        {/* 사용자 검색·선택 (콤보박스) */}
+        {/* 사용자 검색·선택 (클릭하면 목록 표시) */}
         <div className="student-edit-field role-manager-field">
           <span>사용자 선택</span>
-          <div className="role-combo">
+          <div className="role-combo" ref={comboRef}>
             <input
               type="text"
               value={query}
@@ -182,9 +210,8 @@ export default function RoleManagerModal({ directory, onClose }) {
                 setListOpen(true);
                 setMessage(null);
               }}
-              onFocus={() => setListOpen(true)}
-              placeholder="실명·닉네임·이메일로 검색"
-              autoFocus
+              onClick={() => setListOpen(true)}
+              placeholder="클릭 후 실명·닉네임·이메일로 검색"
             />
             {listOpen && matches.length > 0 && (
               <ul className="role-combo-list">
@@ -213,12 +240,12 @@ export default function RoleManagerModal({ directory, onClose }) {
           </div>
         )}
 
+        {/* 부여할 역할 — 최고 관리자는 1명 고정이므로 학생/교사만 부여 */}
         <div className="student-edit-field role-manager-field">
           <span>부여할 역할</span>
           <select value={role} onChange={(e) => setRole(e.target.value)}>
             <option value="student">학생</option>
-            <option value="teacher">교사</option>
-            <option value="admin">관리자</option>
+            <option value="teacher">교사(선생님)</option>
           </select>
         </div>
 
@@ -240,6 +267,22 @@ export default function RoleManagerModal({ directory, onClose }) {
           </button>
         </div>
       </div>
+
+      {confirmDelete && (
+        <ConfirmModal
+          title="선생님 탈퇴 처리"
+          preview={`🧑‍🏫 ${userLabel(confirmDelete)}`}
+          description={"이 선생님 계정의 모든 게시물·활동·프로필이\n영구 삭제됩니다. 복구할 수 없습니다."}
+          confirmLabel="탈퇴 처리"
+          danger
+          onConfirm={async () => {
+            const u = confirmDelete;
+            setConfirmDelete(null);
+            await run(() => deleteStudent(u.uid), `${userLabel(u)} 님을 탈퇴 처리했어요.`);
+          }}
+          onClose={() => setConfirmDelete(null)}
+        />
+      )}
     </div>
   );
 }
