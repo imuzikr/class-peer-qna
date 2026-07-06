@@ -346,6 +346,19 @@ export function IconTeacher({ size = 20, className = "" }) {
   );
 }
 
+// 필터 '모든 글' — 파피루스 두루마리
+export function IconAllPosts({ size = 20, className = "" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">
+      <path d="M7.25 5.2h8.35c1.08 0 1.95.87 1.95 1.95v10.6H6.05V6.4c0-.66.54-1.2 1.2-1.2Z" fill="#FFF7ED" stroke="#3A312E" strokeWidth="1.45" strokeLinejoin="round"/>
+      <path d="M6.05 6.4c0-1.28-1.04-2.32-2.32-2.32S1.4 5.12 1.4 6.4v1.65h4.65V6.4Z" fill="#D6BDA8" stroke="#3A312E" strokeWidth="1.45" strokeLinejoin="round"/>
+      <path d="M6.05 17.75v.35c0 1.28-1.04 2.32-2.32 2.32h14.1c1.28 0 2.32-1.04 2.32-2.32v-.35H6.05Z" fill="#D6BDA8" stroke="#3A312E" strokeWidth="1.45" strokeLinejoin="round"/>
+      <path d="M6.05 8.05h3.05M6.05 10.95h2.25M6.05 13.15h4.4" stroke="#3A312E" strokeWidth="1.25" strokeLinecap="round"/>
+      <path d="M17.55 8.15h1.35M17.55 14.75h1.35" stroke="#8A6258" strokeWidth="1.2" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
 export function IconKey({ size = 20, className = "" }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">
