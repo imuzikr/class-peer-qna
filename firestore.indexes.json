@@ -38,23 +38,24 @@
         { "fieldPath": "classId", "order": "ASCENDING" },
         { "fieldPath": "date", "order": "ASCENDING" }
       ]
-    },
+    }
+  ],
+  "fieldOverrides": [
     {
       "//": "subscribeMyStudyCards — 학생 리포트 내 카드: collectionGroup cards, authorId==",
       "collectionGroup": "cards",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        { "fieldPath": "authorId", "order": "ASCENDING" }
+      "fieldPath": "authorId",
+      "indexes": [
+        { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }
       ]
     },
     {
       "//": "deleteStudent — 탈퇴 시 작성자 답변 정리: collectionGroup answers, authorId==",
       "collectionGroup": "answers",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        { "fieldPath": "authorId", "order": "ASCENDING" }
+      "fieldPath": "authorId",
+      "indexes": [
+        { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }
       ]
     }
-  ],
-  "fieldOverrides": []
+  ]
 }
