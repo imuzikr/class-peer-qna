@@ -6,11 +6,10 @@
 //   - 중앙 여백: 서비스 타이틀 + 상세 설명
 //   - 오른쪽 상단: 로그인 / 회원가입 버튼 (클릭 시 모달)
 // -------------------------------------------------------------
-// [개발 단계] 실제 인증은 수행하지 않고, 어떤 값을 입력하든
-// 테스트 유저(user_01)로 게시판에 입장합니다.
-// [나중에] handleSubmit 안의 TODO 부분에 Firebase Authentication의
-// signInWithEmailAndPassword / createUserWithEmailAndPassword 를
-// 연결하면 됩니다.
+// 실서비스 모드: Firebase Authentication으로 실제 로그인/회원가입합니다
+// (이메일·비밀번호 + Google, lib/auth.js). 회원가입은 학생/선생님 역할을
+// 먼저 고르며, 선생님은 관리자 승인 후 권한이 부여됩니다.
+// 데모 모드(Firebase 미설정)에서는 입력값과 무관하게 임시 유저로 입장합니다.
 // =============================================================
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
