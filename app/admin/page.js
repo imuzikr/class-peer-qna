@@ -366,13 +366,6 @@ export default function AdminDashboardPage() {
     [answersByQuestion, questions]
   );
 
-  // uid → 사용자 디렉터리(실명·이메일) 빠른 조회용
-  const directoryMap = useMemo(() => {
-    const m = new Map();
-    directory.forEach((u) => m.set(u.uid, u));
-    return m;
-  }, [directory]);
-
   // 최고 관리자 여부 (선생님 목록 표시용)
   const isStrictAdmin = user?.role === "admin";
 
@@ -386,28 +379,33 @@ export default function AdminDashboardPage() {
     [allRows]
   );
 
-  // 학생 목록 — 실명·이메일을 users 디렉터리에서 합칩니다.
-  // 교사·관리자는 제외(학생만 관리 대상으로 표시).
+  // 학생 목록 — 가입한 학생 전원(디렉터리 기준)을 표시합니다.
+  // 글을 남기지 않아 활동 행이 없어도 목록에 나타나고, 활동수는 있으면 합산.
+  // 교사·관리자는 제외(학생만 관리 대상).
   const students = useMemo(
     () =>
-      allRows
-        .filter((row) => {
-          const dir = directoryMap.get(row.id);
-          return !dir || (dir.role !== "teacher" && dir.role !== "admin");
-        })
-        .map((row) => {
-          const dir = directoryMap.get(row.id);
-          if (!dir) return row;
+      directory
+        .filter((u) => u.role !== "teacher" && u.role !== "admin")
+        .map((u) => {
+          const row = allRowMap.get(u.uid);
           return {
-            ...row,
-            realName: dir.realName || row.realName,
-            email: dir.email || row.email,
-            name: dir.displayName || row.name,
-            emoji: dir.emoji || row.emoji,
-            role: dir.role,
+            id: u.uid,
+            name: u.displayName || "익명",
+            emoji: u.emoji || "🙂",
+            realName: u.realName || "",
+            email: u.email || "",
+            role: u.role || "student",
+            asked: row?.asked ?? 0,
+            answered: row?.answered ?? 0,
+            meTooReceived: row?.meTooReceived ?? 0,
+            lastActiveAt: row?.lastActiveAt ?? null,
           };
+        })
+        .sort((a, b) => {
+          const act = b.asked + b.answered - (a.asked + a.answered);
+          return act || (a.realName || a.name).localeCompare(b.realName || b.name, "ko");
         }),
-    [allRows, directoryMap]
+    [directory, allRowMap]
   );
 
   // 선생님 목록 — 디렉터리의 teacher 전원(활동 없어도 표시), 활동수는 있으면 합산.
