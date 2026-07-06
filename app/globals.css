@@ -4046,6 +4046,10 @@ pre code {
   padding: 10px 0;
   font-size: 15px;
   background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.4;
 }
 
 .confirm-confirm {
