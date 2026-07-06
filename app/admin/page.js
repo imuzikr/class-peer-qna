@@ -283,13 +283,17 @@ export default function AdminDashboardPage() {
   const [allKwl, setAllKwl] = useState([]);
   const [directory, setDirectory] = useState([]); // users 디렉터리(실명·이메일)
 
-  // 관리자 대시보드는 관리자 전용 — 학생 보기로 바뀌면 학습 리포트로 이동
+  // 관리자 대시보드는 교사·관리자 전용 — 학생 보기로 바뀌면 학습 리포트로 이동
   const isStudent = user ? !isAdmin(user) : false;
+  const canView = user ? isAdmin(user) : false; // 교사 또는 관리자
   useEffect(() => {
     if (isStudent) router.replace("/report");
   }, [isStudent, router]);
 
+  // 관리자 전용 구독(디렉터리·KWL 등)은 역할이 확인된 뒤에만 실행합니다.
+  // 학생이 /admin에 직접 접근해도 permission-denied 오류가 나지 않도록 게이트.
   useEffect(() => {
+    if (!canView) return;
     const unsubQ = subscribeQuestions(setQuestions);
     const unsubK = subscribeKeywords(setKeywordDocs);
     const unsubC = subscribeClasses(setClasses);
@@ -304,7 +308,7 @@ export default function AdminDashboardPage() {
       unsubKwl();
       unsubDir();
     };
-  }, []);
+  }, [canView]);
 
   // 공부방 보드별 카드 구독 — 보드 id 집합이 바뀔 때만 재연결 (공부방별 통계용)
   const boardIdsKey = useMemo(
