@@ -15,6 +15,7 @@
 // =============================================================
 import { useEffect, useRef, useState } from "react";
 import { uploadImage } from "@/lib/storageUpload";
+import { escapeHtml } from "@/lib/html";
 
 // ───── 툴바 아이콘 (선 스타일 SVG) ─────
 const svgProps = {
@@ -160,7 +161,9 @@ export default function RichTextEditor({
     ref.current?.focus();
     const sel = window.getSelection();
     const selectedText = sel && !sel.isCollapsed ? sel.toString() : "";
-    const html = `<pre><code>${selectedText || " "}</code></pre>`;
+    // 선택 텍스트를 이스케이프해 에디터 내 HTML 오염 방지 (렌더링 시 재정화되지만
+    // 편집 중 DOM 오염을 막고, 저장 전 sanitize와 이중 방어)
+    const html = `<pre><code>${escapeHtml(selectedText) || " "}</code></pre>`;
     document.execCommand("insertHTML", false, html);
     onChange(ref.current.innerHTML);
   }
