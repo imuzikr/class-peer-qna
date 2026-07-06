@@ -92,8 +92,9 @@ service cloud.firestore {
           && changedOnly(['title','content','keyword','imageUrl','images',
                           'resolved','reflectionPending','understoodAnswerId','reflection']))
         || isTeacher()
-        // '궁금해요' 토글 — 내 uid만 추가/삭제 가능(남의 목록 위조 방지)
+        // '궁금해요' 토글 — 내 uid만 추가/삭제 + 내 질문엔 못 누름(자가 집계 방지)
         || (changedOnly(['meTooIds'])
+            && resource.data.authorId != uid()
             && request.resource.data.meTooIds.toSet()
                  .difference(resource.data.meTooIds.toSet()).hasOnly([uid()])
             && resource.data.meTooIds.toSet()

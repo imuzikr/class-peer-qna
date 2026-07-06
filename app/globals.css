@@ -2049,6 +2049,16 @@ button.understood-bulb:hover {
   box-shadow: 0 3px 10px rgba(46, 36, 26, 0.12);
 }
 
+/* 내 질문 — 누를 수 없음(개수만 표시) */
+.metoo-btn.is-self {
+  opacity: 0.5;
+  cursor: default;
+}
+.metoo-btn.is-self:hover {
+  transform: none;
+  box-shadow: none;
+}
+
 /* 내가 이미 누른 상태 — 테라코타로 채움 */
 .metoo-btn.on {
   background: var(--primary);

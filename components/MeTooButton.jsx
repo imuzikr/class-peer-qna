@@ -16,21 +16,25 @@ export default function MeTooButton({ question }) {
   const user = useCurrentUser();
   const ids = question.meTooIds ?? [];
   const clicked = user ? ids.includes(user.uid) : false;
+  const mine = user ? question.authorId === user.uid : false; // 내 질문엔 못 누름
 
   function handleClick(e) {
-    e.stopPropagation();
-    if (!user) return;
+    e.stopPropagation(); // 카드 클릭(모달 열림)은 막고
+    if (!user || mine) return; // 내 질문이면 아무 동작 안 함
     setMeToo(user, question.id, !clicked);
   }
 
   return (
     <button
       type="button"
-      className={`metoo-btn ${clicked ? "on" : ""}`}
+      className={`metoo-btn ${clicked ? "on" : ""} ${mine ? "is-self" : ""}`}
       onClick={handleClick}
       aria-pressed={clicked}
+      aria-disabled={mine}
       title={
-        clicked
+        mine
+          ? "내가 올린 질문에는 누를 수 없어요"
+          : clicked
           ? "이미 눌렀어요 — 다시 누르면 취소됩니다 (1인 1회)"
           : "나도 궁금하면 눌러 보세요 (1인 1회)"
       }

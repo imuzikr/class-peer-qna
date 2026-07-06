@@ -55,7 +55,7 @@ export default function QuestionCard({ question, onClick }) {
           {/* 서식 태그를 제거한 순수 텍스트로 미리보기 */}
           <p className="card-preview">{stripHtml(question.content)}</p>
         </div>
-        {(question.imageUrl || question.images?.length) && (
+        {(question.imageUrl || question.images?.length > 0) && (
           <img
             src={question.imageUrl || question.images[0]}
             alt="첨부 이미지 미리보기"
@@ -66,7 +66,7 @@ export default function QuestionCard({ question, onClick }) {
       <div className="card-foot">
         <span>
           <IconAnswer size={24} /> 답변 {question.answerCount ?? 0}개
-          {question.imageUrl && (
+          {(question.imageUrl || question.images?.length > 0) && (
             <span style={{ marginLeft: 8 }}>📎 이미지</span>
           )}
           {/* 인사이트 대기 배지 — 작성자 본인과 교사에게만 표시됩니다 */}
