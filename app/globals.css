@@ -194,100 +194,56 @@ select:focus {
   margin-bottom: 0;
 }
 
-/* ── 하단: 주간 질문대장·답변왕 배너 (흘러가는 카드) ── */
-.champ-bands {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  margin: 0 24px 22px;
+/* ── 하단: 이번 주 질문대장·답변왕 (한 줄로 흘러가는 카드) ── */
+/* 유리판(글라스) 없이, 배경 위로 색색의 카드만 흘러갑니다. */
+.act-strip {
+  margin: 0 0 8px;
 }
-.champ-band {
-  padding: 18px 0 20px;
-  border-radius: 22px;
-  backdrop-filter: blur(14px) saturate(150%);
-  -webkit-backdrop-filter: blur(14px) saturate(150%);
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  box-shadow: 0 10px 34px rgba(70, 50, 35, 0.12);
-  overflow: hidden;
-}
-/* 질문대장 — 따뜻한 테라코타/크림 */
-.champ-band--question {
-  background: linear-gradient(
-    135deg,
-    rgba(217, 119, 87, 0.18),
-    rgba(248, 236, 229, 0.55)
-  );
-}
-/* 답변왕 — 시원한 청록/블루 (질문대장과 대비되는 톤) */
-.champ-band--answer {
-  background: linear-gradient(
-    135deg,
-    rgba(56, 152, 154, 0.18),
-    rgba(223, 240, 239, 0.6)
-  );
-  box-shadow: 0 10px 34px rgba(30, 80, 82, 0.12);
-}
-
-.champ-head {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-  padding: 0 26px 14px;
-  flex-wrap: wrap;
-}
-.champ-title {
-  font-family: var(--font-serif);
-  font-weight: 700;
-  font-size: 20px;
-  color: var(--primary-dark);
-}
-.champ-sub {
-  font-size: 13px;
-  color: #6f6b62;
-  font-weight: 600;
-}
-.champ-empty {
-  padding: 4px 26px 2px;
+.act-empty {
+  margin: 0 24px 18px;
+  padding: 12px 18px;
+  text-align: center;
   font-size: 14px;
-  color: #6f6b62;
-  font-weight: 600;
+  font-weight: 700;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.72);
+  border-radius: 999px;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
-/* 흘러가는 뷰포트 — 좌우 가장자리 페이드 마스크 */
-.champ-viewport {
+/* 흘러가는 뷰포트 — 좌우 가장자리 페이드 + 배지/그림자/반사 공간 확보 */
+.act-viewport {
   overflow: hidden;
+  padding: 26px 0 58px;
   -webkit-mask-image: linear-gradient(
     90deg,
     transparent,
-    #000 6%,
-    #000 94%,
+    #000 5%,
+    #000 95%,
     transparent
   );
   mask-image: linear-gradient(
     90deg,
     transparent,
-    #000 6%,
-    #000 94%,
+    #000 5%,
+    #000 95%,
     transparent
   );
 }
-.champ-track {
+.act-track {
   display: flex;
-  gap: 14px;
+  gap: 22px;
   list-style: none;
   width: max-content;
-  padding: 4px 26px;
-  animation: champ-scroll linear infinite;
-}
-/* 반대 방향(왼쪽→오른쪽) — 답변왕 배너를 질문대장과 다르게 흐르게 */
-.champ-track--rev {
-  animation-direction: reverse;
+  padding: 0 30px;
+  animation: act-scroll linear infinite;
 }
 /* 마우스를 올리면 잠시 멈춰 이름을 확인할 수 있게 */
-.champ-viewport:hover .champ-track {
+.act-viewport:hover .act-track {
   animation-play-state: paused;
 }
-@keyframes champ-scroll {
+@keyframes act-scroll {
   from {
     transform: translateX(0);
   }
@@ -296,126 +252,99 @@ select:focus {
   }
 }
 
-.champ-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+/* 카드 — 배경 위에 떠 있는 색색의 카드 */
+.act-card {
+  position: relative;
   flex: 0 0 auto;
-  min-width: 210px;
-  padding: 12px 16px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid var(--border);
-  box-shadow: 0 3px 12px rgba(70, 50, 35, 0.08);
-}
-.champ-rank {
-  font-size: 20px;
-  font-weight: 800;
-  min-width: 30px;
+  width: 178px;
+  padding: 24px 16px 18px;
+  border-radius: 20px;
   text-align: center;
-  color: var(--text-sub);
+  color: #fff;
+  box-shadow: 0 16px 30px rgba(40, 30, 20, 0.22);
+  /* 카드 아래로 살짝 비치는 반사 — 물 위에 뜬 듯한 느낌 */
+  -webkit-box-reflect: below 6px
+    linear-gradient(transparent 62%, rgba(255, 255, 255, 0.16));
 }
-.champ-card--top .champ-rank {
-  font-size: 24px;
+/* 질문대장 — 따뜻한 테라코타 */
+.act-card--q {
+  background: linear-gradient(158deg, #e58a63 0%, #d3663f 100%);
 }
-.champ-avatar {
-  font-size: 26px;
-  width: 44px;
-  height: 44px;
+/* 답변왕 — 시원한 청록 */
+.act-card--a {
+  background: linear-gradient(158deg, #37b899 0%, #1f938c 100%);
+}
+/* 1·2·3위는 살짝 더 큼직하고 또렷하게 */
+.act-card--top {
+  box-shadow: 0 18px 34px rgba(40, 30, 20, 0.3);
+}
+
+/* 상단 배지(왕관/트로피/메달) — 카드 위쪽에 걸치듯 */
+.act-badge {
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 34px;
+  line-height: 1;
+  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.22));
+}
+/* 4위 이하는 숫자 칩 */
+.act-badge--num {
+  font-size: 15px;
+  font-weight: 800;
+  width: 30px;
+  height: 30px;
+  top: -15px;
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: var(--primary-light);
-  flex: 0 0 auto;
+  background: #fff;
+  color: #6b6b66;
+  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.18));
 }
-.champ-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
+
+.act-cat {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  padding: 3px 11px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.24);
 }
-.champ-name {
-  font-weight: 700;
-  font-size: 15px;
-  color: var(--dark);
+.act-avatar {
+  display: block;
+  font-size: 34px;
+  line-height: 1;
+  margin: 10px 0 6px;
+}
+.act-name {
+  display: block;
+  font-weight: 800;
+  font-size: 15.5px;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.champ-count {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--primary);
-}
-
-/* 상위 3위 — 금·은·동 강조 */
-.champ-card--rank1 {
-  background: linear-gradient(135deg, #fff7e6, #ffe9b8);
-  border-color: #f2c14e;
-  box-shadow: 0 6px 20px rgba(230, 170, 40, 0.28);
-}
-.champ-card--rank1 .champ-avatar {
-  background: #ffe08a;
-}
-.champ-card--rank2 {
-  background: linear-gradient(135deg, #fbfbfd, #e7e9ee);
-  border-color: #c7ccd6;
-}
-.champ-card--rank2 .champ-avatar {
-  background: #e0e3ea;
-}
-.champ-card--rank3 {
-  background: linear-gradient(135deg, #fdf1e7, #f4d7bf);
-  border-color: #e0a878;
-}
-.champ-card--rank3 .champ-avatar {
-  background: #f2cfa8;
+.act-sub {
+  display: block;
+  margin-top: 3px;
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.88);
 }
 
-/* ── 답변왕 변형 — 시원한 톤 + 알약형 카드(질문대장과 대비) ── */
-.champ-band--answer .champ-title {
-  color: #2b7a78;
-}
-.champ-band--answer .champ-count {
-  color: #2b8a86;
-}
-.champ-card--answer {
-  border-radius: 999px; /* 질문대장은 둥근 사각형, 답변왕은 알약형 */
-}
-.champ-card--answer .champ-avatar {
-  background: #d6efec;
-}
-/* 답변왕 상위 3위 — 청록·블루 계열로 재도색 */
-.champ-band--answer .champ-card--rank1 {
-  background: linear-gradient(135deg, #eafaf7, #b9ecdf);
-  border-color: #59c4a8;
-  box-shadow: 0 6px 20px rgba(40, 180, 150, 0.26);
-}
-.champ-band--answer .champ-card--rank1 .champ-avatar {
-  background: #a5e6d5;
-}
-.champ-band--answer .champ-card--rank2 {
-  background: linear-gradient(135deg, #f2f7fb, #dbe6f0);
-  border-color: #b7c7d8;
-}
-.champ-band--answer .champ-card--rank2 .champ-avatar {
-  background: #dce6f0;
-}
-.champ-band--answer .champ-card--rank3 {
-  background: linear-gradient(135deg, #eef4fb, #cfe0f2);
-  border-color: #8fb4dc;
-}
-.champ-band--answer .champ-card--rank3 .champ-avatar {
-  background: #cfe0f2;
-}
-
-/* 모션 최소화 설정을 켠 사용자에게는 애니메이션을 멈춥니다 */
+/* 모션 최소화 설정을 켠 사용자에게는 애니메이션을 멈추고 줄바꿈 배치 */
 @media (prefers-reduced-motion: reduce) {
-  .champ-track {
+  .act-track {
     animation: none;
     flex-wrap: wrap;
     width: auto;
     justify-content: center;
+    gap: 26px 22px;
   }
-  .champ-viewport {
+  .act-viewport {
     -webkit-mask-image: none;
     mask-image: none;
   }
@@ -557,30 +486,22 @@ select:focus {
     padding-top: 6vh;
   }
 
-  .champ-bands {
-    margin: 0 12px 14px;
-    gap: 10px;
+  .act-viewport {
+    padding: 24px 0 50px;
   }
-  .champ-band {
-    padding: 14px 0 16px;
+  .act-track {
+    padding: 0 16px;
+    gap: 16px;
   }
-  .champ-head {
-    padding: 0 16px 10px;
-    gap: 6px;
+  .act-card {
+    width: 156px;
+    padding: 22px 13px 15px;
   }
-  .champ-title {
-    font-size: 17px;
+  .act-avatar {
+    font-size: 30px;
   }
-  .champ-sub {
-    font-size: 12px;
-  }
-  .champ-track {
-    padding: 4px 16px;
-    gap: 10px;
-  }
-  .champ-card {
-    min-width: 176px;
-    padding: 10px 13px;
+  .act-name {
+    font-size: 14.5px;
   }
 }
 

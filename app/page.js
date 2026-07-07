@@ -26,9 +26,34 @@ import {
   onAuthChange,
 } from "@/lib/auth";
 
-// 순위 배지 — 1·2·3위는 아이콘, 그 외는 숫자. (배너마다 다른 아이콘 세트)
-function rankBadge(i, icons) {
-  return icons[i] ?? `${i + 1}`;
+// 질문대장·답변왕 순위를 한 줄에 번갈아 섞어 카드 목록으로 만든다.
+// 카드마다 variant(색)·cat(라벨)·unit(단위)·badge(1·2·3위 아이콘)·rank을 얹는다.
+function buildActCards(questioners, answerers) {
+  const out = [];
+  const n = Math.max(questioners.length, answerers.length);
+  for (let i = 0; i < n; i++) {
+    if (questioners[i]) {
+      out.push({
+        ...questioners[i],
+        variant: "q",
+        cat: "질문대장",
+        unit: "질문",
+        badge: ["👑", "🥈", "🥉"],
+        rank: i,
+      });
+    }
+    if (answerers[i]) {
+      out.push({
+        ...answerers[i],
+        variant: "a",
+        cat: "답변왕",
+        unit: "답변",
+        badge: ["🏆", "🥈", "🥉"],
+        rank: i,
+      });
+    }
+  }
+  return out;
 }
 
 // Firebase 인증 오류 코드를 한국어 메시지로
@@ -71,6 +96,9 @@ export default function LandingPage() {
   // 주간 랭킹 구독 (로그인 전에도 읽히는 공개 통계 문서)
   useEffect(() => subscribeWeeklyQuestioners(setQuestioners), []);
   useEffect(() => subscribeWeeklyAnswerers(setAnswerers), []);
+
+  // 두 랭킹을 한 줄에 번갈아 섞은 카드 목록
+  const cards = buildActCards(questioners, answerers);
 
   // 모드 전환 시 역할 선택·오류 초기화
   function switchMode(mode) {
@@ -152,49 +180,16 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── 하단: 주간 질문대장 · 답변왕 (흘러가는 카드) ── */}
-      <div className="champ-bands">
-        {/* 질문대장 — 따뜻한 테라코타/골드, 오른쪽→왼쪽 */}
-        <section className="champ-band champ-band--question" aria-label="이번 주 질문대장">
-          <div className="champ-head">
-            <span className="champ-title">🏅 이번 주 질문대장</span>
-            <span className="champ-sub">가장 많이 질문한 친구들 · 매주 월요일 아침에 새로 뽑아요</span>
-          </div>
-          {questioners.length > 0 ? (
-            <ChampMarquee
-              items={questioners}
-              variant="question"
-              badges={["👑", "🥈", "🥉"]}
-              unit="질문"
-            />
-          ) : (
-            <p className="champ-empty">
-              이번 주 첫 질문의 주인공을 기다리고 있어요. 궁금한 걸 먼저 물어보세요! ✨
-            </p>
-          )}
-        </section>
-
-        {/* 답변왕 — 시원한 청록/블루, 왼쪽→오른쪽(반대 방향) */}
-        <section className="champ-band champ-band--answer" aria-label="이번 주 답변왕">
-          <div className="champ-head">
-            <span className="champ-title">🏆 이번 주 답변왕</span>
-            <span className="champ-sub">가장 많이 답해 준 친구들 · 매주 월요일 아침에 새로 뽑아요</span>
-          </div>
-          {answerers.length > 0 ? (
-            <ChampMarquee
-              items={answerers}
-              variant="answer"
-              badges={["🏆", "🥈", "🥉"]}
-              unit="답변"
-              reverse
-            />
-          ) : (
-            <p className="champ-empty">
-              이번 주 첫 답변의 주인공을 기다리고 있어요. 친구의 질문에 답해 보세요! 💬
-            </p>
-          )}
-        </section>
-      </div>
+      {/* ── 하단: 이번 주 질문대장·답변왕 (한 줄로 흘러가는 카드) ── */}
+      <section className="act-strip" aria-label="이번 주 질문대장·답변왕">
+        {cards.length > 0 ? (
+          <ActMarquee cards={cards} />
+        ) : (
+          <p className="act-empty">
+            이번 주 첫 주인공을 기다리고 있어요. 궁금한 걸 묻고, 친구에게 답해 보세요! ✨
+          </p>
+        )}
+      </section>
 
       {/* ── 로그인 / 회원가입 모달 ── */}
       {authMode && (
@@ -332,46 +327,42 @@ export default function LandingPage() {
   );
 }
 
-// 순위 카드가 끊임없이 흘러가는 배너. 이음매 없는 무한 스크롤을 위해 목록을
-// 2번 이어 붙이고 translateX(-50%)로 애니메이션합니다. 카드가 적으면 화면 폭을
-// 못 채우므로 최소 개수까지 반복합니다.
-//  · variant: 카드 색 테마 클래스 ('question' | 'answer')
-//  · badges: 1·2·3위 배지 아이콘 배열
-//  · unit: 개수 단위 라벨 ('질문' | '답변')
-//  · reverse: true면 왼쪽→오른쪽으로 흐름 (배너끼리 방향을 다르게)
-function ChampMarquee({ items, variant, badges, unit, reverse = false }) {
-  let filled = items;
-  while (filled.length < 8) filled = [...filled, ...items];
+// 순위 카드가 배경 위로 한 줄로 끊임없이 흘러가는 띠. 이음매 없는 무한
+// 스크롤을 위해 목록을 2번 이어 붙이고 translateX(-50%)로 애니메이션합니다.
+// 카드가 적으면 화면 폭을 못 채우므로 최소 개수까지 반복합니다.
+function ActMarquee({ cards }) {
+  let filled = cards;
+  while (filled.length < 8) filled = [...filled, ...cards];
   const loop = [...filled, ...filled];
-  // 카드 수에 비례해 속도를 맞춰(한 카드당 약 3.2초) 일정한 흐름 유지
-  const duration = filled.length * 3.2;
+  // 카드 수에 비례해 속도를 맞춰(한 카드당 약 3.4초) 일정한 흐름 유지
+  const duration = filled.length * 3.4;
 
   return (
-    <div className="champ-viewport">
+    <div className="act-viewport">
       <ul
-        className={`champ-track${reverse ? " champ-track--rev" : ""}`}
+        className="act-track"
         style={{ animationDuration: `${duration}s` }}
       >
-        {loop.map((c, i) => {
-          const rank = i % items.length; // 원본 순위(반복·2배 복제 고려)
-          return (
-            <li
-              key={i}
-              className={`champ-card champ-card--${variant}${
-                rank < 3 ? ` champ-card--top champ-card--rank${rank + 1}` : ""
-              }`}
+        {loop.map((c, i) => (
+          <li
+            key={i}
+            className={`act-card act-card--${c.variant}${
+              c.rank < 3 ? " act-card--top" : ""
+            }`}
+          >
+            <span
+              className={`act-badge${c.rank < 3 ? "" : " act-badge--num"}`}
             >
-              <span className="champ-rank">{rankBadge(rank, badges)}</span>
-              <span className="champ-avatar">{c.authorEmoji || "🙂"}</span>
-              <span className="champ-info">
-                <span className="champ-name">{c.authorName || "익명"}</span>
-                <span className="champ-count">
-                  {unit} {c.count}개
-                </span>
-              </span>
-            </li>
-          );
-        })}
+              {c.rank < 3 ? c.badge[c.rank] : c.rank + 1}
+            </span>
+            <span className="act-cat">{c.cat}</span>
+            <span className="act-avatar">{c.authorEmoji || "🙂"}</span>
+            <span className="act-name">{c.authorName || "익명"}</span>
+            <span className="act-sub">
+              {c.unit} {c.count}개
+            </span>
+          </li>
+        ))}
       </ul>
     </div>
   );
