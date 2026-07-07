@@ -5162,6 +5162,19 @@ pre code {
   cursor: pointer;
 }
 
+/* 제목 옆 세 컨트롤(반 선택·입장 코드·반 만들기) 크기 통일 — 색/모양은 각자 유지 */
+.study-title-row > .study-class-select,
+.study-title-row > .study-code-btn,
+.study-title-row > .btn-ghost {
+  height: 38px;
+  padding: 0 14px;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-sizing: border-box;
+}
+
 /* 입장 코드 토글 버튼 */
 .study-code-btn {
   font-family: var(--font-mono);
@@ -5998,6 +6011,22 @@ pre code {
   min-width: 0;
 }
 
+/* 카드 하단 삭제 확인 버튼 — 저장 버튼과 동일 크기(btn-primary), 색만 다르게 */
+.study-foot-danger {
+  background: var(--danger);
+}
+.study-foot-danger:hover {
+  background: #a83a30;
+}
+.study-foot-ghost {
+  background: var(--bg);
+  color: var(--text-sub);
+  border: 1px solid var(--border);
+}
+.study-foot-ghost:hover {
+  background: var(--neutral);
+}
+
 /* 관련 질문(모달 내 버전) */
 .study-related-modal {
   margin-top: 4px;
@@ -6291,6 +6320,40 @@ pre code {
   color: var(--text-sub);
   cursor: pointer;
   transition: border-color 0.1s, color 0.1s, background 0.1s;
+}
+
+/* 키워드 추가 '+' 칩 + 인라인 입력 */
+.study-keyword-add {
+  font-weight: 700;
+  color: var(--primary);
+  border-style: dashed;
+  padding: 5px 12px;
+}
+.study-keyword-add:hover {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+.study-keyword-add-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.study-keyword-add-inline input {
+  width: 120px;
+  padding: 5px 10px;
+  border: 1.5px solid var(--primary);
+  border-radius: 999px;
+  font-size: 12px;
+}
+.study-keyword-add-inline button {
+  padding: 5px 12px;
+  border: none;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .study-keyword-chip:hover {

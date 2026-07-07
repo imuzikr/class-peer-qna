@@ -235,18 +235,16 @@ function EmptyPanel({ children }) {
 
 // 좌측 패널의 사용자 행 (학생·선생님 공용)
 function PersonRow({ person, selectedId, onSelect, onEdit, teacher = false }) {
-  const subtitle = teacher
-    ? person.email || person.name
-    : person.realName
-    ? person.name
-    : "실명 미등록";
+  // 실명 아래엔 이메일(안정적 식별자)을 표시. 세션마다 바뀌는 닉네임은 의미가
+  // 없어 표시하지 않습니다. 실명·이메일이 모두 없을 때만 '실명 미등록' 안내.
+  const subtitle = person.email || (person.realName ? "" : "실명 미등록");
   return (
     <div className={`student-row ${person.id === selectedId ? "active" : ""}`}>
       <button type="button" className="student-row-main" onClick={onSelect}>
         <span className="avatar avatar-sm">{person.emoji}</span>
         <span className="student-main">
           <strong>{person.realName || person.name}</strong>
-          <small>{subtitle}</small>
+          {subtitle && <small>{subtitle}</small>}
         </span>
         <span className="student-count">{person.asked + person.answered}</span>
       </button>

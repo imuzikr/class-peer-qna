@@ -9,7 +9,7 @@
 // =============================================================
 import { backdropClose } from "@/lib/modal";
 import { useState } from "react";
-import { addStudyBoard } from "@/lib/store";
+import { addStudyBoard, addKeyword } from "@/lib/store";
 import { getCurrentUser } from "@/lib/user";
 
 export default function StudyBoardForm({ keywords = [], classId = null, onClose }) {
@@ -18,11 +18,23 @@ export default function StudyBoardForm({ keywords = [], classId = null, onClose 
   const [linkKeyword, setLinkKeyword] = useState(false);
   const [selectedKeywords, setSelectedKeywords] = useState([]);
   const [saving, setSaving] = useState(false);
+  const [addingKw, setAddingKw] = useState(false); // 새 키워드 입력 중
+  const [newKw, setNewKw] = useState("");
 
   function toggleKeyword(kw) {
     setSelectedKeywords((prev) =>
       prev.includes(kw) ? prev.filter((k) => k !== kw) : [...prev, kw]
     );
+  }
+
+  // 새 키워드 추가 — 전역 키워드 목록에 만들고(중복이면 생략) 이 보드에 바로 선택.
+  async function handleAddKeyword() {
+    const name = newKw.trim().replace(/^#\s*/, "");
+    if (!name) return;
+    if (!keywords.includes(name)) await addKeyword(name);
+    setSelectedKeywords((prev) => (prev.includes(name) ? prev : [...prev, name]));
+    setNewKw("");
+    setAddingKw(false);
   }
 
   async function handleSubmit(e) {
@@ -77,7 +89,7 @@ export default function StudyBoardForm({ keywords = [], classId = null, onClose 
             </label>
           </div>
 
-          {/* 키워드 칩 (연계 ON일 때) */}
+          {/* 키워드 칩 (연계 ON일 때) — 맨 끝 '+'로 새 키워드 추가 */}
           {linkKeyword && (
             <div className="study-keyword-chips">
               {keywords.map((kw) => (
@@ -90,10 +102,30 @@ export default function StudyBoardForm({ keywords = [], classId = null, onClose 
                   # {kw}
                 </button>
               ))}
-              {keywords.length === 0 && (
-                <p className="study-link-hint">
-                  키워드를 먼저 추가해 주세요.
-                </p>
+              {addingKw ? (
+                <span className="study-keyword-add-inline">
+                  <input
+                    type="text"
+                    value={newKw}
+                    onChange={(e) => setNewKw(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") { e.preventDefault(); handleAddKeyword(); }
+                      if (e.key === "Escape") { setAddingKw(false); setNewKw(""); }
+                    }}
+                    placeholder="새 키워드"
+                    autoFocus
+                  />
+                  <button type="button" onClick={handleAddKeyword}>추가</button>
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  className="study-keyword-chip study-keyword-add"
+                  onClick={() => setAddingKw(true)}
+                  title="키워드 추가"
+                >
+                  +
+                </button>
               )}
             </div>
           )}

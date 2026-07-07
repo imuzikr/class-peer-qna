@@ -512,17 +512,17 @@ export default function StudyCardModal({
             <div className="study-card-modal-save-row">
               {!isNew && (
                 confirmDelete ? (
-                  <div className="study-delete-confirm">
+                  <>
                     <span className="study-delete-warn">
                       ⚠️ 이 카드는 삭제 후 복구할 수 없습니다.
                     </span>
-                    <button className="study-chip danger" onClick={handleDelete}>
+                    <button className="btn-primary study-foot-danger" onClick={handleDelete}>
                       정말 삭제
                     </button>
-                    <button className="study-chip ghost" onClick={() => setConfirmDelete(false)}>
+                    <button className="btn-primary study-foot-ghost" onClick={() => setConfirmDelete(false)}>
                       취소
                     </button>
-                  </div>
+                  </>
                 ) : (
                   <button className="btn-primary" onClick={() => setConfirmDelete(true)}>
                     <IconTrash size={16} /> 삭제
