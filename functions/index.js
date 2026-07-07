@@ -264,3 +264,59 @@ exports.weeklyTopAnswerers = onSchedule(
     }
   }
 );
+
+// =============================================================
+// [3-b] 예약 작업 — 주간 질문대장 집계 (랜딩 화면 노출용)
+// -------------------------------------------------------------
+// 매주 월요일 오전 8시(서울)에 지난 7일간 "질문을 많이 올린" 학생
+// 상위 7명을 집계해 stats/weeklyQuestioners 문서에 저장합니다.
+// · 이 문서는 로그인 전 랜딩 화면에서도 보여야 하므로, 보안 규칙에서
+//   유일하게 "공개 읽기"를 허용합니다(작성자 uid는 담지 않고 익명 닉네임만).
+// · 질문 문서의 authorName/authorEmoji는 접속(세션)마다 바뀌므로,
+//   같은 authorId의 가장 최근 질문에 쓰인 닉네임을 대표로 사용합니다.
+// =============================================================
+exports.weeklyTopQuestioners = onSchedule(
+  { schedule: "every monday 08:00", timeZone: "Asia/Seoul" },
+  async () => {
+    const weekAgo = admin.firestore.Timestamp.fromMillis(
+      Date.now() - 7 * 24 * 60 * 60 * 1000
+    );
+
+    // 지난 7일간 올라온 질문을 최신순으로 모아 작성자별로 집계
+    const snap = await db
+      .collection("questions")
+      .where("createdAt", ">=", weekAgo)
+      .orderBy("createdAt", "desc")
+      .get();
+
+    const byUser = new Map();
+    snap.forEach((doc) => {
+      const { authorId, authorName, authorEmoji } = doc.data();
+      if (!authorId) return;
+      // 최신순으로 순회하므로 첫 등장(가장 최근) 닉네임을 대표로 유지
+      const cur = byUser.get(authorId) ?? {
+        authorName: authorName || "익명",
+        authorEmoji: authorEmoji || "🙂",
+        count: 0,
+      };
+      cur.count += 1;
+      byUser.set(authorId, cur);
+    });
+
+    // 랭킹에는 uid를 노출하지 않습니다(공개 문서이므로 익명 닉네임만).
+    const top = [...byUser.values()]
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 7)
+      .map(({ authorName, authorEmoji, count }) => ({
+        authorName,
+        authorEmoji,
+        count,
+      }));
+
+    await db.doc("stats/weeklyQuestioners").set({
+      top,
+      totalQuestions: snap.size,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  }
+);

@@ -216,6 +216,13 @@ service cloud.firestore {
     }
 
     // ── 통계/시스템 — Cloud Functions(admin SDK)만 쓰기 ──
+    // 주간 질문대장(weeklyQuestioners)만 로그인 전 랜딩 화면 노출을 위해
+    // 공개 읽기를 허용합니다. 이 문서에는 uid·실명 없이 익명 닉네임만 담깁니다.
+    // 그 외 통계 문서는 교사만 읽을 수 있습니다.
+    match /stats/weeklyQuestioners {
+      allow read: if true;
+      allow write: if false;
+    }
     match /stats/{doc} {
       allow read: if isTeacher();
       allow write: if false;

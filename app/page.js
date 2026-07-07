@@ -15,12 +15,18 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { isFirebaseConfigured } from "@/lib/firebase";
 import { backdropClose } from "@/lib/modal";
+import { subscribeWeeklyQuestioners } from "@/lib/store";
 import {
   signUpWithEmail,
   signInWithEmail,
   signInWithGoogle,
   onAuthChange,
 } from "@/lib/auth";
+
+// 순위 배지 — 1·2·3위는 왕관/메달, 그 외는 숫자
+function rankBadge(i) {
+  return ["👑", "🥈", "🥉"][i] ?? `${i + 1}`;
+}
 
 // Firebase 인증 오류 코드를 한국어 메시지로
 function authErrorMessage(code) {
@@ -56,6 +62,10 @@ export default function LandingPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [champions, setChampions] = useState([]); // 주간 질문대장 상위 7명
+
+  // 주간 질문대장 구독 (로그인 전에도 읽히는 공개 통계 문서)
+  useEffect(() => subscribeWeeklyQuestioners(setChampions), []);
 
   // 모드 전환 시 역할 선택·오류 초기화
   function switchMode(mode) {
@@ -135,6 +145,22 @@ export default function LandingPage() {
             <p>친구의 질문에 답하면서 내 실력도 함께 자랍니다.</p>
           </div>
         </div>
+      </section>
+
+      {/* ── 하단: 주간 질문대장 (흘러가는 카드) ── */}
+      <section className="champ-band" aria-label="이번 주 질문대장">
+        <div className="champ-head">
+          <span className="champ-title">🏅 이번 주 질문대장</span>
+          <span className="champ-sub">가장 많이 질문한 친구들 · 매주 월요일 아침에 새로 뽑아요</span>
+        </div>
+
+        {champions.length > 0 ? (
+          <ChampMarquee champions={champions} />
+        ) : (
+          <p className="champ-empty">
+            이번 주 첫 질문의 주인공을 기다리고 있어요. 궁금한 걸 먼저 물어보세요! ✨
+          </p>
+        )}
       </section>
 
       {/* ── 로그인 / 회원가입 모달 ── */}
@@ -270,5 +296,43 @@ export default function LandingPage() {
         </div>
       )}
     </main>
+  );
+}
+
+// 질문대장 카드가 오른쪽에서 왼쪽으로 끊임없이 흘러가는 배너.
+// 이음매 없는 무한 스크롤을 위해 목록을 2번 이어 붙이고 translateX(-50%)로
+// 애니메이션합니다. 카드가 적으면 화면 폭을 못 채우므로 최소 개수까지 반복합니다.
+function ChampMarquee({ champions }) {
+  let filled = champions;
+  while (filled.length < 8) filled = [...filled, ...champions];
+  const loop = [...filled, ...filled];
+  // 카드 수에 비례해 속도를 맞춰(한 카드당 약 3.2초) 일정한 흐름 유지
+  const duration = filled.length * 3.2;
+
+  return (
+    <div className="champ-viewport">
+      <ul
+        className="champ-track"
+        style={{ animationDuration: `${duration}s` }}
+        aria-hidden="false"
+      >
+        {loop.map((c, i) => {
+          const rank = i % champions.length; // 원본 순위(반복·2배 복제 고려)
+          return (
+            <li
+              key={i}
+              className={`champ-card${rank < 3 ? ` champ-card--top champ-card--rank${rank + 1}` : ""}`}
+            >
+              <span className="champ-rank">{rankBadge(rank)}</span>
+              <span className="champ-avatar">{c.authorEmoji || "🙂"}</span>
+              <span className="champ-info">
+                <span className="champ-name">{c.authorName || "익명"}</span>
+                <span className="champ-count">질문 {c.count}개</span>
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
   );
 }

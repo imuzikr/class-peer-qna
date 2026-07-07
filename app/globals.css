@@ -194,6 +194,175 @@ select:focus {
   margin-bottom: 0;
 }
 
+/* ── 하단: 주간 질문대장 배너 (흘러가는 카드) ── */
+.champ-band {
+  margin: 0 24px 22px;
+  padding: 18px 0 20px;
+  border-radius: 22px;
+  background: linear-gradient(
+    135deg,
+    rgba(217, 119, 87, 0.18),
+    rgba(248, 236, 229, 0.55)
+  );
+  backdrop-filter: blur(14px) saturate(150%);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 10px 34px rgba(70, 50, 35, 0.12);
+  overflow: hidden;
+}
+
+.champ-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 0 26px 14px;
+  flex-wrap: wrap;
+}
+.champ-title {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: 20px;
+  color: var(--primary-dark);
+}
+.champ-sub {
+  font-size: 13px;
+  color: #6f6b62;
+  font-weight: 600;
+}
+.champ-empty {
+  padding: 4px 26px 2px;
+  font-size: 14px;
+  color: #6f6b62;
+  font-weight: 600;
+}
+
+/* 흘러가는 뷰포트 — 좌우 가장자리 페이드 마스크 */
+.champ-viewport {
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    transparent,
+    #000 6%,
+    #000 94%,
+    transparent
+  );
+  mask-image: linear-gradient(
+    90deg,
+    transparent,
+    #000 6%,
+    #000 94%,
+    transparent
+  );
+}
+.champ-track {
+  display: flex;
+  gap: 14px;
+  list-style: none;
+  width: max-content;
+  padding: 4px 26px;
+  animation: champ-scroll linear infinite;
+}
+/* 마우스를 올리면 잠시 멈춰 이름을 확인할 수 있게 */
+.champ-viewport:hover .champ-track {
+  animation-play-state: paused;
+}
+@keyframes champ-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.champ-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 0 0 auto;
+  min-width: 210px;
+  padding: 12px 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--border);
+  box-shadow: 0 3px 12px rgba(70, 50, 35, 0.08);
+}
+.champ-rank {
+  font-size: 20px;
+  font-weight: 800;
+  min-width: 30px;
+  text-align: center;
+  color: var(--text-sub);
+}
+.champ-card--top .champ-rank {
+  font-size: 24px;
+}
+.champ-avatar {
+  font-size: 26px;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--primary-light);
+  flex: 0 0 auto;
+}
+.champ-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.champ-name {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--dark);
+  white-space: nowrap;
+}
+.champ-count {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+/* 상위 3위 — 금·은·동 강조 */
+.champ-card--rank1 {
+  background: linear-gradient(135deg, #fff7e6, #ffe9b8);
+  border-color: #f2c14e;
+  box-shadow: 0 6px 20px rgba(230, 170, 40, 0.28);
+}
+.champ-card--rank1 .champ-avatar {
+  background: #ffe08a;
+}
+.champ-card--rank2 {
+  background: linear-gradient(135deg, #fbfbfd, #e7e9ee);
+  border-color: #c7ccd6;
+}
+.champ-card--rank2 .champ-avatar {
+  background: #e0e3ea;
+}
+.champ-card--rank3 {
+  background: linear-gradient(135deg, #fdf1e7, #f4d7bf);
+  border-color: #e0a878;
+}
+.champ-card--rank3 .champ-avatar {
+  background: #f2cfa8;
+}
+
+/* 모션 최소화 설정을 켠 사용자에게는 애니메이션을 멈춥니다 */
+@media (prefers-reduced-motion: reduce) {
+  .champ-track {
+    animation: none;
+    flex-wrap: wrap;
+    width: auto;
+    justify-content: center;
+  }
+  .champ-viewport {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+}
+
 /* 로그인/회원가입 모달도 글래스 스타일 */
 .modal-auth {
   background: rgba(250, 249, 245, 0.85);
@@ -328,6 +497,29 @@ select:focus {
 
   .hero {
     padding-top: 6vh;
+  }
+
+  .champ-band {
+    margin: 0 12px 14px;
+    padding: 14px 0 16px;
+  }
+  .champ-head {
+    padding: 0 16px 10px;
+    gap: 6px;
+  }
+  .champ-title {
+    font-size: 17px;
+  }
+  .champ-sub {
+    font-size: 12px;
+  }
+  .champ-track {
+    padding: 4px 16px;
+    gap: 10px;
+  }
+  .champ-card {
+    min-width: 176px;
+    padding: 10px 13px;
   }
 }
 
