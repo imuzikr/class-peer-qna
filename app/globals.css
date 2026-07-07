@@ -194,21 +194,38 @@ select:focus {
   margin-bottom: 0;
 }
 
-/* ── 하단: 주간 질문대장 배너 (흘러가는 카드) ── */
-.champ-band {
+/* ── 하단: 주간 질문대장·답변왕 배너 (흘러가는 카드) ── */
+.champ-bands {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
   margin: 0 24px 22px;
+}
+.champ-band {
   padding: 18px 0 20px;
   border-radius: 22px;
-  background: linear-gradient(
-    135deg,
-    rgba(217, 119, 87, 0.18),
-    rgba(248, 236, 229, 0.55)
-  );
   backdrop-filter: blur(14px) saturate(150%);
   -webkit-backdrop-filter: blur(14px) saturate(150%);
   border: 1px solid rgba(255, 255, 255, 0.7);
   box-shadow: 0 10px 34px rgba(70, 50, 35, 0.12);
   overflow: hidden;
+}
+/* 질문대장 — 따뜻한 테라코타/크림 */
+.champ-band--question {
+  background: linear-gradient(
+    135deg,
+    rgba(217, 119, 87, 0.18),
+    rgba(248, 236, 229, 0.55)
+  );
+}
+/* 답변왕 — 시원한 청록/블루 (질문대장과 대비되는 톤) */
+.champ-band--answer {
+  background: linear-gradient(
+    135deg,
+    rgba(56, 152, 154, 0.18),
+    rgba(223, 240, 239, 0.6)
+  );
+  box-shadow: 0 10px 34px rgba(30, 80, 82, 0.12);
 }
 
 .champ-head {
@@ -261,6 +278,10 @@ select:focus {
   width: max-content;
   padding: 4px 26px;
   animation: champ-scroll linear infinite;
+}
+/* 반대 방향(왼쪽→오른쪽) — 답변왕 배너를 질문대장과 다르게 흐르게 */
+.champ-track--rev {
+  animation-direction: reverse;
 }
 /* 마우스를 올리면 잠시 멈춰 이름을 확인할 수 있게 */
 .champ-viewport:hover .champ-track {
@@ -347,6 +368,43 @@ select:focus {
 }
 .champ-card--rank3 .champ-avatar {
   background: #f2cfa8;
+}
+
+/* ── 답변왕 변형 — 시원한 톤 + 알약형 카드(질문대장과 대비) ── */
+.champ-band--answer .champ-title {
+  color: #2b7a78;
+}
+.champ-band--answer .champ-count {
+  color: #2b8a86;
+}
+.champ-card--answer {
+  border-radius: 999px; /* 질문대장은 둥근 사각형, 답변왕은 알약형 */
+}
+.champ-card--answer .champ-avatar {
+  background: #d6efec;
+}
+/* 답변왕 상위 3위 — 청록·블루 계열로 재도색 */
+.champ-band--answer .champ-card--rank1 {
+  background: linear-gradient(135deg, #eafaf7, #b9ecdf);
+  border-color: #59c4a8;
+  box-shadow: 0 6px 20px rgba(40, 180, 150, 0.26);
+}
+.champ-band--answer .champ-card--rank1 .champ-avatar {
+  background: #a5e6d5;
+}
+.champ-band--answer .champ-card--rank2 {
+  background: linear-gradient(135deg, #f2f7fb, #dbe6f0);
+  border-color: #b7c7d8;
+}
+.champ-band--answer .champ-card--rank2 .champ-avatar {
+  background: #dce6f0;
+}
+.champ-band--answer .champ-card--rank3 {
+  background: linear-gradient(135deg, #eef4fb, #cfe0f2);
+  border-color: #8fb4dc;
+}
+.champ-band--answer .champ-card--rank3 .champ-avatar {
+  background: #cfe0f2;
 }
 
 /* 모션 최소화 설정을 켠 사용자에게는 애니메이션을 멈춥니다 */
@@ -499,8 +557,11 @@ select:focus {
     padding-top: 6vh;
   }
 
-  .champ-band {
+  .champ-bands {
     margin: 0 12px 14px;
+    gap: 10px;
+  }
+  .champ-band {
     padding: 14px 0 16px;
   }
   .champ-head {

@@ -208,48 +208,64 @@ exports.deleteAuthUser = onCall(async (request) => {
 });
 
 // =============================================================
-// [3] 예약 작업 — 주간 답변왕 집계
+// [3] 예약 작업 — 주간 답변왕 집계 (랜딩 화면 노출용)
 // -------------------------------------------------------------
-// 매주 월요일 오전 9시(서울)에 지난 7일간의 답변 수를 집계해
-// stats/weeklyTop 문서에 저장하고, 공지사항으로도 게시합니다.
+// 매주 월요일 오전 8시(서울)에 지난 7일간 답변을 많이 단 상위 5명을
+// 집계해 stats/weeklyAnswerers 공개 문서에 저장하고, 공지사항으로도
+// 게시합니다. 질문대장(weeklyTopQuestioners)과 같은 시각·같은 형식이라
+// 랜딩 하단에 나란히 카드로 흘러가게 보여 줄 수 있습니다.
+// · 공개 문서이므로 uid·실명 없이 익명 닉네임/이모지/개수만 담습니다.
+// · authorName/authorEmoji는 접속(세션)마다 바뀌므로 같은 authorId의
+//   가장 최근 답변에 쓰인 닉네임을 대표로 사용합니다.
 // ※ collectionGroup("answers") 쿼리는 최초 실행 시 색인이 필요할 수
 //   있습니다. 함수 로그의 오류 메시지에 있는 링크를 누르면
 //   Firebase 콘솔에서 한 번의 클릭으로 색인이 생성됩니다.
 // =============================================================
 exports.weeklyTopAnswerers = onSchedule(
-  { schedule: "every monday 09:00", timeZone: "Asia/Seoul" },
+  { schedule: "every monday 08:00", timeZone: "Asia/Seoul" },
   async () => {
     const weekAgo = admin.firestore.Timestamp.fromMillis(
       Date.now() - 7 * 24 * 60 * 60 * 1000
     );
 
-    // 지난 7일간 모든 질문의 답변을 모아 작성자별로 집계
+    // 지난 7일간 모든 질문의 답변을 최신순으로 모아 작성자별로 집계
     const snap = await db
       .collectionGroup("answers")
       .where("createdAt", ">=", weekAgo)
+      .orderBy("createdAt", "desc")
       .get();
 
-    const countByUser = new Map();
+    const byUser = new Map();
     snap.forEach((doc) => {
-      const { authorId, authorName } = doc.data();
-      const cur = countByUser.get(authorId) ?? { authorName, count: 0 };
+      const { authorId, authorName, authorEmoji } = doc.data();
+      if (!authorId) return;
+      // 최신순으로 순회하므로 첫 등장(가장 최근) 닉네임을 대표로 유지
+      const cur = byUser.get(authorId) ?? {
+        authorName: authorName || "익명",
+        authorEmoji: authorEmoji || "🙂",
+        count: 0,
+      };
       cur.count += 1;
-      countByUser.set(authorId, cur);
+      byUser.set(authorId, cur);
     });
 
-    const top = [...countByUser.entries()]
-      .map(([authorId, v]) => ({ authorId, ...v }))
+    // 랭킹에는 uid를 노출하지 않습니다(공개 문서이므로 익명 닉네임만).
+    const top = [...byUser.values()]
       .sort((a, b) => b.count - a.count)
-      .slice(0, 3);
+      .slice(0, 5)
+      .map(({ authorName, authorEmoji, count }) => ({
+        authorName,
+        authorEmoji,
+        count,
+      }));
 
-    // 집계 결과 저장
-    await db.doc("stats/weeklyTop").set({
+    await db.doc("stats/weeklyAnswerers").set({
       top,
       totalAnswers: snap.size,
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    // 공지사항으로 게시
+    // 공지사항으로도 게시
     if (top.length > 0) {
       const lines = top
         .map((t, i) => `${i + 1}위 ${t.authorName} (${t.count}개)`)
@@ -306,7 +322,7 @@ exports.weeklyTopQuestioners = onSchedule(
     // 랭킹에는 uid를 노출하지 않습니다(공개 문서이므로 익명 닉네임만).
     const top = [...byUser.values()]
       .sort((a, b) => b.count - a.count)
-      .slice(0, 7)
+      .slice(0, 5)
       .map(({ authorName, authorEmoji, count }) => ({
         authorName,
         authorEmoji,
