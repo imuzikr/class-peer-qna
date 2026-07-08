@@ -4973,7 +4973,7 @@ pre code {
   box-sizing: border-box;
 }
 
-.kwl-textarea::placeholder { color: #5c5b55; }
+.kwl-textarea::placeholder { color: #9a988e; }
 
 .kwl-textarea:focus {
   outline: none;
