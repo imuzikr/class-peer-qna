@@ -1290,11 +1290,46 @@ select:focus {
   flex-shrink: 0;
 }
 
+/* 필수 입력 표시 — 각 필드를 감싸고 오른쪽 위에 빨간 * 를 얹는다 */
+.form-row .req-field {
+  position: relative;
+  display: block;
+}
+.form-row .req-field.req-kw {
+  width: 140px;
+  flex-shrink: 0;
+}
+.form-row .req-field.req-title {
+  flex: 1;
+}
+.form-row .req-field select,
+.form-row .req-field input {
+  width: 100%;
+}
+.form-row .req-field::after {
+  content: "*";
+  position: absolute;
+  top: -6px;
+  right: 7px;
+  color: var(--danger);
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1;
+  pointer-events: none;
+}
+
 /* ===================== 질문 작성/수정 모달 ===================== */
 /* 상세 모달(modal-wide)과 같은 폭. 입력 영역도 넉넉하게 키워서
    글이 길어도 스크롤 없이 편하게 쓸 수 있습니다. */
 .modal-form {
   max-width: 1000px;
+}
+
+/* 키워드·제목 입력칸을 더 넉넉한 높이로 (제목 입력이 답답하지 않게) */
+.modal-form .form-row select,
+.modal-form .form-row input {
+  padding: 15px 14px;
+  font-size: 15px;
 }
 
 .modal-form .rte-full .rte-area {

@@ -121,19 +121,25 @@ export default function NewQuestionForm({
 
         <form className="form-grid" onSubmit={handleSubmit}>
           <div className="form-row">
-            <select value={keyword} onChange={(e) => setKeyword(e.target.value)}>
-              {list.map((kw) => (
-                <option key={kw} value={kw}>
-                  # {kw}
-                </option>
-              ))}
-            </select>
-            <input
-              type="text"
-              placeholder="질문 제목을 입력하세요"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
+            {/* 키워드·제목 모두 필수 — 오른쪽 위에 * 표시 */}
+            <label className="req-field req-kw">
+              <select value={keyword} onChange={(e) => setKeyword(e.target.value)} required>
+                {list.map((kw) => (
+                  <option key={kw} value={kw}>
+                    # {kw}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="req-field req-title">
+              <input
+                type="text"
+                placeholder="질문 제목을 입력하세요"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                required
+              />
+            </label>
           </div>
 
           {/* 서식 입력창 — 툴바에 이미지 첨부·그리기 도구 포함 */}
