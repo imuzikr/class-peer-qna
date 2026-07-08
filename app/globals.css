@@ -1344,10 +1344,10 @@ select:focus {
   max-height: 52vh;
 }
 
-/* 반 만들기 모달 — 입력이 반 이름 하나뿐이라 좁게 (modal-form 1000px의 1/4) */
+/* 반 만들기 모달 — 입력이 반 이름 하나뿐이지만 답답하지 않게 넉넉한 폭 */
 /* .modal 기본(640px)보다 우선하도록 specificity를 높임 */
 .modal.modal-class-create {
-  max-width: 250px;
+  max-width: 440px;
 }
 .modal-class-create .form-grid {
   gap: 14px;
