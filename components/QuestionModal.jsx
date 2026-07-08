@@ -125,7 +125,14 @@ export default function QuestionModal({
     if ((!hasText && answerImages.length === 0) || saving) return;
     setSaving(true);
     try {
-      await addAnswer(user, question.id, hasText ? html : "", null, answerImages);
+      // 내 질문에 다는 답변(채팅)은 "질문을 올릴 때 부여받은 닉네임"으로 표시.
+      // 지금 세션의 닉네임이 달라도, 내 스레드 안에서는 질문자와 같은 이름으로
+      // 이어지도록 질문의 authorName/authorEmoji를 그대로 사용합니다.
+      // 남의 질문에 다는 답변은 현재 세션의 내 익명 닉네임을 씁니다.
+      const answerUser = mine
+        ? { ...user, displayName: question.authorName, emoji: question.authorEmoji }
+        : user;
+      await addAnswer(answerUser, question.id, hasText ? html : "", null, answerImages);
       setContent("");
       setAnswerImages([]);
       setResetKey((k) => k + 1); // 에디터 비우기
