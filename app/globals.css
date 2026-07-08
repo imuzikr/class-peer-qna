@@ -1913,8 +1913,9 @@ select:focus {
   margin-right: 4px;
 }
 
+/* 다른 사람 말풍선 — 왼쪽, 은은한 크림/그레이 채움 (흰 배경과 구분) */
 .chat-bubble {
-  background: #fff;
+  background: #f0ede6;
   border: 1px solid var(--border);
   border-radius: 14px;
   border-top-left-radius: 4px;
@@ -1925,6 +1926,8 @@ select:focus {
   white-space: pre-wrap;
   word-break: break-word;
 }
+
+/* 내 말풍선 — 오른쪽, 테라코타 (다른 사람과 색을 다르게) */
 
 .chat-msg.mine .chat-bubble {
   background: var(--primary);
