@@ -118,7 +118,7 @@ export default function RichTextEditor({
   initialHtml = "", // 처음부터 채워 둘 내용 (예: 실행기에서 넘어온 코드)
   onChange,
   placeholder = "",
-  onSend, // chat 전용: 전송 실행 (Enter로도 전송)
+  onSend, // chat 전용: 전송 실행 (Ctrl/⌘+Enter로도 전송)
   sendDisabled = false,
   children, // 툴바에 끼워 넣을 추가 도구 (첨부, 그리기 등)
 }) {
@@ -236,6 +236,17 @@ export default function RichTextEditor({
   function handleKeyDown(e) {
     if (e.nativeEvent.isComposing) return;
 
+    // Ctrl/⌘ + Enter: 채팅 전송 (Enter 단독은 줄바꿈 유지)
+    if (
+      variant === "chat" &&
+      e.key === "Enter" &&
+      (e.ctrlKey || e.metaKey)
+    ) {
+      e.preventDefault();
+      if (!sendDisabled) onSend?.();
+      return;
+    }
+
     // Escape: 코드 블록 어디서든 탈출
     if (e.key === "Escape") {
       const pre = getContainingPre();
@@ -277,7 +288,7 @@ export default function RichTextEditor({
         <button
           type="button"
           className="rte-send"
-          title="전송 (Enter)"
+          title="전송 (Ctrl+Enter)"
           disabled={sendDisabled}
           onClick={onSend}
         >
