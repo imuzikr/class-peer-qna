@@ -875,6 +875,13 @@ select:focus {
   flex-direction: column;
 }
 
+/* 제목 줄: 아이콘 + "내 인사이트" + 개수 배지를 세로 중앙으로 정렬 */
+.modal-insight .modal-head h3 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .insight-modal-count {
   display: inline-flex;
   align-items: center;
@@ -882,7 +889,6 @@ select:focus {
   min-width: 22px;
   height: 22px;
   padding: 0 7px;
-  margin-left: 8px;
   border-radius: 999px;
   background: var(--neutral, #f0eee7);
   color: var(--text-sub);
