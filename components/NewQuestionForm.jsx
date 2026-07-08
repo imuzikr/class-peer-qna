@@ -53,10 +53,17 @@ export default function NewQuestionForm({
   const [drawing, setDrawing] = useState(false); // 그리기 캔버스 열림 여부
   const [saving, setSaving] = useState(false);
   const [uploadPct, setUploadPct] = useState(null); // 첨부 업로드 진행률
+  const [error, setError] = useState(""); // 필수 항목 누락 경고
   const MAX_IMAGES = 4;
 
   function removeImage(i) {
     setImages((prev) => prev.filter((_, idx) => idx !== i));
+  }
+
+  // 값이 바뀌면 경고 메시지를 지워 준다 (사용자가 채우는 즉시 사라지도록)
+  function changeField(setter, value) {
+    setter(value);
+    if (error) setError("");
   }
 
   async function handleFile(e) {
@@ -87,7 +94,16 @@ export default function NewQuestionForm({
   async function handleSubmit(e) {
     e.preventDefault();
     const html = sanitizeHtml(content);
-    if (!title.trim() || stripHtml(html).length === 0) return;
+    // 세 항목(키워드·제목·본문)이 모두 채워져야 등록 — 빠진 항목을 경고로 안내
+    const missing = [];
+    if (!keyword) missing.push("키워드");
+    if (!title.trim()) missing.push("제목");
+    if (stripHtml(html).length === 0) missing.push("본문");
+    if (missing.length > 0) {
+      setError(`${missing.join(", ")}을(를) 입력해 주세요.`);
+      return;
+    }
+    setError("");
     setSaving(true);
     try {
       const data = {
@@ -120,10 +136,11 @@ export default function NewQuestionForm({
         </div>
 
         <form className="form-grid" onSubmit={handleSubmit}>
+          {/* 키워드·제목·본문 모두 필수 — 라벨 옆 빨간 * 로 표시 */}
           <div className="form-row">
-            {/* 키워드·제목 모두 필수 — 오른쪽 위에 * 표시 */}
             <label className="req-field req-kw">
-              <select value={keyword} onChange={(e) => setKeyword(e.target.value)} required>
+              <span className="field-label">키워드 <b>*</b></span>
+              <select value={keyword} onChange={(e) => changeField(setKeyword, e.target.value)} required>
                 {list.map((kw) => (
                   <option key={kw} value={kw}>
                     # {kw}
@@ -132,21 +149,23 @@ export default function NewQuestionForm({
               </select>
             </label>
             <label className="req-field req-title">
+              <span className="field-label">제목 <b>*</b></span>
               <input
                 type="text"
                 placeholder="질문 제목을 입력하세요"
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                onChange={(e) => changeField(setTitle, e.target.value)}
                 required
               />
             </label>
           </div>
 
           {/* 서식 입력창 — 툴바에 이미지 첨부·그리기 도구 포함 */}
+          <span className="field-label">본문 <b>*</b></span>
           <RichTextEditor
             variant="full"
             initialHtml={editing ? question.content : initialContent}
-            onChange={setContent}
+            onChange={(v) => changeField(setContent, v)}
             placeholder="어떤 부분이 이해되지 않는지 구체적으로 적어 주세요. (예: 교과서 몇 쪽, 어떤 개념, 어디까지 풀었는지)"
           >
             <label className="rte-tool" title="이미지 첨부">
@@ -187,6 +206,8 @@ export default function NewQuestionForm({
               ))}
             </div>
           )}
+
+          {error && <p className="form-error">⚠️ {error}</p>}
 
           <button type="submit" className="btn-primary" disabled={saving}>
             {saving
