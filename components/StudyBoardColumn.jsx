@@ -419,7 +419,10 @@ export default function StudyBoardColumn({
           card={creating ? null : selectedCard}
           canEdit={
             creating
-              ? canAdd
+              // 작성 중에는 편집 폼을 계속 유지. (자동저장으로 카드가 생기면
+              // myCard가 채워져 canAdd가 false로 바뀌는데, 그 때문에 열려 있던
+              // 작성 폼이 사라지지 않도록 canAdd 대신 잠금 여부만 본다.)
+              ? !locked
               : selectedCard
               ? canEditCard(selectedCard)
               : false

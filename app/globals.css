@@ -6523,7 +6523,7 @@ pre code {
   justify-content: flex-end;
 }
 
-/* 자동저장 상태 — 저장 행 왼쪽에 배치 */
+/* 자동저장 상태 — 저장 행 왼쪽(오류 안내용) */
 .study-autosave {
   margin-right: auto;
   font-size: 12.5px;
@@ -6535,6 +6535,31 @@ pre code {
   color: #5c9e68;
 }
 .study-autosave--error {
+  color: var(--danger);
+}
+
+/* 자동저장 배지 — 모달 제목 줄에 명시적으로 표시 */
+.study-autosave-pill {
+  margin-left: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--neutral);
+  color: var(--text-sub);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.study-autosave-pill--saving {
+  background: var(--neutral);
+  color: var(--text-sub);
+}
+.study-autosave-pill--saved {
+  background: #e7f3e9;
+  color: #3f8a4f;
+}
+.study-autosave-pill--error {
+  background: #fdecea;
   color: var(--danger);
 }
 

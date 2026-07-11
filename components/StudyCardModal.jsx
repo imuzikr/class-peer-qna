@@ -317,6 +317,13 @@ export default function StudyCardModal({
               cardDisplayName || "카드 보기"
             )}
             <span className="study-form-board"># {board.title}</span>
+            {canEdit && autoStatus !== "idle" && (
+              <span className={`study-autosave-pill study-autosave-pill--${autoStatus}`}>
+                {autoStatus === "saving" && "저장 중…"}
+                {autoStatus === "saved" && "✓ 자동 저장됨"}
+                {autoStatus === "error" && "저장 실패"}
+              </span>
+            )}
           </h3>
           <button className="btn-close" onClick={onClose} aria-label="닫기">
             ×
@@ -575,11 +582,11 @@ export default function StudyCardModal({
 
           {canEdit && (
             <div className="study-card-modal-save-row">
-              <span className={`study-autosave study-autosave--${autoStatus}`}>
-                {autoStatus === "saving" && "저장 중…"}
-                {autoStatus === "saved" && "✓ 자동 저장됨"}
-                {autoStatus === "error" && "저장 실패 · 다시 시도됩니다"}
-              </span>
+              {autoStatus === "error" && (
+                <span className="study-autosave study-autosave--error">
+                  저장 실패 · 다시 시도됩니다
+                </span>
+              )}
               {!isNew && (
                 confirmDelete ? (
                   <>
