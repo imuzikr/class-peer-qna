@@ -821,27 +821,33 @@ export default function AdminDashboardPage() {
                 </div>
               </section>
 
-              <section className="admin-stats-grid">
-                {[
-                  { key: "ask", label: "올린 질문", value: selectedQuestions.length, tone: "ask" },
-                  { key: "answer", label: "작성 답변", value: selectedAnswers.length, tone: "answer" },
-                  { key: "resolved", label: "해결 질문", value: resolvedQuestions, tone: "done" },
-                  { key: "moments", label: "멋진 순간", value: selectedNotes.length, tone: "moments" },
-                  { key: "insight", label: "인사이트", value: withReflection, tone: "insight" },
-                ].map(({ key, label, value, tone }) => (
-                  <StatCard
-                    key={key}
-                    label={label}
-                    value={value}
-                    tone={tone}
-                    isActive={activeStatKey === key}
-                    onClick={() => setActiveStatKey((k) => (k === key ? null : key))}
-                  />
-                ))}
-              </section>
+              {/* 탐색 존 — 카드를 눌러 상세를 여는 동적 영역 (아래 '최근 활동'은 고정) */}
+              <div className={`stat-explorer${activeStatKey ? " is-open" : ""}`}>
+                <p className="stat-explorer-hint">
+                  🔎 카드를 눌러 자세히 보기
+                  <span>선택한 항목의 상세가 바로 아래에 열립니다</span>
+                </p>
+                <section className="admin-stats-grid">
+                  {[
+                    { key: "ask", label: "올린 질문", value: selectedQuestions.length, tone: "ask" },
+                    { key: "answer", label: "작성 답변", value: selectedAnswers.length, tone: "answer" },
+                    { key: "resolved", label: "해결 질문", value: resolvedQuestions, tone: "done" },
+                    { key: "moments", label: "멋진 순간", value: selectedNotes.length, tone: "moments" },
+                    { key: "insight", label: "인사이트", value: withReflection, tone: "insight" },
+                  ].map(({ key, label, value, tone }) => (
+                    <StatCard
+                      key={key}
+                      label={label}
+                      value={value}
+                      tone={tone}
+                      isActive={activeStatKey === key}
+                      onClick={() => setActiveStatKey((k) => (k === key ? null : key))}
+                    />
+                  ))}
+                </section>
 
-              {activeStatKey && (
-                <section className="stat-detail">
+                {activeStatKey && (
+                  <section className="stat-detail">
                   <div className="stat-detail-head">
                     <h3>{STAT_LABELS[activeStatKey]}</h3>
                     <span className="stat-detail-count">
@@ -888,8 +894,9 @@ export default function AdminDashboardPage() {
                       ))}
                     </div>
                   )}
-                </section>
-              )}
+                  </section>
+                )}
+              </div>
 
               <section className="admin-activity-panel">
                 <div className="admin-panel-head">
