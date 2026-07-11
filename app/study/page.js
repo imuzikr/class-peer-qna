@@ -13,6 +13,7 @@ import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import {
   subscribeStudyBoards,
+  updateStudyBoard,
   subscribeQuestions,
   subscribeKeywords,
   subscribeClasses,
@@ -77,28 +78,16 @@ export default function StudyPage() {
   const [directory, setDirectory] = useState([]);   // 교사: uid→실명 등 프로필
   const [memberUids, setMemberUids] = useState([]);  // 현재 반 소속 학생 uid
   const [rewards, setRewards] = useState([]);        // 현재 반 보상(과일) 목록
-  // 교사 개인 설정: 접어 둔 보드 id 목록 — 브라우저(localStorage)에만 저장,
-  // 학생 화면에는 영향 없음
-  const [collapsedIds, setCollapsedIds] = useState([]);
-
-  const COLLAPSE_KEY = "study_collapsed_boards";
-  useEffect(() => {
-    try {
-      setCollapsedIds(JSON.parse(localStorage.getItem(COLLAPSE_KEY) ?? "[]"));
-    } catch {
-      /* 손상된 저장값은 무시 */
-    }
-  }, []);
-  function toggleBoardCollapse(id) {
-    setCollapsedIds((prev) => {
-      const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
-      try { localStorage.setItem(COLLAPSE_KEY, JSON.stringify(next)); } catch { /* 무시 */ }
-      return next;
-    });
+  // 보드 접힘 상태는 보드 문서(board.collapsed)에 저장 — 교사가 접으면
+  // 학생 화면에도 동일하게 반영됩니다(공유 상태). 쓰기는 교사만(규칙에서 강제).
+  function toggleBoardCollapse(board) {
+    updateStudyBoard(board.id, { collapsed: !board.collapsed });
   }
   function expandAllBoards() {
-    setCollapsedIds([]);
-    try { localStorage.setItem(COLLAPSE_KEY, "[]"); } catch { /* 무시 */ }
+    // 첫 보드를 제외한 접힌 보드를 모두 펼침
+    classBoards.forEach((b, bi) => {
+      if (bi !== 0 && b.collapsed) updateStudyBoard(b.id, { collapsed: false });
+    });
   }
 
   useEffect(() => {
@@ -382,11 +371,11 @@ export default function StudyPage() {
                       user={user}
                       isTeacher={admin}
                       isFirst={i === 0}
-                      collapsed={admin && i !== 0 && collapsedIds.includes(board.id)}
-                      onToggleCollapse={() => toggleBoardCollapse(board.id)}
+                      collapsed={i !== 0 && !!board.collapsed}
+                      onToggleCollapse={() => toggleBoardCollapse(board)}
                       onExpandAll={expandAllBoards}
                       hasCollapsed={classBoards.some(
-                        (b, bi) => bi !== 0 && collapsedIds.includes(b.id)
+                        (b, bi) => bi !== 0 && !!b.collapsed
                       )}
                       questions={questions}
                       classes={classes}

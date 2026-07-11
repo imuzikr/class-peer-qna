@@ -70,6 +70,9 @@ export default function StudyBoardColumn({
   const [activitiesDraft, setActivitiesDraft] = useState([]);
   const [savingActivities, setSavingActivities] = useState(false);
   const [presenting, setPresenting] = useState(false); // 발표 모드
+  // 학생 미리보기(peek): 접힌 보드를 학생이 잠깐 펼쳐 보는 개인 상태.
+  // 공유 상태(board.collapsed)는 그대로 두고, 이 학생의 화면에서만 펼쳐집니다.
+  const [peeked, setPeeked] = useState(false);
 
   useEffect(() => {
     const unsub = subscribeStudyCards(board.id, setCards);
@@ -197,17 +200,28 @@ export default function StudyBoardColumn({
 
   const pinned = isFirst && !!board.pinned; // 고정은 첫 보드에서만 유효
 
-  // 접힌 상태 — 폭 48px 세로 슬림 바 (제목 세로쓰기 + 카드 수 뱃지),
-  // 클릭하면 다시 펼쳐집니다. (Trello 리스트 접기 패턴)
-  if (collapsed) {
+  // 공유 접힘이 해제되면(교사가 펼침) 학생의 개인 미리보기도 초기화 —
+  // 이후 다시 접혔을 때 슬림 바가 정상적으로 나타나게 합니다.
+  useEffect(() => {
+    if (!collapsed) setPeeked(false);
+  }, [collapsed]);
+
+  // 학생이 미리보기 중이면 이 화면에서만 펼쳐 보여줍니다(공유 상태는 접힘 유지).
+  const effectiveCollapsed = collapsed && !peeked;
+
+  // 접힌 상태 — 폭 48px 세로 슬림 바 (제목 세로쓰기 + 카드 수 뱃지).
+  // 교사가 클릭하면 공유 상태를 펼치고(모두에게 반영),
+  // 학생이 클릭하면 자기 화면에서만 잠깐 펼쳐(peek) 봅니다.
+  if (effectiveCollapsed) {
+    const unfold = () => (isTeacher ? onToggleCollapse?.() : setPeeked(true));
     return (
       <section
         className="study-column study-column--collapsed"
         role="button"
         tabIndex={0}
-        onClick={onToggleCollapse}
-        onKeyDown={(e) => e.key === "Enter" && onToggleCollapse?.()}
-        title={`'${board.title}' 펼치기`}
+        onClick={unfold}
+        onKeyDown={(e) => e.key === "Enter" && unfold()}
+        title={isTeacher ? `'${board.title}' 펼치기` : `'${board.title}' 잠깐 펼쳐 보기`}
       >
         <span className="study-collapsed-expand" aria-hidden="true">»</span>
         <span className="study-collapsed-count">{cards.length}</span>
@@ -276,6 +290,20 @@ export default function StudyBoardColumn({
               }}
               title="보드 접기 — 세로 막대로 축소"
               aria-label="보드 접기"
+            >
+              «
+            </button>
+          )}
+          {/* 학생 미리보기 중: 자기 화면에서만 다시 접기 (공유 상태는 그대로) */}
+          {!isTeacher && collapsed && peeked && (
+            <button
+              className="study-collapse-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                setPeeked(false);
+              }}
+              title="다시 접기"
+              aria-label="다시 접기"
             >
               «
             </button>

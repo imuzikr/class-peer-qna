@@ -20,9 +20,22 @@ import RewardFruits from "./RewardFruits";
 
 const IMAGE_EXTS = new Set(["jpg", "jpeg", "png", "gif", "webp"]);
 
+// 본문 HTML에서 삽입된 이미지(src)들을 추출 / 이미지 태그를 제거한 텍스트만 남김
+function extractImgSrcs(html) {
+  const out = [];
+  const re = /<img[^>]*\bsrc=["']([^"']+)["'][^>]*>/gi;
+  let m;
+  while ((m = re.exec(html)) !== null) out.push(m[1]);
+  return out;
+}
+function stripImgTags(html) {
+  return html.replace(/<img[^>]*>/gi, "");
+}
+
 export default function StudyPresentModal({ board, cards = [], onClose }) {
   const [idx, setIdx] = useState(0);
   const [rewardMap, setRewardMap] = useState({}); // uid -> count
+  const [showImage, setShowImage] = useState(false); // 이미지 보기 토글
   const total = cards.length;
   const card = cards[Math.min(idx, total - 1)];
 
@@ -47,19 +60,29 @@ export default function StudyPresentModal({ board, cards = [], onClose }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [total, onClose]);
 
+  // 카드가 바뀌면 이미지 보기 토글은 닫힌 상태로 초기화
+  useEffect(() => {
+    setShowImage(false);
+  }, [idx]);
+
   if (!card) return null;
 
   const displayName = getDirectoryRealName(card.authorId) || card.authorName || "익명";
   const count = rewardMap[card.authorId] ?? 0;
 
   const fileAtts = (card.attachments ?? []).filter((a) => !IMAGE_EXTS.has(a.ext));
-  const imgs = [
-    ...(card.imageUrl ? [{ id: "__main__", src: card.imageUrl }] : []),
+  // 삽입된 이미지 = 본문에 넣은 이미지 + 대표 이미지 + 이미지 첨부 (읽기 순서대로)
+  const safeContent = sanitizeHtml(card.content || "");
+  const allImages = [
+    ...extractImgSrcs(safeContent),
+    ...(card.imageUrl ? [card.imageUrl] : []),
     ...(card.attachments ?? [])
       .filter((a) => IMAGE_EXTS.has(a.ext))
-      .map((a) => ({ id: a.id, src: a.dataUrl })),
+      .map((a) => a.dataUrl),
   ];
-  const hasText = sanitizeHtml(card.content || "").replace(/<[^>]*>/g, "").trim().length > 0;
+  // 본문 텍스트 — 발표 화면에서는 이미지를 인라인으로 펼치지 않음(이미지 보기 버튼으로)
+  const textHtml = stripImgTags(safeContent);
+  const hasText = textHtml.replace(/<[^>]*>/g, "").trim().length > 0;
 
   function awardFruit() {
     if (count >= REWARD_MAX) return;
@@ -82,28 +105,44 @@ export default function StudyPresentModal({ board, cards = [], onClose }) {
 
         {/* 본문 */}
         <div className="present-body" key={card.id}>
+          {/* 상단 첨부 정보 — 파일/이미지가 있다는 사실만 알리고, 이미지는 버튼으로 봄 */}
+          {(allImages.length > 0 || fileAtts.length > 0) && (
+            <div className="present-attach-info">
+              {allImages.length > 0 && (
+                <button
+                  type="button"
+                  className={`present-attach-badge present-img-toggle${showImage ? " on" : ""}`}
+                  onClick={() => setShowImage((v) => !v)}
+                >
+                  🖼 이미지 {allImages.length}개 · {showImage ? "숨기기" : "보기"}
+                </button>
+              )}
+              {fileAtts.length > 0 && (
+                <span className="present-attach-badge">📎 첨부파일 {fileAtts.length}개</span>
+              )}
+            </div>
+          )}
+
           {card.title && <h2 className="present-title">{card.title}</h2>}
           {hasText && (
             <div
               className="present-content study-card-body"
-              dangerouslySetInnerHTML={{ __html: sanitizeHtml(card.content) }}
+              dangerouslySetInnerHTML={{ __html: textHtml }}
             />
           )}
-          {imgs.length > 0 && (
-            <div className="present-images">
-              {imgs.map((it) => (
-                <ZoomableImage key={it.id} src={it.src} alt="첨부 이미지" className="present-image" />
-              ))}
+
+          {/* 이미지 보기 — 삽입된 첫 번째 이미지를 중앙에 크게 */}
+          {showImage && allImages.length > 0 && (
+            <div className="present-image-view">
+              <ZoomableImage
+                src={allImages[0]}
+                alt="삽입된 이미지"
+                className="present-image-single"
+              />
             </div>
           )}
-          {fileAtts.length > 0 && (
-            <ul className="present-files">
-              {fileAtts.map((a) => (
-                <li key={a.id}>📎 {a.name}</li>
-              ))}
-            </ul>
-          )}
-          {!hasText && imgs.length === 0 && fileAtts.length === 0 && (
+
+          {!hasText && allImages.length === 0 && fileAtts.length === 0 && (
             <p className="present-empty">아직 작성한 내용이 없어요.</p>
           )}
         </div>
