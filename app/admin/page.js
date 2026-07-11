@@ -15,6 +15,7 @@ import {
   subscribeKwlAll,
   subscribeUserDirectory,
   subscribeStudentNotes,
+  subscribeStudentRewardTotal,
   toDate,
 } from "@/lib/store";
 import { isFirebaseConfigured } from "@/lib/firebase";
@@ -25,6 +26,7 @@ import TopNav from "@/components/TopNav";
 import { getMeTooCount } from "@/lib/questionRanking";
 import StudentEditModal from "@/components/StudentEditModal";
 import StudentNotesThread from "@/components/StudentNotesThread";
+import RewardFruits from "@/components/RewardFruits";
 import StudentKwlPanel from "@/components/StudentKwlPanel";
 import ClassOverview from "@/components/ClassOverview";
 import StudyRoomStats from "@/components/StudyRoomStats";
@@ -266,6 +268,7 @@ export default function AdminDashboardPage() {
   const [activeStatKey, setActiveStatKey] = useState(null); // 통계 카드 드릴다운
   const [selectedKwl, setSelectedKwl] = useState([]); // 선택 학생 KWL 기록
   const [selectedNotes, setSelectedNotes] = useState([]); // 선택 학생 멋진 순간(누가기록)
+  const [selectedFruits, setSelectedFruits] = useState(0); // 선택 학생 받은 과일 총합
   const [view, setView] = useState("students"); // 'students' | 'overview'
   const [selectedClassId, setSelectedClassId] = useState(null); // null = 전체 학급
   const [classes, setClasses] = useState([]);
@@ -488,6 +491,15 @@ export default function AdminDashboardPage() {
       return;
     }
     return subscribeStudentNotes(selectedId, setSelectedNotes);
+  }, [selectedId]);
+
+  // 선택한 학생이 받은 과일 총합 구독 (여러 반 합산)
+  useEffect(() => {
+    if (!selectedId) {
+      setSelectedFruits(0);
+      return;
+    }
+    return subscribeStudentRewardTotal(selectedId, setSelectedFruits);
   }, [selectedId]);
 
   const selected = people.find((p) => p.id === selectedId) ?? null;
@@ -840,8 +852,21 @@ export default function AdminDashboardPage() {
                     </span>
                   </div>
                   {activeStatKey === "moments" ? (
-                    // 멋진 순간 — 대시보드에서는 읽기 전용(작성은 공부방 패널에서)
-                    <StudentNotesThread studentUid={selectedId} readOnly />
+                    // 멋진 순간 — 받은 과일(합계) + 누가기록(읽기 전용)
+                    <div className="moments-detail">
+                      <div className="moments-rewards">
+                        <span className="moments-rewards-label">받은 과일</span>
+                        {selectedFruits > 0 ? (
+                          <>
+                            <RewardFruits count={selectedFruits} className="reward-fruits moments-fruits" />
+                            <span className="moments-rewards-total">총 {selectedFruits}개</span>
+                          </>
+                        ) : (
+                          <span className="moments-rewards-empty">아직 받은 과일이 없어요.</span>
+                        )}
+                      </div>
+                      <StudentNotesThread studentUid={selectedId} readOnly />
+                    </div>
                   ) : statDetailItems.length === 0 ? (
                     <EmptyPanel>{STAT_EMPTY[activeStatKey]}</EmptyPanel>
                   ) : (

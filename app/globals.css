@@ -5125,6 +5125,46 @@ pre code {
   padding: 16px;
 }
 
+/* 멋진 순간 드릴다운 — 받은 과일 + 총 개수 */
+.moments-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.moments-rewards {
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.moments-rewards-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-sub);
+  margin-bottom: 8px;
+}
+/* 대시보드에서는 과일을 폭에 맞춰 자연스럽게 감싸 배치(패널의 10칸 그리드와 별개) */
+.moments-fruits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 4px;
+  grid-template-columns: none;
+}
+.moments-fruits .reward-fruit {
+  font-size: 22px;
+  line-height: 1.2;
+}
+.moments-rewards-total {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--primary);
+}
+.moments-rewards-empty {
+  font-size: 13px;
+  color: var(--text-sub);
+}
+
 /* ── KWL 사이드 패널 ── */
 .kwl-panel {
   width: 300px;

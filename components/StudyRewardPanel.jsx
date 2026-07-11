@@ -13,9 +13,7 @@
 import { useState } from "react";
 import { REWARD_MAX } from "@/lib/store";
 import StudentNotesModal from "./StudentNotesModal";
-
-// 과일이 채워지는 고정 순서 (10종)
-const FRUITS = ["🍎", "🍊", "🍋", "🍇", "🍓", "🍑", "🍈", "🍉", "🍒", "🥝"];
+import RewardFruits from "./RewardFruits";
 
 export default function StudyRewardPanel({ roster = [], onAward, classId = null }) {
   const [notesFor, setNotesFor] = useState(null); // 누가기록 모달 대상 학생
@@ -71,15 +69,7 @@ export default function StudyRewardPanel({ roster = [], onAward, classId = null 
                 </span>
               </div>
 
-              {s.count > 0 && (
-                <div className="reward-fruits" aria-label={`과일 ${s.count}개`}>
-                  {Array.from({ length: s.count }).map((_, i) => (
-                    <span key={i} className="reward-fruit">
-                      {FRUITS[i % FRUITS.length]}
-                    </span>
-                  ))}
-                </div>
-              )}
+              <RewardFruits count={s.count} />
             </li>
           ))}
         </ul>
