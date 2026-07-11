@@ -712,8 +712,12 @@ export default function AdminDashboardPage() {
                   <div className="admin-student-title">
                     <span className="avatar">{selected.emoji}</span>
                     <div>
-                      <h1>{selected.name}</h1>
-                      <p>{selected.realName || "실명 미등록"} · 최근 활동 {formatTime(selected.lastActiveAt)}</p>
+                      <h1>{selected.realName || selected.name}</h1>
+                      <p>
+                        {!selected.realName && "실명 미등록 · "}
+                        {selected.email && `${selected.email} · `}
+                        최근 활동 {formatTime(selected.lastActiveAt)}
+                      </p>
                     </div>
                   </div>
                 </div>
