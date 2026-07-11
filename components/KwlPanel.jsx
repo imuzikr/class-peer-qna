@@ -3,7 +3,7 @@
 // KWL 사이드 패널 — 공부방 왼쪽 고정 패널
 // 하루에 1개 항목만 유지(같은 날 저장 시 덮어쓰기), 저장 후 입력창은 초기화됩니다.
 import { useEffect, useState } from "react";
-import { subscribeMyTodayKwl, subscribeAllKwl, subscribeMyAllKwl, fetchAllKwlOnce, addKwl, updateKwl, deleteKwl } from "@/lib/store";
+import { subscribeMyTodayKwl, subscribeAllKwl, subscribeMyAllKwl, addKwl, updateKwl, deleteKwl } from "@/lib/store";
 import { IconKwlK, IconKwlW, IconKwlL, IconRecord } from "@/components/StatusIcons";
 import { IconPen } from "@/components/RichTextEditor";
 import KwlFullscreenModal from "@/components/KwlFullscreenModal";
@@ -391,13 +391,12 @@ export default function KwlPanel({ classId, user, isTeacher, onAsk, mobileOpen, 
         </div>
       )}
 
-      {/* 교사: KWL 전체 화면 (오늘 학생 기록 3컬럼) */}
+      {/* 교사: KWL 전체 화면 (날짜별 3컬럼, 좌우 화살표·달력으로 날짜 이동) */}
       {fullscreen && (
         <KwlFullscreenModal
-          entries={allEntries}
-          dateLabel={formatDateLabel(today)}
+          classId={classId}
+          initialDate={today}
           onClose={() => setFullscreen(false)}
-          onRefresh={() => fetchAllKwlOnce(classId, today).then(setAllEntries)}
         />
       )}
     </aside>

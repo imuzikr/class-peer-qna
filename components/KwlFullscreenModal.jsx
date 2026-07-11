@@ -1,39 +1,78 @@
 "use client";
 
 // =============================================================
-// KWL 전체 화면 (교사 전용) — 오늘 학생들의 K·W·L을 3컬럼으로 크게
+// KWL 전체 화면 (교사 전용) — 학생들의 K·W·L을 3컬럼으로 크게
 // -------------------------------------------------------------
 // · 한 행 = 학생 한 명. K / W / L 세 컬럼을 나란히 보며 성찰 나눔.
 // · 스크롤하며 전체 학생 기록을 훑을 수 있음. Esc로 닫기.
 // · 학생 이름은 디렉터리의 실명(교사 화면)으로 표시.
 // · 컬럼(학생·K·W·L) 전체에 은은한 배경 띠를 깔아 한눈에 구분되게 합니다.
-//   (CSS Grid에 컬럼 전체를 관통하는 배경 레이어를 먼저 깔고, 그 위에
-//    헤더·셀을 명시적 grid-row/column으로 겹쳐 올리는 방식)
+// · 날짜 이동: 좌우 화살표(하루씩) + 달력 아이콘(직접 선택) 두 가지 방법.
+//   날짜가 바뀔 때마다 그 날짜의 기록을 실시간 구독합니다.
 // =============================================================
-import { Fragment, useEffect, useState } from "react";
-import { getDirectoryRealName } from "@/lib/store";
+import { Fragment, useEffect, useRef, useState } from "react";
+import { subscribeAllKwl, fetchAllKwlOnce, getDirectoryRealName } from "@/lib/store";
 import { IconKwlK, IconKwlW, IconKwlL } from "./StatusIcons";
 
-export default function KwlFullscreenModal({ entries = [], dateLabel = "", onClose, onRefresh }) {
-  const [refreshing, setRefreshing] = useState(false);
+function toYMD(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+function addDays(dateStr, delta) {
+  const d = new Date(dateStr + "T00:00:00");
+  d.setDate(d.getDate() + delta);
+  return toYMD(d);
+}
+function formatDateLabel(dateStr) {
+  const d = new Date(dateStr + "T00:00:00");
+  return d.toLocaleDateString("ko-KR", { month: "long", day: "numeric", weekday: "short" });
+}
+const TODAY = toYMD(new Date());
 
-  // Esc 닫기
+export default function KwlFullscreenModal({ classId, initialDate, onClose }) {
+  const [date, setDate] = useState(initialDate || TODAY);
+  const [entries, setEntries] = useState([]);
+  const [refreshing, setRefreshing] = useState(false);
+  const dateInputRef = useRef(null);
+
+  // 날짜가 바뀔 때마다 그 날짜의 기록을 실시간 구독
+  useEffect(() => {
+    if (!classId) return;
+    return subscribeAllKwl(classId, date, setEntries);
+  }, [classId, date]);
+
+  // Esc 닫기, ←/→ 날짜 이동 (입력 필드에 포커스 중일 땐 방향키 그대로 사용하게 제외)
   useEffect(() => {
     function onKey(e) {
+      const tag = document.activeElement?.tagName;
+      const typing = tag === "INPUT" || tag === "TEXTAREA";
       if (e.key === "Escape") onClose();
+      else if (!typing && e.key === "ArrowLeft") setDate((d) => addDays(d, -1));
+      else if (!typing && e.key === "ArrowRight") {
+        setDate((d) => (d < TODAY ? addDays(d, 1) : d));
+      }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
   async function handleRefresh() {
-    if (!onRefresh || refreshing) return;
+    if (refreshing) return;
     setRefreshing(true);
     try {
-      await onRefresh();
+      setEntries(await fetchAllKwlOnce(classId, date));
     } finally {
       setRefreshing(false);
     }
+  }
+
+  function openCalendar() {
+    const el = dateInputRef.current;
+    if (!el) return;
+    if (typeof el.showPicker === "function") el.showPicker();
+    else el.focus();
   }
 
   // 학생별로 정리 — 실명(가나다) 순 정렬
@@ -44,34 +83,78 @@ export default function KwlFullscreenModal({ entries = [], dateLabel = "", onClo
     }))
     .sort((a, b) => a.displayName.localeCompare(b.displayName, "ko"));
 
+  const isToday = date === TODAY;
+
   return (
     <div className="modal-backdrop present-backdrop" onClick={onClose}>
       <div className="present-modal kwlfs-modal" onClick={(e) => e.stopPropagation()}>
         <div className="present-head">
           <div className="present-who">
-            <strong className="present-name">📝 오늘의 KWL</strong>
+            <strong className="present-name">📝 KWL</strong>
             <span className="present-progress">{rows.length}명</span>
-            <span className="present-board">{dateLabel}</span>
-          </div>
-          <div className="kwlfs-head-actions">
-            {onRefresh && (
+
+            {/* 날짜 이동 — 좌우 화살표 + 달력 선택 */}
+            <div className="kwlfs-date-nav">
               <button
                 type="button"
-                className={`kwlfs-refresh-btn${refreshing ? " spinning" : ""}`}
-                onClick={handleRefresh}
-                disabled={refreshing}
-                title="새로고침 — 계속 보는 동안 새로 추가된 기록도 불러옵니다"
+                className="kwlfs-date-arrow"
+                onClick={() => setDate((d) => addDays(d, -1))}
+                aria-label="전날"
+                title="전날 (←)"
               >
-                🔄 {refreshing ? "새로고침 중…" : "새로고침"}
+                ‹
               </button>
-            )}
+              <button
+                type="button"
+                className="kwlfs-date-label"
+                onClick={openCalendar}
+                title="날짜 선택"
+              >
+                📅 {formatDateLabel(date)}{isToday && <span className="kwlfs-date-today"> · 오늘</span>}
+              </button>
+              <input
+                ref={dateInputRef}
+                type="date"
+                className="kwlfs-date-input"
+                value={date}
+                max={TODAY}
+                onChange={(e) => e.target.value && setDate(e.target.value)}
+                aria-label="날짜 직접 선택"
+              />
+              <button
+                type="button"
+                className="kwlfs-date-arrow"
+                onClick={() => setDate((d) => addDays(d, 1))}
+                disabled={isToday}
+                aria-label="다음날"
+                title="다음날 (→)"
+              >
+                ›
+              </button>
+              {!isToday && (
+                <button type="button" className="kwlfs-date-today-btn" onClick={() => setDate(TODAY)}>
+                  오늘로
+                </button>
+              )}
+            </div>
+          </div>
+          <div className="kwlfs-head-actions">
+            <button
+              type="button"
+              className={`kwlfs-refresh-btn${refreshing ? " spinning" : ""}`}
+              onClick={handleRefresh}
+              disabled={refreshing}
+              title="새로고침 — 보는 동안 새로 추가된 기록도 불러옵니다"
+            >
+              🔄 {refreshing ? "새로고침 중…" : "새로고침"}
+            </button>
             <button className="btn-close" onClick={onClose} aria-label="닫기">×</button>
           </div>
         </div>
 
         <div className="kwlfs-body">
           {rows.length === 0 ? (
-            <p className="present-empty">오늘 저장된 KWL이 아직 없어요.</p>
+            <p className="present-empty">{formatDateLabel(date)}에 저장된 KWL이 없어요.</p>
           ) : (
             <div
               className="kwlfs-table"

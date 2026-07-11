@@ -5336,6 +5336,72 @@ pre code {
   color: #fff;
 }
 
+/* 날짜 이동 — 좌우 화살표 + 달력 선택 */
+.kwlfs-date-nav {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.kwlfs-date-arrow {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text);
+  font-size: 20px;
+  line-height: 1;
+  padding-bottom: 3px;
+  display: grid;
+  place-items: center;
+}
+.kwlfs-date-arrow:hover:not(:disabled) {
+  background: var(--neutral);
+}
+.kwlfs-date-arrow:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.kwlfs-date-label {
+  border: 1px solid var(--border);
+  background: var(--bg-deep);
+  color: var(--dark);
+  font-size: 14px;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.kwlfs-date-label:hover {
+  background: var(--neutral);
+}
+.kwlfs-date-today {
+  color: var(--primary);
+  font-weight: 800;
+}
+/* 실제 날짜 선택은 숨겨진 네이티브 input[type=date]가 담당(달력 버튼으로 오픈) */
+.kwlfs-date-input {
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.kwlfs-date-today-btn {
+  border: none;
+  background: none;
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: underline;
+  padding: 4px 6px;
+  white-space: nowrap;
+}
+
 .kwlfs-body {
   flex: 1;
   overflow-y: auto;
