@@ -42,6 +42,7 @@ export default function StudyBoardColumn({
   board,
   user,
   isTeacher,
+  isFirst = false, // 첫 번째 보드 — 고정(핀) 기능은 첫 보드에만 제공
   questions = [],
   classes = [],
   onAsk,
@@ -190,9 +191,11 @@ export default function StudyBoardColumn({
     onModalChange?.(modalOpen);
   }, [modalOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const pinned = isFirst && !!board.pinned; // 고정은 첫 보드에서만 유효
+
   return (
     <section
-      className={`study-column ${isNotice ? "is-notice" : ""}${isDragging ? " board-dragging" : ""}${dragOver ? " board-drag-over" : ""}`}
+      className={`study-column ${isNotice ? "is-notice" : ""}${isDragging ? " board-dragging" : ""}${dragOver ? " board-drag-over" : ""}${pinned ? " is-pinned" : ""}`}
       onDragOver={isTeacher ? (e) => { e.preventDefault(); setDragOver(true); } : undefined}
       onDragLeave={isTeacher ? () => setDragOver(false) : undefined}
       onDrop={isTeacher ? (e) => { e.preventDefault(); setDragOver(false); onBoardDrop?.(); } : undefined}
@@ -211,7 +214,20 @@ export default function StudyBoardColumn({
           }
           title={isTeacher ? "드래그해서 보드 순서 변경" : undefined}
         >
-          <h3>{board.title}</h3>
+          <h3>{pinned && <span className="study-pin-mark" aria-hidden="true">📌 </span>}{board.title}</h3>
+          {isTeacher && isFirst && (
+            <button
+              className={`study-pin-btn${pinned ? " on" : ""}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                updateStudyBoard(board.id, { pinned: !board.pinned });
+              }}
+              title={pinned ? "고정 해제 — 스크롤 시 함께 이동" : "보드 고정 — 스크롤해도 왼쪽에 고정"}
+              aria-label={pinned ? "보드 고정 해제" : "보드 고정"}
+            >
+              📌
+            </button>
+          )}
           {isTeacher && !isNotice && (
             <button
               className="study-present-btn"

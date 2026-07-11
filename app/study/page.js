@@ -344,12 +344,13 @@ export default function StudyPage() {
                 <p className="empty-note">아직 열린 수업 보드가 없어요.</p>
               ) : (
                 <div className="study-columns">
-                  {classBoards.map((board) => (
+                  {classBoards.map((board, i) => (
                     <StudyBoardColumn
                       key={board.id}
                       board={board}
                       user={user}
                       isTeacher={admin}
+                      isFirst={i === 0}
                       questions={questions}
                       classes={classes}
                       onAsk={(kw) => setAskKeyword(kw)}

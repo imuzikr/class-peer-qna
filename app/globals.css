@@ -5365,9 +5365,38 @@ pre code {
   padding: 10px 12px;
   min-height: 44px;
 }
-.kwlfs-none {
-  color: var(--text-sub);
-  opacity: 0.6;
+/* 컬럼별 은은한 틴트 — K(파랑)/W(앰버)/L(초록) 아이콘 색 계열 */
+.kwlfs-text--k {
+  background: #eef3fa;
+  border-color: #d7e2f0;
+}
+.kwlfs-text--w {
+  background: #f9f1e7;
+  border-color: #ecdcc7;
+}
+.kwlfs-text--l {
+  background: #edf5ef;
+  border-color: #d5e6da;
+}
+/* 헤더 셀 — 같은 계열의 라벨 칩 */
+.kwlfs-row--head .kwlfs-head {
+  border-radius: 10px;
+  padding: 8px 12px;
+}
+.kwlfs-row--head .kwlfs-head--name {
+  background: var(--neutral);
+}
+.kwlfs-row--head .kwlfs-head--k {
+  background: #e2ebf7;
+  color: #3d5f8f;
+}
+.kwlfs-row--head .kwlfs-head--w {
+  background: #f3e6d3;
+  color: #7d5533;
+}
+.kwlfs-row--head .kwlfs-head--l {
+  background: #dfeee4;
+  color: #3f6f50;
 }
 
 /* 이름 오른쪽 말풍선(누가기록) 버튼 */
@@ -6146,6 +6175,38 @@ pre code {
 
 .study-column.is-notice {
   background: #fffaf0;
+}
+
+/* 첫 보드 고정 — 수평 스크롤해도 왼쪽에 붙어 있음(자료·공지 전달용) */
+.study-column.is-pinned {
+  position: sticky;
+  left: 0;
+  z-index: 6;
+  box-shadow: 10px 0 22px -8px rgba(46, 36, 26, 0.28);
+}
+
+/* 고정(핀) 토글 버튼 — 첫 보드 헤더에만 표시 */
+.study-pin-btn {
+  border: none;
+  background: transparent;
+  font-size: 15px;
+  line-height: 1;
+  padding: 4px;
+  border-radius: 8px;
+  opacity: 0.35;
+  flex-shrink: 0;
+  filter: grayscale(1);
+}
+.study-pin-btn:hover {
+  opacity: 0.8;
+  background: rgba(0, 0, 0, 0.05);
+}
+.study-pin-btn.on {
+  opacity: 1;
+  filter: none;
+}
+.study-pin-mark {
+  font-size: 14px;
 }
 
 /* 보드 추가 — 항상 마지막 보드 오른쪽에 오는 컬럼형 버튼 */

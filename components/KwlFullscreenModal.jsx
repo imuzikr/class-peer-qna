@@ -46,12 +46,12 @@ export default function KwlFullscreenModal({ entries = [], dateLabel = "", onClo
             <p className="present-empty">오늘 저장된 KWL이 아직 없어요.</p>
           ) : (
             <div className="kwlfs-table">
-              {/* 컬럼 헤더 */}
+              {/* 컬럼 헤더 — 각 영역의 아이콘 색과 어울리는 은은한 틴트 */}
               <div className="kwlfs-row kwlfs-row--head">
-                <div className="kwlfs-cell kwlfs-cell--name">학생</div>
-                <div className="kwlfs-cell"><IconKwlK size={22} /> 알고 있었던 것</div>
-                <div className="kwlfs-cell"><IconKwlW size={22} /> 알고 싶은 것</div>
-                <div className="kwlfs-cell"><IconKwlL size={22} /> 새롭게 알게 된 것</div>
+                <div className="kwlfs-cell kwlfs-head kwlfs-head--name">학생</div>
+                <div className="kwlfs-cell kwlfs-head kwlfs-head--k"><IconKwlK size={22} /> 알고 있었던 것</div>
+                <div className="kwlfs-cell kwlfs-head kwlfs-head--w"><IconKwlW size={22} /> 알고 싶은 것</div>
+                <div className="kwlfs-cell kwlfs-head kwlfs-head--l"><IconKwlL size={22} /> 새롭게 알게 된 것</div>
               </div>
               {rows.map((r) => (
                 <div className="kwlfs-row" key={r.id}>
@@ -59,9 +59,9 @@ export default function KwlFullscreenModal({ entries = [], dateLabel = "", onClo
                     <span className="kwlfs-avatar" aria-hidden="true">{r.authorEmoji || "🙂"}</span>
                     {r.displayName}
                   </div>
-                  <div className="kwlfs-cell kwlfs-text">{r.K || <span className="kwlfs-none">—</span>}</div>
-                  <div className="kwlfs-cell kwlfs-text">{r.W || <span className="kwlfs-none">—</span>}</div>
-                  <div className="kwlfs-cell kwlfs-text">{r.L || <span className="kwlfs-none">—</span>}</div>
+                  <div className="kwlfs-cell kwlfs-text kwlfs-text--k">{r.K || <span className="kwlfs-none">—</span>}</div>
+                  <div className="kwlfs-cell kwlfs-text kwlfs-text--w">{r.W || <span className="kwlfs-none">—</span>}</div>
+                  <div className="kwlfs-cell kwlfs-text kwlfs-text--l">{r.L || <span className="kwlfs-none">—</span>}</div>
                 </div>
               ))}
             </div>
