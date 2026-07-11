@@ -2988,6 +2988,9 @@ pre code {
 .admin-main {
   min-width: 0;
   overflow-y: auto;
+  /* 콘텐츠가 짧아 스크롤바가 없을 때도 같은 폭을 유지 — 반을 바꿀 때
+     스크롤바 유무로 카드 위치가 미세하게 달라지는 문제 방지 */
+  scrollbar-gutter: stable;
   padding: 24px;
 }
 
