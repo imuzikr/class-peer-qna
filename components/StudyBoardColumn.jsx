@@ -42,7 +42,11 @@ export default function StudyBoardColumn({
   board,
   user,
   isTeacher,
-  isFirst = false, // 첫 번째 보드 — 고정(핀) 기능은 첫 보드에만 제공
+  isFirst = false, // 첫 번째 보드 — 고정(핀)·모두 펴기 기능은 첫 보드에만 제공
+  collapsed = false, // 교사 개인 설정: 세로 슬림 바로 접힘 (localStorage)
+  onToggleCollapse,
+  onExpandAll, // 첫 보드: 접힌 보드 일괄 펴기
+  hasCollapsed = false, // 접힌 보드가 하나라도 있는지 (모두 펴기 활성화용)
   questions = [],
   classes = [],
   onAsk,
@@ -193,6 +197,25 @@ export default function StudyBoardColumn({
 
   const pinned = isFirst && !!board.pinned; // 고정은 첫 보드에서만 유효
 
+  // 접힌 상태 — 폭 48px 세로 슬림 바 (제목 세로쓰기 + 카드 수 뱃지),
+  // 클릭하면 다시 펼쳐집니다. (Trello 리스트 접기 패턴)
+  if (collapsed) {
+    return (
+      <section
+        className="study-column study-column--collapsed"
+        role="button"
+        tabIndex={0}
+        onClick={onToggleCollapse}
+        onKeyDown={(e) => e.key === "Enter" && onToggleCollapse?.()}
+        title={`'${board.title}' 펼치기`}
+      >
+        <span className="study-collapsed-expand" aria-hidden="true">»</span>
+        <span className="study-collapsed-count">{cards.length}</span>
+        <span className="study-collapsed-title">{board.title}</span>
+      </section>
+    );
+  }
+
   return (
     <section
       className={`study-column ${isNotice ? "is-notice" : ""}${isDragging ? " board-dragging" : ""}${dragOver ? " board-drag-over" : ""}${pinned ? " is-pinned" : ""}`}
@@ -228,6 +251,35 @@ export default function StudyBoardColumn({
               📌
             </button>
           )}
+          {/* 첫 보드(교사 자료·공지용)는 접기 대신 '접힌 보드 모두 펴기' 버튼 */}
+          {isTeacher && isFirst && (
+            <button
+              className="study-collapse-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                onExpandAll?.();
+              }}
+              disabled={!hasCollapsed}
+              title={hasCollapsed ? "접힌 보드 모두 펴기" : "접힌 보드가 없어요"}
+              aria-label="접힌 보드 모두 펴기"
+            >
+              »
+            </button>
+          )}
+          {/* 나머지 보드: 세로 슬림 바로 접기 (발표 버튼 왼쪽) */}
+          {isTeacher && !isFirst && (
+            <button
+              className="study-collapse-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleCollapse?.();
+              }}
+              title="보드 접기 — 세로 막대로 축소"
+              aria-label="보드 접기"
+            >
+              «
+            </button>
+          )}
           {isTeacher && !isNotice && (
             <button
               className="study-present-btn"
@@ -237,8 +289,9 @@ export default function StudyBoardColumn({
               }}
               disabled={presentCards.length === 0}
               title={presentCards.length > 0 ? "발표 모드 — 학생 카드를 크게 넘겨보기" : "아직 제출한 카드가 없어요"}
+              aria-label="발표 모드"
             >
-              ▶ 발표
+              ▶
             </button>
           )}
           {isTeacher && !isNotice && (

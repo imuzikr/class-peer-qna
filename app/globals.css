@@ -5101,16 +5101,19 @@ pre code {
   line-height: 1.15;
 }
 
-/* ── 발표 모드 ── */
+/* ── 발표 모드 — 아이콘(▶) 전용 원형 버튼 ── */
 .study-present-btn {
+  width: 26px;
+  height: 26px;
   border: 1px solid var(--primary);
   background: var(--primary-light);
   color: var(--primary-dark);
-  font-size: 12px;
-  font-weight: 800;
-  padding: 4px 10px;
-  border-radius: 999px;
-  white-space: nowrap;
+  font-size: 11px;
+  line-height: 1;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  padding: 0 0 0 2px; /* ▶ 글리프의 시각 중심 보정 */
   flex-shrink: 0;
 }
 .study-present-btn:hover:not(:disabled) {
@@ -5119,6 +5122,80 @@ pre code {
 .study-present-btn:disabled {
   opacity: 0.4;
   cursor: default;
+}
+
+/* ── 보드 접기 / 모두 펴기 (« ») — 아이콘 전용 원형 버튼 ── */
+.study-collapse-btn {
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text-sub);
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  padding-bottom: 2px;
+  flex-shrink: 0;
+}
+.study-collapse-btn:hover:not(:disabled) {
+  background: var(--neutral);
+  color: var(--dark);
+}
+.study-collapse-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* ── 접힌 보드 — 폭 48px 세로 슬림 바 ── */
+.study-column.study-column--collapsed {
+  flex: 0 0 48px;
+  width: 48px;
+  max-width: 48px;
+  min-height: 340px;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0 16px;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.study-column.study-column--collapsed:hover {
+  background: var(--neutral);
+}
+.study-collapsed-expand {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-sub);
+}
+.study-collapsed-count {
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+}
+.study-collapsed-title {
+  writing-mode: vertical-rl;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 3px;
+  color: var(--dark);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-height: 60vh;
 }
 
 .present-backdrop {
@@ -5514,28 +5591,28 @@ pre code {
   border-radius: 999px;
   white-space: nowrap;
 }
+/* 과일 주기 ＋ — 배경 없는 글리프만 (호버 시에만 은은한 원) */
 .kwlfs-fruit-btn {
   flex-shrink: 0;
-  width: 22px;
-  height: 22px;
-  border-radius: 7px;
-  border: 1px solid var(--primary);
-  background: var(--primary);
-  color: #fff;
-  font-size: 14px;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: var(--primary);
+  font-size: 18px;
   font-weight: 800;
   line-height: 1;
+  border-radius: 50%;
   display: grid;
   place-items: center;
 }
 .kwlfs-fruit-btn:hover:not(:disabled) {
-  background: var(--primary-dark);
+  background: var(--primary-light);
+  color: var(--primary-dark);
 }
 .kwlfs-fruit-btn:disabled {
-  opacity: 0.35;
+  opacity: 0.3;
   cursor: default;
-  background: var(--neutral);
-  border-color: var(--border);
   color: var(--text-sub);
 }
 .kwlfs-avatar {
@@ -6524,7 +6601,13 @@ pre code {
 .study-column-cards {
   flex: 1;
   overflow-y: auto;
-  padding: 12px;
+  /* 스크롤바 자리(약 8px)를 항상 예약하고 오른쪽 패딩(4px)에 흡수
+     → 4 + 8 ≈ 12px로 좌우 여백이 같아져, 카드가 많아 스크롤바가 생겨도
+     카드 폭이 위 보드 헤더 카드(margin 12px)와 항상 동일하게 유지됩니다. */
+  padding: 12px 4px 12px 12px;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(46, 36, 26, 0.28) transparent;
   display: flex;
   flex-direction: column;
   gap: 10px;

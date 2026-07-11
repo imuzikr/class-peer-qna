@@ -77,6 +77,29 @@ export default function StudyPage() {
   const [directory, setDirectory] = useState([]);   // 교사: uid→실명 등 프로필
   const [memberUids, setMemberUids] = useState([]);  // 현재 반 소속 학생 uid
   const [rewards, setRewards] = useState([]);        // 현재 반 보상(과일) 목록
+  // 교사 개인 설정: 접어 둔 보드 id 목록 — 브라우저(localStorage)에만 저장,
+  // 학생 화면에는 영향 없음
+  const [collapsedIds, setCollapsedIds] = useState([]);
+
+  const COLLAPSE_KEY = "study_collapsed_boards";
+  useEffect(() => {
+    try {
+      setCollapsedIds(JSON.parse(localStorage.getItem(COLLAPSE_KEY) ?? "[]"));
+    } catch {
+      /* 손상된 저장값은 무시 */
+    }
+  }, []);
+  function toggleBoardCollapse(id) {
+    setCollapsedIds((prev) => {
+      const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
+      try { localStorage.setItem(COLLAPSE_KEY, JSON.stringify(next)); } catch { /* 무시 */ }
+      return next;
+    });
+  }
+  function expandAllBoards() {
+    setCollapsedIds([]);
+    try { localStorage.setItem(COLLAPSE_KEY, "[]"); } catch { /* 무시 */ }
+  }
 
   useEffect(() => {
     const unsubC = subscribeClasses(setClasses);
@@ -359,6 +382,12 @@ export default function StudyPage() {
                       user={user}
                       isTeacher={admin}
                       isFirst={i === 0}
+                      collapsed={admin && i !== 0 && collapsedIds.includes(board.id)}
+                      onToggleCollapse={() => toggleBoardCollapse(board.id)}
+                      onExpandAll={expandAllBoards}
+                      hasCollapsed={classBoards.some(
+                        (b, bi) => bi !== 0 && collapsedIds.includes(b.id)
+                      )}
                       questions={questions}
                       classes={classes}
                       onAsk={(kw) => setAskKeyword(kw)}
