@@ -5097,8 +5097,8 @@ pre code {
   justify-items: center;
 }
 .reward-fruit {
-  font-size: clamp(13px, 1.1vw, 17px);
-  line-height: 1.2;
+  font-size: clamp(10px, 0.8vw, 12.5px);
+  line-height: 1.15;
 }
 
 /* 이름 오른쪽 말풍선(누가기록) 버튼 */
