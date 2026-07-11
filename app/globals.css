@@ -3780,6 +3780,13 @@ pre code {
   gap: 8px;
 }
 
+/* 최근 활동 — 3건까지 보이고 초과분은 스크롤 */
+.admin-activity-panel .activity-list {
+  max-height: 116px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
 .activity-row {
   display: grid;
   grid-template-columns: 52px minmax(0, 1fr) 64px 72px;

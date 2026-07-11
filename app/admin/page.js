@@ -135,7 +135,7 @@ function recentEvents(student, questions, answerEvents) {
 
   return [...asked, ...answered]
     .sort((a, b) => toDate(b.createdAt) - toDate(a.createdAt))
-    .slice(0, 6);
+    .slice(0, 30); // 최신 30건까지 준비 — 3건만 보이고 나머지는 스크롤
 }
 
 const STAT_LABELS = {
