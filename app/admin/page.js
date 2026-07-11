@@ -21,7 +21,7 @@ import { isAdmin } from "@/lib/user";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import { useRequireAuth } from "@/lib/useRequireAuth";
 import TopNav from "@/components/TopNav";
-import { getMeTooCount, isPinnedQuestion } from "@/lib/questionRanking";
+import { getMeTooCount } from "@/lib/questionRanking";
 import StudentEditModal from "@/components/StudentEditModal";
 import StudentKwlPanel from "@/components/StudentKwlPanel";
 import ClassOverview from "@/components/ClassOverview";
@@ -139,7 +139,7 @@ const STAT_LABELS = {
   answer: "작성 답변",
   resolved: "해결 질문",
   metoo: "받은 궁금해요",
-  pin: "상단 고정 질문",
+  insight: "인사이트",
 };
 
 const STAT_EMPTY = {
@@ -147,7 +147,7 @@ const STAT_EMPTY = {
   answer: "작성한 답변이 없습니다.",
   resolved: "해결된 질문이 없습니다.",
   metoo: "궁금해요를 받은 질문이 없습니다.",
-  pin: "상단 고정된 질문이 없습니다.",
+  insight: "아직 남긴 인사이트가 없습니다.",
 };
 
 // 통계 카드 드릴다운 — 선택한 학생의 질문/답변을 카드 종류별로 펼칩니다.
@@ -202,15 +202,18 @@ function buildStatDetailItems(activeStatKey, questions, answerEvents) {
           badge: `🙋 ${getMeTooCount(q)}`,
           time: q.createdAt,
         }));
-    case "pin":
-      return questions.filter(isPinnedQuestion).map((q) => ({
-        key: q.id,
-        questionId: q.id,
-        keyword: q.keyword,
-        title: q.title,
-        badge: "📌 고정",
-        time: q.createdAt,
-      }));
+    case "insight":
+      return questions
+        .filter((q) => q.reflection)
+        .sort((a, b) => toDate(b.reflection.createdAt) - toDate(a.reflection.createdAt))
+        .map((q) => ({
+          key: q.id,
+          questionId: q.id,
+          keyword: q.keyword,
+          title: q.reflection.learned || q.title,
+          badge: "💡",
+          time: q.reflection.createdAt || q.createdAt,
+        }));
     default:
       return [];
   }
@@ -492,7 +495,6 @@ export default function AdminDashboardPage() {
   const selectedQuestions = questions.filter((question) => question.authorId === selected?.id);
   const selectedAnswers = answerEvents.filter((event) => event.answer.authorId === selected?.id);
   const resolvedQuestions = selectedQuestions.filter((question) => question.resolved).length;
-  const pinnedQuestions = selectedQuestions.filter(isPinnedQuestion).length;
   const totalMeToo = selectedQuestions.reduce(
     (sum, question) => sum + getMeTooCount(question),
     0
@@ -814,7 +816,7 @@ export default function AdminDashboardPage() {
                   { key: "answer", label: "작성 답변", value: selectedAnswers.length, tone: "answer" },
                   { key: "resolved", label: "해결 질문", value: resolvedQuestions, tone: "done" },
                   { key: "metoo", label: "받은 궁금해요", value: totalMeToo, tone: "metoo" },
-                  { key: "pin", label: "상단 고정 질문", value: pinnedQuestions, tone: "pin" },
+                  { key: "insight", label: "인사이트", value: withReflection, tone: "insight" },
                 ].map(({ key, label, value, tone }) => (
                   <StatCard
                     key={key}

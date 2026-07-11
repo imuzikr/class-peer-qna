@@ -3096,9 +3096,9 @@ pre code {
   box-shadow: 0 0 0 2px #d4a72c;
 }
 
-.admin-stat.tone-pin.is-active {
-  background: #f4ece0;
-  box-shadow: 0 0 0 2px #8a5a12;
+.admin-stat.tone-insight.is-active {
+  background: #efeaf8;
+  box-shadow: 0 0 0 2px #7b61c9;
 }
 
 .admin-stat span {
@@ -3125,8 +3125,8 @@ pre code {
   border-top: 3px solid #d4a72c;
 }
 
-.admin-stat.tone-pin {
-  border-top: 3px solid #8a5a12;
+.admin-stat.tone-insight {
+  border-top: 3px solid #7b61c9;
 }
 
 .admin-charts {

@@ -16,7 +16,7 @@ import { stripHtml } from "@/lib/html";
 import { isAdmin } from "@/lib/user";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import { useRequireAuth } from "@/lib/useRequireAuth";
-import { getMeTooCount, isPinnedQuestion } from "@/lib/questionRanking";
+import { getMeTooCount } from "@/lib/questionRanking";
 import dynamic from "next/dynamic";
 import TopNav from "@/components/TopNav";
 import { IconRecord } from "@/components/StatusIcons";
@@ -46,7 +46,7 @@ const STAT_LABELS = {
   answer: "내 답변",
   resolved: "해결된 질문",
   metoo: "받은 궁금해요",
-  pin: "상단 고정 질문",
+  insight: "인사이트",
 };
 
 const STAT_EMPTY = {
@@ -54,7 +54,7 @@ const STAT_EMPTY = {
   answer: "아직 답변을 남기지 않았어요.",
   resolved: "해결된 질문이 없어요.",
   metoo: "궁금해요를 받은 질문이 없어요.",
-  pin: "상단 고정된 질문이 없어요.",
+  insight: "아직 남긴 인사이트가 없어요.",
 };
 
 function EmptyPanel({ children }) {
@@ -201,7 +201,6 @@ export default function StudentReportPage() {
     ? answerEvents.filter((event) => event.answer.authorId === user.uid)
     : [];
   const resolvedQuestions = myQuestions.filter((question) => question.resolved).length;
-  const pinnedQuestions = myQuestions.filter(isPinnedQuestion).length;
   const totalMeToo = myQuestions.reduce(
     (sum, question) => sum + getMeTooCount(question),
     0
@@ -288,15 +287,18 @@ export default function StudentReportPage() {
             badge: `🙋 ${getMeTooCount(q)}`,
             time: q.createdAt,
           }));
-      case "pin":
-        return myQuestions.filter(isPinnedQuestion).map((q) => ({
-          key: q.id,
-          questionId: q.id,
-          keyword: q.keyword,
-          title: q.title,
-          badge: "📌 고정",
-          time: q.createdAt,
-        }));
+      case "insight":
+        return myQuestions
+          .filter((q) => q.reflection)
+          .sort((a, b) => toDate(b.reflection.createdAt) - toDate(a.reflection.createdAt))
+          .map((q) => ({
+            key: q.id,
+            questionId: q.id,
+            keyword: q.keyword,
+            title: q.reflection.learned || q.title,
+            badge: "💡",
+            time: q.reflection.createdAt || q.createdAt,
+          }));
       default:
         return [];
     }
@@ -534,7 +536,7 @@ export default function StudentReportPage() {
             { key: "answer", label: "내 답변", value: myAnswerEvents.length, tone: "answer" },
             { key: "resolved", label: "해결된 질문", value: resolvedQuestions, tone: "done" },
             { key: "metoo", label: "받은 궁금해요", value: totalMeToo, tone: "metoo" },
-            { key: "pin", label: "상단 고정 질문", value: pinnedQuestions, tone: "pin" },
+            { key: "insight", label: "인사이트", value: withReflection, tone: "insight" },
           ].map(({ key, label, value, tone }) => (
             <StatCard
               key={key}
