@@ -11,7 +11,14 @@
 //   날짜가 바뀔 때마다 그 날짜의 기록을 실시간 구독합니다.
 // =============================================================
 import { Fragment, useEffect, useRef, useState } from "react";
-import { subscribeAllKwl, fetchAllKwlOnce, getDirectoryRealName } from "@/lib/store";
+import {
+  subscribeAllKwl,
+  fetchAllKwlOnce,
+  getDirectoryRealName,
+  subscribeClassRewards,
+  setStudentReward,
+  REWARD_MAX,
+} from "@/lib/store";
 import { IconKwlK, IconKwlW, IconKwlL } from "./StatusIcons";
 
 function toYMD(d) {
@@ -35,6 +42,7 @@ export default function KwlFullscreenModal({ classId, initialDate, onClose }) {
   const [date, setDate] = useState(initialDate || TODAY);
   const [entries, setEntries] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [rewardMap, setRewardMap] = useState({}); // uid -> 과일 개수
   const dateInputRef = useRef(null);
 
   // 날짜가 바뀔 때마다 그 날짜의 기록을 실시간 구독
@@ -42,6 +50,22 @@ export default function KwlFullscreenModal({ classId, initialDate, onClose }) {
     if (!classId) return;
     return subscribeAllKwl(classId, date, setEntries);
   }, [classId, date]);
+
+  // 이 반의 과일 보상 구독(날짜 무관, 실시간) — 여기서 바로 멋진 순간 부여
+  useEffect(() => {
+    if (!classId) return;
+    return subscribeClassRewards(classId, (list) => {
+      const m = {};
+      list.forEach((r) => { m[r.uid] = r.count ?? 0; });
+      setRewardMap(m);
+    });
+  }, [classId]);
+
+  function awardFruit(uid) {
+    const cur = rewardMap[uid] ?? 0;
+    if (cur >= REWARD_MAX) return;
+    setStudentReward(classId, uid, cur + 1);
+  }
 
   // Esc 닫기, ←/→ 날짜 이동 (입력 필드에 포커스 중일 땐 방향키 그대로 사용하게 제외)
   useEffect(() => {
@@ -93,17 +117,8 @@ export default function KwlFullscreenModal({ classId, initialDate, onClose }) {
             <strong className="present-name">📝 KWL</strong>
             <span className="present-progress">{rows.length}명</span>
 
-            {/* 날짜 이동 — 좌우 화살표 + 달력 선택 */}
+            {/* 날짜 이동 — 달력 선택(라벨) + 나란히 붙은 좌우 화살표 */}
             <div className="kwlfs-date-nav">
-              <button
-                type="button"
-                className="kwlfs-date-arrow"
-                onClick={() => setDate((d) => addDays(d, -1))}
-                aria-label="전날"
-                title="전날 (←)"
-              >
-                ‹
-              </button>
               <button
                 type="button"
                 className="kwlfs-date-label"
@@ -121,19 +136,30 @@ export default function KwlFullscreenModal({ classId, initialDate, onClose }) {
                 onChange={(e) => e.target.value && setDate(e.target.value)}
                 aria-label="날짜 직접 선택"
               />
-              <button
-                type="button"
-                className="kwlfs-date-arrow"
-                onClick={() => setDate((d) => addDays(d, 1))}
-                disabled={isToday}
-                aria-label="다음날"
-                title="다음날 (→)"
-              >
-                ›
-              </button>
+              <div className="kwlfs-date-arrows">
+                <button
+                  type="button"
+                  className="kwlfs-date-arrow"
+                  onClick={() => setDate((d) => addDays(d, -1))}
+                  aria-label="전날"
+                  title="전날 (←)"
+                >
+                  ‹
+                </button>
+                <button
+                  type="button"
+                  className="kwlfs-date-arrow"
+                  onClick={() => setDate((d) => addDays(d, 1))}
+                  disabled={isToday}
+                  aria-label="다음날"
+                  title="다음날 (→)"
+                >
+                  ›
+                </button>
+              </div>
               {!isToday && (
                 <button type="button" className="kwlfs-date-today-btn" onClick={() => setDate(TODAY)}>
-                  오늘로
+                  오늘
                 </button>
               )}
             </div>
@@ -158,9 +184,11 @@ export default function KwlFullscreenModal({ classId, initialDate, onClose }) {
           ) : (
             <div
               className="kwlfs-table"
-              style={{ gridTemplateRows: `repeat(${rows.length + 1}, auto)` }}
+              // 마지막에 1fr 트랙을 추가해, 내용이 짧아도 컬럼 배경이 빈 공간까지
+              // 이어지게 합니다(콘텐츠가 길면 이 트랙은 그냥 축소되어 무해).
+              style={{ gridTemplateRows: `repeat(${rows.length + 1}, auto) 1fr` }}
             >
-              {/* 컬럼 배경 띠 — 헤더부터 마지막 행까지 관통 (먼저 그려 셀 아래 깔림) */}
+              {/* 컬럼 배경 띠 — 헤더부터 하단 빈 공간까지 관통 (먼저 그려 셀 아래 깔림) */}
               <div className="kwlfs-colbg kwlfs-colbg--name" />
               <div className="kwlfs-colbg kwlfs-colbg--k" />
               <div className="kwlfs-colbg kwlfs-colbg--w" />
@@ -186,7 +214,18 @@ export default function KwlFullscreenModal({ classId, initialDate, onClose }) {
                   <Fragment key={r.id}>
                     <div className="kwlfs-cell kwlfs-cell--name" style={{ gridRow: rowNum, gridColumn: 1 }}>
                       <span className="kwlfs-avatar" aria-hidden="true">{r.authorEmoji || "🙂"}</span>
-                      {r.displayName}
+                      <span className="kwlfs-name-text">{r.displayName}</span>
+                      <span className="kwlfs-fruit-count">🍎 {rewardMap[r.userId] ?? 0}</span>
+                      <button
+                        type="button"
+                        className="kwlfs-fruit-btn"
+                        onClick={() => awardFruit(r.userId)}
+                        disabled={(rewardMap[r.userId] ?? 0) >= REWARD_MAX}
+                        aria-label={`${r.displayName} 과일 주기`}
+                        title="과일 주기"
+                      >
+                        ＋
+                      </button>
                     </div>
                     <div className="kwlfs-cell kwlfs-text" style={{ gridRow: rowNum, gridColumn: 2 }}>
                       {r.K || <span className="kwlfs-none">—</span>}

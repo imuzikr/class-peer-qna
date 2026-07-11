@@ -5344,6 +5344,12 @@ pre code {
   gap: 4px;
   flex-shrink: 0;
 }
+/* 좌우 화살표를 붙여서 하나의 컨트롤처럼 — 달력 클릭과 헷갈리지 않게 분리 */
+.kwlfs-date-arrows {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
 .kwlfs-date-arrow {
   width: 30px;
   height: 30px;
@@ -5392,14 +5398,19 @@ pre code {
   pointer-events: none;
 }
 .kwlfs-date-today-btn {
-  border: none;
-  background: none;
-  color: var(--primary);
-  font-size: 13px;
-  font-weight: 700;
-  text-decoration: underline;
-  padding: 4px 6px;
+  border: 1px solid var(--primary);
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  font-size: 15px;
+  font-weight: 800;
+  border-radius: 999px;
+  padding: 6px 16px;
   white-space: nowrap;
+  flex-shrink: 0;
+}
+.kwlfs-date-today-btn:hover {
+  background: var(--primary);
+  color: #fff;
 }
 
 .kwlfs-body {
@@ -5414,9 +5425,11 @@ pre code {
 .kwlfs-table {
   position: relative;
   display: grid;
-  grid-template-columns: 170px 1fr 1fr 1fr;
+  grid-template-columns: 210px 1fr 1fr 1fr;
   column-gap: 14px;
   row-gap: 0;
+  /* body 높이만큼 최소 확보 — 마지막 1fr 트랙이 빈 공간을 채우게 함 */
+  min-height: 100%;
 }
 
 /* 컬럼 배경 띠 — 헤더 첫 줄부터 마지막 행까지 관통 */
@@ -5478,13 +5491,52 @@ pre code {
 .kwlfs-cell--name {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   font-weight: 800;
   font-size: 16px;
   color: var(--dark);
+  min-width: 0;
+}
+.kwlfs-name-text {
+  flex: 1;
+  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.kwlfs-fruit-count {
+  flex-shrink: 0;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--primary-dark);
+  background: var(--primary-light);
+  padding: 2px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.kwlfs-fruit-btn {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  border: 1px solid var(--primary);
+  background: var(--primary);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+}
+.kwlfs-fruit-btn:hover:not(:disabled) {
+  background: var(--primary-dark);
+}
+.kwlfs-fruit-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+  background: var(--neutral);
+  border-color: var(--border);
+  color: var(--text-sub);
 }
 .kwlfs-avatar {
   font-size: 22px;
