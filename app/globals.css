@@ -5307,37 +5307,74 @@ pre code {
   overflow-y: auto;
   padding: 22px 30px 30px;
 }
+
+/* CSS Grid: 학생 | K | W | L 네 컬럼. 컬럼 배경 띠(.kwlfs-colbg)를 먼저 깔고
+   그 위에 헤더·셀을 명시적 grid-row/column으로 겹쳐 올려, 셀 사이 여백과
+   무관하게 "컬럼 전체"가 하나의 색으로 이어져 보이게 합니다. */
 .kwlfs-table {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.kwlfs-row {
+  position: relative;
   display: grid;
   grid-template-columns: 170px 1fr 1fr 1fr;
-  gap: 12px;
-  align-items: start;
+  column-gap: 14px;
+  row-gap: 0;
 }
-.kwlfs-row--head {
+
+/* 컬럼 배경 띠 — 헤더 첫 줄부터 마지막 행까지 관통 */
+.kwlfs-colbg {
+  grid-row: 1 / -1;
+  border-radius: 14px;
+}
+.kwlfs-colbg--name {
+  grid-column: 1;
+  background: var(--neutral);
+}
+.kwlfs-colbg--k {
+  grid-column: 2;
+  background: #e2ebf7;
+}
+.kwlfs-colbg--w {
+  grid-column: 3;
+  background: #f3e6d3;
+}
+.kwlfs-colbg--l {
+  grid-column: 4;
+  background: #dfeee4;
+}
+
+.kwlfs-cell {
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.07);
+}
+
+.kwlfs-head {
   position: sticky;
   top: -22px; /* body 패딩만큼 올려 붙임 */
-  background: #fff;
-  z-index: 1;
-  padding: 10px 0;
-  border-bottom: 2px solid var(--border);
-}
-.kwlfs-row--head .kwlfs-cell {
   display: flex;
   align-items: center;
   gap: 7px;
   font-weight: 800;
   font-size: 15px;
   color: var(--dark);
+  border-bottom: 2px solid rgba(0, 0, 0, 0.14);
 }
-.kwlfs-row:not(.kwlfs-row--head) {
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 10px;
+/* 헤더도 컬럼과 같은 색으로 — 스크롤해 위에 고정될 때 아래 내용을 가림 */
+.kwlfs-head--name {
+  background: var(--neutral);
+  color: var(--dark);
 }
+.kwlfs-head--k {
+  background: #e2ebf7;
+  color: #3d5f8f;
+}
+.kwlfs-head--w {
+  background: #f3e6d3;
+  color: #7d5533;
+}
+.kwlfs-head--l {
+  background: #dfeee4;
+  color: #3f6f50;
+}
+
 .kwlfs-cell--name {
   display: flex;
   align-items: center;
@@ -5359,44 +5396,6 @@ pre code {
   color: var(--text);
   white-space: pre-wrap;
   word-break: break-word;
-  background: var(--bg-deep);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 10px 12px;
-  min-height: 44px;
-}
-/* 컬럼별 은은한 틴트 — K(파랑)/W(앰버)/L(초록) 아이콘 색 계열 */
-.kwlfs-text--k {
-  background: #eef3fa;
-  border-color: #d7e2f0;
-}
-.kwlfs-text--w {
-  background: #f9f1e7;
-  border-color: #ecdcc7;
-}
-.kwlfs-text--l {
-  background: #edf5ef;
-  border-color: #d5e6da;
-}
-/* 헤더 셀 — 같은 계열의 라벨 칩 */
-.kwlfs-row--head .kwlfs-head {
-  border-radius: 10px;
-  padding: 8px 12px;
-}
-.kwlfs-row--head .kwlfs-head--name {
-  background: var(--neutral);
-}
-.kwlfs-row--head .kwlfs-head--k {
-  background: #e2ebf7;
-  color: #3d5f8f;
-}
-.kwlfs-row--head .kwlfs-head--w {
-  background: #f3e6d3;
-  color: #7d5533;
-}
-.kwlfs-row--head .kwlfs-head--l {
-  background: #dfeee4;
-  color: #3f6f50;
 }
 
 /* 이름 오른쪽 말풍선(누가기록) 버튼 */
