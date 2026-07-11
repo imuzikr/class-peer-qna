@@ -15,7 +15,7 @@ import {
 } from "@/lib/store";
 import { getCurrentUser } from "@/lib/user";
 
-export default function StudentNotesThread({ studentUid, classId = null }) {
+export default function StudentNotesThread({ studentUid, classId = null, readOnly = false }) {
   const [notes, setNotes] = useState([]);
   const [text, setText] = useState("");
   const [saving, setSaving] = useState(false);
@@ -41,25 +41,28 @@ export default function StudentNotesThread({ studentUid, classId = null }) {
 
   return (
     <div className="notes-thread">
-      <form className="notes-compose" onSubmit={handleAdd}>
-        <textarea
-          className="notes-input"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="이 학생의 순간을 기록해 보세요. (예: 친구의 질문에 먼저 답해 줬어요) — Ctrl+Enter로 저장"
-          rows={2}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) handleAdd(e);
-          }}
-        />
-        <button
-          type="submit"
-          className="btn-primary notes-add-btn"
-          disabled={saving || !text.trim()}
-        >
-          {saving ? "기록 중…" : "기록 추가"}
-        </button>
-      </form>
+      {/* 읽기 전용(대시보드)에서는 입력창을 숨기고 기록만 보여 줍니다 */}
+      {!readOnly && (
+        <form className="notes-compose" onSubmit={handleAdd}>
+          <textarea
+            className="notes-input"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="이 학생의 순간을 기록해 보세요. (예: 친구의 질문에 먼저 답해 줬어요) — Ctrl+Enter로 저장"
+            rows={2}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) handleAdd(e);
+            }}
+          />
+          <button
+            type="submit"
+            className="btn-primary notes-add-btn"
+            disabled={saving || !text.trim()}
+          >
+            {saving ? "기록 중…" : "기록 추가"}
+          </button>
+        </form>
+      )}
 
       {notes.length === 0 ? (
         <p className="notes-empty">아직 남긴 기록이 없어요.</p>
@@ -70,13 +73,15 @@ export default function StudentNotesThread({ studentUid, classId = null }) {
               <p className="notes-text">{n.text}</p>
               <div className="notes-meta">
                 <time>{formatTime(n.createdAt)}</time>
-                <button
-                  type="button"
-                  className="notes-del"
-                  onClick={() => deleteStudentNote(n.id, studentUid)}
-                >
-                  삭제
-                </button>
+                {!readOnly && (
+                  <button
+                    type="button"
+                    className="notes-del"
+                    onClick={() => deleteStudentNote(n.id, studentUid)}
+                  >
+                    삭제
+                  </button>
+                )}
               </div>
             </li>
           ))}

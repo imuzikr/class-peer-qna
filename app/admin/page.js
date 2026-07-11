@@ -14,6 +14,7 @@ import {
   subscribeStudyCards,
   subscribeKwlAll,
   subscribeUserDirectory,
+  subscribeStudentNotes,
   toDate,
 } from "@/lib/store";
 import { isFirebaseConfigured } from "@/lib/firebase";
@@ -139,7 +140,7 @@ const STAT_LABELS = {
   ask: "올린 질문",
   answer: "작성 답변",
   resolved: "해결 질문",
-  metoo: "받은 궁금해요",
+  moments: "멋진 순간",
   insight: "인사이트",
 };
 
@@ -147,7 +148,6 @@ const STAT_EMPTY = {
   ask: "올린 질문이 없습니다.",
   answer: "작성한 답변이 없습니다.",
   resolved: "해결된 질문이 없습니다.",
-  metoo: "궁금해요를 받은 질문이 없습니다.",
   insight: "아직 남긴 인사이트가 없습니다.",
 };
 
@@ -189,18 +189,6 @@ function buildStatDetailItems(activeStatKey, questions, answerEvents) {
           keyword: q.keyword,
           title: q.title,
           badge: null,
-          time: q.createdAt,
-        }));
-    case "metoo":
-      return questions
-        .filter((q) => getMeTooCount(q) > 0)
-        .sort((a, b) => getMeTooCount(b) - getMeTooCount(a))
-        .map((q) => ({
-          key: q.id,
-          questionId: q.id,
-          keyword: q.keyword,
-          title: q.title,
-          badge: `🙋 ${getMeTooCount(q)}`,
           time: q.createdAt,
         }));
     case "insight":
@@ -277,6 +265,7 @@ export default function AdminDashboardPage() {
   const [editingStudent, setEditingStudent] = useState(null);
   const [activeStatKey, setActiveStatKey] = useState(null); // 통계 카드 드릴다운
   const [selectedKwl, setSelectedKwl] = useState([]); // 선택 학생 KWL 기록
+  const [selectedNotes, setSelectedNotes] = useState([]); // 선택 학생 멋진 순간(누가기록)
   const [view, setView] = useState("students"); // 'students' | 'overview'
   const [selectedClassId, setSelectedClassId] = useState(null); // null = 전체 학급
   const [classes, setClasses] = useState([]);
@@ -490,6 +479,15 @@ export default function AdminDashboardPage() {
       return;
     }
     return subscribeUserKwl(selectedId, setSelectedKwl);
+  }, [selectedId]);
+
+  // 선택한 학생의 멋진 순간(누가기록) 구독 — 대시보드에서는 읽기 전용
+  useEffect(() => {
+    if (!selectedId) {
+      setSelectedNotes([]);
+      return;
+    }
+    return subscribeStudentNotes(selectedId, setSelectedNotes);
   }, [selectedId]);
 
   const selected = people.find((p) => p.id === selectedId) ?? null;
@@ -816,7 +814,7 @@ export default function AdminDashboardPage() {
                   { key: "ask", label: "올린 질문", value: selectedQuestions.length, tone: "ask" },
                   { key: "answer", label: "작성 답변", value: selectedAnswers.length, tone: "answer" },
                   { key: "resolved", label: "해결 질문", value: resolvedQuestions, tone: "done" },
-                  { key: "metoo", label: "받은 궁금해요", value: totalMeToo, tone: "metoo" },
+                  { key: "moments", label: "멋진 순간", value: selectedNotes.length, tone: "moments" },
                   { key: "insight", label: "인사이트", value: withReflection, tone: "insight" },
                 ].map(({ key, label, value, tone }) => (
                   <StatCard
@@ -834,9 +832,17 @@ export default function AdminDashboardPage() {
                 <section className="stat-detail">
                   <div className="stat-detail-head">
                     <h3>{STAT_LABELS[activeStatKey]}</h3>
-                    <span className="stat-detail-count">{statDetailItems.length}건</span>
+                    <span className="stat-detail-count">
+                      {activeStatKey === "moments"
+                        ? selectedNotes.length
+                        : statDetailItems.length}
+                      건
+                    </span>
                   </div>
-                  {statDetailItems.length === 0 ? (
+                  {activeStatKey === "moments" ? (
+                    // 멋진 순간 — 대시보드에서는 읽기 전용(작성은 공부방 패널에서)
+                    <StudentNotesThread studentUid={selectedId} readOnly />
+                  ) : statDetailItems.length === 0 ? (
                     <EmptyPanel>{STAT_EMPTY[activeStatKey]}</EmptyPanel>
                   ) : (
                     <div className="stat-detail-list">
@@ -881,13 +887,6 @@ export default function AdminDashboardPage() {
                     ))}
                   </div>
                 )}
-              </section>
-
-              <section className="admin-notes-panel">
-                <div className="admin-panel-head">
-                  <h2>📝 누가기록</h2>
-                </div>
-                <StudentNotesThread studentUid={selectedId} />
               </section>
 
               <StudentKwlPanel entries={selectedKwl} />

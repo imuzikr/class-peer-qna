@@ -3091,6 +3091,11 @@ pre code {
   box-shadow: 0 0 0 2px #5c9e68;
 }
 
+.admin-stat.tone-moments.is-active {
+  background: #fdecea;
+  box-shadow: 0 0 0 2px #d9534f;
+}
+
 .admin-stat.tone-metoo.is-active {
   background: #fbf3df;
   box-shadow: 0 0 0 2px #d4a72c;
@@ -3123,6 +3128,10 @@ pre code {
 
 .admin-stat.tone-metoo {
   border-top: 3px solid #d4a72c;
+}
+
+.admin-stat.tone-moments {
+  border-top: 3px solid #d9534f;
 }
 
 .admin-stat.tone-insight {
