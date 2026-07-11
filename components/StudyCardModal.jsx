@@ -76,7 +76,14 @@ export default function StudyCardModal({
   const dirtyRef = useRef(false);   // 저장 안 된 변경 존재 여부(닫을 때 flush)
   const flushRef = useRef(null);    // 최신 저장 함수 참조(언마운트 flush용)
   const idleTimerRef = useRef(null); // '자동 저장됨' 표시를 잠시 뒤 숨기는 타이머
-  const skipFirstRef = useRef(true); // 마운트(카드 열기) 시엔 자동저장하지 않음
+  // 마지막으로 저장(또는 열기 시점)된 내용의 서명 — 이 값과 달라졌을 때만 저장.
+  // (카드를 "열기만" 했을 때 자동저장되는 문제를 확실히 막음)
+  const baselineSigRef = useRef(null);
+
+  // 저장 대상(제목·본문·이미지·첨부)을 하나의 문자열로 요약
+  function sigOf(titleToSave, htmlToSave) {
+    return JSON.stringify({ titleToSave, htmlToSave, imageUrl, attachments });
+  }
 
   // '✓ 자동 저장됨'을 잠깐 보여 준 뒤(1.6초) 다시 숨김 — 다음 입력 때 재표시
   function showSavedThenHide() {
@@ -260,6 +267,7 @@ export default function StudyCardModal({
     setAutoStatus("saving");
     try {
       await persist(titleToSave, htmlToSave);
+      baselineSigRef.current = sigOf(titleToSave, htmlToSave); // 저장된 내용을 새 기준값으로
       showSavedThenHide();
     } catch {
       dirtyRef.current = true;
@@ -272,12 +280,18 @@ export default function StudyCardModal({
   }
   flushRef.current = flushSave; // 항상 최신 클로저를 참조
 
-  // 입력이 멈추면(1초) 자동 저장. 단, 카드를 "열기만" 한 마운트 시점에는
-  // 실행하지 않습니다(내용 변경이 있을 때만 저장 → 열자마자 저장되는 문제 방지).
+  // 입력이 멈추면(1초) 자동 저장. 단, 열었을 때의 기준값과 "실제로 달라졌을
+  // 때만" 저장합니다 → 카드를 단순히 열기만 하면 저장되지 않습니다.
   useEffect(() => {
-    if (skipFirstRef.current) { skipFirstRef.current = false; return; }
-    if (!canEdit) return;
-    if (!buildPayload().valid) return;
+    const { titleToSave, htmlToSave, valid } = buildPayload();
+    const sig = sigOf(titleToSave, htmlToSave);
+    // 첫 실행: 열었을 때의 내용을 기준값으로 기록만 하고 저장하지 않음
+    if (baselineSigRef.current === null) {
+      baselineSigRef.current = sig;
+      return;
+    }
+    if (sig === baselineSigRef.current) return; // 내용 변경 없음 → 저장 안 함
+    if (!canEdit || !valid) return;
     dirtyRef.current = true;
     const t = setTimeout(() => flushRef.current?.(), 1000);
     return () => clearTimeout(t);
