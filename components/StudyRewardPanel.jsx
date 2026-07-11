@@ -17,9 +17,9 @@ const FRUITS = ["🍎", "🍊", "🍋", "🍇", "🍓", "🍑", "🍈", "🍉", 
 
 export default function StudyRewardPanel({ roster = [], onAward }) {
   return (
-    <aside className="reward-panel" aria-label="참여 보상">
+    <aside className="reward-panel" aria-label="멋진 순간">
       <div className="reward-head">
-        <span className="reward-title">🍎 참여 보상</span>
+        <span className="reward-title">🍎 멋진 순간</span>
         <span className="reward-sub">＋로 과일을 주세요 · 최대 {REWARD_MAX}개</span>
       </div>
 
