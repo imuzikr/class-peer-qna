@@ -27,6 +27,7 @@ import {
 import { stripHtml } from "@/lib/html";
 import StudyCard from "./StudyCard";
 import StudyCardModal from "./StudyCardModal";
+import StudyPresentModal from "./StudyPresentModal";
 import { IconTrash, IconAddFeature, IconLock, IconDuplicate } from "./StatusIcons";
 import { IconPen } from "./RichTextEditor";
 
@@ -63,6 +64,7 @@ export default function StudyBoardColumn({
   const [activitiesOpen, setActivitiesOpen] = useState(false);
   const [activitiesDraft, setActivitiesDraft] = useState([]);
   const [savingActivities, setSavingActivities] = useState(false);
+  const [presenting, setPresenting] = useState(false); // 발표 모드
 
   useEffect(() => {
     const unsub = subscribeStudyCards(board.id, setCards);
@@ -99,6 +101,11 @@ export default function StudyBoardColumn({
   // 교사는 보드당 여러 카드 가능(제한 없음), 학생은 카드 1개까지(myCard 없을 때만)
   const canAddStudent = !isNotice && !locked && (isTeacher || !myCard);
   const canAdd = canAddNotice || canAddStudent;
+
+  // 발표 모드 대상 — 학생이 작성한 카드만(교사 예시 카드 제외), 현재 정렬 순서
+  const presentCards = visibleCards.filter(
+    (c) => !(c.authorId?.startsWith?.("teacher_") || c.authorName === "선생님")
+  );
 
   // 이전 단일 keyword 필드와 새 keywords 배열 모두 지원
   const boardKeywords = Array.isArray(board.keywords)
@@ -177,7 +184,7 @@ export default function StudyBoardColumn({
     }
   }
 
-  const modalOpen = selectedCard !== null || creating;
+  const modalOpen = selectedCard !== null || creating || presenting;
 
   useEffect(() => {
     onModalChange?.(modalOpen);
@@ -205,6 +212,19 @@ export default function StudyBoardColumn({
           title={isTeacher ? "드래그해서 보드 순서 변경" : undefined}
         >
           <h3>{board.title}</h3>
+          {isTeacher && !isNotice && (
+            <button
+              className="study-present-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (presentCards.length > 0) setPresenting(true);
+              }}
+              disabled={presentCards.length === 0}
+              title={presentCards.length > 0 ? "발표 모드 — 학생 카드를 크게 넘겨보기" : "아직 제출한 카드가 없어요"}
+            >
+              ▶ 발표
+            </button>
+          )}
           {isTeacher && !isNotice && (
             <button
               className={`study-panel-toggle${panelOpen ? " open" : ""}`}
@@ -443,6 +463,15 @@ export default function StudyBoardColumn({
             setCreating(false);
           }}
           onAsk={onAsk}
+        />
+      )}
+
+      {/* ── 발표 모드 ── */}
+      {presenting && presentCards.length > 0 && (
+        <StudyPresentModal
+          board={board}
+          cards={presentCards}
+          onClose={() => setPresenting(false)}
         />
       )}
 

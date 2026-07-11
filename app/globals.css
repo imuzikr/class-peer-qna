@@ -5101,6 +5101,188 @@ pre code {
   line-height: 1.15;
 }
 
+/* ── 발표 모드 ── */
+.study-present-btn {
+  border: 1px solid var(--primary);
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  font-size: 12px;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.study-present-btn:hover:not(:disabled) {
+  background: #f3d9cb;
+}
+.study-present-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.present-backdrop {
+  z-index: 1000;
+}
+.present-modal {
+  position: relative;
+  width: 94vw;
+  height: 94vh;
+  max-width: 1600px;
+  background: #fff;
+  border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.4);
+}
+.present-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 26px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.present-who {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.present-avatar {
+  font-size: 30px;
+  flex-shrink: 0;
+}
+.present-name {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: 24px;
+  color: var(--dark);
+  white-space: nowrap;
+}
+.present-progress {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--primary-dark);
+  background: var(--primary-light);
+  padding: 4px 14px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+.present-board {
+  color: var(--text-sub);
+  font-size: 15px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.present-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 34px 64px;
+}
+.present-title {
+  font-size: 30px;
+  color: var(--dark);
+  margin-bottom: 20px;
+}
+.present-content {
+  font-size: 19px;
+  line-height: 1.85;
+}
+.present-images {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+  margin-top: 22px;
+}
+.present-image {
+  width: 100%;
+  height: auto;
+  border-radius: 14px;
+}
+.present-files {
+  list-style: none;
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 16px;
+}
+.present-empty {
+  color: var(--text-sub);
+  font-size: 18px;
+}
+.present-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 26px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.present-fruits {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.present-fruit-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 3px;
+  grid-template-columns: none;
+  max-width: 42vw;
+  overflow: hidden;
+}
+.present-fruit-strip .reward-fruit {
+  font-size: 20px;
+}
+.present-fruit-count {
+  font-weight: 800;
+  font-size: 15px;
+  color: var(--primary-dark);
+  white-space: nowrap;
+}
+.present-award {
+  padding: 12px 24px;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.present-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(30, 25, 20, 0.4);
+  color: #fff;
+  font-size: 40px;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.present-nav:hover:not(:disabled) {
+  background: rgba(30, 25, 20, 0.62);
+}
+.present-nav:disabled {
+  opacity: 0.2;
+  cursor: default;
+}
+.present-prev {
+  left: 18px;
+}
+.present-next {
+  right: 18px;
+}
+
 /* 이름 오른쪽 말풍선(누가기록) 버튼 */
 .reward-note-btn {
   flex-shrink: 0;
