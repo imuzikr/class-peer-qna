@@ -38,63 +38,81 @@ const ROLES = ["admin", "teacher", "student"];
 const INITIAL_ADMIN_EMAIL = "iseoul72@gmail.com";
 
 // =============================================================
-// 랭킹 집계 헬퍼 — 랜딩(로그인 전) 공개 문서를 "현재까지 전체"로 갱신
+// 주간 랭킹 집계 헬퍼 — 랜딩(로그인 전) 공개 문서를 "이번 주"로 갱신
 // -------------------------------------------------------------
-// 예약(월요일) 실행뿐 아니라 질문/답변이 생기고 지워질 때마다 호출되어,
-// stats/weeklyQuestioners · stats/weeklyAnswerers 가 항상 최신 순위를
-// 담도록 합니다.
-//  · 기간 제한 없이 "지금까지의 모든 기록"을 집계합니다(7일 창 아님).
-//  · uid 없이 익명 닉네임/이모지/개수만 저장.
-//  · 닉네임은 접속(세션)마다 바뀌므로, 같은 authorId의 "가장 최근" 글에
-//    쓰인 닉네임을 대표로 사용합니다(createdAt 최댓값 기준, 정렬 불필요).
+// 예약(월요일 08:00) 실행뿐 아니라 질문/답변이 생기고 지워질 때마다
+// 호출되어, stats/weeklyQuestioners · stats/weeklyAnswerers 가 항상
+// "이번 주 현재까지"의 순위를 담도록 합니다.
+//  · 집계 창 = 가장 최근 "월요일 08:00(KST)" 이후 → 매주 월요일 08:00에
+//    자동 초기화(그 시각 이후 기록만 집계).
+//  · uid 없이 익명 닉네임/이모지/개수만 저장. 닉네임은 세션마다 바뀌므로
+//    같은 authorId의 "가장 최근" 글 닉네임을 대표로 사용.
+//  · 색인 없이 동작하도록 전체를 읽어 코드에서 창(週)으로 거릅니다.
 // =============================================================
-function aggregateTop5(snap) {
+// 이번 주 시작(가장 최근 월요일 08:00 KST)을 epoch millis로 반환
+function weekStartMillis() {
+  const KST = 9 * 60 * 60 * 1000; // 한국 표준시(UTC+9, DST 없음)
+  const nowUtc = Date.now();
+  const kst = new Date(nowUtc + KST); // getUTC*가 KST 벽시계를 반영
+  const day = kst.getUTCDay(); // 0=일 … 1=월 … 6=토
+  const kstMidnightUtc =
+    Date.UTC(kst.getUTCFullYear(), kst.getUTCMonth(), kst.getUTCDate()) - KST;
+  const daysSinceMon = (day + 6) % 7; // 월=0 … 일=6
+  let start = kstMidnightUtc - daysSinceMon * 86400000 + 8 * 3600000; // 월 08:00 KST
+  if (start > nowUtc) start -= 7 * 86400000; // 아직 월요일 08:00 전이면 지난 주 기준
+  return start;
+}
+
+// snap을 이번 주(since 이후)로 걸러 상위 5명 + 총건수 집계
+function aggregateTop5(snap, sinceMillis) {
   const byUser = new Map();
+  let total = 0;
   snap.forEach((doc) => {
     const d = doc.data();
-    const authorId = d.authorId;
-    if (!authorId) return;
-    const cur = byUser.get(authorId) ?? {
+    if (!d.authorId) return;
+    const t = d.createdAt && d.createdAt.toMillis ? d.createdAt.toMillis() : 0;
+    if (t < sinceMillis) return; // 이번 주 이전 기록은 제외(월요일 초기화)
+    total += 1;
+    const cur = byUser.get(d.authorId) ?? {
       authorName: "익명",
       authorEmoji: "🙂",
       count: 0,
       latest: -1,
     };
     cur.count += 1;
-    // 가장 최근 글의 닉네임을 대표로 (createdAt 밀리초 비교)
-    const t = d.createdAt && d.createdAt.toMillis ? d.createdAt.toMillis() : 0;
     if (t >= cur.latest) {
       cur.latest = t;
       cur.authorName = d.authorName || cur.authorName;
       cur.authorEmoji = d.authorEmoji || cur.authorEmoji;
     }
-    byUser.set(authorId, cur);
+    byUser.set(d.authorId, cur);
   });
-  return [...byUser.values()]
+  const top = [...byUser.values()]
     .sort((a, b) => b.count - a.count)
     .slice(0, 5)
     .map(({ authorName, authorEmoji, count }) => ({ authorName, authorEmoji, count }));
+  return { top, total };
 }
 
-// "질문을 많이 올린" 상위 5명(전체 누적) → 공개 문서 갱신. top 반환.
+// 이번 주 "질문을 많이 올린" 상위 5명 → 공개 문서 갱신. top 반환.
 async function recomputeQuestioners() {
   const snap = await db.collection("questions").get();
-  const top = aggregateTop5(snap);
+  const { top, total } = aggregateTop5(snap, weekStartMillis());
   await db.doc("stats/weeklyQuestioners").set({
     top,
-    totalQuestions: snap.size,
+    totalQuestions: total,
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   });
   return top;
 }
 
-// "답변을 많이 단" 상위 5명(전체 누적) → 공개 문서 갱신. top 반환.
+// 이번 주 "답변을 많이 단" 상위 5명 → 공개 문서 갱신. top 반환.
 async function recomputeAnswerers() {
   const snap = await db.collectionGroup("answers").get();
-  const top = aggregateTop5(snap);
+  const { top, total } = aggregateTop5(snap, weekStartMillis());
   await db.doc("stats/weeklyAnswerers").set({
     top,
-    totalAnswers: snap.size,
+    totalAnswers: total,
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   });
   return top;
@@ -306,8 +324,8 @@ exports.weeklyTopAnswerers = onSchedule(
         .map((t, i) => `${i + 1}위 ${t.authorName} (${t.count}개)`)
         .join(" · ");
       await db.collection("notices").add({
-        title: "🏆 답변왕",
-        content: `그동안 가장 많이 답변해 준 친구들입니다. ${lines}. 모두 고마워요!`,
+        title: "🏆 이번 주 답변왕",
+        content: `이번 주(월요일부터) 가장 많이 답변해 준 친구들입니다. ${lines}. 모두 고마워요!`,
         authorId: "system",
         authorName: "배움나눔 봇",
         createdAt: admin.firestore.FieldValue.serverTimestamp(),

@@ -180,13 +180,13 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── 하단: 질문대장·답변왕 (한 줄로 흘러가는 카드, 현재까지 누적) ── */}
-      <section className="act-strip" aria-label="질문대장·답변왕">
+      {/* ── 하단: 이번 주 질문대장·답변왕 (한 줄로 흘러가는 카드) ── */}
+      <section className="act-strip" aria-label="이번 주 질문대장·답변왕">
         {cards.length > 0 ? (
           <ActMarquee cards={cards} />
         ) : (
           <p className="act-empty">
-            아직 첫 주인공을 기다리고 있어요. 궁금한 걸 묻고, 친구에게 답해 보세요! ✨
+            이번 주 첫 주인공을 기다리고 있어요. 궁금한 걸 묻고, 친구에게 답해 보세요! ✨
           </p>
         )}
       </section>
