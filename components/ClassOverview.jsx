@@ -43,13 +43,8 @@ export default function ClassOverview({
 
   return (
     <>
-      {/* 요약 카드 */}
+      {/* 요약 카드 — 멋진 순간을 맨 앞에 배치 */}
       <section className="admin-stats-grid">
-        <div className="admin-stat tone-ask"><span>전체 질문</span><strong>{totalQuestions}</strong></div>
-        <div className="admin-stat tone-metoo"><span>미해결 질문</span><strong>{unresolved}</strong></div>
-        <div className="admin-stat tone-answer"><span>전체 답변</span><strong>{totalAnswers}</strong></div>
-        <div className="admin-stat tone-done"><span>참여 학생</span><strong>{participants}</strong></div>
-
         {/* 멋진 순간 — 전체 학급이면 학급별 비교 막대, 특정 반이면 합계 숫자 */}
         {classFruitStats && classFruitStats.length > 0 ? (
           <div className="admin-stat tone-moments stat-fruit-chart">
@@ -59,10 +54,12 @@ export default function ClassOverview({
                 <div className="stat-fruit-row" key={c.classId}>
                   <span className="stat-fruit-name" title={c.name}>{c.name}</span>
                   <div className="bar-track">
-                    <div
-                      className="bar-fill bar-fill-fruit"
-                      style={{ width: `${(c.total / maxFruit) * 100}%` }}
-                    />
+                    {c.total > 0 && (
+                      <div
+                        className="bar-fill bar-fill-fruit"
+                        style={{ width: `${(c.total / maxFruit) * 100}%` }}
+                      />
+                    )}
                   </div>
                   <strong className="stat-fruit-num">{c.total}</strong>
                 </div>
@@ -72,6 +69,11 @@ export default function ClassOverview({
         ) : (
           <div className="admin-stat tone-moments"><span>🍎 멋진 순간</span><strong>{fruitTotal}</strong></div>
         )}
+
+        <div className="admin-stat tone-ask"><span>전체 질문</span><strong>{totalQuestions}</strong></div>
+        <div className="admin-stat tone-metoo"><span>미해결 질문</span><strong>{unresolved}</strong></div>
+        <div className="admin-stat tone-answer"><span>전체 답변</span><strong>{totalAnswers}</strong></div>
+        <div className="admin-stat tone-done"><span>참여 학생</span><strong>{participants}</strong></div>
       </section>
 
       <section className="admin-charts overview-charts">
