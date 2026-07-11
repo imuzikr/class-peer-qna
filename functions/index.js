@@ -38,24 +38,36 @@ const ROLES = ["admin", "teacher", "student"];
 const INITIAL_ADMIN_EMAIL = "iseoul72@gmail.com";
 
 // =============================================================
-// 주간 랭킹 집계 헬퍼 — 랜딩(로그인 전) 공개 문서를 "현재까지"로 갱신
+// 랭킹 집계 헬퍼 — 랜딩(로그인 전) 공개 문서를 "현재까지 전체"로 갱신
 // -------------------------------------------------------------
 // 예약(월요일) 실행뿐 아니라 질문/답변이 생기고 지워질 때마다 호출되어,
 // stats/weeklyQuestioners · stats/weeklyAnswerers 가 항상 최신 순위를
-// 담도록 합니다. (창은 지난 7일. uid 없이 익명 닉네임/이모지/개수만 저장)
+// 담도록 합니다.
+//  · 기간 제한 없이 "지금까지의 모든 기록"을 집계합니다(7일 창 아님).
+//  · uid 없이 익명 닉네임/이모지/개수만 저장.
+//  · 닉네임은 접속(세션)마다 바뀌므로, 같은 authorId의 "가장 최근" 글에
+//    쓰인 닉네임을 대표로 사용합니다(createdAt 최댓값 기준, 정렬 불필요).
 // =============================================================
 function aggregateTop5(snap) {
   const byUser = new Map();
   snap.forEach((doc) => {
-    const { authorId, authorName, authorEmoji } = doc.data();
+    const d = doc.data();
+    const authorId = d.authorId;
     if (!authorId) return;
-    // 최신순 순회 → 첫 등장(가장 최근) 닉네임을 대표로 유지
     const cur = byUser.get(authorId) ?? {
-      authorName: authorName || "익명",
-      authorEmoji: authorEmoji || "🙂",
+      authorName: "익명",
+      authorEmoji: "🙂",
       count: 0,
+      latest: -1,
     };
     cur.count += 1;
+    // 가장 최근 글의 닉네임을 대표로 (createdAt 밀리초 비교)
+    const t = d.createdAt && d.createdAt.toMillis ? d.createdAt.toMillis() : 0;
+    if (t >= cur.latest) {
+      cur.latest = t;
+      cur.authorName = d.authorName || cur.authorName;
+      cur.authorEmoji = d.authorEmoji || cur.authorEmoji;
+    }
     byUser.set(authorId, cur);
   });
   return [...byUser.values()]
@@ -64,17 +76,9 @@ function aggregateTop5(snap) {
     .map(({ authorName, authorEmoji, count }) => ({ authorName, authorEmoji, count }));
 }
 
-function weekAgoTs() {
-  return admin.firestore.Timestamp.fromMillis(Date.now() - 7 * 24 * 60 * 60 * 1000);
-}
-
-// 지난 7일 "질문을 많이 올린" 상위 5명 → 공개 문서 갱신. top 반환.
+// "질문을 많이 올린" 상위 5명(전체 누적) → 공개 문서 갱신. top 반환.
 async function recomputeQuestioners() {
-  const snap = await db
-    .collection("questions")
-    .where("createdAt", ">=", weekAgoTs())
-    .orderBy("createdAt", "desc")
-    .get();
+  const snap = await db.collection("questions").get();
   const top = aggregateTop5(snap);
   await db.doc("stats/weeklyQuestioners").set({
     top,
@@ -84,13 +88,9 @@ async function recomputeQuestioners() {
   return top;
 }
 
-// 지난 7일 "답변을 많이 단" 상위 5명 → 공개 문서 갱신. top 반환.
+// "답변을 많이 단" 상위 5명(전체 누적) → 공개 문서 갱신. top 반환.
 async function recomputeAnswerers() {
-  const snap = await db
-    .collectionGroup("answers")
-    .where("createdAt", ">=", weekAgoTs())
-    .orderBy("createdAt", "desc")
-    .get();
+  const snap = await db.collectionGroup("answers").get();
   const top = aggregateTop5(snap);
   await db.doc("stats/weeklyAnswerers").set({
     top,
@@ -306,8 +306,8 @@ exports.weeklyTopAnswerers = onSchedule(
         .map((t, i) => `${i + 1}위 ${t.authorName} (${t.count}개)`)
         .join(" · ");
       await db.collection("notices").add({
-        title: "🏆 이번 주 답변왕",
-        content: `지난 한 주 동안 가장 많이 답변해 준 친구들입니다. ${lines}. 모두 고마워요!`,
+        title: "🏆 답변왕",
+        content: `그동안 가장 많이 답변해 준 친구들입니다. ${lines}. 모두 고마워요!`,
         authorId: "system",
         authorName: "배움나눔 봇",
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
