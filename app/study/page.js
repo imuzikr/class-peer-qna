@@ -19,6 +19,9 @@ import {
   subscribeUserDirectory,
   subscribeMyMemberships,
   subscribeJoinCodes,
+  subscribeClassMembers,
+  subscribeClassRewards,
+  setStudentReward,
   leaveClass,
   regenerateJoinCode,
   addClass,
@@ -32,6 +35,7 @@ import { useCurrentUser } from "@/lib/useCurrentUser";
 import { useRequireAuth } from "@/lib/useRequireAuth";
 import { codeBlockHtml } from "@/lib/html";
 import TopNav from "@/components/TopNav";
+import StudyRewardPanel from "@/components/StudyRewardPanel";
 import StudyBoardColumn from "@/components/StudyBoardColumn";
 import StudyBoardForm from "@/components/StudyBoardForm";
 import NewQuestionForm from "@/components/NewQuestionForm";
@@ -70,6 +74,9 @@ export default function StudyPage() {
   const [kwlMobileOpen, setKwlMobileOpen] = useState(false); // 모바일 KWL 패널
   const [draggingBoardId, setDraggingBoardId] = useState(null); // 보드 순서 변경 DnD
   const [toast, setToast] = useState("");
+  const [directory, setDirectory] = useState([]);   // 교사: uid→실명 등 프로필
+  const [memberUids, setMemberUids] = useState([]);  // 현재 반 소속 학생 uid
+  const [rewards, setRewards] = useState([]);        // 현재 반 보상(과일) 목록
 
   useEffect(() => {
     const unsubC = subscribeClasses(setClasses);
@@ -110,8 +117,11 @@ export default function StudyPage() {
   // 교사/관리자만 사용자 디렉터리(실명) + 입장 코드 구독.
   // 학생은 보안 규칙상 users·joinCodes 목록을 읽을 수 없으므로 구독하지 않습니다.
   useEffect(() => {
-    if (!admin) return;
-    const unsubDir = subscribeUserDirectory(() => {});
+    if (!admin) {
+      setDirectory([]);
+      return;
+    }
+    const unsubDir = subscribeUserDirectory(setDirectory);
     const unsubCodes = subscribeJoinCodes(setJoinCodesMap);
     return () => {
       unsubDir();
@@ -145,6 +155,42 @@ export default function StudyPage() {
     () => boards.filter((b) => b.classId === classId),
     [boards, classId]
   );
+
+  // 교사: 현재 반의 소속 학생 + 보상(과일) 구독 (반이 바뀌면 재구독)
+  useEffect(() => {
+    if (!admin || !classId) {
+      setMemberUids([]);
+      setRewards([]);
+      return;
+    }
+    const unsubM = subscribeClassMembers(classId, setMemberUids);
+    const unsubR = subscribeClassRewards(classId, setRewards);
+    return () => {
+      unsubM();
+      unsubR();
+    };
+  }, [admin, classId]);
+
+  // 보상 명단 — 소속 학생 uid를 디렉터리(실명)·과일 수와 합쳐 정렬
+  const roster = useMemo(() => {
+    const dir = new Map(directory.map((d) => [d.uid, d]));
+    const countByUid = {};
+    rewards.forEach((r) => { countByUid[r.uid] = r.count ?? 0; });
+    return memberUids
+      .map((uid) => {
+        const d = dir.get(uid) || {};
+        return {
+          uid,
+          name: d.realName || d.studentId || "이름 미설정",
+          studentId: d.studentId || null,
+          emoji: d.emoji || "🙂",
+          count: countByUid[uid] ?? 0,
+        };
+      })
+      .sort((a, b) =>
+        (a.studentId || a.name).localeCompare(b.studentId || b.name, "ko")
+      );
+  }, [memberUids, directory, rewards]);
 
   async function handleCreateClass(e) {
     e.preventDefault();
@@ -329,6 +375,14 @@ export default function StudyPage() {
                 </div>
               )}
             </div>
+
+            {/* 오른쪽: 참여 보상 패널 (교사 전용) */}
+            {admin && currentClass && (
+              <StudyRewardPanel
+                roster={roster}
+                onAward={(uid, count) => setStudentReward(classId, uid, count)}
+              />
+            )}
           </div>
         </main>
       )}

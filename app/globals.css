@@ -4888,6 +4888,127 @@ pre code {
   margin-top: 20px;
 }
 
+/* ── 오른쪽: 참여 보상 패널 (교사 전용) ── */
+.reward-panel {
+  width: 288px;
+  flex-shrink: 0;
+  border-left: 1px solid var(--border);
+  background: var(--bg-deep);
+  overflow-y: auto;
+  padding: 18px 14px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.reward-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 4px;
+}
+.reward-title {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--dark);
+}
+.reward-sub {
+  font-size: 11.5px;
+  color: var(--text-sub);
+  font-weight: 600;
+}
+.reward-empty {
+  font-size: 13px;
+  color: var(--text-sub);
+  padding: 8px 6px;
+  line-height: 1.6;
+}
+
+.reward-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.reward-row {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 8px 10px;
+}
+.reward-row-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.reward-avatar {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.reward-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.reward-count {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--primary);
+  min-width: 16px;
+  text-align: right;
+}
+.reward-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.reward-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: #fff;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--text-sub);
+  display: grid;
+  place-items: center;
+}
+.reward-btn:hover:not(:disabled) {
+  background: var(--neutral);
+}
+.reward-plus {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+.reward-plus:hover:not(:disabled) {
+  background: var(--primary-dark);
+}
+.reward-plus:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* 과일 그리드 — 10개씩 한 줄, 20개면 2줄로 반복 */
+.reward-fruits {
+  margin-top: 6px;
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 3px 1px;
+  justify-items: center;
+}
+.reward-fruit {
+  font-size: clamp(13px, 1.1vw, 17px);
+  line-height: 1.2;
+}
+
 /* ── KWL 사이드 패널 ── */
 .kwl-panel {
   width: 300px;
@@ -7138,6 +7259,9 @@ pre code {
     overflow-y: auto;
     box-shadow: 6px 0 32px rgba(0,0,0,0.4);
   }
+
+  /* 참여 보상 패널은 모바일에서 숨김(교사 관리용, 데스크톱 전용) */
+  .reward-panel { display: none; }
   .kwl-panel.kwl-panel--open { display: flex; }
 
   .kwl-mobile-backdrop {

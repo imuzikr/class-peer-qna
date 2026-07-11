@@ -167,6 +167,19 @@ service cloud.firestore {
       allow delete: if signedIn() && (resource.data.uid == uid() || isTeacher());
     }
 
+    // ── 학생 보상(과일) — 교사가 부여, 본인/교사만 읽기 ──
+    //  · 문서 ID = `{classId}_{uid}`. 교사만 쓰기(0~20 범위 강제).
+    //  · 학생은 자기 보상만 읽을 수 있음(향후 본인 화면 노출 대비).
+    match /rewards/{rId} {
+      allow read: if signedIn() && (resource.data.uid == uid() || isTeacher());
+      allow write: if isTeacher()
+                   && request.resource.data.count is int
+                   && request.resource.data.count >= 0
+                   && request.resource.data.count <= 20
+                   && rId == (request.resource.data.classId + '_' + request.resource.data.uid);
+      allow delete: if isTeacher();
+    }
+
     // ── 공부방 보드 — 교사 관리, 카드는 학생 본인(문서ID = uid) ──
     match /studyBoards/{bId} {
       allow read: if signedIn();
