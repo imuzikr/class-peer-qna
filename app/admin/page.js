@@ -23,6 +23,7 @@ import { useRequireAuth } from "@/lib/useRequireAuth";
 import TopNav from "@/components/TopNav";
 import { getMeTooCount } from "@/lib/questionRanking";
 import StudentEditModal from "@/components/StudentEditModal";
+import StudentNotesThread from "@/components/StudentNotesThread";
 import StudentKwlPanel from "@/components/StudentKwlPanel";
 import ClassOverview from "@/components/ClassOverview";
 import StudyRoomStats from "@/components/StudyRoomStats";
@@ -880,6 +881,13 @@ export default function AdminDashboardPage() {
                     ))}
                   </div>
                 )}
+              </section>
+
+              <section className="admin-notes-panel">
+                <div className="admin-panel-head">
+                  <h2>📝 누가기록</h2>
+                </div>
+                <StudentNotesThread studentUid={selectedId} />
               </section>
 
               <StudentKwlPanel entries={selectedKwl} />

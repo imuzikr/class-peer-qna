@@ -10,12 +10,16 @@
 // · 실수 정정용으로 − 버튼도 제공합니다(과일이 있을 때만).
 // · 실명이 보이므로 이 패널은 교사만 사용합니다(익명성 유지).
 // =============================================================
+import { useState } from "react";
 import { REWARD_MAX } from "@/lib/store";
+import StudentNotesModal from "./StudentNotesModal";
 
 // 과일이 채워지는 고정 순서 (10종)
 const FRUITS = ["🍎", "🍊", "🍋", "🍇", "🍓", "🍑", "🍈", "🍉", "🍒", "🥝"];
 
-export default function StudyRewardPanel({ roster = [], onAward }) {
+export default function StudyRewardPanel({ roster = [], onAward, classId = null }) {
+  const [notesFor, setNotesFor] = useState(null); // 누가기록 모달 대상 학생
+
   return (
     <aside className="reward-panel" aria-label="멋진 순간">
       <div className="reward-head">
@@ -34,6 +38,15 @@ export default function StudyRewardPanel({ roster = [], onAward }) {
               <div className="reward-row-top">
                 <span className="reward-avatar" aria-hidden="true">{s.emoji}</span>
                 <span className="reward-name" title={s.name}>{s.name}</span>
+                <button
+                  type="button"
+                  className="reward-note-btn"
+                  onClick={() => setNotesFor(s)}
+                  title={`${s.name} 누가기록`}
+                  aria-label={`${s.name} 누가기록`}
+                >
+                  💬
+                </button>
                 <span className="reward-count">{s.count}</span>
                 <span className="reward-actions">
                   {s.count > 0 && (
@@ -70,6 +83,14 @@ export default function StudyRewardPanel({ roster = [], onAward }) {
             </li>
           ))}
         </ul>
+      )}
+
+      {notesFor && (
+        <StudentNotesModal
+          student={notesFor}
+          classId={classId}
+          onClose={() => setNotesFor(null)}
+        />
       )}
     </aside>
   );

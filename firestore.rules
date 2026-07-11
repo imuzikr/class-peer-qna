@@ -180,6 +180,16 @@ service cloud.firestore {
       allow delete: if isTeacher();
     }
 
+    // ── 누가기록(학생 관찰 메모) — 교사 전용 (학생은 읽기조차 불가) ──
+    //  · 교사가 학생별로 남기는 append 기록. 작성자 teacherId는 본인이어야 함.
+    match /studentNotes/{noteId} {
+      allow read: if isTeacher();
+      allow create: if isTeacher()
+                    && request.resource.data.teacherId == uid()
+                    && request.resource.data.studentUid is string;
+      allow update, delete: if isTeacher();
+    }
+
     // ── 공부방 보드 — 교사 관리, 카드는 학생 본인(문서ID = uid) ──
     match /studyBoards/{bId} {
       allow read: if signedIn();

@@ -380,6 +380,7 @@ export default function StudyPage() {
             {admin && currentClass && (
               <StudyRewardPanel
                 roster={roster}
+                classId={classId}
                 onAward={(uid, count) => setStudentReward(classId, uid, count)}
               />
             )}
