@@ -112,7 +112,7 @@ export default function StudyPresentModal({ board, cards = [], onClose }) {
         <div className="present-foot">
           <div className="present-fruits">
             <RewardFruits count={count} className="reward-fruits present-fruit-strip" />
-            <span className="present-fruit-count">🍎 {count}개</span>
+            <span className="present-fruit-count">{count}개</span>
           </div>
           <button
             className="btn-primary present-award"

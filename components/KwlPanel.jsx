@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { subscribeMyTodayKwl, subscribeAllKwl, subscribeMyAllKwl, addKwl, updateKwl, deleteKwl } from "@/lib/store";
 import { IconKwlK, IconKwlW, IconKwlL, IconRecord } from "@/components/StatusIcons";
 import { IconPen } from "@/components/RichTextEditor";
+import KwlFullscreenModal from "@/components/KwlFullscreenModal";
 
 function getToday() {
   // 로컬(사용자 시간대) 자정 기준 날짜 — UTC 기준이면 KST 오전 9시에
@@ -139,6 +140,7 @@ export default function KwlPanel({ classId, user, isTeacher, onAsk, mobileOpen, 
   const [showAllW, setShowAllW] = useState(false);
   const [history, setHistory] = useState([]);
   const [expandedDate, setExpandedDate] = useState(null);
+  const [fullscreen, setFullscreen] = useState(false); // 교사: KWL 전체 화면
 
   // 오늘 내 항목 구독
   useEffect(() => {
@@ -217,6 +219,16 @@ export default function KwlPanel({ classId, user, isTeacher, onAsk, mobileOpen, 
         >
           <IconRecord size={16} /> 기록
         </button>
+        {isTeacher && (
+          <button
+            type="button"
+            className="kwl-fullscreen-btn"
+            onClick={() => setFullscreen(true)}
+            title="오늘 학생들의 K·W·L을 전체 화면 3컬럼으로 보기"
+          >
+            ⛶ 전체 화면
+          </button>
+        )}
       </div>
 
       {tab === "today" ? (
@@ -368,6 +380,15 @@ export default function KwlPanel({ classId, user, isTeacher, onAsk, mobileOpen, 
             </ul>
           )}
         </div>
+      )}
+
+      {/* 교사: KWL 전체 화면 (오늘 학생 기록 3컬럼) */}
+      {fullscreen && (
+        <KwlFullscreenModal
+          entries={allEntries}
+          dateLabel={formatDateLabel(today)}
+          onClose={() => setFullscreen(false)}
+        />
       )}
     </aside>
   );
