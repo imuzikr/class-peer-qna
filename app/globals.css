@@ -3237,6 +3237,15 @@ pre code {
   border-radius: inherit;
   background: var(--primary);
 }
+/* 학급별 멋진 순간(과일) 막대 — 사과 레드 */
+.bar-fill-fruit {
+  background: #d9534f;
+}
+
+/* 학급별 멋진 순간 비교 패널 — 요약 카드 아래 단독 배치 */
+.class-fruit-panel {
+  margin-bottom: 16px;
+}
 
 .daily-chart {
   height: 180px;

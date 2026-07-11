@@ -14,12 +14,15 @@ export default function ClassOverview({
   questions = [],
   answerEvents = [],
   students = [],
+  fruitTotal = 0,
+  classFruitStats = null, // 전체 학급일 때만: [{ classId, name, total }]
   onOpenQuestion,
 }) {
   const totalQuestions = questions.length;
   const unresolved = questions.filter((q) => !q.resolved).length;
   const totalAnswers = answerEvents.length;
   const participants = students.length;
+  const maxFruit = Math.max(1, ...(classFruitStats ?? []).map((c) => c.total));
 
   // 궁금해요 많은 질문 Top 5
   const topMeToo = questions
@@ -46,7 +49,32 @@ export default function ClassOverview({
         <div className="admin-stat tone-metoo"><span>미해결 질문</span><strong>{unresolved}</strong></div>
         <div className="admin-stat tone-answer"><span>전체 답변</span><strong>{totalAnswers}</strong></div>
         <div className="admin-stat tone-done"><span>참여 학생</span><strong>{participants}</strong></div>
+        <div className="admin-stat tone-moments"><span>🍎 멋진 순간</span><strong>{fruitTotal}</strong></div>
       </section>
+
+      {/* 전체 학급: 학급별 멋진 순간(과일 합계) 비교 막대 그래프 */}
+      {classFruitStats && classFruitStats.length > 0 && (
+        <section className="admin-chart-panel class-fruit-panel">
+          <div className="admin-panel-head">
+            <h2>🍎 학급별 멋진 순간</h2>
+            <span>과일 합계</span>
+          </div>
+          <div className="keyword-bars">
+            {classFruitStats.map((c) => (
+              <div className="bar-row" key={c.classId}>
+                <span>{c.name}</span>
+                <div className="bar-track">
+                  <div
+                    className="bar-fill bar-fill-fruit"
+                    style={{ width: `${(c.total / maxFruit) * 100}%` }}
+                  />
+                </div>
+                <strong>{c.total}</strong>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="admin-charts overview-charts">
         {/* 학생별 활동 표 */}

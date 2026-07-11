@@ -16,6 +16,7 @@ import {
   subscribeUserDirectory,
   subscribeStudentNotes,
   subscribeStudentRewardTotal,
+  subscribeAllRewards,
   toDate,
 } from "@/lib/store";
 import { isFirebaseConfigured } from "@/lib/firebase";
@@ -269,6 +270,7 @@ export default function AdminDashboardPage() {
   const [selectedKwl, setSelectedKwl] = useState([]); // 선택 학생 KWL 기록
   const [selectedNotes, setSelectedNotes] = useState([]); // 선택 학생 멋진 순간(누가기록)
   const [selectedFruits, setSelectedFruits] = useState(0); // 선택 학생 받은 과일 총합
+  const [allRewards, setAllRewards] = useState([]); // 전체 반 과일 보상(학급 통계용)
   const [view, setView] = useState("students"); // 'students' | 'overview'
   const [selectedClassId, setSelectedClassId] = useState(null); // null = 전체 학급
   const [classes, setClasses] = useState([]);
@@ -294,6 +296,7 @@ export default function AdminDashboardPage() {
     const unsubB = subscribeStudyBoards(setStudyBoards);
     const unsubKwl = subscribeKwlAll(setAllKwl);
     const unsubDir = subscribeUserDirectory(setDirectory);
+    const unsubRewards = subscribeAllRewards(setAllRewards);
     return () => {
       unsubQ();
       unsubK();
@@ -301,6 +304,7 @@ export default function AdminDashboardPage() {
       unsubB();
       unsubKwl();
       unsubDir();
+      unsubRewards();
     };
   }, [canView]);
 
@@ -466,6 +470,25 @@ export default function AdminDashboardPage() {
   const overviewAnswerEvents = classParticipantIds
     ? answerEvents.filter((e) => classParticipantIds.has(e.answer.authorId))
     : answerEvents;
+
+  // 멋진 순간(과일) — 선택 반 합계 + (전체 학급일 때) 반별 비교
+  const overviewFruitTotal = useMemo(() => {
+    const rel = selectedClassId
+      ? allRewards.filter((r) => r.classId === selectedClassId)
+      : allRewards;
+    return rel.reduce((s, r) => s + (r.count ?? 0), 0);
+  }, [allRewards, selectedClassId]);
+
+  const classFruitStats = useMemo(() => {
+    if (selectedClassId) return null; // 특정 반이면 비교 불필요
+    const byClass = new Map();
+    allRewards.forEach((r) =>
+      byClass.set(r.classId, (byClass.get(r.classId) ?? 0) + (r.count ?? 0))
+    );
+    return classes
+      .map((c) => ({ classId: c.id, name: c.name, total: byClass.get(c.id) ?? 0 }))
+      .sort((a, b) => b.total - a.total);
+  }, [allRewards, selectedClassId, classes]);
 
   useEffect(() => {
     if (!selectedId && students.length > 0) {
@@ -695,6 +718,8 @@ export default function AdminDashboardPage() {
                 questions={overviewQuestions}
                 answerEvents={overviewAnswerEvents}
                 students={overviewStudents}
+                fruitTotal={overviewFruitTotal}
+                classFruitStats={classFruitStats}
                 onOpenQuestion={(id) => router.push(`/board?open=${id}`)}
               />
               <StudyRoomStats
