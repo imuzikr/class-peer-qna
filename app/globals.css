@@ -6209,6 +6209,21 @@ pre code {
   justify-content: flex-end;
 }
 
+/* 자동저장 상태 — 저장 행 왼쪽에 배치 */
+.study-autosave {
+  margin-right: auto;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+  transition: color 0.2s;
+}
+.study-autosave--saved {
+  color: #5c9e68;
+}
+.study-autosave--error {
+  color: var(--danger);
+}
+
 /* 모달 푸터의 두 버튼을 동일한 크기·주황(강조) 색으로 통일 */
 .study-card-modal-save-row > .btn-primary,
 .study-peek-foot > .btn-primary {

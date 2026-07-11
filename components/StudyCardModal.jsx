@@ -4,7 +4,7 @@
 // 공부방 카드 통합 모달 — 읽기 + 수정 + 삭제 + 질문하기 + 관련 질문
 // =============================================================
 import { backdropClose } from "@/lib/modal";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   addStudyCard,
   updateStudyCard,
@@ -66,6 +66,15 @@ export default function StudyCardModal({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [peekQuestion, setPeekQuestion] = useState(null);
   const [uploadPct, setUploadPct] = useState(null); // 첨부 업로드 진행률
+  const [autoStatus, setAutoStatus] = useState("idle"); // idle | saving | saved | error
+
+  const me = getCurrentUser();
+  // 자동저장 상태 관리용 refs
+  const cardIdRef = useRef(card?.id ?? null); // 저장된 카드 ID(신규는 첫 저장 후 채워짐)
+  const savingRef = useRef(false); // 저장 진행 중(중복 저장 방지)
+  const pendingRef = useRef(false); // 저장 중 들어온 변경 → 끝나고 재저장
+  const dirtyRef = useRef(false);   // 저장 안 된 변경 존재 여부(닫을 때 flush)
+  const flushRef = useRef(null);    // 최신 저장 함수 참조(언마운트 flush용)
 
   // 이미지 첨부 — 예전엔 단일 imageUrl을 계속 교체했지만, 지금은 다른
   // 첨부와 동일하게 attachments 배열에 누적됩니다(업로드 순서대로 표시).
@@ -199,37 +208,93 @@ export default function StudyCardModal({
     a.click();
   }
 
-  async function handleSave() {
-    let htmlToSave, titleToSave;
-
+  // 현재 입력값 → 저장할 { titleToSave, htmlToSave, valid }
+  function buildPayload() {
     if (isActivityCard) {
-      htmlToSave = activityTitles
+      const htmlToSave = activityTitles
         .map((t, i) => {
           const c = sanitizeHtml(activityContents[i]);
           return `<div class="activity-section"><h4 class="activity-title">${t}</h4>${c}</div>`;
         })
         .join("");
-      titleToSave = "";
       const hasContent = activityContents.some(
         (c) => stripHtml(sanitizeHtml(c)).trim().length > 0
       );
-      if (!hasContent && !imageUrl && attachments.length === 0) return;
-    } else {
-      htmlToSave = sanitizeHtml(content);
-      titleToSave = title.trim();
-      if (stripHtml(htmlToSave).length === 0 && !imageUrl && attachments.length === 0) return;
+      return { titleToSave: "", htmlToSave, valid: hasContent || !!imageUrl || attachments.length > 0 };
     }
+    const htmlToSave = sanitizeHtml(content);
+    const titleToSave = title.trim();
+    const valid = stripHtml(htmlToSave).length > 0 || !!imageUrl || attachments.length > 0;
+    return { titleToSave, htmlToSave, valid };
+  }
 
+  // 실제 저장 — 아직 카드가 없으면 생성(생성 ID 기억), 있으면 갱신.
+  async function persist(titleToSave, htmlToSave) {
+    const payload = { title: titleToSave, content: htmlToSave, imageUrl, attachments };
+    if (cardIdRef.current) {
+      await updateStudyCard(board.id, cardIdRef.current, payload);
+    } else {
+      const newId = await addStudyCard(me, board.id, payload);
+      cardIdRef.current = newId ?? me.uid;
+    }
+  }
+
+  // 자동저장 1회 — 중복 방지(single-flight), 저장 중 변경은 끝나고 재저장.
+  async function flushSave() {
+    if (!canEdit) return;
+    const { titleToSave, htmlToSave, valid } = buildPayload();
+    if (!valid) return; // 빈 카드는 자동 생성하지 않음
+    if (savingRef.current) { pendingRef.current = true; return; }
+    savingRef.current = true;
+    dirtyRef.current = false;
+    setAutoStatus("saving");
+    try {
+      await persist(titleToSave, htmlToSave);
+      setAutoStatus("saved");
+    } catch {
+      dirtyRef.current = true;
+      setAutoStatus("error");
+    } finally {
+      savingRef.current = false;
+      // 저장 중 들어온 변경이 있으면 최신 클로저로 재저장(스테일 방지)
+      if (pendingRef.current) { pendingRef.current = false; flushRef.current?.(); }
+    }
+  }
+  flushRef.current = flushSave; // 항상 최신 클로저를 참조
+
+  // 입력이 멈추면(1초) 자동 저장
+  useEffect(() => {
+    if (!canEdit) return;
+    if (!buildPayload().valid) return;
+    dirtyRef.current = true;
+    const t = setTimeout(() => flushRef.current?.(), 1000);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [title, content, imageUrl, attachments, activityTitles, activityContents, canEdit]);
+
+  // 모달을 닫을 때(언마운트) 저장 대기분이 있으면 마지막으로 저장
+  useEffect(() => {
+    return () => {
+      if (dirtyRef.current) flushRef.current?.();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // "저장하고 닫기" — 진행 중 자동저장을 기다렸다가 최종 저장 후 닫기
+  async function handleSave() {
+    const { titleToSave, htmlToSave, valid } = buildPayload();
+    if (!valid) { onClose(); return; } // 빈 카드는 저장 없이 닫기
     setSaving(true);
     try {
-      if (isNew) {
-        await addStudyCard(getCurrentUser(), board.id, { title: titleToSave, content: htmlToSave, imageUrl, attachments });
-      } else {
-        await updateStudyCard(board.id, card.id, { title: titleToSave, content: htmlToSave, imageUrl, attachments });
-      }
+      while (savingRef.current) await new Promise((r) => setTimeout(r, 50));
+      savingRef.current = true;
+      dirtyRef.current = false;
+      await persist(titleToSave, htmlToSave);
+      savingRef.current = false;
       onClose();
     } finally {
       setSaving(false);
+      savingRef.current = false;
     }
   }
 
@@ -510,6 +575,11 @@ export default function StudyCardModal({
 
           {canEdit && (
             <div className="study-card-modal-save-row">
+              <span className={`study-autosave study-autosave--${autoStatus}`}>
+                {autoStatus === "saving" && "저장 중…"}
+                {autoStatus === "saved" && "✓ 자동 저장됨"}
+                {autoStatus === "error" && "저장 실패 · 다시 시도됩니다"}
+              </span>
               {!isNew && (
                 confirmDelete ? (
                   <>
@@ -534,7 +604,7 @@ export default function StudyCardModal({
                 onClick={handleSave}
                 disabled={saving}
               >
-                {saving ? "저장 중..." : "저장"}
+                {saving ? "저장 중..." : "저장하고 닫기"}
               </button>
             </div>
           )}
