@@ -76,6 +76,7 @@ export default function StudyCardModal({
   const dirtyRef = useRef(false);   // 저장 안 된 변경 존재 여부(닫을 때 flush)
   const flushRef = useRef(null);    // 최신 저장 함수 참조(언마운트 flush용)
   const idleTimerRef = useRef(null); // '자동 저장됨' 표시를 잠시 뒤 숨기는 타이머
+  const skipFirstRef = useRef(true); // 마운트(카드 열기) 시엔 자동저장하지 않음
 
   // '✓ 자동 저장됨'을 잠깐 보여 준 뒤(1.6초) 다시 숨김 — 다음 입력 때 재표시
   function showSavedThenHide() {
@@ -271,8 +272,10 @@ export default function StudyCardModal({
   }
   flushRef.current = flushSave; // 항상 최신 클로저를 참조
 
-  // 입력이 멈추면(1초) 자동 저장
+  // 입력이 멈추면(1초) 자동 저장. 단, 카드를 "열기만" 한 마운트 시점에는
+  // 실행하지 않습니다(내용 변경이 있을 때만 저장 → 열자마자 저장되는 문제 방지).
   useEffect(() => {
+    if (skipFirstRef.current) { skipFirstRef.current = false; return; }
     if (!canEdit) return;
     if (!buildPayload().valid) return;
     dirtyRef.current = true;
