@@ -3245,9 +3245,36 @@ pre code {
   background: #d9534f;
 }
 
-/* 학급별 멋진 순간 비교 패널 — 요약 카드 아래 단독 배치 */
-.class-fruit-panel {
-  margin-bottom: 16px;
+/* 멋진 순간 카드 안의 학급별 비교 미니 막대 그래프 */
+.stat-fruit-chart {
+  justify-content: flex-start;
+  gap: 10px;
+}
+.stat-fruit-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.stat-fruit-row {
+  display: grid;
+  grid-template-columns: minmax(0, auto) 1fr auto;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+}
+.stat-fruit-name {
+  color: var(--text-sub);
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 64px;
+}
+.stat-fruit-chart .stat-fruit-num {
+  font-size: 13px;
+  color: var(--dark);
+  min-width: 18px;
+  text-align: right;
 }
 
 .daily-chart {
