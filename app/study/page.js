@@ -141,12 +141,19 @@ export default function StudyPage() {
     [keywordDocs]
   );
 
-  // 교사는 반을 고르지 않았으면 첫 번째 반을 기본 선택합니다(화면 상태만 사용)
+  // 교사가 고른 반은 세션에 저장돼 있어(localSelectedId), 새로고침해도 그 반을
+  // 이어서 보여줍니다. 저장된 값이 없거나 더 이상 존재하지 않는 반이면
+  // 첫 번째 반으로 폴백합니다.
   useEffect(() => {
     if (!admin || classes.length === 0) return;
     const valid = teacherClassId && classes.some((c) => c.id === teacherClassId);
-    if (!valid) setTeacherClassId(classes[0].id);
-  }, [admin, classes, teacherClassId]);
+    if (valid) return;
+    const remembered =
+      localSelectedId && classes.some((c) => c.id === localSelectedId)
+        ? localSelectedId
+        : classes[0].id;
+    setTeacherClassId(remembered);
+  }, [admin, classes, teacherClassId, localSelectedId]);
 
   const classId = admin ? teacherClassId : studentClassId;
   const currentClass = classes.find((c) => c.id === classId) ?? null;
@@ -279,6 +286,7 @@ export default function StudyPage() {
                         value={classId ?? ""}
                         onChange={(e) => {
                           setTeacherClassId(e.target.value);
+                          setSelectedClassId(e.target.value); // 새로고침해도 이 반 유지
                           setShowCode(false);
                         }}
                         aria-label="반 선택"

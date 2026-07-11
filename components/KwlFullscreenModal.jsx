@@ -10,11 +10,13 @@
 //   (CSS Grid에 컬럼 전체를 관통하는 배경 레이어를 먼저 깔고, 그 위에
 //    헤더·셀을 명시적 grid-row/column으로 겹쳐 올리는 방식)
 // =============================================================
-import { Fragment, useEffect } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { getDirectoryRealName } from "@/lib/store";
 import { IconKwlK, IconKwlW, IconKwlL } from "./StatusIcons";
 
-export default function KwlFullscreenModal({ entries = [], dateLabel = "", onClose }) {
+export default function KwlFullscreenModal({ entries = [], dateLabel = "", onClose, onRefresh }) {
+  const [refreshing, setRefreshing] = useState(false);
+
   // Esc 닫기
   useEffect(() => {
     function onKey(e) {
@@ -23,6 +25,16 @@ export default function KwlFullscreenModal({ entries = [], dateLabel = "", onClo
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
+
+  async function handleRefresh() {
+    if (!onRefresh || refreshing) return;
+    setRefreshing(true);
+    try {
+      await onRefresh();
+    } finally {
+      setRefreshing(false);
+    }
+  }
 
   // 학생별로 정리 — 실명(가나다) 순 정렬
   const rows = entries
@@ -41,7 +53,20 @@ export default function KwlFullscreenModal({ entries = [], dateLabel = "", onClo
             <span className="present-progress">{rows.length}명</span>
             <span className="present-board">{dateLabel}</span>
           </div>
-          <button className="btn-close" onClick={onClose} aria-label="닫기">×</button>
+          <div className="kwlfs-head-actions">
+            {onRefresh && (
+              <button
+                type="button"
+                className={`kwlfs-refresh-btn${refreshing ? " spinning" : ""}`}
+                onClick={handleRefresh}
+                disabled={refreshing}
+                title="새로고침 — 계속 보는 동안 새로 추가된 기록도 불러옵니다"
+              >
+                🔄 {refreshing ? "새로고침 중…" : "새로고침"}
+              </button>
+            )}
+            <button className="btn-close" onClick={onClose} aria-label="닫기">×</button>
+          </div>
         </div>
 
         <div className="kwlfs-body">

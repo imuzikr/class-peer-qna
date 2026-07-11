@@ -3,7 +3,7 @@
 // KWL 사이드 패널 — 공부방 왼쪽 고정 패널
 // 하루에 1개 항목만 유지(같은 날 저장 시 덮어쓰기), 저장 후 입력창은 초기화됩니다.
 import { useEffect, useState } from "react";
-import { subscribeMyTodayKwl, subscribeAllKwl, subscribeMyAllKwl, addKwl, updateKwl, deleteKwl } from "@/lib/store";
+import { subscribeMyTodayKwl, subscribeAllKwl, subscribeMyAllKwl, fetchAllKwlOnce, addKwl, updateKwl, deleteKwl } from "@/lib/store";
 import { IconKwlK, IconKwlW, IconKwlL, IconRecord } from "@/components/StatusIcons";
 import { IconPen } from "@/components/RichTextEditor";
 import KwlFullscreenModal from "@/components/KwlFullscreenModal";
@@ -235,68 +235,77 @@ export default function KwlPanel({ classId, user, isTeacher, onAsk, mobileOpen, 
         <>
           <div className="kwl-panel-date">{formatDateLabel(today)}</div>
 
-          {/* 입력 폼 */}
-          <div className="kwl-section">
-            <label className="kwl-label">
-              <IconKwlK size={26} />
-              알고 있었던 것
-            </label>
-            <textarea
-              className="kwl-textarea"
-              value={K}
-              onChange={(e) => setK(e.target.value)}
-              placeholder="이미 알고 있던 내용..."
-              rows={3}
-            />
-          </div>
+          {/* 입력 폼 — 오늘 이미 작성했다면 숨기고 아래 항목의 '수정'으로만
+              고치게 합니다(하루 1개, 새 글 추가 대신 수정만 허용). */}
+          {todayEntries.length === 0 ? (
+            <>
+              <div className="kwl-section">
+                <label className="kwl-label">
+                  <IconKwlK size={26} />
+                  알고 있었던 것
+                </label>
+                <textarea
+                  className="kwl-textarea"
+                  value={K}
+                  onChange={(e) => setK(e.target.value)}
+                  placeholder="이미 알고 있던 내용..."
+                  rows={3}
+                />
+              </div>
 
-          <div className="kwl-section">
-            <div className="kwl-label-row">
-              <label className="kwl-label">
-                <IconKwlW size={26} />
-                알고 싶은 것
-              </label>
-              {W.trim() && onAsk && (
-                <button
-                  type="button"
-                  className="kwl-ask-btn"
-                  onClick={() => onAsk(W.trim())}
-                >
-                  ❓ 질문으로
-                </button>
-              )}
-            </div>
-            <textarea
-              className="kwl-textarea"
-              value={W}
-              onChange={(e) => setW(e.target.value)}
-              placeholder="궁금한 점, 더 알고 싶은 것..."
-              rows={3}
-            />
-          </div>
+              <div className="kwl-section">
+                <div className="kwl-label-row">
+                  <label className="kwl-label">
+                    <IconKwlW size={26} />
+                    알고 싶은 것
+                  </label>
+                  {W.trim() && onAsk && (
+                    <button
+                      type="button"
+                      className="kwl-ask-btn"
+                      onClick={() => onAsk(W.trim())}
+                    >
+                      ❓ 질문으로
+                    </button>
+                  )}
+                </div>
+                <textarea
+                  className="kwl-textarea"
+                  value={W}
+                  onChange={(e) => setW(e.target.value)}
+                  placeholder="궁금한 점, 더 알고 싶은 것..."
+                  rows={3}
+                />
+              </div>
 
-          <div className="kwl-section">
-            <label className="kwl-label">
-              <IconKwlL size={26} />
-              새롭게 알게 된 것
-            </label>
-            <textarea
-              className="kwl-textarea"
-              value={L}
-              onChange={(e) => setL(e.target.value)}
-              placeholder="오늘 배우고 깨달은 것..."
-              rows={3}
-            />
-          </div>
+              <div className="kwl-section">
+                <label className="kwl-label">
+                  <IconKwlL size={26} />
+                  새롭게 알게 된 것
+                </label>
+                <textarea
+                  className="kwl-textarea"
+                  value={L}
+                  onChange={(e) => setL(e.target.value)}
+                  placeholder="오늘 배우고 깨달은 것..."
+                  rows={3}
+                />
+              </div>
 
-          <button
-            type="button"
-            className="kwl-save-btn"
-            onClick={handleSave}
-            disabled={saving || isEmpty}
-          >
-            {saving ? "저장 중..." : saved ? "✓ 저장됨" : "저장"}
-          </button>
+              <button
+                type="button"
+                className="kwl-save-btn"
+                onClick={handleSave}
+                disabled={saving || isEmpty}
+              >
+                {saving ? "저장 중..." : saved ? "✓ 저장됨" : "저장"}
+              </button>
+            </>
+          ) : (
+            <p className="kwl-already-done">
+              ✓ 오늘의 KWL을 작성했어요. 아래 항목의 <strong>수정</strong> 버튼으로 고칠 수 있어요.
+            </p>
+          )}
 
           {/* 오늘 저장된 항목 목록 */}
           {todayEntries.length > 0 && (
@@ -388,6 +397,7 @@ export default function KwlPanel({ classId, user, isTeacher, onAsk, mobileOpen, 
           entries={allEntries}
           dateLabel={formatDateLabel(today)}
           onClose={() => setFullscreen(false)}
+          onRefresh={() => fetchAllKwlOnce(classId, today).then(setAllEntries)}
         />
       )}
     </aside>

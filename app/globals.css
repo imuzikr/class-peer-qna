@@ -5286,6 +5286,40 @@ pre code {
 }
 
 /* ── KWL 전체 화면 (교사) ── */
+.kwlfs-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+}
+.kwlfs-refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-deep);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 7px 14px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.kwlfs-refresh-btn:hover:not(:disabled) {
+  background: var(--neutral);
+}
+.kwlfs-refresh-btn:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+.kwlfs-refresh-btn.spinning {
+  animation: kwlfs-refresh-pulse 0.9s ease-in-out infinite;
+}
+@keyframes kwlfs-refresh-pulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
 .kwl-fullscreen-btn {
   margin-left: auto;
   border: 1px solid rgba(255, 255, 255, 0.25);
@@ -5666,6 +5700,20 @@ pre code {
   width: 100%;
 }
 .kwl-save-btn:hover:not(:disabled) { background: var(--primary-dark); }
+
+/* 오늘 이미 작성한 경우 — 입력 폼 대신 안내 문구 */
+.kwl-already-done {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--sidebar-text);
+}
+.kwl-already-done strong {
+  color: #fff;
+}
 .kwl-save-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
 /* 교사: 학생 W 모아보기 */
