@@ -75,6 +75,14 @@ export default function StudyCardModal({
   const pendingRef = useRef(false); // 저장 중 들어온 변경 → 끝나고 재저장
   const dirtyRef = useRef(false);   // 저장 안 된 변경 존재 여부(닫을 때 flush)
   const flushRef = useRef(null);    // 최신 저장 함수 참조(언마운트 flush용)
+  const idleTimerRef = useRef(null); // '자동 저장됨' 표시를 잠시 뒤 숨기는 타이머
+
+  // '✓ 자동 저장됨'을 잠깐 보여 준 뒤(1.6초) 다시 숨김 — 다음 입력 때 재표시
+  function showSavedThenHide() {
+    setAutoStatus("saved");
+    if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+    idleTimerRef.current = setTimeout(() => setAutoStatus("idle"), 1600);
+  }
 
   // 이미지 첨부 — 예전엔 단일 imageUrl을 계속 교체했지만, 지금은 다른
   // 첨부와 동일하게 attachments 배열에 누적됩니다(업로드 순서대로 표시).
@@ -247,10 +255,11 @@ export default function StudyCardModal({
     if (savingRef.current) { pendingRef.current = true; return; }
     savingRef.current = true;
     dirtyRef.current = false;
+    if (idleTimerRef.current) clearTimeout(idleTimerRef.current); // 숨김 예약 취소
     setAutoStatus("saving");
     try {
       await persist(titleToSave, htmlToSave);
-      setAutoStatus("saved");
+      showSavedThenHide();
     } catch {
       dirtyRef.current = true;
       setAutoStatus("error");
@@ -275,6 +284,7 @@ export default function StudyCardModal({
   // 모달을 닫을 때(언마운트) 저장 대기분이 있으면 마지막으로 저장
   useEffect(() => {
     return () => {
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
       if (dirtyRef.current) flushRef.current?.();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

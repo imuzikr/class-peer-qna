@@ -6538,7 +6538,7 @@ pre code {
   color: var(--danger);
 }
 
-/* 자동저장 배지 — 모달 제목 줄에 명시적으로 표시 */
+/* 자동저장 배지 — 제목 줄에 잠깐 표시됐다가 사라짐(다음 입력 때 재표시) */
 .study-autosave-pill {
   margin-left: 10px;
   font-size: 12px;
@@ -6549,6 +6549,11 @@ pre code {
   color: var(--text-sub);
   vertical-align: middle;
   white-space: nowrap;
+  animation: autosave-pill-in 0.25s ease;
+}
+@keyframes autosave-pill-in {
+  from { opacity: 0; transform: translateY(-2px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 .study-autosave-pill--saving {
   background: var(--neutral);
