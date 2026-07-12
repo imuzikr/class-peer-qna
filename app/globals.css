@@ -6798,7 +6798,18 @@ pre code {
 }
 
 /* 교사 전용 정렬 버튼 */
-/* 보드 제목 인라인 편집 — 제목(h3) 자리에서 바로 수정 (설정 패널 열림 시) */
+/* 보드 제목 인라인 편집 — 제목(h3) 자리에서 더블 클릭으로 바로 수정 */
+.study-title-h3--editable {
+  cursor: text;
+  border-radius: 6px;
+}
+.study-title-edit-wrap {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
 .study-title-inline {
   flex: 1;
   min-width: 0;
@@ -6815,6 +6826,22 @@ pre code {
 .study-title-inline:focus {
   outline: none;
   box-shadow: 0 0 0 2px var(--primary-light);
+}
+.study-title-save {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 8px;
+  background: var(--primary);
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.study-title-save:hover {
+  background: var(--primary-dark, #c15a2a);
 }
 
 .study-sort {

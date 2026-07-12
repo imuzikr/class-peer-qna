@@ -73,6 +73,7 @@ export default function StudyBoardColumn({
   const [savingActivities, setSavingActivities] = useState(false);
   const [presenting, setPresenting] = useState(false); // 발표 모드
   const [titleDraft, setTitleDraft] = useState(board.title); // 보드 제목 편집 초안
+  const [editingTitle, setEditingTitle] = useState(false); // 제목 인라인 편집 중
   // 학생 미리보기(peek): 접힌 보드를 학생이 잠깐 펼쳐 보는 개인 상태.
   // 공유 상태(board.collapsed)는 그대로 두고, 이 학생의 화면에서만 펼쳐집니다.
   const [peeked, setPeeked] = useState(false);
@@ -142,10 +143,11 @@ export default function StudyBoardColumn({
     await deleteStudyBoard(board.id);
   }
 
-  // 보드 제목 변경 — 제목을 따로 입력하지 않아 '보드 제목'을 기본값으로 쓰던
+  // 보드 제목 저장 — 제목을 따로 입력하지 않아 '보드 제목'을 기본값으로 쓰던
   // 카드들의 제목도 함께 바꿔 줍니다(직접 다른 제목을 단 카드는 그대로 유지).
-  async function renameBoard() {
+  async function commitTitle() {
     const newTitle = titleDraft.trim();
+    setEditingTitle(false);
     if (!newTitle || newTitle === board.title) {
       setTitleDraft(board.title); // 빈 값·무변경이면 원래 제목으로 되돌림
       return;
@@ -157,6 +159,14 @@ export default function StudyBoardColumn({
         updateStudyCard(board.id, c.id, { title: newTitle });
       }
     });
+  }
+  function startEditTitle() {
+    setTitleDraft(board.title);
+    setEditingTitle(true);
+  }
+  function cancelEditTitle() {
+    setTitleDraft(board.title);
+    setEditingTitle(false);
   }
 
   // 다른 반으로 복제 — 학생 카드는 복사하지 않고 활동·공개범위만 유지
@@ -265,35 +275,69 @@ export default function StudyBoardColumn({
       {/* ── 교사 관리 영역 (독립 카드) ── */}
       <div className="study-board-info">
         <div
-          className={`study-board-info-head${isTeacher && !isNotice ? " clickable" : ""}${isTeacher && !panelOpen ? " draggable" : ""}`}
-          draggable={isTeacher && !panelOpen}
-          onDragStart={isTeacher && !panelOpen ? () => onBoardDragStart?.() : undefined}
-          onDragEnd={isTeacher && !panelOpen ? () => onBoardDragEnd?.() : undefined}
+          className={`study-board-info-head${isTeacher && !isNotice ? " clickable" : ""}${isTeacher && !editingTitle ? " draggable" : ""}`}
+          draggable={isTeacher && !editingTitle}
+          onDragStart={isTeacher && !editingTitle ? () => onBoardDragStart?.() : undefined}
+          onDragEnd={isTeacher && !editingTitle ? () => onBoardDragEnd?.() : undefined}
           onClick={
             isTeacher && !isNotice
               ? () => setPanelOpen((v) => !v)
               : undefined
           }
-          title={isTeacher && !panelOpen ? "드래그해서 보드 순서 변경" : undefined}
+          title={isTeacher && !editingTitle ? "드래그해서 보드 순서 변경" : undefined}
         >
-          {/* 설정 패널이 열려 있으면 제목 위치에서 바로 편집 */}
-          {isTeacher && !isNotice && panelOpen ? (
-            <input
-              className="study-title-inline"
-              value={titleDraft}
-              onChange={(e) => setTitleDraft(e.target.value)}
-              onBlur={renameBoard}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); }
-              }}
+          {/* 제목 — 교사는 더블 클릭으로 그 자리에서 바로 편집 */}
+          {isTeacher && !isNotice && editingTitle ? (
+            <div
+              className="study-title-edit-wrap"
               onClick={(e) => e.stopPropagation()}
               onMouseDown={(e) => e.stopPropagation()}
-              maxLength={40}
-              placeholder="보드 제목"
-              aria-label="보드 제목 수정"
-            />
+            >
+              <input
+                className="study-title-inline"
+                value={titleDraft}
+                onChange={(e) => setTitleDraft(e.target.value)}
+                onBlur={commitTitle}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") { e.preventDefault(); commitTitle(); }
+                  else if (e.key === "Escape") { e.preventDefault(); cancelEditTitle(); }
+                }}
+                maxLength={40}
+                placeholder="보드 제목"
+                aria-label="보드 제목 수정"
+                autoFocus
+              />
+              <button
+                type="button"
+                className="study-title-save"
+                // mousedown에서 blur가 먼저 일어나 두 번 저장되지 않게 포커스 이동 방지
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={commitTitle}
+                title="제목 저장"
+                aria-label="제목 저장"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            </div>
           ) : (
-            <h3>{pinned && <span className="study-pin-mark" aria-hidden="true">📌 </span>}{board.title}</h3>
+            <h3
+              className={isTeacher && !isNotice ? "study-title-h3--editable" : ""}
+              onClick={
+                // 제목 단일 클릭은 패널을 토글하지 않음(더블 클릭 편집과 충돌·깜빡임 방지).
+                // 설정 패널은 헤더 오른쪽 ⌄ 버튼으로 엽니다.
+                isTeacher && !isNotice ? (e) => e.stopPropagation() : undefined
+              }
+              onDoubleClick={
+                isTeacher && !isNotice
+                  ? (e) => { e.stopPropagation(); startEditTitle(); }
+                  : undefined
+              }
+              title={isTeacher && !isNotice ? "더블 클릭해 제목 수정" : undefined}
+            >
+              {pinned && <span className="study-pin-mark" aria-hidden="true">📌 </span>}{board.title}
+            </h3>
           )}
           {isTeacher && isFirst && (
             <button
