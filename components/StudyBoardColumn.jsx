@@ -43,10 +43,12 @@ export default function StudyBoardColumn({
   user,
   isTeacher,
   isFirst = false, // 첫 번째 보드 — 고정(핀)·모두 펴기 기능은 첫 보드에만 제공
-  collapsed = false, // 교사 개인 설정: 세로 슬림 바로 접힘 (localStorage)
+  collapsed = false, // 공유 접힘 상태(board.collapsed) — 세로 슬림 바로 접힘
   onToggleCollapse,
   onExpandAll, // 첫 보드: 접힌 보드 일괄 펴기
   hasCollapsed = false, // 접힌 보드가 하나라도 있는지 (모두 펴기 활성화용)
+  onCollapseAll, // 첫 보드: 교사·최근 보드만 남기고 모두 접기
+  canCollapseAll = false, // 접을 수 있는 중간 보드가 남아 있는지 (모두 접기 활성화용)
   questions = [],
   classes = [],
   onAsk,
@@ -265,7 +267,21 @@ export default function StudyBoardColumn({
               📌
             </button>
           )}
-          {/* 첫 보드(교사 자료·공지용)는 접기 대신 '접힌 보드 모두 펴기' 버튼 */}
+          {/* 첫 보드(교사 자료·공지용): 일괄 접기/펴기 버튼 */}
+          {isTeacher && isFirst && (
+            <button
+              className="study-collapse-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                onCollapseAll?.();
+              }}
+              disabled={!canCollapseAll}
+              title={canCollapseAll ? "교사·최근 보드만 남기고 모두 접기" : "접을 보드가 없어요"}
+              aria-label="교사·최근 보드만 남기고 모두 접기"
+            >
+              «
+            </button>
+          )}
           {isTeacher && isFirst && (
             <button
               className="study-collapse-btn"

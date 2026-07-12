@@ -89,6 +89,13 @@ export default function StudyPage() {
       if (bi !== 0 && b.collapsed) updateStudyBoard(b.id, { collapsed: false });
     });
   }
+  function collapseAllBoards() {
+    // 교사 보드(첫 번째)와 가장 최근 보드(마지막)만 남기고 모두 접기
+    const last = classBoards.length - 1;
+    classBoards.forEach((b, bi) => {
+      if (bi !== 0 && bi !== last && !b.collapsed) updateStudyBoard(b.id, { collapsed: true });
+    });
+  }
 
   useEffect(() => {
     const unsubC = subscribeClasses(setClasses);
@@ -376,6 +383,11 @@ export default function StudyPage() {
                       onExpandAll={expandAllBoards}
                       hasCollapsed={classBoards.some(
                         (b, bi) => bi !== 0 && !!b.collapsed
+                      )}
+                      onCollapseAll={collapseAllBoards}
+                      canCollapseAll={classBoards.some(
+                        (b, bi) =>
+                          bi !== 0 && bi !== classBoards.length - 1 && !b.collapsed
                       )}
                       questions={questions}
                       classes={classes}
