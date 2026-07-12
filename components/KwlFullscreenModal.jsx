@@ -64,12 +64,18 @@ export default function KwlFullscreenModal({ classId, initialDate, onClose }) {
   function awardFruit(uid, entry = null) {
     const cur = rewardMap[uid] ?? 0;
     if (cur >= REWARD_MAX) return;
-    // 익명 닉네임을 함께 저장 — 학생(읽기 전용) 화면의 이름표용(실명 아님)
+    // 실명을 함께 저장 — 공부방은 실명 참여 공간(학생 화면 이름표용).
+    // rewards는 규칙상 그 반 소속 학생만 읽을 수 있음.
     setStudentReward(
       classId,
       uid,
       cur + 1,
-      entry ? { name: entry.authorName || "", emoji: entry.authorEmoji || "🙂" } : null
+      entry
+        ? {
+            name: entry.displayName || entry.authorName || "",
+            emoji: entry.authorEmoji || "🙂",
+          }
+        : null
     );
   }
 

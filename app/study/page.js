@@ -263,14 +263,14 @@ export default function StudyPage() {
 
   // 보상 명단
   //  · 교사: 소속 학생 전체를 디렉터리(실명)·과일 수와 합쳐 학번순 정렬
-  //  · 학생: 보상 문서만으로 구성(익명 닉네임) — 과일 받은 친구만 보임
+  //  · 학생: 보상 문서만으로 구성 — 과일 받은 친구만, 실명 이름표(공부방은 실명 공간)
   const roster = useMemo(() => {
     if (!admin) {
       return rewards
         .filter((r) => (r.count ?? 0) > 0)
         .map((r) => ({
           uid: r.uid,
-          name: r.name || "익명 친구",
+          name: r.name || "이름 준비 중", // 과거 문서 — 다음 과일 때 실명이 채워짐
           emoji: r.emoji || "🙂",
           count: r.count ?? 0,
         }))
@@ -295,14 +295,21 @@ export default function StudyPage() {
       );
   }, [admin, memberUids, directory, rewards]);
 
-  // 과일 부여 시 익명 닉네임을 문서에 함께 저장(학생 화면 이름표용, 실명 아님)
+  // 과일 부여 시 실명을 문서에 함께 저장 — 공부방은 실명 참여 공간이라
+  // 학생(읽기 전용) 화면에도 실명 이름표를 보여줍니다.
+  // (rewards는 규칙상 그 반 소속 학생만 읽을 수 있어 반 밖으로 새지 않음)
   function awardReward(uid, count) {
     const d = directory.find((x) => x.uid === uid);
     setStudentReward(
       classId,
       uid,
       count,
-      d ? { name: d.displayName || "", emoji: d.emoji || "🙂" } : null
+      d
+        ? {
+            name: d.realName || d.studentId || d.displayName || "",
+            emoji: d.emoji || "🙂",
+          }
+        : null
     );
   }
 
