@@ -265,18 +265,36 @@ export default function StudyBoardColumn({
       {/* ── 교사 관리 영역 (독립 카드) ── */}
       <div className="study-board-info">
         <div
-          className={`study-board-info-head${isTeacher && !isNotice ? " clickable" : ""}${isTeacher ? " draggable" : ""}`}
-          draggable={isTeacher}
-          onDragStart={isTeacher ? () => onBoardDragStart?.() : undefined}
-          onDragEnd={isTeacher ? () => onBoardDragEnd?.() : undefined}
+          className={`study-board-info-head${isTeacher && !isNotice ? " clickable" : ""}${isTeacher && !panelOpen ? " draggable" : ""}`}
+          draggable={isTeacher && !panelOpen}
+          onDragStart={isTeacher && !panelOpen ? () => onBoardDragStart?.() : undefined}
+          onDragEnd={isTeacher && !panelOpen ? () => onBoardDragEnd?.() : undefined}
           onClick={
             isTeacher && !isNotice
               ? () => setPanelOpen((v) => !v)
               : undefined
           }
-          title={isTeacher ? "드래그해서 보드 순서 변경" : undefined}
+          title={isTeacher && !panelOpen ? "드래그해서 보드 순서 변경" : undefined}
         >
-          <h3>{pinned && <span className="study-pin-mark" aria-hidden="true">📌 </span>}{board.title}</h3>
+          {/* 설정 패널이 열려 있으면 제목 위치에서 바로 편집 */}
+          {isTeacher && !isNotice && panelOpen ? (
+            <input
+              className="study-title-inline"
+              value={titleDraft}
+              onChange={(e) => setTitleDraft(e.target.value)}
+              onBlur={renameBoard}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); }
+              }}
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+              maxLength={40}
+              placeholder="보드 제목"
+              aria-label="보드 제목 수정"
+            />
+          ) : (
+            <h3>{pinned && <span className="study-pin-mark" aria-hidden="true">📌 </span>}{board.title}</h3>
+          )}
           {isTeacher && isFirst && (
             <button
               className={`study-pin-btn${pinned ? " on" : ""}`}
@@ -383,20 +401,6 @@ export default function StudyBoardColumn({
         {/* 정렬·활동·설정 패널 — 제목 카드 클릭 시 한 번에 펼침 */}
         {isTeacher && !isNotice && (
           <div className={`study-board-panel${panelOpen ? " open" : ""}`}>
-            <label className="study-title-edit" onClick={(e) => e.stopPropagation()}>
-              <span>보드 제목</span>
-              <input
-                className="study-title-input"
-                value={titleDraft}
-                onChange={(e) => setTitleDraft(e.target.value)}
-                onBlur={renameBoard}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); }
-                }}
-                maxLength={40}
-                placeholder="보드 제목"
-              />
-            </label>
             <div className="study-sort">
               <button
                 className={`study-sort-btn study-sort-btn--studentid${sortKey === "studentId" ? " active" : ""}`}

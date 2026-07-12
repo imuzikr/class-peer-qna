@@ -6798,31 +6798,23 @@ pre code {
 }
 
 /* 교사 전용 정렬 버튼 */
-/* 보드 제목 편집 (교사 설정 패널 상단) */
-.study-title-edit {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  padding: 12px 12px 4px;
-}
-.study-title-edit > span {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text-sub);
-}
-.study-title-input {
-  width: 100%;
-  padding: 8px 10px;
-  font-size: 14px;
+/* 보드 제목 인라인 편집 — 제목(h3) 자리에서 바로 수정 (설정 패널 열림 시) */
+.study-title-inline {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 8px;
+  font-family: var(--font-serif);
+  font-size: 15px;
   font-weight: 600;
-  border: 1px solid var(--border);
+  color: var(--dark);
+  border: 1px solid var(--primary);
   border-radius: 8px;
   background: #fff;
   box-sizing: border-box;
 }
-.study-title-input:focus {
-  border-color: var(--primary);
+.study-title-inline:focus {
   outline: none;
+  box-shadow: 0 0 0 2px var(--primary-light);
 }
 
 .study-sort {
