@@ -395,7 +395,7 @@ export default function StudyPage() {
                     )}
                     {admin && currentClass && classBoards.length > 0 && (
                       <div className="study-export">
-                        <span className="study-export-label">활동 자료</span>
+                        <span className="study-export-label">다운로드</span>
                         <button
                           className="study-export-btn"
                           onClick={() => handleExport("class", "csv")}
