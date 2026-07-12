@@ -3,7 +3,7 @@
 // 3단: 공지사항 패널 — 실시간 공지 목록 + 공지 작성(서식 지원)
 import { useState } from "react";
 import { addNotice, formatTime, toDate } from "@/lib/store";
-import { getCurrentUser, isAdmin } from "@/lib/user";
+import { getCurrentUser, isTeacher } from "@/lib/user";
 import { sanitizeHtml, stripHtml } from "@/lib/html";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import RichTextEditor from "./RichTextEditor";
@@ -53,7 +53,7 @@ export default function NoticePanel({ notices }) {
             {sortDir === "desc" ? "↓ 최신순" : "↑ 오래된순"}
           </button>
           {/* 공지 작성은 관리자/교사 전용 (isAdmin 관문) */}
-          {isAdmin(user) && (
+          {isTeacher(user) && (
             <button className="btn-ghost" onClick={() => setWriting(!writing)}>
               {writing ? "닫기" : "+ 작성"}
             </button>

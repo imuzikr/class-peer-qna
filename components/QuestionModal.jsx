@@ -15,7 +15,7 @@ import {
   setUnderstoodAnswer,
   deleteQuestion,
 } from "@/lib/store";
-import { getCurrentUser, isAdmin } from "@/lib/user";
+import { getCurrentUser, isTeacher } from "@/lib/user";
 import { isFirebaseConfigured } from "@/lib/firebase";
 import { sanitizeHtml, stripHtml } from "@/lib/html";
 import { uploadImage, uploadDataUrl } from "@/lib/storageUpload";
@@ -43,7 +43,7 @@ export default function QuestionModal({
 }) {
   const user = getCurrentUser();
   const mine = question.authorId === user.uid;
-  const admin = isAdmin(user);
+  const admin = isTeacher(user);
   const [answers, setAnswers] = useState([]);
   const [content, setContent] = useState(""); // 입력 중인 HTML
   const [answerImages, setAnswerImages] = useState([]); // 첨부 이미지(다중)
@@ -152,7 +152,7 @@ export default function QuestionModal({
   }
 
   const canManageUnderstood =
-    question.authorId === user.uid || isAdmin(user) || !isFirebaseConfigured;
+    question.authorId === user.uid || isTeacher(user) || !isFirebaseConfigured;
 
   // 해결됐지만 아직 인사이트가 없는 질문 — 인사이트 입구를 노출할지 판단
   const needsReflection = question.resolved && !question.reflection;

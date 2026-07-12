@@ -8,7 +8,7 @@
 // =============================================================
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { isAdmin } from "@/lib/user";
+import { isAdmin, isTeacher } from "@/lib/user";
 import { isFirebaseConfigured } from "@/lib/firebase";
 import { signOutUser } from "@/lib/auth";
 import { subscribeUserDirectory } from "@/lib/store";
@@ -21,8 +21,8 @@ import { IconReport, IconPythonRunner, IconLogo, IconAnswer, IconSchool, IconBla
 export default function TopNav({ active, onPython, pyActive = false }) {
   const router = useRouter();
   const user = useCurrentUser();
-  const admin = user ? isAdmin(user) : false;       // 교사+관리자 (대시보드 접근)
-  const isStrictAdmin = user?.role === "admin";      // 관리자만 (역할 관리)
+  const admin = user ? isTeacher(user) : false;      // 교사+관리자 (대시보드 접근)
+  const isStrictAdmin = user ? isAdmin(user) : false; // 최고 관리자만 (역할 관리)
   const [navOpen, setNavOpen] = useState(false);
   const [roleMgrOpen, setRoleMgrOpen] = useState(false);
   const [directory, setDirectory] = useState([]);

@@ -29,7 +29,7 @@ import { IconWrite, IconInsight } from "@/components/StatusIcons";
 import { sortPinnedQuestions } from "@/lib/questionRanking";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import { useRequireAuth } from "@/lib/useRequireAuth";
-import { isAdmin } from "@/lib/user";
+import { isTeacher } from "@/lib/user";
 
 // 파이썬 실행기(CodeMirror 등)는 무거워 지연 로딩 → 초기 로드/전환 속도 개선
 const PythonRunner = dynamic(() => import("@/components/PythonRunner"), {
@@ -54,7 +54,7 @@ export default function BoardPage() {
   const [managingKeywords, setManagingKeywords] = useState(false);
   const user = useCurrentUser();
   useRequireAuth();
-  const admin = user ? isAdmin(user) : false;
+  const admin = user ? isTeacher(user) : false;
 
   // 실시간 구독 (컴포넌트가 사라지면 자동 해제)
   useEffect(() => {

@@ -12,7 +12,7 @@ import {
   formatTime,
   getDirectoryRealName,
 } from "@/lib/store";
-import { getCurrentUser, isAdmin } from "@/lib/user";
+import { getCurrentUser, isTeacher } from "@/lib/user";
 import { sanitizeHtml, stripHtml } from "@/lib/html";
 import { formatFileSize } from "@/lib/image";
 import { uploadImage, uploadFile, uploadDataUrl } from "@/lib/storageUpload";
@@ -46,7 +46,7 @@ export default function StudyCardModal({
     card?.authorId?.startsWith?.("teacher_") || card?.authorName === "선생님";
   // 학생에겐 익명 닉네임만, 교사에겐 디렉터리의 실명을 표시 (교사 카드는 "선생님")
   const cardDisplayName = card
-    ? (isAdmin(getCurrentUser()) && !isTeacherCard
+    ? (isTeacher(getCurrentUser()) && !isTeacherCard
         ? getDirectoryRealName(card.authorId)
         : null) || card.authorName
     : "";

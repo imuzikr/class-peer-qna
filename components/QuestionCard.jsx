@@ -6,7 +6,7 @@
 // 카드에서 모달 없이 해결로 바꾸는 동작은 두지 않습니다.
 import { formatTime } from "@/lib/store";
 import { stripHtml } from "@/lib/html";
-import { isAdmin } from "@/lib/user";
+import { isTeacher } from "@/lib/user";
 import { isPinnedQuestion } from "@/lib/questionRanking";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import { IconAsk, IconSolved, IconAnswer } from "./StatusIcons";
@@ -18,7 +18,7 @@ export default function QuestionCard({ question, onClick }) {
   const resolved = !!question.resolved;
   const mine = user ? question.authorId === user.uid : false;
   const pinned = isPinnedQuestion(question);
-  const showPending = question.reflectionPending && (mine || isAdmin(user));
+  const showPending = question.reflectionPending && (mine || isTeacher(user));
 
   return (
     <article

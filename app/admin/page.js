@@ -13,14 +13,16 @@ import {
   subscribeStudyBoards,
   subscribeStudyCards,
   subscribeKwlAll,
+  subscribeKwlForClasses,
   subscribeUserDirectory,
   subscribeStudentNotes,
   subscribeStudentRewardTotal,
   subscribeAllRewards,
+  subscribeRewardsForClasses,
   toDate,
 } from "@/lib/store";
 import { isFirebaseConfigured } from "@/lib/firebase";
-import { isAdmin } from "@/lib/user";
+import { isAdmin, isTeacher } from "@/lib/user";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import { useRequireAuth } from "@/lib/useRequireAuth";
 import TopNav from "@/components/TopNav";
@@ -280,8 +282,9 @@ export default function AdminDashboardPage() {
   const [directory, setDirectory] = useState([]); // users 디렉터리(실명·이메일)
 
   // 관리자 대시보드는 교사·관리자 전용 — 학생 보기로 바뀌면 학습 리포트로 이동
-  const isStudent = user ? !isAdmin(user) : false;
-  const canView = user ? isAdmin(user) : false; // 교사 또는 관리자
+  const isStudent = user ? !isTeacher(user) : false;
+  const canView = user ? isTeacher(user) : false; // 교사 또는 관리자
+  const superAdmin = user ? isAdmin(user) : false; // 최고 관리자 (모든 반 접근)
   useEffect(() => {
     if (isStudent) router.replace("/report");
   }, [isStudent, router]);
@@ -294,24 +297,54 @@ export default function AdminDashboardPage() {
     const unsubK = subscribeKeywords(setKeywordDocs);
     const unsubC = subscribeClasses(setClasses);
     const unsubB = subscribeStudyBoards(setStudyBoards);
-    const unsubKwl = subscribeKwlAll(setAllKwl);
     const unsubDir = subscribeUserDirectory(setDirectory);
-    const unsubRewards = subscribeAllRewards(setAllRewards);
     return () => {
       unsubQ();
       unsubK();
       unsubC();
       unsubB();
-      unsubKwl();
       unsubDir();
-      unsubRewards();
     };
   }, [canView]);
 
-  // 공부방 보드별 카드 구독 — 보드 id 집합이 바뀔 때만 재연결 (공부방별 통계용)
+  // 이 교사가 관리하는 반 — 일반 교사는 본인 개설 반만, 최고 관리자는 전체.
+  const myClasses = useMemo(
+    () =>
+      superAdmin
+        ? classes
+        : classes.filter((c) => c.createdBy && c.createdBy === user?.uid),
+    [classes, superAdmin, user?.uid]
+  );
+  const myClassIdKey = useMemo(
+    () => myClasses.map((c) => c.id).sort().join(","),
+    [myClasses]
+  );
+  // 소유 반의 보드만 (공부방 통계·카드 구독 대상)
+  const myBoards = useMemo(() => {
+    if (superAdmin) return studyBoards;
+    const ids = new Set(myClasses.map((c) => c.id));
+    return studyBoards.filter((b) => ids.has(b.classId));
+  }, [studyBoards, myClasses, superAdmin]);
+
+  // 소유 반의 과일·KWL 구독 — 규칙상 교사는 전체 나열 불가라 반별로 나눠 구독.
+  // 최고 관리자는 전체를 한 번에 구독(broad).
+  useEffect(() => {
+    if (!canView) { setAllRewards([]); setAllKwl([]); return; }
+    if (superAdmin) {
+      const unsubR = subscribeAllRewards(setAllRewards);
+      const unsubKwl = subscribeKwlAll(setAllKwl);
+      return () => { unsubR(); unsubKwl(); };
+    }
+    const ids = myClassIdKey ? myClassIdKey.split(",") : [];
+    const unsubR = subscribeRewardsForClasses(ids, setAllRewards);
+    const unsubKwl = subscribeKwlForClasses(ids, setAllKwl);
+    return () => { unsubR(); unsubKwl(); };
+  }, [canView, superAdmin, myClassIdKey]);
+
+  // 공부방 보드별 카드 구독 — 소유 반 보드만 (보드 id 집합이 바뀔 때 재연결)
   const boardIdsKey = useMemo(
-    () => [...new Set(studyBoards.map((b) => b.id))].sort().join(","),
-    [studyBoards]
+    () => [...new Set(myBoards.map((b) => b.id))].sort().join(","),
+    [myBoards]
   );
   useEffect(() => {
     if (!boardIdsKey) {
@@ -365,7 +398,7 @@ export default function AdminDashboardPage() {
   );
 
   // 최고 관리자 여부 (선생님 목록 표시용)
-  const isStrictAdmin = user?.role === "admin";
+  const isStrictAdmin = superAdmin;
 
   // 활동(질문·답변) 기반 전체 행 — 학생/선생님 분리에 함께 사용
   const allRows = useMemo(
@@ -391,6 +424,7 @@ export default function AdminDashboardPage() {
             name: u.displayName || "익명",
             emoji: u.emoji || "🙂",
             realName: u.realName || "",
+            studentId: u.studentId || "",
             email: u.email || "",
             role: u.role || "student",
             asked: row?.asked ?? 0,
@@ -446,7 +480,7 @@ export default function AdminDashboardPage() {
   const classParticipantIds = useMemo(() => {
     if (!selectedClassId) return null;
     const ids = new Set();
-    studyBoards
+    myBoards
       .filter((b) => b.classId === selectedClassId && b.type !== "notice")
       .forEach((b) =>
         (cardsByBoard[b.id] ?? []).forEach((c) => {
@@ -459,7 +493,7 @@ export default function AdminDashboardPage() {
         if (e.userId && !String(e.userId).startsWith("teacher_")) ids.add(e.userId);
       });
     return ids;
-  }, [selectedClassId, studyBoards, cardsByBoard, allKwl]);
+  }, [selectedClassId, myBoards, cardsByBoard, allKwl]);
 
   const overviewStudents = classParticipantIds
     ? students.filter((s) => classParticipantIds.has(s.id))
@@ -485,10 +519,10 @@ export default function AdminDashboardPage() {
     allRewards.forEach((r) =>
       byClass.set(r.classId, (byClass.get(r.classId) ?? 0) + (r.count ?? 0))
     );
-    return classes
+    return myClasses
       .map((c) => ({ classId: c.id, name: c.name, total: byClass.get(c.id) ?? 0 }))
       .sort((a, b) => b.total - a.total);
-  }, [allRewards, selectedClassId, classes]);
+  }, [allRewards, selectedClassId, myClasses]);
 
   useEffect(() => {
     if (!selectedId && students.length > 0) {
@@ -615,7 +649,7 @@ export default function AdminDashboardPage() {
             <>
               <div className="admin-panel-head">
                 <h2>학급 목록</h2>
-                <span>{classes.length}개 반</span>
+                <span>{myClasses.length}개 반</span>
               </div>
               <div className="student-list">
                 <button
@@ -626,7 +660,7 @@ export default function AdminDashboardPage() {
                   <span className="class-row-icon"><IconSchool size={20} /></span>
                   <span className="student-main"><strong>전체 학급</strong></span>
                 </button>
-                {classes.map((c) => (
+                {myClasses.map((c) => (
                   <button
                     key={c.id}
                     type="button"
@@ -723,8 +757,8 @@ export default function AdminDashboardPage() {
                 onOpenQuestion={(id) => router.push(`/board?open=${id}`)}
               />
               <StudyRoomStats
-                classes={classes}
-                boards={studyBoards}
+                classes={myClasses}
+                boards={myBoards}
                 cardsByBoard={cardsByBoard}
                 kwl={allKwl}
                 classId={selectedClassId}

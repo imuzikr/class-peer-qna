@@ -13,7 +13,7 @@ import {
 } from "@/lib/store";
 import { isFirebaseConfigured } from "@/lib/firebase";
 import { stripHtml } from "@/lib/html";
-import { isAdmin } from "@/lib/user";
+import { isTeacher as isTeacherRole } from "@/lib/user";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import { useRequireAuth } from "@/lib/useRequireAuth";
 import { getMeTooCount } from "@/lib/questionRanking";
@@ -133,7 +133,7 @@ export default function StudentReportPage() {
   const [myCards, setMyCards] = useState([]); // 내가 낸 공부방 카드(전체)
 
   // 학습 리포트는 학생 화면 — 관리자 보기로 바뀌면 관리자 대시보드로 이동
-  const isTeacher = user ? isAdmin(user) : false;
+  const isTeacher = user ? isTeacherRole(user) : false;
   useEffect(() => {
     if (isTeacher) router.replace("/admin");
   }, [isTeacher, router]);

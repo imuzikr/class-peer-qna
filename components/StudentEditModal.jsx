@@ -32,6 +32,7 @@ export default function StudentEditModal({ student, onClose }) {
   const [emoji, setEmoji] = useState(student.emoji);
   const [name, setName] = useState(student.name);
   const [realName, setRealName] = useState(student.realName ?? "");
+  const [studentId, setStudentId] = useState(student.studentId ?? "");
   const [email, setEmail] = useState(student.email ?? "");
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -45,6 +46,7 @@ export default function StudentEditModal({ student, onClose }) {
     setEmoji(student.emoji);
     setName(student.name);
     setRealName(student.realName ?? "");
+    setStudentId(student.studentId ?? "");
     setEmail(student.email ?? "");
     setPickerOpen(false);
     setEditing(false);
@@ -58,6 +60,7 @@ export default function StudentEditModal({ student, onClose }) {
         name: name.trim(),
         emoji,
         realName: realName.trim(),
+        studentId: studentId.trim(),
         email: email.trim(),
       });
       onClose();
@@ -158,6 +161,22 @@ export default function StudentEditModal({ student, onClose }) {
                 <div className="student-edit-value">{realName || "—"}</div>
               )}
             </div>
+            {!isTeacherTarget && (
+              <div className="student-edit-field">
+                <span>학번</span>
+                {editing ? (
+                  <input
+                    type="text"
+                    value={studentId}
+                    onChange={(e) => setStudentId(e.target.value)}
+                    placeholder="학번 (예: 30105)"
+                    maxLength={20}
+                  />
+                ) : (
+                  <div className="student-edit-value">{studentId || "—"}</div>
+                )}
+              </div>
+            )}
             <div className="student-edit-field">
               <span>이메일</span>
               {editing ? (

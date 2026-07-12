@@ -31,7 +31,7 @@ import {
   toDate,
 } from "@/lib/store";
 import { isFirebaseConfigured } from "@/lib/firebase";
-import { isAdmin, getCurrentUser } from "@/lib/user";
+import { isAdmin, isTeacher, getCurrentUser } from "@/lib/user";
 import { getSelectedClassId, setSelectedClassId } from "@/lib/classroom";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import { useRequireAuth } from "@/lib/useRequireAuth";
@@ -135,7 +135,7 @@ export default function StudyPage() {
       } else {
         // 전체 반 — 반별로 시트(엑셀)/구역(PDF) 분리
         const sections = await Promise.all(
-          classes.map(async (c) => ({
+          myClasses.map(async (c) => ({
             name: c.name,
             className: c.name,
             rows: await rowsForBoards(
@@ -183,7 +183,8 @@ export default function StudyPage() {
     };
   }, []);
 
-  const admin = user ? isAdmin(user) : false;
+  const admin = user ? isTeacher(user) : false;      // 교사+최고관리자 (교사 화면)
+  const superAdmin = user ? isAdmin(user) : false;   // 최고 관리자 (모든 반 접근)
 
   // 학생: 서버 소속 구독 — 기기·캐시가 바뀌어도 로그인하면 소속이 따라옵니다.
   useEffect(() => {
@@ -202,12 +203,13 @@ export default function StudyPage() {
       return;
     }
     const unsubDir = subscribeUserDirectory(setDirectory);
-    const unsubCodes = subscribeJoinCodes(setJoinCodesMap);
+    // 일반 교사는 본인 코드만(규칙상 소유 코드만 나열 가능), 최고 관리자는 전체
+    const unsubCodes = subscribeJoinCodes(setJoinCodesMap, isAdmin(user) ? null : user?.uid);
     return () => {
       unsubDir();
       unsubCodes();
     };
-  }, [admin]);
+  }, [admin, user?.uid]);
 
   // 학생이 보고 있는 반: 세션 선택이 내 소속에 있으면 그것, 아니면 첫 소속
   const membershipIds = useMemo(() => memberships.map((m) => m.classId), [memberships]);
@@ -221,22 +223,33 @@ export default function StudyPage() {
     [keywordDocs]
   );
 
+  // 교사가 접근 가능한 반 — 일반 교사는 본인 개설 반만, 최고 관리자는 전체.
+  // (반 이름 자체는 규칙상 공개 메타데이터라 목록은 여기서 소유자로 걸러냅니다.)
+  const myClasses = useMemo(
+    () =>
+      superAdmin
+        ? classes
+        : classes.filter((c) => c.createdBy && c.createdBy === user?.uid),
+    [classes, superAdmin, user?.uid]
+  );
+
   // 교사가 고른 반은 세션에 저장돼 있어(localSelectedId), 새로고침해도 그 반을
   // 이어서 보여줍니다. 저장된 값이 없거나 더 이상 존재하지 않는 반이면
   // 첫 번째 반으로 폴백합니다.
   useEffect(() => {
-    if (!admin || classes.length === 0) return;
-    const valid = teacherClassId && classes.some((c) => c.id === teacherClassId);
+    if (!admin || myClasses.length === 0) return;
+    const valid = teacherClassId && myClasses.some((c) => c.id === teacherClassId);
     if (valid) return;
     const remembered =
-      localSelectedId && classes.some((c) => c.id === localSelectedId)
+      localSelectedId && myClasses.some((c) => c.id === localSelectedId)
         ? localSelectedId
-        : classes[0].id;
+        : myClasses[0].id;
     setTeacherClassId(remembered);
-  }, [admin, classes, teacherClassId, localSelectedId]);
+  }, [admin, myClasses, teacherClassId, localSelectedId]);
 
   const classId = admin ? teacherClassId : studentClassId;
-  const currentClass = classes.find((c) => c.id === classId) ?? null;
+  const currentClass =
+    (admin ? myClasses : classes).find((c) => c.id === classId) ?? null;
   const currentCode = joinCodesMap[classId] ?? null; // { code, expiresAt } | null
   const classBoards = useMemo(
     () => boards.filter((b) => b.classId === classId),
@@ -394,7 +407,7 @@ export default function StudyPage() {
                 <div className="study-head-main">
                   <div className="study-title-row">
                     <h1>🧩 공부방</h1>
-                    {admin && classes.length > 0 && (
+                    {admin && myClasses.length > 0 && (
                       <select
                         className="study-class-select"
                         value={classId ?? ""}
@@ -405,7 +418,7 @@ export default function StudyPage() {
                         }}
                         aria-label="반 선택"
                       >
-                        {classes.map((c) => (
+                        {myClasses.map((c) => (
                           <option key={c.id} value={c.id}>
                             {c.name}
                           </option>
@@ -466,7 +479,7 @@ export default function StudyPage() {
                   </button>
                 )}
               </div>
-              {admin && classes.length === 0 ? (
+              {admin && myClasses.length === 0 ? (
                 <p className="empty-note">
                   아직 만든 반이 없어요. ‘반 만들기’로 첫 반을 추가하고 학생에게
                   입장 코드를 알려 주세요.
@@ -494,7 +507,7 @@ export default function StudyPage() {
                           bi !== 0 && bi !== classBoards.length - 1 && !b.collapsed
                       )}
                       questions={questions}
-                      classes={classes}
+                      classes={myClasses}
                       onAsk={(kw) => setAskKeyword(kw)}
                       onModalChange={setCardModalOpen}
                       onDuplicated={(className) =>
@@ -630,7 +643,7 @@ export default function StudyPage() {
               </div>
             </div>
 
-            {classes.length > 1 && (
+            {myClasses.length > 1 && (
               <div className="export-group">
                 <div className="export-group-title">전체 반 — 반별로 나눠서</div>
                 <div className="export-actions">
