@@ -556,6 +556,84 @@ select:focus {
   min-width: 0;
 }
 
+/* 프로필 메뉴 (클릭 드롭다운) */
+.profile-wrap {
+  position: relative;
+  min-width: 0;
+}
+.profile-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 10px;
+  transition: background 0.15s;
+}
+.profile-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+.profile-caret {
+  font-size: 10px;
+  color: var(--text-sub);
+}
+.avatar {
+  position: relative;
+}
+.profile-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--danger, #d64545);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+}
+.profile-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 300;
+  min-width: 170px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(46, 36, 26, 0.14);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.profile-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+}
+.profile-menu-item:hover {
+  background: var(--primary-light);
+}
+.profile-modal-hint {
+  font-size: 12.5px;
+  color: var(--text-sub);
+  line-height: 1.6;
+  margin: 10px 2px 0;
+}
+
 .avatar {
   width: 34px;
   height: 34px;

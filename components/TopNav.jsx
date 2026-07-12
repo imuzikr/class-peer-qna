@@ -126,12 +126,10 @@ export default function TopNav({ active, onPython, pyActive = false }) {
             <button
               className={`btn-ghost ${active === "admin" ? "nav-active" : ""}`}
               onClick={() => go("/admin")}
-              title={isStrictAdmin ? "관리자 대시보드" : "선생님 대시보드"}
+              title="선생님 대시보드"
             >
               <IconTeacher size={20} />{" "}
-              <span className="nav-label">
-                {isStrictAdmin ? "관리자 대시보드" : "선생님 대시보드"}
-              </span>
+              <span className="nav-label">선생님 대시보드</span>
             </button>
           ) : (
             <button
@@ -143,19 +141,7 @@ export default function TopNav({ active, onPython, pyActive = false }) {
             </button>
           )}
 
-          {/* 역할 관리 — 관리자만. 대시보드 버튼 오른쪽에 위치 */}
-          {isStrictAdmin && (
-            <button
-              className="btn-ghost topnav-role-btn"
-              onClick={() => setRoleMgrOpen(true)}
-              title="역할 관리"
-            >
-              🛡️ <span className="nav-label">역할 관리</span>
-              {pendingTeacherCount > 0 && (
-                <span className="role-badge">{pendingTeacherCount}</span>
-              )}
-            </button>
-          )}
+          {/* 역할 관리는 프로필 메뉴의 '관리자 설정'으로 이동 */}
         </nav>
       </div>
 
@@ -169,7 +155,10 @@ export default function TopNav({ active, onPython, pyActive = false }) {
       {/* 오른쪽: 역할 전환(데모 전용) + 프로필 + 로그아웃 */}
       <div className="user-area">
         {!isFirebaseConfigured && <RoleSwitcher />}
-        <UserProfile />
+        <UserProfile
+          pendingCount={isStrictAdmin ? pendingTeacherCount : 0}
+          onOpenRoleMgr={isStrictAdmin ? () => setRoleMgrOpen(true) : null}
+        />
         <button className="btn-ghost btn-logout" onClick={handleLogout} title="로그아웃">
           <IconLogout size={18} /> <span className="nav-label">로그아웃</span>
         </button>

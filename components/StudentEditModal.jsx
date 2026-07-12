@@ -6,7 +6,7 @@ import { updateStudentProfile, deleteStudent } from "@/lib/store";
 import ConfirmModal from "./ConfirmModal";
 import { IconTrash } from "./StatusIcons";
 
-const ANIMALS = [
+export const ANIMALS = [
   { name: "달팽이", emoji: "🐌" },
   { name: "돌고래", emoji: "🐬" },
   { name: "판다", emoji: "🐼" },
