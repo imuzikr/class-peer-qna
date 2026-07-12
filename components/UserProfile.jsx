@@ -22,14 +22,14 @@ export default function UserProfile({ pendingCount = 0, onOpenRoleMgr = null }) 
   const [profileOpen, setProfileOpen] = useState(false);
   const wrapRef = useRef(null);
 
-  // 메뉴 바깥 클릭 시 닫기
+  // 메뉴 바깥 클릭/터치 시 닫기 (pointerdown — 마우스·터치 모두 처리)
   useEffect(() => {
     if (!menuOpen) return;
     function onDown(e) {
       if (!wrapRef.current?.contains(e.target)) setMenuOpen(false);
     }
-    document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
+    document.addEventListener("pointerdown", onDown);
+    return () => document.removeEventListener("pointerdown", onDown);
   }, [menuOpen]);
 
   // 학생은 본인 실명(없으면 익명 닉네임 폴백), 교사는 '선생님'
