@@ -239,7 +239,8 @@ export default function StudyCardModal({
       return { titleToSave: "", htmlToSave, valid: hasContent || !!imageUrl || attachments.length > 0 };
     }
     const htmlToSave = sanitizeHtml(content);
-    const titleToSave = title.trim();
+    // 제목을 입력하지 않으면 보드 제목을 기본값으로 사용
+    const titleToSave = title.trim() || board.title;
     const valid = stripHtml(htmlToSave).length > 0 || !!imageUrl || attachments.length > 0;
     return { titleToSave, htmlToSave, valid };
   }
@@ -412,7 +413,7 @@ export default function StudyCardModal({
                     className="study-card-title-input"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="제목을 입력하세요"
+                    placeholder={`제목 미입력 시 '${board.title}'`}
                     maxLength={60}
                   />
                   <RichTextEditor

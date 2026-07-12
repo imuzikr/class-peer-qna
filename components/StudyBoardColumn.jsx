@@ -72,6 +72,7 @@ export default function StudyBoardColumn({
   const [activitiesDraft, setActivitiesDraft] = useState([]);
   const [savingActivities, setSavingActivities] = useState(false);
   const [presenting, setPresenting] = useState(false); // 발표 모드
+  const [titleDraft, setTitleDraft] = useState(board.title); // 보드 제목 편집 초안
   // 학생 미리보기(peek): 접힌 보드를 학생이 잠깐 펼쳐 보는 개인 상태.
   // 공유 상태(board.collapsed)는 그대로 두고, 이 학생의 화면에서만 펼쳐집니다.
   const [peeked, setPeeked] = useState(false);
@@ -80,6 +81,11 @@ export default function StudyBoardColumn({
     const unsub = subscribeStudyCards(board.id, setCards);
     return unsub;
   }, [board.id]);
+
+  // 외부에서 보드 제목이 바뀌면 편집 초안도 동기화
+  useEffect(() => {
+    setTitleDraft(board.title);
+  }, [board.title]);
 
   const isNotice = board.type === "notice";
   const locked = board.editMode === "locked";
@@ -134,6 +140,23 @@ export default function StudyBoardColumn({
   async function handleDeleteBoard() {
     if (!confirm(`'${board.title}' 보드를 삭제할까요? 카드도 함께 삭제됩니다.`)) return;
     await deleteStudyBoard(board.id);
+  }
+
+  // 보드 제목 변경 — 제목을 따로 입력하지 않아 '보드 제목'을 기본값으로 쓰던
+  // 카드들의 제목도 함께 바꿔 줍니다(직접 다른 제목을 단 카드는 그대로 유지).
+  async function renameBoard() {
+    const newTitle = titleDraft.trim();
+    if (!newTitle || newTitle === board.title) {
+      setTitleDraft(board.title); // 빈 값·무변경이면 원래 제목으로 되돌림
+      return;
+    }
+    const oldTitle = board.title;
+    await updateStudyBoard(board.id, { title: newTitle });
+    cards.forEach((c) => {
+      if ((c.title ?? "") === oldTitle) {
+        updateStudyCard(board.id, c.id, { title: newTitle });
+      }
+    });
   }
 
   // 다른 반으로 복제 — 학생 카드는 복사하지 않고 활동·공개범위만 유지
@@ -360,6 +383,20 @@ export default function StudyBoardColumn({
         {/* 정렬·활동·설정 패널 — 제목 카드 클릭 시 한 번에 펼침 */}
         {isTeacher && !isNotice && (
           <div className={`study-board-panel${panelOpen ? " open" : ""}`}>
+            <label className="study-title-edit" onClick={(e) => e.stopPropagation()}>
+              <span>보드 제목</span>
+              <input
+                className="study-title-input"
+                value={titleDraft}
+                onChange={(e) => setTitleDraft(e.target.value)}
+                onBlur={renameBoard}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); }
+                }}
+                maxLength={40}
+                placeholder="보드 제목"
+              />
+            </label>
             <div className="study-sort">
               <button
                 className={`study-sort-btn study-sort-btn--studentid${sortKey === "studentId" ? " active" : ""}`}

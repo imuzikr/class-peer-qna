@@ -1300,6 +1300,10 @@ select:focus {
   width: 140px;
   flex-shrink: 0;
 }
+/* select는 브라우저가 텍스트 앞에 여분 여백을 줘 '#'이 밀려 보임 → 좌측 패딩을 줄여 보정 */
+.form-row .req-field.req-kw select {
+  padding-left: 7px;
+}
 .form-row .req-field.req-title {
   flex: 1;
 }
@@ -6794,6 +6798,33 @@ pre code {
 }
 
 /* 교사 전용 정렬 버튼 */
+/* 보드 제목 편집 (교사 설정 패널 상단) */
+.study-title-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 12px 12px 4px;
+}
+.study-title-edit > span {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.study-title-input {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 14px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  box-sizing: border-box;
+}
+.study-title-input:focus {
+  border-color: var(--primary);
+  outline: none;
+}
+
 .study-sort {
   display: flex;
   gap: 6px;
