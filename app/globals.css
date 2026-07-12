@@ -251,6 +251,20 @@ select:focus {
     transform: translateX(-50%);
   }
 }
+/* 정적 목록 — 총 10명(각 5명)만 반복 없이 가운데 정렬로 표시 */
+.act-track.act-track--static {
+  animation: none;
+  width: auto;
+  max-width: 1200px;
+  margin: 0 auto;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 22px 22px;
+}
+.act-viewport:has(.act-track--static) {
+  -webkit-mask-image: none;
+  mask-image: none;
+}
 
 /* 카드 — 배경 위에 떠 있는 색색의 카드 */
 .act-card {

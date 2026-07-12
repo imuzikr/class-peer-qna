@@ -45,8 +45,8 @@ const INITIAL_ADMIN_EMAIL = "iseoul72@gmail.com";
 // "이번 주 현재까지"의 순위를 담도록 합니다.
 //  · 집계 창 = 가장 최근 "월요일 08:00(KST)" 이후 → 매주 월요일 08:00에
 //    자동 초기화(그 시각 이후 기록만 집계).
-//  · uid 없이 익명 닉네임/이모지/개수만 저장. 닉네임은 세션마다 바뀌므로
-//    같은 authorId의 "가장 최근" 글 닉네임을 대표로 사용.
+//  · 격려·칭찬 목적으로 실명(users.realName)을 함께 저장해 랜딩에 표시.
+//    (공개 문서이므로 실명 노출 범위는 랜딩 접속자 전체 — 운영 결정 사항)
 //  · 색인 없이 동작하도록 전체를 읽어 코드에서 창(週)으로 거릅니다.
 // =============================================================
 // 이번 주 시작(가장 최근 월요일 08:00 KST)을 epoch millis로 반환
@@ -63,8 +63,9 @@ function weekStartMillis() {
   return start;
 }
 
-// snap을 이번 주(since 이후)로 걸러 상위 5명 + 총건수 집계
-function aggregateTop5(snap, sinceMillis) {
+// snap을 이번 주(since 이후)로 걸러 상위 5명 + 총건수 집계.
+// 상위 5명의 실명(users.realName)을 함께 붙입니다(격려·칭찬용 표시).
+async function aggregateTop5(snap, sinceMillis) {
   const byUser = new Map();
   let total = 0;
   snap.forEach((doc) => {
@@ -74,6 +75,7 @@ function aggregateTop5(snap, sinceMillis) {
     if (t < sinceMillis) return; // 이번 주 이전 기록은 제외(월요일 초기화)
     total += 1;
     const cur = byUser.get(d.authorId) ?? {
+      uid: d.authorId,
       authorName: "익명",
       authorEmoji: "🙂",
       count: 0,
@@ -87,17 +89,29 @@ function aggregateTop5(snap, sinceMillis) {
     }
     byUser.set(d.authorId, cur);
   });
-  const top = [...byUser.values()]
+  const ranked = [...byUser.values()]
     .sort((a, b) => b.count - a.count)
-    .slice(0, 5)
-    .map(({ authorName, authorEmoji, count }) => ({ authorName, authorEmoji, count }));
+    .slice(0, 5);
+  // 상위 5명만 users에서 실명 조회 (admin SDK — 규칙 미적용)
+  const profiles = await Promise.all(
+    ranked.map((r) => db.doc(`users/${r.uid}`).get().catch(() => null))
+  );
+  const top = ranked.map((r, i) => {
+    const p = profiles[i]?.exists ? profiles[i].data() : null;
+    return {
+      authorName: r.authorName,
+      authorEmoji: r.authorEmoji,
+      realName: (p && p.realName) || "",
+      count: r.count,
+    };
+  });
   return { top, total };
 }
 
 // 이번 주 "질문을 많이 올린" 상위 5명 → 공개 문서 갱신. top 반환.
 async function recomputeQuestioners() {
   const snap = await db.collection("questions").get();
-  const { top, total } = aggregateTop5(snap, weekStartMillis());
+  const { top, total } = await aggregateTop5(snap, weekStartMillis());
   await db.doc("stats/weeklyQuestioners").set({
     top,
     totalQuestions: total,
@@ -109,7 +123,7 @@ async function recomputeQuestioners() {
 // 이번 주 "답변을 많이 단" 상위 5명 → 공개 문서 갱신. top 반환.
 async function recomputeAnswerers() {
   const snap = await db.collectionGroup("answers").get();
-  const { top, total } = aggregateTop5(snap, weekStartMillis());
+  const { top, total } = await aggregateTop5(snap, weekStartMillis());
   await db.doc("stats/weeklyAnswerers").set({
     top,
     totalAnswers: total,

@@ -30,6 +30,9 @@ import {
 // 카드마다 variant(색)·cat(라벨)·unit(단위)·badge(1·2·3위 아이콘)·rank을 얹는다.
 function buildActCards(questioners, answerers) {
   const out = [];
+  // 각 5명씩(총 10명)으로 한정 — 서버 집계도 5명이지만 방어적으로 한 번 더 자름
+  questioners = questioners.slice(0, 5);
+  answerers = answerers.slice(0, 5);
   const n = Math.max(questioners.length, answerers.length);
   for (let i = 0; i < n; i++) {
     if (questioners[i]) {
@@ -327,23 +330,13 @@ export default function LandingPage() {
   );
 }
 
-// 순위 카드가 배경 위로 한 줄로 끊임없이 흘러가는 띠. 이음매 없는 무한
-// 스크롤을 위해 목록을 2번 이어 붙이고 translateX(-50%)로 애니메이션합니다.
-// 카드가 적으면 화면 폭을 못 채우므로 최소 개수까지 반복합니다.
+// 순위 카드 목록 — 질문대장 5명 + 답변왕 5명(총 10명)만 반복 없이 표시.
+// 격려·칭찬 목적이라 실명(realName)을 우선 표시합니다(없으면 닉네임 폴백).
 function ActMarquee({ cards }) {
-  let filled = cards;
-  while (filled.length < 8) filled = [...filled, ...cards];
-  const loop = [...filled, ...filled];
-  // 카드 수에 비례해 속도를 맞춰(한 카드당 약 3.4초) 일정한 흐름 유지
-  const duration = filled.length * 3.4;
-
   return (
     <div className="act-viewport">
-      <ul
-        className="act-track"
-        style={{ animationDuration: `${duration}s` }}
-      >
-        {loop.map((c, i) => (
+      <ul className="act-track act-track--static">
+        {cards.map((c, i) => (
           <li
             key={i}
             className={`act-card act-card--${c.variant}${
@@ -357,7 +350,7 @@ function ActMarquee({ cards }) {
             </span>
             <span className="act-cat">{c.cat}</span>
             <span className="act-avatar">{c.authorEmoji || "🙂"}</span>
-            <span className="act-name">{c.authorName || "익명"}</span>
+            <span className="act-name">{c.realName || c.authorName || "익명"}</span>
             <span className="act-sub">
               {c.unit} {c.count}개
             </span>
