@@ -5295,37 +5295,65 @@ pre code {
   color: var(--text-sub);
   font-size: 18px;
 }
-/* 발표 화면 상단 첨부 정보(파일/이미지 존재 알림) + 이미지 보기 토글 */
+/* 발표 화면 상단 첨부 정보 — 항상 같은 높이로 고정(첨부 유무와 무관하게 위치 일정) */
 .present-attach-info {
   display: flex;
+  align-items: center;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 20px;
+  gap: 8px;
+  height: 28px; /* 고정 높이 — 첨부 없는 카드도 제목 위치가 동일 */
+  margin-bottom: 14px;
 }
-.present-attach-badge {
+/* 파일 존재 알림 — 비대화형 칩(작게, 은은하게) */
+.present-attach-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--card-bg);
+  color: var(--text-sub);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+/* 이미지 보기 — 명확한 '버튼' (칩과 구분되게 테두리 + 강조색) */
+.present-img-btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 7px 14px;
+  padding: 3px 6px 3px 12px;
   border-radius: 999px;
-  border: 1px solid var(--border);
-  background: var(--card-bg);
-  color: var(--text-sub);
-  font-size: 15px;
-  font-weight: 600;
-}
-.present-img-toggle {
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
-}
-.present-img-toggle:hover {
+  border: 1.5px solid var(--primary);
   background: var(--primary-light);
-  border-color: var(--primary);
+  color: var(--primary);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
 }
-.present-img-toggle.on {
+.present-img-btn:hover {
   background: var(--primary);
-  border-color: var(--primary);
   color: #fff;
+}
+.present-img-btn.on {
+  background: var(--primary);
+  color: #fff;
+}
+.present-img-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.4);
+  color: inherit;
+  font-size: 11px;
+  font-weight: 800;
+}
+.present-img-btn:not(.on) .present-img-count {
+  background: #fff;
+  color: var(--primary);
 }
 /* 이미지 보기 — 첫 번째 이미지를 중앙에 크게 배치 */
 .present-image-view {

@@ -105,23 +105,23 @@ export default function StudyPresentModal({ board, cards = [], onClose }) {
 
         {/* 본문 */}
         <div className="present-body" key={card.id}>
-          {/* 상단 첨부 정보 — 파일/이미지가 있다는 사실만 알리고, 이미지는 버튼으로 봄 */}
-          {(allImages.length > 0 || fileAtts.length > 0) && (
-            <div className="present-attach-info">
-              {allImages.length > 0 && (
-                <button
-                  type="button"
-                  className={`present-attach-badge present-img-toggle${showImage ? " on" : ""}`}
-                  onClick={() => setShowImage((v) => !v)}
-                >
-                  🖼 이미지 {allImages.length}개 · {showImage ? "숨기기" : "보기"}
-                </button>
-              )}
-              {fileAtts.length > 0 && (
-                <span className="present-attach-badge">📎 첨부파일 {fileAtts.length}개</span>
-              )}
-            </div>
-          )}
+          {/* 상단 첨부 정보 — 항상 같은 높이로 고정(첨부 없는 카드도 위치 일정).
+              이미지는 인라인으로 펼치지 않고 '이미지 보기' 버튼으로 확인 */}
+          <div className="present-attach-info">
+            {allImages.length > 0 && (
+              <button
+                type="button"
+                className={`present-img-btn${showImage ? " on" : ""}`}
+                onClick={() => setShowImage((v) => !v)}
+              >
+                🖼 {showImage ? "이미지 숨기기" : "이미지 보기"}
+                <span className="present-img-count">{allImages.length}</span>
+              </button>
+            )}
+            {fileAtts.length > 0 && (
+              <span className="present-attach-chip">📎 첨부파일 {fileAtts.length}</span>
+            )}
+          </div>
 
           {card.title && <h2 className="present-title">{card.title}</h2>}
           {hasText && (
