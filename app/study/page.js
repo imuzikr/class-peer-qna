@@ -14,6 +14,7 @@ import dynamic from "next/dynamic";
 import {
   subscribeStudyBoards,
   updateStudyBoard,
+  fetchStudyCardsOnce,
   subscribeQuestions,
   subscribeKeywords,
   subscribeClasses,
@@ -35,6 +36,11 @@ import { getSelectedClassId, setSelectedClassId } from "@/lib/classroom";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import { useRequireAuth } from "@/lib/useRequireAuth";
 import { codeBlockHtml } from "@/lib/html";
+import {
+  buildStudyRows,
+  downloadStudyCsv,
+  printStudyPdf,
+} from "@/lib/exportStudy";
 import TopNav from "@/components/TopNav";
 import StudyRewardPanel from "@/components/StudyRewardPanel";
 import StudyBoardColumn from "@/components/StudyBoardColumn";
@@ -95,6 +101,39 @@ export default function StudyPage() {
     classBoards.forEach((b, bi) => {
       if (bi !== 0 && bi !== last && !b.collapsed) updateStudyBoard(b.id, { collapsed: true });
     });
+  }
+
+  // 공부방 활동 자료 내보내기 (교사) — 현재 반의 모든 보드 카드를 모아 행으로 구성
+  const [exporting, setExporting] = useState(false);
+  async function gatherStudyRows() {
+    const lists = await Promise.all(
+      classBoards.map((b) => fetchStudyCardsOnce(b.id))
+    );
+    const cardsByBoard = {};
+    classBoards.forEach((b, i) => { cardsByBoard[b.id] = lists[i]; });
+    const dirMap = new Map(directory.map((d) => [d.uid, d]));
+    return buildStudyRows({
+      className: currentClass?.name || "",
+      boards: classBoards.map((b) => ({ id: b.id, title: b.title })),
+      cardsByBoard,
+      dirMap,
+    });
+  }
+  async function handleExport(kind) {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      const rows = await gatherStudyRows();
+      if (rows.length === 0) {
+        setToast("내보낼 학생 활동 카드가 아직 없어요.");
+        return;
+      }
+      const base = `${currentClass?.name || "공부방"}_활동자료`;
+      if (kind === "csv") downloadStudyCsv(rows, `${base}.csv`);
+      else printStudyPdf(rows, currentClass?.name || "공부방");
+    } finally {
+      setExporting(false);
+    }
   }
 
   useEffect(() => {
@@ -333,6 +372,27 @@ export default function StudyPage() {
                       >
                         ➕ 반 만들기
                       </button>
+                    )}
+                    {admin && currentClass && classBoards.length > 0 && (
+                      <div className="study-export">
+                        <span className="study-export-label">활동 자료 다운로드</span>
+                        <button
+                          className="study-export-btn"
+                          onClick={() => handleExport("csv")}
+                          disabled={exporting}
+                          title="CSV 파일로 저장 (엑셀에서 열기)"
+                        >
+                          ⬇ CSV
+                        </button>
+                        <button
+                          className="study-export-btn"
+                          onClick={() => handleExport("pdf")}
+                          disabled={exporting}
+                          title="PDF로 저장 (인쇄 → 'PDF로 저장' 선택)"
+                        >
+                          ⬇ PDF
+                        </button>
+                      </div>
                     )}
                   </div>
 

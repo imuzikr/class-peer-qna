@@ -6381,6 +6381,43 @@ pre code {
   box-sizing: border-box;
 }
 
+/* 활동 자료 다운로드 (CSV/PDF) — 교사 전용 */
+.study-export {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 6px 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card-bg);
+}
+.study-export-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.study-export-btn {
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--primary);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.study-export-btn:hover:not(:disabled) {
+  background: var(--primary-light);
+  border-color: var(--primary);
+}
+.study-export-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 /* 입장 코드 토글 버튼 */
 .study-code-btn {
   font-family: var(--font-mono);
