@@ -286,8 +286,8 @@ export default function StudyBoardColumn({
           }
           title={isTeacher && !editingTitle ? "드래그해서 보드 순서 변경" : undefined}
         >
-          {/* 제목 — 교사는 더블 클릭으로 그 자리에서 바로 편집 */}
-          {isTeacher && !isNotice && editingTitle ? (
+          {/* 제목 — 교사는 더블 클릭으로 그 자리에서 바로 편집 (선생님 보드도 이름 변경 가능) */}
+          {isTeacher && editingTitle ? (
             <div
               className="study-title-edit-wrap"
               onClick={(e) => e.stopPropagation()}
@@ -323,20 +323,20 @@ export default function StudyBoardColumn({
             </div>
           ) : (
             <h3
-              className={isTeacher && !isNotice ? "study-title-h3--editable" : ""}
+              className={isTeacher ? "study-title-h3--editable" : ""}
               onClick={
                 // 제목 단일 클릭은 패널을 토글하지 않음(더블 클릭 편집과 충돌·깜빡임 방지).
                 // 설정 패널은 헤더 오른쪽 ⌄ 버튼으로 엽니다.
-                isTeacher && !isNotice ? (e) => e.stopPropagation() : undefined
+                isTeacher ? (e) => e.stopPropagation() : undefined
               }
               onDoubleClick={
-                isTeacher && !isNotice
+                isTeacher
                   ? (e) => { e.stopPropagation(); startEditTitle(); }
                   : undefined
               }
-              title={isTeacher && !isNotice ? "더블 클릭해 제목 수정" : undefined}
+              title={isTeacher ? "더블 클릭해 제목 수정" : undefined}
             >
-              {pinned && <span className="study-pin-mark" aria-hidden="true">📌 </span>}{board.title}
+              {board.title}
             </h3>
           )}
           {isTeacher && isFirst && (

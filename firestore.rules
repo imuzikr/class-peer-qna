@@ -49,6 +49,10 @@ service cloud.firestore {
     function isBoardLocked(bId) {
       return get(/databases/$(database)/documents/studyBoards/$(bId)).data.editMode == 'locked';
     }
+    // '선생님 보드'(type: notice) — 교사 전용 쓰기. 학생은 읽기만(첨부 다운로드 포함).
+    function isNoticeBoard(bId) {
+      return get(/databases/$(database)/documents/studyBoards/$(bId)).data.type == 'notice';
+    }
 
     // ── 사용자 프로필 ─────────────────────────────────────────
     // 실명·이메일 등 식별 정보(PII)가 여기에만 있으므로, 읽기는 본인+교사로
@@ -210,28 +214,31 @@ service cloud.firestore {
           || resource.data.authorId == uid()
           || isBoardClassMember(bId)
         );
-        // 생성 — 학생은 (문서ID=uid) + 그 보드 반의 멤버 + 보드가 잠금 아님.
-        //   교사는 보드당 여러 카드 허용(자동 ID). authorId는 본인이어야 함.
+        // 생성 — 학생은 (문서ID=uid) + 그 보드 반의 멤버 + 보드가 잠금 아님
+        //   + '선생님 보드'(notice)가 아님. 교사는 보드당 여러 카드 허용(자동 ID).
+        //   authorId는 본인이어야 함.
         allow create: if signedIn()
                       && request.resource.data.authorId == uid()
                       && (
                            isTeacher()
                            || (cardId == uid()
                                && isBoardClassMember(bId)
-                               && !isBoardLocked(bId))
+                               && !isBoardLocked(bId)
+                               && !isNoticeBoard(bId))
                          );
-        // 수정 — 본인 카드 + 작성자 불변 + 반 멤버 + 보드 잠금 아님. 교사는 전체.
+        // 수정 — 본인 카드 + 작성자 불변 + 반 멤버 + 보드 잠금 아님 + notice 아님. 교사는 전체.
         allow update: if signedIn() && (
           isTeacher()
           || (cardId == uid()
               && request.resource.data.authorId == resource.data.authorId
               && isBoardClassMember(bId)
-              && !isBoardLocked(bId))
+              && !isBoardLocked(bId)
+              && !isNoticeBoard(bId))
         );
-        // 삭제 — 본인 카드 + 반 멤버. 교사는 전체.
+        // 삭제 — 본인 카드 + 반 멤버 + notice 아님. 교사는 전체.
         allow delete: if signedIn() && (
           isTeacher()
-          || (cardId == uid() && isBoardClassMember(bId))
+          || (cardId == uid() && isBoardClassMember(bId) && !isNoticeBoard(bId))
         );
       }
     }
