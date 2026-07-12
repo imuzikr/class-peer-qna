@@ -6417,6 +6417,12 @@ pre code {
   opacity: 0.5;
   cursor: default;
 }
+.study-export-sep {
+  width: 1px;
+  height: 20px;
+  background: var(--border);
+  margin: 0 2px;
+}
 
 /* 입장 코드 토글 버튼 */
 .study-code-btn {

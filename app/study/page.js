@@ -39,7 +39,9 @@ import { codeBlockHtml } from "@/lib/html";
 import {
   buildStudyRows,
   downloadStudyCsv,
+  downloadStudyWorkbook,
   printStudyPdf,
+  printStudyPdfSections,
 } from "@/lib/exportStudy";
 import TopNav from "@/components/TopNav";
 import StudyRewardPanel from "@/components/StudyRewardPanel";
@@ -103,34 +105,52 @@ export default function StudyPage() {
     });
   }
 
-  // 공부방 활동 자료 내보내기 (교사) — 현재 반의 모든 보드 카드를 모아 행으로 구성
+  // 공부방 활동 자료 내보내기 (교사)
   const [exporting, setExporting] = useState(false);
-  async function gatherStudyRows() {
-    const lists = await Promise.all(
-      classBoards.map((b) => fetchStudyCardsOnce(b.id))
-    );
+  // 한 반의 보드 카드를 모아 행으로 구성
+  async function rowsForBoards(boardList, className) {
+    const lists = await Promise.all(boardList.map((b) => fetchStudyCardsOnce(b.id)));
     const cardsByBoard = {};
-    classBoards.forEach((b, i) => { cardsByBoard[b.id] = lists[i]; });
+    boardList.forEach((b, i) => { cardsByBoard[b.id] = lists[i]; });
     const dirMap = new Map(directory.map((d) => [d.uid, d]));
     return buildStudyRows({
-      className: currentClass?.name || "",
-      boards: classBoards.map((b) => ({ id: b.id, title: b.title })),
+      className,
+      boards: boardList.map((b) => ({ id: b.id, title: b.title })),
       cardsByBoard,
       dirMap,
     });
   }
-  async function handleExport(kind) {
+  // scope: "class"(현재 반) | "all"(전체 반), kind: "csv"|"pdf"|"excel"
+  async function handleExport(scope, kind) {
     if (exporting) return;
     setExporting(true);
     try {
-      const rows = await gatherStudyRows();
-      if (rows.length === 0) {
-        setToast("내보낼 학생 활동 카드가 아직 없어요.");
-        return;
+      if (scope === "class") {
+        const rows = await rowsForBoards(classBoards, currentClass?.name || "");
+        if (rows.length === 0) { setToast("내보낼 학생 활동 카드가 아직 없어요."); return; }
+        const base = `${currentClass?.name || "공부방"}_활동자료`;
+        if (kind === "csv") downloadStudyCsv(rows, `${base}.csv`);
+        else printStudyPdf(rows, currentClass?.name || "공부방");
+      } else {
+        // 전체 반 — 반별로 시트(엑셀)/구역(PDF) 분리
+        const sections = await Promise.all(
+          classes.map(async (c) => ({
+            name: c.name,
+            className: c.name,
+            rows: await rowsForBoards(
+              boards.filter((b) => b.classId === c.id),
+              c.name
+            ),
+          }))
+        );
+        const withRows = sections.filter((s) => s.rows.length > 0);
+        if (withRows.length === 0) { setToast("내보낼 학생 활동 카드가 아직 없어요."); return; }
+        if (kind === "excel") {
+          downloadStudyWorkbook(withRows, "공부방_활동자료_전체.xls");
+        } else {
+          printStudyPdfSections(withRows, "전체 반");
+        }
       }
-      const base = `${currentClass?.name || "공부방"}_활동자료`;
-      if (kind === "csv") downloadStudyCsv(rows, `${base}.csv`);
-      else printStudyPdf(rows, currentClass?.name || "공부방");
     } finally {
       setExporting(false);
     }
@@ -375,23 +395,44 @@ export default function StudyPage() {
                     )}
                     {admin && currentClass && classBoards.length > 0 && (
                       <div className="study-export">
-                        <span className="study-export-label">활동 자료 다운로드</span>
+                        <span className="study-export-label">활동 자료</span>
                         <button
                           className="study-export-btn"
-                          onClick={() => handleExport("csv")}
+                          onClick={() => handleExport("class", "csv")}
                           disabled={exporting}
-                          title="CSV 파일로 저장 (엑셀에서 열기)"
+                          title="이 반 — CSV 파일로 저장 (엑셀에서 열기)"
                         >
                           ⬇ CSV
                         </button>
                         <button
                           className="study-export-btn"
-                          onClick={() => handleExport("pdf")}
+                          onClick={() => handleExport("class", "pdf")}
                           disabled={exporting}
-                          title="PDF로 저장 (인쇄 → 'PDF로 저장' 선택)"
+                          title="이 반 — PDF로 저장 (인쇄 → 'PDF로 저장' 선택)"
                         >
                           ⬇ PDF
                         </button>
+                        {classes.length > 1 && (
+                          <>
+                            <span className="study-export-sep" aria-hidden="true" />
+                            <button
+                              className="study-export-btn"
+                              onClick={() => handleExport("all", "excel")}
+                              disabled={exporting}
+                              title="전체 반 — 반별 시트로 나눈 엑셀(.xls) 저장"
+                            >
+                              ⬇ 전체 Excel
+                            </button>
+                            <button
+                              className="study-export-btn"
+                              onClick={() => handleExport("all", "pdf")}
+                              disabled={exporting}
+                              title="전체 반 — 반별 페이지로 나눈 PDF 저장"
+                            >
+                              ⬇ 전체 PDF
+                            </button>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>
