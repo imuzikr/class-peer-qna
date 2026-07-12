@@ -105,8 +105,9 @@ export default function StudyPage() {
     });
   }
 
-  // 공부방 활동 자료 내보내기 (교사)
+  // 공부방 활동 자료 내보내기 (교사) — 상세 선택은 모달에서
   const [exporting, setExporting] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
   // 한 반의 보드 카드를 모아 행으로 구성
   async function rowsForBoards(boardList, className) {
     const lists = await Promise.all(boardList.map((b) => fetchStudyCardsOnce(b.id)));
@@ -151,6 +152,7 @@ export default function StudyPage() {
           printStudyPdfSections(withRows, "전체 반");
         }
       }
+      setExportOpen(false);
     } finally {
       setExporting(false);
     }
@@ -241,23 +243,39 @@ export default function StudyPage() {
     [boards, classId]
   );
 
-  // 교사: 현재 반의 소속 학생 + 보상(과일) 구독 (반이 바뀌면 재구독)
+  // 현재 반의 보상(과일) 구독 — 교사·학생 공통 (학생은 규칙상 자기 반만 읽기 가능)
   useEffect(() => {
-    if (!admin || !classId) {
-      setMemberUids([]);
+    if (!classId) {
       setRewards([]);
       return;
     }
-    const unsubM = subscribeClassMembers(classId, setMemberUids);
-    const unsubR = subscribeClassRewards(classId, setRewards);
-    return () => {
-      unsubM();
-      unsubR();
-    };
+    return subscribeClassRewards(classId, setRewards);
+  }, [classId]);
+
+  // 교사: 현재 반의 소속 학생 구독 (반이 바뀌면 재구독)
+  useEffect(() => {
+    if (!admin || !classId) {
+      setMemberUids([]);
+      return;
+    }
+    return subscribeClassMembers(classId, setMemberUids);
   }, [admin, classId]);
 
-  // 보상 명단 — 소속 학생 uid를 디렉터리(실명)·과일 수와 합쳐 정렬
+  // 보상 명단
+  //  · 교사: 소속 학생 전체를 디렉터리(실명)·과일 수와 합쳐 학번순 정렬
+  //  · 학생: 보상 문서만으로 구성(익명 닉네임) — 과일 받은 친구만 보임
   const roster = useMemo(() => {
+    if (!admin) {
+      return rewards
+        .filter((r) => (r.count ?? 0) > 0)
+        .map((r) => ({
+          uid: r.uid,
+          name: r.name || "익명 친구",
+          emoji: r.emoji || "🙂",
+          count: r.count ?? 0,
+        }))
+        .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "ko"));
+    }
     const dir = new Map(directory.map((d) => [d.uid, d]));
     const countByUid = {};
     rewards.forEach((r) => { countByUid[r.uid] = r.count ?? 0; });
@@ -275,7 +293,18 @@ export default function StudyPage() {
       .sort((a, b) =>
         (a.studentId || a.name).localeCompare(b.studentId || b.name, "ko")
       );
-  }, [memberUids, directory, rewards]);
+  }, [admin, memberUids, directory, rewards]);
+
+  // 과일 부여 시 익명 닉네임을 문서에 함께 저장(학생 화면 이름표용, 실명 아님)
+  function awardReward(uid, count) {
+    const d = directory.find((x) => x.uid === uid);
+    setStudentReward(
+      classId,
+      uid,
+      count,
+      d ? { name: d.displayName || "", emoji: d.emoji || "🙂" } : null
+    );
+  }
 
   async function handleCreateClass(e) {
     e.preventDefault();
@@ -394,46 +423,13 @@ export default function StudyPage() {
                       </button>
                     )}
                     {admin && currentClass && classBoards.length > 0 && (
-                      <div className="study-export">
-                        <span className="study-export-label">다운로드</span>
-                        <button
-                          className="study-export-btn"
-                          onClick={() => handleExport("class", "csv")}
-                          disabled={exporting}
-                          title="이 반 — CSV 파일로 저장 (엑셀에서 열기)"
-                        >
-                          ⬇ CSV
-                        </button>
-                        <button
-                          className="study-export-btn"
-                          onClick={() => handleExport("class", "pdf")}
-                          disabled={exporting}
-                          title="이 반 — PDF로 저장 (인쇄 → 'PDF로 저장' 선택)"
-                        >
-                          ⬇ PDF
-                        </button>
-                        {classes.length > 1 && (
-                          <>
-                            <span className="study-export-sep" aria-hidden="true" />
-                            <button
-                              className="study-export-btn"
-                              onClick={() => handleExport("all", "excel")}
-                              disabled={exporting}
-                              title="전체 반 — 반별 시트로 나눈 엑셀(.xls) 저장"
-                            >
-                              ⬇ 전체 Excel
-                            </button>
-                            <button
-                              className="study-export-btn"
-                              onClick={() => handleExport("all", "pdf")}
-                              disabled={exporting}
-                              title="전체 반 — 반별 페이지로 나눈 PDF 저장"
-                            >
-                              ⬇ 전체 PDF
-                            </button>
-                          </>
-                        )}
-                      </div>
+                      <button
+                        className="btn-ghost"
+                        onClick={() => setExportOpen(true)}
+                        title="활동 자료 다운로드 (CSV·Excel·PDF)"
+                      >
+                        ⬇ 다운로드
+                      </button>
                     )}
                   </div>
 
@@ -516,12 +512,13 @@ export default function StudyPage() {
               )}
             </div>
 
-            {/* 오른쪽: 참여 보상 패널 (교사 전용) */}
-            {admin && currentClass && (
+            {/* 오른쪽: 멋진 순간 패널 — 교사는 관리, 학생은 뱃지 조회만 */}
+            {currentClass && (
               <StudyRewardPanel
                 roster={roster}
                 classId={classId}
-                onAward={(uid, count) => setStudentReward(classId, uid, count)}
+                readOnly={!admin}
+                onAward={admin ? awardReward : undefined}
               />
             )}
           </div>
@@ -586,6 +583,77 @@ export default function StudyPage() {
       )}
 
       {/* 반 만들기 모달 */}
+      {/* 활동 자료 다운로드 모달 — 범위·형식은 여기서 선택 */}
+      {exportOpen && (
+        <div className="modal-backdrop" {...backdropClose(() => setExportOpen(false))}>
+          <div className="modal modal-export" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-head">
+              <h3>⬇ 활동 자료 다운로드</h3>
+              <button
+                className="btn-close"
+                onClick={() => setExportOpen(false)}
+                aria-label="닫기"
+              >
+                ×
+              </button>
+            </div>
+            <p className="export-desc">
+              클래스·주제·학번·이름·작성시각·제목·내용 순으로 정리해 내려받아요.
+            </p>
+
+            <div className="export-group">
+              <div className="export-group-title">
+                이 반 — {currentClass?.name}
+              </div>
+              <div className="export-actions">
+                <button
+                  className="study-export-btn"
+                  onClick={() => handleExport("class", "csv")}
+                  disabled={exporting}
+                >
+                  CSV
+                </button>
+                <button
+                  className="study-export-btn"
+                  onClick={() => handleExport("class", "pdf")}
+                  disabled={exporting}
+                >
+                  PDF
+                </button>
+              </div>
+            </div>
+
+            {classes.length > 1 && (
+              <div className="export-group">
+                <div className="export-group-title">전체 반 — 반별로 나눠서</div>
+                <div className="export-actions">
+                  <button
+                    className="study-export-btn"
+                    onClick={() => handleExport("all", "excel")}
+                    disabled={exporting}
+                    title="반별 시트로 나눈 엑셀(.xls)"
+                  >
+                    Excel (반별 시트)
+                  </button>
+                  <button
+                    className="study-export-btn"
+                    onClick={() => handleExport("all", "pdf")}
+                    disabled={exporting}
+                    title="반별 페이지로 나눈 PDF"
+                  >
+                    PDF (반별 페이지)
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <p className="export-hint">
+              PDF는 인쇄 창이 열리면 대상에서 ‘PDF로 저장’을 선택하세요.
+            </p>
+          </div>
+        </div>
+      )}
+
       {creatingClass && (
         <div className="modal-backdrop" {...backdropClose(() => setCreatingClass(false))}>
           <div className="modal modal-class-create" onClick={(e) => e.stopPropagation()}>

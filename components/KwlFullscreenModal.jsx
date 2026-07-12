@@ -61,10 +61,16 @@ export default function KwlFullscreenModal({ classId, initialDate, onClose }) {
     });
   }, [classId]);
 
-  function awardFruit(uid) {
+  function awardFruit(uid, entry = null) {
     const cur = rewardMap[uid] ?? 0;
     if (cur >= REWARD_MAX) return;
-    setStudentReward(classId, uid, cur + 1);
+    // 익명 닉네임을 함께 저장 — 학생(읽기 전용) 화면의 이름표용(실명 아님)
+    setStudentReward(
+      classId,
+      uid,
+      cur + 1,
+      entry ? { name: entry.authorName || "", emoji: entry.authorEmoji || "🙂" } : null
+    );
   }
 
   // Esc 닫기, ←/→ 날짜 이동 (입력 필드에 포커스 중일 땐 방향키 그대로 사용하게 제외)
@@ -219,7 +225,7 @@ export default function KwlFullscreenModal({ classId, initialDate, onClose }) {
                       <button
                         type="button"
                         className="kwlfs-fruit-btn"
-                        onClick={() => awardFruit(r.userId)}
+                        onClick={() => awardFruit(r.userId, r)}
                         disabled={(rewardMap[r.userId] ?? 0) >= REWARD_MAX}
                         aria-label={`${r.displayName} 과일 주기`}
                         title="과일 주기"

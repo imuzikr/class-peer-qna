@@ -86,7 +86,11 @@ export default function StudyPresentModal({ board, cards = [], onClose }) {
 
   function awardFruit() {
     if (count >= REWARD_MAX) return;
-    setStudentReward(board.classId, card.authorId, count + 1);
+    // 익명 닉네임을 함께 저장 — 학생(읽기 전용) 화면의 이름표용(실명 아님)
+    setStudentReward(board.classId, card.authorId, count + 1, {
+      name: card.authorName || "",
+      emoji: card.authorEmoji || "🙂",
+    });
   }
 
   return (
