@@ -19,6 +19,12 @@ export default function QuestionCard({ question, onClick }) {
   const mine = user ? question.authorId === user.uid : false;
   const pinned = isPinnedQuestion(question);
   const showPending = question.reflectionPending && (mine || isTeacher(user));
+  // 삽입한 이미지·그림 전체(순서대로). 구버전 단일 imageUrl도 흡수.
+  const images = question.images?.length
+    ? question.images
+    : question.imageUrl
+    ? [question.imageUrl]
+    : [];
 
   return (
     <article
@@ -55,19 +61,24 @@ export default function QuestionCard({ question, onClick }) {
           {/* 서식 태그를 제거한 순수 텍스트로 미리보기 */}
           <p className="card-preview">{stripHtml(question.content)}</p>
         </div>
-        {(question.imageUrl || question.images?.length > 0) && (
-          <img
-            src={question.imageUrl || question.images[0]}
-            alt="첨부 이미지 미리보기"
-            className="card-thumb"
-          />
+        {images.length > 0 && (
+          <div className="card-thumbs" aria-label={`이미지 ${images.length}장`}>
+            {images.map((src, i) => (
+              <img
+                key={i}
+                src={src}
+                alt={`첨부 이미지 ${i + 1}`}
+                className="card-thumb"
+              />
+            ))}
+          </div>
         )}
       </div>
       <div className="card-foot">
         <span>
           <IconAnswer size={24} /> 답변 {question.answerCount ?? 0}개
-          {(question.imageUrl || question.images?.length > 0) && (
-            <span style={{ marginLeft: 8 }}>📎 이미지</span>
+          {images.length > 0 && (
+            <span style={{ marginLeft: 8 }}>📎 이미지 {images.length}</span>
           )}
           {/* 인사이트 대기 배지 — 작성자 본인과 교사에게만 표시됩니다 */}
           {showPending && (
