@@ -369,7 +369,6 @@ export default function StudyCardModal({
               {isTeacherCard ? <IconTeacher size={22} /> : (card.authorEmoji ?? "🙂")}
             </span>
             <strong>{cardDisplayName}</strong>
-            <time className="study-card-meta-time">{formatTime(card.createdAt)}</time>
             <button
               type="button"
               className="study-card-expand-btn"
@@ -387,6 +386,7 @@ export default function StudyCardModal({
                 </svg>
               )}
             </button>
+            <time className="study-card-meta-time">{formatTime(card.createdAt)}</time>
           </div>
         )}
 

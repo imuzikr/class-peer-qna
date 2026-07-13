@@ -5185,13 +5185,15 @@ pre code {
   font-size: 18px;
   flex-shrink: 0;
 }
-/* 과일 20개 = ⭐ — 이름 오른쪽에 실제 별 개수만큼 나열 */
-.reward-stars {
-  flex-shrink: 0;
-  font-size: 12px;
+/* 과일 20개 = ⭐ — 이름 윗줄에 실제 별 개수만큼 나열(개수 늘어도 이름 안 가림) */
+.reward-stars-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1px;
+  font-size: 13px;
   line-height: 1;
-  letter-spacing: -1px;
-  white-space: nowrap;
+  margin-bottom: 4px;
+  padding-left: 2px;
   filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.2));
 }
 /* 발표 모드 하단의 별 표시 */
@@ -7435,13 +7437,17 @@ pre code {
 .study-card-meta strong {
   font-size: 14px;
   color: var(--text);
-  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 55%;
 }
 
 .study-card-meta-time {
   font-size: 12px;
   color: var(--text-sub);
-  margin-left: auto; /* 시간·크게보기 버튼을 오른쪽 끝으로 */
+  margin-left: auto; /* 시각만 오른쪽 끝으로 (크게보기 버튼은 이름 옆) */
 }
 
 .study-card-modal-body {
