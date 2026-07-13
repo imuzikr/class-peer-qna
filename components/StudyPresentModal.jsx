@@ -157,7 +157,7 @@ export default function StudyPresentModal({ board, cards = [], onClose }) {
           <div className="present-fruits">
             {rewardStars(count) > 0 && (
               <span className="present-star" title={`⭐ = 과일 20개`}>
-                ⭐{rewardStars(count) > 1 && `×${rewardStars(count)}`}
+                {"⭐".repeat(rewardStars(count))}
               </span>
             )}
             <RewardFruits count={count} className="reward-fruits present-fruit-strip" />

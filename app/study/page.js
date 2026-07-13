@@ -622,9 +622,7 @@ export default function StudyPage() {
             </p>
 
             <div className="export-group">
-              <div className="export-group-title">
-                이 반 — {currentClass?.name}
-              </div>
+              <div className="export-group-title">{currentClass?.name}</div>
               <div className="export-actions">
                 <button
                   className="study-export-btn"
@@ -645,7 +643,7 @@ export default function StudyPage() {
 
             {myClasses.length > 1 && (
               <div className="export-group">
-                <div className="export-group-title">전체 반 — 반별로 나눠서</div>
+                <div className="export-group-title">전체 반</div>
                 <div className="export-actions">
                   <button
                     className="study-export-btn"

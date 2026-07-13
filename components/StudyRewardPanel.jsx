@@ -88,18 +88,17 @@ export default function StudyRewardPanel({
           {roster.map((s) => (
             <li key={s.uid} className="reward-row">
               <div className="reward-row-top">
-                <span className="reward-avatar" aria-hidden="true">
-                  {s.emoji}
-                  {rewardStars(s.count) > 0 && (
-                    <span
-                      className="reward-star-badge"
-                      title={`⭐ ${rewardStars(s.count)}개 = 과일 ${rewardStars(s.count) * 20}개`}
-                    >
-                      ⭐{rewardStars(s.count) > 1 && <b>{rewardStars(s.count)}</b>}
-                    </span>
-                  )}
-                </span>
+                <span className="reward-avatar" aria-hidden="true">{s.emoji}</span>
                 <span className="reward-name" title={s.name}>{s.name}</span>
+                {rewardStars(s.count) > 0 && (
+                  <span
+                    className="reward-stars"
+                    title={`⭐ ${rewardStars(s.count)}개 = 과일 ${rewardStars(s.count) * 20}개`}
+                    aria-label={`별 ${rewardStars(s.count)}개`}
+                  >
+                    {"⭐".repeat(rewardStars(s.count))}
+                  </span>
+                )}
                 {!readOnly && (
                   <button
                     type="button"

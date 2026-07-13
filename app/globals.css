@@ -5182,30 +5182,22 @@ pre code {
   gap: 8px;
 }
 .reward-avatar {
-  position: relative;
   font-size: 18px;
   flex-shrink: 0;
 }
-/* 과일 20개 = ⭐ — 아바타 오른쪽 위에 별 뱃지 (숫자는 별 개수) */
-.reward-star-badge {
-  position: absolute;
-  top: -7px;
-  right: -9px;
-  font-size: 11px;
+/* 과일 20개 = ⭐ — 이름 오른쪽에 실제 별 개수만큼 나열 */
+.reward-stars {
+  flex-shrink: 0;
+  font-size: 12px;
   line-height: 1;
-  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.25));
-}
-.reward-star-badge b {
-  font-size: 10px;
-  font-weight: 800;
-  color: #b8860b;
-  margin-left: 1px;
+  letter-spacing: -1px;
+  white-space: nowrap;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.2));
 }
 /* 발표 모드 하단의 별 표시 */
 .present-star {
   font-size: 20px;
-  font-weight: 800;
-  color: #b8860b;
+  letter-spacing: -2px;
   flex-shrink: 0;
 }
 .reward-name {
@@ -6553,39 +6545,41 @@ pre code {
 
 /* 활동 자료 다운로드 모달 — 범위(이 반/전체)·형식(CSV/Excel/PDF) 선택 */
 .modal.modal-export {
-  max-width: 420px;
+  max-width: 560px;
+  text-align: center;
 }
 .export-desc {
-  font-size: 13px;
+  font-size: 13.5px;
   color: var(--text-sub);
-  margin: 4px 0 14px;
+  margin: 6px 0 20px;
   line-height: 1.6;
 }
 .export-group {
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 14px;
   background: var(--card-bg);
-  padding: 12px 14px;
-  margin-bottom: 10px;
+  padding: 18px 16px;
+  margin-bottom: 14px;
 }
 .export-group-title {
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 15px;
+  font-weight: 800;
   color: var(--dark);
-  margin-bottom: 9px;
+  margin-bottom: 14px;
 }
 .export-actions {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   flex-wrap: wrap;
+  justify-content: center;
 }
 .study-export-btn {
-  height: 34px;
-  padding: 0 14px;
+  height: 40px;
+  padding: 0 20px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 10px;
   background: #fff;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--primary);
   cursor: pointer;
@@ -7447,6 +7441,7 @@ pre code {
 .study-card-meta-time {
   font-size: 12px;
   color: var(--text-sub);
+  margin-left: auto; /* 시간·크게보기 버튼을 오른쪽 끝으로 */
 }
 
 .study-card-modal-body {
@@ -7613,9 +7608,8 @@ pre code {
   flex-shrink: 0;
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
-  margin-right: 2px;
+  width: 28px;
+  height: 28px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: #fff;

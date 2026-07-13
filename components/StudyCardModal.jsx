@@ -357,31 +357,12 @@ export default function StudyCardModal({
               </span>
             )}
           </h3>
-          <button
-            type="button"
-            className="study-card-expand-btn"
-            onClick={() => setExpanded((v) => !v)}
-            title={expanded ? "원래 크기로" : "크게 보기 (발표 크기)"}
-            aria-label={expanded ? "원래 크기로" : "크게 보기"}
-          >
-            {expanded ? (
-              /* 축소 아이콘 — 안쪽으로 모이는 화살표 */
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M9 3v6H3M15 3v6h6M9 21v-6H3M15 21v-6h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            ) : (
-              /* 확대 아이콘 — 바깥으로 나가는 화살표 */
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M3 9V3h6M21 9V3h-6M3 15v6h6M21 15v6h-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            )}
-          </button>
           <button className="btn-close" onClick={onClose} aria-label="닫기">
             ×
           </button>
         </div>
 
-        {/* 작성자 정보 (기존 카드일 때) */}
+        {/* 작성자 정보 (기존 카드일 때) — 오른쪽 끝에 크게 보기 토글 */}
         {!isNew && (
           <div className="study-card-meta">
             <span className="avatar avatar-sm" aria-hidden="true">
@@ -389,6 +370,23 @@ export default function StudyCardModal({
             </span>
             <strong>{cardDisplayName}</strong>
             <time className="study-card-meta-time">{formatTime(card.createdAt)}</time>
+            <button
+              type="button"
+              className="study-card-expand-btn"
+              onClick={() => setExpanded((v) => !v)}
+              title={expanded ? "원래 크기로" : "크게 보기 (발표 크기)"}
+              aria-label={expanded ? "원래 크기로" : "크게 보기"}
+            >
+              {expanded ? (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M9 3v6H3M15 3v6h6M9 21v-6H3M15 21v-6h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M3 9V3h6M21 9V3h-6M3 15v6h6M21 15v6h-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              )}
+            </button>
           </div>
         )}
 
