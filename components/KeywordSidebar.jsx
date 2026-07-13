@@ -1,44 +1,190 @@
 "use client";
 
+// =============================================================
 // 1단: 키워드(주제) 사이드바 — 클릭하면 가운데 게시판이 필터링됩니다.
-// 키워드 목록은 데이터(keywords 컬렉션)에서 내려받아 props로 받습니다.
-// isAdmin=true일 때 헤더에 "키워드 관리" 버튼을 표시합니다.
-// (내 인사이트 모음은 피드 상단 "인사이트 보기" 버튼 → 모달로 분리됨)
+// -------------------------------------------------------------
+// 교사(isAdmin)에게는:
+//  · 각 키워드 오른쪽 끝 ⋯(더보기) 메뉴 → 이름 변경 / 삭제
+//  · 드래그 앤 드롭으로 순서 변경 (reorderKeywords로 저장)
+//  · 하단 "＋ 키워드 추가" 인라인 입력
+// (별도 설정 모달 없이 목록에서 바로 관리)
+// =============================================================
+import { useEffect, useRef, useState } from "react";
+import { addKeyword, renameKeyword, deleteKeyword, reorderKeywords } from "@/lib/store";
+import { IconTrash } from "./StatusIcons";
 
 export default function KeywordSidebar({
-  keywords,
+  keywordDocs = [],
   selected,
   onSelect,
   counts,
   isAdmin = false,
-  onManage,
 }) {
-  const items = ["전체", ...keywords];
+  const [menuId, setMenuId] = useState(null);      // ⋯ 메뉴 열린 키워드 id
+  const [editingId, setEditingId] = useState(null); // 이름 변경 중 id
+  const [editName, setEditName] = useState("");
+  const [confirmId, setConfirmId] = useState(null); // 삭제 확인 중 id
+  const [adding, setAdding] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [dragId, setDragId] = useState(null);
+  const [dragOverId, setDragOverId] = useState(null);
+  const rootRef = useRef(null);
+
+  // 바깥 클릭 시 ⋯ 메뉴 닫기
+  useEffect(() => {
+    if (menuId == null) return;
+    function onDown(e) {
+      if (!e.target.closest?.(".kw-menu, .kw-more-btn")) setMenuId(null);
+    }
+    document.addEventListener("pointerdown", onDown);
+    return () => document.removeEventListener("pointerdown", onDown);
+  }, [menuId]);
+
+  function startEdit(kw) {
+    setEditingId(kw.id);
+    setEditName(kw.name);
+    setMenuId(null);
+    setConfirmId(null);
+  }
+  async function saveEdit(id) {
+    const name = editName.trim();
+    if (name) await renameKeyword(id, name);
+    setEditingId(null);
+    setEditName("");
+  }
+  async function handleAdd(e) {
+    e.preventDefault();
+    const name = newName.trim().replace(/^#\s*/, "");
+    if (!name) return;
+    await addKeyword(name);
+    setNewName("");
+    setAdding(false);
+  }
+
+  // ── 드래그 앤 드롭 정렬 ──
+  function handleDrop(targetId) {
+    setDragOverId(null);
+    const from = dragId;
+    setDragId(null);
+    if (!from || from === targetId) return;
+    const ids = keywordDocs.map((k) => k.id);
+    const fi = ids.indexOf(from);
+    const ti = ids.indexOf(targetId);
+    if (fi === -1 || ti === -1) return;
+    ids.splice(fi, 1);
+    ids.splice(ti, 0, from);
+    reorderKeywords(ids);
+  }
 
   return (
-    <aside className="keyword-col">
+    <aside className="keyword-col" ref={rootRef}>
       <div className="keyword-col-head">
         <h2>키워드</h2>
-        {isAdmin && (
-          <button
-            className="keyword-manage-btn"
-            onClick={onManage}
-            title="키워드 관리"
-          >
-            ⚙️
-          </button>
-        )}
       </div>
-      {items.map((kw) => (
-        <button
-          key={kw}
-          className={`keyword-item ${selected === kw ? "active" : ""}`}
-          onClick={() => onSelect(kw)}
-        >
-          <span># {kw}</span>
-          <span className="keyword-count">{counts[kw] ?? 0}</span>
-        </button>
-      ))}
+
+      {/* 전체 — 관리 대상 아님 */}
+      <button
+        className={`keyword-item ${selected === "전체" ? "active" : ""}`}
+        onClick={() => onSelect("전체")}
+      >
+        <span># 전체</span>
+        <span className="keyword-count">{counts["전체"] ?? 0}</span>
+      </button>
+
+      {keywordDocs.map((kw) => {
+        if (editingId === kw.id) {
+          return (
+            <div key={kw.id} className="keyword-item keyword-item--edit">
+              <input
+                type="text"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") saveEdit(kw.id);
+                  if (e.key === "Escape") { setEditingId(null); setEditName(""); }
+                }}
+                autoFocus
+                className="kw-edit-input"
+              />
+              <button className="kw-edit-save" onClick={() => saveEdit(kw.id)} disabled={!editName.trim()}>저장</button>
+            </div>
+          );
+        }
+        if (confirmId === kw.id) {
+          return (
+            <div key={kw.id} className="keyword-item keyword-item--confirm">
+              <span className="kw-confirm-text"># {kw.name} 삭제?</span>
+              <button className="kw-confirm-yes" onClick={() => { deleteKeyword(kw.id); setConfirmId(null); }}>삭제</button>
+              <button className="kw-confirm-no" onClick={() => setConfirmId(null)}>취소</button>
+            </div>
+          );
+        }
+        return (
+          <div
+            key={kw.id}
+            className={`keyword-item-wrap${dragOverId === kw.id ? " drag-over" : ""}${dragId === kw.id ? " dragging" : ""}`}
+            draggable={isAdmin}
+            onDragStart={isAdmin ? () => setDragId(kw.id) : undefined}
+            onDragEnd={isAdmin ? () => { setDragId(null); setDragOverId(null); } : undefined}
+            onDragOver={isAdmin ? (e) => { e.preventDefault(); setDragOverId(kw.id); } : undefined}
+            onDragLeave={isAdmin ? () => setDragOverId((v) => (v === kw.id ? null : v)) : undefined}
+            onDrop={isAdmin ? (e) => { e.preventDefault(); handleDrop(kw.id); } : undefined}
+          >
+            <button
+              className={`keyword-item ${selected === kw.name ? "active" : ""}${isAdmin ? " has-more" : ""}`}
+              onClick={() => onSelect(kw.name)}
+            >
+              <span># {kw.name}</span>
+              <span className="keyword-count">{counts[kw.name] ?? 0}</span>
+            </button>
+            {isAdmin && (
+              <button
+                className="kw-more-btn"
+                onClick={(e) => { e.stopPropagation(); setMenuId((v) => (v === kw.id ? null : kw.id)); }}
+                title="더보기"
+                aria-label={`${kw.name} 더보기`}
+              >
+                ⋯
+              </button>
+            )}
+            {menuId === kw.id && (
+              <div className="kw-menu" role="menu">
+                <button className="kw-menu-item" role="menuitem" onClick={() => startEdit(kw)}>
+                  ✏️ 이름 변경
+                </button>
+                <button
+                  className="kw-menu-item kw-menu-item--danger"
+                  role="menuitem"
+                  onClick={() => { setConfirmId(kw.id); setMenuId(null); }}
+                >
+                  <IconTrash size={15} /> 삭제
+                </button>
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {/* 키워드 추가 (교사) */}
+      {isAdmin &&
+        (adding ? (
+          <form className="keyword-item keyword-item--add" onSubmit={handleAdd}>
+            <input
+              type="text"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Escape") { setAdding(false); setNewName(""); } }}
+              placeholder="새 키워드"
+              autoFocus
+              className="kw-edit-input"
+            />
+            <button type="submit" className="kw-edit-save" disabled={!newName.trim()}>추가</button>
+          </form>
+        ) : (
+          <button className="keyword-add-btn" onClick={() => setAdding(true)}>
+            ＋ 키워드 추가
+          </button>
+        ))}
     </aside>
   );
 }

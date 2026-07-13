@@ -17,7 +17,6 @@ import {
 import { isFirebaseConfigured } from "@/lib/firebase";
 import { codeBlockHtml } from "@/lib/html";
 import KeywordSidebar from "@/components/KeywordSidebar";
-import KeywordManager from "@/components/KeywordManager";
 import QuestionCard from "@/components/QuestionCard";
 import QuestionModal from "@/components/QuestionModal";
 import NewQuestionForm from "@/components/NewQuestionForm";
@@ -51,7 +50,6 @@ export default function BoardPage() {
   const [fromInsight, setFromInsight] = useState(false); // 질문을 인사이트 목록에서 열었는지
   const [pyOpen, setPyOpen] = useState(false); // 파이썬 실행 패널
   const [askCode, setAskCode] = useState(null); // 실행기에서 넘어온 코드
-  const [managingKeywords, setManagingKeywords] = useState(false);
   const user = useCurrentUser();
   useRequireAuth();
   const admin = user ? isTeacher(user) : false;
@@ -168,12 +166,11 @@ export default function BoardPage() {
       <div className="three-cols">
         {/* 1단: 키워드 */}
         <KeywordSidebar
-          keywords={keywordNames}
+          keywordDocs={keywordDocs}
           selected={keyword}
           onSelect={setKeyword}
           counts={counts}
           isAdmin={admin}
-          onManage={() => setManagingKeywords(true)}
         />
 
         {/* 2단: 질문 게시판 */}
@@ -255,12 +252,6 @@ export default function BoardPage() {
         />
       )}
 
-      {managingKeywords && (
-        <KeywordManager
-          keywords={keywordDocs}
-          onClose={() => setManagingKeywords(false)}
-        />
-      )}
 
       {insightOpen && (
         <InsightModal
@@ -283,7 +274,7 @@ export default function BoardPage() {
           setAskCode(code);
           setWriting(true);
         }}
-        hasModalOpen={selectedQuestion !== null || writing || managingKeywords}
+        hasModalOpen={selectedQuestion !== null || writing}
       />
     </div>
   );

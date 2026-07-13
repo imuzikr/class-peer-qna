@@ -961,30 +961,32 @@ export default function AdminDashboardPage() {
                 )}
               </div>
 
-              <section className="admin-activity-panel">
-                <div className="admin-panel-head">
-                  <h2>최근 활동</h2>
-                  <span>{events.length}건</span>
-                </div>
-                {events.length === 0 ? (
-                  <EmptyPanel>최근 활동이 없습니다.</EmptyPanel>
-                ) : (
-                  <div className="activity-list">
-                    {events.map((event) => (
-                      <div className="activity-row" key={event.id}>
-                        <span className={`activity-type ${event.type === "질문" ? "ask" : "answer"}`}>
-                          {event.type}
-                        </span>
-                        <strong>{event.title}</strong>
-                        <span>#{event.keyword}</span>
-                        <time>{formatTime(event.createdAt)}</time>
-                      </div>
-                    ))}
+              <div className="admin-bottom-row">
+                <section className="admin-activity-panel">
+                  <div className="admin-panel-head">
+                    <h2>최근 활동</h2>
+                    <span>{events.length}건</span>
                   </div>
-                )}
-              </section>
+                  {events.length === 0 ? (
+                    <EmptyPanel>최근 활동이 없습니다.</EmptyPanel>
+                  ) : (
+                    <div className="activity-list">
+                      {events.map((event) => (
+                        <div className="activity-row" key={event.id}>
+                          <span className={`activity-type ${event.type === "질문" ? "ask" : "answer"}`}>
+                            {event.type}
+                          </span>
+                          <strong>{event.title}</strong>
+                          <span>#{event.keyword}</span>
+                          <time>{formatTime(event.createdAt)}</time>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
 
-              <StudentKwlPanel entries={selectedKwl} />
+                <StudentKwlPanel entries={selectedKwl} />
+              </div>
             </>
           ) : (
             <EmptyPanel>학생을 선택하면 활동 분석이 표시됩니다.</EmptyPanel>
