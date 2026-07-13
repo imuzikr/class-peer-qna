@@ -183,6 +183,7 @@ service cloud.firestore {
 
     // ── 학생 보상(과일) — 반 소유 교사/관리자만 쓰기, 읽기는 소속 학생도. ──
     //  · 문서 ID = `{classId}_{uid}`. 문서엔 uid·과일 수·이름표만(공부방은 실명 공간).
+    //  · 20개마다 별(⭐)로 접어 표시 — 상한 100(별 5개).
     match /rewards/{rId} {
       allow read: if isAdmin()
                   || ownsClass(resource.data.classId)
@@ -190,7 +191,7 @@ service cloud.firestore {
       allow create, update: if (isAdmin() || ownsClass(request.resource.data.classId))
                    && request.resource.data.count is int
                    && request.resource.data.count >= 0
-                   && request.resource.data.count <= 20
+                   && request.resource.data.count <= 100
                    && rId == (request.resource.data.classId + '_' + request.resource.data.uid);
       allow delete: if isAdmin() || ownsClass(resource.data.classId);
     }

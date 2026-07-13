@@ -12,7 +12,7 @@
 import { useEffect, useState } from "react";
 import { REWARD_MAX } from "@/lib/store";
 import StudentNotesModal from "./StudentNotesModal";
-import RewardFruits from "./RewardFruits";
+import RewardFruits, { rewardStars } from "./RewardFruits";
 
 const COLLAPSE_KEY = "reward_panel_collapsed";
 
@@ -72,8 +72,8 @@ export default function StudyRewardPanel({
         </div>
         <span className="reward-sub">
           {readOnly
-            ? "선생님이 준 과일을 함께 봐요"
-            : `＋로 과일을 주세요 · 최대 ${REWARD_MAX}개`}
+            ? "선생님이 준 과일을 함께 봐요 · ⭐ = 과일 20개"
+            : "＋로 과일을 주세요 · 20개마다 ⭐"}
         </span>
       </div>
 
@@ -88,7 +88,17 @@ export default function StudyRewardPanel({
           {roster.map((s) => (
             <li key={s.uid} className="reward-row">
               <div className="reward-row-top">
-                <span className="reward-avatar" aria-hidden="true">{s.emoji}</span>
+                <span className="reward-avatar" aria-hidden="true">
+                  {s.emoji}
+                  {rewardStars(s.count) > 0 && (
+                    <span
+                      className="reward-star-badge"
+                      title={`⭐ ${rewardStars(s.count)}개 = 과일 ${rewardStars(s.count) * 20}개`}
+                    >
+                      ⭐{rewardStars(s.count) > 1 && <b>{rewardStars(s.count)}</b>}
+                    </span>
+                  )}
+                </span>
                 <span className="reward-name" title={s.name}>{s.name}</span>
                 {!readOnly && (
                   <button

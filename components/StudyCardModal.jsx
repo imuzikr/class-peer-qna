@@ -67,6 +67,7 @@ export default function StudyCardModal({
   const [peekQuestion, setPeekQuestion] = useState(null);
   const [uploadPct, setUploadPct] = useState(null); // 첨부 업로드 진행률
   const [autoStatus, setAutoStatus] = useState("idle"); // idle | saving | saved | error
+  const [expanded, setExpanded] = useState(false); // 발표 모드처럼 크게 보기
 
   const me = getCurrentUser();
   // 자동저장 상태 관리용 refs
@@ -333,7 +334,10 @@ export default function StudyCardModal({
 
   return (
     <div className="modal-backdrop" {...backdropClose(onClose)}>
-      <div className="modal modal-study-card" onClick={(e) => e.stopPropagation()}>
+      <div
+        className={`modal modal-study-card${expanded ? " modal-study-card--expanded" : ""}`}
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* 헤더 */}
         <div className="modal-head">
           <h3>
@@ -353,6 +357,25 @@ export default function StudyCardModal({
               </span>
             )}
           </h3>
+          <button
+            type="button"
+            className="study-card-expand-btn"
+            onClick={() => setExpanded((v) => !v)}
+            title={expanded ? "원래 크기로" : "크게 보기 (발표 크기)"}
+            aria-label={expanded ? "원래 크기로" : "크게 보기"}
+          >
+            {expanded ? (
+              /* 축소 아이콘 — 안쪽으로 모이는 화살표 */
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M9 3v6H3M15 3v6h6M9 21v-6H3M15 21v-6h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            ) : (
+              /* 확대 아이콘 — 바깥으로 나가는 화살표 */
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M3 9V3h6M21 9V3h-6M3 15v6h6M21 15v6h-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )}
+          </button>
           <button className="btn-close" onClick={onClose} aria-label="닫기">
             ×
           </button>

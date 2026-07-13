@@ -137,7 +137,7 @@ export default function KwlFullscreenModal({ classId, initialDate, onClose }) {
                 onClick={openCalendar}
                 title="날짜 선택"
               >
-                📅 {formatDateLabel(date)}{isToday && <span className="kwlfs-date-today"> · 오늘</span>}
+                📅 {formatDateLabel(date)}
               </button>
               <input
                 ref={dateInputRef}

@@ -3915,9 +3915,9 @@ pre code {
   gap: 8px;
 }
 
-/* 최근 활동 — 3건까지 보이고 초과분은 스크롤 */
+/* 최근 활동 — 5건까지 보이고 초과분은 스크롤 */
 .admin-activity-panel .activity-list {
-  max-height: 116px;
+  max-height: 194px;
   overflow-y: auto;
   padding-right: 4px;
 }
@@ -5182,7 +5182,30 @@ pre code {
   gap: 8px;
 }
 .reward-avatar {
+  position: relative;
   font-size: 18px;
+  flex-shrink: 0;
+}
+/* 과일 20개 = ⭐ — 아바타 오른쪽 위에 별 뱃지 (숫자는 별 개수) */
+.reward-star-badge {
+  position: absolute;
+  top: -7px;
+  right: -9px;
+  font-size: 11px;
+  line-height: 1;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.25));
+}
+.reward-star-badge b {
+  font-size: 10px;
+  font-weight: 800;
+  color: #b8860b;
+  margin-left: 1px;
+}
+/* 발표 모드 하단의 별 표시 */
+.present-star {
+  font-size: 20px;
+  font-weight: 800;
+  color: #b8860b;
   flex-shrink: 0;
 }
 .reward-name {
@@ -5678,9 +5701,12 @@ pre code {
   color: var(--dark);
   font-size: 14px;
   font-weight: 700;
-  padding: 6px 14px;
+  padding: 6px 0;
   border-radius: 999px;
   white-space: nowrap;
+  /* 날짜 글자 수와 무관하게 폭 고정 — 화살표 위치가 흔들리지 않게 */
+  width: 148px;
+  text-align: center;
 }
 .kwlfs-date-label:hover {
   background: var(--neutral);
@@ -7574,6 +7600,32 @@ pre code {
   display: flex;
   flex-direction: column;
   max-height: 90vh;
+  transition: max-width 0.2s ease;
+}
+/* 크게 보기 — 발표 모드와 비슷한 크기로 확장 (토글로 원복) */
+.modal-study-card.modal-study-card--expanded {
+  max-width: 94vw;
+  width: 94vw;
+  height: 94vh;
+  max-height: 94vh;
+}
+.study-card-expand-btn {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  margin-right: 2px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text-sub);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.study-card-expand-btn:hover {
+  background: var(--primary-light);
+  color: var(--primary);
 }
 
 /* 관련 질문 읽기 전용 미리보기 (편집 모달 위에 겹침) */

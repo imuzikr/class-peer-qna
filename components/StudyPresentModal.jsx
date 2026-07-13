@@ -16,7 +16,7 @@ import {
 } from "@/lib/store";
 import { sanitizeHtml } from "@/lib/html";
 import ZoomableImage from "./ZoomableImage";
-import RewardFruits from "./RewardFruits";
+import RewardFruits, { rewardStars } from "./RewardFruits";
 
 const IMAGE_EXTS = new Set(["jpg", "jpeg", "png", "gif", "webp"]);
 
@@ -155,6 +155,11 @@ export default function StudyPresentModal({ board, cards = [], onClose }) {
         {/* 하단 — 과일 주기 */}
         <div className="present-foot">
           <div className="present-fruits">
+            {rewardStars(count) > 0 && (
+              <span className="present-star" title={`⭐ = 과일 20개`}>
+                ⭐{rewardStars(count) > 1 && `×${rewardStars(count)}`}
+              </span>
+            )}
             <RewardFruits count={count} className="reward-fruits present-fruit-strip" />
             <span className="present-fruit-count">{count}개</span>
           </div>
