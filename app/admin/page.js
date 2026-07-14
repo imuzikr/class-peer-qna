@@ -29,7 +29,7 @@ import TopNav from "@/components/TopNav";
 import { getMeTooCount } from "@/lib/questionRanking";
 import StudentEditModal from "@/components/StudentEditModal";
 import StudentNotesThread from "@/components/StudentNotesThread";
-import RewardFruits from "@/components/RewardFruits";
+import RewardFruits, { rewardStars } from "@/components/RewardFruits";
 import StudentKwlPanel from "@/components/StudentKwlPanel";
 import ClassOverview from "@/components/ClassOverview";
 import StudyRoomStats from "@/components/StudyRoomStats";
@@ -927,6 +927,14 @@ export default function AdminDashboardPage() {
                         <span className="moments-rewards-label">받은 과일</span>
                         {selectedFruits > 0 ? (
                           <>
+                            {rewardStars(selectedFruits) > 0 && (
+                              <span
+                                className="moments-stars"
+                                title={`⭐ ${rewardStars(selectedFruits)}개 = 과일 ${rewardStars(selectedFruits) * 20}개`}
+                              >
+                                {"⭐".repeat(rewardStars(selectedFruits))}
+                              </span>
+                            )}
                             <RewardFruits count={selectedFruits} className="reward-fruits moments-fruits" />
                             <span className="moments-rewards-total">총 {selectedFruits}개</span>
                           </>

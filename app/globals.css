@@ -6173,6 +6173,16 @@ pre code {
   font-size: 22px;
   line-height: 1.2;
 }
+/* 과일 20개 = ⭐ — 과일 앞에 별을 개수만큼 표시 */
+.moments-stars {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  font-size: 22px;
+  line-height: 1.2;
+  margin-right: 8px;
+  vertical-align: middle;
+}
 .moments-rewards-total {
   display: inline-block;
   margin-top: 10px;
