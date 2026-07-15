@@ -5368,6 +5368,19 @@ pre code {
   letter-spacing: -2px;
   flex-shrink: 0;
 }
+/* 발표 모드 — 모둠 카드의 구성원·안내 */
+.present-group-members {
+  font-size: 14px;
+  color: var(--text-sub);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.present-group-note {
+  font-size: 13.5px;
+  color: var(--text-sub);
+}
 .reward-name {
   flex: 1;
   min-width: 0;

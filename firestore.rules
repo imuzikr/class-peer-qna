@@ -292,6 +292,22 @@ service cloud.firestore {
       );
     }
 
+    // ── 컬렉션 그룹 쿼리 규칙 ─────────────────────────────────
+    // collectionGroup() 쿼리는 {path=**} 그룹 규칙이 없으면 무조건 거부됨.
+    // · answers: 질문 게시판은 전체 공유라 로그인 사용자 읽기(경로 규칙과 동일 노출)
+    // · cards  : 본인 카드(학생 리포트 '내 카드') / 내 모둠 카드 / 최고 관리자만.
+    //   교사에게는 열지 않음 — 반(보드) 격리 유지. 쓰기는 여기 없음(경로 규칙 적용).
+    match /{path=**}/answers/{aId} {
+      allow read: if signedIn();
+    }
+    match /{path=**}/cards/{cardId} {
+      allow read: if signedIn() && (
+        resource.data.authorId == uid()
+        || isAdmin()
+        || resource.data.get('memberUids', []).hasAny([uid()])
+      );
+    }
+
     // ── 통계/시스템 — Cloud Functions(admin SDK)만 쓰기 ──
     // 주간 질문대장/답변왕만 로그인 전 랜딩 화면 노출을 위해 공개 읽기 허용.
     match /stats/weeklyQuestioners {

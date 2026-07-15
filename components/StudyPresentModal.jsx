@@ -67,7 +67,12 @@ export default function StudyPresentModal({ board, cards = [], onClose }) {
 
   if (!card) return null;
 
-  const displayName = getDirectoryRealName(card.authorId) || card.authorName || "익명";
+  // 모둠 카드: 작성자(교사) 대신 모둠 이름·구성원을 표시하고,
+  // 과일 주기는 개인 단위 보상이라 숨깁니다(작성자=교사 uid라 오지급 방지).
+  const isGroupCard = !!card.groupId;
+  const displayName = isGroupCard
+    ? card.title || card.groupName || "모둠"
+    : getDirectoryRealName(card.authorId) || card.authorName || "익명";
   const count = rewardMap[card.authorId] ?? 0;
 
   const fileAtts = (card.attachments ?? []).filter((a) => !IMAGE_EXTS.has(a.ext));
@@ -100,8 +105,17 @@ export default function StudyPresentModal({ board, cards = [], onClose }) {
         {/* 헤더 — 학생 실명 + 진행 위치 */}
         <div className="present-head">
           <div className="present-who">
-            <span className="present-avatar" aria-hidden="true">{card.authorEmoji || "🙂"}</span>
+            <span className="present-avatar" aria-hidden="true">
+              {isGroupCard ? "👥" : card.authorEmoji || "🙂"}
+            </span>
             <strong className="present-name">{displayName}</strong>
+            {isGroupCard && card.members?.length > 0 && (
+              <span className="present-group-members">
+                {card.members
+                  .map((m) => (m.uid === card.leaderUid ? `👑 ${m.name}` : m.name))
+                  .join(" · ")}
+              </span>
+            )}
             <span className="present-progress">{idx + 1} / {total}</span>
             <span className="present-board"># {board.title}</span>
           </div>
@@ -152,8 +166,13 @@ export default function StudyPresentModal({ board, cards = [], onClose }) {
           )}
         </div>
 
-        {/* 하단 — 과일 주기 */}
+        {/* 하단 — 과일 주기 (모둠 카드는 개인 보상이라 표시하지 않음) */}
         <div className="present-foot">
+          {isGroupCard ? (
+            <span className="present-group-note">
+              모둠 카드 — 과일은 공부방 '멋진 순간' 패널에서 학생별로 주세요.
+            </span>
+          ) : (
           <div className="present-fruits">
             {rewardStars(count) > 0 && (
               <span className="present-star" title={`⭐ = 과일 20개`}>
@@ -163,13 +182,16 @@ export default function StudyPresentModal({ board, cards = [], onClose }) {
             <RewardFruits count={count} className="reward-fruits present-fruit-strip" />
             <span className="present-fruit-count">{count}개</span>
           </div>
-          <button
-            className="btn-primary present-award"
-            onClick={awardFruit}
-            disabled={count >= REWARD_MAX}
-          >
-            🍎 과일 주기{count >= REWARD_MAX ? " (최대)" : ""}
-          </button>
+          )}
+          {!isGroupCard && (
+            <button
+              className="btn-primary present-award"
+              onClick={awardFruit}
+              disabled={count >= REWARD_MAX}
+            >
+              🍎 과일 주기{count >= REWARD_MAX ? " (최대)" : ""}
+            </button>
+          )}
         </div>
 
         {/* 좌우 이동 화살표 */}
