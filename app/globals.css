@@ -7317,7 +7317,9 @@ pre code {
 .modal.modal-group-composer {
   max-width: 860px;
   width: 92vw;
-  max-height: 90vh;
+  /* 높이 고정 — 탭·모둠 수가 바뀌어도 모달 크기가 변하지 않고 모둠
+     그리드만 내부에서 스크롤(자동/직접 구성 동일하게 동작) */
+  height: min(90vh, 780px);
   display: flex;
   flex-direction: column;
   overflow: hidden;
