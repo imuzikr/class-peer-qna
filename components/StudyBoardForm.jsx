@@ -15,6 +15,7 @@ import { getCurrentUser } from "@/lib/user";
 export default function StudyBoardForm({ keywords = [], classId = null, onClose }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [activityType, setActivityType] = useState("individual"); // 개별 | 모둠
   const [linkKeyword, setLinkKeyword] = useState(false);
   const [selectedKeywords, setSelectedKeywords] = useState([]);
   const [saving, setSaving] = useState(false);
@@ -48,6 +49,7 @@ export default function StudyBoardForm({ keywords = [], classId = null, onClose 
         description: description.trim(),
         keywords: linkKeyword ? selectedKeywords : [],
         classId,
+        activityType,
       });
       onClose();
     } finally {
@@ -66,6 +68,26 @@ export default function StudyBoardForm({ keywords = [], classId = null, onClose 
         </div>
 
         <form className="form-grid" onSubmit={handleSubmit}>
+          {/* 활동 유형 — 개별(학생 1인 1카드) / 모둠(모둠 구성 후 모둠당 1카드) */}
+          <div className="board-acttype-row" role="radiogroup" aria-label="활동 유형">
+            <button
+              type="button"
+              className={`board-acttype-btn${activityType === "individual" ? " active" : ""}`}
+              onClick={() => setActivityType("individual")}
+            >
+              🧑‍🎓 개별 활동
+              <small>학생마다 카드 1장</small>
+            </button>
+            <button
+              type="button"
+              className={`board-acttype-btn${activityType === "group" ? " active" : ""}`}
+              onClick={() => setActivityType("group")}
+            >
+              👥 모둠 활동
+              <small>모둠 구성 후 모둠당 카드 1장</small>
+            </button>
+          </div>
+
           {/* 제목 + 연계 토글 */}
           <div className="study-board-form-title-row">
             <input

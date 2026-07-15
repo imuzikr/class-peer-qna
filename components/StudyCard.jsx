@@ -7,6 +7,8 @@ import { IconTeacher } from "./StatusIcons";
 const IMAGE_EXTS = new Set(["jpg", "jpeg", "png", "gif", "webp"]);
 
 export default function StudyCard({ card, onClick, isTeacher = false }) {
+  // 모둠 카드 — 모둠명 + 구성원(대표 👑)을 헤더에 표시
+  const isGroupCard = !!card.groupId;
   // 교사 카드: 데모는 "teacher_" 접두, 실서비스는 작성자명이 "선생님"(예약어)
   const isTeacherCard =
     card.authorId?.startsWith?.("teacher_") || card.authorName === "선생님";
@@ -31,10 +33,15 @@ export default function StudyCard({ card, onClick, isTeacher = false }) {
     >
       <div className="study-card-head">
         <span className="avatar avatar-sm" aria-hidden="true">
-          {isTeacherCard ? <IconTeacher size={22} /> : (card.authorEmoji ?? "🙂")}
+          {isGroupCard ? "👥" : isTeacherCard ? <IconTeacher size={22} /> : (card.authorEmoji ?? "🙂")}
         </span>
         <div className="study-card-author">
-          {isTeacher && !isTeacherCard && studentId ? (
+          {isGroupCard ? (
+            <strong>
+              {card.groupName}
+              {card.retired && <span className="study-card-retired"> · 보관됨</span>}
+            </strong>
+          ) : isTeacher && !isTeacherCard && studentId ? (
             <>
               <span className="study-card-studentid">{studentId}</span>
               <strong>{displayName}</strong>
@@ -50,6 +57,15 @@ export default function StudyCard({ card, onClick, isTeacher = false }) {
         )}
         <time className="study-card-time">{formatTime(card.createdAt)}</time>
       </div>
+
+      {/* 모둠 구성원 — 대표는 👑 */}
+      {isGroupCard && card.members?.length > 0 && (
+        <p className="study-card-members">
+          {card.members
+            .map((m) => (m.uid === card.leaderUid ? `👑 ${m.name}` : m.name))
+            .join(" · ")}
+        </p>
+      )}
 
       {card.title && <p className="study-card-title">{card.title}</p>}
 

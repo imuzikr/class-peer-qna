@@ -7246,6 +7246,255 @@ pre code {
   padding: 10px 12px 8px;
 }
 
+/* ── 모둠 활동 보드 ─────────────────────────────────────────── */
+/* 보드 생성: 활동 유형 선택(개별/모둠) */
+.board-acttype-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.board-acttype-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  padding: 11px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+}
+.board-acttype-btn small {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-sub);
+}
+.board-acttype-btn.active {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+
+/* 모둠 구성 버튼(보드 패널) */
+.study-sort-btn--group {
+  background: #efe7fa;
+  color: #6b4fa3;
+  border-color: #cdbceb;
+}
+
+/* 카드의 모둠 구성원 줄 */
+.study-card-members {
+  font-size: 12px;
+  color: var(--text-sub);
+  line-height: 1.5;
+  margin: 2px 0 4px;
+}
+.study-card-retired {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-sub);
+}
+.study-card-meta-group {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.35;
+}
+.study-card-meta-group strong { font-size: 14px; color: var(--text); }
+.study-card-meta-members {
+  font-size: 11.5px;
+  color: var(--text-sub);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 모둠 구성 모달 */
+.modal.modal-group-composer {
+  max-width: 720px;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.gc-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.gc-tab {
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+  cursor: pointer;
+}
+.gc-tab.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+.gc-total {
+  margin-left: auto;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.gc-auto-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card-bg);
+  margin-bottom: 12px;
+}
+.gc-radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.gc-label { font-size: 13.5px; font-weight: 700; }
+.gc-num {
+  width: 72px;
+  padding: 7px 10px;
+  text-align: center;
+}
+.gc-run { padding: 8px 14px; font-size: 13.5px; }
+.gc-hint { font-size: 12px; color: var(--text-sub); }
+.gc-empty {
+  padding: 26px 10px;
+  text-align: center;
+  font-size: 13.5px;
+  color: var(--text-sub);
+}
+.gc-pool {
+  margin-bottom: 12px;
+}
+.gc-pool-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-sub);
+  margin-bottom: 6px;
+}
+.gc-pool-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.gc-chip {
+  padding: 5px 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.gc-chip:hover {
+  background: var(--primary-light);
+  border-color: var(--primary);
+}
+.gc-chip--member.leader {
+  border-color: #e0b93c;
+  background: #fdf6e0;
+}
+.gc-groups {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 10px;
+  padding-bottom: 4px;
+}
+.gc-group {
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+  padding: 10px 12px;
+}
+.gc-group.active {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary-light);
+}
+.gc-group-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.gc-group-name {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 9px;
+  font-size: 13.5px;
+  font-weight: 700;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.gc-group-count {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--primary);
+}
+.gc-group-members {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  min-height: 30px;
+  margin-bottom: 8px;
+}
+.gc-group-empty {
+  font-size: 12px;
+  color: var(--text-sub);
+  padding: 4px 2px;
+}
+.gc-leader-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.gc-leader-row select {
+  flex: 1;
+  width: auto;
+  padding: 6px 9px;
+  font-size: 13px;
+  border-radius: 8px;
+}
+.gc-foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 14px;
+  margin-top: 6px;
+  border-top: 1px solid var(--border);
+}
+.gc-foot-note {
+  margin-right: auto;
+  font-size: 12px;
+  color: var(--text-sub);
+}
+
 .study-sort-btn {
   flex: 1;
   font-size: 13px;

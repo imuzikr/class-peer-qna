@@ -67,6 +67,17 @@ service cloud.firestore {
     function isNoticeBoard(bId) {
       return get(/databases/$(database)/documents/studyBoards/$(bId)).data.type == 'notice';
     }
+    // 모둠 활동 보드 여부 / '함께 보기' 여부
+    function isGroupBoard(bId) {
+      return get(/databases/$(database)/documents/studyBoards/$(bId)).data.get('activityType', 'individual') == 'group';
+    }
+    function isSharedBoard(bId) {
+      return get(/databases/$(database)/documents/studyBoards/$(bId)).data.viewMode == 'shared';
+    }
+    // 이 카드가 모둠 카드이고 내가 그 모둠의 구성원인지
+    function isMyGroupCard() {
+      return resource.data.get('memberUids', []).hasAny([uid()]);
+    }
 
     // ── 사용자 프로필 ─────────────────────────────────────────
     // 실명·이메일 등 식별 정보(PII)가 여기에만 있으므로, 읽기는 본인+교사로 제한.
@@ -217,14 +228,23 @@ service cloud.firestore {
       allow update, delete: if isAdmin() || ownsClass(resource.data.classId);
 
       match /cards/{cardId} {
-        // 읽기 — 본인 카드(0 get, 최우선) / 관리자 / 그 반 멤버 / 반 소유 교사
+        // 읽기 — 본인 카드(0 get, 최우선) / 관리자 / 반 소유 교사 / 반 멤버.
+        // 단, 모둠 보드가 '자기 모둠만'(private)일 때 반 멤버는 자기 모둠
+        // 카드만 읽을 수 있음(memberUids array-contains 쿼리로 접근).
+        // '함께 보기'(shared)면 다른 모둠 카드도 읽기 가능(수정은 불가).
         allow read: if signedIn() && (
           resource.data.authorId == uid()
           || isAdmin()
-          || isBoardClassMember(bId)
           || ownsBoard(bId)
+          || (isBoardClassMember(bId)
+              && (
+                   !isGroupBoard(bId)
+                   || isSharedBoard(bId)
+                   || isMyGroupCard()
+                 ))
         );
-        // 생성 — 관리자/소유 교사는 자유. 학생은 (문서ID=uid) + 반 멤버 + 잠금 아님 + notice 아님.
+        // 생성 — 관리자/소유 교사는 자유(모둠 카드도 교사가 생성).
+        //   학생은 (문서ID=uid) + 반 멤버 + 잠금 아님 + notice 아님 + 모둠 보드 아님.
         allow create: if signedIn()
                       && request.resource.data.authorId == uid()
                       && (
@@ -233,9 +253,11 @@ service cloud.firestore {
                            || (cardId == uid()
                                && isBoardClassMember(bId)
                                && !isBoardLocked(bId)
-                               && !isNoticeBoard(bId))
+                               && !isNoticeBoard(bId)
+                               && !isGroupBoard(bId))
                          );
-        // 수정 — 관리자/소유 교사, 또는 본인 카드(작성자 불변·멤버·잠금 아님·notice 아님)
+        // 수정 — 관리자/소유 교사, 본인 카드(작성자 불변·멤버·잠금 아님·notice 아님),
+        //   또는 내 모둠 카드(내용 필드만 — 모둠 명단·대표·작성자는 교사만 변경).
         allow update: if signedIn() && (
           isAdmin()
           || ownsBoard(bId)
@@ -244,8 +266,13 @@ service cloud.firestore {
               && isBoardClassMember(bId)
               && !isBoardLocked(bId)
               && !isNoticeBoard(bId))
+          || (isMyGroupCard()
+              && isBoardClassMember(bId)
+              && !isBoardLocked(bId)
+              && changedOnly(['title','content','imageUrl','attachments','updatedAt']))
         );
-        // 삭제 — 관리자/소유 교사, 또는 본인 카드(멤버·notice 아님)
+        // 삭제 — 관리자/소유 교사, 또는 본인 카드(멤버·notice 아님).
+        //   모둠 카드는 학생 삭제 불가(문서ID가 uid가 아니므로 자동 차단).
         allow delete: if signedIn() && (
           isAdmin()
           || ownsBoard(bId)

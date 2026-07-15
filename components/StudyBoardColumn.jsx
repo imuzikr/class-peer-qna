@@ -17,6 +17,7 @@ import { backdropClose } from "@/lib/modal";
 import { useEffect, useState } from "react";
 import {
   subscribeStudyCards,
+  subscribeMyGroupCards,
   updateStudyBoard,
   updateStudyCard,
   deleteStudyBoard,
@@ -28,6 +29,7 @@ import { stripHtml } from "@/lib/html";
 import StudyCard from "./StudyCard";
 import StudyCardModal from "./StudyCardModal";
 import StudyPresentModal from "./StudyPresentModal";
+import GroupComposer from "./GroupComposer";
 import { IconTrash, IconAddFeature, IconLock, IconDuplicate } from "./StatusIcons";
 import { IconPen } from "./RichTextEditor";
 
@@ -49,6 +51,7 @@ export default function StudyBoardColumn({
   hasCollapsed = false, // 접힌 보드가 하나라도 있는지 (모두 펴기 활성화용)
   onCollapseAll, // 첫 보드: 교사·최근 보드만 남기고 모두 접기
   canCollapseAll = false, // 접을 수 있는 중간 보드가 남아 있는지 (모두 접기 활성화용)
+  classRoster = [], // 교사: 반 학생 명단(모둠 구성용) [{uid, name, emoji}]
   questions = [],
   classes = [],
   onAsk,
@@ -77,11 +80,19 @@ export default function StudyBoardColumn({
   // 학생 미리보기(peek): 접힌 보드를 학생이 잠깐 펼쳐 보는 개인 상태.
   // 공유 상태(board.collapsed)는 그대로 두고, 이 학생의 화면에서만 펼쳐집니다.
   const [peeked, setPeeked] = useState(false);
+  const [composing, setComposing] = useState(false); // 모둠 구성 모달
+
+  const isGroup = board.activityType === "group"; // 모둠 활동 보드
 
   useEffect(() => {
-    const unsub = subscribeStudyCards(board.id, setCards);
-    return unsub;
-  }, [board.id]);
+    // 모둠 보드 + 학생 + '자기 모둠만'(private): 규칙상 내 모둠 카드만 구독 가능.
+    // '함께 보기'(shared)면 다른 모둠 카드도 읽기 전용으로 내려받음.
+    if (isGroup && !isTeacher && board.viewMode !== "shared") {
+      if (!user) return;
+      return subscribeMyGroupCards(board.id, user.uid, setCards);
+    }
+    return subscribeStudyCards(board.id, setCards);
+  }, [board.id, isGroup, isTeacher, board.viewMode, user?.uid]);
 
   // 외부에서 보드 제목이 바뀌면 편집 초안도 동기화
   useEffect(() => {
@@ -91,15 +102,23 @@ export default function StudyBoardColumn({
   const isNotice = board.type === "notice";
   const locked = board.editMode === "locked";
   const myCard = user ? cards.find((c) => c.authorId === user.uid) : null;
+  // 모둠 보드: 내가 속한 모둠 카드
+  const myGroupCard =
+    isGroup && user ? cards.find((c) => c.memberUids?.includes(user.uid)) : null;
 
   let visibleCards = cards;
-  if (!isTeacher && !isNotice && board.viewMode === "private") {
+  if (isGroup) {
+    // 모둠 카드만(보관된 카드는 교사에게만), 순번 순 정렬
+    visibleCards = cards
+      .filter((c) => c.groupId && (isTeacher || !c.retired))
+      .sort((a, b) => (a.groupIndex ?? 0) - (b.groupIndex ?? 0));
+  } else if (!isTeacher && !isNotice && board.viewMode === "private") {
     visibleCards = myCard ? [myCard] : [];
   }
 
   const currentSortDir = sortKey === "studentId" ? studentIdDir : timeDir;
 
-  if (isTeacher && !isNotice) {
+  if (isTeacher && !isNotice && !isGroup) {
     visibleCards = [...visibleCards].sort((a, b) => {
       let cmp = 0;
       if (sortKey === "studentId") {
@@ -115,14 +134,17 @@ export default function StudyBoardColumn({
   }
 
   const canAddNotice = isNotice && isTeacher && !locked;
-  // 교사는 보드당 여러 카드 가능(제한 없음), 학생은 카드 1개까지(myCard 없을 때만)
-  const canAddStudent = !isNotice && !locked && (isTeacher || !myCard);
+  // 교사는 보드당 여러 카드 가능(제한 없음), 학생은 카드 1개까지(myCard 없을 때만).
+  // 모둠 보드의 카드는 '모둠 구성'으로만 생성 — 학생 직접 추가 불가(교사 자료 카드는 허용).
+  const canAddStudent = !isNotice && !locked && (isTeacher || (!isGroup && !myCard));
   const canAdd = canAddNotice || canAddStudent;
 
-  // 발표 모드 대상 — 학생이 작성한 카드만(교사 예시 카드 제외), 현재 정렬 순서
-  const presentCards = visibleCards.filter(
-    (c) => !(c.authorId?.startsWith?.("teacher_") || c.authorName === "선생님")
-  );
+  // 발표 모드 대상 — 모둠 보드는 모둠 카드, 개별 보드는 학생 카드만(교사 예시 제외)
+  const presentCards = isGroup
+    ? visibleCards.filter((c) => c.groupId && !c.retired)
+    : visibleCards.filter(
+        (c) => !(c.authorId?.startsWith?.("teacher_") || c.authorName === "선생님")
+      );
 
   // 이전 단일 keyword 필드와 새 keywords 배열 모두 지원
   const boardKeywords = Array.isArray(board.keywords)
@@ -135,7 +157,11 @@ export default function StudyBoardColumn({
     : [];
 
   function canEditCard(card) {
-    return !locked && !!user && (card.authorId === user.uid || isTeacher);
+    if (locked || !user) return false;
+    if (isTeacher) return true;
+    // 모둠 카드: 그 모둠 구성원이면 편집 가능
+    if (card.groupId) return !!card.memberUids?.includes(user.uid);
+    return card.authorId === user.uid;
   }
 
   async function handleDeleteBoard() {
@@ -446,26 +472,39 @@ export default function StudyBoardColumn({
         {isTeacher && !isNotice && (
           <div className={`study-board-panel${panelOpen ? " open" : ""}`}>
             <div className="study-sort">
-              <button
-                className={`study-sort-btn study-sort-btn--studentid${sortKey === "studentId" ? " active" : ""}`}
-                onClick={() => {
-                  setSortKey("studentId");
-                  setStudentIdDir((d) => (d === "asc" ? "desc" : "asc"));
-                }}
-                title="학번 정렬"
-              >
-                학번 {studentIdDir === "asc" ? "↑" : "↓"}
-              </button>
-              <button
-                className={`study-sort-btn study-sort-btn--time${sortKey === "time" ? " active" : ""}`}
-                onClick={() => {
-                  setSortKey("time");
-                  setTimeDir((d) => (d === "asc" ? "desc" : "asc"));
-                }}
-                title="제출 시간 정렬"
-              >
-                제출 {timeDir === "asc" ? "↑" : "↓"}
-              </button>
+              {isGroup ? (
+                /* 모둠 보드: 정렬 대신 모둠 구성 버튼 (카드는 모둠 순번 고정) */
+                <button
+                  className="study-sort-btn study-sort-btn--group"
+                  onClick={() => setComposing(true)}
+                  title="모둠 구성 — 자동/직접 배정"
+                >
+                  👥 모둠 구성
+                </button>
+              ) : (
+                <>
+                  <button
+                    className={`study-sort-btn study-sort-btn--studentid${sortKey === "studentId" ? " active" : ""}`}
+                    onClick={() => {
+                      setSortKey("studentId");
+                      setStudentIdDir((d) => (d === "asc" ? "desc" : "asc"));
+                    }}
+                    title="학번 정렬"
+                  >
+                    학번 {studentIdDir === "asc" ? "↑" : "↓"}
+                  </button>
+                  <button
+                    className={`study-sort-btn study-sort-btn--time${sortKey === "time" ? " active" : ""}`}
+                    onClick={() => {
+                      setSortKey("time");
+                      setTimeDir((d) => (d === "asc" ? "desc" : "asc"));
+                    }}
+                    title="제출 시간 정렬"
+                  >
+                    제출 {timeDir === "asc" ? "↑" : "↓"}
+                  </button>
+                </>
+              )}
               <button
                 className="study-sort-btn study-sort-btn--activity"
                 onClick={openActivitiesModal}
@@ -484,9 +523,16 @@ export default function StudyBoardColumn({
                         board.viewMode === "shared" ? "private" : "shared",
                     })
                   }
+                  title={
+                    isGroup
+                      ? "자기 모둠만: 각 모둠은 자기 카드만 봄 · 함께 보기: 다른 모둠 카드도 읽기 전용으로 공개"
+                      : undefined
+                  }
                 >
                   {board.viewMode === "shared" ? (
                     <>👥 함께 보기</>
+                  ) : isGroup ? (
+                    <><IconLock size={15} /> 자기 모둠만</>
                   ) : (
                     <><IconLock size={15} /> 나만 보기</>
                   )}
@@ -651,7 +697,9 @@ export default function StudyBoardColumn({
               : selectedCard
               ? !!(user && (
                   selectedCard.authorId === user.uid ||
-                  (isNotice && isTeacher)
+                  (isNotice && isTeacher) ||
+                  // 모둠 카드: 내 모둠이면 내 카드처럼 취급(편집 폼 표시)
+                  (selectedCard.groupId && selectedCard.memberUids?.includes(user.uid))
                 ))
               : false
           }
@@ -661,6 +709,16 @@ export default function StudyBoardColumn({
             setCreating(false);
           }}
           onAsk={onAsk}
+        />
+      )}
+
+      {/* ── 모둠 구성 모달 (교사) ── */}
+      {composing && (
+        <GroupComposer
+          board={board}
+          roster={classRoster}
+          cards={cards}
+          onClose={() => setComposing(false)}
         />
       )}
 

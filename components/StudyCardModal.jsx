@@ -366,9 +366,22 @@ export default function StudyCardModal({
         {!isNew && (
           <div className="study-card-meta">
             <span className="avatar avatar-sm" aria-hidden="true">
-              {isTeacherCard ? <IconTeacher size={22} /> : (card.authorEmoji ?? "🙂")}
+              {card.groupId ? "👥" : isTeacherCard ? <IconTeacher size={22} /> : (card.authorEmoji ?? "🙂")}
             </span>
-            <strong>{cardDisplayName}</strong>
+            {card.groupId ? (
+              <span className="study-card-meta-group">
+                <strong>{card.groupName}</strong>
+                {card.members?.length > 0 && (
+                  <span className="study-card-meta-members">
+                    {card.members
+                      .map((m) => (m.uid === card.leaderUid ? `👑 ${m.name}` : m.name))
+                      .join(" · ")}
+                  </span>
+                )}
+              </span>
+            ) : (
+              <strong>{cardDisplayName}</strong>
+            )}
             <button
               type="button"
               className="study-card-expand-btn"
@@ -636,7 +649,8 @@ export default function StudyCardModal({
                   저장 실패 · 다시 시도됩니다
                 </span>
               )}
-              {!isNew && (
+              {/* 모둠 카드는 삭제 불가(위험 방지) — 삭제 버튼 자체를 제거 */}
+              {!isNew && !card?.groupId && (
                 confirmDelete ? (
                   <>
                     <span className="study-delete-warn">

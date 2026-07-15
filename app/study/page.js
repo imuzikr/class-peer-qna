@@ -506,6 +506,7 @@ export default function StudyPage() {
                         (b, bi) =>
                           bi !== 0 && bi !== classBoards.length - 1 && !b.collapsed
                       )}
+                      classRoster={admin ? roster : []}
                       questions={questions}
                       classes={myClasses}
                       onAsk={(kw) => setAskKeyword(kw)}
