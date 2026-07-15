@@ -51,6 +51,7 @@ export default function GroupComposer({ board, roster = [], cards = [], onClose,
   const [saving, setSaving] = useState(false);
   const [dragUid, setDragUid] = useState(null);
   const [dragOverKey, setDragOverKey] = useState(null); // 'pool' | 모둠 index
+  const [activeIndex, setActiveIndex] = useState(null); // 클릭 배정 대상 모둠
 
   const students = useMemo(
     () => roster.map((s) => ({ uid: s.uid, name: s.name, emoji: s.emoji })),
@@ -76,6 +77,11 @@ export default function GroupComposer({ board, roster = [], cards = [], onClose,
   const assignedUids = new Set(groups.flatMap((g) => g.members.map((m) => m.uid)));
   const unassigned = students.filter((s) => !assignedUids.has(s.uid));
   const nameFor = (idx) => groups.find((g) => g.index === idx)?.name || `${idx}모둠`;
+  // 클릭 배정 대상: 선택된 모둠(없으면 첫 모둠)
+  const activeGroupIndex =
+    activeIndex != null && groups.some((g) => g.index === activeIndex)
+      ? activeIndex
+      : groups[0]?.index ?? null;
 
   // ── 모둠 수(슬롯) 설정 ──
   // 특정 슬롯 index를 생성 목록에 넣거나 뺌 (기존 이름/멤버는 보존)
@@ -284,9 +290,20 @@ export default function GroupComposer({ board, roster = [], cards = [], onClose,
                   <span className="gc-group-empty">모두 배정됐어요</span>
                 ) : (
                   unassigned.map((s) => (
-                    <span key={s.uid} className="gc-chip" {...chipDrag(s.uid)} title="드래그해서 모둠에 배정">
+                    <button
+                      key={s.uid}
+                      type="button"
+                      className="gc-chip"
+                      {...chipDrag(s.uid)}
+                      onClick={() => activeGroupIndex != null && moveStudent(s.uid, activeGroupIndex)}
+                      title={
+                        activeGroupIndex != null
+                          ? `클릭하면 '${nameFor(activeGroupIndex)}'에 배정 · 드래그도 가능`
+                          : "드래그해서 모둠에 배정"
+                      }
+                    >
                       {s.emoji} {s.name}
-                    </span>
+                    </button>
                   ))
                 )}
               </div>
@@ -301,15 +318,24 @@ export default function GroupComposer({ board, roster = [], cards = [], onClose,
               groups.map((g) => (
                 <div
                   key={g.index}
-                  className={`gc-group${dragOverKey === g.index ? " drag-over" : ""}`}
+                  className={`gc-group${dragOverKey === g.index ? " drag-over" : ""}${activeGroupIndex === g.index ? " active" : ""}`}
+                  onClick={() => setActiveIndex(g.index)}
                   {...dropProps(g.index, (uid) => moveStudent(uid, g.index))}
                 >
                   <div className="gc-group-head">
+                    <span
+                      className="gc-group-pick"
+                      title="이 모둠을 선택 — 미배정 학생을 클릭하면 여기로 배정"
+                      aria-hidden="true"
+                    >
+                      {activeGroupIndex === g.index ? "◉" : "○"}
+                    </span>
                     <input
                       type="text"
                       className="gc-group-name"
                       value={g.name}
                       onChange={(e) => renameGroup(g.index, e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
                       maxLength={20}
                     />
                     <span className="gc-group-count">{g.members.length}명</span>
@@ -323,7 +349,7 @@ export default function GroupComposer({ board, roster = [], cards = [], onClose,
                           key={m.uid}
                           className={`gc-chip gc-chip--member${g.leaderUid === m.uid ? " leader" : ""}`}
                           {...chipDrag(m.uid)}
-                          onClick={() => moveStudent(m.uid, null)}
+                          onClick={(e) => { e.stopPropagation(); moveStudent(m.uid, null); }}
                           title="클릭하면 미배정 · 드래그로 다른 모둠 이동"
                         >
                           {g.leaderUid === m.uid && "👑 "}

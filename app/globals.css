@@ -7484,20 +7484,38 @@ pre code {
   min-height: 0;
   overflow-y: auto;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-  grid-auto-rows: min-content;
-  gap: 10px;
-  padding-bottom: 4px;
+  grid-template-columns: repeat(2, 1fr);
+  grid-auto-rows: 1fr; /* 행이 남는 높이를 균등하게 채워 여백 제거·카드 확대 */
+  gap: 12px;
+  padding-bottom: 2px;
 }
 .gc-group {
+  display: flex;
+  flex-direction: column;
+  min-height: 150px;
   border: 1.5px solid var(--border);
   border-radius: 12px;
   background: #fff;
-  padding: 10px 12px;
+  padding: 12px 14px;
+  cursor: pointer;
+}
+.gc-group.active {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary);
 }
 .gc-group.drag-over {
   border-color: var(--primary);
   box-shadow: 0 0 0 2px var(--primary-light);
+}
+.gc-group-pick {
+  font-size: 14px;
+  color: var(--primary);
+  flex-shrink: 0;
+}
+/* 큰 카드에서 모둠원 영역이 남는 공간을 차지하도록 */
+.gc-group .gc-group-members {
+  flex: 1;
+  align-content: flex-start;
 }
 .gc-group-head {
   display: flex;
