@@ -370,7 +370,7 @@ export default function StudyCardModal({
             </span>
             {card.groupId ? (
               <span className="study-card-meta-group">
-                <strong>{card.groupName}</strong>
+                <strong>{card.title || card.groupName}</strong>
                 {card.members?.length > 0 && (
                   <span className="study-card-meta-members">
                     {card.members
@@ -447,7 +447,7 @@ export default function StudyCardModal({
                     className="study-card-title-input"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder={`제목 미입력 시 '${board.title}'`}
+                    placeholder={card?.groupId ? "모둠 이름" : `제목 미입력 시 '${board.title}'`}
                     maxLength={60}
                   />
                   <RichTextEditor

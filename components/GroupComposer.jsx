@@ -3,26 +3,28 @@
 // =============================================================
 // 모둠 구성 모달 (교사 전용) — 모둠 활동 보드
 // -------------------------------------------------------------
-// · 자동 구성: 모둠 수 또는 모둠원 수 기준으로 무작위 균등 배정.
-//   인원은 항상 비슷하게(예: 22명 5모둠 → 5·5·4·4·4). 대표는 교사가
-//   미리보기에서 직접 지정(미지정 가능).
-// · 직접 구성: 모둠을 만들고 미배정 학생을 클릭해 원하는 모둠에 배정.
-// · 저장하면 모둠 수만큼 카드가 만들어지고(문서 ID = group_순번),
-//   재구성 시 기존 카드의 작성 내용은 유지한 채 명단만 갱신됩니다.
+// · 자동 구성:
+//    - '모둠 수' 영역: 최대 6개의 모둠 슬롯을 미리 두고, 생성할 모둠만 체크.
+//    - '모둠원 수' 영역: 목록 버튼으로 한 모둠 인원을 고르면 모둠 수가 자동 결정.
+//    - 무작위 균등 배정(예: 22명·5모둠 → 5·5·4·4·4). 대표는 교사가 지정.
+// · 직접 구성: 미배정 학생 이름을 드래그해서 모둠에 배정(클릭 배정도 가능).
+// · 저장하면 모둠 수만큼 카드가 만들어지고(문서 ID=group_슬롯번호),
+//   재구성 시 각 모둠 카드의 작성 내용은 유지된 채 명단·이름만 갱신됩니다.
 // =============================================================
 import { backdropClose } from "@/lib/modal";
 import { useMemo, useState } from "react";
 import { composeStudyGroups } from "@/lib/store";
 import { getCurrentUser } from "@/lib/user";
 
-// 균등 분할 — total명을 n모둠으로: 앞쪽 (total % n)개 모둠만 +1명
-// 예) 22명 5모둠 → 5,5,4,4,4
+const MAX_GROUPS = 6;
+const SIZE_OPTIONS = [2, 3, 4, 5, 6]; // 한 모둠당 인원 선택지
+
+// 균등 분할 — total명을 n모둠으로: 앞쪽 (total % n)개 모둠만 +1명 (5,5,4,4,4)
 function balancedSizes(total, n) {
   const base = Math.floor(total / n);
   const extra = total % n;
   return Array.from({ length: n }, (_, i) => base + (i < extra ? 1 : 0));
 }
-
 function shuffle(arr) {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -31,15 +33,13 @@ function shuffle(arr) {
   }
   return a;
 }
-
-// 기존 모둠 카드 → 편집용 그룹 배열
 function groupsFromCards(cards) {
   return cards
     .filter((c) => c.groupId && !c.retired)
     .sort((a, b) => (a.groupIndex ?? 0) - (b.groupIndex ?? 0))
     .map((c) => ({
       index: c.groupIndex,
-      name: c.groupName || `${c.groupIndex}모둠`,
+      name: c.title || c.groupName || `${c.groupIndex}모둠`,
       members: c.members ?? [],
       leaderUid: c.leaderUid ?? null,
     }));
@@ -48,88 +48,121 @@ function groupsFromCards(cards) {
 export default function GroupComposer({ board, roster = [], cards = [], onClose, onSaved }) {
   const hasExisting = cards.some((c) => c.groupId && !c.retired);
   const [tab, setTab] = useState(hasExisting ? "manual" : "auto");
-  // 자동 구성 설정
-  const [autoBasis, setAutoBasis] = useState("count"); // count(모둠 수) | size(모둠원 수)
-  const [autoValue, setAutoValue] = useState(4);
-  // 편집 중인 그룹 미리보기 (자동 배정 결과 또는 직접 구성)
-  const [groups, setGroups] = useState(() =>
-    hasExisting ? groupsFromCards(cards) : []
-  );
-  const [activeGroup, setActiveGroup] = useState(0); // 직접 구성: 배정 대상 모둠
   const [saving, setSaving] = useState(false);
+  const [dragUid, setDragUid] = useState(null);
+  const [dragOverKey, setDragOverKey] = useState(null); // 'pool' | 모둠 index
 
   const students = useMemo(
     () => roster.map((s) => ({ uid: s.uid, name: s.name, emoji: s.emoji })),
     [roster]
   );
+  const total = students.length;
+
+  // 편집 중인 모둠 미리보기: [{ index, name, members[], leaderUid }]
+  const [groups, setGroups] = useState(() =>
+    hasExisting ? groupsFromCards(cards) : defaultGroups()
+  );
+
+  function defaultGroups() {
+    const n = Math.min(MAX_GROUPS, Math.max(2, Math.round(total / 4) || 2));
+    return Array.from({ length: n }, (_, i) => ({
+      index: i + 1,
+      name: `${i + 1}모둠`,
+      members: [],
+      leaderUid: null,
+    }));
+  }
+
   const assignedUids = new Set(groups.flatMap((g) => g.members.map((m) => m.uid)));
   const unassigned = students.filter((s) => !assignedUids.has(s.uid));
+  const nameFor = (idx) => groups.find((g) => g.index === idx)?.name || `${idx}모둠`;
+
+  // ── 모둠 수(슬롯) 설정 ──
+  // 특정 슬롯 index를 생성 목록에 넣거나 뺌 (기존 이름/멤버는 보존)
+  function toggleSlot(idx) {
+    setGroups((prev) => {
+      const exists = prev.some((g) => g.index === idx);
+      let next = exists
+        ? prev.filter((g) => g.index !== idx)
+        : [...prev, { index: idx, name: `${idx}모둠`, members: [], leaderUid: null }];
+      return next.sort((a, b) => a.index - b.index);
+    });
+  }
+  // 모둠 수를 n개로 (앞에서부터 1..n 슬롯)
+  function setGroupCount(n) {
+    const count = Math.min(MAX_GROUPS, Math.max(1, n));
+    setGroups((prev) => {
+      const next = [];
+      for (let i = 1; i <= count; i++) {
+        next.push(prev.find((g) => g.index === i) || { index: i, name: `${i}모둠`, members: [], leaderUid: null });
+      }
+      return next;
+    });
+  }
 
   // ── 자동 배정 ──
-  function runAuto() {
-    const total = students.length;
-    if (total === 0) return;
-    const v = Math.max(1, Math.round(autoValue) || 1);
-    const n =
-      autoBasis === "count"
-        ? Math.min(v, total)
-        : Math.max(1, Math.ceil(total / v));
+  function autoAssign(groupIndices) {
+    const idxs = [...groupIndices].sort((a, b) => a - b);
+    const n = idxs.length;
+    if (n === 0 || total === 0) return;
     const sizes = balancedSizes(total, n);
     const pool = shuffle(students);
     let cursor = 0;
-    const next = sizes.map((size, i) => {
-      const members = pool.slice(cursor, cursor + size);
-      cursor += size;
-      return {
-        index: i + 1,
-        name: groups[i]?.name || `${i + 1}모둠`,
-        members,
-        leaderUid: null, // 대표는 교사가 직접 지정
-      };
-    });
-    setGroups(next);
-    setActiveGroup(0);
+    setGroups(
+      idxs.map((idx, k) => {
+        const members = pool.slice(cursor, cursor + sizes[k]);
+        cursor += sizes[k];
+        return { index: idx, name: nameFor(idx), members, leaderUid: null };
+      })
+    );
+  }
+  function shuffleCurrent() {
+    autoAssign(groups.map((g) => g.index));
+  }
+  // 모둠원 수로 결정 → 모둠 수 자동 계산 후 균등 배정
+  function assignBySize(size) {
+    const n = Math.min(MAX_GROUPS, Math.max(1, Math.ceil(total / size)));
+    autoAssign(Array.from({ length: n }, (_, i) => i + 1));
   }
 
-  // ── 직접 구성 ──
-  function setGroupCount(n) {
-    const count = Math.max(1, Math.min(20, Math.round(n) || 1));
+  // ── 배정 이동(클릭·드래그 공통) ──
+  function moveStudent(uid, targetIndex) {
     setGroups((prev) => {
-      const next = [...prev];
-      while (next.length < count) {
-        next.push({ index: next.length + 1, name: `${next.length + 1}모둠`, members: [], leaderUid: null });
-      }
-      return next.slice(0, count).map((g, i) => ({ ...g, index: i + 1 }));
+      let moved = null;
+      const cleaned = prev.map((g) => {
+        const m = g.members.find((x) => x.uid === uid);
+        if (m) moved = m;
+        return {
+          ...g,
+          members: g.members.filter((x) => x.uid !== uid),
+          leaderUid: g.leaderUid === uid ? null : g.leaderUid,
+        };
+      });
+      const student = moved || students.find((s) => s.uid === uid);
+      if (targetIndex == null || !student) return cleaned;
+      return cleaned.map((g) =>
+        g.index === targetIndex ? { ...g, members: [...g.members, student] } : g
+      );
     });
-    setActiveGroup((i) => Math.min(i, count - 1));
   }
-  function assignStudent(student) {
-    if (groups.length === 0) return;
-    setGroups((prev) =>
-      prev.map((g, i) =>
-        i === activeGroup ? { ...g, members: [...g.members, student] } : g
-      )
-    );
+  function renameGroup(idx, name) {
+    setGroups((prev) => prev.map((g) => (g.index === idx ? { ...g, name } : g)));
   }
-  function unassignStudent(gi, uid) {
-    setGroups((prev) =>
-      prev.map((g, i) =>
-        i === gi
-          ? {
-              ...g,
-              members: g.members.filter((m) => m.uid !== uid),
-              leaderUid: g.leaderUid === uid ? null : g.leaderUid,
-            }
-          : g
-      )
-    );
+  function setLeader(idx, uid) {
+    setGroups((prev) => prev.map((g) => (g.index === idx ? { ...g, leaderUid: uid || null } : g)));
   }
-  function renameGroup(gi, name) {
-    setGroups((prev) => prev.map((g, i) => (i === gi ? { ...g, name } : g)));
-  }
-  function setLeader(gi, uid) {
-    setGroups((prev) => prev.map((g, i) => (i === gi ? { ...g, leaderUid: uid || null } : g)));
-  }
+
+  // ── 드래그 헬퍼 ──
+  const dropProps = (key, onDrop) => ({
+    onDragOver: (e) => { e.preventDefault(); setDragOverKey(key); },
+    onDragLeave: () => setDragOverKey((k) => (k === key ? null : k)),
+    onDrop: (e) => { e.preventDefault(); if (dragUid != null) onDrop(dragUid); setDragUid(null); setDragOverKey(null); },
+  });
+  const chipDrag = (uid) => ({
+    draggable: true,
+    onDragStart: (e) => { setDragUid(uid); e.dataTransfer.effectAllowed = "move"; },
+    onDragEnd: () => { setDragUid(null); setDragOverKey(null); },
+  });
 
   async function handleSave() {
     if (saving) return;
@@ -140,9 +173,9 @@ export default function GroupComposer({ board, roster = [], cards = [], onClose,
       await composeStudyGroups(
         getCurrentUser(),
         board.id,
-        valid.map((g, i) => ({
-          index: i + 1,
-          name: g.name.trim() || `${i + 1}모둠`,
+        valid.map((g) => ({
+          index: g.index,
+          name: g.name.trim() || `${g.index}모둠`,
           memberUids: g.members.map((m) => m.uid),
           members: g.members,
           leaderUid: g.leaderUid,
@@ -155,6 +188,8 @@ export default function GroupComposer({ board, roster = [], cards = [], onClose,
     }
   }
 
+  const selectedIdx = new Set(groups.map((g) => g.index));
+
   return (
     <div className="modal-backdrop" {...backdropClose(onClose)}>
       <div className="modal modal-group-composer" onClick={(e) => e.stopPropagation()}>
@@ -163,182 +198,162 @@ export default function GroupComposer({ board, roster = [], cards = [], onClose,
           <button className="btn-close" onClick={onClose} aria-label="닫기">×</button>
         </div>
 
-        {/* 자동 / 직접 탭 */}
         <div className="gc-tabs" role="tablist">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={tab === "auto"}
-            className={`gc-tab${tab === "auto" ? " active" : ""}`}
-            onClick={() => setTab("auto")}
-          >
+          <button type="button" role="tab" aria-selected={tab === "auto"}
+            className={`gc-tab${tab === "auto" ? " active" : ""}`} onClick={() => setTab("auto")}>
             🎲 자동 구성
           </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={tab === "manual"}
-            className={`gc-tab${tab === "manual" ? " active" : ""}`}
-            onClick={() => setTab("manual")}
-          >
+          <button type="button" role="tab" aria-selected={tab === "manual"}
+            className={`gc-tab${tab === "manual" ? " active" : ""}`} onClick={() => setTab("manual")}>
             ✋ 직접 구성
           </button>
-          <span className="gc-total">반 학생 {students.length}명</span>
+          <span className="gc-total">반 학생 {total}명</span>
         </div>
 
-        {tab === "auto" ? (
-          <div className="gc-auto-row">
-            <label className="gc-radio">
-              <input
-                type="radio"
-                checked={autoBasis === "count"}
-                onChange={() => setAutoBasis("count")}
-              />
-              모둠 수
-            </label>
-            <label className="gc-radio">
-              <input
-                type="radio"
-                checked={autoBasis === "size"}
-                onChange={() => setAutoBasis("size")}
-              />
-              모둠원 수
-            </label>
-            <input
-              type="number"
-              className="gc-num"
-              min={1}
-              max={students.length || 1}
-              value={autoValue}
-              onChange={(e) => setAutoValue(Number(e.target.value))}
-            />
-            <button type="button" className="btn-primary gc-run" onClick={runAuto}>
-              무작위 배정
-            </button>
-            <span className="gc-hint">인원은 균등하게 나눠요 (예: 22명·5모둠 → 5·5·4·4·4)</span>
-          </div>
-        ) : (
-          <div className="gc-auto-row">
-            <span className="gc-label">모둠 수</span>
-            <input
-              type="number"
-              className="gc-num"
-              min={1}
-              max={20}
-              value={groups.length || ""}
-              placeholder="0"
-              onChange={(e) => setGroupCount(Number(e.target.value))}
-            />
-            <span className="gc-hint">
-              미배정 학생을 클릭하면 선택된 모둠에 들어가요. 모둠원 수는 자유입니다.
-            </span>
-          </div>
-        )}
-
-        {/* 미배정 학생 풀 */}
-        {groups.length > 0 && unassigned.length > 0 && (
-          <div className="gc-pool">
-            <span className="gc-pool-label">미배정 {unassigned.length}명</span>
-            <div className="gc-pool-chips">
-              {unassigned.map((s) => (
-                <button
-                  key={s.uid}
-                  type="button"
-                  className="gc-chip"
-                  onClick={() => assignStudent(s)}
-                  title={tab === "manual" ? `${groups[activeGroup]?.name}에 배정` : "클릭해 배정"}
-                >
-                  {s.emoji} {s.name}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* 모둠 미리보기/편집 */}
-        {groups.length === 0 ? (
-          <p className="gc-empty">
-            {tab === "auto"
-              ? "기준을 정하고 '무작위 배정'을 눌러 주세요."
-              : "모둠 수를 입력하면 빈 모둠이 만들어져요."}
-          </p>
-        ) : (
-          <div className="gc-groups">
-            {groups.map((g, gi) => (
-              <div
-                key={gi}
-                className={`gc-group${tab === "manual" && activeGroup === gi ? " active" : ""}`}
-                onClick={tab === "manual" ? () => setActiveGroup(gi) : undefined}
-              >
-                <div className="gc-group-head">
-                  {tab === "manual" && (
-                    <input
-                      type="radio"
-                      name="gc-active"
-                      checked={activeGroup === gi}
-                      onChange={() => setActiveGroup(gi)}
-                      title="이 모둠에 배정"
-                    />
-                  )}
-                  <input
-                    type="text"
-                    className="gc-group-name"
-                    value={g.name}
-                    onChange={(e) => renameGroup(gi, e.target.value)}
-                    maxLength={20}
-                  />
-                  <span className="gc-group-count">{g.members.length}명</span>
-                </div>
-                <div className="gc-group-members">
-                  {g.members.length === 0 ? (
-                    <span className="gc-group-empty">아직 모둠원이 없어요</span>
-                  ) : (
-                    g.members.map((m) => (
+        <div className="gc-body">
+          {/* ── 왼쪽: 설정 (세로) ── */}
+          <div className="gc-controls">
+            {tab === "auto" ? (
+              <>
+                <div className="gc-section">
+                  <div className="gc-section-title">① 모둠 수 <small>생성할 모둠만 선택</small></div>
+                  <div className="gc-slot-list">
+                    {Array.from({ length: MAX_GROUPS }, (_, i) => i + 1).map((idx) => (
                       <button
-                        key={m.uid}
+                        key={idx}
                         type="button"
-                        className={`gc-chip gc-chip--member${g.leaderUid === m.uid ? " leader" : ""}`}
-                        onClick={() => unassignStudent(gi, m.uid)}
-                        title="클릭하면 미배정으로 이동"
+                        className={`gc-slot${selectedIdx.has(idx) ? " on" : ""}`}
+                        onClick={() => toggleSlot(idx)}
                       >
-                        {g.leaderUid === m.uid && "👑 "}
-                        {m.emoji} {m.name}
+                        <span className="gc-slot-check" aria-hidden="true">
+                          {selectedIdx.has(idx) ? "☑" : "☐"}
+                        </span>
+                        {idx}모둠
                       </button>
-                    ))
-                  )}
-                </div>
-                <div className="gc-leader-row">
-                  <span>대표</span>
-                  <select
-                    value={g.leaderUid ?? ""}
-                    onChange={(e) => setLeader(gi, e.target.value)}
-                  >
-                    <option value="">미지정</option>
-                    {g.members.map((m) => (
-                      <option key={m.uid} value={m.uid}>
-                        {m.name}
-                      </option>
                     ))}
-                  </select>
+                  </div>
+                  <button type="button" className="btn-primary gc-assign-btn" onClick={shuffleCurrent} disabled={total === 0}>
+                    🎲 {groups.some((g) => g.members.length) ? "다시 섞기" : "무작위 배정"}
+                  </button>
+                </div>
+
+                <div className="gc-section">
+                  <div className="gc-section-title">② 모둠원 수로 정하기 <small>선택 시 모둠 수 자동</small></div>
+                  <div className="gc-size-list">
+                    {SIZE_OPTIONS.map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        className="gc-size-btn"
+                        onClick={() => assignBySize(s)}
+                        disabled={total === 0}
+                      >
+                        한 모둠에 {s}명씩
+                        <small>{Math.min(MAX_GROUPS, Math.ceil((total || 1) / s))}모둠</small>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="gc-section">
+                <div className="gc-section-title">모둠 수 <small>이름을 드래그해 배정</small></div>
+                <div className="gc-slot-list">
+                  {[1, 2, 3, 4, 5, 6].map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      className={`gc-slot${groups.length === n ? " on" : ""}`}
+                      onClick={() => setGroupCount(n)}
+                    >
+                      {n}개 모둠
+                    </button>
+                  ))}
                 </div>
               </div>
-            ))}
+            )}
+
+            {/* 미배정 학생 풀 (드롭하면 배정 해제) */}
+            <div
+              className={`gc-pool${dragOverKey === "pool" ? " drag-over" : ""}`}
+              {...dropProps("pool", (uid) => moveStudent(uid, null))}
+            >
+              <span className="gc-pool-label">미배정 {unassigned.length}명</span>
+              <div className="gc-pool-chips">
+                {unassigned.length === 0 ? (
+                  <span className="gc-group-empty">모두 배정됐어요</span>
+                ) : (
+                  unassigned.map((s) => (
+                    <span key={s.uid} className="gc-chip" {...chipDrag(s.uid)} title="드래그해서 모둠에 배정">
+                      {s.emoji} {s.name}
+                    </span>
+                  ))
+                )}
+              </div>
+            </div>
           </div>
-        )}
+
+          {/* ── 오른쪽: 모둠 미리보기 (드롭 대상) ── */}
+          <div className="gc-groups">
+            {groups.length === 0 ? (
+              <p className="gc-empty">생성할 모둠을 선택해 주세요.</p>
+            ) : (
+              groups.map((g) => (
+                <div
+                  key={g.index}
+                  className={`gc-group${dragOverKey === g.index ? " drag-over" : ""}`}
+                  {...dropProps(g.index, (uid) => moveStudent(uid, g.index))}
+                >
+                  <div className="gc-group-head">
+                    <input
+                      type="text"
+                      className="gc-group-name"
+                      value={g.name}
+                      onChange={(e) => renameGroup(g.index, e.target.value)}
+                      maxLength={20}
+                    />
+                    <span className="gc-group-count">{g.members.length}명</span>
+                  </div>
+                  <div className="gc-group-members">
+                    {g.members.length === 0 ? (
+                      <span className="gc-group-empty">여기로 이름을 드래그</span>
+                    ) : (
+                      g.members.map((m) => (
+                        <span
+                          key={m.uid}
+                          className={`gc-chip gc-chip--member${g.leaderUid === m.uid ? " leader" : ""}`}
+                          {...chipDrag(m.uid)}
+                          onClick={() => moveStudent(m.uid, null)}
+                          title="클릭하면 미배정 · 드래그로 다른 모둠 이동"
+                        >
+                          {g.leaderUid === m.uid && "👑 "}
+                          {m.emoji} {m.name}
+                        </span>
+                      ))
+                    )}
+                  </div>
+                  <div className="gc-leader-row">
+                    <span>대표</span>
+                    <select value={g.leaderUid ?? ""} onChange={(e) => setLeader(g.index, e.target.value)}>
+                      <option value="">미지정</option>
+                      {g.members.map((m) => (
+                        <option key={m.uid} value={m.uid}>{m.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
 
         <div className="gc-foot">
           {hasExisting && (
-            <span className="gc-foot-note">
-              재구성 시 각 모둠 카드의 작성 내용은 유지되고 명단만 바뀝니다.
-            </span>
+            <span className="gc-foot-note">재구성해도 각 모둠 카드의 작성 내용은 유지됩니다.</span>
           )}
           <button type="button" className="btn-ghost" onClick={onClose}>취소</button>
-          <button
-            type="button"
-            className="btn-primary"
-            onClick={handleSave}
-            disabled={saving || groups.every((g) => g.members.length === 0)}
-          >
+          <button type="button" className="btn-primary" onClick={handleSave}
+            disabled={saving || groups.every((g) => g.members.length === 0)}>
             {saving ? "저장 중…" : "모둠 구성 저장"}
           </button>
         </div>

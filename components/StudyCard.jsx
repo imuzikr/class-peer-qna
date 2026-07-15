@@ -38,7 +38,7 @@ export default function StudyCard({ card, onClick, isTeacher = false }) {
         <div className="study-card-author">
           {isGroupCard ? (
             <strong>
-              {card.groupName}
+              {card.title || card.groupName}
               {card.retired && <span className="study-card-retired"> · 보관됨</span>}
             </strong>
           ) : isTeacher && !isTeacherCard && studentId ? (
