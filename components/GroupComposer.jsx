@@ -64,9 +64,9 @@ export default function GroupComposer({ board, roster = [], cards = [], onClose,
     hasExisting ? groupsFromCards(cards) : defaultGroups()
   );
 
+  // 처음부터 최대(6) 모둠으로 시작 — 카드가 시작부터 제 크기로 배치됨
   function defaultGroups() {
-    const n = Math.min(MAX_GROUPS, Math.max(2, Math.round(total / 4) || 2));
-    return Array.from({ length: n }, (_, i) => ({
+    return Array.from({ length: MAX_GROUPS }, (_, i) => ({
       index: i + 1,
       name: `${i + 1}모둠`,
       members: [],
@@ -83,18 +83,7 @@ export default function GroupComposer({ board, roster = [], cards = [], onClose,
       ? activeIndex
       : groups[0]?.index ?? null;
 
-  // ── 모둠 수(슬롯) 설정 ──
-  // 특정 슬롯 index를 생성 목록에 넣거나 뺌 (기존 이름/멤버는 보존)
-  function toggleSlot(idx) {
-    setGroups((prev) => {
-      const exists = prev.some((g) => g.index === idx);
-      let next = exists
-        ? prev.filter((g) => g.index !== idx)
-        : [...prev, { index: idx, name: `${idx}모둠`, members: [], leaderUid: null }];
-      return next.sort((a, b) => a.index - b.index);
-    });
-  }
-  // 모둠 수를 n개로 (앞에서부터 1..n 슬롯)
+  // 모둠 수를 n개로 (앞에서부터 1..n 슬롯) — 기존 이름/멤버는 보존
   function setGroupCount(n) {
     const count = Math.min(MAX_GROUPS, Math.max(1, n));
     setGroups((prev) => {
@@ -194,8 +183,6 @@ export default function GroupComposer({ board, roster = [], cards = [], onClose,
     }
   }
 
-  const selectedIdx = new Set(groups.map((g) => g.index));
-
   return (
     <div className="modal-backdrop" {...backdropClose(onClose)}>
       <div className="modal modal-group-composer" onClick={(e) => e.stopPropagation()}>
@@ -222,19 +209,16 @@ export default function GroupComposer({ board, roster = [], cards = [], onClose,
             {tab === "auto" ? (
               <>
                 <div className="gc-section">
-                  <div className="gc-section-title">① 모둠 수 <small>생성할 모둠만 선택</small></div>
+                  <div className="gc-section-title">① 모둠 수 <small>만들 모둠 수를 선택</small></div>
                   <div className="gc-slot-list">
-                    {Array.from({ length: MAX_GROUPS }, (_, i) => i + 1).map((idx) => (
+                    {[1, 2, 3, 4, 5, 6].map((n) => (
                       <button
-                        key={idx}
+                        key={n}
                         type="button"
-                        className={`gc-slot${selectedIdx.has(idx) ? " on" : ""}`}
-                        onClick={() => toggleSlot(idx)}
+                        className={`gc-slot${groups.length === n ? " on" : ""}`}
+                        onClick={() => setGroupCount(n)}
                       >
-                        <span className="gc-slot-check" aria-hidden="true">
-                          {selectedIdx.has(idx) ? "☑" : "☐"}
-                        </span>
-                        {idx}모둠
+                        {n}모둠
                       </button>
                     ))}
                   </div>
