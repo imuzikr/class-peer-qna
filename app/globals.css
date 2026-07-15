@@ -7439,30 +7439,36 @@ pre code {
   font-size: 13.5px;
   color: var(--text-sub);
 }
-/* 미배정 풀 (드롭 대상) */
-.gc-pool {
+/* 미배정 학생 명단 — 탭과 모둠 구성 영역 사이 가로 띠 (드롭하면 배정 해제) */
+.gc-roster {
+  flex-shrink: 0;
   border: 1.5px dashed var(--border);
   border-radius: 12px;
-  padding: 10px 12px;
+  padding: 8px 12px;
   background: #fff;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
 }
-.gc-pool.drag-over {
+.gc-roster.drag-over {
   border-color: var(--primary);
   background: var(--primary-light);
 }
 .gc-pool-label {
-  display: block;
+  flex-shrink: 0;
   font-size: 12px;
   font-weight: 700;
   color: var(--text-sub);
-  margin-bottom: 6px;
 }
-/* 학생 명단 — 20~30명도 담기도록 스크롤(설정 버튼 아래에 나열) */
+/* 학생 명단 — 20~30명도 담기도록 가로로 감싸고, 넘치면 스크롤 */
 .gc-pool-chips {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  max-height: 240px;
+  gap: 5px;
+  max-height: 84px;
   overflow-y: auto;
 }
 /* 모둠원 영역도 카드 안에서 스크롤(고정 높이 카드) */
@@ -7470,12 +7476,13 @@ pre code {
   overflow-y: auto;
 }
 .gc-chip {
-  padding: 5px 11px;
+  padding: 3px 9px;
   border: 1px solid var(--border);
   border-radius: 999px;
   background: #fff;
-  font-size: 12.5px;
+  font-size: 11.5px;
   font-weight: 600;
+  white-space: nowrap;
   cursor: grab;
   transition: background 0.15s, border-color 0.15s;
 }

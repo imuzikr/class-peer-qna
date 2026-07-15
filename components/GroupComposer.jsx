@@ -203,6 +203,36 @@ export default function GroupComposer({ board, roster = [], cards = [], onClose,
           <span className="gc-total">반 학생 {total}명</span>
         </div>
 
+        {/* 미배정 학생 명단 — 탭과 모둠 구성 영역 사이 가로 띠 (드롭하면 배정 해제) */}
+        <div
+          className={`gc-roster${dragOverKey === "pool" ? " drag-over" : ""}`}
+          {...dropProps("pool", (uid) => moveStudent(uid, null))}
+        >
+          <span className="gc-pool-label">미배정 {unassigned.length}명</span>
+          <div className="gc-pool-chips">
+            {unassigned.length === 0 ? (
+              <span className="gc-group-empty">모두 배정됐어요</span>
+            ) : (
+              unassigned.map((s) => (
+                <button
+                  key={s.uid}
+                  type="button"
+                  className="gc-chip"
+                  {...chipDrag(s.uid)}
+                  onClick={() => activeGroupIndex != null && moveStudent(s.uid, activeGroupIndex)}
+                  title={
+                    activeGroupIndex != null
+                      ? `클릭하면 '${nameFor(activeGroupIndex)}'에 배정 · 드래그도 가능`
+                      : "드래그해서 모둠에 배정"
+                  }
+                >
+                  {s.emoji} {s.name}
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+
         <div className="gc-body">
           {/* ── 왼쪽: 설정 (세로) ── */}
           <div className="gc-controls">
@@ -262,36 +292,6 @@ export default function GroupComposer({ board, roster = [], cards = [], onClose,
                 </div>
               </div>
             )}
-
-            {/* 미배정 학생 풀 (드롭하면 배정 해제) */}
-            <div
-              className={`gc-pool${dragOverKey === "pool" ? " drag-over" : ""}`}
-              {...dropProps("pool", (uid) => moveStudent(uid, null))}
-            >
-              <span className="gc-pool-label">미배정 {unassigned.length}명</span>
-              <div className="gc-pool-chips">
-                {unassigned.length === 0 ? (
-                  <span className="gc-group-empty">모두 배정됐어요</span>
-                ) : (
-                  unassigned.map((s) => (
-                    <button
-                      key={s.uid}
-                      type="button"
-                      className="gc-chip"
-                      {...chipDrag(s.uid)}
-                      onClick={() => activeGroupIndex != null && moveStudent(s.uid, activeGroupIndex)}
-                      title={
-                        activeGroupIndex != null
-                          ? `클릭하면 '${nameFor(activeGroupIndex)}'에 배정 · 드래그도 가능`
-                          : "드래그해서 모둠에 배정"
-                      }
-                    >
-                      {s.emoji} {s.name}
-                    </button>
-                  ))
-                )}
-              </div>
-            </div>
           </div>
 
           {/* ── 오른쪽: 모둠 미리보기 (드롭 대상) ── */}
