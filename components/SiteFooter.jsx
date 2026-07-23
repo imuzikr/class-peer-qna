@@ -28,7 +28,7 @@ export default function SiteFooter() {
         <div className="footer-brand">
           <div className="footer-brand-head">
             <span className="footer-logo" aria-hidden="true">
-              <IconLogo size={26} />
+              <IconLogo size={30} />
             </span>
             <strong>배움나눔</strong>
           </div>
@@ -47,14 +47,14 @@ export default function SiteFooter() {
             className="footer-link"
             onClick={() => setPolicyOpen("privacy")}
           >
-            <IconBlackboard size={20} /> 개인정보처리방침
+            <IconBlackboard size={26} /> 개인정보처리방침
           </button>
           <button
             type="button"
             className="footer-link"
             onClick={() => setPolicyOpen("terms")}
           >
-            <IconBlackboard size={20} /> 이용약관
+            <IconBlackboard size={26} /> 이용약관
           </button>
         </div>
 
@@ -62,10 +62,15 @@ export default function SiteFooter() {
         <div className="footer-col">
           <h4>문의</h4>
           <a className="footer-link" href={`mailto:${CONTACT_EMAIL}`}>
-            <IconWrite size={20} /> {CONTACT_EMAIL}
+            <IconWrite size={26} /> {CONTACT_EMAIL}
           </a>
           <span className="footer-link footer-link--static">
-            <IconSchool size={20} /> {AFFILIATION}
+            {/* IconSchool은 어두운 획 색이 고정돼 있어 어두운 배경에서 잘 안 보임
+                → 이 위치(소속 표기)에 한해서만 아이콘을 흰색으로 강제 변환 */}
+            <span className="footer-icon-white">
+              <IconSchool size={26} />
+            </span>{" "}
+            {AFFILIATION}
           </span>
         </div>
       </div>
