@@ -12,7 +12,7 @@ import Link from "next/link";
 import { IconLogo, IconBlackboard, IconWrite, IconSchool } from "./StatusIcons";
 
 const CONTACT_EMAIL = "iseoul72@gmail.com"; // 문의 이메일
-const AFFILIATION = "서울특별시교육청 소속"; // 소속 표기
+const AFFILIATION = "한성여자고등학교 소속"; // 소속 표기(개인정보처리방침 제8조와 일치)
 
 export default function SiteFooter() {
   const year = new Date().getFullYear();
