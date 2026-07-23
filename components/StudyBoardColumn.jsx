@@ -30,8 +30,7 @@ import StudyCard from "./StudyCard";
 import StudyCardModal from "./StudyCardModal";
 import StudyPresentModal from "./StudyPresentModal";
 import GroupComposer from "./GroupComposer";
-import { IconTrash, IconAddFeature, IconLock, IconDuplicate } from "./StatusIcons";
-import { IconPen } from "./RichTextEditor";
+import { IconTrash, IconAddFeature, IconLock, IconDuplicate, IconPen, IconPeople } from "./StatusIcons";
 
 function buildActivityTemplate(activities) {
   if (!activities?.length) return "";
@@ -533,7 +532,7 @@ export default function StudyBoardColumn({
                   }
                 >
                   {board.viewMode === "shared" ? (
-                    <>👥 함께 보기</>
+                    <><IconPeople size={15} /> 함께 보기</>
                   ) : isGroup ? (
                     <><IconLock size={15} /> 자기 모둠만</>
                   ) : (
@@ -552,7 +551,7 @@ export default function StudyBoardColumn({
                   }
                 >
                   {locked ? (
-                    <>🔏 보기 전용</>
+                    <><IconLock size={15} /> 보기 전용</>
                   ) : (
                     <><IconPen size={15} /> 편집 가능</>
                   )}

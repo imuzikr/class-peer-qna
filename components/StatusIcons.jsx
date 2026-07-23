@@ -443,6 +443,27 @@ export function IconLock({ size = 20, className = "" }) {
   );
 }
 
+export function IconPeople({ size = 20, className = "" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">
+      <circle cx="8.7" cy="8.6" r="2.55" fill="#FFF7ED" stroke="#3A312E" strokeWidth="1.45"/>
+      <path d="M4.1 18.35v-.7c0-2.28 1.85-4.13 4.13-4.13h.94c2.28 0 4.13 1.85 4.13 4.13v.7" fill="#FFF7ED" stroke="#3A312E" strokeWidth="1.45" strokeLinecap="round" strokeLinejoin="round"/>
+      <circle cx="15.6" cy="7.75" r="2.15" fill="#FFF7ED" stroke="#8A6258" strokeWidth="1.35"/>
+      <path d="M13.35 17.25v-.55c0-1.75 1.42-3.17 3.17-3.17h.5c1.5 0 2.77 1.03 3.1 2.45" stroke="#8A6258" strokeWidth="1.35" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
+export function IconPen({ size = 20, className = "" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">
+      <path d="M14.85 4.75c.5-.5 1.3-.5 1.8 0l2.6 2.6c.5.5.5 1.3 0 1.8l-9.4 9.4-4.9 1.1 1.1-4.9 9.4-9.4Z" fill="#FFF7ED" stroke="#3A312E" strokeWidth="1.55" strokeLinejoin="round"/>
+      <path d="M13.35 6.25l4.4 4.4" stroke="#8A6258" strokeWidth="1.35" strokeLinecap="round"/>
+      <path d="M4.95 19.05l1.1-4.9" stroke="#3A312E" strokeWidth="1.35" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
 export function IconDuplicate({ size = 20, className = "" }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">
