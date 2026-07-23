@@ -5,8 +5,8 @@ import TermsContent from "@/components/policies/TermsContent";
 export const metadata = { title: "이용약관 — 배움나눔" };
 
 // =============================================================
-// 이용약관 — 교실용 학습 서비스에 맞춘 기본 약관.
-// 학교·기관 정책에 맞게 내용을 검토·보완해 사용하세요.
+// 이용약관 — 앱뜰(App-Tteul) 약관 체계를 배움나눔 실정에 맞게 조정한 문서.
+// 본문은 components/policies/TermsContent.jsx (푸터 모달과 공유).
 // =============================================================
 export default function TermsPage() {
   return (
