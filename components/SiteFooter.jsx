@@ -4,18 +4,23 @@
 // 사이트 푸터 — 랜딩·약관 페이지 하단 공통
 // -------------------------------------------------------------
 // 3열: [브랜드(로고+소개)] [정책 및 약관] [문의] + 하단 저작권 바.
-// 아이콘은 앱 공용(StatusIcons) 재사용: 정책 항목=칠판(공부방),
-// 문의=연필(질문하기), 소속=학교(학습 공간).
+// 개인정보처리방침·이용약관은 페이지 이동 없이 '모달'로 열립니다.
+// (본문은 components/policies/* 를 페이지(/privacy,/terms)와 공유)
 // 연락처·소속은 아래 상수에서 수정하세요.
 // =============================================================
-import Link from "next/link";
+import { useState } from "react";
+import { backdropClose } from "@/lib/modal";
 import { IconLogo, IconBlackboard, IconWrite, IconSchool } from "./StatusIcons";
+import PrivacyContent from "./policies/PrivacyContent";
+import TermsContent from "./policies/TermsContent";
 
 const CONTACT_EMAIL = "iseoul72@gmail.com"; // 문의 이메일
 const AFFILIATION = "한성여자고등학교 소속"; // 소속 표기(개인정보처리방침 제8조와 일치)
 
 export default function SiteFooter() {
   const year = new Date().getFullYear();
+  const [policyOpen, setPolicyOpen] = useState(null); // null | 'privacy' | 'terms'
+
   return (
     <footer className="site-footer">
       <div className="site-footer-inner">
@@ -34,15 +39,23 @@ export default function SiteFooter() {
           </p>
         </div>
 
-        {/* 정책 및 약관 */}
+        {/* 정책 및 약관 — 클릭 시 모달 */}
         <div className="footer-col">
           <h4>정책 및 약관</h4>
-          <Link href="/privacy" className="footer-link">
+          <button
+            type="button"
+            className="footer-link"
+            onClick={() => setPolicyOpen("privacy")}
+          >
             <IconBlackboard size={17} /> 개인정보처리방침
-          </Link>
-          <Link href="/terms" className="footer-link">
+          </button>
+          <button
+            type="button"
+            className="footer-link"
+            onClick={() => setPolicyOpen("terms")}
+          >
             <IconBlackboard size={17} /> 이용약관
-          </Link>
+          </button>
         </div>
 
         {/* 문의 */}
@@ -61,11 +74,39 @@ export default function SiteFooter() {
       <div className="site-footer-bottom">
         <span>© {year} 배움나눔. All rights reserved.</span>
         <span className="footer-bottom-links">
-          <Link href="/privacy">개인정보처리방침</Link>
+          <button type="button" onClick={() => setPolicyOpen("privacy")}>
+            개인정보처리방침
+          </button>
           <span className="footer-sep" aria-hidden="true">|</span>
-          <Link href="/terms">이용약관</Link>
+          <button type="button" onClick={() => setPolicyOpen("terms")}>
+            이용약관
+          </button>
         </span>
       </div>
+
+      {/* 정책 모달 */}
+      {policyOpen && (
+        <div
+          className="modal-backdrop policy-modal-backdrop"
+          {...backdropClose(() => setPolicyOpen(null))}
+        >
+          <div className="modal policy-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-head">
+              <h3>{policyOpen === "privacy" ? "개인정보처리방침" : "이용약관"}</h3>
+              <button
+                className="btn-close"
+                onClick={() => setPolicyOpen(null)}
+                aria-label="닫기"
+              >
+                ×
+              </button>
+            </div>
+            <div className="policy-modal-scroll policy-body">
+              {policyOpen === "privacy" ? <PrivacyContent /> : <TermsContent />}
+            </div>
+          </div>
+        </div>
+      )}
     </footer>
   );
 }
