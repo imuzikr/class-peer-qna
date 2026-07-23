@@ -47,14 +47,14 @@ export default function SiteFooter() {
             className="footer-link"
             onClick={() => setPolicyOpen("privacy")}
           >
-            <IconBlackboard size={17} /> 개인정보처리방침
+            <IconBlackboard size={20} /> 개인정보처리방침
           </button>
           <button
             type="button"
             className="footer-link"
             onClick={() => setPolicyOpen("terms")}
           >
-            <IconBlackboard size={17} /> 이용약관
+            <IconBlackboard size={20} /> 이용약관
           </button>
         </div>
 
@@ -62,26 +62,17 @@ export default function SiteFooter() {
         <div className="footer-col">
           <h4>문의</h4>
           <a className="footer-link" href={`mailto:${CONTACT_EMAIL}`}>
-            <IconWrite size={17} /> {CONTACT_EMAIL}
+            <IconWrite size={20} /> {CONTACT_EMAIL}
           </a>
           <span className="footer-link footer-link--static">
-            <IconSchool size={17} /> {AFFILIATION}
+            <IconSchool size={20} /> {AFFILIATION}
           </span>
         </div>
       </div>
 
-      {/* 하단 저작권 바 */}
+      {/* 하단 저작권 바 — 정책 링크는 위 '정책 및 약관'에 이미 있어 중복 표기하지 않음 */}
       <div className="site-footer-bottom">
         <span>© {year} 배움나눔. All rights reserved.</span>
-        <span className="footer-bottom-links">
-          <button type="button" onClick={() => setPolicyOpen("privacy")}>
-            개인정보처리방침
-          </button>
-          <span className="footer-sep" aria-hidden="true">|</span>
-          <button type="button" onClick={() => setPolicyOpen("terms")}>
-            이용약관
-          </button>
-        </span>
       </div>
 
       {/* 정책 모달 */}

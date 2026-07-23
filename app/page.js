@@ -156,6 +156,7 @@ export default function LandingPage() {
   }
 
   return (
+    <>
     <main className="landing">
       {/* ── 상단 바: 로고(왼쪽) + 로그인/회원가입(오른쪽) ── */}
       <header className="landing-top">
@@ -194,8 +195,9 @@ export default function LandingPage() {
           </p>
         )}
       </section>
+    </main>
 
-      {/* ── 푸터: 브랜드 · 정책 및 약관 · 문의 ── */}
+      {/* ── 푸터: 브랜드 · 정책 및 약관 · 문의 (배경 이미지 영역 밖) ── */}
       <SiteFooter />
 
       {/* ── 로그인 / 회원가입 모달 ── */}
@@ -330,7 +332,7 @@ export default function LandingPage() {
           </div>
         </div>
       )}
-    </main>
+    </>
   );
 }
 
