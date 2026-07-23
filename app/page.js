@@ -26,6 +26,7 @@ import {
   onAuthChange,
 } from "@/lib/auth";
 import SiteFooter from "@/components/SiteFooter";
+import { IconLogo } from "@/components/StatusIcons";
 
 // 질문대장·답변왕 순위를 한 줄에 번갈아 섞어 카드 목록으로 만든다.
 // 카드마다 variant(색)·cat(라벨)·unit(단위)·badge(1·2·3위 아이콘)·rank을 얹는다.
@@ -157,20 +158,22 @@ export default function LandingPage() {
 
   return (
     <>
-    <main className="landing">
-      {/* ── 상단 바: 로고(왼쪽) + 로그인/회원가입(오른쪽) ── */}
-      <header className="landing-top">
-        <span className="landing-logo">📚 배움나눔</span>
-        <div className="landing-actions">
-          <button className="btn-outline" onClick={() => switchMode("login")}>
-            로그인
-          </button>
-          <button className="btn-primary" onClick={() => switchMode("signup")}>
-            회원가입
-          </button>
-        </div>
-      </header>
+    {/* ── 상단 바: 로고(왼쪽) + 로그인/회원가입(오른쪽) — 배경 일러스트 바깥 ── */}
+    <header className="landing-top">
+      <span className="landing-logo">
+        <IconLogo size={26} /> 배움나눔
+      </span>
+      <div className="landing-actions">
+        <button className="btn-outline" onClick={() => switchMode("login")}>
+          로그인
+        </button>
+        <button className="btn-primary" onClick={() => switchMode("signup")}>
+          회원가입
+        </button>
+      </div>
+    </header>
 
+    <main className="landing">
       {/* ── 중앙 여백: 타이틀 + 상세 설명 (글래스 카드) ── */}
       <section className="hero">
         <div className="hero-glass">
