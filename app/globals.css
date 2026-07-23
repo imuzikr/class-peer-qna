@@ -95,11 +95,12 @@ select:focus {
   padding: 14px 28px;
   margin: 16px 24px 0;
   border-radius: 16px;
-  background: rgba(250, 249, 245, 0.55);
-  backdrop-filter: blur(14px) saturate(140%);
-  -webkit-backdrop-filter: blur(14px) saturate(140%);
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  box-shadow: 0 8px 32px rgba(70, 50, 35, 0.08);
+  /* 로고 뒤 일러스트가 비치도록 상단 바는 더 투명하게 */
+  background: rgba(250, 249, 245, 0.22);
+  backdrop-filter: blur(6px) saturate(140%);
+  -webkit-backdrop-filter: blur(6px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow: 0 8px 32px rgba(70, 50, 35, 0.06);
 }
 
 .landing-logo {
@@ -107,6 +108,7 @@ select:focus {
   font-weight: 700;
   font-size: 21px;
   color: var(--dark);
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.9), 0 1px 8px rgba(255, 255, 255, 0.7);
 }
 
 .landing-actions {
@@ -170,11 +172,11 @@ select:focus {
 
 /* 글래스 카드: 타이틀 + 설명을 감싸는 반투명 유리판 */
 .hero-glass {
-  /* 블러·틴트를 낮춰 뒤의 일러스트 인물들이 비치도록 함 (더 투명한 유리) */
-  background: rgba(250, 249, 245, 0.1);
-  backdrop-filter: blur(5px) saturate(140%);
-  -webkit-backdrop-filter: blur(5px) saturate(140%);
-  border: 1px solid rgba(255, 255, 255, 0.55);
+  /* 뒤의 일러스트가 비치되, 너무 흐려지지 않도록 살짝 더 불투명하게 */
+  background: rgba(250, 249, 245, 0.16);
+  backdrop-filter: blur(6px) saturate(140%);
+  -webkit-backdrop-filter: blur(6px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
   box-shadow: 0 12px 40px rgba(70, 50, 35, 0.08);
   border-radius: 28px;
   padding: 44px 52px;
