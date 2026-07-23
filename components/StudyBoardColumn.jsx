@@ -301,15 +301,10 @@ export default function StudyBoardColumn({
       {/* ── 교사 관리 영역 (독립 카드) ── */}
       <div className="study-board-info">
         <div
-          className={`study-board-info-head${isTeacher && !isNotice ? " clickable" : ""}${isTeacher && !editingTitle ? " draggable" : ""}`}
+          className={`study-board-info-head${isTeacher && !editingTitle ? " draggable" : ""}`}
           draggable={isTeacher && !editingTitle}
           onDragStart={isTeacher && !editingTitle ? () => onBoardDragStart?.() : undefined}
           onDragEnd={isTeacher && !editingTitle ? () => onBoardDragEnd?.() : undefined}
-          onClick={
-            isTeacher && !isNotice
-              ? () => setPanelOpen((v) => !v)
-              : undefined
-          }
           title={isTeacher && !editingTitle ? "드래그해서 보드 순서 변경" : undefined}
         >
           {/* 제목 — 교사는 더블 클릭으로 그 자리에서 바로 편집 (선생님 보드도 이름 변경 가능) */}
@@ -465,7 +460,15 @@ export default function StudyBoardColumn({
         </div>
 
         {board.description && (
-          <p className="study-column-desc">{board.description}</p>
+          <p
+            className={`study-column-desc${isTeacher && !isNotice ? " clickable" : ""}`}
+            onClick={
+              isTeacher && !isNotice ? () => setPanelOpen((v) => !v) : undefined
+            }
+            title={isTeacher && !isNotice ? "정렬·설정 펼치기" : undefined}
+          >
+            {board.description}
+          </p>
         )}
 
         {/* 정렬·활동·설정 패널 — 제목 카드 클릭 시 한 번에 펼침 */}

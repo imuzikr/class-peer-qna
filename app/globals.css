@@ -7850,12 +7850,13 @@ pre code {
 }
 
 /* 제목 카드 클릭 영역 */
-.study-board-info-head.clickable {
+/* 정렬·설정 패널 열기 — 설명(흰 영역) 클릭. 헤더는 아이콘이 많아 여백이
+   좁으므로 더 여유로운 설명 영역을 클릭 대상으로 둠 */
+.study-column-desc.clickable {
   cursor: pointer;
 }
-.study-board-info-head.clickable:hover {
-  background: rgba(0, 0, 0, 0.03);
-  border-radius: 8px;
+.study-column-desc.clickable:hover {
+  background: var(--primary-light);
 }
 
 /* 보드 순서 변경(드래그) — 헤더가 손잡이 */
