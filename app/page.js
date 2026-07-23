@@ -25,6 +25,7 @@ import {
   signInWithGoogle,
   onAuthChange,
 } from "@/lib/auth";
+import SiteFooter from "@/components/SiteFooter";
 
 // 질문대장·답변왕 순위를 한 줄에 번갈아 섞어 카드 목록으로 만든다.
 // 카드마다 variant(색)·cat(라벨)·unit(단위)·badge(1·2·3위 아이콘)·rank을 얹는다.
@@ -193,6 +194,9 @@ export default function LandingPage() {
           </p>
         )}
       </section>
+
+      {/* ── 푸터: 브랜드 · 정책 및 약관 · 문의 ── */}
+      <SiteFooter />
 
       {/* ── 로그인 / 회원가입 모달 ── */}
       {authMode && (
