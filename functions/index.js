@@ -233,7 +233,7 @@ exports.onQuestionDeleted = onDocumentDeleted("questions/{qId}", async () => {
 //   const fn = httpsCallable(getFunctions(undefined, "asia-northeast3"), "setUserRole");
 //   await fn({ uid: "대상_유저_uid", role: "teacher" });
 // =============================================================
-exports.setUserRole = onCall(async (request) => {
+exports.setUserRole = onCall({ enforceAppCheck: true }, async (request) => {
   // 로그인 필수
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "로그인이 필요합니다.");
@@ -278,7 +278,7 @@ exports.setUserRole = onCall(async (request) => {
 //  · 최고 관리자: 누구나 삭제(단, 최고 관리자 계정 자신은 보호)
 //  · 선생님(중간 관리자): 학생 계정만 삭제 (다른 선생님/관리자 삭제 불가)
 // =============================================================
-exports.deleteAuthUser = onCall(async (request) => {
+exports.deleteAuthUser = onCall({ enforceAppCheck: true }, async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "로그인이 필요합니다.");
   }
