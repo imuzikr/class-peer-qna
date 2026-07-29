@@ -11,7 +11,7 @@ import { useRouter } from "next/navigation";
 import { isAdmin, isTeacher } from "@/lib/user";
 import { isFirebaseConfigured } from "@/lib/firebase";
 import { signOutUser } from "@/lib/auth";
-import { subscribeUserDirectory, subscribeStudentRewardTotal } from "@/lib/store";
+import { subscribeUserDirectory, subscribeMyRewardCount } from "@/lib/store";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import UserProfile from "./UserProfile";
 import RoleSwitcher from "./RoleSwitcher";
@@ -35,13 +35,13 @@ export default function TopNav({ active, onPython, pyActive = false }) {
     return subscribeUserDirectory(setDirectory);
   }, [isStrictAdmin]);
 
-  // 학생만 본인이 받은 과일 총합을 구독(여러 반 합산) — 프로필 옆 뱃지 표시용
+  // 학생만 본인이 받은 과일 개수를 구독 — 프로필 옆 뱃지 표시용
   useEffect(() => {
     if (!isFirebaseConfigured || admin || !user?.uid) {
       setFruitTotal(0);
       return;
     }
-    return subscribeStudentRewardTotal(user.uid, setFruitTotal);
+    return subscribeMyRewardCount(user.uid, setFruitTotal);
   }, [admin, user?.uid]);
 
   const pendingTeacherCount = directory.filter(
