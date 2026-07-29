@@ -1,13 +1,11 @@
 "use client";
 
 // =============================================================
-// 공부방 오른쪽 "멋진 순간" 패널
+// 공부방 오른쪽 "멋진 순간" 패널 — 교사 전용
 // -------------------------------------------------------------
-// · 교사: 반 학생 명단(실명) + ＋/− 과일 주기 + 💬 누가기록 작성.
-// · 학생(readOnly): 과일 뱃지 조회만 — 익명 닉네임으로 표시되고
-//   ＋/− 버튼과 누가기록은 아예 렌더링하지 않습니다.
-//   (서버 규칙도 rewards 쓰기·studentNotes 읽기/쓰기를 교사만 허용)
-// · 헤더의 « 버튼으로 접기 — 접으면 세로 슬림 바(개인 설정, localStorage).
+// 반 학생 명단(실명) + ＋/− 과일 주기 + 💬 누가기록 작성.
+// (학생 본인의 과일 총합은 상단바 프로필 옆 뱃지로 확인합니다)
+// 헤더의 « 버튼으로 접기 — 접으면 세로 슬림 바(개인 설정, localStorage).
 // =============================================================
 import { useEffect, useState } from "react";
 import { REWARD_MAX } from "@/lib/store";
@@ -20,7 +18,6 @@ export default function StudyRewardPanel({
   roster = [],
   onAward,
   classId = null,
-  readOnly = false,
 }) {
   const [notesFor, setNotesFor] = useState(null); // 누가기록 모달 대상 학생(교사만)
   const [collapsed, setCollapsed] = useState(false);
@@ -70,18 +67,12 @@ export default function StudyRewardPanel({
             »
           </button>
         </div>
-        <span className="reward-sub">
-          {readOnly
-            ? "선생님이 준 과일을 함께 봐요 · ⭐ = 과일 20개"
-            : "＋로 과일을 주세요 · 20개마다 ⭐"}
-        </span>
+        <span className="reward-sub">＋로 과일을 주세요 · 20개마다 ⭐</span>
       </div>
 
       {roster.length === 0 ? (
         <p className="reward-empty">
-          {readOnly
-            ? "아직 과일을 받은 친구가 없어요."
-            : "아직 이 반에 입장한 학생이 없어요. 입장 코드를 알려 주세요."}
+          아직 이 반에 입장한 학생이 없어요. 입장 코드를 알려 주세요.
         </p>
       ) : (
         <ul className="reward-list">
@@ -99,41 +90,37 @@ export default function StudyRewardPanel({
               <div className="reward-row-top">
                 <span className="reward-avatar" aria-hidden="true">{s.emoji}</span>
                 <span className="reward-name" title={s.name}>{s.name}</span>
-                {!readOnly && (
-                  <button
-                    type="button"
-                    className="reward-note-btn"
-                    onClick={() => setNotesFor(s)}
-                    title={`${s.name} 누가기록`}
-                    aria-label={`${s.name} 누가기록`}
-                  >
-                    💬
-                  </button>
-                )}
+                <button
+                  type="button"
+                  className="reward-note-btn"
+                  onClick={() => setNotesFor(s)}
+                  title={`${s.name} 누가기록`}
+                  aria-label={`${s.name} 누가기록`}
+                >
+                  💬
+                </button>
                 <span className="reward-count">{s.count}</span>
-                {!readOnly && (
-                  <span className="reward-actions">
-                    {s.count > 0 && (
-                      <button
-                        type="button"
-                        className="reward-btn reward-minus"
-                        onClick={() => onAward(s.uid, s.count - 1)}
-                        aria-label={`${s.name} 과일 빼기`}
-                      >
-                        −
-                      </button>
-                    )}
+                <span className="reward-actions">
+                  {s.count > 0 && (
                     <button
                       type="button"
-                      className="reward-btn reward-plus"
-                      onClick={() => onAward(s.uid, Math.min(REWARD_MAX, s.count + 1))}
-                      disabled={s.count >= REWARD_MAX}
-                      aria-label={`${s.name} 과일 주기`}
+                      className="reward-btn reward-minus"
+                      onClick={() => onAward(s.uid, s.count - 1)}
+                      aria-label={`${s.name} 과일 빼기`}
                     >
-                      ＋
+                      −
                     </button>
-                  </span>
-                )}
+                  )}
+                  <button
+                    type="button"
+                    className="reward-btn reward-plus"
+                    onClick={() => onAward(s.uid, Math.min(REWARD_MAX, s.count + 1))}
+                    disabled={s.count >= REWARD_MAX}
+                    aria-label={`${s.name} 과일 주기`}
+                  >
+                    ＋
+                  </button>
+                </span>
               </div>
 
               <RewardFruits count={s.count} />
@@ -142,7 +129,7 @@ export default function StudyRewardPanel({
         </ul>
       )}
 
-      {!readOnly && notesFor && (
+      {notesFor && (
         <StudentNotesModal
           student={notesFor}
           classId={classId}

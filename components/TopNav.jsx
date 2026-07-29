@@ -11,7 +11,7 @@ import { useRouter } from "next/navigation";
 import { isAdmin, isTeacher } from "@/lib/user";
 import { isFirebaseConfigured } from "@/lib/firebase";
 import { signOutUser } from "@/lib/auth";
-import { subscribeUserDirectory } from "@/lib/store";
+import { subscribeUserDirectory, subscribeStudentRewardTotal } from "@/lib/store";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import UserProfile from "./UserProfile";
 import RoleSwitcher from "./RoleSwitcher";
@@ -26,6 +26,7 @@ export default function TopNav({ active, onPython, pyActive = false }) {
   const [navOpen, setNavOpen] = useState(false);
   const [roleMgrOpen, setRoleMgrOpen] = useState(false);
   const [directory, setDirectory] = useState([]);
+  const [fruitTotal, setFruitTotal] = useState(0);
   const dropRef = useRef(null);
 
   // 관리자만 사용자 디렉터리를 구독(역할 관리·승인 대기 표시용)
@@ -33,6 +34,15 @@ export default function TopNav({ active, onPython, pyActive = false }) {
     if (!isFirebaseConfigured || !isStrictAdmin) return;
     return subscribeUserDirectory(setDirectory);
   }, [isStrictAdmin]);
+
+  // 학생만 본인이 받은 과일 총합을 구독(여러 반 합산) — 프로필 옆 뱃지 표시용
+  useEffect(() => {
+    if (!isFirebaseConfigured || admin || !user?.uid) {
+      setFruitTotal(0);
+      return;
+    }
+    return subscribeStudentRewardTotal(user.uid, setFruitTotal);
+  }, [admin, user?.uid]);
 
   const pendingTeacherCount = directory.filter(
     (u) => u.requestedRole === "teacher" && u.role !== "teacher" && u.role !== "admin"
@@ -155,6 +165,11 @@ export default function TopNav({ active, onPython, pyActive = false }) {
       {/* 오른쪽: 역할 전환(데모 전용) + 프로필 + 로그아웃 */}
       <div className="user-area">
         {!isFirebaseConfigured && <RoleSwitcher />}
+        {!admin && user && (
+          <span className="fruit-total-chip" title="지금까지 받은 과일 총 개수">
+            🍎 {fruitTotal}
+          </span>
+        )}
         <UserProfile
           pendingCount={isStrictAdmin ? pendingTeacherCount : 0}
           onOpenRoleMgr={isStrictAdmin ? () => setRoleMgrOpen(true) : null}

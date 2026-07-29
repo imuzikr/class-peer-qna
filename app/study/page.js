@@ -533,13 +533,14 @@ export default function StudyPage() {
               )}
             </div>
 
-            {/* 오른쪽: 멋진 순간 패널 — 교사는 관리, 학생은 뱃지 조회만 */}
-            {currentClass && (
+            {/* 오른쪽: 멋진 순간 패널 — 교사 전용(과일 주기 관리).
+                학생은 상단바 프로필 옆의 총 개수 뱃지로 확인합니다. */}
+            {currentClass && admin && (
               <StudyRewardPanel
                 roster={roster}
                 classId={classId}
-                readOnly={!admin}
-                onAward={admin ? awardReward : undefined}
+                readOnly={false}
+                onAward={awardReward}
               />
             )}
           </div>

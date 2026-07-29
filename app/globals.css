@@ -907,6 +907,20 @@ button.footer-link:hover {
   color: var(--text-sub);
 }
 
+/* 상단바 프로필 왼쪽 — 학생이 받은 과일 총 개수 */
+.fruit-total-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #fff4e0;
+  color: #a06a00;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 .user-badge {
   background: var(--primary-light);
   color: var(--primary-dark);
