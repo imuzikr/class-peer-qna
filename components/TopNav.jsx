@@ -11,7 +11,8 @@ import { useRouter } from "next/navigation";
 import { isAdmin, isTeacher } from "@/lib/user";
 import { isFirebaseConfigured } from "@/lib/firebase";
 import { signOutUser } from "@/lib/auth";
-import { subscribeUserDirectory, subscribeMyRewardCount } from "@/lib/store";
+import { subscribeUserDirectory, subscribeMyMemberships, subscribeMyClassRewardCount } from "@/lib/store";
+import { getSelectedClassId } from "@/lib/classroom";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import UserProfile from "./UserProfile";
 import RoleSwitcher from "./RoleSwitcher";
@@ -27,6 +28,8 @@ export default function TopNav({ active, onPython, pyActive = false }) {
   const [roleMgrOpen, setRoleMgrOpen] = useState(false);
   const [directory, setDirectory] = useState([]);
   const [fruitTotal, setFruitTotal] = useState(0);
+  const [memberships, setMemberships] = useState([]);
+  const [sessionClassId, setSessionClassId] = useState(null);
   const dropRef = useRef(null);
 
   // 관리자만 사용자 디렉터리를 구독(역할 관리·승인 대기 표시용)
@@ -35,14 +38,37 @@ export default function TopNav({ active, onPython, pyActive = false }) {
     return subscribeUserDirectory(setDirectory);
   }, [isStrictAdmin]);
 
-  // 학생만 본인이 받은 과일 개수를 구독 — 프로필 옆 뱃지 표시용
+  // 학생 소속 반 구독 — 공부방 화면과 동일한 기준으로 "지금 보는 반"을 정하기 위함
   useEffect(() => {
     if (!isFirebaseConfigured || admin || !user?.uid) {
+      setMemberships([]);
+      return;
+    }
+    return subscribeMyMemberships(user.uid, setMemberships);
+  }, [admin, user?.uid]);
+
+  // 공부방에서 세션에 기억해 둔 반 id — 공부방 화면과 같은 값을 봐야
+  // 뱃지 숫자와 교사가 관리하는 화면의 숫자가 항상 일치합니다.
+  useEffect(() => {
+    function sync() { setSessionClassId(getSelectedClassId()); }
+    sync();
+    window.addEventListener("class-change", sync);
+    return () => window.removeEventListener("class-change", sync);
+  }, []);
+
+  // 학생만 "지금 보고 있는 반"에서 받은 과일 개수를 구독 — 프로필 옆 뱃지 표시용
+  const membershipIds = memberships.map((m) => m.classId);
+  const activeClassId =
+    sessionClassId && membershipIds.includes(sessionClassId)
+      ? sessionClassId
+      : membershipIds[0] ?? null;
+  useEffect(() => {
+    if (!isFirebaseConfigured || admin || !activeClassId || !user?.uid) {
       setFruitTotal(0);
       return;
     }
-    return subscribeMyRewardCount(user.uid, setFruitTotal);
-  }, [admin, user?.uid]);
+    return subscribeMyClassRewardCount(activeClassId, user.uid, setFruitTotal);
+  }, [admin, activeClassId, user?.uid]);
 
   const pendingTeacherCount = directory.filter(
     (u) => u.requestedRole === "teacher" && u.role !== "teacher" && u.role !== "admin"
