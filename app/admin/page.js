@@ -20,6 +20,8 @@ import {
   subscribeAllRewards,
   subscribeRewardsForClasses,
   toDate,
+  deleteStudent,
+  dismissWithdrawalRequest,
 } from "@/lib/store";
 import { isFirebaseConfigured } from "@/lib/firebase";
 import { isAdmin, isTeacher } from "@/lib/user";
@@ -28,6 +30,7 @@ import { useRequireAuth } from "@/lib/useRequireAuth";
 import TopNav from "@/components/TopNav";
 import { getMeTooCount } from "@/lib/questionRanking";
 import StudentEditModal from "@/components/StudentEditModal";
+import ConfirmModal from "@/components/ConfirmModal";
 import StudentNotesThread from "@/components/StudentNotesThread";
 import RewardFruits, { rewardStars } from "@/components/RewardFruits";
 import StudentKwlPanel from "@/components/StudentKwlPanel";
@@ -268,6 +271,8 @@ export default function AdminDashboardPage() {
   const [selectedId, setSelectedId] = useState(null);
   const [pendingOpen, setPendingOpen] = useState(true);
   const [editingStudent, setEditingStudent] = useState(null);
+  const [confirmWithdrawStudent, setConfirmWithdrawStudent] = useState(null);
+  const [withdrawBusy, setWithdrawBusy] = useState(false);
   const [activeStatKey, setActiveStatKey] = useState(null); // 통계 카드 드릴다운
   const [selectedKwl, setSelectedKwl] = useState([]); // 선택 학생 KWL 기록
   const [selectedNotes, setSelectedNotes] = useState([]); // 선택 학생 멋진 순간(누가기록)
@@ -439,6 +444,36 @@ export default function AdminDashboardPage() {
         }),
     [directory, allRowMap]
   );
+
+  // 학생 탈퇴 신청 대기 — 학생이 프로필 메뉴에서 신청한 건 (아무 선생님이나 처리 가능)
+  const pendingStudentWithdrawals = useMemo(
+    () =>
+      directory.filter(
+        (u) => u.role !== "teacher" && u.role !== "admin" && u.withdrawRequested
+      ),
+    [directory]
+  );
+
+  async function handleRejectStudentWithdraw(u) {
+    if (withdrawBusy) return;
+    setWithdrawBusy(true);
+    try {
+      await dismissWithdrawalRequest(u.uid);
+    } finally {
+      setWithdrawBusy(false);
+    }
+  }
+
+  async function handleConfirmStudentWithdraw() {
+    if (!confirmWithdrawStudent || withdrawBusy) return;
+    setWithdrawBusy(true);
+    try {
+      await deleteStudent(confirmWithdrawStudent.uid);
+    } finally {
+      setWithdrawBusy(false);
+      setConfirmWithdrawStudent(null);
+    }
+  }
 
   // 선생님 목록 — 디렉터리의 teacher 전원(활동 없어도 표시), 활동수는 있으면 합산.
   const teachers = useMemo(
@@ -675,6 +710,41 @@ export default function AdminDashboardPage() {
             </>
           ) : (
           <>
+          {pendingStudentWithdrawals.length > 0 && (
+            <div className="role-pending">
+              <p className="role-pending-title">
+                🚪 학생 탈퇴 신청 대기 ({pendingStudentWithdrawals.length})
+              </p>
+              <ul className="role-pending-list">
+                {pendingStudentWithdrawals.map((u) => (
+                  <li key={u.uid} className="role-pending-item">
+                    <span className="role-pending-user">
+                      {u.emoji ?? "🙂"} <strong>{u.realName || u.displayName || u.uid}</strong>
+                      {u.email && <small>{u.email}</small>}
+                    </span>
+                    <span className="role-pending-actions">
+                      <button
+                        type="button"
+                        className="btn-ghost"
+                        onClick={() => handleRejectStudentWithdraw(u)}
+                        disabled={withdrawBusy}
+                      >
+                        거절
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-ghost role-danger-btn"
+                        onClick={() => setConfirmWithdrawStudent(u)}
+                        disabled={withdrawBusy}
+                      >
+                        탈퇴 처리
+                      </button>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <div className="admin-panel-head">
             <h2>학생 목록</h2>
             <span>{students.length}명</span>
@@ -1006,6 +1076,18 @@ export default function AdminDashboardPage() {
         <StudentEditModal
           student={editingStudent}
           onClose={() => setEditingStudent(null)}
+        />
+      )}
+
+      {confirmWithdrawStudent && (
+        <ConfirmModal
+          title="학생 탈퇴 처리"
+          preview={`${confirmWithdrawStudent.emoji ?? "🙂"} ${confirmWithdrawStudent.realName || confirmWithdrawStudent.displayName || confirmWithdrawStudent.uid}`}
+          description={"이 학생의 모든 게시물·활동 데이터와 프로필이\n영구 삭제됩니다. 복구할 수 없습니다."}
+          confirmLabel={withdrawBusy ? "처리 중…" : "탈퇴 처리"}
+          danger
+          onConfirm={handleConfirmStudentWithdraw}
+          onClose={() => setConfirmWithdrawStudent(null)}
         />
       )}
     </div>

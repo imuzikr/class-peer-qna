@@ -15,6 +15,7 @@ import {
   assignUserRole,
   approveTeacherRequest,
   dismissTeacherRequest,
+  dismissWithdrawalRequest,
   deleteStudent,
 } from "@/lib/store";
 import ConfirmModal from "./ConfirmModal";
@@ -68,6 +69,12 @@ export default function RoleManagerModal({ directory, onClose }) {
   // 현재 선생님(중간 관리자) — 최고 관리자(admin)는 제외(자기 자신 관리 불가)
   const teachers = useMemo(
     () => directory.filter((u) => u.role === "teacher"),
+    [directory]
+  );
+
+  // 선생님 탈퇴 신청 대기 — 본인이 프로필 메뉴에서 신청한 선생님
+  const withdrawPending = useMemo(
+    () => directory.filter((u) => u.role === "teacher" && u.withdrawRequested),
     [directory]
   );
 
@@ -134,6 +141,12 @@ export default function RoleManagerModal({ directory, onClose }) {
     setConfirmDelete(u);
   }
 
+  const handleRejectWithdraw = (u) =>
+    run(
+      () => dismissWithdrawalRequest(u.uid),
+      `${userLabel(u)} 님의 탈퇴 신청을 거절했어요.`
+    );
+
   return (
     <div className="modal-backdrop" {...backdropClose(onClose)}>
       <div className="modal role-manager-modal" onClick={(e) => e.stopPropagation()}>
@@ -160,6 +173,31 @@ export default function RoleManagerModal({ directory, onClose }) {
                     </button>
                     <button type="button" className="btn-primary" onClick={() => handleApprove(u)} disabled={submitting}>
                       승인
+                    </button>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* 선생님 탈퇴 신청 대기 */}
+        {withdrawPending.length > 0 && (
+          <div className="role-pending">
+            <p className="role-pending-title">🚪 선생님 탈퇴 신청 대기 ({withdrawPending.length})</p>
+            <ul className="role-pending-list">
+              {withdrawPending.map((u) => (
+                <li key={u.uid} className="role-pending-item">
+                  <span className="role-pending-user">
+                    🧑‍🏫 <strong>{userLabel(u)}</strong>
+                    {u.email && <small>{u.email}</small>}
+                  </span>
+                  <span className="role-pending-actions">
+                    <button type="button" className="btn-ghost" onClick={() => handleRejectWithdraw(u)} disabled={submitting}>
+                      거절
+                    </button>
+                    <button type="button" className="btn-ghost role-danger-btn" onClick={() => handleWithdraw(u)} disabled={submitting}>
+                      탈퇴 처리
                     </button>
                   </span>
                 </li>

@@ -88,10 +88,11 @@ service cloud.firestore {
       allow create: if signedIn() && userId == uid()
                     && request.resource.data.role == 'student';
       // 본인 자가수정: 닉네임(displayName)·실명·학번은 불가(교사만 수정).
-      //   → 이메일·아바타·알림토큰·선생님 가입신청만 허용.
-      // 교사/관리자는 학생 프로필 전체 관리 가능.
+      //   → 이메일·아바타·알림토큰·선생님 가입신청·탈퇴 신청만 허용.
+      // 교사/관리자는 학생 프로필 전체 관리 가능(탈퇴 신청 거절 등 포함).
       allow update: if (signedIn() && userId == uid()
-                        && changedOnly(['email','emoji','fcmTokens','requestedRole']))
+                        && changedOnly(['email','emoji','fcmTokens','requestedRole',
+                                        'withdrawRequested','withdrawRequestedAt']))
                     || isTeacher();
       // 탈퇴(계정 삭제): 관리자는 누구나, 교사는 '학생' 계정만.
       allow delete: if isAdmin()

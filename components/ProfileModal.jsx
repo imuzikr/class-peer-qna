@@ -9,17 +9,25 @@
 // =============================================================
 import { backdropClose } from "@/lib/modal";
 import { useState } from "react";
-import { updateMyProfile } from "@/lib/store";
-import { isTeacher } from "@/lib/user";
+import { updateMyProfile, requestWithdrawal, dismissWithdrawalRequest } from "@/lib/store";
+import { isTeacher, isAdmin } from "@/lib/user";
+import { isFirebaseConfigured } from "@/lib/firebase";
 import { ANIMALS } from "./StudentEditModal";
+import ConfirmModal from "./ConfirmModal";
 
 export default function ProfileModal({ user, onClose }) {
   const teacherRole = isTeacher(user);
+  const adminRole = isAdmin(user);
   const [emoji, setEmoji] = useState(user.emoji || "🙂");
   const [realName, setRealName] = useState(user.realName || "");
   const [pickerOpen, setPickerOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [withdrawRequested, setWithdrawRequested] = useState(!!user.withdrawRequested);
+  const [confirmWithdraw, setConfirmWithdraw] = useState(false);
+  const [withdrawBusy, setWithdrawBusy] = useState(false);
+  // 신청 승인권자 — 학생은 선생님이, 선생님은 최고 관리자가 확인합니다.
+  const approverWord = teacherRole ? "최고 관리자" : "선생님";
 
   const dirty = teacherRole
     ? realName.trim() !== (user.realName || "")
@@ -37,6 +45,28 @@ export default function ProfileModal({ user, onClose }) {
       setTimeout(onClose, 700);
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleRequestWithdraw() {
+    setWithdrawBusy(true);
+    try {
+      await requestWithdrawal(user.uid);
+      setWithdrawRequested(true);
+    } finally {
+      setWithdrawBusy(false);
+      setConfirmWithdraw(false);
+    }
+  }
+
+  async function handleCancelWithdraw() {
+    if (withdrawBusy) return;
+    setWithdrawBusy(true);
+    try {
+      await dismissWithdrawalRequest(user.uid);
+      setWithdrawRequested(false);
+    } finally {
+      setWithdrawBusy(false);
     }
   }
 
@@ -146,7 +176,46 @@ export default function ProfileModal({ user, onClose }) {
             {saved ? "저장했어요 ✓" : saving ? "저장 중…" : "저장"}
           </button>
         </div>
+
+        {isFirebaseConfigured && !adminRole && (
+          <div className="student-edit-danger">
+            {withdrawRequested ? (
+              <>
+                <p className="profile-modal-hint">
+                  탈퇴 신청이 접수됐어요. {approverWord}이(가) 확인 후 처리합니다.
+                </p>
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  onClick={handleCancelWithdraw}
+                  disabled={withdrawBusy}
+                >
+                  탈퇴 신청 취소
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                className="btn-ghost qa-delete"
+                onClick={() => setConfirmWithdraw(true)}
+              >
+                회원 탈퇴 신청
+              </button>
+            )}
+          </div>
+        )}
       </div>
+
+      {confirmWithdraw && (
+        <ConfirmModal
+          title="회원 탈퇴 신청"
+          description={`신청 후 ${approverWord} 확인을 거쳐 탈퇴 처리되며, 그 순간 작성한 모든 게시물·활동 데이터와 프로필이 영구 삭제됩니다.\n복구할 수 없으니 신중히 결정해 주세요.`}
+          confirmLabel={withdrawBusy ? "신청 중…" : "탈퇴 신청"}
+          danger
+          onConfirm={handleRequestWithdraw}
+          onClose={() => setConfirmWithdraw(false)}
+        />
+      )}
     </div>
   );
 }
