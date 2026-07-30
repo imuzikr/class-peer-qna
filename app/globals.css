@@ -833,6 +833,11 @@ button.footer-link:hover {
   font-size: 18px;
   line-height: 1;
   padding: 8px;
+  background: none;
+  border: none;
+}
+.notif-btn:hover {
+  background: var(--neutral);
 }
 .notif-badge {
   position: absolute;
