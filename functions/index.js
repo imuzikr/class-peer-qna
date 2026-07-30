@@ -18,6 +18,7 @@
 // =============================================================
 const {
   onDocumentCreated,
+  onDocumentUpdated,
   onDocumentDeleted,
 } = require("firebase-functions/v2/firestore");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
@@ -156,14 +157,14 @@ exports.onAnswerCreated = onDocumentCreated(
     //      무관하게 항상 실행되도록 여기서 먼저 호출합니다.
     await recomputeAnswerers().catch(() => {});
 
-    // 2) [3-알림] 질문 작성자에게 알림 (자기 질문에 단 답변은 제외)
+    // 2) [3-알림] 질문 작성자에게 인앱 알림 (자기 질문에 단 답변은 제외)
+    //    클라이언트가 users/{uid}/notifications를 구독하면 상단바 알림
+    //    벨(NotificationBell)에 표시됩니다.
     const questionSnap = await questionRef.get();
     if (!questionSnap.exists) return;
     const question = questionSnap.data();
     if (question.authorId === answer.authorId) return;
 
-    // 2-a) 인앱 알림 문서 생성 — 클라이언트가 users/{uid}/notifications를
-    //      구독하면 화면에 알림 목록을 띄울 수 있습니다.
     await db.collection(`users/${question.authorId}/notifications`).add({
       type: "new_answer",
       questionId,
@@ -172,31 +173,33 @@ exports.onAnswerCreated = onDocumentCreated(
       read: false,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
+  }
+);
 
-    // 2-b) FCM 푸시 발송 — 클라이언트가 알림 권한을 받아
-    //      users/{uid} 문서의 fcmTokens 배열에 토큰을 저장해 두면 발송됩니다.
-    const userSnap = await db.doc(`users/${question.authorId}`).get();
-    const tokens = userSnap.get("fcmTokens") || [];
-    if (tokens.length === 0) return;
+// 질문자가 "이해됐어요"로 답변을 채택하면, 그 답변을 쓴 학생에게 인앱 알림
+exports.onAnswerUnderstood = onDocumentUpdated(
+  "questions/{questionId}",
+  async (event) => {
+    const before = event.data.before.data();
+    const after = event.data.after.data();
+    const answerId = after.understoodAnswerId;
+    // 새로 채택된 경우에만(이미 채택돼 있던 것과 같으면 스킵)
+    if (!answerId || answerId === before.understoodAnswerId) return;
 
-    const result = await admin.messaging().sendEachForMulticast({
-      tokens,
-      notification: {
-        title: "새 답변이 달렸어요!",
-        body: `${answer.authorName}님이 "${question.title}"에 답변했습니다.`,
-      },
-      data: { questionId },
+    const { questionId } = event.params;
+    const answerSnap = await db.doc(`questions/${questionId}/answers/${answerId}`).get();
+    if (!answerSnap.exists) return;
+    const answer = answerSnap.data();
+    // 자기 질문에 자기가 단 답변을 채택한 경우는 알림 불필요
+    if (!answer.authorId || answer.authorId === after.authorId) return;
+
+    await db.collection(`users/${answer.authorId}/notifications`).add({
+      type: "answer_understood",
+      questionId,
+      questionTitle: after.title,
+      read: false,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
-
-    // 만료된 토큰은 정리
-    const deadTokens = tokens.filter(
-      (_, i) => result.responses[i].error != null
-    );
-    if (deadTokens.length > 0) {
-      await db.doc(`users/${question.authorId}`).update({
-        fcmTokens: admin.firestore.FieldValue.arrayRemove(...deadTokens),
-      });
-    }
   }
 );
 

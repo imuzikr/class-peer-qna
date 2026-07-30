@@ -15,6 +15,7 @@ import { subscribeUserDirectory, subscribeMyMemberships, subscribeMyClassRewardC
 import { getSelectedClassId } from "@/lib/classroom";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import UserProfile from "./UserProfile";
+import NotificationBell from "./NotificationBell";
 import RoleSwitcher from "./RoleSwitcher";
 import RoleManagerModal from "./RoleManagerModal";
 import { IconReport, IconPythonRunner, IconLogo, IconAnswer, IconSchool, IconBlackboard, IconTeacher, IconLogout } from "./StatusIcons";
@@ -196,6 +197,7 @@ export default function TopNav({ active, onPython, pyActive = false }) {
             🍎 {fruitTotal}
           </span>
         )}
+        {user && isFirebaseConfigured && <NotificationBell uid={user.uid} />}
         <UserProfile
           pendingCount={isStrictAdmin ? pendingTeacherCount : 0}
           onOpenRoleMgr={isStrictAdmin ? () => setRoleMgrOpen(true) : null}
