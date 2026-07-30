@@ -828,7 +828,7 @@ button.footer-link:hover {
 .notif-wrap {
   position: relative;
 }
-.notif-btn {
+.notif-wrap .notif-btn {
   position: relative;
   font-size: 18px;
   line-height: 1;
@@ -836,7 +836,7 @@ button.footer-link:hover {
   background: none;
   border: none;
 }
-.notif-btn:hover {
+.notif-wrap .notif-btn:hover {
   background: var(--neutral);
 }
 .notif-badge {
@@ -1015,9 +1015,9 @@ button.footer-link:hover {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: #fff4e0;
+  padding: 4px 6px;
+  background: none;
+  border: none;
   color: #a06a00;
   font-size: 12px;
   font-weight: 700;
