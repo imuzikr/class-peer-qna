@@ -1015,12 +1015,13 @@ button.footer-link:hover {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 6px;
+  padding: 8px 6px;
   background: none;
   border: none;
   color: #a06a00;
   font-size: 18px;
   font-weight: 700;
+  line-height: 1;
   white-space: nowrap;
 }
 
