@@ -82,6 +82,12 @@ export default function ConsonantDashboard({ activity, onClose }) {
     [groups, wordsByGroup]
   );
 
+  // 반 전체가 지금까지 모은 낱말 수 (칸 수와 별개로 활동량을 보여 줍니다)
+  const totalWords = useMemo(
+    () => Object.values(wordsByGroup).reduce((n, list) => n + (list?.length ?? 0), 0),
+    [wordsByGroup]
+  );
+
   const totalFilled = useMemo(
     () => Array.from({ length: CELL_COUNT }, (_, i) => (merged[cellKey(i)] ?? []).length > 0)
       .filter(Boolean).length,
@@ -117,7 +123,9 @@ export default function ConsonantDashboard({ activity, onClose }) {
         )}
         <div className="canvas-head-title">
           <strong>{activity.topic}</strong>
-          <span>모둠 {groups.length}개 · {totalFilled} / {CELL_COUNT}칸</span>
+          <span>
+            모둠 {groups.length}개 · {totalFilled} / {CELL_COUNT}칸 · 낱말 {totalWords}개
+          </span>
         </div>
         <button type="button" className="btn-ghost" onClick={toggleZoom}>
           {zoom ? "축소" : "전체 화면"}
@@ -163,10 +171,13 @@ export default function ConsonantDashboard({ activity, onClose }) {
                     <i className="dash-dot" style={{ background: colorOf(g.groupIndex) }} />
                     {g.groupName || `${g.groupIndex}모둠`}
                   </span>
+                  <span className="dash-progress-num">
+                    {g.cellsFilled}/{CELL_COUNT}칸
+                    <span className="dash-progress-words"> · 낱말 {g.total}개</span>
+                  </span>
                   <span className="dash-progress-bar">
                     <b style={{ width: `${(g.cellsFilled / CELL_COUNT) * 100}%`, background: colorOf(g.groupIndex) }} />
                   </span>
-                  <span className="dash-progress-num">{g.cellsFilled}/{CELL_COUNT}</span>
                 </li>
               ))}
             </ul>
