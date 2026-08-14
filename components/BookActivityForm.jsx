@@ -17,20 +17,42 @@ const MODES = [
   { key: "free", label: "자유 구성", desc: "학생이 원하는 모둠에 직접 들어갑니다." },
 ];
 
+// "1반, 2반, 3반" → ["1반","2반","3반"] (빈 항목은 버림)
+function parseNames(raw) {
+  return raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 export default function BookActivityForm({ onSave, onClose }) {
   const [title, setTitle] = useState("닿소리 채우기");
   const [topic, setTopic] = useState("");
   const [groupMode, setGroupMode] = useState("teacher");
   const [groupCount, setGroupCount] = useState(4);
   const [maxPerGroup, setMaxPerGroup] = useState(6);
+  const [namesRaw, setNamesRaw] = useState("");
+  const [warning, setWarning] = useState(null); // 이름 개수 불일치 안내
   const [saving, setSaving] = useState(false);
+
+  const names = parseNames(namesRaw);
 
   async function handleSubmit(e) {
     e.preventDefault();
     if (!topic.trim() || saving) return;
+
+    // 이름을 적었는데 모둠 수와 개수가 다르면 만들지 않고 알려 줍니다.
+    if (names.length > 0 && names.length !== groupCount) {
+      setWarning(
+        `모둠은 ${groupCount}개인데 이름은 ${names.length}개를 적으셨어요.\n` +
+          `개수를 맞추거나, 이름을 비우면 '1모둠·2모둠…'으로 자동으로 붙습니다.`
+      );
+      return;
+    }
+
     setSaving(true);
     try {
-      await onSave({ title, topic, groupMode, groupCount, maxPerGroup });
+      await onSave({ title, topic, groupMode, groupCount, maxPerGroup, groupNames: names });
     } finally {
       setSaving(false);
     }
@@ -84,16 +106,16 @@ export default function BookActivityForm({ onSave, onClose }) {
           </div>
         </div>
 
-        {groupMode === "free" && (
-          <div className="book-field-row">
-            <label className="book-field">
-              <span>모둠 수</span>
-              <select value={groupCount} onChange={(e) => setGroupCount(Number(e.target.value))}>
-                {[2, 3, 4, 5, 6].map((n) => (
-                  <option key={n} value={n}>{n}개</option>
-                ))}
-              </select>
-            </label>
+        <div className="book-field-row">
+          <label className="book-field">
+            <span>모둠 수</span>
+            <select value={groupCount} onChange={(e) => setGroupCount(Number(e.target.value))}>
+              {[2, 3, 4, 5, 6, 7, 8].map((n) => (
+                <option key={n} value={n}>{n}개</option>
+              ))}
+            </select>
+          </label>
+          {groupMode === "free" && (
             <label className="book-field">
               <span>모둠당 최대 인원</span>
               <select value={maxPerGroup} onChange={(e) => setMaxPerGroup(Number(e.target.value))}>
@@ -102,15 +124,60 @@ export default function BookActivityForm({ onSave, onClose }) {
                 ))}
               </select>
             </label>
-          </div>
-        )}
+          )}
+        </div>
+
+        <label className="book-field">
+          <span>모둠 이름 <em className="book-optional">선택</em></span>
+          <input
+            type="text"
+            value={namesRaw}
+            onChange={(e) => setNamesRaw(e.target.value)}
+            placeholder="예: 햇살, 바람, 나무, 별빛"
+          />
+          <small>
+            쉼표로 구분해 적으면 그 이름으로 한 번에 만들어집니다.
+            {names.length > 0 && (
+              <b className={names.length === groupCount ? " ok" : " bad"}>
+                {" "}입력 {names.length}개 / 모둠 {groupCount}개
+              </b>
+            )}
+          </small>
+        </label>
 
         <div className="modal-actions">
           <button type="button" className="btn-ghost" onClick={onClose}>취소</button>
           <button type="submit" className="btn-primary" disabled={!topic.trim() || saving}>
-            {saving ? "만드는 중…" : "만들기"}
+            {saving ? "만드는 중…" : `모둠 ${groupCount}개와 함께 만들기`}
           </button>
         </div>
+
+        {warning && (
+          <div className="modal-backdrop confirm-backdrop" onClick={() => setWarning(null)}>
+            <div
+              className="confirm-modal"
+              role="alertdialog"
+              aria-modal="true"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="confirm-icon-wrap">
+                <span className="confirm-icon" aria-hidden="true">⚠️</span>
+              </div>
+              <h3 className="confirm-title">모둠 수와 이름 개수가 달라요</h3>
+              <p className="confirm-desc">{warning}</p>
+              <div className="confirm-actions">
+                <button
+                  type="button"
+                  className="confirm-confirm"
+                  onClick={() => setWarning(null)}
+                  autoFocus
+                >
+                  확인
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </form>
     </div>
   );
