@@ -15,6 +15,16 @@ import { backdropClose } from "@/lib/modal";
 import { subscribeBookGroups, subscribeGroupWords } from "@/lib/store";
 import { CONSONANT_LABELS, GRID_SLOTS, CELL_COUNT, cellKey } from "@/lib/consonants";
 
+// 낱말 분포 히트맵 — 한 칸에 모인 낱말이 많을수록 진하게
+const HEAT_OPACITY = [0, 0.3, 0.52, 0.74, 1];
+function heatLevel(n) {
+  if (n <= 0) return 0;
+  if (n === 1) return 1;
+  if (n === 2) return 2;
+  if (n <= 4) return 3;
+  return 4;
+}
+
 // 모둠 색 — 순번대로 돌려 씁니다
 const GROUP_COLORS = ["#E07A5F", "#3D8A72", "#5B7DB1", "#C1873B", "#8B6BB1", "#B5566E"];
 
@@ -77,7 +87,16 @@ export default function ConsonantDashboard({ activity, onClose }) {
     () =>
       groups.map((g) => {
         const list = wordsByGroup[g.id] ?? [];
-        return { ...g, cellsFilled: new Set(list.map((w) => w.cellKey)).size, total: list.length };
+        // 자음 14칸 각각에 낱말이 몇 개 들어갔는지 (낱말 분포 히트맵용)
+        const cellCounts = Array.from({ length: CELL_COUNT }, (_, i) =>
+          list.filter((w) => w.cellKey === cellKey(i)).length
+        );
+        return {
+          ...g,
+          cellsFilled: new Set(list.map((w) => w.cellKey)).size,
+          total: list.length,
+          cellCounts,
+        };
       }),
     [groups, wordsByGroup]
   );
@@ -177,6 +196,22 @@ export default function ConsonantDashboard({ activity, onClose }) {
                   </span>
                   <span className="dash-progress-bar">
                     <b style={{ width: `${(g.cellsFilled / CELL_COUNT) * 100}%`, background: colorOf(g.groupIndex) }} />
+                  </span>
+                  {/* 낱말 분포 — 자음 14칸을 그대로 늘어놓고, 낱말이 많을수록 진하게.
+                      막대(몇 칸을 건드렸나)와 달리 '어디에 얼마나 모였나'가 보입니다. */}
+                  <span className="dash-heat">
+                    {g.cellCounts.map((n, i) => (
+                      <i
+                        key={i}
+                        className="dash-heat-cell"
+                        style={
+                          n > 0
+                            ? { background: colorOf(g.groupIndex), opacity: HEAT_OPACITY[heatLevel(n)] }
+                            : undefined
+                        }
+                        title={`${CONSONANT_LABELS[i]} · 낱말 ${n}개`}
+                      />
+                    ))}
                   </span>
                 </li>
               ))}

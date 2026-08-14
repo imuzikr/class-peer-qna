@@ -10027,6 +10027,22 @@ pre code {
   overflow: hidden;
 }
 .dash-progress-bar b { display: block; height: 100%; border-radius: 999px; transition: width 0.25s; }
+/* 낱말 분포 히트맵 — 자음 14칸, 낱말이 많이 모인 칸일수록 진하게 */
+.dash-heat {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(14, 1fr);
+  gap: 2px;
+  margin-top: 3px;
+}
+.dash-heat-cell {
+  display: block;
+  height: 15px;
+  border-radius: 3px;
+  background: var(--neutral);
+  transition: opacity 0.2s;
+}
+.dash-root.zoom .dash-heat-cell { height: 19px; }
 /* 집계 카드 — 모둠 색 테두리.
    글자 수가 달라도 폭을 고정해야 '줄 길이 = 언급 횟수'가 성립합니다.
    (긴 낱말이 몇 개 없어도 많이 나온 것처럼 보이던 착시 방지)
