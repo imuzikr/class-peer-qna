@@ -107,10 +107,22 @@ export default function ConsonantCanvas({ activity, groupId, user, isTeacher, on
           return (
             <div
               key={pos}
-              className={`consonant-cell${list.length > 0 ? " has-words" : ""}${open ? " open" : ""}${canWrite ? " editable" : ""}`}
-              onClick={() => !open && openCell(slot)}
+              className={`consonant-cell${list.length > 0 ? " has-words" : ""}${open ? " open" : ""}`}
             >
-              <span className="consonant-label">{CONSONANT_LABELS[slot]}</span>
+              <div className="consonant-cell-head">
+                <span className="consonant-label">{CONSONANT_LABELS[slot]}</span>
+                {canWrite && !open && (
+                  <button
+                    type="button"
+                    className="consonant-add"
+                    onClick={() => openCell(slot)}
+                    title={`${CONSONANT_LABELS[slot]} 단어 넣기`}
+                    aria-label={`${CONSONANT_LABELS[slot]} 단어 넣기`}
+                  >
+                    ＋
+                  </button>
+                )}
+              </div>
 
               <div className="consonant-words">
                 {list.map((w) => (
@@ -139,7 +151,6 @@ export default function ConsonantCanvas({ activity, groupId, user, isTeacher, on
                   className="consonant-input"
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
-                  onClick={(e) => e.stopPropagation()}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
@@ -163,7 +174,7 @@ export default function ConsonantCanvas({ activity, groupId, user, isTeacher, on
 
       {canWrite && (
         <p className="canvas-hint">
-          칸을 누르고 단어를 적은 뒤 Enter를 누르세요. 내가 넣은 단어는 ×로 지울 수 있어요.
+          칸의 ＋를 누르고 단어를 적은 뒤 Enter를 누르세요. 내가 넣은 단어는 ×로 지울 수 있어요.
         </p>
       )}
     </main>
