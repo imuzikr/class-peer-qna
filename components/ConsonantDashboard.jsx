@@ -169,7 +169,6 @@ export default function ConsonantDashboard({ activity, onClose }) {
                 type="button"
                 className={`consonant-cell dash-cell${list.length ? " has-words" : ""}`}
                 onClick={() => setZoomSlot(slot)}
-                title={`${CONSONANT_LABELS[slot]} 크게 보기`}
               >
                 <span className="consonant-label">{CONSONANT_LABELS[slot]}</span>
                 <WordRows list={list} colorOf={colorOf} nameOf={groupNameOf} />
