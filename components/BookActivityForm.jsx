@@ -3,26 +3,25 @@
 // =============================================================
 // 책방 활동 만들기 (교사 전용)
 // -------------------------------------------------------------
-// 주제어(격자 한가운데 들어갈 학습주제 또는 도서명)와 모둠 구성 방식을 정합니다.
-//  · 교사 배정 / 무작위 배정 → 만든 뒤 모둠 대시보드에서 명단을 짭니다.
-//  · 자유 구성 → 여기서 정한 개수만큼 빈 모둠이 미리 만들어지고,
-//    학생이 대시보드에서 직접 골라 들어갑니다.
+// 주제어(격자 한가운데 들어갈 학습주제 또는 도서명)와 모둠 구성을 정합니다.
+// 한 화면에 다 들어오도록 선택지는 모두 가로 버튼으로 두었습니다.
+//  · 교사 배정 / 무작위 → 만든 뒤 모둠 대시보드에서 명단을 짭니다.
+//  · 자유 구성 → 학생이 대시보드에서 직접 골라 들어갑니다.
+// 모둠 이름을 쉼표로 적으면 그 이름으로 한 번에 만들어집니다.
 // =============================================================
 import { backdropClose } from "@/lib/modal";
 import { useState } from "react";
 
 const MODES = [
-  { key: "teacher", label: "교사가 배정", desc: "선생님이 학생을 모둠에 직접 넣습니다." },
-  { key: "random", label: "무작위 배정", desc: "인원을 고르게 나눠 자동으로 섞습니다." },
-  { key: "free", label: "자유 구성", desc: "학생이 원하는 모둠에 직접 들어갑니다." },
+  { key: "teacher", label: "교사 배정" },
+  { key: "random", label: "무작위" },
+  { key: "free", label: "자유 구성" },
 ];
+const GROUP_COUNTS = [3, 4, 5, 6];
 
-// "1반, 2반, 3반" → ["1반","2반","3반"] (빈 항목은 버림)
+// "햇살, 바람, 나무" → ["햇살","바람","나무"] (빈 항목은 버림)
 function parseNames(raw) {
-  return raw
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
+  return raw.split(",").map((s) => s.trim()).filter(Boolean);
 }
 
 export default function BookActivityForm({ onSave, onClose }) {
@@ -66,83 +65,88 @@ export default function BookActivityForm({ onSave, onClose }) {
           <button type="button" className="btn-close" onClick={onClose} aria-label="닫기">×</button>
         </div>
 
-        <label className="book-field">
-          <span>활동 이름</span>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            maxLength={40}
-          />
-        </label>
-
-        <label className="book-field">
-          <span>주제어 · 도서명</span>
-          <input
-            type="text"
-            value={topic}
-            onChange={(e) => setTopic(e.target.value)}
-            placeholder="예: 어린 왕자"
-            maxLength={30}
-            autoFocus
-          />
-          <small>격자 한가운데에 표시됩니다.</small>
-        </label>
+        <div className="book-field-row">
+          <label className="book-field">
+            <span>활동 이름</span>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              maxLength={40}
+            />
+          </label>
+          <label className="book-field">
+            <span>주제어 · 도서명</span>
+            <input
+              type="text"
+              value={topic}
+              onChange={(e) => setTopic(e.target.value)}
+              placeholder="예: 어린 왕자"
+              maxLength={30}
+              autoFocus
+            />
+          </label>
+        </div>
 
         <div className="book-field">
           <span>모둠 구성 방식</span>
-          <div className="book-mode-list">
+          <div className="book-seg">
             {MODES.map((m) => (
               <button
                 key={m.key}
                 type="button"
-                className={`book-mode-btn${groupMode === m.key ? " active" : ""}`}
+                className={`book-seg-btn${groupMode === m.key ? " active" : ""}`}
                 onClick={() => setGroupMode(m.key)}
               >
-                <strong>{m.label}</strong>
-                <small>{m.desc}</small>
+                {m.label}
               </button>
             ))}
           </div>
         </div>
 
         <div className="book-field-row">
-          <label className="book-field">
+          <div className="book-field">
             <span>모둠 수</span>
-            <select value={groupCount} onChange={(e) => setGroupCount(Number(e.target.value))}>
-              {[2, 3, 4, 5, 6, 7, 8].map((n) => (
-                <option key={n} value={n}>{n}개</option>
+            <div className="book-seg">
+              {GROUP_COUNTS.map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  className={`book-seg-btn${groupCount === n ? " active" : ""}`}
+                  onClick={() => setGroupCount(n)}
+                >
+                  {n}
+                </button>
               ))}
-            </select>
-          </label>
+            </div>
+          </div>
           {groupMode === "free" && (
-            <label className="book-field">
-              <span>모둠당 최대 인원</span>
+            <div className="book-field book-field--narrow">
+              <span>모둠당 최대</span>
               <select value={maxPerGroup} onChange={(e) => setMaxPerGroup(Number(e.target.value))}>
                 {[3, 4, 5, 6, 7, 8].map((n) => (
                   <option key={n} value={n}>{n}명</option>
                 ))}
               </select>
-            </label>
+            </div>
           )}
         </div>
 
         <label className="book-field">
-          <span>모둠 이름 <em className="book-optional">선택</em></span>
+          <span>
+            모둠 이름 <em className="book-optional">선택</em>
+            {names.length > 0 && (
+              <b className={names.length === groupCount ? "book-cnt ok" : "book-cnt bad"}>
+                {names.length} / {groupCount}
+              </b>
+            )}
+          </span>
           <input
             type="text"
             value={namesRaw}
             onChange={(e) => setNamesRaw(e.target.value)}
-            placeholder="예: 햇살, 바람, 나무, 별빛"
+            placeholder="쉼표로 구분 — 예: 햇살, 바람, 나무, 별빛"
           />
-          <small>
-            쉼표로 구분해 적으면 그 이름으로 한 번에 만들어집니다.
-            {names.length > 0 && (
-              <b className={names.length === groupCount ? " ok" : " bad"}>
-                {" "}입력 {names.length}개 / 모둠 {groupCount}개
-              </b>
-            )}
-          </small>
         </label>
 
         <div className="modal-actions">

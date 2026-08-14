@@ -9692,7 +9692,7 @@ pre code {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  margin-bottom: 16px;
+  margin-bottom: 13px;
 }
 .book-field > span {
   font-size: 13px;
@@ -9711,26 +9711,27 @@ pre code {
 }
 .book-field-row { display: flex; gap: 12px; }
 .book-field-row .book-field { flex: 1; }
-.book-mode-list { display: flex; flex-direction: column; gap: 6px; }
-.book-mode-btn {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  align-items: flex-start;
-  padding: 10px 12px;
+/* 가로 세그먼트 버튼 — 구성 방식·모둠 수 (모달에 스크롤이 안 생기게) */
+.book-seg { display: flex; gap: 6px; }
+.book-seg-btn {
+  flex: 1;
+  padding: 8px 10px;
   border: 1.5px solid var(--border);
   border-radius: var(--radius-btn);
   background: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-sub);
   cursor: pointer;
-  text-align: left;
-  transition: border-color 0.15s, background 0.15s;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
 }
-.book-mode-btn strong { font-size: 13.5px; color: var(--text); }
-.book-mode-btn small { font-size: 11.5px; color: var(--text-sub); }
-.book-mode-btn.active {
+.book-seg-btn:hover { border-color: var(--primary); }
+.book-seg-btn.active {
   border-color: var(--primary);
   background: var(--primary-light);
+  color: var(--primary-dark);
 }
+.book-field--narrow { flex: 0 0 108px; }
 
 /* ── 모둠 대시보드 ── */
 .book-group-title {
@@ -10045,5 +10046,11 @@ pre code {
   padding: 1px 7px;
   margin-left: 5px;
 }
-.book-field small b.ok { color: #3d8a72; }
-.book-field small b.bad { color: var(--danger); }
+.book-cnt {
+  font-style: normal;
+  font-size: 11.5px;
+  font-weight: 800;
+  margin-left: 6px;
+}
+.book-cnt.ok { color: #3d8a72; }
+.book-cnt.bad { color: var(--danger); }
