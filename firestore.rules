@@ -310,7 +310,12 @@ service cloud.firestore {
     }
 
     match /bookActivities/{aId} {
-      allow read: if signedIn() && (isAdmin() || ownsBookActivity(aId) || isBookActivityMember(aId));
+      // 문서 자신에 classId가 있으므로 get() 없이 바로 판정합니다.
+      allow read: if signedIn() && (
+        isAdmin()
+        || ownsClass(resource.data.classId)
+        || isClassMember(resource.data.classId)
+      );
       allow create: if isAdmin()
                     || (isTeacher() && ownsClass(request.resource.data.classId));
       allow update, delete: if isAdmin() || ownsClass(resource.data.classId);

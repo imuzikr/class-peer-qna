@@ -47,11 +47,15 @@ function groupsFromCards(cards) {
 
 // onCompose를 주면 그 함수로 저장합니다(책방 등 다른 활동에서 재사용).
 // 주지 않으면 기본값인 공부방 모둠 카드(composeStudyGroups)로 저장합니다.
+// keepEmpty: 사람이 없는 모둠도 그대로 저장합니다.
+//   책방처럼 이름을 지어 미리 만들어 둔 모둠 칸은, 아직 배정을 안 했다고
+//   해서 사라지면 안 되므로 true로 씁니다. (공부방은 기존대로 false)
 export default function GroupComposer({
   board,
   roster = [],
   cards = [],
   onCompose = null,
+  keepEmpty = false,
   onClose,
   onSaved,
 }) {
@@ -170,7 +174,8 @@ export default function GroupComposer({
 
   async function handleSave() {
     if (saving) return;
-    const valid = groups.filter((g) => g.members.length > 0);
+    // keepEmpty면 빈 모둠도 그대로 둡니다(미리 만들어 둔 칸이 사라지지 않게).
+    const valid = keepEmpty ? groups : groups.filter((g) => g.members.length > 0);
     if (valid.length === 0) return;
     setSaving(true);
     try {

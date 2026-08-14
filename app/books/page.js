@@ -208,8 +208,23 @@ export default function BooksPage() {
                   ))}
                 </select>
               )}
-              {!admin && currentClass && (
-                <span className="books-class-name">{currentClass.name}</span>
+              {/* 학생이 여러 반에 속해 있으면 직접 고를 수 있게 (한 반이면 이름만) */}
+              {!admin && membershipIds.length > 1 ? (
+                <select
+                  className="study-class-select"
+                  value={classId ?? ""}
+                  onChange={(e) => setSelectedClassId(e.target.value)}
+                >
+                  {membershipIds.map((cid) => (
+                    <option key={cid} value={cid}>
+                      {classes.find((c) => c.id === cid)?.name ?? "우리 반"}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                !admin && currentClass && (
+                  <span className="books-class-name">{currentClass.name}</span>
+                )
               )}
             </div>
             {admin && classId && (

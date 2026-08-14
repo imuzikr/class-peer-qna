@@ -195,6 +195,7 @@ export default function BookGroupBoard({
             retired: g.retired,
           }))}
           onCompose={composeBookGroups}
+          keepEmpty
           onClose={() => setComposing(false)}
           onSaved={() => onToast?.("모둠을 구성했어요.")}
         />
