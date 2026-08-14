@@ -45,7 +45,16 @@ function groupsFromCards(cards) {
     }));
 }
 
-export default function GroupComposer({ board, roster = [], cards = [], onClose, onSaved }) {
+// onCompose를 주면 그 함수로 저장합니다(책방 등 다른 활동에서 재사용).
+// 주지 않으면 기본값인 공부방 모둠 카드(composeStudyGroups)로 저장합니다.
+export default function GroupComposer({
+  board,
+  roster = [],
+  cards = [],
+  onCompose = null,
+  onClose,
+  onSaved,
+}) {
   const hasExisting = cards.some((c) => c.groupId && !c.retired);
   const [tab, setTab] = useState(hasExisting ? "manual" : "auto");
   const [saving, setSaving] = useState(false);
@@ -165,17 +174,15 @@ export default function GroupComposer({ board, roster = [], cards = [], onClose,
     if (valid.length === 0) return;
     setSaving(true);
     try {
-      await composeStudyGroups(
-        getCurrentUser(),
-        board.id,
-        valid.map((g) => ({
-          index: g.index,
-          name: g.name.trim() || `${g.index}모둠`,
-          memberUids: g.members.map((m) => m.uid),
-          members: g.members,
-          leaderUid: g.leaderUid,
-        }))
-      );
+      const payload = valid.map((g) => ({
+        index: g.index,
+        name: g.name.trim() || `${g.index}모둠`,
+        memberUids: g.members.map((m) => m.uid),
+        members: g.members,
+        leaderUid: g.leaderUid,
+      }));
+      const save = onCompose ?? composeStudyGroups;
+      await save(getCurrentUser(), board.id, payload);
       onSaved?.();
       onClose();
     } finally {

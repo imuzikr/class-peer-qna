@@ -6,7 +6,7 @@
 // 왼쪽: 배움나눔 로고 ｜ 학습 공간 드롭다운(공부방·질문게시판) ｜ 파이썬 실행기 ｜ (리포트|관리자)
 // 오른쪽: 역할 전환(개발용) ｜ 사용자 프로필 ｜ 로그아웃
 // =============================================================
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { isAdmin, isTeacher } from "@/lib/user";
 import { isFirebaseConfigured } from "@/lib/firebase";
@@ -18,20 +18,18 @@ import UserProfile from "./UserProfile";
 import NotificationBell from "./NotificationBell";
 import RoleSwitcher from "./RoleSwitcher";
 import RoleManagerModal from "./RoleManagerModal";
-import { IconReport, IconPythonRunner, IconLogo, IconAnswer, IconSchool, IconBlackboard, IconTeacher, IconLogout } from "./StatusIcons";
+import { IconReport, IconPythonRunner, IconLogo, IconAnswer, IconBlackboard, IconBook, IconTeacher, IconLogout } from "./StatusIcons";
 
 export default function TopNav({ active, onPython, pyActive = false }) {
   const router = useRouter();
   const user = useCurrentUser();
   const admin = user ? isTeacher(user) : false;      // 교사+관리자 (대시보드 접근)
   const isStrictAdmin = user ? isAdmin(user) : false; // 최고 관리자만 (역할 관리)
-  const [navOpen, setNavOpen] = useState(false);
   const [roleMgrOpen, setRoleMgrOpen] = useState(false);
   const [directory, setDirectory] = useState([]);
   const [fruitTotal, setFruitTotal] = useState(0);
   const [memberships, setMemberships] = useState([]);
   const [sessionClassId, setSessionClassId] = useState(null);
-  const dropRef = useRef(null);
 
   // 관리자만 사용자 디렉터리를 구독(역할 관리·승인 대기 표시용)
   useEffect(() => {
@@ -79,18 +77,9 @@ export default function TopNav({ active, onPython, pyActive = false }) {
   useEffect(() => {
     router.prefetch("/board");
     router.prefetch("/study");
+    router.prefetch("/books");
     router.prefetch(admin ? "/admin" : "/report");
   }, [admin, router]);
-
-  // 드롭다운 바깥 클릭 시 닫기
-  useEffect(() => {
-    if (!navOpen) return;
-    function onDown(e) {
-      if (!dropRef.current?.contains(e.target)) setNavOpen(false);
-    }
-    document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
-  }, [navOpen]);
 
   function handlePython() {
     if (onPython) onPython();
@@ -98,7 +87,6 @@ export default function TopNav({ active, onPython, pyActive = false }) {
   }
 
   function go(path) {
-    setNavOpen(false);
     router.push(path);
   }
 
@@ -123,33 +111,28 @@ export default function TopNav({ active, onPython, pyActive = false }) {
         <span className="topbar-divider" aria-hidden="true" />
         <nav className="topnav-menu">
 
-          {/* 학습 공간 드롭다운 — 공부방 · 질문게시판 */}
-          <div className="topnav-drop-wrap" ref={dropRef}>
-            <button
-              className={`btn-ghost topnav-drop-btn ${active === "board" || active === "study" ? "nav-active" : ""}`}
-              onClick={() => setNavOpen((v) => !v)}
-            >
-              <IconSchool size={20} /> <span className="nav-label">학습 공간</span>
-              <span className="topnav-drop-chevron">{navOpen ? "▴" : "▾"}</span>
-            </button>
-
-            {navOpen && (
-              <div className="topnav-dropdown">
-                <button
-                  className={`topnav-drop-item ${active === "board" ? "active" : ""}`}
-                  onClick={() => go("/board")}
-                >
-                  <IconAnswer size={18} /> 질문방
-                </button>
-                <button
-                  className={`topnav-drop-item ${active === "study" ? "active" : ""}`}
-                  onClick={() => go("/study")}
-                >
-                  <IconBlackboard size={18} /> 공부방
-                </button>
-              </div>
-            )}
-          </div>
+          {/* 학습 공간 — 질문방 · 공부방 · 책방 (버튼 3개) */}
+          <button
+            className={`btn-ghost ${active === "board" ? "nav-active" : ""}`}
+            onClick={() => go("/board")}
+            title="질문방"
+          >
+            <IconAnswer size={20} /> <span className="nav-label">질문방</span>
+          </button>
+          <button
+            className={`btn-ghost ${active === "study" ? "nav-active" : ""}`}
+            onClick={() => go("/study")}
+            title="공부방"
+          >
+            <IconBlackboard size={20} /> <span className="nav-label">공부방</span>
+          </button>
+          <button
+            className={`btn-ghost ${active === "books" ? "nav-active" : ""}`}
+            onClick={() => go("/books")}
+            title="책방"
+          >
+            <IconBook size={20} /> <span className="nav-label">책방</span>
+          </button>
 
           <button
             data-py-toggle

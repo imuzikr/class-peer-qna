@@ -397,6 +397,19 @@ export function IconBlackboard({ size = 20, className = "" }) {
   );
 }
 
+// 책방 — 펼쳐진 책
+export function IconBook({ size = 20, className = "" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">
+      <path d="M12 7.15C10.3 5.9 8.3 5.35 6.05 5.5c-.72.05-1.3.65-1.3 1.38v9.1c0 .8.7 1.43 1.5 1.37 2-.15 3.8.35 5.3 1.5" fill="#FFF7ED" stroke="#3A312E" strokeWidth="1.5" strokeLinejoin="round"/>
+      <path d="M12 7.15c1.7-1.25 3.7-1.8 5.95-1.65.72.05 1.3.65 1.3 1.38v9.1c0 .8-.7 1.43-1.5 1.37-2-.15-3.8.35-5.3 1.5" fill="#FFFDF9" stroke="#3A312E" strokeWidth="1.5" strokeLinejoin="round"/>
+      <path d="M12 7.15v11.7" stroke="#3A312E" strokeWidth="1.35" strokeLinecap="round"/>
+      <path d="M7.15 9.05h2.6M7.15 11.5h2.1" stroke="#8A6258" strokeWidth="1.05" strokeLinecap="round"/>
+      <path d="M14.35 9.05h2.6M14.35 11.5h2.1" stroke="#8A6258" strokeWidth="1.05" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
 export function IconSchool({ size = 20, className = "" }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">
