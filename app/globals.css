@@ -10021,11 +10021,21 @@ pre code {
   overflow: hidden;
 }
 .dash-progress-bar b { display: block; height: 100%; border-radius: 999px; transition: width 0.25s; }
-/* 집계 카드 — 모둠 색 테두리 */
+/* 집계 카드 — 모둠 색 테두리.
+   글자 수가 달라도 폭을 고정해야 '줄 길이 = 언급 횟수'가 성립합니다.
+   (긴 낱말이 몇 개 없어도 많이 나온 것처럼 보이던 착시 방지)
+   넘치는 글자는 말줄임표로 자르고, 전체 낱말은 hover 툴팁으로 확인합니다. */
 .dash-chip {
+  display: inline-block;
+  width: 62px;
+  padding: 2px 6px;
   background: #fff;
   border-width: 1.5px;
   border-style: solid;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   flex-shrink: 0;
 }
 /* 같은 단어 = 한 줄. 나온 횟수만큼 카드를 반복해 줄 길이로 빈도를 보여 줌 */
@@ -10077,7 +10087,7 @@ pre code {
 }
 .dash-rows.big { gap: 8px; }
 .dash-rows.big .dash-word-row { flex-wrap: wrap; }
-.dash-rows.big .dash-chip { font-size: 17px; padding: 5px 14px; }
+.dash-rows.big .dash-chip { width: 116px; font-size: 17px; padding: 5px 10px; }
 .dash-rows.big .dash-row-count { font-size: 13px; }
 .dash-zoom-hint {
   font-size: 12px;
@@ -10090,6 +10100,7 @@ pre code {
 .dash-root.zoom { padding: 26px 32px; background: var(--bg); }
 .dash-root.zoom .consonant-label { font-size: 22px; }
 .dash-root.zoom .consonant-chip { font-size: 18px; padding: 4px 12px; }
+.dash-root.zoom .dash-chip { width: 82px; padding: 3px 8px; }
 .dash-root.zoom .dash-row-count { font-size: 14px; }
 .dash-root.zoom .consonant-center-topic { font-size: 30px; }
 .dash-root.zoom .consonant-center-label { font-size: 14px; }

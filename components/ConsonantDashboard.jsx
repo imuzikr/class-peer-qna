@@ -214,7 +214,8 @@ function WordRows({ list, colorOf, big = false }) {
               key={i}
               className="consonant-chip dash-chip"
               style={{ borderColor: colorOf(groupIndex), color: colorOf(groupIndex) }}
-              title={`${groupIndex}모둠`}
+              // 폭이 고정돼 긴 낱말은 잘리므로, 전체 낱말을 툴팁으로 보여 줍니다.
+              title={`${w.text} — ${groupIndex}모둠`}
             >
               {w.text}
             </span>
