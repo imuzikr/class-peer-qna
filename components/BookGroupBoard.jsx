@@ -21,6 +21,7 @@ import { IconPeople, IconLock } from "./StatusIcons";
 
 export default function BookGroupBoard({
   activity,
+  className = "",
   user,
   isTeacher,
   roster = [],
@@ -77,6 +78,8 @@ export default function BookGroupBoard({
           <h1 className="book-group-title">
             {activity.title}
             <span className="book-group-topic">{activity.topic}</span>
+            {/* 이 활동이 어느 반 것인지 — 학생에게 안 보이면 반이 다른 경우가 많아 표시 */}
+            {className && <span className="book-group-class">{className}</span>}
           </h1>
         </div>
         {isTeacher && (

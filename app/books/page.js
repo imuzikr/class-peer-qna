@@ -179,6 +179,9 @@ export default function BooksPage() {
       ) : activeActivity ? (
         <BookGroupBoard
           activity={activeActivity}
+          className={
+            classes.find((c) => c.id === activeActivity.classId)?.name ?? ""
+          }
           user={user}
           isTeacher={admin}
           roster={roster}
@@ -245,8 +248,8 @@ export default function BooksPage() {
           ) : activities.length === 0 ? (
             <p className="empty-note">
               {admin
-                ? "아직 활동이 없어요. ‘활동 만들기’로 첫 활동을 열어 보세요."
-                : "아직 열린 활동이 없어요. 선생님이 활동을 열면 여기에 나타납니다."}
+                ? `‘${currentClass?.name ?? "이 반"}’에는 아직 활동이 없어요. ‘활동 만들기’로 첫 활동을 열어 보세요.`
+                : `‘${currentClass?.name ?? "우리 반"}’에는 아직 열린 활동이 없어요. 선생님이 활동을 열면 여기에 나타납니다.`}
             </p>
           ) : (
             <div className="book-activity-grid">

@@ -10054,3 +10054,13 @@ pre code {
 }
 .book-cnt.ok { color: #3d8a72; }
 .book-cnt.bad { color: var(--danger); }
+
+/* 모둠 대시보드 — 이 활동이 어느 반 것인지 */
+.book-group-class {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-sub);
+  background: var(--neutral);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
