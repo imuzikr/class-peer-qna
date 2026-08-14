@@ -126,7 +126,9 @@ export default function ConsonantCanvas({ activity, groupId, user, isTeacher, on
 
               <div className="consonant-words">
                 {list.map((w) => (
-                  <span key={w.id} className="consonant-chip" title={`${w.authorName}`}>
+                  // 공부방과 달리 여기는 '모둠이 함께 만든 판'이라, 누가 넣었는지가
+                  // 아니라 어느 모둠 것인지를 보여 줍니다.
+                  <span key={w.id} className="consonant-chip" title={group?.groupName || "우리 모둠"}>
                     {w.text}
                     {(w.authorId === user?.uid || isTeacher) && !activity.locked && (
                       <button

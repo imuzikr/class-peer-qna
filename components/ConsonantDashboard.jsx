@@ -41,6 +41,13 @@ export default function ConsonantDashboard({ activity, onClose }) {
   }, [activity.id, groupIdsKey]);
 
   const colorOf = (groupIndex) => GROUP_COLORS[(groupIndex - 1) % GROUP_COLORS.length];
+  // 툴팁에 '1모둠' 대신 교사가 지어 준 이름(나무·소리…)을 보여 줍니다.
+  const groupNameOf = useMemo(() => {
+    const byIndex = new Map(
+      groups.map((g) => [g.groupIndex, g.groupName || `${g.groupIndex}모둠`])
+    );
+    return (i) => byIndex.get(i) ?? `${i}모둠`;
+  }, [groups]);
 
   // 칸별 → 같은 단어끼리 묶되, 나온 횟수만큼 모둠 정보를 그대로 남깁니다.
   //   [{ text, count, from: [모둠번호, 모둠번호, …] }]  ← 많이 나온 단어가 위로
@@ -138,7 +145,7 @@ export default function ConsonantDashboard({ activity, onClose }) {
                 title={`${CONSONANT_LABELS[slot]} 크게 보기`}
               >
                 <span className="consonant-label">{CONSONANT_LABELS[slot]}</span>
-                <WordRows list={list} colorOf={colorOf} />
+                <WordRows list={list} colorOf={colorOf} nameOf={groupNameOf} />
               </button>
             );
           })}
@@ -189,7 +196,7 @@ export default function ConsonantDashboard({ activity, onClose }) {
               {(merged[cellKey(zoomSlot)] ?? []).length === 0 ? (
                 <p className="dash-side-empty">아직 이 칸에 나온 단어가 없어요.</p>
               ) : (
-                <WordRows list={merged[cellKey(zoomSlot)]} colorOf={colorOf} big />
+                <WordRows list={merged[cellKey(zoomSlot)]} colorOf={colorOf} nameOf={groupNameOf} big />
               )}
             </div>
             <p className="dash-zoom-hint">
@@ -204,7 +211,7 @@ export default function ConsonantDashboard({ activity, onClose }) {
 
 // 단어 한 줄 = 같은 단어. 나온 횟수만큼 카드를 반복해 늘어놓아
 // 줄 길이만으로 어떤 단어가 많이 나왔는지 바로 보이게 합니다.
-function WordRows({ list, colorOf, big = false }) {
+function WordRows({ list, colorOf, nameOf, big = false }) {
   return (
     <div className={`dash-rows${big ? " big" : ""}`}>
       {list.map((w) => (
@@ -215,7 +222,7 @@ function WordRows({ list, colorOf, big = false }) {
               className="consonant-chip dash-chip"
               style={{ borderColor: colorOf(groupIndex), color: colorOf(groupIndex) }}
               // 폭이 고정돼 긴 낱말은 잘리므로, 전체 낱말을 툴팁으로 보여 줍니다.
-              title={`${w.text} — ${groupIndex}모둠`}
+              title={`${w.text} — ${nameOf(groupIndex)}`}
             >
               {w.text}
             </span>
