@@ -22,6 +22,7 @@ import {
   toDate,
   deleteStudent,
   dismissWithdrawalRequest,
+  deleteRewardRecord,
 } from "@/lib/store";
 import { isFirebaseConfigured } from "@/lib/firebase";
 import { isAdmin, isTeacher } from "@/lib/user";
@@ -273,6 +274,8 @@ export default function AdminDashboardPage() {
   const [editingStudent, setEditingStudent] = useState(null);
   const [confirmWithdrawStudent, setConfirmWithdrawStudent] = useState(null);
   const [withdrawBusy, setWithdrawBusy] = useState(false);
+  const [confirmRewardCleanup, setConfirmRewardCleanup] = useState(false);
+  const [rewardCleanupBusy, setRewardCleanupBusy] = useState(false);
   const [activeStatKey, setActiveStatKey] = useState(null); // 통계 카드 드릴다운
   const [selectedKwl, setSelectedKwl] = useState([]); // 선택 학생 KWL 기록
   const [selectedNotes, setSelectedNotes] = useState([]); // 선택 학생 멋진 순간(누가기록)
@@ -472,6 +475,29 @@ export default function AdminDashboardPage() {
     } finally {
       setWithdrawBusy(false);
       setConfirmWithdrawStudent(null);
+    }
+  }
+
+  // hansung.in 도메인이 아닌(또는 탈퇴로 프로필이 사라진) 계정의 과일 기록 —
+  // 최고 관리자 전용 일회성 정리 대상. 도메인 판단은 users 디렉터리의 이메일 기준.
+  const REWARD_DOMAIN = "hansung.in";
+  const offDomainRewards = useMemo(() => {
+    if (!superAdmin) return [];
+    const dir = new Map(directory.map((d) => [d.uid, d]));
+    return allRewards.filter((r) => {
+      const email = (dir.get(r.uid)?.email || "").trim().toLowerCase();
+      return !email.endsWith(`@${REWARD_DOMAIN}`);
+    });
+  }, [superAdmin, allRewards, directory]);
+
+  async function handleConfirmRewardCleanup() {
+    if (rewardCleanupBusy || offDomainRewards.length === 0) return;
+    setRewardCleanupBusy(true);
+    try {
+      await Promise.all(offDomainRewards.map((r) => deleteRewardRecord(r.id)));
+    } finally {
+      setRewardCleanupBusy(false);
+      setConfirmRewardCleanup(false);
     }
   }
 
@@ -743,6 +769,27 @@ export default function AdminDashboardPage() {
                   </li>
                 ))}
               </ul>
+            </div>
+          )}
+          {isStrictAdmin && offDomainRewards.length > 0 && (
+            <div className="role-pending">
+              <p className="role-pending-title">
+                🍎 {REWARD_DOMAIN} 외 계정 과일 기록 ({offDomainRewards.length})
+              </p>
+              <p className="role-pending-desc">
+                다른 이메일 도메인이거나 이미 탈퇴해 프로필이 사라진 계정에
+                남은 과일 기록입니다.
+              </p>
+              <span className="role-pending-actions">
+                <button
+                  type="button"
+                  className="btn-ghost role-danger-btn"
+                  onClick={() => setConfirmRewardCleanup(true)}
+                  disabled={rewardCleanupBusy}
+                >
+                  전체 삭제
+                </button>
+              </span>
             </div>
           )}
           <div className="admin-panel-head">
@@ -1088,6 +1135,19 @@ export default function AdminDashboardPage() {
           danger
           onConfirm={handleConfirmStudentWithdraw}
           onClose={() => setConfirmWithdrawStudent(null)}
+        />
+      )}
+
+      {confirmRewardCleanup && (
+        <ConfirmModal
+          icon="🍎"
+          title={`${REWARD_DOMAIN} 외 계정 과일 기록 삭제`}
+          preview={`${offDomainRewards.length}건`}
+          description={"해당 기록은 되돌릴 수 없이 삭제됩니다.\n(학생이 받은 과일·별 표시가 사라집니다)"}
+          confirmLabel={rewardCleanupBusy ? "삭제 중…" : "전체 삭제"}
+          danger
+          onConfirm={handleConfirmRewardCleanup}
+          onClose={() => setConfirmRewardCleanup(false)}
         />
       )}
     </div>
