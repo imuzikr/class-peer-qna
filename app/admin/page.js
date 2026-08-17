@@ -22,11 +22,10 @@ import {
   toDate,
   deleteStudent,
   dismissWithdrawalRequest,
-  deleteRewardRecord,
+  sweepOrphanedStudentData,
 } from "@/lib/store";
 import { isFirebaseConfigured } from "@/lib/firebase";
 import { isAdmin, isTeacher } from "@/lib/user";
-import { SCHOOL_EMAIL_DOMAIN } from "@/lib/auth";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import { useRequireAuth } from "@/lib/useRequireAuth";
 import TopNav from "@/components/TopNav";
@@ -276,8 +275,9 @@ export default function AdminDashboardPage() {
   const [confirmWithdrawStudent, setConfirmWithdrawStudent] = useState(null);
   const [withdrawBusy, setWithdrawBusy] = useState(false);
   const [withdrawError, setWithdrawError] = useState("");
-  const [confirmRewardCleanup, setConfirmRewardCleanup] = useState(false);
-  const [rewardCleanupBusy, setRewardCleanupBusy] = useState(false);
+  const [confirmOrphanSweep, setConfirmOrphanSweep] = useState(false);
+  const [orphanSweepBusy, setOrphanSweepBusy] = useState(false);
+  const [orphanSweepResult, setOrphanSweepResult] = useState(null); // { swept, warnings } | null
   const [activeStatKey, setActiveStatKey] = useState(null); // 통계 카드 드릴다운
   const [selectedKwl, setSelectedKwl] = useState([]); // 선택 학생 KWL 기록
   const [selectedNotes, setSelectedNotes] = useState([]); // 선택 학생 멋진 순간(누가기록)
@@ -490,29 +490,21 @@ export default function AdminDashboardPage() {
     }
   }
 
-  // 학교 도메인이 아닌(또는 탈퇴로 프로필이 사라진) 계정의 과일 기록 —
-  // 최고 관리자 전용 일회성 정리 대상. 도메인 판단은 users 디렉터리의 이메일 기준.
-  // 예전엔 "hansung.in"으로 잘못 적혀 있었습니다(실제 학교 도메인이 아니라
-  // 정상 계정까지 정리 대상으로 잘못 걸릴 수 있었던 오타) — 학생 가입 제한과
-  // 같은 값(SCHOOL_EMAIL_DOMAIN)을 쓰도록 고쳤습니다.
-  const REWARD_DOMAIN = SCHOOL_EMAIL_DOMAIN;
-  const offDomainRewards = useMemo(() => {
-    if (!superAdmin) return [];
-    const dir = new Map(directory.map((d) => [d.uid, d]));
-    return allRewards.filter((r) => {
-      const email = (dir.get(r.uid)?.email || "").trim().toLowerCase();
-      return !email.endsWith(`@${REWARD_DOMAIN}`);
-    });
-  }, [superAdmin, allRewards, directory]);
-
-  async function handleConfirmRewardCleanup() {
-    if (rewardCleanupBusy || offDomainRewards.length === 0) return;
-    setRewardCleanupBusy(true);
+  // 탈퇴로 프로필(users/{uid})이 사라졌는데도 반 소속·과일 기록 등이 남아
+  // "이름 미설정"으로 계속 보이는 계정을 정리 — 최고 관리자 전용 일회성 정리.
+  // (deleteStudentAccount가 생기기 전에 탈퇴한 학생들의 잔여 데이터. 이후의
+  // 탈퇴는 서버에서 즉시 정리되므로 이 버튼은 과거분 정리용입니다.)
+  async function handleConfirmOrphanSweep() {
+    if (orphanSweepBusy) return;
+    setOrphanSweepBusy(true);
     try {
-      await Promise.all(offDomainRewards.map((r) => deleteRewardRecord(r.id)));
+      const res = await sweepOrphanedStudentData();
+      setOrphanSweepResult(res);
+    } catch (e) {
+      setOrphanSweepResult({ swept: 0, warnings: [e?.message ?? "알 수 없는 오류"] });
     } finally {
-      setRewardCleanupBusy(false);
-      setConfirmRewardCleanup(false);
+      setOrphanSweepBusy(false);
+      setConfirmOrphanSweep(false);
     }
   }
 
@@ -786,25 +778,32 @@ export default function AdminDashboardPage() {
               </ul>
             </div>
           )}
-          {isStrictAdmin && offDomainRewards.length > 0 && (
+          {isStrictAdmin && (
             <div className="role-pending">
-              <p className="role-pending-title">
-                🍎 {REWARD_DOMAIN} 외 계정 과일 기록 ({offDomainRewards.length})
-              </p>
+              <p className="role-pending-title">🧹 탈퇴 잔여 데이터 정리</p>
               <p className="role-pending-desc">
-                다른 이메일 도메인이거나 이미 탈퇴해 프로필이 사라진 계정에
-                남은 과일 기록입니다.
+                탈퇴했지만 반 소속·과일 기록 등이 남아 "이름 미설정"으로
+                보이는 계정을 찾아 한 번에 정리합니다.
               </p>
               <span className="role-pending-actions">
                 <button
                   type="button"
                   className="btn-ghost role-danger-btn"
-                  onClick={() => setConfirmRewardCleanup(true)}
-                  disabled={rewardCleanupBusy}
+                  onClick={() => setConfirmOrphanSweep(true)}
+                  disabled={orphanSweepBusy}
                 >
-                  전체 삭제
+                  {orphanSweepBusy ? "정리 중…" : "정리하기"}
                 </button>
               </span>
+              {orphanSweepResult && (
+                <p className="role-pending-desc">
+                  {orphanSweepResult.swept > 0
+                    ? `${orphanSweepResult.swept}개 계정의 잔여 데이터를 지웠어요.`
+                    : "정리할 잔여 데이터가 없어요."}
+                  {orphanSweepResult.warnings?.length > 0 &&
+                    ` (일부 실패: ${orphanSweepResult.warnings.join(", ")})`}
+                </p>
+              )}
             </div>
           )}
           <div className="admin-panel-head">
@@ -1166,16 +1165,18 @@ export default function AdminDashboardPage() {
         />
       )}
 
-      {confirmRewardCleanup && (
+      {confirmOrphanSweep && (
         <ConfirmModal
-          icon="🍎"
-          title={`${REWARD_DOMAIN} 외 계정 과일 기록 삭제`}
-          preview={`${offDomainRewards.length}건`}
-          description={"해당 기록은 되돌릴 수 없이 삭제됩니다.\n(학생이 받은 과일·별 표시가 사라집니다)"}
-          confirmLabel={rewardCleanupBusy ? "삭제 중…" : "전체 삭제"}
+          icon="🧹"
+          title="탈퇴 잔여 데이터 정리"
+          description={
+            "프로필이 사라진 탈퇴 계정의 반 소속·과일 기록·질문/답변 등을\n" +
+            "모두 찾아 지웁니다. 되돌릴 수 없습니다."
+          }
+          confirmLabel={orphanSweepBusy ? "정리 중…" : "정리하기"}
           danger
-          onConfirm={handleConfirmRewardCleanup}
-          onClose={() => setConfirmRewardCleanup(false)}
+          onConfirm={handleConfirmOrphanSweep}
+          onClose={() => setConfirmOrphanSweep(false)}
         />
       )}
     </div>

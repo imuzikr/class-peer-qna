@@ -496,6 +496,58 @@ exports.deleteStudentAccount = onCall({ enforceAppCheck: true }, async (request)
 });
 
 // =============================================================
+// [2-d] 탈퇴 잔여 데이터 일괄 정리 (최고 관리자 전용, 일회성)
+// -------------------------------------------------------------
+// deleteStudentAccount가 생기기 전에는 탈퇴 처리를 해도 memberships·
+// rewards 등이 지워지지 않아, users/{uid} 프로필은 없는데 흔적(과일 기록·
+// 반 소속 등)만 남는 계정이 쌓였습니다("멋진 순간" 패널의 "이름 미설정").
+// 이 함수는 그런 uid를 찾아 purgeStudentData로 한 번에 정리합니다.
+// (앞으로의 탈퇴는 deleteStudentAccount가 즉시 purgeStudentData를
+//  호출하므로 이 함수는 과거분 정리용입니다.)
+exports.sweepOrphanedStudentData = onCall({ enforceAppCheck: true }, async (request) => {
+  if (!request.auth) throw new HttpsError("unauthenticated", "로그인이 필요합니다.");
+  const callerRole = request.auth.token.role;
+  const callerIsAdmin =
+    callerRole === "admin" ||
+    (request.auth.token.email === INITIAL_ADMIN_EMAIL &&
+      request.auth.token.email_verified === true);
+  if (!callerIsAdmin) {
+    throw new HttpsError("permission-denied", "관리자만 실행할 수 있습니다.");
+  }
+
+  // 후보 uid 수집 — 가벼운 컬렉션 위주로만 훑고, 실제 정리는
+  // purgeStudentData가 관련된 모든 컬렉션(질문·답변·카드·책방 등)을
+  // 마저 처리합니다.
+  const uidSet = new Set();
+  async function collect(collectionRef, field) {
+    const snap = await collectionRef.select(field).get().catch(() => null);
+    if (!snap) return;
+    snap.forEach((d) => {
+      const v = d.get(field);
+      if (v) uidSet.add(v);
+    });
+  }
+  await collect(db.collection("memberships"), "uid");
+  await collect(db.collection("rewards"), "uid");
+  await collect(db.collection("kwl"), "userId");
+  await collect(db.collection("studentNotes"), "studentUid");
+  await collect(db.collection("questions"), "authorId");
+
+  const orphans = [];
+  for (const uid of uidSet) {
+    const prof = await db.doc(`users/${uid}`).get().catch(() => null);
+    if (!prof || !prof.exists) orphans.push(uid);
+  }
+
+  const warnings = [];
+  for (const uid of orphans) {
+    await purgeStudentData(uid, warnings);
+  }
+
+  return { ok: warnings.length === 0, swept: orphans.length, uids: orphans, warnings };
+});
+
+// =============================================================
 // [3] 예약 작업 — 주간 답변왕 정기 공지 (랜딩은 실시간 반영)
 // -------------------------------------------------------------
 // 순위 자체는 답변이 생기고/지워질 때마다 recomputeAnswerers()가 즉시
