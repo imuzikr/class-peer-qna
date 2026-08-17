@@ -26,6 +26,7 @@ import {
 } from "@/lib/store";
 import { isFirebaseConfigured } from "@/lib/firebase";
 import { isAdmin, isTeacher } from "@/lib/user";
+import { SCHOOL_EMAIL_DOMAIN } from "@/lib/auth";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import { useRequireAuth } from "@/lib/useRequireAuth";
 import TopNav from "@/components/TopNav";
@@ -489,9 +490,12 @@ export default function AdminDashboardPage() {
     }
   }
 
-  // hansung.in 도메인이 아닌(또는 탈퇴로 프로필이 사라진) 계정의 과일 기록 —
+  // 학교 도메인이 아닌(또는 탈퇴로 프로필이 사라진) 계정의 과일 기록 —
   // 최고 관리자 전용 일회성 정리 대상. 도메인 판단은 users 디렉터리의 이메일 기준.
-  const REWARD_DOMAIN = "hansung.in";
+  // 예전엔 "hansung.in"으로 잘못 적혀 있었습니다(실제 학교 도메인이 아니라
+  // 정상 계정까지 정리 대상으로 잘못 걸릴 수 있었던 오타) — 학생 가입 제한과
+  // 같은 값(SCHOOL_EMAIL_DOMAIN)을 쓰도록 고쳤습니다.
+  const REWARD_DOMAIN = SCHOOL_EMAIL_DOMAIN;
   const offDomainRewards = useMemo(() => {
     if (!superAdmin) return [];
     const dir = new Map(directory.map((d) => [d.uid, d]));

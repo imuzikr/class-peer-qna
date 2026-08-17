@@ -24,6 +24,7 @@ import {
   signInWithEmail,
   signInWithGoogle,
   onAuthChange,
+  SCHOOL_EMAIL_DOMAIN,
 } from "@/lib/auth";
 import SiteFooter from "@/components/SiteFooter";
 import { IconLogo } from "@/components/StatusIcons";
@@ -72,6 +73,7 @@ function authErrorMessage(code) {
     "auth/weak-password": "비밀번호는 6자 이상이어야 합니다.",
     "auth/popup-closed-by-user": "구글 로그인 창이 닫혔습니다.",
     "auth/too-many-requests": "잠시 후 다시 시도해 주세요.",
+    "auth/school-domain-required": `학생 가입은 학교 이메일(@${SCHOOL_EMAIL_DOMAIN})로만 가능합니다.`,
   };
   return map[code] || "로그인에 실패했습니다. 다시 시도해 주세요.";
 }
@@ -301,10 +303,15 @@ export default function LandingPage() {
                       역할 변경
                     </button>
                   </div>
-                  {signupRole === "teacher" && (
+                  {signupRole === "teacher" ? (
                     <p className="signup-role-note">
                       선생님 권한은 <strong>관리자 승인 후</strong> 부여됩니다. 승인 전까지는
                       학생으로 이용할 수 있어요.
+                    </p>
+                  ) : (
+                    <p className="signup-role-note">
+                      학생 가입은 <strong>학교 이메일(@{SCHOOL_EMAIL_DOMAIN})</strong>로만
+                      가능해요.
                     </p>
                   )}
                 </>
