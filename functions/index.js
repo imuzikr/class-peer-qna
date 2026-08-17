@@ -15,6 +15,7 @@
 //   firebase deploy --only functions
 // ※ Cloud Functions는 Blaze(종량제) 요금제에서만 배포됩니다.
 //   학급 규모 사용량은 대부분 무료 한도 안에서 처리됩니다.
+// (런타임 nodejs22 — firebase.json 참고)
 // =============================================================
 const {
   onDocumentCreated,
