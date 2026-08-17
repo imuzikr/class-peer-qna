@@ -695,14 +695,15 @@ export default function StudyCardModal({
             </div>
           )}
 
-          {canEdit && (
+          {(canEdit || (canDelete && !isNew && !card?.groupId)) && (
             <div className="study-card-modal-save-row">
-              {autoStatus === "error" && (
+              {canEdit && autoStatus === "error" && (
                 <span className="study-autosave study-autosave--error">
                   저장 실패 · 다시 시도됩니다
                 </span>
               )}
-              {/* 삭제는 교사만. 모둠 카드는 삭제 불가(위험 방지) — 삭제 버튼 자체를 제거 */}
+              {/* 삭제는 교사만 — 보드가 잠겨 있어도(canEdit=false) 지울 수 있습니다.
+                  모둠 카드는 삭제 불가(위험 방지) — 삭제 버튼 자체를 제거 */}
               {canDelete && !isNew && !card?.groupId && (
                 confirmDelete ? (
                   <>
@@ -722,13 +723,15 @@ export default function StudyCardModal({
                   </button>
                 )
               )}
-              <button
-                className="btn-primary"
-                onClick={handleSave}
-                disabled={saving}
-              >
-                {saving ? "저장 중..." : "저장하고 닫기"}
-              </button>
+              {canEdit && (
+                <button
+                  className="btn-primary"
+                  onClick={handleSave}
+                  disabled={saving}
+                >
+                  {saving ? "저장 중..." : "저장하고 닫기"}
+                </button>
+              )}
             </div>
           )}
         </div>
