@@ -8371,12 +8371,37 @@ pre code {
   max-height: 90vh;
   transition: max-width 0.2s ease;
 }
-/* 크게 보기 — 발표 모드와 비슷한 크기로 확장 (토글로 원복) */
+/* 크게 보기(발표 크기) — 창을 무작정 키우기보다, 첨부는 감추고
+   제목·본문 텍스트를 슬라이드 한 장처럼 가운데에 크게 보여줍니다. */
 .modal-study-card.modal-study-card--expanded {
-  max-width: 94vw;
-  width: 94vw;
-  height: 94vh;
-  max-height: 94vh;
+  max-width: 880px;
+  width: 90vw;
+  height: 86vh;
+  max-height: 86vh;
+}
+.study-card-modal-body.study-slide-mode {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 12px 40px 24px;
+}
+.study-slide-mode .study-card-title-input {
+  font-family: var(--font-serif);
+  font-size: 30px;
+  font-weight: 800;
+  text-align: center;
+  margin-bottom: 24px;
+}
+.study-slide-mode .study-card-read-title {
+  font-family: var(--font-serif);
+  font-size: 32px;
+  text-align: center;
+  margin-bottom: 24px;
+}
+.study-slide-mode .study-card-body,
+.study-slide-mode .rte-full .rte-area {
+  font-size: 21px;
+  line-height: 1.9;
 }
 .study-card-expand-btn {
   flex-shrink: 0;
