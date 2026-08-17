@@ -1,12 +1,21 @@
 "use client";
 
 // =============================================================
-// 수업하기 — 교사 화면 (왼쪽 슬라이드 · 오른쪽 메모)
+// 수업하기 — 교사용 수업 페이지
 // -------------------------------------------------------------
-// 같은 레이아웃을 두 가지로 씁니다.
-//  · mode="edit"  — 수업 전, 장마다 메모를 적어 두는 화면(자동 저장)
+// 위아래로 스크롤되는 '페이지'입니다. 지금은 슬라이드 카드와 해설 카드
+// 두 장이 2열로 놓여 있고, 앞으로 수업 관련 기능을 이 아래에 섹션으로
+// 계속 덧붙일 수 있게 만들었습니다.
+//
+// 같은 화면을 두 가지 모드로 씁니다.
+//  · mode="edit"  — 수업 전, 장마다 해설을 적어 두는 화면(자동 저장)
 //  · mode="teach" — 수업 중. 넘길 때마다 그 반 학생 화면이 같은 장으로
-//                   강제 전환됩니다(학생에겐 슬라이드만, 메모는 교사 전용).
+//                   강제 전환됩니다(학생에겐 슬라이드만, 해설은 교사 전용).
+//
+// [스크롤과 학생 화면은 무관합니다]
+// 방송은 '지금 몇 번째 장인지'가 바뀔 때만 씁니다(아래 useEffect의 의존성).
+// 교사가 페이지를 아무리 위아래로 굴려도 그 값은 변하지 않으므로, 학생
+// 화면은 교사가 슬라이드를 넘기기 전까지 계속 같은 장에 머뭅니다.
 //
 // 이전 / 다음 / 종료 — 종료하면 방송이 꺼져 학생 화면도 원래대로 돌아갑니다.
 // =============================================================
@@ -88,7 +97,7 @@ export default function LessonMode({
       <div className="lesson-head">
         <strong className="lesson-title">{lesson.title}</strong>
         {editing ? (
-          <span className="lesson-badge lesson-badge--edit">메모 작성</span>
+          <span className="lesson-badge lesson-badge--edit">해설 작성</span>
         ) : (
           <span className="lesson-badge">
             <span className="broadcast-live-dot" aria-hidden="true" />
@@ -101,58 +110,80 @@ export default function LessonMode({
         </button>
       </div>
 
-      <div className="lesson-body">
-        <div className="lesson-slide-pane">
-          {cur ? (
-            <img className="lesson-slide-img" src={cur.imageUrl} alt={`슬라이드 ${idx + 1}`} />
-          ) : (
-            <p className="lesson-empty">슬라이드가 없어요.</p>
-          )}
+      {/* 수업 페이지 본문 — 위아래로 스크롤됩니다. 스크롤은 이 화면 안의
+          일일 뿐이라 학생 화면과는 아무 상관이 없습니다(아래 주석 참고). */}
+      <div className="lesson-page">
+        <div className="lesson-deck">
+          {/* ── 슬라이드 카드 ── */}
+          <section className="lesson-card lesson-card--slide">
+            <div className="lesson-card-head">
+              <h2>슬라이드</h2>
+            </div>
+
+            <div className="lesson-stage">
+              {cur ? (
+                <img className="lesson-slide-img" src={cur.imageUrl} alt={`슬라이드 ${idx + 1}`} />
+              ) : (
+                <p className="lesson-empty">슬라이드가 없어요.</p>
+              )}
+            </div>
+
+            {/* 넘기기 버튼은 슬라이드와 한 카드에 둡니다 — 아래에 다른 수업
+                기능이 붙어도 슬라이드와 조작이 떨어지지 않게. */}
+            <div className="lesson-card-foot">
+              <button
+                type="button"
+                className="btn-primary lesson-nav"
+                onClick={() => setIdx((i) => Math.max(0, i - 1))}
+                disabled={idx === 0}
+              >
+                ‹ 이전
+              </button>
+              {total > 0 && total <= 24 && (
+                <span className="lesson-dots" aria-hidden="true">
+                  {slides.map((_, i) => (
+                    <i key={i} className={i === idx ? "on" : ""} />
+                  ))}
+                </span>
+              )}
+              <button
+                type="button"
+                className="btn-primary lesson-nav"
+                onClick={() => setIdx((i) => Math.min(total - 1, i + 1))}
+                disabled={idx >= total - 1}
+              >
+                다음 ›
+              </button>
+            </div>
+          </section>
+
+          {/* ── 해설 카드 ── */}
+          <section className="lesson-card lesson-card--note">
+            <div className="lesson-card-head">
+              <h2>해설</h2>
+              {editing && saved && <em className="lesson-saved">✓ 저장됨</em>}
+              <small>나만 보여요</small>
+            </div>
+
+            <div className="lesson-note-body">
+              {editing ? (
+                <textarea
+                  className="lesson-note-input"
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder="이 장에서 할 이야기, 발문, 활동 안내를 적어 두세요."
+                />
+              ) : note.trim() ? (
+                <div className="lesson-note-text">{note}</div>
+              ) : (
+                <p className="lesson-note-empty">이 장에는 해설이 없어요.</p>
+              )}
+            </div>
+          </section>
         </div>
 
-        <aside className="lesson-note-pane">
-          <div className="lesson-note-head">
-            <span>수업 메모</span>
-            {editing && saved && <em className="lesson-saved">✓ 저장됨</em>}
-            <small>나만 보여요</small>
-          </div>
-          {editing ? (
-            <textarea
-              className="lesson-note-input"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="이 장에서 할 이야기, 발문, 활동 안내를 적어 두세요."
-            />
-          ) : note.trim() ? (
-            <div className="lesson-note-text">{note}</div>
-          ) : (
-            <p className="lesson-note-empty">이 장에는 메모가 없어요.</p>
-          )}
-        </aside>
-      </div>
-
-      <div className="lesson-foot">
-        <button
-          type="button"
-          className="btn-primary lesson-nav"
-          onClick={() => setIdx((i) => Math.max(0, i - 1))}
-          disabled={idx === 0}
-        >
-          ‹ 이전
-        </button>
-        <span className="lesson-dots" aria-hidden="true">
-          {slides.map((_, i) => (
-            <i key={i} className={i === idx ? "on" : ""} />
-          ))}
-        </span>
-        <button
-          type="button"
-          className="btn-primary lesson-nav"
-          onClick={() => setIdx((i) => Math.min(total - 1, i + 1))}
-          disabled={idx >= total - 1}
-        >
-          다음 ›
-        </button>
+        {/* 앞으로 수업 관련 기능(출석·퀴즈·활동 등)은 이 아래에 섹션으로
+            덧붙이면 됩니다. 슬라이드 카드와 독립적이라 방송에는 영향 없습니다. */}
       </div>
     </div>
   );
