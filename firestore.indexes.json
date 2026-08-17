@@ -56,6 +56,22 @@
       "indexes": [
         { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }
       ]
+    },
+    {
+      "//": "purgeStudentData — 탈퇴 시 책방 낱말 정리: collectionGroup words, authorId==",
+      "collectionGroup": "words",
+      "fieldPath": "authorId",
+      "indexes": [
+        { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }
+      ]
+    },
+    {
+      "//": "purgeStudentData — 탈퇴 시 책방 모둠 명단에서 제외: collectionGroup groups, memberUids array-contains",
+      "collectionGroup": "groups",
+      "fieldPath": "memberUids",
+      "indexes": [
+        { "arrayConfig": "CONTAINS", "queryScope": "COLLECTION_GROUP" }
+      ]
     }
   ]
 }
