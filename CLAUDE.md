@@ -111,3 +111,9 @@ Firebase 미설정 시 자동으로 **데모 모드**로 동작 (새로고침 �
 - `subscribeMyKwl` (단일 반환)은 제거됨 — `subscribeMyTodayKwl` (배열 반환)만 사용
 - CSS `@media (max-width: 760px)` 블록이 별도 존재함 — 768px 블록에서 필요 시 덮어쓸 것
 - 채팅 입력: Enter 단독은 줄바꿈, **Ctrl/⌘+Enter는 전송** (전송 버튼도 유지)
+- **pdf.js는 반드시 `legacy` 빌드**를 쓸 것 (`pdfjs-dist/legacy/build/…`).
+  기본 빌드는 `Map.prototype.getOrInsertComputed` 등 최신 문법을 써서
+  Chromium 141에서도 `render()`가 실패함(실측). `lib/pdfSlides.js`의 import와
+  `scripts/copy-pdf-worker.mjs`가 복사하는 워커는 **항상 같은 빌드로** 맞출 것
+- pdf.js 워커는 CSP(`worker-src 'self'`) 때문에 CDN 불가 — `public/`에 복사해
+  같은 출처에서 서빙 (prebuild·predev에서 자동 실행, 생성물이라 git 제외)
