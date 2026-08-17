@@ -6,7 +6,7 @@
 //
 //   [1] 데이터 무결성  : 답변 생성/삭제 시 answerCount를 서버가 집계
 //   [2] 역할 부여      : 관리자/교사/학생 역할을 커스텀 클레임으로 지정
-//   [3] 알림·예약 작업 : 새 답변 알림 발송, 주간 답변왕 집계
+//   [3] 알림          : 새 답변 알림 발송
 //
 // 배포: 프로젝트 루트에서
 //   npm install -g firebase-tools
@@ -23,7 +23,6 @@ const {
   onDocumentDeleted,
 } = require("firebase-functions/v2/firestore");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
-const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { setGlobalOptions } = require("firebase-functions/v2");
 const admin = require("firebase-admin");
 
@@ -38,114 +37,6 @@ setGlobalOptions({ region: "asia-northeast3" });
 //  계정에 한해 스스로 역할을 부여할 수 있게 허용합니다.)
 const ROLES = ["admin", "teacher", "student"];
 const INITIAL_ADMIN_EMAIL = "iseoul72@gmail.com";
-
-// =============================================================
-// 주간 랭킹 집계 헬퍼 — 랜딩(로그인 전) 공개 문서를 "이번 주"로 갱신
-// -------------------------------------------------------------
-// 예약(월요일 08:00) 실행뿐 아니라 질문/답변이 생기고 지워질 때마다
-// 호출되어, stats/weeklyQuestioners · stats/weeklyAnswerers 가 항상
-// "이번 주 현재까지"의 순위를 담도록 합니다.
-//  · 집계 창 = 가장 최근 "월요일 08:00(KST)" 이후 → 매주 월요일 08:00에
-//    자동 초기화(그 시각 이후 기록만 집계).
-//  · 이 문서는 로그인 없이 누구나 읽을 수 있으므로 **실명을 담지 않습니다**
-//    (익명 닉네임만). 실명은 본인과 담당 교사만 본다는 방침을 따릅니다.
-//  · 읽기 비용을 줄이려 이번 주 범위만 쿼리하고, 색인이 없으면 전체 읽기로
-//    자동 폴백합니다(readSince 참고).
-// =============================================================
-// 이번 주 시작(가장 최근 월요일 08:00 KST)을 epoch millis로 반환
-function weekStartMillis() {
-  const KST = 9 * 60 * 60 * 1000; // 한국 표준시(UTC+9, DST 없음)
-  const nowUtc = Date.now();
-  const kst = new Date(nowUtc + KST); // getUTC*가 KST 벽시계를 반영
-  const day = kst.getUTCDay(); // 0=일 … 1=월 … 6=토
-  const kstMidnightUtc =
-    Date.UTC(kst.getUTCFullYear(), kst.getUTCMonth(), kst.getUTCDate()) - KST;
-  const daysSinceMon = (day + 6) % 7; // 월=0 … 일=6
-  let start = kstMidnightUtc - daysSinceMon * 86400000 + 8 * 3600000; // 월 08:00 KST
-  if (start > nowUtc) start -= 7 * 86400000; // 아직 월요일 08:00 전이면 지난 주 기준
-  return start;
-}
-
-// snap을 이번 주(since 이후)로 걸러 상위 5명 + 총건수 집계.
-//
-// [실명을 담지 않습니다]
-// 이 결과는 stats/* 공개 문서로 저장되고, 그 문서는 로그인 없이 누구나
-// 읽을 수 있습니다. 개인정보처리방침이 "실명은 본인과 담당 교사만 확인"으로
-// 약속하고 있으므로 랭킹에는 익명 닉네임만 담습니다.
-function aggregateTop5(snap, sinceMillis) {
-  const byUser = new Map();
-  let total = 0;
-  snap.forEach((doc) => {
-    const d = doc.data();
-    if (!d.authorId) return;
-    const t = d.createdAt && d.createdAt.toMillis ? d.createdAt.toMillis() : 0;
-    if (t < sinceMillis) return; // 이번 주 이전 기록은 제외(월요일 초기화)
-    total += 1;
-    const cur = byUser.get(d.authorId) ?? {
-      uid: d.authorId,
-      authorName: "익명",
-      authorEmoji: "🙂",
-      count: 0,
-      latest: -1,
-    };
-    cur.count += 1;
-    if (t >= cur.latest) {
-      cur.latest = t;
-      cur.authorName = d.authorName || cur.authorName;
-      cur.authorEmoji = d.authorEmoji || cur.authorEmoji;
-    }
-    byUser.set(d.authorId, cur);
-  });
-  const top = [...byUser.values()]
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 5)
-    .map((r) => ({
-      authorName: r.authorName,
-      authorEmoji: r.authorEmoji,
-      count: r.count,
-    }));
-  return { top, total };
-}
-
-// 이번 주 기록만 읽어 옵니다 — 질문/답변이 하나 생길 때마다 전체 컬렉션을
-// 다시 읽으면 누적 건수에 비례해 읽기 비용이 계속 불어납니다.
-// 범위 쿼리에 필요한 색인이 아직 없으면(FAILED_PRECONDITION) 예전처럼
-// 전체를 읽어 코드에서 거릅니다 — 색인 없이도 동작이 끊기지 않도록.
-async function readSince(ref, sinceMillis) {
-  const cutoff = admin.firestore.Timestamp.fromMillis(sinceMillis);
-  try {
-    return await ref.where("createdAt", ">=", cutoff).get();
-  } catch (e) {
-    console.warn("[집계] 범위 쿼리 실패 — 전체 읽기로 대체합니다:", e && e.message);
-    return await ref.get();
-  }
-}
-
-// 이번 주 "질문을 많이 올린" 상위 5명 → 공개 문서 갱신. top 반환.
-async function recomputeQuestioners() {
-  const since = weekStartMillis();
-  const snap = await readSince(db.collection("questions"), since);
-  const { top, total } = aggregateTop5(snap, since);
-  await db.doc("stats/weeklyQuestioners").set({
-    top,
-    totalQuestions: total,
-    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-  });
-  return top;
-}
-
-// 이번 주 "답변을 많이 단" 상위 5명 → 공개 문서 갱신. top 반환.
-async function recomputeAnswerers() {
-  const since = weekStartMillis();
-  const snap = await readSince(db.collectionGroup("answers"), since);
-  const { top, total } = aggregateTop5(snap, since);
-  await db.doc("stats/weeklyAnswerers").set({
-    top,
-    totalAnswers: total,
-    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-  });
-  return top;
-}
 
 // =============================================================
 // [1] 데이터 무결성 — answerCount 서버 집계
@@ -166,10 +57,6 @@ exports.onAnswerCreated = onDocumentCreated(
     await questionRef.update({
       answerCount: admin.firestore.FieldValue.increment(1),
     });
-
-    // 1-b) 답변왕 순위 즉시 갱신(현재까지) — 아래 알림 로직의 조기 return과
-    //      무관하게 항상 실행되도록 여기서 먼저 호출합니다.
-    await recomputeAnswerers().catch(() => {});
 
     // 2) [3-알림] 질문 작성자에게 인앱 알림 (자기 질문에 단 답변은 제외)
     //    클라이언트가 users/{uid}/notifications를 구독하면 상단바 알림
@@ -217,7 +104,7 @@ exports.onAnswerUnderstood = onDocumentUpdated(
   }
 );
 
-// 답변이 삭제되면 카운트 -1 + 답변왕 순위 갱신
+// 답변이 삭제되면 카운트 -1
 exports.onAnswerDeleted = onDocumentDeleted(
   "questions/{questionId}/answers/{answerId}",
   async (event) => {
@@ -225,17 +112,8 @@ exports.onAnswerDeleted = onDocumentDeleted(
       .doc(`questions/${event.params.questionId}`)
       .update({ answerCount: admin.firestore.FieldValue.increment(-1) })
       .catch(() => {}); // 질문이 함께 삭제된 경우는 무시
-    await recomputeAnswerers().catch(() => {});
   }
 );
-
-// 질문이 생기거나 지워지면 질문대장 순위를 즉시 갱신(현재까지)
-exports.onQuestionCreated = onDocumentCreated("questions/{qId}", async () => {
-  await recomputeQuestioners().catch(() => {});
-});
-exports.onQuestionDeleted = onDocumentDeleted("questions/{qId}", async () => {
-  await recomputeQuestioners().catch(() => {});
-});
 
 // =============================================================
 // [2] 역할 부여 — 커스텀 클레임 (admin / teacher / student)
@@ -496,54 +374,3 @@ exports.deleteStudentAccount = onCall({ enforceAppCheck: true }, async (request)
   return { ok: warnings.length === 0, uid, warnings };
 });
 
-// =============================================================
-// [3] 예약 작업 — 주간 답변왕 정기 공지 (랜딩은 실시간 반영)
-// -------------------------------------------------------------
-// 순위 자체는 답변이 생기고/지워질 때마다 recomputeAnswerers()가 즉시
-// 갱신하므로 랜딩은 항상 "현재까지"의 순위를 보여 줍니다. 이 예약 함수는
-// 매주 월요일 오전 8시(서울)에 한 번 더 재집계하고 "이번 주 답변왕" 공지를
-// 게시하는 용도입니다.
-// ※ collectionGroup("answers") 쿼리는 최초 실행 시 색인이 필요할 수
-//   있습니다. 함수 로그의 오류 메시지에 있는 링크를 누르면
-//   Firebase 콘솔에서 한 번의 클릭으로 색인이 생성됩니다.
-// =============================================================
-exports.weeklyTopAnswerers = onSchedule(
-  { schedule: "every monday 08:00", timeZone: "Asia/Seoul" },
-  async () => {
-    // 순위는 이미 답변이 생길 때마다 갱신되지만, 주간 정기 공지를 위해
-    // 한 번 더 집계하고 공지사항으로도 게시합니다.
-    const top = await recomputeAnswerers();
-    if (top.length > 0) {
-      const lines = top
-        .map((t, i) => `${i + 1}위 ${t.authorName} (${t.count}개)`)
-        .join(" · ");
-      await db.collection("notices").add({
-        title: "🏆 이번 주 답변왕",
-        content: `이번 주(월요일부터) 가장 많이 답변해 준 친구들입니다. ${lines}. 모두 고마워요!`,
-        authorId: "system",
-        authorName: "배움나눔 봇",
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      });
-    }
-  }
-);
-
-// =============================================================
-// [3-b] 예약 작업 — 주간 질문대장 정기 재집계 (랜딩은 실시간 반영)
-// -------------------------------------------------------------
-// 순위는 질문이 생길 때마다 recomputeQuestioners()가 즉시 갱신하므로
-// 랜딩은 항상 "현재까지"를 보여 줍니다. 이 예약 함수는 매주 월요일 오전
-// 8시(서울)에 한 번 더 재집계하는 안전망입니다.
-// · 이 문서는 로그인 전 랜딩 화면에서도 보여야 하므로, 보안 규칙에서
-//   유일하게 "공개 읽기"를 허용합니다(작성자 uid는 담지 않고 익명 닉네임만).
-// · 질문 문서의 authorName/authorEmoji는 접속(세션)마다 바뀌므로,
-//   같은 authorId의 가장 최근 질문에 쓰인 닉네임을 대표로 사용합니다.
-// =============================================================
-exports.weeklyTopQuestioners = onSchedule(
-  { schedule: "every monday 08:00", timeZone: "Asia/Seoul" },
-  async () => {
-    // 순위는 질문이 생길 때마다 실시간으로 갱신되므로, 여기서는 주간
-    // 정기 재집계만 수행합니다(안전망).
-    await recomputeQuestioners();
-  }
-);

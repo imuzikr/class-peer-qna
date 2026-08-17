@@ -16,10 +16,6 @@ import { useRouter } from "next/navigation";
 import { isFirebaseConfigured } from "@/lib/firebase";
 import { backdropClose } from "@/lib/modal";
 import {
-  subscribeWeeklyQuestioners,
-  subscribeWeeklyAnswerers,
-} from "@/lib/store";
-import {
   signUpWithEmail,
   signInWithEmail,
   signInWithGoogle,
@@ -28,39 +24,6 @@ import {
 } from "@/lib/auth";
 import SiteFooter from "@/components/SiteFooter";
 import { IconLogo } from "@/components/StatusIcons";
-
-// 질문대장·답변왕 순위를 한 줄에 번갈아 섞어 카드 목록으로 만든다.
-// 카드마다 variant(색)·cat(라벨)·unit(단위)·badge(1·2·3위 아이콘)·rank을 얹는다.
-function buildActCards(questioners, answerers) {
-  const out = [];
-  // 각 5명씩(총 10명)으로 한정 — 서버 집계도 5명이지만 방어적으로 한 번 더 자름
-  questioners = questioners.slice(0, 5);
-  answerers = answerers.slice(0, 5);
-  const n = Math.max(questioners.length, answerers.length);
-  for (let i = 0; i < n; i++) {
-    if (questioners[i]) {
-      out.push({
-        ...questioners[i],
-        variant: "q",
-        cat: "질문대장",
-        unit: "질문",
-        badge: ["👑", "🥈", "🥉"],
-        rank: i,
-      });
-    }
-    if (answerers[i]) {
-      out.push({
-        ...answerers[i],
-        variant: "a",
-        cat: "답변왕",
-        unit: "답변",
-        badge: ["🏆", "🥈", "🥉"],
-        rank: i,
-      });
-    }
-  }
-  return out;
-}
 
 // Firebase 인증 오류 코드를 한국어 메시지로
 function authErrorMessage(code) {
@@ -97,12 +60,6 @@ export default function LandingPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [questioners, setQuestioners] = useState([]); // 주간 질문대장 TOP 5
-  const [answerers, setAnswerers] = useState([]); // 주간 답변왕 TOP 5
-
-  // 주간 랭킹 구독 (로그인 전에도 읽히는 공개 통계 문서)
-  useEffect(() => subscribeWeeklyQuestioners(setQuestioners), []);
-  useEffect(() => subscribeWeeklyAnswerers(setAnswerers), []);
 
   // ── 로그인/회원가입 모달 접근성 ──
   const firstFieldRef = useRef(null);
@@ -121,9 +78,6 @@ export default function LandingPage() {
   useEffect(() => {
     if (authMode) firstFieldRef.current?.focus();
   }, [authMode]);
-
-  // 두 랭킹을 한 줄에 번갈아 섞은 카드 목록
-  const cards = buildActCards(questioners, answerers);
 
   // 모드 전환 시 역할 선택·오류 초기화
   function switchMode(mode) {
@@ -205,17 +159,6 @@ export default function LandingPage() {
             <p>친구의 질문에 답하면서 내 실력도 함께 자랍니다.</p>
           </div>
         </div>
-      </section>
-
-      {/* ── 하단: 이번 주 질문대장·답변왕 (한 줄로 흘러가는 카드) ── */}
-      <section className="act-strip" aria-label="이번 주 질문대장·답변왕">
-        {cards.length > 0 ? (
-          <ActMarquee cards={cards} />
-        ) : (
-          <p className="act-empty">
-            이번 주 첫 주인공을 기다리고 있어요. 궁금한 걸 묻고, 친구에게 답해 보세요! ✨
-          </p>
-        )}
       </section>
     </main>
 
@@ -374,40 +317,5 @@ export default function LandingPage() {
         </div>
       )}
     </>
-  );
-}
-
-// 순위 카드 목록 — 질문대장 5명 + 답변왕 5명(총 10명)만 반복 없이 표시.
-//
-// [익명 닉네임만 씁니다]
-// 이 화면은 로그인 없이 누구나 볼 수 있습니다. 실명은 본인과 담당 교사만
-// 확인한다는 개인정보처리방침에 따라 랭킹에는 실명을 쓰지 않습니다.
-// (집계 함수도 stats/* 공개 문서에 realName을 담지 않습니다)
-function ActMarquee({ cards }) {
-  return (
-    <div className="act-viewport">
-      <ul className="act-track act-track--static">
-        {cards.map((c, i) => (
-          <li
-            key={i}
-            className={`act-card act-card--${c.variant}${
-              c.rank < 3 ? " act-card--top" : ""
-            }`}
-          >
-            <span
-              className={`act-badge${c.rank < 3 ? "" : " act-badge--num"}`}
-            >
-              {c.rank < 3 ? c.badge[c.rank] : c.rank + 1}
-            </span>
-            <span className="act-cat">{c.cat}</span>
-            <span className="act-avatar">{c.authorEmoji || "🙂"}</span>
-            <span className="act-name">{c.authorName || "익명"}</span>
-            <span className="act-sub">
-              {c.unit} {c.count}개
-            </span>
-          </li>
-        ))}
-      </ul>
-    </div>
   );
 }

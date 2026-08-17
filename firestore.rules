@@ -457,20 +457,5 @@ service cloud.firestore {
         || resource.data.get('memberUids', []).hasAny([uid()])
       );
     }
-
-    // ── 통계/시스템 — Cloud Functions(admin SDK)만 쓰기 ──
-    // 주간 질문대장/답변왕만 로그인 전 랜딩 화면 노출을 위해 공개 읽기 허용.
-    match /stats/weeklyQuestioners {
-      allow read: if true;
-      allow write: if false;
-    }
-    match /stats/weeklyAnswerers {
-      allow read: if true;
-      allow write: if false;
-    }
-    match /stats/{doc} {
-      allow read: if isTeacher();
-      allow write: if false;
-    }
   }
 }
