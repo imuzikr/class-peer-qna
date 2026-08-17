@@ -188,7 +188,7 @@ export default function LessonMode({
                       : "지금 이 슬라이드를 학생 화면에 띄웁니다"
                   }
                 >
-                  {presenting ? "■ 프레젠테이션 종료" : "▶ 프레젠테이션"}
+                  {presenting ? "종료" : "시작"}
                 </button>
               )}
             </div>
@@ -197,9 +197,10 @@ export default function LessonMode({
           {/* ── 해설 카드 ── */}
           <section className="lesson-card lesson-card--note">
             {/* 해설은 전자칠판에 비친 이 화면으로 학생들과 함께 봅니다
-                (학생 기기에는 슬라이드만 전송되므로 방송 내용은 그대로) */}
+                (학생 기기에는 슬라이드만 전송되므로 방송 내용은 그대로).
+                제목 라벨 없이 내용부터 바로 — 슬라이드 카드와 윗줄 높이를
+                맞추기 위해 빈 헤더 자리는 남겨 둡니다. */}
             <div className="lesson-card-head">
-              <h2>해설</h2>
               {editing && saved && <em className="lesson-saved">✓ 저장됨</em>}
               {editing && <small>자동 저장</small>}
             </div>

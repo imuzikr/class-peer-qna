@@ -6223,6 +6223,7 @@ pre code {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-height: 26px; /* '슬라이드' 제목 높이 — 해설 쪽엔 제목이 없어도 윗줄이 맞도록 */
   padding: 0 0 8px;
 }
 .lesson-card-head h2 {
@@ -6297,21 +6298,23 @@ pre code {
 .lesson-note-input:focus {
   border-color: var(--primary);
 }
+/* 제목 없이 내용부터 보여 주는 자리라, 전자칠판에서도 잘 읽히게 크고 굵게 */
 .lesson-note-text {
-  font-size: 16px;
-  line-height: 1.8;
-  color: var(--text);
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.6;
+  color: var(--dark);
   white-space: pre-wrap;
 }
 .lesson-note-empty {
   color: var(--text-sub);
   font-size: 14px;
 }
-/* 이전 · 다음 · 프레젠테이션 — 셋 다 같은 모양·크기.
-   width(고정)를 써서 '프레젠테이션 종료'처럼 긴 글자에도 버튼이 늘어나지
-   않게 합니다(min-width는 내용이 넘치면 커져서 셋의 폭이 달라짐). */
+/* 이전 · 다음 · 시작/종료 — 셋 다 같은 모양·크기.
+   width(고정)를 써서 글자 길이가 달라도 버튼 크기가 늘어나지 않게 합니다
+   (min-width는 내용이 넘치면 커져서 셋의 폭이 달라짐). */
 .lesson-ctrl-btn {
-  width: 172px;
+  width: 104px;
   padding: 11px 4px;
   border: none;
   border-radius: var(--radius-btn);
@@ -9837,11 +9840,9 @@ pre code {
   .lesson-note-body { position: static; padding: 0; }
   .lesson-note-body > * { position: static; inset: auto; overflow: visible; }
   .lesson-note-input { width: 100%; min-height: 200px; }
-  .lesson-note-text { font-size: 15px; }
+  .lesson-note-text { font-size: 19px; line-height: 1.55; }
   .lesson-title { font-size: 14px; }
-  /* 버튼 세 개가 한 줄에 다 안 들어가므로(특히 '프레젠테이션 종료') 줄바꿈 허용 */
-  .lesson-card-foot { flex-wrap: wrap; row-gap: 8px; }
-  .lesson-ctrl-btn { width: 130px; padding: 9px 6px; font-size: 12.5px; }
+  .lesson-ctrl-btn { width: 88px; padding: 9px 4px; font-size: 13px; }
   .lesson-dots { display: none; }
   .lesson-activity { margin-top: 40px; }
   .present-nav {
