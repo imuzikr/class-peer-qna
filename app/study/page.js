@@ -78,7 +78,7 @@ export default function StudyPage() {
   const [creatingClass, setCreatingClass] = useState(false);
   const [newClassName, setNewClassName] = useState("");
   const [showCode, setShowCode] = useState(false); // 입장 코드 표시 토글
-  const [lessonPicker, setLessonPicker] = useState(false); // 수업 자료 목록
+  const [lessonPicker, setLessonPicker] = useState(null); // null | 'prep' | 'start'
   const [teaching, setTeaching] = useState(null);   // 수업 중인 자료(학생 화면 전환)
   const [editingLesson, setEditingLesson] = useState(null); // 장별 메모 작성
   const [askKeyword, setAskKeyword] = useState(null); // "질문하기"로 새 질문 작성
@@ -433,16 +433,25 @@ export default function StudyPage() {
                     )}
                     {admin && currentClass && (
                       <button
-                        className="study-lesson-btn"
-                        onClick={() => setLessonPicker(true)}
-                        title="슬라이드로 수업하기 — 학생 화면이 선생님 슬라이드로 바뀝니다"
+                        className="btn-ghost"
+                        onClick={() => setLessonPicker("prep")}
+                        title="주제·자료·활동을 미리 준비합니다"
+                      >
+                        📝 수업준비
+                      </button>
+                    )}
+                    {admin && currentClass && (
+                      <button
+                        className="btn-ghost"
+                        onClick={() => setLessonPicker("start")}
+                        title="준비해 둔 자료로 수업을 시작합니다"
                       >
                         📚 수업하기
                       </button>
                     )}
                     {admin && currentClass && (
                       <button
-                        className="study-code-btn"
+                        className="btn-ghost"
                         onClick={() => setShowCode(true)}
                         title="학생에게 알려 줄 입장 코드 크게 보기"
                       >
@@ -763,20 +772,21 @@ export default function StudyPage() {
       {/* ── 수업하기 ── */}
       {lessonPicker && (
         <LessonManagerModal
-          onClose={() => setLessonPicker(false)}
-          onEdit={(lesson) => { setLessonPicker(false); setEditingLesson(lesson); }}
+          purpose={lessonPicker}
+          onClose={() => setLessonPicker(null)}
+          onEdit={(lesson) => { setLessonPicker(null); setEditingLesson(lesson); }}
           onStart={(lesson) => {
             if ((lesson.slides ?? []).length === 0) {
               setToast("슬라이드가 없는 자료예요.");
               return;
             }
-            setLessonPicker(false);
+            setLessonPicker(null);
             setTeaching(lesson);
           }}
         />
       )}
 
-      {/* 장별 메모 작성 — 수업 전에 미리 적어 둡니다(방송하지 않음) */}
+      {/* 수업 준비 — 장별 해설과 활동 안내를 미리 적어 둡니다(방송하지 않음) */}
       {editingLesson && (
         <LessonMode
           lesson={editingLesson}
@@ -788,11 +798,15 @@ export default function StudyPage() {
             await updateLesson(editingLesson.id, { slides });
             setEditingLesson({ ...editingLesson, slides });
           }}
+          onSaveActivities={async (activities) => {
+            await updateLesson(editingLesson.id, { activities });
+            setEditingLesson({ ...editingLesson, activities });
+          }}
           onClose={() => setEditingLesson(null)}
         />
       )}
 
-      {/* 수업 중 — 넘길 때마다 학생 화면이 같은 장으로 강제 전환됩니다 */}
+      {/* 수업 진행 — '프레젠테이션'을 눌러야 학생 화면이 전환됩니다 */}
       {teaching && (
         <LessonMode
           lesson={teaching}

@@ -24,7 +24,10 @@ const MAX_SLIDES = 60;
 // 동시에 올릴 장수 — 교실 회선을 다 잡아먹지 않으면서 왕복 대기를 줄이는 선
 const UPLOAD_CONCURRENCY = 4;
 
-export default function LessonManagerModal({ onStart, onEdit, onClose }) {
+// purpose="prep"  — 수업준비: 주제 입력·파일 업로드·해설과 활동 다듬기
+// purpose="start" — 수업하기: 준비해 둔 자료를 골라 수업 페이지로 들어가기
+export default function LessonManagerModal({ purpose = "prep", onStart, onEdit, onClose }) {
+  const preparing = purpose === "prep";
   const [lessons, setLessons] = useState([]);
   const [title, setTitle] = useState("");
   const [busy, setBusy] = useState(null); // { phase, pct }
@@ -99,13 +102,15 @@ export default function LessonManagerModal({ onStart, onEdit, onClose }) {
     <div className="modal-backdrop" {...backdropClose(busy ? () => {} : onClose)}>
       <div className="modal modal-lesson" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
-          <h3>📚 수업 자료</h3>
+          <h3>{preparing ? "📝 수업 준비" : "📚 수업하기"}</h3>
           {!busy && (
             <button className="btn-close" onClick={onClose} aria-label="닫기">×</button>
           )}
         </div>
 
-        {/* 새 자료 만들기 */}
+        {/* 새 자료 만들기 — 준비 화면에서만 */}
+        {preparing && (
+        <>
         <div className="lesson-new">
           <input
             type="text"
@@ -125,6 +130,8 @@ export default function LessonManagerModal({ onStart, onEdit, onClose }) {
           구글 슬라이드·캔바·PPT 모두 <strong>PDF로 내보내기</strong> 후 올려 주세요.
           장별 이미지로 바꿔 두어야 학생 화면이 선생님과 같은 장으로 넘어갑니다.
         </p>
+        </>
+        )}
 
         {busy && (
           <div className="lesson-progress">
@@ -139,7 +146,11 @@ export default function LessonManagerModal({ onStart, onEdit, onClose }) {
         {/* 자료 목록 */}
         <div className="lesson-list">
           {lessons.length === 0 ? (
-            <p className="empty-note">아직 만든 수업 자료가 없어요.</p>
+            <p className="empty-note">
+              {preparing
+                ? "아직 만든 수업 자료가 없어요. 위에서 PDF를 올려 만들어 보세요."
+                : "준비된 수업 자료가 없어요. ‘수업준비’에서 먼저 만들어 주세요."}
+            </p>
           ) : (
             lessons.map((l) => (
               <div key={l.id} className="lesson-row">
@@ -148,20 +159,25 @@ export default function LessonManagerModal({ onStart, onEdit, onClose }) {
                   <span>슬라이드 {(l.slides ?? []).length}장</span>
                 </div>
                 <div className="lesson-row-actions">
-                  <button type="button" className="btn-ghost" onClick={() => onEdit?.(l)}>
-                    메모
-                  </button>
-                  <button type="button" className="btn-primary" onClick={() => onStart?.(l)}>
-                    수업 시작
-                  </button>
-                  <button
-                    type="button"
-                    className="btn-ghost qa-delete"
-                    onClick={() => setConfirmDel(l)}
-                    aria-label="삭제"
-                  >
-                    <IconTrash size={15} />
-                  </button>
+                  {preparing ? (
+                    <>
+                      <button type="button" className="btn-primary" onClick={() => onEdit?.(l)}>
+                        준비하기
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-ghost qa-delete"
+                        onClick={() => setConfirmDel(l)}
+                        aria-label="삭제"
+                      >
+                        <IconTrash size={15} />
+                      </button>
+                    </>
+                  ) : (
+                    <button type="button" className="btn-primary" onClick={() => onStart?.(l)}>
+                      수업 시작
+                    </button>
+                  )}
                 </div>
               </div>
             ))

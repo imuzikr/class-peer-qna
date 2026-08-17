@@ -19,7 +19,7 @@
 //
 // 이전 / 다음 / 종료 — 종료하면 방송이 꺼져 학생 화면도 원래대로 돌아갑니다.
 // =============================================================
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { startBroadcast, stopBroadcast } from "@/lib/store";
 import { getCurrentUser } from "@/lib/user";
 
@@ -29,6 +29,7 @@ export default function LessonMode({
   classId = null,
   className = "",
   onSaveNote,
+  onSaveActivities,
   onClose,
 }) {
   const slides = lesson.slides ?? [];
@@ -36,18 +37,28 @@ export default function LessonMode({
   const [idx, setIdx] = useState(0);
   const [note, setNote] = useState(slides[0]?.note ?? "");
   const [saved, setSaved] = useState(false);
+  // 프레젠테이션 중일 때만 학생 화면이 전환됩니다(수업하기로 들어온 것만으론 안 바뀜)
+  const [presenting, setPresenting] = useState(false);
+  const [acts, setActs] = useState((lesson.activities ?? []).join("\n"));
   const editing = mode === "edit";
-  const noteRef = useRef(note);
 
   const cur = slides[Math.min(idx, total - 1)];
 
-  // 장을 넘기면 그 장의 메모를 불러옵니다.
+  // 장을 넘기면 그 장의 해설을 불러옵니다.
   useEffect(() => {
-    const next = slides[idx]?.note ?? "";
-    setNote(next);
-    noteRef.current = next;
+    setNote(slides[idx]?.note ?? "");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idx, lesson.id]);
+
+  // 활동 안내 자동 저장 — 한 줄에 항목 하나
+  useEffect(() => {
+    if (!editing) return;
+    const next = acts.split("\n").map((s) => s.trim()).filter(Boolean);
+    if (next.join("\n") === (lesson.activities ?? []).join("\n")) return;
+    const t = setTimeout(() => onSaveActivities?.(next), 800);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [acts, editing]);
 
   // 메모 자동 저장 — 입력이 0.8초 멈추면 저장(편집 모드에서만)
   useEffect(() => {
@@ -62,9 +73,11 @@ export default function LessonMode({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [note, idx, editing]);
 
-  // 수업 중 — 현재 장을 방송에 실어 학생 화면을 같은 장으로 맞춥니다.
+  // 프레젠테이션 중일 때만 현재 장을 방송해 학생 화면을 같은 장으로 맞춥니다.
+  // (수업하기로 들어오기만 해서는 학생 화면이 바뀌지 않습니다 — 교사가 미리
+  //  자료를 훑어보며 준비할 수 있게)
   useEffect(() => {
-    if (editing || !classId || !cur) return;
+    if (editing || !presenting || !classId || !cur) return;
     startBroadcast(getCurrentUser(), classId, {
       mode: "lesson",
       lessonTitle: lesson.title ?? "",
@@ -73,13 +86,13 @@ export default function LessonMode({
       slideCount: total,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editing, classId, cur?.imageUrl, idx, total]);
+  }, [editing, presenting, classId, cur?.imageUrl, idx, total]);
 
-  // 수업을 끝내면(화면을 벗어나면) 방송도 반드시 종료
+  // 프레젠테이션을 끄거나 수업 화면을 벗어나면 방송도 반드시 종료
   useEffect(() => {
-    if (editing || !classId) return;
+    if (editing || !presenting || !classId) return;
     return () => { stopBroadcast(classId); };
-  }, [editing, classId]);
+  }, [editing, presenting, classId]);
 
   // 키보드 ← → 로 넘기기 (메모를 쓰는 중에는 방해하지 않음)
   useEffect(() => {
@@ -97,11 +110,15 @@ export default function LessonMode({
       <div className="lesson-head">
         <strong className="lesson-title">{lesson.title}</strong>
         {editing ? (
-          <span className="lesson-badge lesson-badge--edit">해설 작성</span>
-        ) : (
+          <span className="lesson-badge lesson-badge--edit">수업 준비</span>
+        ) : presenting ? (
           <span className="lesson-badge">
             <span className="broadcast-live-dot" aria-hidden="true" />
-            수업 중{className && ` · ${className}`}
+            프레젠테이션 중{className && ` · ${className}`}
+          </span>
+        ) : (
+          <span className="lesson-badge lesson-badge--edit">
+            학생 화면 그대로{className && ` · ${className}`}
           </span>
         )}
         <span className="lesson-count">{total === 0 ? 0 : idx + 1} / {total}</span>
@@ -113,6 +130,9 @@ export default function LessonMode({
       {/* 수업 페이지 본문 — 위아래로 스크롤됩니다. 스크롤은 이 화면 안의
           일일 뿐이라 학생 화면과는 아무 상관이 없습니다(아래 주석 참고). */}
       <div className="lesson-page">
+        {/* 주제 — 수업준비에서 미리 입력해 둔 이름 */}
+        <h1 className="lesson-page-title">{lesson.title}</h1>
+
         <div className="lesson-deck">
           {/* ── 슬라이드 카드 ── */}
           <section className="lesson-card lesson-card--slide">
@@ -154,6 +174,23 @@ export default function LessonMode({
               >
                 다음 ›
               </button>
+
+              {/* 이걸 눌러야 학생 화면이 이 슬라이드로 바뀝니다 */}
+              {!editing && (
+                <button
+                  type="button"
+                  className={`lesson-present-btn${presenting ? " on" : ""}`}
+                  onClick={() => setPresenting((v) => !v)}
+                  disabled={total === 0}
+                  title={
+                    presenting
+                      ? "학생 화면을 원래대로 되돌립니다"
+                      : "지금 이 슬라이드를 학생 화면에 띄웁니다"
+                  }
+                >
+                  {presenting ? "■ 프레젠테이션 종료" : "▶ 프레젠테이션"}
+                </button>
+              )}
             </div>
           </section>
 
@@ -182,8 +219,34 @@ export default function LessonMode({
           </section>
         </div>
 
-        {/* 앞으로 수업 관련 기능(출석·퀴즈·활동 등)은 이 아래에 섹션으로
-            덧붙이면 됩니다. 슬라이드 카드와 독립적이라 방송에는 영향 없습니다. */}
+        {/* ── 활동 안내 ── (지금은 안내 문구 목록. 활동 기능은 차차 다듬을 예정) */}
+        <section className="lesson-card lesson-activity">
+          <div className="lesson-card-head">
+            <h2>활동 안내</h2>
+            {editing && <small>한 줄에 하나씩 · 자동 저장</small>}
+          </div>
+          <div className="lesson-activity-body">
+            {editing ? (
+              <textarea
+                className="lesson-activity-input"
+                value={acts}
+                onChange={(e) => setActs(e.target.value)}
+                placeholder={"한 줄에 활동 하나씩 적어 주세요.\n예) 짝과 함께 이야기 나누기"}
+              />
+            ) : (lesson.activities ?? []).length > 0 ? (
+              <ul className="lesson-activity-list">
+                {(lesson.activities ?? []).map((a, i) => (
+                  <li key={i}>{a}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="lesson-note-empty">아직 등록한 활동이 없어요.</p>
+            )}
+          </div>
+        </section>
+
+        {/* 앞으로 수업 관련 기능(출석·퀴즈 등)은 이 아래에 섹션으로 덧붙이면
+            됩니다. 슬라이드 카드와 독립적이라 방송에는 영향 없습니다. */}
       </div>
     </div>
   );

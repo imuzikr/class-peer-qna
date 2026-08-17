@@ -6159,6 +6159,72 @@ pre code {
   margin: 0 auto;
   padding: 18px 20px 40px;
 }
+/* 주제 — 수업준비에서 미리 입력해 둔 이름 */
+.lesson-page-title {
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--dark);
+  margin: 0 0 14px;
+}
+/* 프레젠테이션 — 이걸 눌러야 학생 화면이 바뀝니다(강조) */
+.lesson-present-btn {
+  padding: 8px 16px;
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-btn);
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.lesson-present-btn:hover:not(:disabled) {
+  background: var(--primary);
+  color: #fff;
+}
+.lesson-present-btn.on {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+}
+.lesson-present-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+/* 활동 안내 — 슬라이드·해설 아래 전체 폭 */
+.lesson-activity {
+  margin-top: 16px;
+}
+.lesson-activity-body {
+  padding: 14px;
+}
+.lesson-activity-list {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--text);
+}
+.lesson-activity-input {
+  width: 100%;
+  min-height: 120px;
+  resize: vertical;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1.75;
+  color: var(--text);
+  outline: none;
+}
+.lesson-activity-input:focus {
+  border-color: var(--primary);
+}
 /* 슬라이드 · 해설 2열. 해설은 너무 넓어지지 않게 상한을 둡니다. */
 .lesson-deck {
   display: grid;
@@ -6290,23 +6356,6 @@ pre code {
 }
 
 /* ── 수업 자료 목록·만들기 모달 ── */
-.study-lesson-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 6px 14px;
-  border: none;
-  border-radius: var(--radius-btn);
-  background: var(--primary);
-  color: #fff;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-.study-lesson-btn:hover {
-  background: var(--primary-dark);
-}
 .modal-lesson {
   max-width: 620px;
 }
