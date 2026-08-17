@@ -274,6 +274,7 @@ export default function AdminDashboardPage() {
   const [editingStudent, setEditingStudent] = useState(null);
   const [confirmWithdrawStudent, setConfirmWithdrawStudent] = useState(null);
   const [withdrawBusy, setWithdrawBusy] = useState(false);
+  const [withdrawError, setWithdrawError] = useState("");
   const [confirmRewardCleanup, setConfirmRewardCleanup] = useState(false);
   const [rewardCleanupBusy, setRewardCleanupBusy] = useState(false);
   const [activeStatKey, setActiveStatKey] = useState(null); // 통계 카드 드릴다운
@@ -472,9 +473,19 @@ export default function AdminDashboardPage() {
     setWithdrawBusy(true);
     try {
       await deleteStudent(confirmWithdrawStudent.uid);
+      setConfirmWithdrawStudent(null);
+    } catch (e) {
+      // 조용히 넘기지 않습니다 — 권한이 없거나 일부만 지워진 경우를
+      // 교사가 알아야 다시 시도하거나 관리자에게 넘길 수 있습니다.
+      setWithdrawError(
+        e?.partial
+          ? e.message
+          : e?.code === "functions/permission-denied"
+          ? "담당하는 반의 학생만 탈퇴 처리할 수 있어요. 관리자에게 요청해 주세요."
+          : `탈퇴 처리에 실패했어요: ${e?.message ?? "알 수 없는 오류"}`
+      );
     } finally {
       setWithdrawBusy(false);
-      setConfirmWithdrawStudent(null);
     }
   }
 
@@ -1135,6 +1146,19 @@ export default function AdminDashboardPage() {
           danger
           onConfirm={handleConfirmStudentWithdraw}
           onClose={() => setConfirmWithdrawStudent(null)}
+        />
+      )}
+
+      {/* 탈퇴 처리 실패·부분 실패 알림 — 조용히 넘기지 않습니다 */}
+      {withdrawError && (
+        <ConfirmModal
+          icon="⚠️"
+          title="탈퇴 처리 결과"
+          description={withdrawError}
+          confirmLabel="확인"
+          cancelLabel="닫기"
+          onConfirm={() => setWithdrawError("")}
+          onClose={() => setWithdrawError("")}
         />
       )}
 

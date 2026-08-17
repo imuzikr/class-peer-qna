@@ -46,9 +46,10 @@ const INITIAL_ADMIN_EMAIL = "iseoul72@gmail.com";
 // "이번 주 현재까지"의 순위를 담도록 합니다.
 //  · 집계 창 = 가장 최근 "월요일 08:00(KST)" 이후 → 매주 월요일 08:00에
 //    자동 초기화(그 시각 이후 기록만 집계).
-//  · 격려·칭찬 목적으로 실명(users.realName)을 함께 저장해 랜딩에 표시.
-//    (공개 문서이므로 실명 노출 범위는 랜딩 접속자 전체 — 운영 결정 사항)
-//  · 색인 없이 동작하도록 전체를 읽어 코드에서 창(週)으로 거릅니다.
+//  · 이 문서는 로그인 없이 누구나 읽을 수 있으므로 **실명을 담지 않습니다**
+//    (익명 닉네임만). 실명은 본인과 담당 교사만 본다는 방침을 따릅니다.
+//  · 읽기 비용을 줄이려 이번 주 범위만 쿼리하고, 색인이 없으면 전체 읽기로
+//    자동 폴백합니다(readSince 참고).
 // =============================================================
 // 이번 주 시작(가장 최근 월요일 08:00 KST)을 epoch millis로 반환
 function weekStartMillis() {
@@ -65,8 +66,12 @@ function weekStartMillis() {
 }
 
 // snap을 이번 주(since 이후)로 걸러 상위 5명 + 총건수 집계.
-// 상위 5명의 실명(users.realName)을 함께 붙입니다(격려·칭찬용 표시).
-async function aggregateTop5(snap, sinceMillis) {
+//
+// [실명을 담지 않습니다]
+// 이 결과는 stats/* 공개 문서로 저장되고, 그 문서는 로그인 없이 누구나
+// 읽을 수 있습니다. 개인정보처리방침이 "실명은 본인과 담당 교사만 확인"으로
+// 약속하고 있으므로 랭킹에는 익명 닉네임만 담습니다.
+function aggregateTop5(snap, sinceMillis) {
   const byUser = new Map();
   let total = 0;
   snap.forEach((doc) => {
@@ -90,29 +95,36 @@ async function aggregateTop5(snap, sinceMillis) {
     }
     byUser.set(d.authorId, cur);
   });
-  const ranked = [...byUser.values()]
+  const top = [...byUser.values()]
     .sort((a, b) => b.count - a.count)
-    .slice(0, 5);
-  // 상위 5명만 users에서 실명 조회 (admin SDK — 규칙 미적용)
-  const profiles = await Promise.all(
-    ranked.map((r) => db.doc(`users/${r.uid}`).get().catch(() => null))
-  );
-  const top = ranked.map((r, i) => {
-    const p = profiles[i]?.exists ? profiles[i].data() : null;
-    return {
+    .slice(0, 5)
+    .map((r) => ({
       authorName: r.authorName,
       authorEmoji: r.authorEmoji,
-      realName: (p && p.realName) || "",
       count: r.count,
-    };
-  });
+    }));
   return { top, total };
+}
+
+// 이번 주 기록만 읽어 옵니다 — 질문/답변이 하나 생길 때마다 전체 컬렉션을
+// 다시 읽으면 누적 건수에 비례해 읽기 비용이 계속 불어납니다.
+// 범위 쿼리에 필요한 색인이 아직 없으면(FAILED_PRECONDITION) 예전처럼
+// 전체를 읽어 코드에서 거릅니다 — 색인 없이도 동작이 끊기지 않도록.
+async function readSince(ref, sinceMillis) {
+  const cutoff = admin.firestore.Timestamp.fromMillis(sinceMillis);
+  try {
+    return await ref.where("createdAt", ">=", cutoff).get();
+  } catch (e) {
+    console.warn("[집계] 범위 쿼리 실패 — 전체 읽기로 대체합니다:", e && e.message);
+    return await ref.get();
+  }
 }
 
 // 이번 주 "질문을 많이 올린" 상위 5명 → 공개 문서 갱신. top 반환.
 async function recomputeQuestioners() {
-  const snap = await db.collection("questions").get();
-  const { top, total } = await aggregateTop5(snap, weekStartMillis());
+  const since = weekStartMillis();
+  const snap = await readSince(db.collection("questions"), since);
+  const { top, total } = aggregateTop5(snap, since);
   await db.doc("stats/weeklyQuestioners").set({
     top,
     totalQuestions: total,
@@ -123,8 +135,9 @@ async function recomputeQuestioners() {
 
 // 이번 주 "답변을 많이 단" 상위 5명 → 공개 문서 갱신. top 반환.
 async function recomputeAnswerers() {
-  const snap = await db.collectionGroup("answers").get();
-  const { top, total } = await aggregateTop5(snap, weekStartMillis());
+  const since = weekStartMillis();
+  const snap = await readSince(db.collectionGroup("answers"), since);
+  const { top, total } = aggregateTop5(snap, since);
   await db.doc("stats/weeklyAnswerers").set({
     top,
     totalAnswers: total,
@@ -270,6 +283,104 @@ exports.setUserRole = onCall({ enforceAppCheck: true }, async (request) => {
 });
 
 // =============================================================
+// 탈퇴 공통 헬퍼 — 권한 판정과 데이터 파기
+// =============================================================
+
+// 호출한 교사가 "그 학생을 맡고 있는지" — 학생이 속한 반 중 하나라도
+// 호출자가 개설한 반이면 담당 교사로 봅니다.
+async function callerOwnsStudent(callerUid, targetUid) {
+  const mems = await db.collection("memberships").where("uid", "==", targetUid).get();
+  if (mems.empty) return false;
+  const classIds = [...new Set(mems.docs.map((d) => d.data().classId).filter(Boolean))];
+  const classes = await Promise.all(
+    classIds.map((id) => db.doc(`classes/${id}`).get().catch(() => null))
+  );
+  return classes.some((c) => c && c.exists && c.data().createdBy === callerUid);
+}
+
+// 쿼리에 걸린 문서를 모두 삭제 (배치 상한 500 고려)
+async function deleteByQuery(query, warnings, label) {
+  try {
+    const snap = await query.get();
+    for (let i = 0; i < snap.docs.length; i += 400) {
+      const batch = db.batch();
+      snap.docs.slice(i, i + 400).forEach((d) => batch.delete(d.ref));
+      await batch.commit();
+    }
+    return snap.size;
+  } catch (e) {
+    // 색인 미생성 등으로 실패해도 나머지 파기는 계속 — 대신 반드시 보고합니다.
+    warnings.push(`${label}: ${e && e.message}`);
+    return 0;
+  }
+}
+
+// 학생이 남긴 모든 흔적을 지웁니다. 여러 번 실행해도 안전(멱등)합니다.
+// 실패한 항목은 warnings에 모아 호출자에게 그대로 돌려줍니다 — 일부만
+// 지워졌는데 성공으로 보고하는 일이 없도록.
+async function purgeStudentData(uid, warnings) {
+  // 1) 본인이 올린 질문 + 그 질문에 달린 답변(남이 단 것 포함)
+  try {
+    const qs = await db.collection("questions").where("authorId", "==", uid).get();
+    for (const d of qs.docs) {
+      const subs = await d.ref.collection("answers").get();
+      await Promise.all(subs.docs.map((s) => s.ref.delete()));
+      await d.ref.delete();
+    }
+  } catch (e) {
+    warnings.push(`질문: ${e && e.message}`);
+  }
+
+  // 2) 남의 글에 단 답변 · 공부방 카드 · KWL
+  await deleteByQuery(db.collectionGroup("answers").where("authorId", "==", uid), warnings, "답변");
+  await deleteByQuery(db.collectionGroup("cards").where("authorId", "==", uid), warnings, "공부방 카드");
+  await deleteByQuery(db.collection("kwl").where("userId", "==", uid), warnings, "KWL");
+
+  // 3) 보상(과일) · 누가기록
+  await deleteByQuery(db.collection("rewards").where("uid", "==", uid), warnings, "과일 기록");
+  await deleteByQuery(db.collection("studentNotes").where("studentUid", "==", uid), warnings, "누가기록");
+
+  // 4) 책방 — 낱말에는 실명(authorName)이 들어 있어 반드시 지웁니다.
+  await deleteByQuery(db.collectionGroup("words").where("authorId", "==", uid), warnings, "책방 낱말");
+  // 모둠 명단에서도 빼냅니다(members에 실명 보관).
+  try {
+    const groups = await db
+      .collectionGroup("groups")
+      .where("memberUids", "array-contains", uid)
+      .get();
+    await Promise.all(
+      groups.docs.map((g) => {
+        const d = g.data();
+        const patch = {
+          memberUids: admin.firestore.FieldValue.arrayRemove(uid),
+          members: (d.members || []).filter((m) => m && m.uid !== uid),
+        };
+        if (d.leaderUid === uid) patch.leaderUid = null;
+        return g.ref.update(patch);
+      })
+    );
+  } catch (e) {
+    warnings.push(`책방 모둠 명단: ${e && e.message}`);
+  }
+
+  // 5) 업로드한 파일 전부 (uploads/{uid}/ 아래)
+  try {
+    await admin.storage().bucket().deleteFiles({ prefix: `uploads/${uid}/` });
+  } catch (e) {
+    warnings.push(`첨부 파일: ${e && e.message}`);
+  }
+
+  // 6) 소속 → 프로필 순서로 마지막에. 소속을 먼저 지우면 재시도할 때
+  //    담당 교사 판정이 불가능해지므로 이 순서를 지킵니다.
+  await deleteByQuery(db.collection("memberships").where("uid", "==", uid), warnings, "반 소속");
+  try {
+    await db.doc(`users/${uid}`).delete();
+  } catch (e) {
+    warnings.push(`프로필: ${e && e.message}`);
+  }
+}
+
+// =============================================================
 // [2-b] 탈퇴 — 로그인 계정(Authentication) 삭제
 // -------------------------------------------------------------
 // 클라이언트는 "남의 계정"을 지울 수 없으므로(구글 정책), 계정 삭제는
@@ -314,9 +425,74 @@ exports.deleteAuthUser = onCall({ enforceAppCheck: true }, async (request) => {
   if (targetIsStaff && !callerIsAdmin) {
     throw new HttpsError("permission-denied", "선생님 계정은 최고 관리자만 탈퇴 처리할 수 있습니다.");
   }
+  // 담당 교사만 — 예전에는 교사이기만 하면 아무 반 학생이나 지울 수 있었습니다.
+  if (!callerIsAdmin && !(await canDeleteStudent(request.auth.uid, uid))) {
+    throw new HttpsError("permission-denied", "담당하는 반의 학생만 탈퇴 처리할 수 있습니다.");
+  }
 
   await admin.auth().deleteUser(uid);
   return { ok: true, uid };
+});
+
+// 교사가 이 학생을 탈퇴 처리해도 되는가.
+//  · 담당 교사(같은 반)면 언제나 가능
+//  · 그 외 교사는 학생 본인이 탈퇴를 신청한 경우에만 가능
+//    (당직 교사가 신청 건을 처리하는 기존 운영 방식을 유지하기 위함)
+async function canDeleteStudent(callerUid, targetUid) {
+  if (await callerOwnsStudent(callerUid, targetUid)) return true;
+  const prof = await db.doc(`users/${targetUid}`).get().catch(() => null);
+  return !!(prof && prof.exists && prof.data().withdrawRequested === true);
+}
+
+// =============================================================
+// [2-c] 탈퇴 — 계정과 데이터를 한 번에 파기 (권장 경로)
+// -------------------------------------------------------------
+// 예전에는 앱이 Firestore를 지운 뒤 계정 삭제를 따로 호출하고, 그 실패를
+// 조용히 넘겼습니다. 그러면 계정과 교사 클레임이 살아남아 다음 로그인에
+// 프로필이 되살아납니다. 이제 서버에서 한 번에 처리합니다.
+//
+// 순서: 로그인 계정 먼저 → 데이터. 중간에 실패해도 최소한 다시 로그인해
+// 되살아나는 일은 없고, 같은 요청을 다시 보내면 남은 것만 마저 지웁니다.
+exports.deleteStudentAccount = onCall({ enforceAppCheck: true }, async (request) => {
+  if (!request.auth) throw new HttpsError("unauthenticated", "로그인이 필요합니다.");
+
+  const callerRole = request.auth.token.role;
+  const callerIsAdmin =
+    callerRole === "admin" ||
+    (request.auth.token.email === INITIAL_ADMIN_EMAIL &&
+      request.auth.token.email_verified === true);
+  if (!(callerRole === "teacher" || callerIsAdmin)) {
+    throw new HttpsError("permission-denied", "탈퇴 처리 권한이 없습니다.");
+  }
+
+  const { uid } = request.data || {};
+  if (typeof uid !== "string" || !uid) {
+    throw new HttpsError("invalid-argument", "uid를 올바르게 전달해 주세요.");
+  }
+  if (uid === request.auth.uid) {
+    throw new HttpsError("invalid-argument", "본인 계정은 이 경로로 처리할 수 없습니다.");
+  }
+
+  const target = await admin.auth().getUser(uid).catch(() => null);
+  if (target && target.email === INITIAL_ADMIN_EMAIL) {
+    throw new HttpsError("permission-denied", "최고 관리자 계정은 삭제할 수 없습니다.");
+  }
+  const targetRole = target && target.customClaims && target.customClaims.role;
+  if ((targetRole === "teacher" || targetRole === "admin") && !callerIsAdmin) {
+    throw new HttpsError("permission-denied", "선생님 계정은 최고 관리자만 탈퇴 처리할 수 있습니다.");
+  }
+  if (!callerIsAdmin && !(await canDeleteStudent(request.auth.uid, uid))) {
+    throw new HttpsError("permission-denied", "담당하는 반의 학생만 탈퇴 처리할 수 있습니다.");
+  }
+
+  const warnings = [];
+  if (target) {
+    // 계정을 먼저 없애 되살아날 여지를 차단합니다(클레임도 함께 사라짐).
+    await admin.auth().deleteUser(uid);
+  }
+  await purgeStudentData(uid, warnings);
+
+  return { ok: warnings.length === 0, uid, warnings };
 });
 
 // =============================================================

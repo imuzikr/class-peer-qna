@@ -94,11 +94,11 @@ service cloud.firestore {
                         && changedOnly(['email','emoji','fcmTokens','requestedRole',
                                         'withdrawRequested','withdrawRequestedAt']))
                     || isTeacher();
-      // 탈퇴(계정 삭제): 관리자는 누구나, 교사는 '학생' 계정만.
-      allow delete: if isAdmin()
-                    || (isTeacher()
-                        && resource.data.role == 'student'
-                        && resource.data.get('email','') != 'iseoul72@gmail.com');
+      // 탈퇴(계정 삭제)는 서버 함수(deleteStudentAccount)로만 합니다.
+      // 그 함수는 admin SDK라 규칙을 우회하며, "담당하는 반의 학생인지"를
+      // 검사합니다. 여기서 교사에게 직접 삭제를 열어 두면 아무 반 학생이나
+      // 프로필을 지울 수 있어(되돌릴 수 없음) 관리자만 남겨 둡니다.
+      allow delete: if isAdmin();
 
       match /notifications/{nId} {
         allow read, write: if signedIn() && userId == uid();
@@ -108,7 +108,10 @@ service cloud.firestore {
     // ── 질문 (전체 공유) ──────────────────────────────────────
     match /questions/{qId} {
       allow read: if signedIn();
+      // createdAt은 반드시 서버 시각. 임의 값(특히 미래 날짜)을 넣으면
+      // 주간 랭킹 집계 창에서 영원히 빠지지 않습니다.
       allow create: if signedIn() && request.resource.data.authorId == uid()
+                    && request.resource.data.createdAt == request.time
                     && request.resource.data.answerCount == 0
                     && request.resource.data.meTooIds == []
                     && request.resource.data.resolved == false;
@@ -128,7 +131,8 @@ service cloud.firestore {
 
       match /answers/{aId} {
         allow read: if signedIn();
-        allow create: if signedIn() && request.resource.data.authorId == uid();
+        allow create: if signedIn() && request.resource.data.authorId == uid()
+                      && request.resource.data.createdAt == request.time;
         allow update: if signedIn() && (
           (resource.data.authorId == uid()
             && changedOnly(['content','imageUrl','images']))
@@ -170,8 +174,13 @@ service cloud.firestore {
     match /joinCodes/{code} {
       allow get: if signedIn();
       allow list: if isAdmin() || resource.data.createdBy == uid();
+      // 자기가 개설한 반의 코드만 만들 수 있습니다. createdBy만 검사하면
+      // 다른 교사의 반(classId는 로그인만 하면 조회 가능)으로 유효한 코드를
+      // 위조해 학생을 남의 반에 가입시킬 수 있었습니다.
       allow create: if isAdmin()
-                    || (isTeacher() && request.resource.data.createdBy == uid());
+                    || (isTeacher()
+                        && request.resource.data.createdBy == uid()
+                        && ownsClass(request.resource.data.classId));
       allow update, delete: if isAdmin()
                             || (isTeacher() && resource.data.createdBy == uid());
     }
@@ -374,12 +383,35 @@ service cloud.firestore {
     }
 
     // ── KWL — 개인 성찰. 본인 + 반 소유 교사/관리자만. ──
+    //  · 생성: 본인 명의 + 자기가 속한 반으로만 (남의 반에 기록을 심지 못하게)
+    //  · 수정: 작성자·반·날짜는 못 바꿉니다 — 예전에는 본인 문서를 다른
+    //    학생·다른 반 기록으로 바꿔치기할 수 있었습니다.
+    //    (변경 키 화이트리스트가 아니라 '불변 필드 고정'으로 검사합니다.
+    //     addKwl이 같은 문서에 merge로 다시 쓰면서 createdAt·이름표를 함께
+    //     갱신하므로, 화이트리스트 방식이면 정상 재저장이 막힙니다)
     match /kwl/{kwlId} {
       allow read: if signedIn() && (
         resource.data.userId == uid() || isAdmin() || ownsClass(resource.data.classId)
       );
-      allow create: if signedIn() && request.resource.data.userId == uid();
-      allow update, delete: if signedIn() && (
+      // 교사는 반의 '멤버'가 아니라 '소유자'라 두 경로를 모두 열어 둡니다
+      // (교사도 자기 반에서 KWL을 쓸 수 있어야 하므로).
+      allow create: if signedIn()
+                    && request.resource.data.userId == uid()
+                    && (
+                         isClassMember(request.resource.data.classId)
+                         || ownsClass(request.resource.data.classId)
+                         || isAdmin()
+                       );
+      allow update: if signedIn()
+                    && request.resource.data.userId == resource.data.userId
+                    && request.resource.data.classId == resource.data.classId
+                    && request.resource.data.date == resource.data.date
+                    && (
+                         resource.data.userId == uid()
+                         || isAdmin()
+                         || ownsClass(resource.data.classId)
+                       );
+      allow delete: if signedIn() && (
         resource.data.userId == uid() || isAdmin() || ownsClass(resource.data.classId)
       );
     }

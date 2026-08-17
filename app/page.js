@@ -11,7 +11,7 @@
 // 먼저 고르며, 선생님은 관리자 승인 후 권한이 부여됩니다.
 // 데모 모드(Firebase 미설정)에서는 입력값과 무관하게 임시 유저로 입장합니다.
 // =============================================================
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { isFirebaseConfigured } from "@/lib/firebase";
 import { backdropClose } from "@/lib/modal";
@@ -101,6 +101,24 @@ export default function LandingPage() {
   // 주간 랭킹 구독 (로그인 전에도 읽히는 공개 통계 문서)
   useEffect(() => subscribeWeeklyQuestioners(setQuestioners), []);
   useEffect(() => subscribeWeeklyAnswerers(setAnswerers), []);
+
+  // ── 로그인/회원가입 모달 접근성 ──
+  const firstFieldRef = useRef(null);
+
+  // Escape로 닫기 — 마우스로만 닫을 수 있으면 키보드 사용자가 갇힙니다.
+  useEffect(() => {
+    if (!authMode) return;
+    function onKey(e) {
+      if (e.key === "Escape") setAuthMode(null);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [authMode]);
+
+  // 열리면 첫 입력칸으로 포커스를 옮겨 줍니다.
+  useEffect(() => {
+    if (authMode) firstFieldRef.current?.focus();
+  }, [authMode]);
 
   // 두 랭킹을 한 줄에 번갈아 섞은 카드 목록
   const cards = buildActCards(questioners, answerers);
@@ -207,10 +225,13 @@ export default function LandingPage() {
         <div className="modal-backdrop" {...backdropClose(() => setAuthMode(null))}>
           <div
             className="modal modal-auth"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="auth-modal-title"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="modal-head">
-              <h3>{authMode === "login" ? "로그인" : "회원가입"}</h3>
+              <h3 id="auth-modal-title">{authMode === "login" ? "로그인" : "회원가입"}</h3>
               <button
                 className="btn-close"
                 onClick={() => setAuthMode(null)}
@@ -288,22 +309,33 @@ export default function LandingPage() {
                   )}
                 </>
               )}
+              {/* placeholder는 입력을 시작하면 사라져 라벨을 대신할 수 없습니다.
+                  화면에는 보이지 않되 스크린 리더가 읽는 라벨을 따로 답니다. */}
+              <label className="sr-only" htmlFor="auth-email">이메일</label>
               <input
+                id="auth-email"
+                ref={firstFieldRef}
                 type="email"
+                autoComplete="email"
                 placeholder="이메일"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
+              <label className="sr-only" htmlFor="auth-password">비밀번호 (6자 이상)</label>
               <input
+                id="auth-password"
                 type="password"
+                autoComplete={authMode === "login" ? "current-password" : "new-password"}
                 placeholder="비밀번호 (6자 이상)"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
 
-              {error && <p className="auth-error">{error}</p>}
+              {error && (
+                <p className="auth-error" role="alert">{error}</p>
+              )}
 
               <button type="submit" className="btn-primary" disabled={busy}>
                 {busy ? "처리 중…" : authMode === "login" ? "로그인" : "회원가입"}
@@ -339,7 +371,11 @@ export default function LandingPage() {
 }
 
 // 순위 카드 목록 — 질문대장 5명 + 답변왕 5명(총 10명)만 반복 없이 표시.
-// 격려·칭찬 목적이라 실명(realName)을 우선 표시합니다(없으면 닉네임 폴백).
+//
+// [익명 닉네임만 씁니다]
+// 이 화면은 로그인 없이 누구나 볼 수 있습니다. 실명은 본인과 담당 교사만
+// 확인한다는 개인정보처리방침에 따라 랭킹에는 실명을 쓰지 않습니다.
+// (집계 함수도 stats/* 공개 문서에 realName을 담지 않습니다)
 function ActMarquee({ cards }) {
   return (
     <div className="act-viewport">
@@ -358,7 +394,7 @@ function ActMarquee({ cards }) {
             </span>
             <span className="act-cat">{c.cat}</span>
             <span className="act-avatar">{c.authorEmoji || "🙂"}</span>
-            <span className="act-name">{c.realName || c.authorName || "익명"}</span>
+            <span className="act-name">{c.authorName || "익명"}</span>
             <span className="act-sub">
               {c.unit} {c.count}개
             </span>
