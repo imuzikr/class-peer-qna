@@ -11,9 +11,11 @@ import {
   deleteStudyCard,
   formatTime,
   getDirectoryRealName,
+  startBroadcast,
+  stopBroadcast,
 } from "@/lib/store";
 import { getCurrentUser, isTeacher } from "@/lib/user";
-import { sanitizeHtml, stripHtml } from "@/lib/html";
+import { sanitizeHtml, stripHtml, stripImgTags } from "@/lib/html";
 import { formatFileSize } from "@/lib/image";
 import { uploadImage, uploadFile, uploadDataUrl } from "@/lib/storageUpload";
 import dynamic from "next/dynamic";
@@ -308,6 +310,40 @@ export default function StudyCardModal({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // 방송 종료 — 교사가 '크게 보기'를 끄거나 모달을 닫으면 학생 화면도 원래대로.
+  // (학생이 자기 카드를 크게 볼 때는 방송하지 않음 — 교사가 켰을 때만)
+  useEffect(() => {
+    if (!expanded || !card || !board.classId || !isTeacher(me)) return;
+    return () => { stopBroadcast(board.classId); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expanded, card?.id, board.classId]);
+
+  // 방송 내용 갱신 — 편집 중인 텍스트가 잠시(0.4초) 멈추면 학생 화면도 함께 갱신
+  useEffect(() => {
+    if (!expanded || !card || !board.classId || !isTeacher(me)) return;
+    const t = setTimeout(() => {
+      const { titleToSave, htmlToSave } = canEdit
+        ? buildPayload()
+        : { titleToSave: card.title || "", htmlToSave: sanitizeHtml(card.content || "") };
+      startBroadcast(me, board.classId, {
+        mode: "single",
+        boardId: board.id,
+        boardTitle: board.title,
+        cardId: card.id,
+        title: titleToSave,
+        content: stripImgTags(htmlToSave),
+        displayName: cardDisplayName,
+        isGroupCard: !!card.groupId,
+        members: card.members ?? null,
+      });
+    }, 400);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    expanded, card?.id, board.classId, board.id, board.title, canEdit,
+    title, content, activityTitles, activityContents, cardDisplayName,
+  ]);
 
   // "저장하고 닫기" — 진행 중 자동저장을 기다렸다가 최종 저장 후 닫기
   async function handleSave() {

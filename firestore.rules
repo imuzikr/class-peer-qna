@@ -208,6 +208,14 @@ service cloud.firestore {
       allow delete: if isAdmin() || ownsClass(resource.data.classId);
     }
 
+    // ── 발표 강제 전환(방송) — 문서 ID = classId. 있으면 방송 중, 없으면 아님. ──
+    //  · 반 소유 교사/관리자만 켜고 끌 수 있고, 그 반 소속 학생은 읽기만.
+    //  · 문서 ID가 곧 classId라 get() 없이 바로 판정합니다.
+    match /broadcasts/{classId} {
+      allow read: if isAdmin() || ownsClass(classId) || isClassMember(classId);
+      allow create, update, delete: if isAdmin() || ownsClass(classId);
+    }
+
     // ── 누가기록(학생 관찰 메모) — 반 소유 교사/관리자 전용 (학생 열람 불가) ──
     match /studentNotes/{noteId} {
       allow read: if isAdmin()

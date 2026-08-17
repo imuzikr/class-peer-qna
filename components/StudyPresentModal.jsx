@@ -13,15 +13,13 @@ import {
   subscribeClassRewards,
   setStudentReward,
   getDirectoryRealName,
+  startBroadcast,
+  stopBroadcast,
   REWARD_MAX,
 } from "@/lib/store";
-import { sanitizeHtml } from "@/lib/html";
+import { getCurrentUser, isTeacher } from "@/lib/user";
+import { sanitizeHtml, stripImgTags } from "@/lib/html";
 import RewardFruits, { rewardStars } from "./RewardFruits";
-
-// 본문 HTML에서 이미지 태그만 제거 — 슬라이드에는 텍스트만 보여줍니다.
-function stripImgTags(html) {
-  return html.replace(/<img[^>]*>/gi, "");
-}
 
 export default function StudyPresentModal({ board, cards = [], onClose }) {
   const [idx, setIdx] = useState(0);
@@ -49,6 +47,38 @@ export default function StudyPresentModal({ board, cards = [], onClose }) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [total, onClose]);
+
+  // 방송 종료 — 발표 모드를 닫으면 학생 화면도 즉시 원래대로 돌아갑니다.
+  useEffect(() => {
+    if (!board.classId || !isTeacher(getCurrentUser())) return;
+    return () => { stopBroadcast(board.classId); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [board.classId]);
+
+  // 방송 내용 갱신 — 카드를 넘길 때마다 학생 화면도 같은 카드로 함께 넘어갑니다.
+  useEffect(() => {
+    if (!board.classId || !card) return;
+    const me = getCurrentUser();
+    if (!isTeacher(me)) return;
+    const isGroup = !!card.groupId;
+    const name = isGroup
+      ? card.title || card.groupName || "모둠"
+      : getDirectoryRealName(card.authorId) || card.authorName || "익명";
+    startBroadcast(me, board.classId, {
+      mode: "carousel",
+      boardId: board.id,
+      boardTitle: board.title,
+      cardId: card.id,
+      title: card.title || "",
+      content: stripImgTags(sanitizeHtml(card.content || "")),
+      displayName: name,
+      isGroupCard: isGroup,
+      members: card.members ?? null,
+      idx,
+      total,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [board.classId, board.id, board.title, card?.id, idx, total]);
 
   if (!card) return null;
 

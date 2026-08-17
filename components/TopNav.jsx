@@ -11,13 +11,20 @@ import { useRouter } from "next/navigation";
 import { isAdmin, isTeacher } from "@/lib/user";
 import { isFirebaseConfigured } from "@/lib/firebase";
 import { signOutUser } from "@/lib/auth";
-import { subscribeUserDirectory, subscribeMyMemberships, subscribeMyClassRewardCount } from "@/lib/store";
+import {
+  subscribeUserDirectory,
+  subscribeMyMemberships,
+  subscribeMyClassRewardCount,
+  subscribeBroadcast,
+  stopBroadcast,
+} from "@/lib/store";
 import { getSelectedClassId } from "@/lib/classroom";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import UserProfile from "./UserProfile";
 import NotificationBell from "./NotificationBell";
 import RoleSwitcher from "./RoleSwitcher";
 import RoleManagerModal from "./RoleManagerModal";
+import PresentationOverlay from "./PresentationOverlay";
 import { IconReport, IconPythonRunner, IconLogo, IconAnswer, IconBlackboard, IconBook, IconTeacher, IconLogout } from "./StatusIcons";
 
 export default function TopNav({ active, onPython, pyActive = false }) {
@@ -69,6 +76,16 @@ export default function TopNav({ active, onPython, pyActive = false }) {
     return subscribeMyClassRewardCount(activeClassId, user.uid, setFruitTotal);
   }, [admin, activeClassId, user?.uid]);
 
+  // 발표 강제 전환(방송) 구독 — 학생은 "지금 보고 있는 반", 교사는 자신이
+  // 마지막으로 고른 반 기준. 어느 화면에 있든(질문방·책방·리포트 등) 이
+  // 상단바가 항상 떠 있으므로 여기서 구독하면 앱 전체에 적용됩니다.
+  const [broadcast, setBroadcast] = useState(null);
+  const broadcastClassId = admin ? sessionClassId : activeClassId;
+  useEffect(() => {
+    if (!isFirebaseConfigured || !broadcastClassId) { setBroadcast(null); return; }
+    return subscribeBroadcast(broadcastClassId, setBroadcast);
+  }, [broadcastClassId]);
+
   const pendingTeacherCount = directory.filter(
     (u) => u.requestedRole === "teacher" && u.role !== "teacher" && u.role !== "admin"
   ).length;
@@ -102,6 +119,7 @@ export default function TopNav({ active, onPython, pyActive = false }) {
   }
 
   return (
+    <>
     <header className="topbar">
       {/* 왼쪽: 로고 + 주요 메뉴 */}
       <div className="topbar-left">
@@ -190,5 +208,22 @@ export default function TopNav({ active, onPython, pyActive = false }) {
         </button>
       </div>
     </header>
+
+    {/* 학생 화면 — 교사가 방송 중이면 화면 전체를 강제로 덮습니다(학생은 닫을 수 없음) */}
+    {!admin && broadcast && <PresentationOverlay broadcast={broadcast} />}
+
+    {/* 교사 화면 — 자기 반에 방송이 켜져 있으면 어디서든 바로 끌 수 있는 안전장치 */}
+    {admin && broadcast && (
+      <button
+        type="button"
+        className="broadcast-stop-pill"
+        onClick={() => stopBroadcast(broadcastClassId)}
+        title="학생 화면 강제 전환을 종료합니다"
+      >
+        <span className="broadcast-live-dot" aria-hidden="true" />
+        학생 화면 강제 전환 중 · 방송 종료
+      </button>
+    )}
+    </>
   );
 }

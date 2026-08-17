@@ -6009,6 +6009,93 @@ pre code {
   right: 18px;
 }
 
+/* ── 발표 강제 전환(방송) — 학생 화면 전체를 덮는 오버레이 ── */
+.broadcast-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+}
+.broadcast-bar {
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 22px;
+  background: var(--dark);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+}
+.broadcast-live-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #ef4444;
+  flex-shrink: 0;
+  animation: broadcast-pulse 1.4s ease-in-out infinite;
+}
+@keyframes broadcast-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.broadcast-board {
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 600;
+}
+.broadcast-progress {
+  margin-left: auto;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 3px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+}
+.broadcast-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 40px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.broadcast-who {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  margin-bottom: 22px;
+}
+.broadcast-who strong {
+  font-size: 18px;
+  color: var(--dark);
+}
+
+/* ── 교사 화면 — 방송 중일 때 어디서든 바로 끌 수 있는 안전장치 ── */
+.broadcast-stop-pill {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: none;
+  background: var(--danger);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+.broadcast-stop-pill:hover {
+  filter: brightness(1.08);
+}
+
 /* ── KWL 전체 화면 (교사) ── */
 .kwlfs-head-actions {
   display: flex;
@@ -9313,6 +9400,9 @@ pre code {
   .present-slide-title { font-size: 24px; margin-bottom: 18px; }
   .present-slide-content { font-size: 18px; line-height: 1.75; }
   .present-foot { padding: 10px 12px; }
+  .broadcast-bar { padding: 10px 14px; font-size: 13px; }
+  .broadcast-body { padding: 20px 14px; }
+  .broadcast-stop-pill { right: 12px; bottom: 12px; font-size: 12px; padding: 8px 14px; }
   .present-nav {
     width: 40px;
     height: 40px;
