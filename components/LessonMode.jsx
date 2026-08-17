@@ -196,10 +196,12 @@ export default function LessonMode({
 
           {/* ── 해설 카드 ── */}
           <section className="lesson-card lesson-card--note">
+            {/* 해설은 전자칠판에 비친 이 화면으로 학생들과 함께 봅니다
+                (학생 기기에는 슬라이드만 전송되므로 방송 내용은 그대로) */}
             <div className="lesson-card-head">
               <h2>해설</h2>
               {editing && saved && <em className="lesson-saved">✓ 저장됨</em>}
-              <small>나만 보여요</small>
+              {editing && <small>자동 저장</small>}
             </div>
 
             <div className="lesson-note-body">

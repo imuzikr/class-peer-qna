@@ -6155,7 +6155,7 @@ pre code {
 }
 /* 페이지 본문 — 앞으로 이 안에 수업 관련 섹션을 계속 덧붙입니다 */
 .lesson-page {
-  max-width: 1600px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 18px 20px 40px;
 }
@@ -6226,11 +6226,12 @@ pre code {
   border-color: var(--primary);
 }
 /* 슬라이드 · 해설 2열. 해설은 너무 넓어지지 않게 상한을 둡니다. */
+/* 슬라이드 · 해설 — 너비도 높이도 같은 카드 두 장 (stretch가 높이를 맞춰 줍니다) */
 .lesson-deck {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 380px);
+  grid-template-columns: 1fr 1fr;
   gap: 16px;
-  align-items: start;
+  align-items: stretch;
 }
 .lesson-card {
   display: flex;
@@ -6285,16 +6286,19 @@ pre code {
   padding: 12px;
   border-top: 1px solid var(--border);
 }
-/* 해설 카드 — 슬라이드 카드와 같은 높이를 유지하고 안에서만 스크롤 */
-.lesson-card--note {
-  align-self: stretch;
-  max-height: 78vh;
-}
+/* 해설 카드 — 높이는 옆의 슬라이드 카드가 정합니다.
+   내용을 절대 배치해 두어야 해설이 길어져도 카드가 늘어나지 않고
+   안에서만 스크롤됩니다(두 카드 높이가 항상 같도록). */
 .lesson-note-body {
   flex: 1;
   min-height: 0;
-  display: flex;
-  padding: 14px;
+  position: relative;
+}
+.lesson-note-body > * {
+  position: absolute;
+  inset: 14px;
+  margin: 0;
+  overflow-y: auto;
 }
 .lesson-saved {
   font-style: normal;
@@ -6303,9 +6307,6 @@ pre code {
   color: #3d8a72;
 }
 .lesson-note-input {
-  flex: 1;
-  width: 100%;
-  min-height: 320px;
   resize: none;
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -6320,10 +6321,8 @@ pre code {
   border-color: var(--primary);
 }
 .lesson-note-text {
-  flex: 1;
-  overflow-y: auto;
-  font-size: 17px;
-  line-height: 1.85;
+  font-size: 16px;
+  line-height: 1.8;
   color: var(--text);
   white-space: pre-wrap;
 }
@@ -9802,8 +9801,11 @@ pre code {
   /* 수업하기 — 좁은 화면에서는 슬라이드 카드 위 / 해설 카드 아래로 */
   .lesson-page { padding: 12px 12px 28px; }
   .lesson-deck { grid-template-columns: 1fr; }
-  .lesson-card--note { max-height: none; }
-  .lesson-note-input { min-height: 200px; }
+  /* 세로로 쌓이면 옆에 높이를 정해 줄 카드가 없으므로 일반 흐름으로 되돌립니다
+     (절대 배치를 그대로 두면 해설 카드 높이가 0이 됩니다) */
+  .lesson-note-body { position: static; padding: 14px; }
+  .lesson-note-body > * { position: static; inset: auto; overflow: visible; }
+  .lesson-note-input { width: 100%; min-height: 200px; }
   .lesson-note-text { font-size: 15px; }
   .lesson-title { font-size: 14px; }
   .lesson-nav { min-width: 84px; }
