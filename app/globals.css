@@ -8022,6 +8022,30 @@ pre code {
   background: var(--primary-dark, #c15a2a);
 }
 
+.study-desc-edit-wrap {
+  padding: 6px 14px 10px;
+  background: var(--card-bg);
+}
+.study-desc-inline {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 8px;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--dark);
+  border: 1px solid var(--primary);
+  border-radius: 8px;
+  background: #fff;
+  resize: none;
+  /* .study-column-desc와 같은 3줄 높이 */
+  height: calc(13px * 1.5 * 3 + 12px);
+}
+.study-desc-inline:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--primary-light);
+}
+
 .study-sort {
   display: flex;
   gap: 6px;
@@ -8442,13 +8466,11 @@ pre code {
   max-height: 400px;
 }
 
-/* 제목 카드 클릭 영역 */
-/* 정렬·설정 패널 열기 — 설명(흰 영역) 클릭. 헤더는 아이콘이 많아 여백이
-   좁으므로 더 여유로운 설명 영역을 클릭 대상으로 둠 */
-.study-column-desc.clickable {
-  cursor: pointer;
+/* 설명 더블 클릭으로 편집 — 제목과 같은 방식(단일 클릭은 안내만, 더블 클릭이 편집) */
+.study-column-desc--editable {
+  cursor: text;
 }
-.study-column-desc.clickable:hover {
+.study-column-desc--editable:hover {
   background: var(--primary-light);
 }
 

@@ -76,6 +76,8 @@ export default function StudyBoardColumn({
   const [presenting, setPresenting] = useState(false); // 발표 모드
   const [titleDraft, setTitleDraft] = useState(board.title); // 보드 제목 편집 초안
   const [editingTitle, setEditingTitle] = useState(false); // 제목 인라인 편집 중
+  const [descDraft, setDescDraft] = useState(board.description ?? ""); // 상세 설명 편집 초안
+  const [editingDesc, setEditingDesc] = useState(false); // 상세 설명 인라인 편집 중
   // 학생 미리보기(peek): 접힌 보드를 학생이 잠깐 펼쳐 보는 개인 상태.
   // 공유 상태(board.collapsed)는 그대로 두고, 이 학생의 화면에서만 펼쳐집니다.
   const [peeked, setPeeked] = useState(false);
@@ -192,6 +194,22 @@ export default function StudyBoardColumn({
   function cancelEditTitle() {
     setTitleDraft(board.title);
     setEditingTitle(false);
+  }
+
+  // 보드 상세 설명 저장 — 더블 클릭으로 그 자리에서 편집(제목과 같은 방식).
+  async function commitDesc() {
+    const newDesc = descDraft.trim();
+    setEditingDesc(false);
+    if (newDesc === (board.description ?? "")) return;
+    await updateStudyBoard(board.id, { description: newDesc });
+  }
+  function startEditDesc() {
+    setDescDraft(board.description ?? "");
+    setEditingDesc(true);
+  }
+  function cancelEditDesc() {
+    setDescDraft(board.description ?? "");
+    setEditingDesc(false);
   }
 
   // 다른 반으로 복제 — 학생 카드는 복사하지 않고 활동·공개범위만 유지
@@ -459,15 +477,39 @@ export default function StudyBoardColumn({
         </div>
 
         {board.description && (
-          <p
-            className={`study-column-desc${isTeacher && !isNotice ? " clickable" : ""}`}
-            onClick={
-              isTeacher && !isNotice ? () => setPanelOpen((v) => !v) : undefined
-            }
-            title={isTeacher && !isNotice ? "정렬·설정 펼치기" : undefined}
-          >
-            {board.description}
-          </p>
+          isTeacher && editingDesc ? (
+            <div
+              className="study-desc-edit-wrap"
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <textarea
+                className="study-desc-inline"
+                value={descDraft}
+                onChange={(e) => setDescDraft(e.target.value)}
+                onBlur={commitDesc}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); commitDesc(); }
+                  else if (e.key === "Escape") { e.preventDefault(); cancelEditDesc(); }
+                }}
+                maxLength={200}
+                placeholder="보드 설명"
+                aria-label="보드 설명 수정"
+                autoFocus
+              />
+            </div>
+          ) : (
+            <p
+              className={`study-column-desc${isTeacher ? " study-column-desc--editable" : ""}`}
+              onClick={isTeacher ? (e) => e.stopPropagation() : undefined}
+              onDoubleClick={
+                isTeacher ? (e) => { e.stopPropagation(); startEditDesc(); } : undefined
+              }
+              title={isTeacher ? "더블 클릭해 설명 수정" : undefined}
+            >
+              {board.description}
+            </p>
+          )
         )}
 
         {/* 정렬·활동·설정 패널 — 제목 카드 클릭 시 한 번에 펼침 */}
