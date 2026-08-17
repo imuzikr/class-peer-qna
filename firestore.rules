@@ -208,6 +208,18 @@ service cloud.firestore {
       allow delete: if isAdmin() || ownsClass(resource.data.classId);
     }
 
+    // ── 수업 자료(수업하기) — 만든 선생님 본인만. 학생은 읽지 않습니다. ──
+    //  · 슬라이드 이미지 URL과 장별 메모를 담습니다. 메모는 교사 전용이라
+    //    학생에게 절대 노출되면 안 되므로 읽기를 소유 교사로 좁힙니다.
+    //  · 학생이 수업 중 보는 슬라이드는 방송 문서(broadcasts)에 실린
+    //    '현재 장 이미지 URL' 하나뿐입니다.
+    match /lessons/{lId} {
+      allow read: if isAdmin() || (isTeacher() && resource.data.ownerId == uid());
+      allow create: if isTeacher() && request.resource.data.ownerId == uid();
+      allow update, delete: if isAdmin()
+                            || (isTeacher() && resource.data.ownerId == uid());
+    }
+
     // ── 발표 강제 전환(방송) — 문서 ID = classId. 있으면 방송 중, 없으면 아님. ──
     //  · 반 소유 교사/관리자만 켜고 끌 수 있고, 그 반 소속 학생은 읽기만.
     //  · 문서 ID가 곧 classId라 get() 없이 바로 판정합니다.

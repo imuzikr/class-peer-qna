@@ -9,6 +9,29 @@
 import { sanitizeHtml } from "@/lib/html";
 
 export default function PresentationOverlay({ broadcast }) {
+  // 수업하기 — 선생님 화면 전체가 아니라 '슬라이드만' 화면 가득 띄웁니다.
+  // (오른쪽 수업 메모는 교사 전용이라 방송에 담기지 않습니다)
+  if (broadcast.mode === "lesson") {
+    return (
+      <div
+        className="broadcast-overlay broadcast-overlay--lesson"
+        role="alertdialog"
+        aria-modal="true"
+        aria-label="선생님 수업 화면"
+      >
+        {broadcast.imageUrl ? (
+          <img
+            className="broadcast-slide-img"
+            src={broadcast.imageUrl}
+            alt={`슬라이드 ${(broadcast.slideIndex ?? 0) + 1}`}
+          />
+        ) : (
+          <p className="broadcast-lesson-wait">선생님이 수업을 준비하고 있어요.</p>
+        )}
+      </div>
+    );
+  }
+
   const isGroup = !!broadcast.isGroupCard;
   const html = sanitizeHtml(broadcast.content || "");
   const hasText = html.replace(/<[^>]*>/g, "").trim().length > 0;

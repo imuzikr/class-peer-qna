@@ -51,6 +51,9 @@ import NewQuestionForm from "@/components/NewQuestionForm";
 import ClassEntry from "@/components/ClassEntry";
 import Toast from "@/components/Toast";
 import KwlPanel from "@/components/KwlPanel";
+import LessonManagerModal from "@/components/LessonManagerModal";
+import LessonMode from "@/components/LessonMode";
+import { updateLesson } from "@/lib/store";
 import { IconKey } from "@/components/StatusIcons";
 
 // 파이썬 실행기(CodeMirror 등)는 무거워 지연 로딩 → 초기 로드/전환 속도 개선
@@ -75,6 +78,9 @@ export default function StudyPage() {
   const [creatingClass, setCreatingClass] = useState(false);
   const [newClassName, setNewClassName] = useState("");
   const [showCode, setShowCode] = useState(false); // 입장 코드 표시 토글
+  const [lessonPicker, setLessonPicker] = useState(false); // 수업 자료 목록
+  const [teaching, setTeaching] = useState(null);   // 수업 중인 자료(학생 화면 전환)
+  const [editingLesson, setEditingLesson] = useState(null); // 장별 메모 작성
   const [askKeyword, setAskKeyword] = useState(null); // "질문하기"로 새 질문 작성
   const [askCode, setAskCode] = useState(null);     // 파이썬 실행기에서 넘어온 코드
   const [askKwlW, setAskKwlW] = useState(null);    // KWL W칸에서 넘어온 텍스트
@@ -427,6 +433,15 @@ export default function StudyPage() {
                     )}
                     {admin && currentClass && (
                       <button
+                        className="study-lesson-btn"
+                        onClick={() => setLessonPicker(true)}
+                        title="슬라이드로 수업하기 — 학생 화면이 선생님 슬라이드로 바뀝니다"
+                      >
+                        📚 수업하기
+                      </button>
+                    )}
+                    {admin && currentClass && (
+                      <button
                         className="study-code-btn"
                         onClick={() => setShowCode(true)}
                         title="학생에게 알려 줄 입장 코드 크게 보기"
@@ -744,6 +759,49 @@ export default function StudyPage() {
         }}
         hasModalOpen={cardModalOpen || creatingClass || addingBoard || (askKeyword !== null || askCode !== null)}
       />
+
+      {/* ── 수업하기 ── */}
+      {lessonPicker && (
+        <LessonManagerModal
+          onClose={() => setLessonPicker(false)}
+          onEdit={(lesson) => { setLessonPicker(false); setEditingLesson(lesson); }}
+          onStart={(lesson) => {
+            if ((lesson.slides ?? []).length === 0) {
+              setToast("슬라이드가 없는 자료예요.");
+              return;
+            }
+            setLessonPicker(false);
+            setTeaching(lesson);
+          }}
+        />
+      )}
+
+      {/* 장별 메모 작성 — 수업 전에 미리 적어 둡니다(방송하지 않음) */}
+      {editingLesson && (
+        <LessonMode
+          lesson={editingLesson}
+          mode="edit"
+          onSaveNote={async (index, text) => {
+            const slides = (editingLesson.slides ?? []).map((s, i) =>
+              i === index ? { ...s, note: text } : s
+            );
+            await updateLesson(editingLesson.id, { slides });
+            setEditingLesson({ ...editingLesson, slides });
+          }}
+          onClose={() => setEditingLesson(null)}
+        />
+      )}
+
+      {/* 수업 중 — 넘길 때마다 학생 화면이 같은 장으로 강제 전환됩니다 */}
+      {teaching && (
+        <LessonMode
+          lesson={teaching}
+          mode="teach"
+          classId={classId}
+          className={currentClass?.name ?? ""}
+          onClose={() => setTeaching(null)}
+        />
+      )}
 
       <Toast message={toast} onDone={() => setToast("")} />
     </div>

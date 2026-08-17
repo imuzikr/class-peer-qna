@@ -6073,6 +6073,329 @@ pre code {
   color: var(--dark);
 }
 
+/* 수업하기 — 학생 화면엔 슬라이드만 화면 가득 (메모는 교사 전용) */
+.broadcast-overlay--lesson {
+  background: #14110f;
+  align-items: center;
+  justify-content: center;
+}
+.broadcast-slide-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.broadcast-lesson-wait {
+  margin: auto;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 17px;
+}
+
+/* ── 수업하기 — 교사 화면 (왼쪽 슬라이드 · 오른쪽 메모) ── */
+.lesson-mode {
+  position: fixed;
+  inset: 0;
+  z-index: 2900;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+}
+.lesson-head {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  background: var(--dark);
+  color: #fff;
+}
+.lesson-title {
+  font-size: 16px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lesson-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.15);
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.lesson-badge--edit {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.8);
+}
+.lesson-count {
+  margin-left: auto;
+  font-size: 14px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+.lesson-exit {
+  flex-shrink: 0;
+  padding: 7px 16px;
+  border: none;
+  border-radius: var(--radius-btn);
+  background: var(--danger);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.lesson-exit:hover {
+  filter: brightness(1.08);
+}
+.lesson-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+.lesson-slide-pane {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #14110f;
+  padding: 16px;
+}
+.lesson-slide-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 6px;
+}
+.lesson-empty {
+  color: rgba(255, 255, 255, 0.7);
+}
+.lesson-note-pane {
+  flex-shrink: 0;
+  width: 340px;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--border);
+  background: #fff;
+  padding: 16px 18px;
+}
+.lesson-note-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 10px;
+}
+.lesson-note-head small {
+  margin-left: auto;
+  font-weight: 500;
+  color: var(--text-sub);
+  font-size: 11px;
+}
+.lesson-saved {
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 700;
+  color: #3d8a72;
+}
+.lesson-note-input {
+  flex: 1;
+  width: 100%;
+  resize: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1.75;
+  color: var(--text);
+  outline: none;
+}
+.lesson-note-input:focus {
+  border-color: var(--primary);
+}
+.lesson-note-text {
+  flex: 1;
+  overflow-y: auto;
+  font-size: 17px;
+  line-height: 1.85;
+  color: var(--text);
+  white-space: pre-wrap;
+}
+.lesson-note-empty {
+  color: var(--text-sub);
+  font-size: 14px;
+}
+.lesson-foot {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 12px;
+  border-top: 1px solid var(--border);
+  background: #fff;
+}
+.lesson-nav {
+  min-width: 108px;
+}
+.lesson-nav:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.lesson-dots {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  max-width: 40vw;
+  justify-content: center;
+}
+.lesson-dots i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--border);
+}
+.lesson-dots i.on {
+  background: var(--primary);
+}
+
+/* ── 수업 자료 목록·만들기 모달 ── */
+.study-lesson-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 14px;
+  border: none;
+  border-radius: var(--radius-btn);
+  background: var(--primary);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.study-lesson-btn:hover {
+  background: var(--primary-dark);
+}
+.modal-lesson {
+  max-width: 620px;
+}
+.lesson-new {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.lesson-new-title {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text);
+  outline: none;
+}
+.lesson-new-title:focus {
+  border-color: var(--primary);
+  background: #fff;
+}
+.lesson-upload-btn {
+  flex-shrink: 0;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.lesson-upload-btn.disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.lesson-hint {
+  font-size: 12px;
+  color: var(--text-sub);
+  line-height: 1.6;
+  margin-bottom: 14px;
+}
+.lesson-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.lesson-progress-bar {
+  flex: 1;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--neutral);
+  overflow: hidden;
+}
+.lesson-progress-bar span {
+  display: block;
+  height: 100%;
+  background: var(--primary);
+  transition: width 0.2s;
+}
+.lesson-progress-text {
+  font-size: 12px;
+  color: var(--text-sub);
+  flex-shrink: 0;
+}
+.lesson-error {
+  font-size: 13px;
+  color: var(--danger);
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+.lesson-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 46vh;
+  overflow-y: auto;
+}
+.lesson-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.lesson-row-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.lesson-row-main strong {
+  font-size: 14px;
+  color: var(--dark);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lesson-row-main span {
+  font-size: 12px;
+  color: var(--text-sub);
+}
+.lesson-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.lesson-row-actions .btn-ghost,
+.lesson-row-actions .btn-primary {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
 /* ── 교사 화면 — 방송 중일 때 어디서든 바로 끌 수 있는 안전장치 ── */
 .broadcast-stop-pill {
   position: fixed;
@@ -9403,6 +9726,19 @@ pre code {
   .broadcast-bar { padding: 10px 14px; font-size: 13px; }
   .broadcast-body { padding: 20px 14px; }
   .broadcast-stop-pill { right: 12px; bottom: 12px; font-size: 12px; padding: 8px 14px; }
+  /* 수업하기 — 좁은 화면에서는 슬라이드 위 / 메모 아래로 */
+  .lesson-body { flex-direction: column; }
+  .lesson-note-pane {
+    width: auto;
+    border-left: none;
+    border-top: 1px solid var(--border);
+    max-height: 38vh;
+  }
+  .lesson-slide-pane { flex: 1; min-height: 0; padding: 10px; }
+  .lesson-note-text { font-size: 15px; }
+  .lesson-title { font-size: 14px; }
+  .lesson-nav { min-width: 84px; }
+  .lesson-dots { display: none; }
   .present-nav {
     width: 40px;
     height: 40px;

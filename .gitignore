@@ -1,6 +1,7 @@
 node_modules/
 .next/
 out/
+public/pdf.worker.min.mjs
 .env*.local
 npm-debug.log*
 install.log
