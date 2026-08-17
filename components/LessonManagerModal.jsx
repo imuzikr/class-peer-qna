@@ -13,13 +13,16 @@
 import { useEffect, useState } from "react";
 import { backdropClose } from "@/lib/modal";
 import { subscribeMyLessons, addLesson, deleteLesson } from "@/lib/store";
-import { pdfToSlideBlobs } from "@/lib/pdfSlides";
-import { uploadImage } from "@/lib/storageUpload";
+import { convertPdfSlides } from "@/lib/pdfSlides";
+import { createUploadPool } from "@/lib/uploadPool";
+import { uploadImageBlob } from "@/lib/storageUpload";
 import { getCurrentUser } from "@/lib/user";
 import ConfirmModal from "./ConfirmModal";
 import { IconTrash } from "./StatusIcons";
 
 const MAX_SLIDES = 60;
+// 동시에 올릴 장수 — 교실 회선을 다 잡아먹지 않으면서 왕복 대기를 줄이는 선
+const UPLOAD_CONCURRENCY = 4;
 
 export default function LessonManagerModal({ onStart, onEdit, onClose }) {
   const [lessons, setLessons] = useState([]);
@@ -43,26 +46,39 @@ export default function LessonManagerModal({ onStart, onEdit, onClose }) {
     const name = title.trim() || file.name.replace(/\.pdf$/i, "");
 
     try {
-      // 1) PDF → 장별 이미지
-      setBusy({ phase: "슬라이드를 읽는 중", pct: 0 });
-      const blobs = await pdfToSlideBlobs(file, {
-        onProgress: (p) => setBusy({ phase: "슬라이드를 읽는 중", pct: p }),
+      setBusy({ phase: "PDF를 읽는 중", pct: 0 });
+
+      // 렌더와 업로드를 겹쳐 돌립니다 — 한 장이 그려지는 대로 바로 올리고,
+      // 동시 업로드가 상한에 닿으면 렌더가 잠깐 기다립니다(메모리 보호).
+      const slides = [];       // 인덱스로 채우므로 완료 순서와 무관하게 차례가 유지됨
+      const pool = createUploadPool(UPLOAD_CONCURRENCY);
+      let total = 0;
+      let done = 0;
+
+      await convertPdfSlides(file, {
+        onStart: (numPages) => {
+          if (numPages === 0) throw new Error("페이지를 찾지 못했어요.");
+          if (numPages > MAX_SLIDES) {
+            throw new Error(
+              `슬라이드는 최대 ${MAX_SLIDES}장까지 올릴 수 있어요. (지금 ${numPages}장)`
+            );
+          }
+          total = numPages;
+          slides.length = numPages;
+          setBusy({ phase: `슬라이드 만드는 중 0 / ${total}`, pct: 0 });
+        },
+        onPage: (index, blob) =>
+          pool.submit(async () => {
+            const imageUrl = await uploadImageBlob(blob, `slide-${index + 1}.jpg`);
+            slides[index] = { imageUrl, note: "" };
+            done++;
+            setBusy({ phase: `슬라이드 만드는 중 ${done} / ${total}`, pct: done / total });
+          }),
       });
-      if (blobs.length === 0) throw new Error("페이지를 찾지 못했어요.");
-      if (blobs.length > MAX_SLIDES) {
-        throw new Error(`슬라이드는 최대 ${MAX_SLIDES}장까지 올릴 수 있어요. (지금 ${blobs.length}장)`);
-      }
 
-      // 2) 장마다 Storage 업로드 (순서 유지를 위해 차례대로)
-      const slides = [];
-      for (let i = 0; i < blobs.length; i++) {
-        const f = new File([blobs[i]], `slide-${i + 1}.jpg`, { type: "image/jpeg" });
-        const imageUrl = await uploadImage(f, { maxWidth: 1600, quality: 0.85 });
-        slides.push({ imageUrl, note: "" });
-        setBusy({ phase: `슬라이드 올리는 중 ${i + 1} / ${blobs.length}`, pct: (i + 1) / blobs.length });
-      }
+      await pool.settle(); // 마지막까지 올라간 뒤에 저장
 
-      // 3) 자료 저장 → 바로 메모 작성 화면으로
+      // 자료 저장 → 바로 메모 작성 화면으로
       const id = await addLesson(me, { title: name, slides });
       setBusy(null);
       setTitle("");
