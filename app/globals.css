@@ -6167,35 +6167,10 @@ pre code {
   color: var(--dark);
   margin: 0 0 14px;
 }
-/* 프레젠테이션 — 이걸 눌러야 학생 화면이 바뀝니다(강조) */
-.lesson-present-btn {
-  padding: 8px 16px;
-  border: 1px solid var(--primary);
-  border-radius: var(--radius-btn);
-  background: var(--primary-light);
-  color: var(--primary-dark);
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-}
-.lesson-present-btn:hover:not(:disabled) {
-  background: var(--primary);
-  color: #fff;
-}
-.lesson-present-btn.on {
-  background: var(--danger);
-  border-color: var(--danger);
-  color: #fff;
-}
-.lesson-present-btn:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
 /* 활동 안내 — 슬라이드·해설 아래 전체 폭.
-   테두리가 없어 구분이 간격으로만 되므로 위쪽을 넉넉히 띄웁니다. */
+   테두리가 없어 구분이 간격으로만 되므로 위쪽을 확실히 띄웁니다. */
 .lesson-activity {
-  margin-top: 34px;
+  margin-top: 64px;
 }
 .lesson-activity-body {
   padding: 0;
@@ -6226,12 +6201,12 @@ pre code {
 .lesson-activity-input:focus {
   border-color: var(--primary);
 }
-/* 슬라이드 · 해설 2열. 해설은 너무 넓어지지 않게 상한을 둡니다. */
-/* 슬라이드 · 해설 — 너비도 높이도 같은 카드 두 장 (stretch가 높이를 맞춰 줍니다) */
+/* 슬라이드 · 해설 — 너비도 높이도 같은 카드 두 장 (stretch가 높이를 맞춰 줍니다).
+   테두리가 없어 둘 사이 경계가 간격만으로 보이므로 넉넉히 띄웁니다. */
 .lesson-deck {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 48px;
   align-items: stretch;
 }
 /* 카드 모양(배경·테두리·그림자)은 두지 않습니다 — 페이지 위에 내용만
@@ -6269,11 +6244,14 @@ pre code {
   align-items: center;
   justify-content: center;
   background: transparent;
+  border-radius: 14px;
+  overflow: hidden;
 }
 .lesson-slide-img {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  border-radius: 14px;
 }
 .lesson-empty {
   color: rgba(255, 255, 255, 0.7);
@@ -6329,12 +6307,37 @@ pre code {
   color: var(--text-sub);
   font-size: 14px;
 }
-.lesson-nav {
-  min-width: 108px;
+/* 이전 · 다음 · 프레젠테이션 — 셋 다 같은 모양·크기.
+   width(고정)를 써서 '프레젠테이션 종료'처럼 긴 글자에도 버튼이 늘어나지
+   않게 합니다(min-width는 내용이 넘치면 커져서 셋의 폭이 달라짐). */
+.lesson-ctrl-btn {
+  width: 172px;
+  padding: 11px 4px;
+  border: none;
+  border-radius: var(--radius-btn);
+  background: var(--primary);
+  color: #fff;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s;
 }
-.lesson-nav:disabled {
+.lesson-ctrl-btn:hover:not(:disabled) {
+  background: var(--primary-dark);
+}
+.lesson-ctrl-btn:disabled {
   opacity: 0.35;
   cursor: default;
+}
+/* 프레젠테이션 진행 중 — 눈에 띄게 위험색으로(끄는 동작이라는 신호) */
+.lesson-ctrl-btn.on {
+  background: var(--danger);
+}
+.lesson-ctrl-btn.on:hover:not(:disabled) {
+  filter: brightness(1.08);
 }
 .lesson-dots {
   display: flex;
@@ -6356,6 +6359,35 @@ pre code {
 /* ── 수업 자료 목록·만들기 모달 ── */
 .modal-lesson {
   max-width: 620px;
+}
+/* 목록 → 새 수업 만들기로 넘어갈 때 제목 자리에 뜨는 뒤로가기 */
+.lesson-back-btn {
+  padding: 5px 10px;
+}
+.lesson-create-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--dark);
+  margin: 0 0 12px;
+}
+/* 목록 맨 위 — 새 수업 만들기 진입 */
+.lesson-create-btn {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 14px;
+  border: 1.5px dashed var(--primary);
+  border-radius: var(--radius);
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.lesson-create-btn:hover {
+  background: var(--primary);
+  color: #fff;
+  border-style: solid;
 }
 .lesson-new {
   display: flex;
@@ -9799,7 +9831,7 @@ pre code {
   .broadcast-stop-pill { right: 12px; bottom: 12px; font-size: 12px; padding: 8px 14px; }
   /* 수업하기 — 좁은 화면에서는 슬라이드 카드 위 / 해설 카드 아래로 */
   .lesson-page { padding: 12px 12px 28px; }
-  .lesson-deck { grid-template-columns: 1fr; }
+  .lesson-deck { grid-template-columns: 1fr; gap: 28px; }
   /* 세로로 쌓이면 옆에 높이를 정해 줄 카드가 없으므로 일반 흐름으로 되돌립니다
      (절대 배치를 그대로 두면 해설 카드 높이가 0이 됩니다) */
   .lesson-note-body { position: static; padding: 0; }
@@ -9807,8 +9839,11 @@ pre code {
   .lesson-note-input { width: 100%; min-height: 200px; }
   .lesson-note-text { font-size: 15px; }
   .lesson-title { font-size: 14px; }
-  .lesson-nav { min-width: 84px; }
+  /* 버튼 세 개가 한 줄에 다 안 들어가므로(특히 '프레젠테이션 종료') 줄바꿈 허용 */
+  .lesson-card-foot { flex-wrap: wrap; row-gap: 8px; }
+  .lesson-ctrl-btn { width: 130px; padding: 9px 6px; font-size: 12.5px; }
   .lesson-dots { display: none; }
+  .lesson-activity { margin-top: 40px; }
   .present-nav {
     width: 40px;
     height: 40px;

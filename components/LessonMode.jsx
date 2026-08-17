@@ -153,7 +153,7 @@ export default function LessonMode({
             <div className="lesson-card-foot">
               <button
                 type="button"
-                className="btn-primary lesson-nav"
+                className="lesson-ctrl-btn"
                 onClick={() => setIdx((i) => Math.max(0, i - 1))}
                 disabled={idx === 0}
               >
@@ -168,7 +168,7 @@ export default function LessonMode({
               )}
               <button
                 type="button"
-                className="btn-primary lesson-nav"
+                className="lesson-ctrl-btn"
                 onClick={() => setIdx((i) => Math.min(total - 1, i + 1))}
                 disabled={idx >= total - 1}
               >
@@ -179,7 +179,7 @@ export default function LessonMode({
               {!editing && (
                 <button
                   type="button"
-                  className={`lesson-present-btn${presenting ? " on" : ""}`}
+                  className={`lesson-ctrl-btn${presenting ? " on" : ""}`}
                   onClick={() => setPresenting((v) => !v)}
                   disabled={total === 0}
                   title={

@@ -78,7 +78,7 @@ export default function StudyPage() {
   const [creatingClass, setCreatingClass] = useState(false);
   const [newClassName, setNewClassName] = useState("");
   const [showCode, setShowCode] = useState(false); // 입장 코드 표시 토글
-  const [lessonPicker, setLessonPicker] = useState(null); // null | 'prep' | 'start'
+  const [lessonPicker, setLessonPicker] = useState(false); // 수업 준비(목록·새로 만들기) 모달
   const [teaching, setTeaching] = useState(null);   // 수업 중인 자료(학생 화면 전환)
   const [editingLesson, setEditingLesson] = useState(null); // 장별 메모 작성
   const [askKeyword, setAskKeyword] = useState(null); // "질문하기"로 새 질문 작성
@@ -434,19 +434,10 @@ export default function StudyPage() {
                     {admin && currentClass && (
                       <button
                         className="btn-ghost"
-                        onClick={() => setLessonPicker("prep")}
-                        title="주제·자료·활동을 미리 준비합니다"
+                        onClick={() => setLessonPicker(true)}
+                        title="주제·자료·해설·활동을 준비하고 수업을 시작합니다"
                       >
                         📝 수업준비
-                      </button>
-                    )}
-                    {admin && currentClass && (
-                      <button
-                        className="btn-ghost"
-                        onClick={() => setLessonPicker("start")}
-                        title="준비해 둔 자료로 수업을 시작합니다"
-                      >
-                        📚 수업하기
                       </button>
                     )}
                     {admin && currentClass && (
@@ -769,18 +760,17 @@ export default function StudyPage() {
         hasModalOpen={cardModalOpen || creatingClass || addingBoard || (askKeyword !== null || askCode !== null)}
       />
 
-      {/* ── 수업하기 ── */}
+      {/* ── 수업 준비 (목록 · 새로 만들기) ── */}
       {lessonPicker && (
         <LessonManagerModal
-          purpose={lessonPicker}
-          onClose={() => setLessonPicker(null)}
-          onEdit={(lesson) => { setLessonPicker(null); setEditingLesson(lesson); }}
+          onClose={() => setLessonPicker(false)}
+          onEdit={(lesson) => { setLessonPicker(false); setEditingLesson(lesson); }}
           onStart={(lesson) => {
             if ((lesson.slides ?? []).length === 0) {
               setToast("슬라이드가 없는 자료예요.");
               return;
             }
-            setLessonPicker(null);
+            setLessonPicker(false);
             setTeaching(lesson);
           }}
         />
