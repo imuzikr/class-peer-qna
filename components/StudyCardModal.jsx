@@ -55,6 +55,9 @@ export default function StudyCardModal({
 
   const activities = board.activities ?? [];
   const isActivityCard = isNew && activities.length > 0;
+  // 카드 삭제는 교사(관리자 포함)만 — 학생은 자기 카드도 수정만 가능하고
+  // 삭제는 못 합니다(canEdit과 별도 권한).
+  const canDelete = isTeacher(getCurrentUser());
 
   const [title, setTitle] = useState(isNew ? "" : (card.title ?? ""));
   const [content, setContent] = useState(isNew ? "" : (card.content ?? ""));
@@ -699,8 +702,8 @@ export default function StudyCardModal({
                   저장 실패 · 다시 시도됩니다
                 </span>
               )}
-              {/* 모둠 카드는 삭제 불가(위험 방지) — 삭제 버튼 자체를 제거 */}
-              {!isNew && !card?.groupId && (
+              {/* 삭제는 교사만. 모둠 카드는 삭제 불가(위험 방지) — 삭제 버튼 자체를 제거 */}
+              {canDelete && !isNew && !card?.groupId && (
                 confirmDelete ? (
                   <>
                     <span className="study-delete-warn">

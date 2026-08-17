@@ -161,10 +161,13 @@ service cloud.firestore {
       }
     }
 
-    // ── 공지 — 교사만 작성 (전체 공유) ────────────────────────
+    // ── 공지 — 교사만 작성, 삭제는 작성한 본인이나 최고 관리자만 ──
+    //   (다른 반 교사가 남의 공지를 지울 수 없도록 — 공지는 전체 공유라
+    //    작성자 제한이 없으면 아무나 서로의 공지를 지울 수 있었습니다)
     match /notices/{nId} {
       allow read: if signedIn();
-      allow write: if isTeacher();
+      allow create: if isTeacher() && request.resource.data.authorId == uid();
+      allow delete: if isAdmin() || (isTeacher() && resource.data.authorId == uid());
     }
 
     // ── 키워드 — 읽기 모두, 생성/수정/삭제는 교사 (전체 공유) ──
@@ -327,13 +330,10 @@ service cloud.firestore {
               && !isBoardLocked(bId)
               && changedOnly(['title','content','imageUrl','attachments','updatedAt']))
         );
-        // 삭제 — 관리자/소유 교사, 또는 본인 카드(멤버·notice 아님).
-        //   모둠 카드는 학생 삭제 불가(문서ID가 uid가 아니므로 자동 차단).
-        allow delete: if signedIn() && (
-          isAdmin()
-          || ownsBoard(bId)
-          || (cardId == uid() && isBoardClassMember(bId) && !isNoticeBoard(bId))
-        );
+        // 삭제 — 관리자 또는 반 소유 교사만. 학생은 자기 카드도 수정만
+        //   가능하고 삭제는 못 합니다(실수로 지운 제출물을 되살릴 방법이
+        //   없어 삭제 권한을 교사에게만 둡니다).
+        allow delete: if signedIn() && (isAdmin() || ownsBoard(bId));
       }
     }
 

@@ -2,12 +2,13 @@
 
 // 3단: 공지사항 패널 — 실시간 공지 목록 + 공지 작성(서식 지원)
 import { useState } from "react";
-import { addNotice, formatTime, toDate } from "@/lib/store";
-import { getCurrentUser, isTeacher } from "@/lib/user";
+import { addNotice, deleteNotice, formatTime, toDate } from "@/lib/store";
+import { getCurrentUser, isTeacher, isAdmin } from "@/lib/user";
 import { sanitizeHtml, stripHtml } from "@/lib/html";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import RichTextEditor from "./RichTextEditor";
-import { IconNotice, IconTeacher } from "./StatusIcons";
+import ConfirmModal from "./ConfirmModal";
+import { IconNotice, IconTeacher, IconTrash } from "./StatusIcons";
 
 export default function NoticePanel({ notices }) {
   const user = useCurrentUser();
@@ -16,6 +17,7 @@ export default function NoticePanel({ notices }) {
   const [content, setContent] = useState(""); // 서식(HTML) 내용
   const [resetKey, setResetKey] = useState(0);
   const [sortDir, setSortDir] = useState("desc"); // 날짜 정렬: desc(최신순)/asc(오래된순)
+  const [confirmDelete, setConfirmDelete] = useState(null); // 삭제 확인 중인 공지
 
   // 날짜 기준 정렬 (토글)
   const sortedNotices = [...notices].sort((a, b) => {
@@ -35,6 +37,12 @@ export default function NoticePanel({ notices }) {
     setContent("");
     setResetKey((k) => k + 1);
     setWriting(false);
+  }
+
+  async function handleConfirmDelete() {
+    if (!confirmDelete) return;
+    await deleteNotice(confirmDelete.id);
+    setConfirmDelete(null);
   }
 
   return (
@@ -91,16 +99,44 @@ export default function NoticePanel({ notices }) {
           등록된 공지가 없습니다.
         </p>
       )}
-      {sortedNotices.map((n) => (
-        <div className="notice-item" key={n.id}>
-          <h4>{n.title}</h4>
-          <div className="notice-content" dangerouslySetInnerHTML={{ __html: sanitizeHtml(n.content) }} />
-          {/* 공지 작성자는 항상 "선생님"으로 표시됩니다 */}
-          <time className="notice-author">
-            <IconTeacher size={16} /> {n.authorName ?? "선생님"} · {formatTime(n.createdAt)}
-          </time>
-        </div>
-      ))}
+      {sortedNotices.map((n) => {
+        const canDelete = !!user && (n.authorId === user.uid || isAdmin(user));
+        return (
+          <div className="notice-item" key={n.id}>
+            <h4>{n.title}</h4>
+            <div className="notice-content" dangerouslySetInnerHTML={{ __html: sanitizeHtml(n.content) }} />
+            <div className="notice-foot">
+              {/* 공지 작성자는 항상 "선생님"으로 표시됩니다 */}
+              <time className="notice-author">
+                <IconTeacher size={16} /> {n.authorName ?? "선생님"} · {formatTime(n.createdAt)}
+              </time>
+              {canDelete && (
+                <button
+                  type="button"
+                  className="btn-ghost qa-delete notice-delete-btn"
+                  onClick={() => setConfirmDelete(n)}
+                  aria-label="공지 삭제"
+                >
+                  <IconTrash size={15} />
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      })}
+
+      {confirmDelete && (
+        <ConfirmModal
+          icon={<IconTrash size={40} />}
+          title="공지 삭제"
+          preview={confirmDelete.title}
+          description={"이 공지를 삭제합니다. 되돌릴 수 없습니다."}
+          confirmLabel="삭제하기"
+          danger
+          onConfirm={handleConfirmDelete}
+          onClose={() => setConfirmDelete(null)}
+        />
+      )}
     </aside>
   );
 }

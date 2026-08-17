@@ -1731,7 +1731,21 @@ button.footer-link:hover {
   font-family: var(--font-mono);
   font-size: 11px;
   color: #a8a69d;
+}
+
+.notice-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-top: 6px;
+}
+
+.notice-delete-btn {
+  padding: 3px 6px;
+  color: var(--text-sub);
+}
+.notice-delete-btn:hover {
+  color: var(--danger);
 }
 
 /* ===================== 모달 ===================== */
