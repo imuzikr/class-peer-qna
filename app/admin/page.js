@@ -22,7 +22,6 @@ import {
   toDate,
   deleteStudent,
   dismissWithdrawalRequest,
-  sweepOrphanedStudentData,
 } from "@/lib/store";
 import { isFirebaseConfigured } from "@/lib/firebase";
 import { isAdmin, isTeacher } from "@/lib/user";
@@ -275,9 +274,6 @@ export default function AdminDashboardPage() {
   const [confirmWithdrawStudent, setConfirmWithdrawStudent] = useState(null);
   const [withdrawBusy, setWithdrawBusy] = useState(false);
   const [withdrawError, setWithdrawError] = useState("");
-  const [confirmOrphanSweep, setConfirmOrphanSweep] = useState(false);
-  const [orphanSweepBusy, setOrphanSweepBusy] = useState(false);
-  const [orphanSweepResult, setOrphanSweepResult] = useState(null); // { swept, warnings } | null
   const [activeStatKey, setActiveStatKey] = useState(null); // 통계 카드 드릴다운
   const [selectedKwl, setSelectedKwl] = useState([]); // 선택 학생 KWL 기록
   const [selectedNotes, setSelectedNotes] = useState([]); // 선택 학생 멋진 순간(누가기록)
@@ -487,24 +483,6 @@ export default function AdminDashboardPage() {
       );
     } finally {
       setWithdrawBusy(false);
-    }
-  }
-
-  // 탈퇴로 프로필(users/{uid})이 사라졌는데도 반 소속·과일 기록 등이 남아
-  // "이름 미설정"으로 계속 보이는 계정을 정리 — 최고 관리자 전용 일회성 정리.
-  // (deleteStudentAccount가 생기기 전에 탈퇴한 학생들의 잔여 데이터. 이후의
-  // 탈퇴는 서버에서 즉시 정리되므로 이 버튼은 과거분 정리용입니다.)
-  async function handleConfirmOrphanSweep() {
-    if (orphanSweepBusy) return;
-    setOrphanSweepBusy(true);
-    try {
-      const res = await sweepOrphanedStudentData();
-      setOrphanSweepResult(res);
-    } catch (e) {
-      setOrphanSweepResult({ swept: 0, warnings: [e?.message ?? "알 수 없는 오류"] });
-    } finally {
-      setOrphanSweepBusy(false);
-      setConfirmOrphanSweep(false);
     }
   }
 
@@ -776,34 +754,6 @@ export default function AdminDashboardPage() {
                   </li>
                 ))}
               </ul>
-            </div>
-          )}
-          {isStrictAdmin && (
-            <div className="role-pending">
-              <p className="role-pending-title">🧹 탈퇴 잔여 데이터 정리</p>
-              <p className="role-pending-desc">
-                탈퇴했지만 반 소속·과일 기록 등이 남아 "이름 미설정"으로
-                보이는 계정을 찾아 한 번에 정리합니다.
-              </p>
-              <span className="role-pending-actions">
-                <button
-                  type="button"
-                  className="btn-ghost role-danger-btn"
-                  onClick={() => setConfirmOrphanSweep(true)}
-                  disabled={orphanSweepBusy}
-                >
-                  {orphanSweepBusy ? "정리 중…" : "정리하기"}
-                </button>
-              </span>
-              {orphanSweepResult && (
-                <p className="role-pending-desc">
-                  {orphanSweepResult.swept > 0
-                    ? `${orphanSweepResult.swept}개 계정의 잔여 데이터를 지웠어요.`
-                    : "정리할 잔여 데이터가 없어요."}
-                  {orphanSweepResult.warnings?.length > 0 &&
-                    ` (일부 실패: ${orphanSweepResult.warnings.join(", ")})`}
-                </p>
-              )}
             </div>
           )}
           <div className="admin-panel-head">
@@ -1165,20 +1115,6 @@ export default function AdminDashboardPage() {
         />
       )}
 
-      {confirmOrphanSweep && (
-        <ConfirmModal
-          icon="🧹"
-          title="탈퇴 잔여 데이터 정리"
-          description={
-            "프로필이 사라진 탈퇴 계정의 반 소속·과일 기록·질문/답변 등을\n" +
-            "모두 찾아 지웁니다. 되돌릴 수 없습니다."
-          }
-          confirmLabel={orphanSweepBusy ? "정리 중…" : "정리하기"}
-          danger
-          onConfirm={handleConfirmOrphanSweep}
-          onClose={() => setConfirmOrphanSweep(false)}
-        />
-      )}
     </div>
   );
 }
