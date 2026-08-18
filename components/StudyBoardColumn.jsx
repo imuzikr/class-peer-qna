@@ -30,7 +30,7 @@ import StudyCard from "./StudyCard";
 import StudyCardModal from "./StudyCardModal";
 import StudyPresentModal from "./StudyPresentModal";
 import GroupComposer from "./GroupComposer";
-import { IconTrash, IconAddFeature, IconLock, IconDuplicate, IconPen, IconPeople } from "./StatusIcons";
+import { IconTrash, IconSettings, IconLock, IconDuplicate, IconPen, IconPeople } from "./StatusIcons";
 
 function buildActivityTemplate(activities) {
   if (!activities?.length) return "";
@@ -471,7 +471,7 @@ export default function StudyBoardColumn({
               title={panelOpen ? "접기" : "정렬·설정 펼치기"}
               aria-label={panelOpen ? "패널 접기" : "패널 펼치기"}
             >
-              <IconAddFeature size={22} />
+              <IconSettings size={20} />
             </button>
           )}
         </div>
