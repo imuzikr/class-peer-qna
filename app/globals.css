@@ -6160,8 +6160,22 @@ pre code {
 }
 
 /* ===================== 참여 전광판 ===================== */
+/* 자리 수(30)가 고정이라 더 늘어날 일이 없습니다. 스크롤이 생기면
+   스크롤바가 오른쪽 안쪽 여백과 둥근 모서리를 덮어 좌우가 어긋나 보이므로,
+   내용이 항상 들어가도록 크기를 잡고 가로세로 여백을 대칭으로 둡니다. */
 .attend-modal {
   width: min(680px, 94vw);
+  max-height: none;
+  overflow: visible;
+}
+/* 혹시라도 넘칠 만큼 창이 낮으면 스크롤을 열되, 양쪽에 같은 자리를 비워
+   둬서 좌우 대칭이 깨지지 않게 합니다. */
+@media (max-height: 700px) {
+  .attend-modal {
+    max-height: 92vh;
+    overflow-y: auto;
+    scrollbar-gutter: stable both-edges;
+  }
 }
 .attend-legend {
   display: flex;

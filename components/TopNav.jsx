@@ -89,18 +89,33 @@ export default function TopNav({ active, onPython, pyActive = false }) {
   }, [broadcastClassId]);
 
   // 발표 중에는 학생 화면이 실제로 보이는지 교사에게 알립니다(전광판용).
-  // 다른 창에 가려지거나 탭을 옮기면 visible=false가 되고, 20초마다
-  // '살아 있음'도 함께 보내 접속이 끊긴 경우와 구분되게 합니다.
+  //
+  // [무엇을 '보고 있음'으로 볼 것인가]
+  // 브라우저에는 '창이 몇 % 가려졌는지' 알려 주는 수단이 없습니다.
+  // 그래서 두 가지를 함께 봅니다.
+  //   · visibilityState — 탭을 옮기거나 창을 최소화하면 hidden
+  //   · hasFocus()      — 다른 프로그램을 클릭하면 false
+  // 창이 일부만 가려져 있어도 학생이 그쪽을 쓰고 있으면 포커스가 넘어가므로,
+  // 실제 수업에서 문제가 되는 '딴짓'은 이 조합으로 잡힙니다.
+  // (브라우저는 보이는데 아무것도 안 누르고 있는 경우까지는 알 수 없습니다)
   const broadcasting = !!broadcast;
   useEffect(() => {
     if (!isFirebaseConfigured || admin || !broadcasting || !broadcastClassId || !user?.uid) return;
     const send = () =>
-      reportPresence(user, broadcastClassId, document.visibilityState === "visible");
+      reportPresence(
+        user,
+        broadcastClassId,
+        document.visibilityState === "visible" && document.hasFocus()
+      );
     send();
     document.addEventListener("visibilitychange", send);
+    window.addEventListener("focus", send);
+    window.addEventListener("blur", send);
     const beat = setInterval(send, PRESENCE_BEAT_MS);
     return () => {
       document.removeEventListener("visibilitychange", send);
+      window.removeEventListener("focus", send);
+      window.removeEventListener("blur", send);
       clearInterval(beat);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
