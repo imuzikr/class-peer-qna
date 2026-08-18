@@ -26,18 +26,12 @@ import {
   toDate,
 } from "@/lib/store";
 import { stripHtml } from "@/lib/html";
+import { buildActivityTemplate, nextActivityLocks } from "@/lib/activities";
 import StudyCard from "./StudyCard";
 import StudyCardModal from "./StudyCardModal";
 import StudyPresentModal from "./StudyPresentModal";
 import GroupComposer from "./GroupComposer";
 import { IconTrash, IconSettings, IconLock, IconDuplicate, IconPen, IconPeople } from "./StatusIcons";
-
-function buildActivityTemplate(activities) {
-  if (!activities?.length) return "";
-  return activities
-    .map((act) => `<div class="activity-section"><h4 class="activity-title">${act}</h4><p><br></p></div>`)
-    .join("");
-}
 
 export default function StudyBoardColumn({
   board,
@@ -248,7 +242,17 @@ export default function StudyBoardColumn({
 
     setSavingActivities(true);
     try {
-      await updateStudyBoard(board.id, { activities: newActivities });
+      // 새로 만든 활동은 잠긴 채로 시작합니다 — 교사가 '공부중' 전광판에서
+      // 자물쇠를 풀어 줘야 학생이 입력할 수 있습니다. 이름이 그대로인
+      // 활동은 지금 잠금 상태를 그대로 이어받습니다.
+      await updateStudyBoard(board.id, {
+        activities: newActivities,
+        activityLocks: nextActivityLocks(
+          board.activities ?? [],
+          board.activityLocks ?? [],
+          newActivities
+        ),
+      });
 
       if (newActivities.length > 0) {
         const templateHtml = buildActivityTemplate(newActivities);

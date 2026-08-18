@@ -6240,6 +6240,122 @@ pre code {
   min-width: 0;
 }
 
+/* ===================== 공부중 전광판 ===================== */
+/* 왼쪽 학생 이름 열은 고정, 오른쪽 활동 열은 개수만큼 늘어납니다.
+   활동이 많아지면 표만 가로로 스크롤됩니다(모달은 그대로). */
+.progress-modal {
+  width: min(900px, 94vw);
+  max-width: 94vw;
+}
+.progress-board-name {
+  margin-left: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-sub);
+}
+.progress-scroll {
+  overflow-x: auto;
+  max-height: 68vh;
+  overflow-y: auto;
+}
+.progress-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  font-size: 13.5px;
+}
+.progress-table th,
+.progress-table td {
+  border-bottom: 1px solid var(--border);
+  padding: 8px 10px;
+  text-align: center;
+}
+/* 학생 이름 열 — 가로 스크롤에도 왼쪽에 붙어 있게 */
+.progress-name-col {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--bg);
+  text-align: left !important;
+  white-space: nowrap;
+  min-width: 130px;
+}
+.progress-table thead .progress-name-col {
+  z-index: 2;
+}
+.progress-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  vertical-align: bottom;
+}
+.progress-act-col {
+  min-width: 104px;
+}
+.progress-act-no {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--primary-dark, #c15a2a);
+}
+.progress-act-name {
+  display: block;
+  max-width: 120px;
+  margin: 0 auto 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 700;
+}
+.progress-lock-btn {
+  display: inline-block;
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.progress-lock-btn.locked {
+  background: var(--primary-light);
+  border-color: #ecbfa9;
+  color: var(--primary-dark);
+}
+.progress-lock-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.progress-act-count {
+  display: block;
+  margin-top: 5px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.progress-student-no {
+  margin-right: 6px;
+  font-size: 12px;
+  color: var(--text-sub);
+}
+.progress-student-name {
+  font-weight: 600;
+}
+.progress-cell {
+  font-weight: 800;
+}
+.progress-cell--done {
+  background: #e6f4ea;
+  color: #1e7a3c;
+}
+.progress-cell--todo {
+  background: var(--neutral);
+}
+.progress-cell--locked {
+  background: #faf0e8;
+  color: var(--text-sub);
+}
+
 /* ===================== 참여 전광판 ===================== */
 /* 자리 수(30)가 고정이라 더 늘어날 일이 없습니다. 스크롤이 생기면
    스크롤바가 오른쪽 안쪽 여백과 둥근 모서리를 덮어 좌우가 어긋나 보이므로,
@@ -8848,6 +8964,30 @@ pre code {
   flex-shrink: 0;
   margin-bottom: 0;
   background: #fff;
+}
+
+/* ── 잠긴 활동 — 아직 열어 주지 않은 활동(입력칸 대신 안내) ── */
+.activity-form-section--locked {
+  min-height: 0;
+  background: var(--neutral);
+  border-style: dashed;
+}
+.activity-form-lock {
+  margin-left: 6px;
+  font-weight: 700;
+}
+.activity-form-locked-title {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text-sub);
+}
+.activity-form-locked-note {
+  font-size: 13.5px;
+  color: var(--text-sub);
+}
+.activity-form-locked-body {
+  font-size: 14px;
+  opacity: 0.75;
 }
 .activity-form-section .rte-toolbar {
   flex-shrink: 0;

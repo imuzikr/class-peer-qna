@@ -816,6 +816,8 @@ export default function StudyPage() {
           classId={classId}
           className={currentClass?.name ?? ""}
           roster={admin ? roster : []}
+          // '공부중' 전광판이 연결된 수업 보드를 찾는 데 씁니다
+          boards={classBoards.filter((b) => b.type !== "notice")}
           onClose={() => setTeaching(null)}
         />
       )}

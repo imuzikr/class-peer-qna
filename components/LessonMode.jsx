@@ -32,18 +32,10 @@ import {
   toDate,
 } from "@/lib/store";
 import { stripHtml } from "@/lib/html";
+import { buildActivityTemplate, nextActivityLocks } from "@/lib/activities";
 import { getCurrentUser } from "@/lib/user";
 import AttendanceBoard from "./AttendanceBoard";
-
-// 보드 활동을 학생 카드의 작성 틀(제목 + 빈 줄)로 바꿉니다.
-// StudyBoardColumn의 같은 함수와 형식을 맞춰야 두 화면에서 만든 활동이
-// 학생에게 똑같이 보입니다.
-function buildActivityTemplate(activities) {
-  if (!activities?.length) return "";
-  return activities
-    .map((act) => `<div class="activity-section"><h4 class="activity-title">${act}</h4><p><br></p></div>`)
-    .join("");
-}
+import StudyProgressBoard, { cardProgress } from "./StudyProgressBoard";
 
 export default function LessonMode({
   lesson,
@@ -78,6 +70,29 @@ export default function LessonMode({
   const [makingBoard, setMakingBoard] = useState(false);
   const boardActs = board?.activities ?? [];
 
+  // ── 공부중 전광판 (수업 중) ──
+  // 발표 중에는 학생 화면이 슬라이드로 덮여 활동을 쓸 수 없으므로, 이 도구는
+  // 발표 여부와 상관없이 보드만 연결돼 있으면 쓸 수 있어야 합니다.
+  const [progressOpen, setProgressOpen] = useState(false);
+  const [lockBusy, setLockBusy] = useState(false);
+
+  // 활동 하나의 잠금을 켜고 끕니다(전광판의 자물쇠 버튼).
+  async function toggleActLock(i, locked) {
+    if (!board || lockBusy) return;
+    setLockBusy(true);
+    setActError("");
+    try {
+      const next = boardActs.map((_, j) =>
+        j === i ? locked : board.activityLocks?.[j] === true
+      );
+      await updateStudyBoard(board.id, { activityLocks: next });
+    } catch (e) {
+      setActError(`활동 잠금을 바꾸지 못했어요: ${e?.message ?? "알 수 없는 오류"}`);
+    } finally {
+      setLockBusy(false);
+    }
+  }
+
   // ── 참여 전광판 (수업 중, 발표하는 동안만) ──
   const [attendOpen, setAttendOpen] = useState(false);
   const [presence, setPresence] = useState([]);
@@ -103,14 +118,21 @@ export default function LessonMode({
     return n + 1;
   }, 0);
 
+  // 헤더 버튼에 보여 줄 '활동을 하나라도 쓴' 인원
+  const studyingCount = roster.reduce((n, s) => {
+    const card = boardCards.find((c) => c.authorId === s.uid);
+    return cardProgress(card, boardActs.length).some(Boolean) ? n + 1 : n;
+  }, 0);
+
   const cur = slides[Math.min(idx, total - 1)];
 
-  // 연결한 보드의 학생 카드 — 이미 학생이 쓴 내용이 있으면 활동을 바꾸지
-  // 않도록 확인하는 데 씁니다(공부방 화면의 활동 편집과 같은 규칙).
+  // 연결한 보드의 학생 카드 —
+  //  · 수업 준비: 이미 학생이 쓴 내용이 있으면 활동을 바꾸지 않도록 확인
+  //  · 수업 중  : '공부중' 전광판에 활동별 작성 현황을 그리는 데 사용
   useEffect(() => {
-    if (!editing || !boardId) { setBoardCards([]); return; }
+    if (!boardId) { setBoardCards([]); return; }
     return subscribeStudyCards(boardId, setBoardCards);
-  }, [editing, boardId]);
+  }, [boardId]);
 
   // 활동 목록을 보드에 저장하고, 학생 카드의 작성 틀도 함께 맞춥니다.
   async function saveBoardActs(next) {
@@ -124,7 +146,12 @@ export default function LessonMode({
     }
     setActBusy(true);
     try {
-      await updateStudyBoard(board.id, { activities: next });
+      // 새로 추가한 활동은 잠긴 채로 시작합니다 — 수업 중 '공부중' 전광판에서
+      // 하나씩 열어 주는 흐름이라, 미리 만들어 둔 활동이 곧바로 열리면 안 됩니다.
+      await updateStudyBoard(board.id, {
+        activities: next,
+        activityLocks: nextActivityLocks(boardActs, board.activityLocks ?? [], next),
+      });
       if (next.length > 0) {
         const html = buildActivityTemplate(next);
         await Promise.all(
@@ -254,17 +281,32 @@ export default function LessonMode({
             학생 화면 그대로{className && ` · ${className}`}
           </span>
         )}
-        {/* 수업 도구 — 발표 중에만. 앞으로 도구가 늘어날 자리라 가운데 정렬 */}
-        {!editing && presenting && (
+        {/* 수업 도구 — 앞으로 도구가 늘어날 자리라 가운데 정렬.
+            · 참여중: 발표 중에만(학생 화면이 보이는지 확인하는 도구)
+            · 공부중: 보드가 연결돼 있으면 언제나(발표를 끄고 학생이 활동을
+              쓰는 시간에 쓰는 도구라 발표 여부와 묶으면 안 됩니다) */}
+        {!editing && (presenting || board) && (
           <div className="lesson-tools">
-            <button
-              type="button"
-              className="lesson-tool-btn"
-              onClick={() => setAttendOpen(true)}
-              title="학생들이 화면을 보고 있는지 확인합니다"
-            >
-              👀 참여중 {watchingCount}/{roster.length}
-            </button>
+            {presenting && (
+              <button
+                type="button"
+                className="lesson-tool-btn"
+                onClick={() => setAttendOpen(true)}
+                title="학생들이 화면을 보고 있는지 확인합니다"
+              >
+                👀 참여중 {watchingCount}/{roster.length}
+              </button>
+            )}
+            {board && (
+              <button
+                type="button"
+                className="lesson-tool-btn"
+                onClick={() => setProgressOpen(true)}
+                title="학생들이 활동을 채워 가는 상황을 확인하고, 활동을 하나씩 열어 줍니다"
+              >
+                ✍️ 공부중 {studyingCount}/{roster.length}
+              </button>
+            )}
           </div>
         )}
         <span className="lesson-count">{total === 0 ? 0 : idx + 1} / {total}</span>
@@ -278,6 +320,18 @@ export default function LessonMode({
           roster={roster}
           presence={presence}
           onClose={() => setAttendOpen(false)}
+        />
+      )}
+
+      {progressOpen && board && (
+        <StudyProgressBoard
+          board={board}
+          roster={roster}
+          cards={boardCards}
+          busy={lockBusy}
+          error={actError}
+          onToggleLock={toggleActLock}
+          onClose={() => setProgressOpen(false)}
         />
       )}
 

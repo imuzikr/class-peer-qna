@@ -16,6 +16,7 @@ import {
 } from "@/lib/store";
 import { getCurrentUser, isTeacher } from "@/lib/user";
 import { sanitizeHtml, stripHtml, stripImgTags } from "@/lib/html";
+import { parseActivitySections, isActivityLocked } from "@/lib/activities";
 import { formatFileSize } from "@/lib/image";
 import { uploadImage, uploadFile, uploadDataUrl } from "@/lib/storageUpload";
 import dynamic from "next/dynamic";
@@ -54,7 +55,18 @@ export default function StudyCardModal({
     : "";
 
   const activities = board.activities ?? [];
-  const isActivityCard = isNew && activities.length > 0;
+  // 이미 저장된 카드도 활동별 폼으로 엽니다 — 그래야 활동 하나만 잠그는 게
+  // 의미가 있습니다(예전에는 새 카드일 때만 활동 폼이고, 저장 뒤에는 활동이
+  // 뭉쳐진 HTML 하나를 통째로 고치는 형태라 활동별로 막을 수가 없었음).
+  //   · 활동 틀로 만들어진 카드  → 내용을 활동별로 되읽어 폼에 채움
+  //   · 활동이 생기기 전의 자유형 카드 → 파싱 결과가 없으므로 예전 단일
+  //     편집기로 물러섬(그대로 열지 않으면 저장할 때 내용이 날아갑니다)
+  const savedSections = useRef(null);
+  if (savedSections.current === null) {
+    savedSections.current = isNew ? [] : parseActivitySections(card?.content);
+  }
+  const isActivityCard =
+    activities.length > 0 && (isNew || savedSections.current.length > 0);
   // 카드 삭제는 교사(관리자 포함)만 — 학생은 자기 카드도 수정만 가능하고
   // 삭제는 못 합니다(canEdit과 별도 권한).
   const canDelete = isTeacher(getCurrentUser());
@@ -63,8 +75,13 @@ export default function StudyCardModal({
   const [content, setContent] = useState(isNew ? "" : (card.content ?? ""));
   const [imageUrl, setImageUrl] = useState(isNew ? null : (card.imageUrl ?? null));
   const [attachments, setAttachments] = useState(isNew ? [] : (card.attachments ?? []));
-  const [activityTitles, setActivityTitles] = useState(() => activities.map((a) => a));
-  const [activityContents, setActivityContents] = useState(() => activities.map(() => ""));
+  // 저장된 카드를 열면 그 안에 들어 있던 활동별 제목·내용을 그대로 채웁니다.
+  const [activityTitles, setActivityTitles] = useState(() =>
+    activities.map((a, i) => savedSections.current[i]?.title || a)
+  );
+  const [activityContents, setActivityContents] = useState(() =>
+    activities.map((_, i) => savedSections.current[i]?.content ?? "")
+  );
   // 보드의 활동은 교사가 수업 준비에서 언제든 추가·수정할 수 있습니다.
   // 위 두 state는 처음 열 때 한 번만 만들어지므로, 그 뒤 활동이 늘면
   // 화면에는 칸이 생기는데 값이 없어 빈칸('활동 4')으로 보였습니다.
@@ -476,39 +493,73 @@ export default function StudyCardModal({
               {isActivityCard ? (
                 /* 활동별 멀티 섹션 폼 — 2개씩 표시, 3개 이상은 스크롤 */
                 <div className="activity-form-list">
-                  {activities.map((act, i) => (
-                    <div key={i} className="activity-form-section">
+                  {activities.map((act, i) => {
+                    // 잠긴 활동은 아직 열리지 않은 활동입니다 — 칸은 보여 주되
+                    // 입력은 막습니다(교사가 전광판에서 자물쇠를 풀면 열림).
+                    const actLocked = isActivityLocked(board, i);
+                    return (
+                    <div
+                      key={i}
+                      className={`activity-form-section${actLocked ? " activity-form-section--locked" : ""}`}
+                    >
                       {/* 몇 번째 활동인지 — 활동이 여러 개면 학생이 순서를
                           바로 알 수 있게 제목 위에 번호를 붙입니다 */}
-                      <span className="activity-form-no">활동 {i + 1}</span>
-                      <input
-                        type="text"
-                        className="study-card-title-input"
-                        /* 활동이 방금 늘어난 칸도 곧바로 이름이 보이도록
-                           보드의 활동 이름을 기본값으로 씁니다 */
-                        value={activityTitles[i] ?? act}
-                        onChange={(e) => {
-                          const next = [...activityTitles];
-                          next[i] = e.target.value;
-                          setActivityTitles(next);
-                        }}
-                        placeholder={`활동 ${i + 1}`}
-                        maxLength={80}
-                      />
-                      <RichTextEditor
-                        variant="full"
-                        initialHtml=""
-                        onChange={(html) => {
-                          setActivityContents((prev) => {
-                            const next = [...prev];
-                            next[i] = html;
-                            return next;
-                          });
-                        }}
-                        placeholder="내용을 입력해 주세요."
-                      />
+                      <span className="activity-form-no">
+                        활동 {i + 1}
+                        {actLocked && <span className="activity-form-lock">🔒 잠김</span>}
+                      </span>
+                      {actLocked ? (
+                        <>
+                          <p className="activity-form-locked-title">
+                            {activityTitles[i] ?? act}
+                          </p>
+                          {stripHtml(activityContents[i] ?? "").trim() ? (
+                            <div
+                              className="study-card-content activity-form-locked-body"
+                              dangerouslySetInnerHTML={{
+                                __html: sanitizeHtml(activityContents[i] ?? ""),
+                              }}
+                            />
+                          ) : (
+                            <p className="activity-form-locked-note">
+                              선생님이 이 활동을 열어 주면 입력할 수 있어요.
+                            </p>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <input
+                            type="text"
+                            className="study-card-title-input"
+                            /* 활동이 방금 늘어난 칸도 곧바로 이름이 보이도록
+                               보드의 활동 이름을 기본값으로 씁니다 */
+                            value={activityTitles[i] ?? act}
+                            onChange={(e) => {
+                              const next = [...activityTitles];
+                              next[i] = e.target.value;
+                              setActivityTitles(next);
+                            }}
+                            placeholder={`활동 ${i + 1}`}
+                            maxLength={80}
+                          />
+                          <RichTextEditor
+                            variant="full"
+                            /* 이미 저장돼 있던 내용을 그대로 이어서 씁니다 */
+                            initialHtml={savedSections.current[i]?.content ?? ""}
+                            onChange={(html) => {
+                              setActivityContents((prev) => {
+                                const next = [...prev];
+                                next[i] = html;
+                                return next;
+                              });
+                            }}
+                            placeholder="내용을 입력해 주세요."
+                          />
+                        </>
+                      )}
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 /* 기본 단일 편집 폼 */
