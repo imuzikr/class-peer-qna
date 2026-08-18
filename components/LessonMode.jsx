@@ -281,32 +281,41 @@ export default function LessonMode({
             학생 화면 그대로{className && ` · ${className}`}
           </span>
         )}
-        {/* 수업 도구 — 앞으로 도구가 늘어날 자리라 가운데 정렬.
-            · 참여중: 발표 중에만(학생 화면이 보이는지 확인하는 도구)
-            · 공부중: 보드가 연결돼 있으면 언제나(발표를 끄고 학생이 활동을
-              쓰는 시간에 쓰는 도구라 발표 여부와 묶으면 안 됩니다) */}
-        {!editing && (presenting || board) && (
+        {/* 수업 도구 — 두 버튼 모두 항상 자리를 지킵니다(있다 없다 하면
+            어디를 눌러야 할지 매번 찾게 되므로). 지금 쓸 수 없는 도구는
+            비활성으로 두고, 왜 잠겼는지 툴팁으로 알려 줍니다.
+            · 발표중: 학생 화면이 실제로 보이는지 확인 — 발표 중에만 의미가
+              있습니다(발표를 꺼 두면 알려 줄 상태 자체가 없음).
+            · 공부중: 교사 화면은 발표에 가려지지 않으므로 언제든 열어
+              활동을 관리할 수 있습니다. 보드가 연결돼 있어야 합니다. */}
+        {!editing && (
           <div className="lesson-tools">
-            {presenting && (
-              <button
-                type="button"
-                className="lesson-tool-btn"
-                onClick={() => setAttendOpen(true)}
-                title="학생들이 화면을 보고 있는지 확인합니다"
-              >
-                👀 참여중 {watchingCount}/{roster.length}
-              </button>
-            )}
-            {board && (
-              <button
-                type="button"
-                className="lesson-tool-btn"
-                onClick={() => setProgressOpen(true)}
-                title="학생들이 활동을 채워 가는 상황을 확인하고, 활동을 하나씩 열어 줍니다"
-              >
-                ✍️ 공부중 {studyingCount}/{roster.length}
-              </button>
-            )}
+            <button
+              type="button"
+              className="lesson-tool-btn"
+              onClick={() => setAttendOpen(true)}
+              disabled={!presenting}
+              title={
+                presenting
+                  ? "학생들이 화면을 보고 있는지 확인합니다"
+                  : "발표를 시작하면 학생들이 화면을 보고 있는지 확인할 수 있어요"
+              }
+            >
+              👀 발표중 {watchingCount}/{roster.length}
+            </button>
+            <button
+              type="button"
+              className="lesson-tool-btn"
+              onClick={() => setProgressOpen(true)}
+              disabled={!board}
+              title={
+                board
+                  ? "학생들이 활동을 채워 가는 상황을 확인하고, 활동을 하나씩 열어 줍니다"
+                  : "‘수업준비 → 공부방 연동’에서 보드를 연결하면 활동 현황을 볼 수 있어요"
+              }
+            >
+              ✍️ 공부중 {studyingCount}/{roster.length}
+            </button>
           </div>
         )}
         <span className="lesson-count">{total === 0 ? 0 : idx + 1} / {total}</span>

@@ -6086,8 +6086,13 @@ pre code {
   cursor: pointer;
   transition: background 0.15s;
 }
-.lesson-tool-btn:hover {
+.lesson-tool-btn:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.22);
+}
+/* 지금 쓸 수 없는 도구 — 자리는 지키되 눌리지 않음(이유는 툴팁으로) */
+.lesson-tool-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .lesson-count {
