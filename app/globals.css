@@ -6187,10 +6187,10 @@ pre code {
 .attend-chip--away { background: #ffe2c9; border-color: #f0b483; }
 .attend-chip--off { background: #ececea; }
 
-/* 교실 자리 — 5열 × 6행 고정. 학생이 적으면 남는 자리는 빈 책상 */
+/* 교실 자리 — 가로 6칸 × 세로 5줄 고정. 학생이 적으면 남는 자리는 빈 책상 */
 .attend-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 10px;
 }
 .attend-desk {

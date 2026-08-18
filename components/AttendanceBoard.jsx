@@ -3,7 +3,7 @@
 // =============================================================
 // 참여 전광판 — 발표 중 학생들이 화면을 보고 있는지 한눈에
 // -------------------------------------------------------------
-// 교실 자리처럼 5×6(30자리) 격자로 그립니다. 학생 수가 적으면 남는
+// 교실 자리처럼 가로 6칸 × 세로 5줄(30자리) 격자로 그립니다. 학생 수가 적으면 남는
 // 자리는 빈 책상으로 두어 자리 위치가 흔들리지 않게 했습니다.
 //
 //   초록 — 지금 이 화면을 보고 있음
@@ -18,7 +18,7 @@ import { useEffect, useState } from "react";
 import { backdropClose } from "@/lib/modal";
 import { PRESENCE_STALE_MS, toDate } from "@/lib/store";
 
-const DESK_COUNT = 30; // 5열 × 6행
+const DESK_COUNT = 30; // 가로 6칸 × 세로 5줄
 
 // 학생 한 명의 상태를 'on' | 'away' | 'off'로 판정
 export function deskState(presence, nowMs) {
