@@ -6476,9 +6476,9 @@ pre code {
     gap: 8px;
     padding: 10px 12px;
   }
-  /* 제목은 늘어나지 않고 줄어들기만 — 늘어나면 쪽수의 margin-left:auto가
-     남은 자리를 다 먹어 '수업 종료'가 다음 줄로 밀려납니다 */
-  .lesson-title { flex: 0 1 auto; min-width: 0; }
+  /* 머리말의 수업 제목은 감춥니다 — 바로 아래 본문에 같은 제목이 크게
+     들어가 있어 두 번 나올 이유가 없고, 그만큼 배지·버튼에 자리를 줍니다 */
+  .lesson-title { display: none; }
   /* 배지는 '프레젠테이션 중 · 3학년 1반'처럼 길어질 수 있어 줄임표로.
      남는 자리는 배지 오른쪽에서 흡수합니다 — 쪽수에 margin-left:auto를
      두면 쪽수가 오른쪽 끝에 붙어 버려 '수업 종료'가 다음 줄로 밀립니다.
@@ -6489,7 +6489,9 @@ pre code {
     display: block;
     flex-shrink: 1;
     min-width: 0;
-    max-width: 37vw; /* 360px에서 '수업 종료'가 첫 줄에 같이 들어가는 한계값 */
+    /* 제목이 빠져 자리가 넉넉해진 만큼 넓게 — 360px에서 쪽수·종료와 한 줄에
+       들어가는 한계는 약 60vw이고, 반 이름이 길어도 담기도록 48vw로 둡니다 */
+    max-width: 48vw;
     margin-right: auto;
     overflow: hidden;
     text-overflow: ellipsis;
