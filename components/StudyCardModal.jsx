@@ -65,6 +65,26 @@ export default function StudyCardModal({
   const [attachments, setAttachments] = useState(isNew ? [] : (card.attachments ?? []));
   const [activityTitles, setActivityTitles] = useState(() => activities.map((a) => a));
   const [activityContents, setActivityContents] = useState(() => activities.map(() => ""));
+  // 보드의 활동은 교사가 수업 준비에서 언제든 추가·수정할 수 있습니다.
+  // 위 두 state는 처음 열 때 한 번만 만들어지므로, 그 뒤 활동이 늘면
+  // 화면에는 칸이 생기는데 값이 없어 빈칸('활동 4')으로 보였습니다.
+  // 활동 목록이 바뀌면 다시 맞춰 줍니다 — 학생이 이미 고쳐 쓴 칸은
+  // 그대로 두고, 손대지 않은 칸만 새 활동 이름으로 채웁니다.
+  const prevActsRef = useRef(activities);
+  const activitiesKey = activities.join("\n");
+  useEffect(() => {
+    const prevActs = prevActsRef.current;
+    prevActsRef.current = activities;
+    if (prevActs.join("\n") === activitiesKey) return;
+    setActivityTitles((prev) =>
+      activities.map((act, i) =>
+        // 값이 없거나 '예전 활동 이름 그대로'면 새 이름으로, 아니면 학생 입력 유지
+        prev[i] === undefined || prev[i] === prevActs[i] ? act : prev[i]
+      )
+    );
+    setActivityContents((prev) => activities.map((_, i) => prev[i] ?? ""));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activitiesKey]);
   const [drawing, setDrawing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showRelated, setShowRelated] = useState(false);
@@ -233,9 +253,12 @@ export default function StudyCardModal({
   // 현재 입력값 → 저장할 { titleToSave, htmlToSave, valid }
   function buildPayload() {
     if (isActivityCard) {
-      const htmlToSave = activityTitles
-        .map((t, i) => {
-          const c = sanitizeHtml(activityContents[i]);
+      // 활동 이름은 항상 보드의 활동 목록을 기준으로 씁니다 — 값이 아직
+      // 채워지지 않은 칸이 'undefined'로 저장되지 않게.
+      const htmlToSave = activities
+        .map((act, i) => {
+          const t = activityTitles[i] ?? act;
+          const c = sanitizeHtml(activityContents[i] ?? "");
           return `<div class="activity-section"><h4 class="activity-title">${t}</h4>${c}</div>`;
         })
         .join("");
@@ -458,7 +481,9 @@ export default function StudyCardModal({
                       <input
                         type="text"
                         className="study-card-title-input"
-                        value={activityTitles[i]}
+                        /* 활동이 방금 늘어난 칸도 곧바로 이름이 보이도록
+                           보드의 활동 이름을 기본값으로 씁니다 */
+                        value={activityTitles[i] ?? act}
                         onChange={(e) => {
                           const next = [...activityTitles];
                           next[i] = e.target.value;
