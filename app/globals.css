@@ -1508,6 +1508,11 @@ button.footer-link:hover {
   gap: 8px;
   line-height: 1;
 }
+/* 접기 버튼과 개수 배지는 모바일 전용 — 데스크톱은 항상 펼쳐져 있습니다 */
+.notice-toggle-btn,
+.notice-count {
+  display: none;
+}
 .notice-head-actions {
   display: flex;
   align-items: center;
@@ -9590,8 +9595,59 @@ pre code {
      ────────────────────────────────────────────────────────── */
   .three-cols { flex-direction: column; }
   .keyword-col { display: none; }
-  .notice-col { display: none; }
   .feed-col { padding: 0 14px 80px; }
+
+  /* ──────────────────────────────────────────────────────────
+     공지사항 — 좁은 화면에선 3단 배치가 무너져 예전엔 통째로 숨겼지만,
+     그러면 휴대폰만 쓰는 학생은 공지를 볼 방법이 없습니다.
+     질문 목록 위(order: -1)에 접힌 상태로 두고, 제목줄의 ⌄ 버튼으로
+     펼치게 합니다. (DOM 순서상 공지는 피드 뒤라 order로 끌어올림)
+     ────────────────────────────────────────────────────────── */
+  .notice-col {
+    display: block;
+    order: -1;
+    width: auto;
+    flex: none;
+    overflow: visible;
+    border-left: none;
+    border-bottom: 1px solid var(--border);
+    padding: 10px 14px;
+  }
+  .notice-col h2 { margin: 0; }
+  .notice-col-title { font-size: 15px; }
+  /* 제목 옆 개수 배지 — 접힌 상태에서 공지 유무를 알려 줍니다 */
+  .notice-count {
+    display: inline-grid;
+    place-items: center;
+    min-width: 20px;
+    height: 20px;
+    margin-left: 6px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: var(--primary);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 800;
+  }
+  .notice-toggle-btn {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    font-size: 15px;
+    line-height: 1;
+  }
+  /* 접힘이 기본 — 펼치면 화면 절반까지만 쓰고 그 안에서 스크롤 */
+  .notice-body { display: none; }
+  .notice-col.is-open .notice-body {
+    display: block;
+    max-height: 50vh;
+    overflow-y: auto;
+    margin-top: 10px;
+  }
+  /* 접혀 있을 땐 정렬 토글도 숨겨 제목줄을 간결하게 */
+  .notice-col:not(.is-open) .notice-sort-btn { display: none; }
 
   .feed-head {
     flex-wrap: wrap;

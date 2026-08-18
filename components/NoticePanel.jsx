@@ -18,6 +18,7 @@ export default function NoticePanel({ notices }) {
   const [resetKey, setResetKey] = useState(0);
   const [sortDir, setSortDir] = useState("desc"); // 날짜 정렬: desc(최신순)/asc(오래된순)
   const [confirmDelete, setConfirmDelete] = useState(null); // 삭제 확인 중인 공지
+  const [mobileOpen, setMobileOpen] = useState(false); // 모바일에서 공지 본문 펼침
 
   // 날짜 기준 정렬 (토글)
   const sortedNotices = [...notices].sort((a, b) => {
@@ -46,10 +47,14 @@ export default function NoticePanel({ notices }) {
   }
 
   return (
-    <aside className="notice-col">
+    <aside className={`notice-col${mobileOpen ? " is-open" : ""}`}>
       <h2>
         <span className="notice-col-title">
           <IconNotice size={32} /> 공지사항
+          {/* 접혀 있는 모바일에서 새 공지가 있는지 바로 보이도록 개수 표시 */}
+          {notices.length > 0 && (
+            <span className="notice-count">{notices.length}</span>
+          )}
         </span>
         <span className="notice-head-actions">
           {/* 날짜 정렬 토글 — 한 버튼으로 오름/내림 전환 */}
@@ -66,9 +71,21 @@ export default function NoticePanel({ notices }) {
               {writing ? "닫기" : "+ 작성"}
             </button>
           )}
+          {/* 모바일 전용 펼침 버튼 — 좁은 화면에선 공지 영역이 질문 목록을
+              밀어내므로 기본은 접어 두고 필요할 때만 펼칩니다.
+              (데스크톱에서는 CSS로 숨기고 본문을 항상 펼쳐 둡니다) */}
+          <button
+            className="btn-ghost notice-toggle-btn"
+            onClick={() => setMobileOpen((v) => !v)}
+            aria-expanded={mobileOpen}
+            aria-label={mobileOpen ? "공지사항 접기" : "공지사항 펼치기"}
+          >
+            {mobileOpen ? "⌃" : "⌄"}
+          </button>
         </span>
       </h2>
 
+      <div className="notice-body">
       {writing && (
         <form
           className="form-grid"
@@ -124,6 +141,7 @@ export default function NoticePanel({ notices }) {
           </div>
         );
       })}
+      </div>
 
       {confirmDelete && (
         <ConfirmModal
