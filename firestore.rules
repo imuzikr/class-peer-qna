@@ -10,6 +10,9 @@ rules_version = '2';
 //    그 반을 개설한 교사(classes.createdBy)에게 귀속.
 //    최고 관리자(role=admin 또는 부트스트랩 이메일)만 전체 접근.
 //  · 역할(role)은 클라이언트가 스스로 못 바꿈 — functions/setUserRole로만
+//  · 반이 '보관(archived)' 상태면: 소유 교사도 그 반의 데이터는 읽기만
+//    가능(쓰기 전면 차단, 보관 해제해야 편집 가능) / 학생은 읽기도 불가.
+//    classes 문서 자체(이름 수정·보관 토글)는 예외 — 항상 소유 교사가 수정 가능.
 // 배포:  firebase deploy --only firestore:rules
 // =============================================================
 service cloud.firestore {
@@ -48,12 +51,23 @@ service cloud.firestore {
     function classOwnerUid(cId) {
       return get(/databases/$(database)/documents/classes/$(cId)).data.createdBy;
     }
+    function isClassArchived(cId) {
+      return get(/databases/$(database)/documents/classes/$(cId)).data.get('archived', false) == true;
+    }
     function ownsClass(cId) {
       // isTeacher()가 false면 &&에서 단락되어 get을 수행하지 않음(학생 비용 없음)
       return isTeacher() && classOwnerUid(cId) == uid();
     }
+    // 쓰기 전용 판정 — 소유 교사라도 반이 보관 상태면 그 반의 데이터는 편집 불가.
+    // (classes 문서 자체의 수정 — 이름 변경·보관 토글 — 은 이 함수를 쓰지 않고
+    //  ownsClass만으로 항상 허용합니다. 그래야 보관 해제 자체가 막히지 않음)
+    function ownsClassEditable(cId) {
+      return ownsClass(cId) && !isClassArchived(cId);
+    }
+    // 보관된 반은 학생도 접근 불가 — 소속 여부와 별개로 항상 거부.
     function isClassMember(cId) {
-      return exists(/databases/$(database)/documents/memberships/$(uid() + '_' + cId));
+      return !isClassArchived(cId)
+             && exists(/databases/$(database)/documents/memberships/$(uid() + '_' + cId));
     }
 
     // ── 공부방 보드 헬퍼 ──────────────────────────────────────
@@ -62,6 +76,9 @@ service cloud.firestore {
     }
     function ownsBoard(bId) {
       return ownsClass(studyBoardClassId(bId));
+    }
+    function ownsBoardEditable(bId) {
+      return ownsClassEditable(studyBoardClassId(bId));
     }
     function isBoardClassMember(bId) {
       return isClassMember(studyBoardClassId(bId));
@@ -188,18 +205,24 @@ service cloud.firestore {
     // ── 반(클래스) ────────────────────────────────────────────
     //  · 이름은 공개 메타데이터(입장 코드 확인 등) → 읽기는 로그인 사용자.
     //    교사 화면은 본인 개설 반만 클라이언트에서 필터링해 표시.
-    //  · 생성: 교사 본인이 개설자. 수정/삭제: 개설자 또는 최고 관리자만.
+    //  · 생성: 교사 본인이 개설자. 수정(이름·보관 토글): 개설자 또는 최고 관리자.
+    //  · 삭제: 개설자(보관된 반만) 또는 최고 관리자 — 위험도가 높아 보관을
+    //    먼저 거치도록 강제합니다.
     match /classes/{cId} {
       allow read: if signedIn();
       allow create: if isTeacher() && request.resource.data.createdBy == uid();
-      allow update, delete: if isAdmin()
-                            || (isTeacher() && resource.data.createdBy == uid());
+      allow update: if isAdmin()
+                    || (isTeacher() && resource.data.createdBy == uid());
+      allow delete: if isAdmin()
+                    || (isTeacher() && resource.data.createdBy == uid()
+                        && resource.data.get('archived', false) == true);
     }
 
     // ── 입장 코드 — 문서 ID가 코드 자체. 코드 소유 교사만 관리. ──
     //  · get : 정확한 코드를 아는 사람만 1건 읽기(학생 입장 시)
     //  · list: 최고 관리자 또는 코드 개설 교사만(쿼리를 createdBy로 제한해야 함)
-    //  · 생성/삭제: 최고 관리자 또는 개설 교사
+    //  · 생성: 최고 관리자 또는 개설 교사(보관된 반은 발급 불가)
+    //  · 수정/삭제: 최고 관리자 또는 개설 교사(보관 시 코드를 지우는 데 필요)
     match /joinCodes/{code} {
       allow get: if signedIn();
       allow list: if isAdmin() || resource.data.createdBy == uid();
@@ -209,7 +232,7 @@ service cloud.firestore {
       allow create: if isAdmin()
                     || (isTeacher()
                         && request.resource.data.createdBy == uid()
-                        && ownsClass(request.resource.data.classId));
+                        && ownsClassEditable(request.resource.data.classId));
       allow update, delete: if isAdmin()
                             || (isTeacher() && resource.data.createdBy == uid());
     }
@@ -226,8 +249,11 @@ service cloud.firestore {
                          .data.classId == request.resource.data.classId
                     && get(/databases/$(database)/documents/joinCodes/$(request.resource.data.code))
                          .data.expiresAt > request.time;
+      // 학생 본인의 '반 나가기'는 보관 여부와 무관하게 항상 허용(접근을
+      // 줄이는 방향이라 위험하지 않음). 교사가 학생을 내보내는 조작은
+      // 데이터 편집으로 보고 보관 중엔 막습니다.
       allow delete: if signedIn() && (
-        resource.data.uid == uid() || isAdmin() || ownsClass(resource.data.classId)
+        resource.data.uid == uid() || isAdmin() || ownsClassEditable(resource.data.classId)
       );
     }
 
@@ -238,12 +264,12 @@ service cloud.firestore {
       allow read: if isAdmin()
                   || ownsClass(resource.data.classId)
                   || isClassMember(resource.data.classId);
-      allow create, update: if (isAdmin() || ownsClass(request.resource.data.classId))
+      allow create, update: if (isAdmin() || ownsClassEditable(request.resource.data.classId))
                    && request.resource.data.count is int
                    && request.resource.data.count >= 0
                    && request.resource.data.count <= 100
                    && rId == (request.resource.data.classId + '_' + request.resource.data.uid);
-      allow delete: if isAdmin() || ownsClass(resource.data.classId);
+      allow delete: if isAdmin() || ownsClassEditable(resource.data.classId);
     }
 
     // ── 수업 자료(수업하기) — 만든 선생님 본인만. 학생은 읽지 않습니다. ──
@@ -263,7 +289,7 @@ service cloud.firestore {
     //  · 문서 ID가 곧 classId라 get() 없이 바로 판정합니다.
     match /broadcasts/{classId} {
       allow read: if isAdmin() || ownsClass(classId) || isClassMember(classId);
-      allow create, update, delete: if isAdmin() || ownsClass(classId);
+      allow create, update, delete: if isAdmin() || ownsClassEditable(classId);
     }
 
     // ── 참여 상태 — 발표 중 학생 화면이 보이는지(교사 전광판용) ──
@@ -278,7 +304,7 @@ service cloud.firestore {
                             && isClassMember(request.resource.data.classId);
       allow delete: if isAdmin()
                     || resource.data.uid == uid()
-                    || ownsClass(resource.data.classId);
+                    || ownsClassEditable(resource.data.classId);
     }
 
     // ── 누가기록(학생 관찰 메모) — 반 소유 교사/관리자 전용 (학생 열람 불가) ──
@@ -287,19 +313,19 @@ service cloud.firestore {
                   || (resource.data.classId != null && ownsClass(resource.data.classId));
       allow create: if (isAdmin()
                         || (request.resource.data.classId != null
-                            && ownsClass(request.resource.data.classId)))
+                            && ownsClassEditable(request.resource.data.classId)))
                     && request.resource.data.teacherId == uid()
                     && request.resource.data.studentUid is string;
       allow update, delete: if isAdmin()
-                            || (resource.data.classId != null && ownsClass(resource.data.classId));
+                            || (resource.data.classId != null && ownsClassEditable(resource.data.classId));
     }
 
     // ── 공부방 보드 — 읽기는 로그인 사용자(메타데이터), 쓰기는 반 소유 교사/관리자 ──
     match /studyBoards/{bId} {
       allow read: if signedIn();
       allow create: if isAdmin()
-                    || (isTeacher() && ownsClass(request.resource.data.classId));
-      allow update, delete: if isAdmin() || ownsClass(resource.data.classId);
+                    || (isTeacher() && ownsClassEditable(request.resource.data.classId));
+      allow update, delete: if isAdmin() || ownsClassEditable(resource.data.classId);
 
       match /cards/{cardId} {
         // 읽기 — 본인 카드(0 get, 최우선) / 관리자 / 반 소유 교사 / 반 멤버.
@@ -317,24 +343,25 @@ service cloud.firestore {
                    || isMyGroupCard()
                  ))
         );
-        // 생성 — 관리자/소유 교사는 자유(모둠 카드도 교사가 생성).
+        // 생성 — 관리자/소유 교사는 자유(모둠 카드도 교사가 생성. 단, 보관 중엔 불가).
         //   학생은 (문서ID=uid) + 반 멤버 + 잠금 아님 + notice 아님 + 모둠 보드 아님.
         allow create: if signedIn()
                       && request.resource.data.authorId == uid()
                       && (
                            isAdmin()
-                           || ownsBoard(bId)
+                           || ownsBoardEditable(bId)
                            || (cardId == uid()
                                && isBoardClassMember(bId)
                                && !isBoardLocked(bId)
                                && !isNoticeBoard(bId)
                                && !isGroupBoard(bId))
                          );
-        // 수정 — 관리자/소유 교사, 본인 카드(작성자 불변·멤버·잠금 아님·notice 아님),
-        //   또는 내 모둠 카드(내용 필드만 — 모둠 명단·대표·작성자는 교사만 변경).
+        // 수정 — 관리자/소유 교사(보관 중엔 불가), 본인 카드(작성자 불변·멤버·
+        //   잠금 아님·notice 아님), 또는 내 모둠 카드(내용 필드만 — 모둠
+        //   명단·대표·작성자는 교사만 변경).
         allow update: if signedIn() && (
           isAdmin()
-          || ownsBoard(bId)
+          || ownsBoardEditable(bId)
           || (cardId == uid()
               && request.resource.data.authorId == resource.data.authorId
               && isBoardClassMember(bId)
@@ -345,10 +372,10 @@ service cloud.firestore {
               && !isBoardLocked(bId)
               && changedOnly(['title','content','imageUrl','attachments','updatedAt']))
         );
-        // 삭제 — 관리자 또는 반 소유 교사만. 학생은 자기 카드도 수정만
-        //   가능하고 삭제는 못 합니다(실수로 지운 제출물을 되살릴 방법이
-        //   없어 삭제 권한을 교사에게만 둡니다).
-        allow delete: if signedIn() && (isAdmin() || ownsBoard(bId));
+        // 삭제 — 관리자 또는 반 소유 교사만(보관 중엔 불가). 학생은 자기
+        //   카드도 수정만 가능하고 삭제는 못 합니다(실수로 지운 제출물을
+        //   되살릴 방법이 없어 삭제 권한을 교사에게만 둡니다).
+        allow delete: if signedIn() && (isAdmin() || ownsBoardEditable(bId));
       }
     }
 
@@ -363,6 +390,9 @@ service cloud.firestore {
     }
     function ownsBookActivity(aId) {
       return ownsClass(bookActivityClassId(aId));
+    }
+    function ownsBookActivityEditable(aId) {
+      return ownsClassEditable(bookActivityClassId(aId));
     }
     function isBookActivityMember(aId) {
       return isClassMember(bookActivityClassId(aId));
@@ -387,17 +417,17 @@ service cloud.firestore {
         || isClassMember(resource.data.classId)
       );
       allow create: if isAdmin()
-                    || (isTeacher() && ownsClass(request.resource.data.classId));
-      allow update, delete: if isAdmin() || ownsClass(resource.data.classId);
+                    || (isTeacher() && ownsClassEditable(request.resource.data.classId));
+      allow update, delete: if isAdmin() || ownsClassEditable(resource.data.classId);
 
       match /groups/{gId} {
         // 모둠 카드는 반 구성원 모두에게 공개 (누가 어느 모둠인지 확인)
         allow read: if signedIn() && (isAdmin() || ownsBookActivity(aId) || isBookActivityMember(aId));
-        allow create, delete: if isAdmin() || ownsBookActivity(aId);
-        // 수정 — 교사는 자유롭게. 학생은 '자유 구성' 모드에서 자기 자신만
-        //   명단에 넣고 뺄 수 있습니다(다른 필드 변경 불가).
+        allow create, delete: if isAdmin() || ownsBookActivityEditable(aId);
+        // 수정 — 교사는 자유롭게(보관 중엔 불가). 학생은 '자유 구성' 모드에서
+        //   자기 자신만 명단에 넣고 뺄 수 있습니다(다른 필드 변경 불가).
         allow update: if isAdmin()
-                      || ownsBookActivity(aId)
+                      || ownsBookActivityEditable(aId)
                       || (signedIn()
                           && isBookActivityMember(aId)
                           && isBookActivityFree(aId)
@@ -414,9 +444,9 @@ service cloud.firestore {
                         && request.resource.data.authorId == uid()
                         && isMyBookGroup(aId, gId)
                         && !isBookActivityLocked(aId);
-          // 지우기는 본인이 넣은 단어 또는 담당 교사
+          // 지우기는 본인이 넣은 단어 또는 담당 교사(보관 중엔 교사도 불가)
           allow delete: if signedIn() && (
-            isAdmin() || ownsBookActivity(aId)
+            isAdmin() || ownsBookActivityEditable(aId)
             || (resource.data.authorId == uid() && !isBookActivityLocked(aId))
           );
         }
@@ -435,12 +465,12 @@ service cloud.firestore {
         resource.data.userId == uid() || isAdmin() || ownsClass(resource.data.classId)
       );
       // 교사는 반의 '멤버'가 아니라 '소유자'라 두 경로를 모두 열어 둡니다
-      // (교사도 자기 반에서 KWL을 쓸 수 있어야 하므로).
+      // (교사도 자기 반에서 KWL을 쓸 수 있어야 하므로. 보관 중엔 교사도 불가).
       allow create: if signedIn()
                     && request.resource.data.userId == uid()
                     && (
                          isClassMember(request.resource.data.classId)
-                         || ownsClass(request.resource.data.classId)
+                         || ownsClassEditable(request.resource.data.classId)
                          || isAdmin()
                        );
       allow update: if signedIn()
@@ -450,10 +480,10 @@ service cloud.firestore {
                     && (
                          resource.data.userId == uid()
                          || isAdmin()
-                         || ownsClass(resource.data.classId)
+                         || ownsClassEditable(resource.data.classId)
                        );
       allow delete: if signedIn() && (
-        resource.data.userId == uid() || isAdmin() || ownsClass(resource.data.classId)
+        resource.data.userId == uid() || isAdmin() || ownsClassEditable(resource.data.classId)
       );
     }
 

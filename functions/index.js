@@ -374,3 +374,92 @@ exports.deleteStudentAccount = onCall({ enforceAppCheck: true }, async (request)
   return { ok: warnings.length === 0, uid, warnings };
 });
 
+// Firebase Storage 다운로드 URL(https://firebasestorage.googleapis.com/...)에서
+// 버킷 내부 경로를 뽑아냅니다. 클라이언트(deleteUploadedFile)는 SDK의 ref(storage,
+// url)이 이 변환을 대신해 주지만, Admin SDK는 경로를 직접 받아야 합니다.
+function storagePathFromUrl(url) {
+  if (typeof url !== "string") return null;
+  const m = url.match(/\/o\/([^?]+)/);
+  if (!m) return null;
+  try {
+    return decodeURIComponent(m[1]);
+  } catch {
+    return null;
+  }
+}
+async function deleteAttachedFilesAdmin(cardData) {
+  const urls = [
+    cardData.imageUrl,
+    ...(cardData.images || []),
+    ...(cardData.attachments || []).map((a) => a && a.dataUrl),
+  ].filter(Boolean);
+  const bucket = admin.storage().bucket();
+  await Promise.all(
+    urls.map(async (url) => {
+      const path = storagePathFromUrl(url);
+      if (!path) return;
+      await bucket.file(path).delete().catch(() => {
+        /* 이미 삭제됨·권한 없음 등 — 무시 (best-effort) */
+      });
+    })
+  );
+}
+
+// =============================================================
+// [2-d] 반 삭제 — 보관된 반만, 완전히 삭제(되돌릴 수 없음)
+// -------------------------------------------------------------
+// 보안 규칙상 반이 보관(archived) 상태면 그 반의 자식 문서(보드·카드·
+// 소속 등)는 소유 교사도 쓰기(삭제 포함)가 막힙니다 — "삭제는 보관을
+// 거친 뒤에만" 이라는 요구와, "그 삭제 작업 자체가 자식 문서 삭제를
+// 필요로 한다"는 사실이 클라이언트 순차 삭제로는 동시에 성립할 수
+// 없어, Admin 권한으로 규칙을 우회해 서버에서 한 번에 처리합니다.
+// =============================================================
+exports.deleteClass = onCall({ enforceAppCheck: true }, async (request) => {
+  if (!request.auth) throw new HttpsError("unauthenticated", "로그인이 필요합니다.");
+  const callerRole = request.auth.token.role;
+  const callerIsAdmin =
+    callerRole === "admin" ||
+    (request.auth.token.email === INITIAL_ADMIN_EMAIL &&
+      request.auth.token.email_verified === true);
+  const callerIsTeacher = callerRole === "teacher" || callerIsAdmin;
+  if (!callerIsTeacher) {
+    throw new HttpsError("permission-denied", "반 삭제 권한이 없습니다.");
+  }
+
+  const { classId } = request.data || {};
+  if (typeof classId !== "string" || !classId) {
+    throw new HttpsError("invalid-argument", "classId를 올바르게 전달해 주세요.");
+  }
+
+  const classRef = db.doc(`classes/${classId}`);
+  const classSnap = await classRef.get();
+  if (!classSnap.exists) return { ok: true, alreadyGone: true };
+  const cls = classSnap.data();
+
+  if (!callerIsAdmin && cls.createdBy !== request.auth.uid) {
+    throw new HttpsError("permission-denied", "본인이 개설한 반만 삭제할 수 있습니다.");
+  }
+  if (cls.archived !== true) {
+    throw new HttpsError("failed-precondition", "먼저 반을 보관한 뒤에 삭제할 수 있습니다.");
+  }
+
+  const boardsSnap = await db.collection("studyBoards").where("classId", "==", classId).get();
+  for (const boardDoc of boardsSnap.docs) {
+    const cardsSnap = await boardDoc.ref.collection("cards").get();
+    for (const cardDoc of cardsSnap.docs) {
+      await deleteAttachedFilesAdmin(cardDoc.data());
+    }
+    const batch = db.batch();
+    cardsSnap.docs.forEach((d) => batch.delete(d.ref));
+    batch.delete(boardDoc.ref);
+    await batch.commit();
+  }
+
+  const warnings = [];
+  await deleteByQuery(db.collection("joinCodes").where("classId", "==", classId), warnings, "입장 코드");
+  await deleteByQuery(db.collection("memberships").where("classId", "==", classId), warnings, "반 소속");
+  await classRef.delete();
+
+  return { ok: warnings.length === 0, classId, warnings };
+});
+

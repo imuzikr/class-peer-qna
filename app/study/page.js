@@ -26,7 +26,6 @@ import {
   setStudentReward,
   leaveClass,
   regenerateJoinCode,
-  addClass,
   reorderStudyBoards,
   toDate,
 } from "@/lib/store";
@@ -49,6 +48,7 @@ import StudyBoardColumn from "@/components/StudyBoardColumn";
 import StudyBoardForm from "@/components/StudyBoardForm";
 import NewQuestionForm from "@/components/NewQuestionForm";
 import ClassEntry from "@/components/ClassEntry";
+import ClassManagerModal from "@/components/ClassManagerModal";
 import Toast from "@/components/Toast";
 import KwlPanel from "@/components/KwlPanel";
 import LessonManagerModal from "@/components/LessonManagerModal";
@@ -75,8 +75,7 @@ export default function StudyPage() {
   const [joinCodesMap, setJoinCodesMap] = useState({}); // 교사: classId→{code,expiresAt}
   const [regenerating, setRegenerating] = useState(false);
   const [addingBoard, setAddingBoard] = useState(false);
-  const [creatingClass, setCreatingClass] = useState(false);
-  const [newClassName, setNewClassName] = useState("");
+  const [classManagerOpen, setClassManagerOpen] = useState(false);
   const [showCode, setShowCode] = useState(false); // 입장 코드 표시 토글
   const [lessonPicker, setLessonPicker] = useState(false); // 수업 준비(목록·새로 만들기) 모달
   const [teaching, setTeaching] = useState(null);   // 수업 중인 자료(학생 화면 전환)
@@ -217,12 +216,17 @@ export default function StudyPage() {
     };
   }, [admin, user?.uid]);
 
-  // 학생이 보고 있는 반: 세션 선택이 내 소속에 있으면 그것, 아니면 첫 소속
+  // 학생이 보고 있는 반: 세션 선택이 내 소속에 있으면 그것, 아니면 첫 소속.
+  // 보관된 반은 학생 접근이 막히므로 후보에서 제외합니다.
   const membershipIds = useMemo(() => memberships.map((m) => m.classId), [memberships]);
+  const activeMembershipIds = useMemo(
+    () => membershipIds.filter((id) => !classes.find((c) => c.id === id)?.archived),
+    [membershipIds, classes]
+  );
   const studentClassId =
-    localSelectedId && membershipIds.includes(localSelectedId)
+    localSelectedId && activeMembershipIds.includes(localSelectedId)
       ? localSelectedId
-      : membershipIds[0] ?? null;
+      : activeMembershipIds[0] ?? null;
 
   const keywordNames = useMemo(
     () => keywordDocs.map((k) => k.name),
@@ -231,31 +235,38 @@ export default function StudyPage() {
 
   // 교사가 접근 가능한 반 — 일반 교사는 본인 개설 반만, 최고 관리자는 전체.
   // (반 이름 자체는 규칙상 공개 메타데이터라 목록은 여기서 소유자로 걸러냅니다.)
-  const myClasses = useMemo(
+  // myClassesAll: 보관된 반 포함(반 관리하기 모달·보관된 반 보기용)
+  // myClasses   : 운영 중인 반만(상단 드롭다운·기본 진입 대상)
+  const myClassesAll = useMemo(
     () =>
       superAdmin
         ? classes
         : classes.filter((c) => c.createdBy && c.createdBy === user?.uid),
     [classes, superAdmin, user?.uid]
   );
+  const myClasses = useMemo(
+    () => myClassesAll.filter((c) => !c.archived),
+    [myClassesAll]
+  );
 
   // 교사가 고른 반은 세션에 저장돼 있어(localSelectedId), 새로고침해도 그 반을
   // 이어서 보여줍니다. 저장된 값이 없거나 더 이상 존재하지 않는 반이면
-  // 첫 번째 반으로 폴백합니다.
+  // 첫 번째(운영 중인) 반으로 폴백합니다. '반 관리하기'에서 보관된 반을
+  // 눌러 보는 중일 때는(teacherClassId가 보관된 반이어도) 그대로 둡니다.
   useEffect(() => {
-    if (!admin || myClasses.length === 0) return;
-    const valid = teacherClassId && myClasses.some((c) => c.id === teacherClassId);
+    if (!admin || myClassesAll.length === 0) return;
+    const valid = teacherClassId && myClassesAll.some((c) => c.id === teacherClassId);
     if (valid) return;
     const remembered =
       localSelectedId && myClasses.some((c) => c.id === localSelectedId)
         ? localSelectedId
-        : myClasses[0].id;
+        : myClasses[0]?.id ?? myClassesAll[0].id;
     setTeacherClassId(remembered);
-  }, [admin, myClasses, teacherClassId, localSelectedId]);
+  }, [admin, myClasses, myClassesAll, teacherClassId, localSelectedId]);
 
   const classId = admin ? teacherClassId : studentClassId;
   const currentClass =
-    (admin ? myClasses : classes).find((c) => c.id === classId) ?? null;
+    (admin ? myClassesAll : classes).find((c) => c.id === classId) ?? null;
   const currentCode = joinCodesMap[classId] ?? null; // { code, expiresAt } | null
   const classBoards = useMemo(
     () => boards.filter((b) => b.classId === classId),
@@ -332,13 +343,18 @@ export default function StudyPage() {
     );
   }
 
-  async function handleCreateClass(e) {
-    e.preventDefault();
-    if (!newClassName.trim()) return;
-    const created = await addClass(getCurrentUser(), newClassName);
-    setNewClassName("");
-    setCreatingClass(false);
-    setTeacherClassId(created.id); // 새로 만든 반으로 전환(교사 화면)
+  // '반 관리하기' 모달에서 새 반을 만들면 그 반으로 전환합니다.
+  function handleClassCreated(newClassId) {
+    setTeacherClassId(newClassId);
+    setSelectedClassId(newClassId);
+    setClassManagerOpen(false);
+  }
+  // '반 관리하기'에서 보관된 반의 '보기'를 누르면 그 반을(보기 전용으로) 봅니다.
+  function handleViewArchivedClass(id) {
+    setTeacherClassId(id);
+    setSelectedClassId(id);
+    setShowCode(false);
+    setClassManagerOpen(false);
   }
 
   // 입장 코드 만료 여부 + 표시용 포맷
@@ -402,7 +418,7 @@ export default function StudyPage() {
             <KwlPanel
               classId={classId}
               user={user}
-              isTeacher={admin}
+              isTeacher={admin && !currentClass?.archived}
               onAsk={(text) => setAskKwlW(text)}
               mobileOpen={kwlMobileOpen}
               onMobileClose={() => setKwlMobileOpen(false)}
@@ -413,25 +429,31 @@ export default function StudyPage() {
                 <div className="study-head-main">
                   <div className="study-title-row">
                     <h1>🧩 공부방</h1>
-                    {admin && myClasses.length > 0 && (
-                      <select
-                        className="study-class-select"
-                        value={classId ?? ""}
-                        onChange={(e) => {
-                          setTeacherClassId(e.target.value);
-                          setSelectedClassId(e.target.value); // 새로고침해도 이 반 유지
-                          setShowCode(false);
-                        }}
-                        aria-label="반 선택"
-                      >
-                        {myClasses.map((c) => (
-                          <option key={c.id} value={c.id}>
-                            {c.name}
-                          </option>
-                        ))}
-                      </select>
+                    {admin && currentClass?.archived ? (
+                      <span className="study-class-archived-badge" title="보관된 반 — 보기 전용(편집하려면 먼저 복원하세요)">
+                        📦 {currentClass.name} · 보관됨
+                      </span>
+                    ) : (
+                      admin && myClasses.length > 0 && (
+                        <select
+                          className="study-class-select"
+                          value={classId ?? ""}
+                          onChange={(e) => {
+                            setTeacherClassId(e.target.value);
+                            setSelectedClassId(e.target.value); // 새로고침해도 이 반 유지
+                            setShowCode(false);
+                          }}
+                          aria-label="반 선택"
+                        >
+                          {myClasses.map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.name}
+                            </option>
+                          ))}
+                        </select>
+                      )
                     )}
-                    {admin && currentClass && (
+                    {admin && currentClass && !currentClass.archived && (
                       <button
                         className="btn-ghost"
                         onClick={() => setLessonPicker(true)}
@@ -440,7 +462,7 @@ export default function StudyPage() {
                         📝 수업준비
                       </button>
                     )}
-                    {admin && currentClass && (
+                    {admin && currentClass && !currentClass.archived && (
                       <button
                         className="btn-ghost"
                         onClick={() => setShowCode(true)}
@@ -452,9 +474,9 @@ export default function StudyPage() {
                     {admin && (
                       <button
                         className="btn-ghost"
-                        onClick={() => setCreatingClass(true)}
+                        onClick={() => setClassManagerOpen(true)}
                       >
-                        ➕ 반 만들기
+                        🗂 반 관리하기
                       </button>
                     )}
                     {admin && currentClass && classBoards.length > 0 && (
@@ -469,7 +491,11 @@ export default function StudyPage() {
                   </div>
 
                   {admin ? (
-                    <p>수업 자료를 확인하고, 활동 결과물을 카드로 남겨 보세요.</p>
+                    currentClass?.archived ? (
+                      <p>📦 보관된 반의 데이터를 보기 전용으로 보고 있어요. 편집하려면 ‘반 관리하기’에서 먼저 복원하세요.</p>
+                    ) : (
+                      <p>수업 자료를 확인하고, 활동 결과물을 카드로 남겨 보세요.</p>
+                    )
                   ) : currentClass ? (
                     <p>
                       <strong className="study-class-name">
@@ -494,9 +520,9 @@ export default function StudyPage() {
                   </button>
                 )}
               </div>
-              {admin && myClasses.length === 0 ? (
+              {admin && myClassesAll.length === 0 ? (
                 <p className="empty-note">
-                  아직 만든 반이 없어요. ‘반 만들기’로 첫 반을 추가하고 학생에게
+                  아직 만든 반이 없어요. ‘반 관리하기’로 첫 반을 추가하고 학생에게
                   입장 코드를 알려 주세요.
                 </p>
               ) : !admin && classBoards.length === 0 ? (
@@ -508,7 +534,7 @@ export default function StudyPage() {
                       key={board.id}
                       board={board}
                       user={user}
-                      isTeacher={admin}
+                      isTeacher={admin && !currentClass?.archived}
                       isFirst={i === 0}
                       collapsed={i !== 0 && !!board.collapsed}
                       onToggleCollapse={() => toggleBoardCollapse(board)}
@@ -535,7 +561,7 @@ export default function StudyPage() {
                       onBoardDrop={() => handleBoardDrop(board.id)}
                     />
                   ))}
-                  {admin && currentClass && (
+                  {admin && currentClass && !currentClass.archived && (
                     <button
                       className="study-add-board-col"
                       onClick={() => setAddingBoard(true)}
@@ -549,8 +575,9 @@ export default function StudyPage() {
             </div>
 
             {/* 오른쪽: 멋진 순간 패널 — 교사 전용(과일 주기 관리).
-                학생은 상단바 프로필 옆의 총 개수 뱃지로 확인합니다. */}
-            {currentClass && admin && (
+                학생은 상단바 프로필 옆의 총 개수 뱃지로 확인합니다. 보관된
+                반은 보기 전용이라 표시하지 않습니다(과일 부여는 쓰기라 막힘). */}
+            {currentClass && admin && !currentClass.archived && (
               <StudyRewardPanel
                 roster={roster}
                 classId={classId}
@@ -689,37 +716,15 @@ export default function StudyPage() {
         </div>
       )}
 
-      {creatingClass && (
-        <div className="modal-backdrop" {...backdropClose(() => setCreatingClass(false))}>
-          <div className="modal modal-class-create" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-head">
-              <h3>➕ 새 반 만들기</h3>
-              <button
-                className="btn-close"
-                onClick={() => setCreatingClass(false)}
-                aria-label="닫기"
-              >
-                ×
-              </button>
-            </div>
-            <form className="form-grid" onSubmit={handleCreateClass}>
-              <input
-                type="text"
-                placeholder="반 이름 (예: 3학년 3반, 수요일 코딩반)"
-                value={newClassName}
-                onChange={(e) => setNewClassName(e.target.value)}
-                autoFocus
-              />
-              <p className="study-link-hint">
-                반을 만들면 입장 코드가 자동으로 생성됩니다. 학생에게 그 코드를
-                알려 주면 해당 반 공부방에 입장할 수 있어요.
-              </p>
-              <button type="submit" className="btn-primary">
-                반 만들기
-              </button>
-            </form>
-          </div>
-        </div>
+      {classManagerOpen && (
+        <ClassManagerModal
+          classes={myClassesAll}
+          user={getCurrentUser()}
+          onClose={() => setClassManagerOpen(false)}
+          onCreated={handleClassCreated}
+          onViewClass={handleViewArchivedClass}
+          onToast={setToast}
+        />
       )}
 
       {addingBoard && currentClass && (
@@ -757,7 +762,7 @@ export default function StudyPage() {
           setAskCode(code);
           setAskKeyword(null);
         }}
-        hasModalOpen={cardModalOpen || creatingClass || addingBoard || (askKeyword !== null || askCode !== null)}
+        hasModalOpen={cardModalOpen || classManagerOpen || addingBoard || (askKeyword !== null || askCode !== null)}
       />
 
       {/* ── 수업 준비 (목록 · 새로 만들기) ── */}

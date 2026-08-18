@@ -1730,6 +1730,87 @@ button.footer-link:hover {
   gap: 14px;
 }
 
+/* ===================== 반 관리하기 모달 ===================== */
+.modal.modal-class-manager {
+  max-width: 520px;
+}
+.class-mgr-create {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.class-mgr-create input {
+  flex: 1;
+}
+.class-mgr-create .btn-primary {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.class-mgr-section {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.class-mgr-section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-sub);
+  margin-bottom: 8px;
+}
+.class-mgr-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.class-mgr-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+}
+.class-mgr-row--archived {
+  background: var(--neutral);
+}
+.class-mgr-name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.class-mgr-rename-input {
+  flex: 1;
+  padding: 6px 8px;
+}
+.class-mgr-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.class-mgr-actions .btn-ghost {
+  padding: 5px 9px;
+  font-size: 12.5px;
+}
+.class-mgr-delete {
+  color: var(--danger);
+}
+
+/* 보관된 반 표시 배지 — 상단 반 선택 드롭다운 대신 노출 */
+.study-class-archived-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--neutral);
+  color: var(--text-sub);
+  font-size: 13px;
+  font-weight: 600;
+}
+
 /* 수업 보드 만들기 모달 — 폭을 절반으로(1000→520px). 키워드 칩은
    .study-keyword-chips의 flex-wrap으로 좁아지면 자동 줄바꿈됨 */
 .modal.modal-study-board {
