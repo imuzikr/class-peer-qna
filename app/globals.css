@@ -6098,10 +6098,12 @@ pre code {
   cursor: default;
 }
 
-/* 활동 목록 — 학생 카드에 그대로 들어갈 항목들 */
+/* 활동 목록 — 학생 카드에 그대로 들어갈 항목들.
+   번호를 '활동 1'처럼 직접 그리므로 기본 목록 마커 자리는 비웁니다. */
 .lesson-board-acts {
   margin: 0;
-  padding-left: 22px;
+  padding-left: 0;
+  list-style: none;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -6112,7 +6114,15 @@ pre code {
   align-items: center;
   gap: 10px;
 }
-.lesson-board-acts li span {
+/* '활동 1' 번호 — 폭을 고정해 이름이 세로로 가지런히 놓이게 */
+.lesson-board-act-no {
+  flex-shrink: 0;
+  min-width: 46px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--primary-dark, #c15a2a);
+}
+.lesson-board-act-name {
   flex: 1;
   min-width: 0;
 }
@@ -8606,6 +8616,18 @@ pre code {
   border-radius: 12px;
   padding: 12px 12px 8px;
   background: var(--bg);
+}
+/* '활동 1' — 제목 칸 위에 붙는 순서 표시 */
+.activity-form-no {
+  flex-shrink: 0;
+  align-self: flex-start;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--primary-dark, #c15a2a);
+  background: var(--primary-light);
+  border-radius: 999px;
+  padding: 2px 10px;
 }
 .activity-form-section .study-card-title-input {
   flex-shrink: 0;

@@ -401,7 +401,9 @@ export default function LessonMode({
                     <ol className="lesson-board-acts">
                       {boardActs.map((a, i) => (
                         <li key={`${a}-${i}`}>
-                          <span>{a}</span>
+                          {/* 학생 카드에 붙는 번호와 같은 순서를 여기서도 보여 줍니다 */}
+                          <span className="lesson-board-act-no">활동 {i + 1}</span>
+                          <span className="lesson-board-act-name">{a}</span>
                           <button
                             type="button"
                             className="lesson-board-act-del"

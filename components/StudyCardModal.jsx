@@ -478,6 +478,9 @@ export default function StudyCardModal({
                 <div className="activity-form-list">
                   {activities.map((act, i) => (
                     <div key={i} className="activity-form-section">
+                      {/* 몇 번째 활동인지 — 활동이 여러 개면 학생이 순서를
+                          바로 알 수 있게 제목 위에 번호를 붙입니다 */}
+                      <span className="activity-form-no">활동 {i + 1}</span>
                       <input
                         type="text"
                         className="study-card-title-input"
