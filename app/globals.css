@@ -6458,9 +6458,58 @@ pre code {
   .attend-desk { padding: 4px 2px; }
   .attend-desk-name { font-size: 11px; }
   .attend-desk-no { font-size: 10px; }
-  /* 좁은 화면에선 제목·쪽수와 겹칠 수 있어 줄 안에서 자연스럽게 배치 */
-  .lesson-tools { position: static; transform: none; margin-left: auto; }
+  /* ── 수업 화면 머리말 — 좁은 화면에선 두 줄로 나눠 담습니다 ──
+     한 줄에 다 넣으면 폭이 모자라 제목이 0px로 찌그러지고, 쪽수와
+     '수업 종료'가 화면 밖(375px 기준 562px 지점)으로 밀려나 아예 누를 수
+     없었습니다. 첫 줄에 제목·배지·쪽수·종료, 둘째 줄에 수업 도구를 둡니다. */
+  .lesson-head {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+  /* 제목은 늘어나지 않고 줄어들기만 — 늘어나면 쪽수의 margin-left:auto가
+     남은 자리를 다 먹어 '수업 종료'가 다음 줄로 밀려납니다 */
+  .lesson-title { flex: 0 1 auto; min-width: 0; }
+  /* 배지는 '프레젠테이션 중 · 3학년 1반'처럼 길어질 수 있어 줄임표로.
+     남는 자리는 배지 오른쪽에서 흡수합니다 — 쪽수에 margin-left:auto를
+     두면 쪽수가 오른쪽 끝에 붙어 버려 '수업 종료'가 다음 줄로 밀립니다.
+     또 inline-flex인 채로는 text-overflow가 먹지 않아 글자가 그대로
+     잘리므로(배지 안의 글은 이름 없는 flex 항목이라 스타일을 줄 수 없음),
+     블록으로 바꿔 줄임표가 나오게 합니다. */
+  .lesson-badge {
+    display: block;
+    flex-shrink: 1;
+    min-width: 0;
+    max-width: 34vw; /* 360px에서 '수업 종료'가 첫 줄에 같이 들어가는 한계값 */
+    margin-right: auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  /* 블록이 되면서 flex 정렬이 사라지므로 방송 표시 점을 글자 줄에 맞춥니다 */
+  .lesson-badge .broadcast-live-dot {
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 4px;
+  }
+  .lesson-count { margin-left: 0; flex-shrink: 0; }
+  .lesson-exit { padding: 7px 12px; font-size: 12px; }
+  /* 도구는 둘째 줄을 통째로 써서 가운데 정렬 (order로 맨 뒤에 배치) */
+  .lesson-tools {
+    position: static;
+    transform: none;
+    order: 3;
+    width: 100%;
+    margin: 0;
+    justify-content: center;
+  }
   .lesson-tool-btn { padding: 6px 10px; font-size: 12px; }
+
+  /* 어떤 요소든 넘치더라도 화면 자체가 옆으로 밀리지 않게 (표처럼 정말
+     넓은 것은 각자 스크롤 상자를 갖고 있습니다) */
+  .lesson-mode { overflow-x: hidden; }
+  /* 슬라이드 넘김 버튼 — 아주 좁은 화면에서도 세 개가 한 줄에 들어가게 */
+  .lesson-card-foot { gap: 10px; flex-wrap: wrap; }
 }
 .lesson-board-act-del {
   flex-shrink: 0;
