@@ -6058,6 +6058,15 @@ pre code {
   background: rgba(255, 255, 255, 0.1);
   color: rgba(255, 255, 255, 0.8);
 }
+/* 배지 안의 긴 말 / 짧은 말 — 넓은 화면에선 긴 쪽만 보입니다 */
+.lesson-badge-short {
+  display: none;
+}
+/* 반 이름 앞 구분점. 왼쪽 여백은 배지의 flex gap이 만들어 줍니다 */
+.lesson-badge-class::before {
+  content: "· ";
+  opacity: 0.65;
+}
 /* 수업 도구 — 헤더 '화면 기준' 정가운데.
    좌우 여백(auto)만으로는 왼쪽 제목이 길어질수록 중앙에서 밀리므로,
    절대 위치로 헤더 한가운데에 고정합니다. (.lesson-head는 sticky =
@@ -6480,7 +6489,7 @@ pre code {
     display: block;
     flex-shrink: 1;
     min-width: 0;
-    max-width: 34vw; /* 360px에서 '수업 종료'가 첫 줄에 같이 들어가는 한계값 */
+    max-width: 37vw; /* 360px에서 '수업 종료'가 첫 줄에 같이 들어가는 한계값 */
     margin-right: auto;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -6492,6 +6501,12 @@ pre code {
     vertical-align: middle;
     margin-right: 4px;
   }
+  /* 좁은 화면에선 짧은 말로 — '프레젠테이션 중 · 정보 B'가 통째로 줄임표
+     처리되며 정작 필요한 반 이름이 잘리던 것을 피합니다 */
+  .lesson-badge-long { display: none; }
+  .lesson-badge-short { display: inline; }
+  /* 블록이라 flex gap이 없으므로 구분점 앞 여백을 직접 줍니다 */
+  .lesson-badge-class { margin-left: 4px; }
   .lesson-count { margin-left: 0; flex-shrink: 0; }
   .lesson-exit { padding: 7px 12px; font-size: 12px; }
   /* 도구는 둘째 줄을 통째로 써서 가운데 정렬 (order로 맨 뒤에 배치) */

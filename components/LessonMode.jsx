@@ -269,16 +269,23 @@ export default function LessonMode({
     <div className="lesson-mode">
       <div className="lesson-head">
         <strong className="lesson-title">{lesson.title}</strong>
+        {/* 상태 배지 — 좁은 화면에서는 긴 설명 대신 짧은 말로 바뀝니다.
+            (자리를 아껴서 반 이름이 잘리지 않게. 어느 반에 발표 중인지가
+             '프레젠테이션 중'이라는 말보다 더 알아야 할 정보입니다) */}
         {editing ? (
           <span className="lesson-badge lesson-badge--edit">수업 준비</span>
         ) : presenting ? (
           <span className="lesson-badge">
             <span className="broadcast-live-dot" aria-hidden="true" />
-            프레젠테이션 중{className && ` · ${className}`}
+            <span className="lesson-badge-long">프레젠테이션 중</span>
+            <span className="lesson-badge-short">발표 중</span>
+            {className && <span className="lesson-badge-class">{className}</span>}
           </span>
         ) : (
           <span className="lesson-badge lesson-badge--edit">
-            학생 화면 그대로{className && ` · ${className}`}
+            <span className="lesson-badge-long">학생 화면 그대로</span>
+            <span className="lesson-badge-short">대기 중</span>
+            {className && <span className="lesson-badge-class">{className}</span>}
           </span>
         )}
         {/* 수업 도구 — 두 버튼 모두 항상 자리를 지킵니다(있다 없다 하면
