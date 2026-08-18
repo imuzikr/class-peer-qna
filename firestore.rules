@@ -266,6 +266,21 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin() || ownsClass(classId);
     }
 
+    // ── 참여 상태 — 발표 중 학생 화면이 보이는지(교사 전광판용) ──
+    //  · 문서 ID = `{uid}_{classId}`. 학생은 자기 것만 쓰고, 읽기는 담당 교사만.
+    //  · 화면이 보이는지(visible)와 갱신 시각뿐이라 실명·내용은 담지 않습니다.
+    match /presence/{pId} {
+      allow read: if isAdmin() || ownsClass(resource.data.classId);
+      allow create, update: if signedIn()
+                            && request.resource.data.uid == uid()
+                            && pId == (uid() + '_' + request.resource.data.classId)
+                            && request.resource.data.visible is bool
+                            && isClassMember(request.resource.data.classId);
+      allow delete: if isAdmin()
+                    || resource.data.uid == uid()
+                    || ownsClass(resource.data.classId);
+    }
+
     // ── 누가기록(학생 관찰 메모) — 반 소유 교사/관리자 전용 (학생 열람 불가) ──
     match /studentNotes/{noteId} {
       allow read: if isAdmin()

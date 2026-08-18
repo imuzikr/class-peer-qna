@@ -5977,6 +5977,38 @@ pre code {
   background: rgba(255, 255, 255, 0.1);
   color: rgba(255, 255, 255, 0.8);
 }
+/* 수업 도구 — 헤더 '화면 기준' 정가운데.
+   좌우 여백(auto)만으로는 왼쪽 제목이 길어질수록 중앙에서 밀리므로,
+   절대 위치로 헤더 한가운데에 고정합니다. (.lesson-head는 sticky =
+   위치 지정 요소라 이 절대 위치의 기준이 됩니다) */
+.lesson-tools {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.lesson-tool-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.lesson-tool-btn:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
 .lesson-count {
   margin-left: auto;
   font-size: 14px;
@@ -6125,6 +6157,94 @@ pre code {
 .lesson-board-act-name {
   flex: 1;
   min-width: 0;
+}
+
+/* ===================== 참여 전광판 ===================== */
+.attend-modal {
+  width: min(680px, 94vw);
+}
+.attend-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.attend-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.attend-chip {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+.attend-chip--on { background: #d7f0dd; border-color: #8fcea3; }
+.attend-chip--away { background: #ffe2c9; border-color: #f0b483; }
+.attend-chip--off { background: #ececea; }
+
+/* 교실 자리 — 5열 × 6행 고정. 학생이 적으면 남는 자리는 빈 책상 */
+.attend-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+}
+.attend-desk {
+  aspect-ratio: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 6px 4px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  text-align: center;
+  overflow: hidden;
+}
+.attend-desk--on {
+  background: #d7f0dd;
+  border-color: #8fcea3;
+}
+.attend-desk--away {
+  background: #ffe2c9;
+  border-color: #f0b483;
+}
+.attend-desk--off {
+  background: #ececea;
+  color: var(--text-sub);
+}
+/* 빈 자리 — 테두리만 옅게 남겨 '자리는 있으나 학생이 없음'을 표시 */
+.attend-desk--empty {
+  background: transparent;
+  border-style: dashed;
+  border-color: #e2e0da;
+}
+.attend-desk-no {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  opacity: 0.75;
+}
+.attend-desk-name {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.25;
+  word-break: keep-all;
+}
+
+@media (max-width: 768px) {
+  .attend-grid { gap: 6px; }
+  .attend-desk { padding: 4px 2px; }
+  .attend-desk-name { font-size: 11px; }
+  .attend-desk-no { font-size: 10px; }
+  /* 좁은 화면에선 제목·쪽수와 겹칠 수 있어 줄 안에서 자연스럽게 배치 */
+  .lesson-tools { position: static; transform: none; margin-left: auto; }
+  .lesson-tool-btn { padding: 6px 10px; font-size: 12px; }
 }
 .lesson-board-act-del {
   flex-shrink: 0;

@@ -27,9 +27,13 @@ import {
   updateStudyBoard,
   updateStudyCard,
   subscribeStudyCards,
+  subscribePresence,
+  PRESENCE_STALE_MS,
+  toDate,
 } from "@/lib/store";
 import { stripHtml } from "@/lib/html";
 import { getCurrentUser } from "@/lib/user";
+import AttendanceBoard from "./AttendanceBoard";
 
 // 보드 활동을 학생 카드의 작성 틀(제목 + 빈 줄)로 바꿉니다.
 // StudyBoardColumn의 같은 함수와 형식을 맞춰야 두 화면에서 만든 활동이
@@ -47,6 +51,7 @@ export default function LessonMode({
   classId = null,
   className = "",
   boards = [],          // 수업 준비: 이 반의 공부방 보드 목록(연결 대상)
+  roster = [],          // 수업 중: 이 반 학생 명단(참여 전광판 자리 배치용)
   onSaveNote,
   onSaveActivities,
   onSaveBoardId,        // 수업 준비: 연결한 보드 id를 수업 자료에 저장
@@ -72,6 +77,31 @@ export default function LessonMode({
   const [actError, setActError] = useState("");
   const [makingBoard, setMakingBoard] = useState(false);
   const boardActs = board?.activities ?? [];
+
+  // ── 참여 전광판 (수업 중, 발표하는 동안만) ──
+  const [attendOpen, setAttendOpen] = useState(false);
+  const [presence, setPresence] = useState([]);
+  const [presenceNow, setPresenceNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (editing || !presenting || !classId) { setPresence([]); return; }
+    return subscribePresence(classId, setPresence);
+  }, [editing, presenting, classId]);
+  // 학생 신호가 끊기면 스냅샷이 더 오지 않으므로, 시간만 흘러도 숫자가
+  // 갱신되도록 주기적으로 다시 셉니다.
+  useEffect(() => {
+    if (editing || !presenting) return;
+    const t = setInterval(() => setPresenceNow(Date.now()), 5000);
+    return () => clearInterval(t);
+  }, [editing, presenting]);
+
+  // 헤더 버튼에 보여 줄 '보는 중' 인원
+  const watchingCount = roster.reduce((n, s) => {
+    const p = presence.find((x) => x.uid === s.uid);
+    if (!p || !p.visible) return n;
+    const t = p.updatedAt ? toDate(p.updatedAt).getTime() : 0;
+    if (t && presenceNow - t > PRESENCE_STALE_MS) return n;
+    return n + 1;
+  }, 0);
 
   const cur = slides[Math.min(idx, total - 1)];
 
@@ -224,11 +254,32 @@ export default function LessonMode({
             학생 화면 그대로{className && ` · ${className}`}
           </span>
         )}
+        {/* 수업 도구 — 발표 중에만. 앞으로 도구가 늘어날 자리라 가운데 정렬 */}
+        {!editing && presenting && (
+          <div className="lesson-tools">
+            <button
+              type="button"
+              className="lesson-tool-btn"
+              onClick={() => setAttendOpen(true)}
+              title="학생들이 화면을 보고 있는지 확인합니다"
+            >
+              👀 참여중 {watchingCount}/{roster.length}
+            </button>
+          </div>
+        )}
         <span className="lesson-count">{total === 0 ? 0 : idx + 1} / {total}</span>
         <button type="button" className="lesson-exit" onClick={onClose}>
           {editing ? "닫기" : "수업 종료"}
         </button>
       </div>
+
+      {attendOpen && (
+        <AttendanceBoard
+          roster={roster}
+          presence={presence}
+          onClose={() => setAttendOpen(false)}
+        />
+      )}
 
       {/* 수업 페이지 본문 — 위아래로 스크롤됩니다. 스크롤은 이 화면 안의
           일일 뿐이라 학생 화면과는 아무 상관이 없습니다(아래 주석 참고). */}

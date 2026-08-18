@@ -17,6 +17,8 @@ import {
   subscribeMyClassRewardCount,
   subscribeBroadcast,
   stopBroadcast,
+  reportPresence,
+  PRESENCE_BEAT_MS,
 } from "@/lib/store";
 import { getSelectedClassId } from "@/lib/classroom";
 import { useCurrentUser } from "@/lib/useCurrentUser";
@@ -85,6 +87,24 @@ export default function TopNav({ active, onPython, pyActive = false }) {
     if (!isFirebaseConfigured || !broadcastClassId) { setBroadcast(null); return; }
     return subscribeBroadcast(broadcastClassId, setBroadcast);
   }, [broadcastClassId]);
+
+  // 발표 중에는 학생 화면이 실제로 보이는지 교사에게 알립니다(전광판용).
+  // 다른 창에 가려지거나 탭을 옮기면 visible=false가 되고, 20초마다
+  // '살아 있음'도 함께 보내 접속이 끊긴 경우와 구분되게 합니다.
+  const broadcasting = !!broadcast;
+  useEffect(() => {
+    if (!isFirebaseConfigured || admin || !broadcasting || !broadcastClassId || !user?.uid) return;
+    const send = () =>
+      reportPresence(user, broadcastClassId, document.visibilityState === "visible");
+    send();
+    document.addEventListener("visibilitychange", send);
+    const beat = setInterval(send, PRESENCE_BEAT_MS);
+    return () => {
+      document.removeEventListener("visibilitychange", send);
+      clearInterval(beat);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [admin, broadcasting, broadcastClassId, user?.uid]);
 
   const pendingTeacherCount = directory.filter(
     (u) => u.requestedRole === "teacher" && u.role !== "teacher" && u.role !== "admin"

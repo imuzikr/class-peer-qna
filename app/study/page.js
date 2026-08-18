@@ -810,6 +810,7 @@ export default function StudyPage() {
           mode="teach"
           classId={classId}
           className={currentClass?.name ?? ""}
+          roster={admin ? roster : []}
           onClose={() => setTeaching(null)}
         />
       )}
