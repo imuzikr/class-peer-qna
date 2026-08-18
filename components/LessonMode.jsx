@@ -20,16 +20,36 @@
 // 이전 / 다음 / 종료 — 종료하면 방송이 꺼져 학생 화면도 원래대로 돌아갑니다.
 // =============================================================
 import { useEffect, useState } from "react";
-import { startBroadcast, stopBroadcast } from "@/lib/store";
+import {
+  startBroadcast,
+  stopBroadcast,
+  addStudyBoard,
+  updateStudyBoard,
+  updateStudyCard,
+  subscribeStudyCards,
+} from "@/lib/store";
+import { stripHtml } from "@/lib/html";
 import { getCurrentUser } from "@/lib/user";
+
+// 보드 활동을 학생 카드의 작성 틀(제목 + 빈 줄)로 바꿉니다.
+// StudyBoardColumn의 같은 함수와 형식을 맞춰야 두 화면에서 만든 활동이
+// 학생에게 똑같이 보입니다.
+function buildActivityTemplate(activities) {
+  if (!activities?.length) return "";
+  return activities
+    .map((act) => `<div class="activity-section"><h4 class="activity-title">${act}</h4><p><br></p></div>`)
+    .join("");
+}
 
 export default function LessonMode({
   lesson,
   mode = "teach",
   classId = null,
   className = "",
+  boards = [],          // 수업 준비: 이 반의 공부방 보드 목록(연결 대상)
   onSaveNote,
   onSaveActivities,
+  onSaveBoardId,        // 수업 준비: 연결한 보드 id를 수업 자료에 저장
   onClose,
 }) {
   const slides = lesson.slides ?? [];
@@ -42,7 +62,85 @@ export default function LessonMode({
   const [acts, setActs] = useState((lesson.activities ?? []).join("\n"));
   const editing = mode === "edit";
 
+  // ── 공부방 보드 연동 (수업 준비에서만) ──
+  const boardId = lesson.boardId ?? null;
+  const board = boards.find((b) => b.id === boardId) ?? null;
+  const [boardCards, setBoardCards] = useState([]);
+  const [newAct, setNewAct] = useState("");
+  const [actBusy, setActBusy] = useState(false);
+  const [actError, setActError] = useState("");
+  const [makingBoard, setMakingBoard] = useState(false);
+  const boardActs = board?.activities ?? [];
+
   const cur = slides[Math.min(idx, total - 1)];
+
+  // 연결한 보드의 학생 카드 — 이미 학생이 쓴 내용이 있으면 활동을 바꾸지
+  // 않도록 확인하는 데 씁니다(공부방 화면의 활동 편집과 같은 규칙).
+  useEffect(() => {
+    if (!editing || !boardId) { setBoardCards([]); return; }
+    return subscribeStudyCards(boardId, setBoardCards);
+  }, [editing, boardId]);
+
+  // 활동 목록을 보드에 저장하고, 학생 카드의 작성 틀도 함께 맞춥니다.
+  async function saveBoardActs(next) {
+    if (!board) return;
+    setActError("");
+    const studentCards = boardCards.filter((c) => !c.authorId?.startsWith("teacher_"));
+    // 학생이 이미 쓴 내용을 활동 틀로 덮어쓰면 안 됩니다.
+    if (studentCards.some((c) => stripHtml(c.content ?? "").trim().length > 0)) {
+      setActError("학생이 이미 작성한 내용이 있어 활동을 바꿀 수 없어요. 공부방에서 카드 내용을 비운 뒤 다시 시도해 주세요.");
+      return;
+    }
+    setActBusy(true);
+    try {
+      await updateStudyBoard(board.id, { activities: next });
+      if (next.length > 0) {
+        const html = buildActivityTemplate(next);
+        await Promise.all(
+          studentCards.map((c) =>
+            updateStudyCard(board.id, c.id, {
+              title: c.title ?? "",
+              content: html,
+              imageUrl: c.imageUrl ?? null,
+              attachments: c.attachments ?? [],
+            })
+          )
+        );
+      }
+    } catch (e) {
+      setActError(`활동을 저장하지 못했어요: ${e?.message ?? "알 수 없는 오류"}`);
+    } finally {
+      setActBusy(false);
+    }
+  }
+
+  async function handleAddAct(e) {
+    e.preventDefault();
+    const name = newAct.trim();
+    if (!name || !board || actBusy) return;
+    await saveBoardActs([...boardActs, name]);
+    setNewAct("");
+  }
+
+  // 수업 자료 이름으로 새 보드를 만들고 바로 연결합니다.
+  async function handleAddBoard() {
+    if (!classId || makingBoard) return;
+    setMakingBoard(true);
+    setActError("");
+    try {
+      const id = await addStudyBoard(getCurrentUser(), {
+        title: lesson.title || "수업 보드",
+        type: "student",
+        description: "",
+        classId,
+      });
+      if (id) await onSaveBoardId?.(id);
+    } catch (e) {
+      setActError(`보드를 만들지 못했어요: ${e?.message ?? "알 수 없는 오류"}`);
+    } finally {
+      setMakingBoard(false);
+    }
+  }
 
   // 장을 넘기면 그 장의 해설을 불러옵니다.
   useEffect(() => {
@@ -222,10 +320,11 @@ export default function LessonMode({
           </section>
         </div>
 
-        {/* ── 활동 안내 ── (지금은 안내 문구 목록. 활동 기능은 차차 다듬을 예정) */}
+        {/* ── 오늘의 수업 목표 ── 교사가 수업 중 참고하는 메모입니다.
+            (학생 카드에 들어가는 '활동'은 아래 공부방 연동 섹션에서 관리) */}
         <section className="lesson-card lesson-activity">
           <div className="lesson-card-head">
-            <h2>활동 안내</h2>
+            <h2>오늘의 수업 목표!</h2>
             {editing && <small>한 줄에 하나씩 · 자동 저장</small>}
           </div>
           <div className="lesson-activity-body">
@@ -234,7 +333,7 @@ export default function LessonMode({
                 className="lesson-activity-input"
                 value={acts}
                 onChange={(e) => setActs(e.target.value)}
-                placeholder={"한 줄에 활동 하나씩 적어 주세요.\n예) 짝과 함께 이야기 나누기"}
+                placeholder={"한 줄에 목표 하나씩 적어 주세요.\n예) 이온 결합과 공유 결합의 차이를 설명할 수 있다"}
               />
             ) : (lesson.activities ?? []).length > 0 ? (
               <ul className="lesson-activity-list">
@@ -243,10 +342,99 @@ export default function LessonMode({
                 ))}
               </ul>
             ) : (
-              <p className="lesson-note-empty">아직 등록한 활동이 없어요.</p>
+              <p className="lesson-note-empty">아직 등록한 목표가 없어요.</p>
             )}
           </div>
         </section>
+
+        {/* ── 공부방 연동 ── 수업 준비에서만 보입니다.
+            수업 중에는 이미 준비가 끝난 상태이고, 활동을 바꾸면 학생이
+            쓰던 카드가 흔들리므로 아예 노출하지 않습니다. */}
+        {editing && (
+          <section className="lesson-card lesson-board">
+            <div className="lesson-card-head">
+              <h2>공부방 연동</h2>
+              <small>여기서 만든 활동이 학생 카드의 작성 항목이 됩니다</small>
+            </div>
+
+            <div className="lesson-board-body">
+              {/* 보드 선택 + 새 보드 만들기 */}
+              <div className="lesson-board-pick">
+                <label htmlFor="lesson-board-select">수업 보드</label>
+                <select
+                  id="lesson-board-select"
+                  className="lesson-board-select"
+                  value={boardId ?? ""}
+                  onChange={(e) => onSaveBoardId?.(e.target.value || null)}
+                  disabled={!classId}
+                >
+                  <option value="">연결 안 함</option>
+                  {boards.map((b) => (
+                    <option key={b.id} value={b.id}>{b.title}</option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className="lesson-board-add"
+                  onClick={handleAddBoard}
+                  disabled={!classId || makingBoard}
+                >
+                  {makingBoard ? "만드는 중…" : "+ 수업 보드 추가"}
+                </button>
+              </div>
+
+              {!classId && (
+                <p className="lesson-note-empty">
+                  공부방에서 반을 먼저 선택하면 보드를 연결할 수 있어요.
+                </p>
+              )}
+
+              {/* 활동 목록 — 연결한 보드의 활동을 그대로 편집합니다 */}
+              {board && (
+                <>
+                  {boardActs.length > 0 ? (
+                    <ol className="lesson-board-acts">
+                      {boardActs.map((a, i) => (
+                        <li key={`${a}-${i}`}>
+                          <span>{a}</span>
+                          <button
+                            type="button"
+                            className="lesson-board-act-del"
+                            onClick={() => saveBoardActs(boardActs.filter((_, j) => j !== i))}
+                            disabled={actBusy}
+                            aria-label={`${a} 활동 삭제`}
+                          >
+                            ✕
+                          </button>
+                        </li>
+                      ))}
+                    </ol>
+                  ) : (
+                    <p className="lesson-note-empty">
+                      아직 활동이 없어요. 아래에서 추가하면 '{board.title}' 보드에 바로 반영됩니다.
+                    </p>
+                  )}
+
+                  <form className="lesson-board-actadd" onSubmit={handleAddAct}>
+                    <input
+                      type="text"
+                      value={newAct}
+                      onChange={(e) => setNewAct(e.target.value)}
+                      placeholder="예) 실험 결과 정리하기"
+                      maxLength={40}
+                      aria-label="추가할 활동 이름"
+                    />
+                    <button type="submit" disabled={!newAct.trim() || actBusy}>
+                      {actBusy ? "저장 중…" : "+ 활동 추가"}
+                    </button>
+                  </form>
+                </>
+              )}
+
+              {actError && <p className="form-error" role="alert">{actError}</p>}
+            </div>
+          </section>
+        )}
 
         {/* 앞으로 수업 관련 기능(출석·퀴즈 등)은 이 아래에 섹션으로 덧붙이면
             됩니다. 슬라이드 카드와 독립적이라 방송에는 영향 없습니다. */}

@@ -6045,6 +6045,133 @@ pre code {
 .lesson-activity-input:focus {
   border-color: var(--primary);
 }
+
+/* ── 수업 준비: 공부방 연동 ── */
+.lesson-board {
+  margin-top: 40px;
+}
+.lesson-board-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.lesson-board-pick {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.lesson-board-pick label {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.lesson-board-select {
+  flex: 1;
+  min-width: 160px;
+  max-width: 320px;
+  padding: 9px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+}
+.lesson-board-select:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+.lesson-board-add {
+  padding: 9px 14px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--primary-dark, #c15a2a);
+  background: var(--primary-light);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-btn);
+  cursor: pointer;
+}
+.lesson-board-add:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* 활동 목록 — 학생 카드에 그대로 들어갈 항목들 */
+.lesson-board-acts {
+  margin: 0;
+  padding-left: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 15px;
+}
+.lesson-board-acts li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.lesson-board-acts li span {
+  flex: 1;
+  min-width: 0;
+}
+.lesson-board-act-del {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--text-sub);
+  font-size: 14px;
+  cursor: pointer;
+}
+.lesson-board-act-del:hover {
+  background: #fef2f2;
+  color: var(--danger);
+}
+
+.lesson-board-actadd {
+  display: flex;
+  gap: 8px;
+}
+.lesson-board-actadd input {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  outline: none;
+}
+.lesson-board-actadd input:focus {
+  border-color: var(--primary);
+}
+.lesson-board-actadd button {
+  flex-shrink: 0;
+  padding: 9px 14px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--primary);
+  border: none;
+  border-radius: var(--radius-btn);
+  cursor: pointer;
+}
+.lesson-board-actadd button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+@media (max-width: 768px) {
+  .lesson-board-select { max-width: none; }
+  .lesson-board-act-del { width: 34px; height: 34px; }
+}
 /* 슬라이드 · 해설 — 너비도 높이도 같은 카드 두 장 (stretch가 높이를 맞춰 줍니다).
    테두리가 없어 둘 사이 경계가 간격만으로 보이므로 넉넉히 띄웁니다. */
 .lesson-deck {

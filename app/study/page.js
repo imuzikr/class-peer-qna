@@ -781,6 +781,13 @@ export default function StudyPage() {
         <LessonMode
           lesson={editingLesson}
           mode="edit"
+          classId={classId}
+          // 학생이 카드를 쓰는 보드만 연결 대상 — '선생님 보드'(공지용)는 제외
+          boards={classBoards.filter((b) => b.type !== "notice")}
+          onSaveBoardId={async (boardId) => {
+            await updateLesson(editingLesson.id, { boardId });
+            setEditingLesson({ ...editingLesson, boardId });
+          }}
           onSaveNote={async (index, text) => {
             const slides = (editingLesson.slides ?? []).map((s, i) =>
               i === index ? { ...s, note: text } : s
