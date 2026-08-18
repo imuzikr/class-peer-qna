@@ -29,6 +29,7 @@ export default function KeywordSidebar({
   const [dragId, setDragId] = useState(null);
   const [dragOverId, setDragOverId] = useState(null);
   const rootRef = useRef(null);
+  const addInputRef = useRef(null); // 한글 조합 중 글자까지 읽기 위한 입력칸 참조
 
   // 바깥 클릭 시 ⋯ 메뉴 닫기
   useEffect(() => {
@@ -54,7 +55,10 @@ export default function KeywordSidebar({
   }
   async function handleAdd(e) {
     e.preventDefault();
-    const name = newName.trim().replace(/^#\s*/, "");
+    // 한글 마지막 글자는 아직 '조합 중'이라 state에 늦게 들어올 수 있습니다.
+    // 입력칸의 실제 값에는 조합 중 글자까지 있으므로 그쪽을 먼저 읽습니다.
+    const raw = addInputRef.current?.value ?? newName;
+    const name = raw.trim().replace(/^#\s*/, "");
     if (!name) return;
     await addKeyword(name);
     setNewName("");
@@ -170,6 +174,7 @@ export default function KeywordSidebar({
         (adding ? (
           <form className="keyword-item keyword-item--add" onSubmit={handleAdd}>
             <input
+              ref={addInputRef}
               type="text"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
@@ -178,7 +183,9 @@ export default function KeywordSidebar({
               autoFocus
               className="kw-edit-input"
             />
-            <button type="submit" className="kw-edit-save" disabled={!newName.trim()}>추가</button>
+            {/* 조합 중인 한글은 state에 늦게 들어오므로 입력값으로 버튼을
+                잠그지 않습니다(빈 값은 handleAdd가 거릅니다) */}
+            <button type="submit" className="kw-edit-save">추가</button>
           </form>
         ) : (
           <button className="keyword-add-btn" onClick={() => setAdding(true)}>

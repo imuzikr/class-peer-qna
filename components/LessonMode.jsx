@@ -19,7 +19,7 @@
 //
 // 이전 / 다음 / 종료 — 종료하면 방송이 꺼져 학생 화면도 원래대로 돌아갑니다.
 // =============================================================
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   startBroadcast,
   stopBroadcast,
@@ -67,6 +67,7 @@ export default function LessonMode({
   const board = boards.find((b) => b.id === boardId) ?? null;
   const [boardCards, setBoardCards] = useState([]);
   const [newAct, setNewAct] = useState("");
+  const actInputRef = useRef(null); // 한글 조합 중 글자까지 읽기 위한 입력칸 참조
   const [actBusy, setActBusy] = useState(false);
   const [actError, setActError] = useState("");
   const [makingBoard, setMakingBoard] = useState(false);
@@ -116,7 +117,11 @@ export default function LessonMode({
 
   async function handleAddAct(e) {
     e.preventDefault();
-    const name = newAct.trim();
+    // 한글은 마지막 글자가 아직 '조합 중'일 수 있습니다. 조합 중 글자는
+    // React state(newAct)에 늦게 반영돼, 버튼을 누른 시점에는 끝 글자가
+    // 빠진 값이 들어가곤 했습니다("마무리하기" → "마무").
+    // 입력칸의 실제 값에는 조합 중 글자까지 들어 있으므로 그쪽을 씁니다.
+    const name = (actInputRef.current?.value ?? newAct).trim();
     if (!name || !board || actBusy) return;
     await saveBoardActs([...boardActs, name]);
     setNewAct("");
@@ -417,6 +422,7 @@ export default function LessonMode({
 
                   <form className="lesson-board-actadd" onSubmit={handleAddAct}>
                     <input
+                      ref={actInputRef}
                       type="text"
                       value={newAct}
                       onChange={(e) => setNewAct(e.target.value)}
@@ -424,7 +430,9 @@ export default function LessonMode({
                       maxLength={40}
                       aria-label="추가할 활동 이름"
                     />
-                    <button type="submit" disabled={!newAct.trim() || actBusy}>
+                    {/* 조합 중인 한글은 state에 늦게 들어오므로 입력값으로
+                        버튼을 잠그지 않습니다(빈 값은 handleAddAct가 거릅니다) */}
+                    <button type="submit" disabled={actBusy}>
                       {actBusy ? "저장 중…" : "+ 활동 추가"}
                     </button>
                   </form>
