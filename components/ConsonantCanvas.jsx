@@ -1,19 +1,33 @@
 "use client";
 
 // =============================================================
-// 닿소리 채우기 캔버스 — 모둠이 함께 채우는 3×5 격자
+// 닿소리 채우기 캔버스 — 3×5 격자
 // -------------------------------------------------------------
 // 한가운데는 주제어(도서명), 나머지 14칸은 자음입니다.
 // 칸을 누르면 입력창이 열리고, 넣은 단어는 칩으로 쌓입니다.
-// 같은 모둠원이 동시에 입력해도 단어가 문서 1건씩 저장돼 충돌하지 않고,
-// 다른 사람이 넣은 단어도 실시간으로 바로 나타납니다.
+//
+// 같은 판을 두 가지로 씁니다.
+//  · viewMode="mine"  학생의 '내 판' — 내가 넣은 낱말만 보이고 입력합니다.
+//  · viewMode="group" 교사의 '모둠 판' — 모둠원 전체의 낱말을 모아 보여 주고,
+//      누가 넣었는지 색으로 구분합니다(위쪽에 이름·색 범례).
+//
+// 낱말은 예전과 같은 곳(모둠의 words)에 저장됩니다. 문서마다 authorId가
+// 있어서, 걸러 보여 주는 기준만 달라질 뿐 자료 구조는 그대로입니다.
 // =============================================================
 import { useEffect, useMemo, useRef, useState } from "react";
 import { subscribeBookGroups, subscribeGroupWords, addConsonantWord, deleteConsonantWord } from "@/lib/store";
 import { CONSONANT_LABELS, GRID_SLOTS, CELL_COUNT, cellKey } from "@/lib/consonants";
+import { memberColor, memberLegend } from "@/lib/bookColors";
 import { IconLock } from "./StatusIcons";
 
-export default function ConsonantCanvas({ activity, groupId, user, isTeacher, onBack }) {
+export default function ConsonantCanvas({
+  activity,
+  groupId,
+  user,
+  isTeacher,
+  viewMode = "group",
+  onBack,
+}) {
   const [words, setWords] = useState([]);
   const [groups, setGroups] = useState([]);
   const [activeIndex, setActiveIndex] = useState(null); // 입력창이 열린 자음 칸
@@ -25,20 +39,33 @@ export default function ConsonantCanvas({ activity, groupId, user, isTeacher, on
 
   const group = groups.find((g) => g.id === groupId);
   const isMember = (group?.memberUids ?? []).includes(user?.uid);
+  const mineOnly = viewMode === "mine";
   // 교사는 확인만 하고, 입력은 그 모둠 학생이 합니다. 잠긴 활동도 입력 불가.
-  const canWrite = isMember && !activity.locked;
+  const canWrite = mineOnly && isMember && !activity.locked;
+
+  // '내 판'은 내가 넣은 낱말만 담습니다.
+  const shown = useMemo(
+    () => (mineOnly ? words.filter((w) => w.authorId === user?.uid) : words),
+    [words, mineOnly, user?.uid]
+  );
+
+  // 모둠 판 범례 — 누가 어떤 색인지
+  const legend = useMemo(
+    () => (mineOnly ? [] : memberLegend(group)),
+    [mineOnly, group]
+  );
 
   // 자음 칸별로 단어를 모아 둡니다 (오래된 순)
   const byCell = useMemo(() => {
     const map = {};
-    words.forEach((w) => {
+    shown.forEach((w) => {
       (map[w.cellKey] ??= []).push(w);
     });
     Object.values(map).forEach((list) =>
       list.sort((a, b) => (a.createdAt?.seconds ?? 0) - (b.createdAt?.seconds ?? 0))
     );
     return map;
-  }, [words]);
+  }, [shown]);
 
   const filled = useMemo(
     () => Array.from({ length: CELL_COUNT }, (_, i) => (byCell[cellKey(i)] ?? []).length > 0)
@@ -67,10 +94,17 @@ export default function ConsonantCanvas({ activity, groupId, user, isTeacher, on
   return (
     <main className="canvas-main">
       <div className="canvas-head">
-        <button type="button" className="btn-ghost" onClick={onBack}>← 모둠</button>
+        <button type="button" className="btn-ghost" onClick={onBack}>
+          {mineOnly ? "← 활동 목록" : "← 모둠"}
+        </button>
         <div className="canvas-head-title">
-          <strong>{group?.groupName || "모둠"}</strong>
-          <span>{activity.title}</span>
+          <strong>
+            {mineOnly ? "내 판" : group?.groupName || "모둠"}
+          </strong>
+          <span>
+            {activity.title}
+            {mineOnly && group && ` · ${group.groupName || "모둠"}`}
+          </span>
         </div>
         <div className="canvas-progress">
           <div className="canvas-progress-bar">
@@ -84,11 +118,28 @@ export default function ConsonantCanvas({ activity, groupId, user, isTeacher, on
         <p className="book-locked-note">
           <IconLock size={15} /> 잠긴 활동이라 새 단어를 넣을 수 없어요.
         </p>
-      ) : !isMember ? (
+      ) : !mineOnly ? (
         <p className="book-locked-note">
-          {isTeacher ? "선생님은 내용만 확인할 수 있어요." : "이 모둠의 구성원만 단어를 넣을 수 있어요."}
+          모둠원이 각자 넣은 낱말을 모아 봅니다. 색으로 누가 넣었는지 알 수 있어요.
         </p>
+      ) : !isMember ? (
+        <p className="book-locked-note">이 모둠의 구성원만 단어를 넣을 수 있어요.</p>
       ) : null}
+
+      {/* 모둠 판 범례 — 이름과 색을 짝지어 보여 줍니다 */}
+      {!mineOnly && legend.length > 0 && (
+        <div className="canvas-legend">
+          {legend.map((m) => (
+            <span key={m.uid} className="canvas-legend-item">
+              <i
+                className="canvas-legend-swatch"
+                style={{ background: m.color.bg, borderColor: m.color.border }}
+              />
+              {m.name}
+            </span>
+          ))}
+        </div>
+      )}
 
       <div className="consonant-grid">
         {GRID_SLOTS.map((slot, pos) => {
@@ -125,10 +176,16 @@ export default function ConsonantCanvas({ activity, groupId, user, isTeacher, on
               </div>
 
               <div className="consonant-words">
-                {list.map((w) => (
-                  // 판을 보는 사람이 모두 같은 모둠이라 모둠 이름은 뻔한 정보입니다.
-                  // 대신 누가 넣은 낱말인지 보여 줍니다(교사 집계 화면은 모둠 이름).
-                  <span key={w.id} className="consonant-chip" title={w.authorName || ""}>
+                {list.map((w) => {
+                  // 모둠 판에서는 낱말 색으로 누가 넣었는지 구분합니다.
+                  const c = mineOnly ? null : memberColor(group, w.authorId);
+                  return (
+                  <span
+                    key={w.id}
+                    className={`consonant-chip${c ? " tinted" : ""}`}
+                    title={w.authorName || ""}
+                    style={c ? { background: c.bg, borderColor: c.border, color: c.text } : undefined}
+                  >
                     {w.text}
                     {(w.authorId === user?.uid || isTeacher) && !activity.locked && (
                       <button
@@ -144,7 +201,8 @@ export default function ConsonantCanvas({ activity, groupId, user, isTeacher, on
                       </button>
                     )}
                   </span>
-                ))}
+                  );
+                })}
               </div>
 
               {open && (

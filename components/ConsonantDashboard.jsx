@@ -28,7 +28,9 @@ function heatLevel(n) {
 // 모둠 색 — 순번대로 돌려 씁니다
 const GROUP_COLORS = ["#E07A5F", "#3D8A72", "#5B7DB1", "#C1873B", "#8B6BB1", "#B5566E"];
 
-export default function ConsonantDashboard({ activity, onClose }) {
+// embedded=true — 교사 화면(모둠 카드 아래)에 끼워 넣는 형태.
+// 별도 화면이 아니므로 '← 모둠' 버튼과 <main> 태그를 쓰지 않습니다.
+export default function ConsonantDashboard({ activity, onClose, embedded = false }) {
   const [groups, setGroups] = useState([]);
   const [wordsByGroup, setWordsByGroup] = useState({});
   const [zoom, setZoom] = useState(false);      // 전체화면(칠판) 모드
@@ -134,14 +136,18 @@ export default function ConsonantDashboard({ activity, onClose }) {
     return () => document.removeEventListener("fullscreenchange", onChange);
   }, []);
 
+  const Root = embedded ? "section" : "main";
   return (
-    <main className={`canvas-main dash-root${zoom ? " zoom" : ""}`} ref={rootRef}>
+    <Root
+      className={`${embedded ? "dash-embed" : "canvas-main"} dash-root${zoom ? " zoom" : ""}`}
+      ref={rootRef}
+    >
       <div className="canvas-head">
-        {!zoom && (
+        {!zoom && !embedded && (
           <button type="button" className="btn-ghost" onClick={onClose}>← 모둠</button>
         )}
         <div className="canvas-head-title">
-          <strong>{activity.topic}</strong>
+          <strong>{embedded ? "집계 보기" : activity.topic}</strong>
           <span>
             모둠 {groups.length}개 · {totalFilled} / {CELL_COUNT}칸 · 낱말 {totalWords}개
           </span>
@@ -250,7 +256,7 @@ export default function ConsonantDashboard({ activity, onClose }) {
           </div>
         </div>
       )}
-    </main>
+    </Root>
   );
 }
 

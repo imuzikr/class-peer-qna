@@ -17,6 +17,7 @@ import {
   leaveBookGroup,
 } from "@/lib/store";
 import GroupComposer from "./GroupComposer";
+import ConsonantDashboard from "./ConsonantDashboard";
 import { IconPeople, IconLock } from "./StatusIcons";
 
 export default function BookGroupBoard({
@@ -82,15 +83,10 @@ export default function BookGroupBoard({
             {className && <span className="book-group-class">{className}</span>}
           </h1>
         </div>
-        {isTeacher && (
+        {isTeacher && !freeMode && (
           <div className="book-head-actions">
-            {!freeMode && (
-              <button className="btn-ghost" onClick={() => setComposing(true)}>
-                <IconPeople size={15} /> 모둠 구성
-              </button>
-            )}
-            <button className="btn-primary" onClick={onOpenDashboard}>
-              집계 보기
+            <button className="btn-ghost" onClick={() => setComposing(true)}>
+              <IconPeople size={15} /> 모둠 구성
             </button>
           </div>
         )}
@@ -182,6 +178,13 @@ export default function BookGroupBoard({
             })}
           </div>
         </>
+      )}
+
+      {/* 집계 — 예전에는 '집계 보기'로 화면을 옮겼지만, 교사는 모둠 카드와
+          집계를 함께 봐야 어느 모둠이 막혔는지 바로 알 수 있어서 같은
+          화면 아래에 붙였습니다. */}
+      {isTeacher && groups.length > 0 && (
+        <ConsonantDashboard activity={activity} embedded />
       )}
 
       {composing && (

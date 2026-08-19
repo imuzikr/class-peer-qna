@@ -3,14 +3,16 @@
 // =============================================================
 // 책방 — 책을 읽고 함께하는 활동 공간 (반별)
 // -------------------------------------------------------------
-// 화면 흐름
-//   활동 목록 → 모둠 대시보드 → 모둠 판(학생) / 집계 대시보드(교사)
+// 화면 흐름 — 교사와 학생이 다릅니다.
+//   교사  활동 목록 → 모둠 카드 + 집계(한 화면) → 모둠 판(모둠원 낱말 모아 보기)
+//   학생  활동 목록 → 내 판(내가 넣은 낱말만 · 입력)
 //
-// · 활동 목록: 교사가 '닿소리 채우기' 활동을 만듭니다.
-// · 모둠 대시보드: 전체 모둠 카드가 보이고, 자기 모둠으로 들어갑니다.
-//     교사는 여기서 모둠을 구성하고 집계 화면으로 넘어갑니다.
-// · 모둠 판: 3×5 격자에 자음별 단어를 채우는 협동 캔버스.
-// · 집계 대시보드: 모든 모둠의 단어를 한 격자에 모아 실시간으로 봅니다.
+// · 활동 목록: 교사가 '닿소리 채우기' 독서 활동을 만듭니다.
+// · 교사 화면: 모둠 카드를 누르면 그 모둠의 판이 열리고, 모둠원이 넣은
+//     낱말이 사람마다 다른 색으로 표시됩니다. 카드 아래에는 집계가 붙어
+//     있어 어느 모둠이 막혔는지 화면을 옮기지 않고 볼 수 있습니다.
+// · 학생 화면: 활동을 누르면 곧바로 자기 판으로 들어가 낱말을 넣습니다.
+//     (아직 모둠이 없으면 모둠 목록을 보여 줘 고르거나 기다리게 합니다)
 // =============================================================
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -36,7 +38,6 @@ import ConfirmModal from "@/components/ConfirmModal";
 import BookActivityForm from "@/components/BookActivityForm";
 import BookGroupBoard from "@/components/BookGroupBoard";
 import ConsonantCanvas from "@/components/ConsonantCanvas";
-import ConsonantDashboard from "@/components/ConsonantDashboard";
 import { IconBook, IconTrash } from "@/components/StatusIcons";
 
 export default function BooksPage() {
@@ -55,7 +56,7 @@ export default function BooksPage() {
   const [activities, setActivities] = useState([]);
   const [openActivity, setOpenActivity] = useState(null); // 모둠 대시보드로 연 활동
   const [openGroupId, setOpenGroupId] = useState(null);   // 캔버스로 연 모둠
-  const [dashboardOpen, setDashboardOpen] = useState(false); // 교사 집계 화면
+  const [openGroups, setOpenGroups] = useState([]);       // 연 활동의 모둠 목록
   const [creating, setCreating] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [toast, setToast] = useState("");
@@ -134,6 +135,21 @@ export default function BooksPage() {
     ? activities.find((a) => a.id === openActivity.id) ?? openActivity
     : null;
 
+  // 연 활동의 모둠 — 학생이 '내 판'으로 바로 들어가려면 내 모둠을 알아야 합니다.
+  useEffect(() => {
+    if (!activeActivity) { setOpenGroups([]); return; }
+    return subscribeBookGroups(activeActivity.id, setOpenGroups);
+  }, [activeActivity?.id]);
+
+  const myGroupId = useMemo(
+    () => openGroups.find((g) => (g.memberUids ?? []).includes(user?.uid))?.id ?? null,
+    [openGroups, user?.uid]
+  );
+
+  // 학생은 활동을 열면 자기 판으로 바로 갑니다. 아직 모둠이 없으면(자유 구성
+  // 이거나 교사가 아직 배정 전이면) 모둠 목록을 보여 줘 고르거나 기다리게 합니다.
+  const studentCanvasGroupId = !admin && activeActivity ? myGroupId : null;
+
   async function handleCreate(form) {
     await addBookActivity(user, { classId, ...form });
     setCreating(false);
@@ -162,19 +178,25 @@ export default function BooksPage() {
     <div className="board-shell">
       <TopNav active="books" />
 
-      {/* 집계 대시보드(교사) — 전체 화면을 차지합니다 */}
-      {dashboardOpen && activeActivity ? (
-        <ConsonantDashboard
-          activity={activeActivity}
-          onClose={() => setDashboardOpen(false)}
-        />
-      ) : openGroupId && activeActivity ? (
+      {/* 교사: 모둠 카드를 눌러 그 모둠의 판(모둠원 낱말을 색으로 구분)으로 */}
+      {admin && openGroupId && activeActivity ? (
         <ConsonantCanvas
           activity={activeActivity}
           groupId={openGroupId}
           user={user}
-          isTeacher={admin}
+          isTeacher
+          viewMode="group"
           onBack={() => setOpenGroupId(null)}
+        />
+      ) : /* 학생: 활동을 열면 자기 판으로 바로 */
+      studentCanvasGroupId && activeActivity ? (
+        <ConsonantCanvas
+          activity={activeActivity}
+          groupId={studentCanvasGroupId}
+          user={user}
+          isTeacher={false}
+          viewMode="mine"
+          onBack={() => setOpenActivity(null)}
         />
       ) : activeActivity ? (
         <BookGroupBoard
@@ -186,7 +208,6 @@ export default function BooksPage() {
           isTeacher={admin}
           roster={roster}
           onOpenGroup={(gid) => setOpenGroupId(gid)}
-          onOpenDashboard={() => setDashboardOpen(true)}
           onBack={() => setOpenActivity(null)}
           onToast={setToast}
         />
@@ -232,7 +253,7 @@ export default function BooksPage() {
             </div>
             {admin && classId && (
               <button className="btn-primary" onClick={() => setCreating(true)}>
-                ＋ 활동 만들기
+                ＋ 독서 활동 만들기
               </button>
             )}
           </div>
@@ -248,7 +269,7 @@ export default function BooksPage() {
           ) : activities.length === 0 ? (
             <p className="empty-note">
               {admin
-                ? `‘${currentClass?.name ?? "이 반"}’에는 아직 활동이 없어요. ‘활동 만들기’로 첫 활동을 열어 보세요.`
+                ? `‘${currentClass?.name ?? "이 반"}’에는 아직 활동이 없어요. ‘독서 활동 만들기’로 첫 활동을 열어 보세요.`
                 : `‘${currentClass?.name ?? "우리 반"}’에는 아직 열린 활동이 없어요. 선생님이 활동을 열면 여기에 나타납니다.`}
             </p>
           ) : (

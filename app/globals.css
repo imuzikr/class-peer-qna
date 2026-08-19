@@ -11113,6 +11113,51 @@ pre code {
   padding: 2px 8px;
   max-width: 100%;
 }
+/* 모둠 판 — 넣은 사람 색이 인라인 style로 들어옵니다(테두리도 함께 보이게) */
+.consonant-chip.tinted {
+  border-style: solid;
+}
+
+/* ── 모둠 판 범례 — 누가 어떤 색인지 ── */
+.canvas-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin-bottom: 10px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.canvas-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.canvas-legend-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  border: 1px solid;
+  flex-shrink: 0;
+}
+
+/* ── 교사 화면에 끼워 넣은 집계 ── 별도 화면이 아니므로 위쪽만 띄웁니다 */
+.dash-embed {
+  margin-top: 28px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+/* 전체 화면(칠판) 모드에서는 끼워 넣은 상태라도 화면을 가득 씁니다 */
+.dash-embed.zoom {
+  margin-top: 0;
+  padding: 18px 24px 22px;
+  border-top: none;
+  background: var(--bg);
+}
+
 .consonant-chip-x {
   border: none;
   background: none;
