@@ -607,10 +607,10 @@ export default function StudyBoardColumn({
                 </button>
               </label>
 
-              {/* 활동 — 만들어 둔 활동을 하나씩 열고 잠급니다.
+              {/* 활동 상태 — 만들어 둔 활동을 하나씩 열고 잠급니다.
                   (수업 화면의 '활동 열기' 줄과 같은 값을 보고 씁니다) */}
               <div className="study-setting-row study-setting-row--acts">
-                <span>활동</span>
+                <span>활동 상태</span>
                 <div className="study-act-chips">
                   {(board.activities ?? []).map((a, i) => {
                     const actLocked = isActivityLocked(board, i);
@@ -623,7 +623,6 @@ export default function StudyBoardColumn({
                         title={`${a} — ${actLocked ? "눌러서 열기" : "눌러서 잠그기"}`}
                         aria-pressed={!actLocked}
                       >
-                        {actLocked ? <IconLock size={12} /> : <IconPen size={12} />}
                         활동 {i + 1}
                       </button>
                     );
@@ -633,8 +632,9 @@ export default function StudyBoardColumn({
                     className="study-act-chip study-act-chip--add"
                     onClick={openActivitiesModal}
                     title="학생 카드에 제시할 활동을 추가·수정합니다"
+                    aria-label="활동 추가"
                   >
-                    + 활동 추가
+                    +
                   </button>
                 </div>
               </div>

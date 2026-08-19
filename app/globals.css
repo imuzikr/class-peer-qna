@@ -8307,14 +8307,14 @@ pre code {
 .study-act-chips {
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 5px;
   min-width: 0;
 }
+/* 아이콘 없이 배경색만으로 열림/잠김을 구분합니다 */
 .study-act-chip {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
   padding: 5px 10px;
   border-radius: 999px;
   font-family: inherit;
@@ -8333,14 +8333,23 @@ pre code {
   border-color: var(--border);
   color: var(--text-sub);
 }
+/* 활동 추가 — 둥근 모서리를 가진 정사각형, 가운데에 + 기호만 */
 .study-act-chip--add {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  line-height: 1;
   background: #fff;
-  border-style: dashed;
-  border-color: var(--border);
+  border: 1px dashed var(--border);
   color: var(--text-sub);
 }
 .study-act-chip--add:hover {
   border-color: var(--primary);
+  border-style: solid;
   color: var(--primary-dark, #c15a2a);
 }
 
