@@ -20,7 +20,7 @@ import {
   joinBookGroup,
   leaveBookGroup,
 } from "@/lib/store";
-import { CELL_COUNT, CONSONANT_LABELS, groupColorOf, heatOpacity, cellKey } from "@/lib/consonants";
+import { CELL_COUNT, CONSONANT_LABELS, heatOpacity, cellKey } from "@/lib/consonants";
 import { memberLegend } from "@/lib/bookColors";
 import GroupComposer from "./GroupComposer";
 import ConsonantCanvas from "./ConsonantCanvas";
@@ -272,9 +272,9 @@ export default function BookGroupBoard({
   );
 }
 
-// 오른쪽 패널 — 고른 모둠이 어디까지 했는지.
-// 전체 집계 화면의 '모둠별 진행' 한 줄(점·막대·칸별 히트맵)과 같은 생김새로
-// 보여 줍니다 — 교사가 두 화면을 오가도 같은 방식으로 읽을 수 있게.
+// 오른쪽 패널 — 모둠 전체가 아니라 '학생 개인'이 어디까지 했는지.
+// 전체 집계 화면의 히트맵과 같은 생김새로, 모둠원 한 명당 한 줄(이름 + 칸별 히트맵)씩
+// 보여 줍니다 — 누가 아직 못 채웠는지 한눈에 비교할 수 있게.
 function GroupProgress({ activity, group }) {
   const [words, setWords] = useState([]);
   useEffect(
@@ -282,62 +282,49 @@ function GroupProgress({ activity, group }) {
     [activity.id, group.id]
   );
 
-  // 칸별 낱말 수 — 히트맵 진하기에 씁니다(자음 14칸 순서 그대로)
-  const cellCounts = useMemo(
-    () => Array.from({ length: CELL_COUNT }, (_, i) => words.filter((w) => w.cellKey === cellKey(i)).length),
-    [words]
-  );
-  const filled = cellCounts.filter((n) => n > 0).length;
-  const color = groupColorOf(group.groupIndex);
-
   const legend = memberLegend(group);
-  // 모둠원별 낱말 수 — 누가 아직 못 넣고 있는지 바로 보입니다
-  const countByUid = words.reduce((acc, w) => {
-    acc[w.authorId] = (acc[w.authorId] ?? 0) + 1;
-    return acc;
-  }, {});
+
+  // 학생별 칸 채움 현황 — 자음 14칸 순서 그대로(그 학생이 그 칸에 넣은 낱말 수)
+  const rows = useMemo(
+    () =>
+      legend.map((m) => {
+        const mine = words.filter((w) => w.authorId === m.uid);
+        const cellCounts = Array.from(
+          { length: CELL_COUNT },
+          (_, i) => mine.filter((w) => w.cellKey === cellKey(i)).length
+        );
+        return { ...m, cellCounts, filled: cellCounts.filter((n) => n > 0).length, total: mine.length };
+      }),
+    [legend, words]
+  );
 
   return (
     <aside className="dash-side book-group-progress">
-      <h3>모둠 진행</h3>
-      <ul className="dash-progress-list">
-        <li>
-          <span className="dash-progress-name">
-            <i className="dash-dot" style={{ background: color }} />
-            {group.groupName || `${group.groupIndex}모둠`}
-          </span>
-          <span className="dash-progress-num">
-            {filled}/{CELL_COUNT}칸
-            <span className="dash-progress-words"> · 낱말 {words.length}개</span>
-          </span>
-          <span className="dash-progress-bar">
-            <b style={{ width: `${(filled / CELL_COUNT) * 100}%`, background: color }} />
-          </span>
-          <span className="dash-heat">
-            {cellCounts.map((n, i) => (
-              <i
-                key={i}
-                className="dash-heat-cell"
-                style={n > 0 ? { background: color, opacity: heatOpacity(n) } : undefined}
-                title={`${CONSONANT_LABELS[i]} · 낱말 ${n}개`}
-              />
-            ))}
-          </span>
-        </li>
-      </ul>
-
-      {legend.length === 0 ? (
+      <h3>모둠원별 진행</h3>
+      {rows.length === 0 ? (
         <p className="dash-side-empty">아직 모둠원이 없어요.</p>
       ) : (
-        <ul className="book-member-stats">
-          {legend.map((m) => (
+        <ul className="dash-progress-list">
+          {rows.map((m) => (
             <li key={m.uid}>
-              <i
-                className="canvas-legend-swatch"
-                style={{ background: m.color.bg, borderColor: m.color.border }}
-              />
-              <span className="book-member-name">{m.name}</span>
-              <span className="book-member-count">{countByUid[m.uid] ?? 0}개</span>
+              <span className="dash-progress-name">
+                <i className="dash-dot" style={{ background: m.color.border }} />
+                {m.name}
+              </span>
+              <span className="dash-progress-num">
+                {m.filled}/{CELL_COUNT}칸
+                <span className="dash-progress-words"> · 낱말 {m.total}개</span>
+              </span>
+              <span className="dash-heat">
+                {m.cellCounts.map((n, i) => (
+                  <i
+                    key={i}
+                    className="dash-heat-cell"
+                    style={n > 0 ? { background: m.color.border, opacity: heatOpacity(n) } : undefined}
+                    title={`${CONSONANT_LABELS[i]} · 낱말 ${n}개`}
+                  />
+                ))}
+              </span>
             </li>
           ))}
         </ul>
