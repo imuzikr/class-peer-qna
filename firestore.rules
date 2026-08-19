@@ -451,6 +451,23 @@ service cloud.firestore {
           );
         }
       }
+
+      // ── 곁텍스트 읽기 — 개인 활동 기록 ──
+      // 문서 ID를 학생 uid로 고정해 '한 사람이 여러 장을 만드는 일'을 막습니다.
+      // 모둠 활동과 달리 제출물이라, 남의 답은 같은 반이어도 보이지 않습니다
+      // (본인과 담당 교사만). 학생 답에는 실명이 들어가므로 더 좁게 잠급니다.
+      match /entries/{sId} {
+        allow read: if signedIn() && (
+          isAdmin() || ownsBookActivity(aId) || sId == uid()
+        );
+        allow create, update: if signedIn()
+                      && sId == uid()
+                      && request.resource.data.authorId == uid()
+                      && isBookActivityMember(aId)
+                      && !isBookActivityLocked(aId);
+        // 지우기는 담당 교사만 — 학생이 실수로 제출물을 통째로 날리지 못하게
+        allow delete: if isAdmin() || ownsBookActivityEditable(aId);
+      }
     }
 
     // ── KWL — 개인 성찰. 본인 + 반 소유 교사/관리자만. ──

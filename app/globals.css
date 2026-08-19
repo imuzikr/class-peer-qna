@@ -10889,6 +10889,33 @@ pre code {
   color: var(--primary-dark);
 }
 .book-field--narrow { flex: 0 0 108px; }
+.book-help { font-size: 11.5px; color: var(--text-sub); font-style: normal; line-height: 1.5; }
+/* 활동 종류 고르기 — 설명이 함께 붙어 세로로 쌓는 넓은 버튼 */
+.book-type-seg { display: flex; gap: 8px; }
+.book-type-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: left;
+  padding: 10px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-btn);
+  background: #fff;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.book-type-btn:hover { border-color: var(--primary); }
+.book-type-btn.active { border-color: var(--primary); background: var(--primary-light); }
+.book-type-btn strong { font-size: 13.5px; font-weight: 800; color: var(--text); }
+.book-type-btn.active strong { color: var(--primary-dark); }
+.book-type-btn em {
+  font-size: 11.5px;
+  font-style: normal;
+  color: var(--text-sub);
+  line-height: 1.45;
+}
 
 /* ── 모둠 대시보드 ── */
 .book-group-title {
@@ -11497,6 +11524,11 @@ pre code {
   .canvas-progress-bar { width: 90px; }
   .dash-body { flex-direction: column; }
   .dash-side { width: auto; }
+  /* 곁텍스트 — 좁은 화면에서는 카드를 한 줄에 하나씩 */
+  .paratext-grid { grid-template-columns: 1fr; }
+  .paratext-card-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  .book-type-seg { flex-direction: column; }
+  .paratext-modal-body { max-height: 62vh; }
 }
 
 /* 활동 만들기 — 모둠 이름 일괄 입력 */
@@ -11529,3 +11561,267 @@ pre code {
   padding: 6px 12px;
   line-height: 1;
 }
+
+/* =============================================================
+   곁텍스트 읽기 — 개인 활동 (학생 입력 화면 · 교사 학생별 카드)
+   ============================================================= */
+/* 교사가 넣어 둔 도서 정보 사이트로 가는 버튼 — 머리말의 다른 배지와 같은 크기 */
+.book-info-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+  line-height: 1;
+  text-decoration: none;
+}
+
+/* ── 학생 입력 화면 ── */
+.paratext-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.paratext-progress {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--primary-dark);
+  background: var(--primary-light);
+  border-radius: var(--radius-btn);
+  padding: 6px 12px;
+  line-height: 1;
+}
+/* 자동 저장 상태 — 조용히 알려 주기만 하므로 눈에 덜 띄게 */
+.paratext-saved {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.paratext-saved.locked { color: var(--danger); }
+
+/* 일곱 항목을 카드로 — 넓은 화면에서는 두 줄로 접힙니다 */
+.paratext-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  gap: 14px;
+  margin-top: 14px;
+}
+.paratext-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 15px 16px 17px;
+  background: var(--card-bg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  transition: border-color 0.15s;
+}
+/* 다 쓴 항목은 테두리로만 표시 — 글을 읽는 데 방해가 되지 않게 */
+.paratext-card.done { border-color: #8cc79f; }
+.paratext-card-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+/* 앞 글자(C·A·T…) — 활동 이름의 근거라 눈에 띄게 둡니다 */
+.paratext-letter {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1;
+}
+.paratext-card.done .paratext-letter { background: #3d8a72; }
+.paratext-card-title {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+.paratext-card-title strong { font-size: 14.5px; font-weight: 800; color: var(--text); }
+.paratext-card-title em {
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 700;
+  color: var(--text-sub);
+  letter-spacing: 0.02em;
+}
+.paratext-step {
+  flex-shrink: 0;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--text-sub);
+}
+.paratext-prompt {
+  font-size: 12.5px;
+  color: var(--text-sub);
+  line-height: 1.6;
+}
+.paratext-hint {
+  display: block;
+  margin-top: 3px;
+  font-size: 11.5px;
+  font-style: normal;
+  color: var(--primary-dark);
+}
+.paratext-fields { display: flex; flex-direction: column; gap: 9px; }
+.paratext-field { display: flex; flex-direction: column; gap: 4px; }
+.paratext-field > span {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+}
+.paratext-field textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--text);
+  background: #fff;
+  resize: vertical;
+}
+.paratext-field textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+.paratext-field textarea:disabled { background: var(--bg-deep); color: var(--text-sub); }
+
+/* ── 교사 화면 — 학생별 카드 ── */
+.paratext-sum {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+  flex-shrink: 0;
+}
+.paratext-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(215px, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+.paratext-student-card {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  text-align: left;
+  padding: 13px 15px 14px;
+  background: var(--card-bg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.paratext-student-card:hover { border-color: var(--primary); }
+.paratext-student-card.done { border-color: #8cc79f; }
+/* 아직 시작조차 안 한 학생 — 교사가 먼저 찾아봐야 할 카드라 흐리게 두지 않고
+   배경으로 구분만 합니다(흐리면 오히려 놓치기 쉬움) */
+.paratext-student-card.none { background: var(--bg-deep); }
+.paratext-student-head {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  min-width: 0;
+}
+.paratext-student-head strong {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.paratext-student-no {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+  flex-shrink: 0;
+}
+/* 항목별 진행 네모 일곱 개 — 공부방 전광판의 네모와 같은 읽는 방식 */
+.paratext-marks {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+.paratext-mark {
+  display: block;
+  height: 15px;
+  border-radius: 4px;
+  background: var(--neutral);
+}
+.paratext-mark.doing { background: #f3c99a; }
+.paratext-mark.done { background: #8cc79f; }
+.paratext-student-meta {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+
+/* ── 교사 화면 — 학생 답 모달 ── */
+/* 학생 이름은 위에 고정해 두고 답만 안쪽에서 굴립니다 — 여러 학생을
+   이어서 볼 때 지금 누구 것을 보는지 놓치지 않게. */
+.paratext-modal {
+  max-width: min(94vw, 720px);
+  overflow: hidden;
+}
+.paratext-modal .modal-head h3 {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+}
+.paratext-modal-sum {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--primary-dark);
+  background: var(--primary-light);
+  border-radius: 999px;
+  padding: 3px 9px;
+}
+.paratext-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  /* 모달 자체가 85vh까지라, 머리말·안쪽 여백을 뺀 만큼만 씁니다 */
+  max-height: calc(85vh - 120px);
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.paratext-read {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--border);
+}
+.paratext-read:last-child { border-bottom: none; padding-bottom: 0; }
+.paratext-read-field { display: flex; flex-direction: column; gap: 3px; }
+.paratext-read-label {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--text-sub);
+}
+.paratext-read-text {
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--text);
+  /* 학생이 줄바꿈으로 나눠 쓴 글을 쓴 대로 보여 줍니다 */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.paratext-read-text.empty { color: var(--text-sub); font-style: italic; }

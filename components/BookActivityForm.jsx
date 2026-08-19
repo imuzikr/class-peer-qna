@@ -1,17 +1,24 @@
 "use client";
 
 // =============================================================
-// 책방 활동 만들기 (교사 전용)
+// 독서 활동 만들기 (교사 전용)
 // -------------------------------------------------------------
-// 주제어(격자 한가운데 들어갈 학습주제 또는 도서명)와 모둠 구성을 정합니다.
-// 한 화면에 다 들어오도록 선택지는 모두 가로 버튼으로 두었습니다.
-//  · 교사 배정 / 무작위 → 만든 뒤 모둠 대시보드에서 명단을 짭니다.
-//  · 자유 구성 → 학생이 대시보드에서 직접 골라 들어갑니다.
-// 모둠 이름을 쉼표로 적으면 그 이름으로 한 번에 만들어집니다.
+// 활동 종류를 먼저 고르면 그에 필요한 항목만 남습니다.
+//  · 닿소리 채우기 — 모둠 협동. 주제어와 모둠 구성을 정합니다.
+//      교사 배정/무작위 → 만든 뒤 모둠 대시보드에서 명단을 짜고,
+//      자유 구성 → 학생이 직접 골라 들어갑니다.
+//      모둠 이름을 쉼표로 적으면 그 이름으로 한 번에 만들어집니다.
+//  · 곁텍스트 읽기 — 개인 활동. 모둠이 없어 모둠 설정은 감추고,
+//      대신 학생이 눌러볼 도서 정보 사이트 주소를 받습니다.
 // =============================================================
 import { backdropClose } from "@/lib/modal";
 import { useState } from "react";
+import { safeBookUrl } from "@/lib/paratext";
 
+const TYPES = [
+  { key: "consonant", label: "닿소리 채우기", desc: "모둠이 함께 자음 칸을 낱말로 채웁니다", defaultTitle: "닿소리 채우기" },
+  { key: "paratext", label: "곁텍스트 읽기", desc: "표지·제목·목차를 보고 혼자 내용을 짐작합니다", defaultTitle: "곁텍스트 읽기" },
+];
 const MODES = [
   { key: "teacher", label: "교사 배정" },
   { key: "random", label: "무작위" },
@@ -25,8 +32,10 @@ function parseNames(raw) {
 }
 
 export default function BookActivityForm({ onSave, onClose }) {
+  const [type, setType] = useState("consonant");
   const [title, setTitle] = useState("닿소리 채우기");
   const [topic, setTopic] = useState("");
+  const [bookUrl, setBookUrl] = useState("");
   const [groupMode, setGroupMode] = useState("teacher");
   const [groupCount, setGroupCount] = useState(4);
   const [maxPerGroup, setMaxPerGroup] = useState(6);
@@ -35,13 +44,25 @@ export default function BookActivityForm({ onSave, onClose }) {
   const [saving, setSaving] = useState(false);
 
   const names = parseNames(namesRaw);
+  const isParatext = type === "paratext";
+  // 주소를 적었는데 열 수 없는 형태면 만들기 전에 알려 줍니다.
+  const urlBad = bookUrl.trim().length > 0 && !safeBookUrl(bookUrl);
+
+  // 종류를 바꾸면 활동 이름도 따라갑니다 — 단, 교사가 직접 고친 이름은 지키기
+  function pickType(next) {
+    setType(next);
+    const from = TYPES.find((t) => t.key === type);
+    if (title.trim() === "" || title === from?.defaultTitle) {
+      setTitle(TYPES.find((t) => t.key === next)?.defaultTitle ?? title);
+    }
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!topic.trim() || saving) return;
+    if (!topic.trim() || saving || urlBad) return;
 
     // 이름을 적었는데 모둠 수와 개수가 다르면 만들지 않고 알려 줍니다.
-    if (names.length > 0 && names.length !== groupCount) {
+    if (!isParatext && names.length > 0 && names.length !== groupCount) {
       setWarning(
         `모둠은 ${groupCount}개인데 이름은 ${names.length}개를 적으셨어요.\n` +
           `개수를 맞추거나, 이름을 비우면 '1모둠·2모둠…'으로 자동으로 붙습니다.`
@@ -51,7 +72,16 @@ export default function BookActivityForm({ onSave, onClose }) {
 
     setSaving(true);
     try {
-      await onSave({ title, topic, groupMode, groupCount, maxPerGroup, groupNames: names });
+      await onSave({
+        type,
+        title,
+        topic,
+        bookUrl: isParatext ? bookUrl.trim() : "",
+        groupMode,
+        groupCount,
+        maxPerGroup,
+        groupNames: names,
+      });
     } finally {
       setSaving(false);
     }
@@ -61,8 +91,26 @@ export default function BookActivityForm({ onSave, onClose }) {
     <div className="modal-backdrop" {...backdropClose(onClose)}>
       <form className="modal book-form" onClick={(e) => e.stopPropagation()} onSubmit={handleSubmit}>
         <div className="modal-head">
-          <h3>활동 만들기</h3>
+          <h3>독서 활동 만들기</h3>
           <button type="button" className="btn-close" onClick={onClose} aria-label="닫기">×</button>
+        </div>
+
+        <div className="book-field">
+          <span>활동 종류</span>
+          <div className="book-type-seg">
+            {TYPES.map((t) => (
+              <button
+                key={t.key}
+                type="button"
+                className={`book-type-btn${type === t.key ? " active" : ""}`}
+                onClick={() => pickType(t.key)}
+                aria-pressed={type === t.key}
+              >
+                <strong>{t.label}</strong>
+                <em>{t.desc}</em>
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="book-field-row">
@@ -88,71 +136,105 @@ export default function BookActivityForm({ onSave, onClose }) {
           </label>
         </div>
 
-        <div className="book-field">
-          <span>모둠 구성 방식</span>
-          <div className="book-seg">
-            {MODES.map((m) => (
-              <button
-                key={m.key}
-                type="button"
-                className={`book-seg-btn${groupMode === m.key ? " active" : ""}`}
-                onClick={() => setGroupMode(m.key)}
-              >
-                {m.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="book-field-row">
-          <div className="book-field">
-            <span>모둠 수</span>
-            <div className="book-seg">
-              {GROUP_COUNTS.map((n) => (
-                <button
-                  key={n}
-                  type="button"
-                  className={`book-seg-btn${groupCount === n ? " active" : ""}`}
-                  onClick={() => setGroupCount(n)}
-                >
-                  {n}
-                </button>
-              ))}
-            </div>
-          </div>
-          {groupMode === "free" && (
-            <div className="book-field book-field--narrow">
-              <span>모둠당 최대</span>
-              <select value={maxPerGroup} onChange={(e) => setMaxPerGroup(Number(e.target.value))}>
-                {[3, 4, 5, 6, 7, 8].map((n) => (
-                  <option key={n} value={n}>{n}명</option>
+        {isParatext ? (
+          /* 개인 활동 — 모둠 설정 대신 학생이 눌러볼 도서 정보 주소를 받습니다 */
+          <label className="book-field">
+            <span>
+              도서 정보 사이트 <em className="book-optional">선택</em>
+            </span>
+            {/* type="url"이 아니라 text입니다 — 'www.yes24.com/…'처럼 앞에
+                https://를 안 붙이고 적는 경우가 많은데, type="url"이면 브라우저가
+                제출 자체를 막아 버립니다. 대신 safeBookUrl이 검사하고 채워 줍니다. */}
+            <input
+              type="text"
+              inputMode="url"
+              value={bookUrl}
+              onChange={(e) => setBookUrl(e.target.value)}
+              placeholder="예: www.yes24.com/product/goods/..."
+            />
+            <em className="book-help">
+              {urlBad
+                ? "열 수 없는 주소예요. http:// 또는 https:// 로 시작하는 주소를 넣어 주세요."
+                : "넣어 두면 학생 화면에 ‘도서 정보’ 버튼이 생겨 새 탭으로 열립니다."}
+            </em>
+          </label>
+        ) : (
+          <>
+            <div className="book-field">
+              <span>모둠 구성 방식</span>
+              <div className="book-seg">
+                {MODES.map((m) => (
+                  <button
+                    key={m.key}
+                    type="button"
+                    className={`book-seg-btn${groupMode === m.key ? " active" : ""}`}
+                    onClick={() => setGroupMode(m.key)}
+                  >
+                    {m.label}
+                  </button>
                 ))}
-              </select>
+              </div>
             </div>
-          )}
-        </div>
 
-        <label className="book-field">
-          <span>
-            모둠 이름 <em className="book-optional">선택</em>
-            {names.length > 0 && (
-              <b className={names.length === groupCount ? "book-cnt ok" : "book-cnt bad"}>
-                {names.length} / {groupCount}
-              </b>
-            )}
-          </span>
-          <input
-            type="text"
-            value={namesRaw}
-            onChange={(e) => setNamesRaw(e.target.value)}
-            placeholder="쉼표로 구분 — 예: 햇살, 바람, 나무, 별빛"
-          />
-        </label>
+            <div className="book-field-row">
+              <div className="book-field">
+                <span>모둠 수</span>
+                <div className="book-seg">
+                  {GROUP_COUNTS.map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      className={`book-seg-btn${groupCount === n ? " active" : ""}`}
+                      onClick={() => setGroupCount(n)}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {groupMode === "free" && (
+                <div className="book-field book-field--narrow">
+                  <span>모둠당 최대</span>
+                  <select value={maxPerGroup} onChange={(e) => setMaxPerGroup(Number(e.target.value))}>
+                    {[3, 4, 5, 6, 7, 8].map((n) => (
+                      <option key={n} value={n}>{n}명</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+
+            <label className="book-field">
+              <span>
+                모둠 이름 <em className="book-optional">선택</em>
+                {names.length > 0 && (
+                  <b className={names.length === groupCount ? "book-cnt ok" : "book-cnt bad"}>
+                    {names.length} / {groupCount}
+                  </b>
+                )}
+              </span>
+              <input
+                type="text"
+                value={namesRaw}
+                onChange={(e) => setNamesRaw(e.target.value)}
+                placeholder="쉼표로 구분 — 예: 햇살, 바람, 나무, 별빛"
+              />
+            </label>
+          </>
+        )}
 
         <div className="modal-actions">
           <button type="button" className="btn-ghost" onClick={onClose}>취소</button>
-          <button type="submit" className="btn-primary" disabled={!topic.trim() || saving}>
-            {saving ? "만드는 중…" : `모둠 ${groupCount}개와 함께 만들기`}
+          <button
+            type="submit"
+            className="btn-primary"
+            disabled={!topic.trim() || saving || urlBad}
+          >
+            {saving
+              ? "만드는 중…"
+              : isParatext
+                ? "학생별 활동으로 만들기"
+                : `모둠 ${groupCount}개와 함께 만들기`}
           </button>
         </div>
 
