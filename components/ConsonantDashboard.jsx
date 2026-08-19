@@ -18,20 +18,14 @@ import {
   startBroadcast,
   stopBroadcast,
 } from "@/lib/store";
-import { CONSONANT_LABELS, GRID_SLOTS, CELL_COUNT, cellKey } from "@/lib/consonants";
-
-// 낱말 분포 히트맵 — 한 칸에 모인 낱말이 많을수록 진하게
-const HEAT_OPACITY = [0, 0.3, 0.52, 0.74, 1];
-function heatLevel(n) {
-  if (n <= 0) return 0;
-  if (n === 1) return 1;
-  if (n === 2) return 2;
-  if (n <= 4) return 3;
-  return 4;
-}
-
-// 모둠 색 — 순번대로 돌려 씁니다
-const GROUP_COLORS = ["#E07A5F", "#3D8A72", "#5B7DB1", "#C1873B", "#8B6BB1", "#B5566E"];
+import {
+  CONSONANT_LABELS,
+  GRID_SLOTS,
+  CELL_COUNT,
+  cellKey,
+  groupColorOf,
+  heatOpacity,
+} from "@/lib/consonants";
 
 // [학생 화면에 중계]
 // 학생은 보안 규칙상 '자기 모둠 낱말'만 읽을 수 있어서, 스스로는 반 전체
@@ -66,7 +60,7 @@ export default function ConsonantDashboard({
     return () => unsubs.forEach((u) => u());
   }, [activity.id, groupIdsKey]);
 
-  const colorOf = (groupIndex) => GROUP_COLORS[(groupIndex - 1) % GROUP_COLORS.length];
+  const colorOf = groupColorOf;
   // 툴팁에 '1모둠' 대신 교사가 지어 준 이름(나무·소리…)을 보여 줍니다.
   const groupNameOf = useMemo(() => {
     const byIndex = new Map(
@@ -303,7 +297,7 @@ export default function ConsonantDashboard({
                         className="dash-heat-cell"
                         style={
                           n > 0
-                            ? { background: colorOf(g.groupIndex), opacity: HEAT_OPACITY[heatLevel(n)] }
+                            ? { background: colorOf(g.groupIndex), opacity: heatOpacity(n) }
                             : undefined
                         }
                         title={`${CONSONANT_LABELS[i]} · 낱말 ${n}개`}

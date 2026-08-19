@@ -20,7 +20,7 @@ import {
   joinBookGroup,
   leaveBookGroup,
 } from "@/lib/store";
-import { CELL_COUNT } from "@/lib/consonants";
+import { CELL_COUNT, CONSONANT_LABELS, groupColorOf, heatOpacity, cellKey } from "@/lib/consonants";
 import { memberLegend } from "@/lib/bookColors";
 import GroupComposer from "./GroupComposer";
 import ConsonantCanvas from "./ConsonantCanvas";
@@ -52,9 +52,10 @@ export default function BookGroupBoard({
     [groups, user?.uid]
   );
 
-  // 교사가 아직 고르지 않았으면 첫 모둠을 열어 둡니다(빈 화면 방지)
-  const picked =
-    groups.find((g) => g.id === pickedId) ?? (isTeacher ? groups[0] : null) ?? null;
+  // 교사가 활동에 처음 들어오면 아직 어느 모둠도 고르지 않은 상태입니다.
+  // 임의로 첫 모둠을 열어 두면 마치 교사가 그 모둠을 고른 것처럼 보이므로,
+  // 실제로 고르기 전까지 가운데 칸은 비워 둡니다.
+  const picked = groups.find((g) => g.id === pickedId) ?? null;
 
   async function handleJoin(group) {
     if (busy) return;
@@ -271,7 +272,9 @@ export default function BookGroupBoard({
   );
 }
 
-// 오른쪽 패널 — 고른 모둠이 어디까지 했는지
+// 오른쪽 패널 — 고른 모둠이 어디까지 했는지.
+// 전체 집계 화면의 '모둠별 진행' 한 줄(점·막대·칸별 히트맵)과 같은 생김새로
+// 보여 줍니다 — 교사가 두 화면을 오가도 같은 방식으로 읽을 수 있게.
 function GroupProgress({ activity, group }) {
   const [words, setWords] = useState([]);
   useEffect(
@@ -279,7 +282,14 @@ function GroupProgress({ activity, group }) {
     [activity.id, group.id]
   );
 
-  const filled = new Set(words.map((w) => w.cellKey)).size;
+  // 칸별 낱말 수 — 히트맵 진하기에 씁니다(자음 14칸 순서 그대로)
+  const cellCounts = useMemo(
+    () => Array.from({ length: CELL_COUNT }, (_, i) => words.filter((w) => w.cellKey === cellKey(i)).length),
+    [words]
+  );
+  const filled = cellCounts.filter((n) => n > 0).length;
+  const color = groupColorOf(group.groupIndex);
+
   const legend = memberLegend(group);
   // 모둠원별 낱말 수 — 누가 아직 못 넣고 있는지 바로 보입니다
   const countByUid = words.reduce((acc, w) => {
@@ -289,13 +299,32 @@ function GroupProgress({ activity, group }) {
 
   return (
     <aside className="dash-side book-group-progress">
-      <h3>{group.groupName || `${group.groupIndex}모둠`} 진행</h3>
-      <p className="book-progress-sum">
-        {filled} / {CELL_COUNT}칸 · 낱말 {words.length}개
-      </p>
-      <span className="dash-progress-bar">
-        <b style={{ width: `${(filled / CELL_COUNT) * 100}%` }} />
-      </span>
+      <h3>모둠 진행</h3>
+      <ul className="dash-progress-list">
+        <li>
+          <span className="dash-progress-name">
+            <i className="dash-dot" style={{ background: color }} />
+            {group.groupName || `${group.groupIndex}모둠`}
+          </span>
+          <span className="dash-progress-num">
+            {filled}/{CELL_COUNT}칸
+            <span className="dash-progress-words"> · 낱말 {words.length}개</span>
+          </span>
+          <span className="dash-progress-bar">
+            <b style={{ width: `${(filled / CELL_COUNT) * 100}%`, background: color }} />
+          </span>
+          <span className="dash-heat">
+            {cellCounts.map((n, i) => (
+              <i
+                key={i}
+                className="dash-heat-cell"
+                style={n > 0 ? { background: color, opacity: heatOpacity(n) } : undefined}
+                title={`${CONSONANT_LABELS[i]} · 낱말 ${n}개`}
+              />
+            ))}
+          </span>
+        </li>
+      </ul>
 
       {legend.length === 0 ? (
         <p className="dash-side-empty">아직 모둠원이 없어요.</p>

@@ -7,11 +7,7 @@
 // 모달을 닫으면) 자동으로 사라집니다.
 // =============================================================
 import { sanitizeHtml } from "@/lib/html";
-import { CONSONANT_LABELS, GRID_SLOTS, CELL_COUNT, cellKey } from "@/lib/consonants";
-
-// 모둠 색 — 교사 집계 화면과 같은 순서·같은 색이어야 학생 화면이 똑같이 보입니다.
-const GROUP_COLORS = ["#E07A5F", "#3D8A72", "#5B7DB1", "#C1873B", "#8B6BB1", "#B5566E"];
-const castColorOf = (groupIndex) => GROUP_COLORS[(groupIndex - 1) % GROUP_COLORS.length];
+import { CONSONANT_LABELS, GRID_SLOTS, CELL_COUNT, cellKey, groupColorOf } from "@/lib/consonants";
 
 export default function PresentationOverlay({ broadcast }) {
   // 책방 전체 집계 중계 — 교사가 보고 있는 집계판을 그대로 띄웁니다.
@@ -101,7 +97,7 @@ function CastRows({ list, big = false }) {
             <span
               key={i}
               className="consonant-chip dash-chip"
-              style={{ borderColor: castColorOf(groupIndex), color: castColorOf(groupIndex) }}
+              style={{ borderColor: groupColorOf(groupIndex), color: groupColorOf(groupIndex) }}
             >
               {w.text}
             </span>
