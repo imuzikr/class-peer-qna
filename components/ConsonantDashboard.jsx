@@ -10,7 +10,7 @@
 //  · 자음 칸을 누르면 모달로 크게 볼 수 있습니다(칠판에 띄워 함께 보기).
 //  · 오른쪽에 모둠별 진행률이 있어 막힌 모둠을 바로 찾을 수 있습니다.
 // =============================================================
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { backdropClose } from "@/lib/modal";
 import {
   subscribeBookGroups,
@@ -41,9 +41,7 @@ export default function ConsonantDashboard({
 }) {
   const [groups, setGroups] = useState([]);
   const [wordsByGroup, setWordsByGroup] = useState({});
-  const [zoom, setZoom] = useState(false);      // 전체화면(칠판) 모드
   const [zoomSlot, setZoomSlot] = useState(null); // 크게 보기 모달
-  const rootRef = useRef(null);
 
   useEffect(() => subscribeBookGroups(activity.id, setGroups), [activity.id]);
 
@@ -123,27 +121,6 @@ export default function ConsonantDashboard({
     [merged]
   );
 
-  async function toggleZoom() {
-    try {
-      if (!document.fullscreenElement) {
-        await rootRef.current?.requestFullscreen();
-        setZoom(true);
-      } else {
-        await document.exitFullscreen();
-        setZoom(false);
-      }
-    } catch {
-      setZoom((v) => !v); // 전체화면 API가 막힌 환경에서는 확대만
-    }
-  }
-
-  // ESC 등으로 브라우저가 전체화면을 빠져나가면 상태를 맞춰 줍니다.
-  useEffect(() => {
-    function onChange() { setZoom(!!document.fullscreenElement); }
-    document.addEventListener("fullscreenchange", onChange);
-    return () => document.removeEventListener("fullscreenchange", onChange);
-  }, []);
-
   // ── 학생 화면에 중계 ──────────────────────────────────────
   const [casting, setCasting] = useState(false);
   const canCast = !!(classId && user);
@@ -207,12 +184,9 @@ export default function ConsonantDashboard({
 
   const Root = embedded ? "section" : "main";
   return (
-    <Root
-      className={`${embedded ? "dash-embed" : "canvas-main"} dash-root${zoom ? " zoom" : ""}`}
-      ref={rootRef}
-    >
+    <Root className={`${embedded ? "dash-embed" : "canvas-main"} dash-root`}>
       <div className="canvas-head">
-        {!zoom && !embedded && (
+        {!embedded && (
           <button type="button" className="btn-ghost" onClick={onClose}>← 모둠</button>
         )}
         <div className="canvas-head-title">
@@ -234,12 +208,9 @@ export default function ConsonantDashboard({
               }
             >
               {casting && <span className="broadcast-live-dot" aria-hidden="true" />}
-              {casting ? "중계 종료" : "학생 화면에 띄우기"}
+              {casting ? "수업 종료" : "수업 시작"}
             </button>
           )}
-          <button type="button" className="btn-ghost" onClick={toggleZoom}>
-            {zoom ? "축소" : "전체 화면"}
-          </button>
         </div>
       </div>
 

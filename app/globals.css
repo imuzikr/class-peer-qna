@@ -10899,13 +10899,17 @@ pre code {
   font-weight: 800;
   color: var(--text);
 }
+/* 활동 머리말의 배지·버튼(← 활동 목록 · 주제 · 반 · 전체 보기)을 같은
+   크기·모서리로 맞춰 한 줄로 놓였을 때 들쭉날쭉해 보이지 않게 합니다.
+   배경색만 역할별로 다릅니다. */
 .book-group-topic {
   font-size: 13px;
   font-weight: 700;
   color: var(--primary-dark);
   background: var(--primary-light);
-  border-radius: 999px;
-  padding: 3px 10px;
+  border-radius: var(--radius-btn);
+  padding: 6px 12px;
+  line-height: 1;
 }
 .book-locked-note,
 .book-free-hint {
@@ -11232,11 +11236,12 @@ pre code {
   color: var(--text-sub);
   margin-bottom: 6px;
 }
-/* 머리말의 '전체 보기' — 활동 이름 오른쪽 */
+/* 머리말의 '전체 보기' — 활동 이름 오른쪽. ← 활동 목록·주제·반 배지와 같은 크기 */
 .book-allview-btn {
   flex-shrink: 0;
-  padding: 7px 16px;
+  padding: 6px 12px;
   font-size: 13px;
+  line-height: 1;
 }
 
 /* 집계 머리말의 버튼 묶음 (중계 · 전체 화면) */
@@ -11391,7 +11396,6 @@ pre code {
   background: var(--neutral);
   transition: opacity 0.2s;
 }
-.dash-root.zoom .dash-heat-cell { height: 19px; }
 /* 집계 카드 — 모둠 색 테두리.
    글자 수가 달라도 폭을 고정해야 '줄 길이 = 언급 횟수'가 성립합니다.
    (긴 낱말이 몇 개 없어도 많이 나온 것처럼 보이던 착시 방지)
@@ -11479,17 +11483,6 @@ pre code {
   text-align: center;
 }
 
-/* 전자칠판 미러링 — 전체화면일 때 글씨를 키웁니다 */
-.dash-root.zoom { padding: 26px 32px; background: var(--bg); }
-.dash-root.zoom .consonant-label { font-size: 22px; }
-.dash-root.zoom .consonant-chip { font-size: 18px; padding: 4px 12px; }
-.dash-root.zoom .dash-chip { width: 82px; padding: 3px 8px; }
-.dash-root.zoom .dash-row-count { font-size: 14px; }
-.dash-root.zoom .consonant-center-topic { font-size: 30px; }
-.dash-root.zoom .consonant-center-label { font-size: 14px; }
-.dash-root.zoom .canvas-head-title strong { font-size: 24px; }
-.dash-root.zoom .dash-side { width: 320px; }
-
 /* ── 모바일 ── */
 @media (max-width: 768px) {
   .books-main { padding: 16px 12px 60px; }
@@ -11526,12 +11519,13 @@ pre code {
 .book-cnt.ok { color: #3d8a72; }
 .book-cnt.bad { color: var(--danger); }
 
-/* 모둠 대시보드 — 이 활동이 어느 반 것인지 */
+/* 모둠 대시보드 — 이 활동이 어느 반 것인지 (book-group-topic과 같은 크기) */
 .book-group-class {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--text-sub);
   background: var(--neutral);
-  border-radius: 999px;
-  padding: 3px 10px;
+  border-radius: var(--radius-btn);
+  padding: 6px 12px;
+  line-height: 1;
 }
