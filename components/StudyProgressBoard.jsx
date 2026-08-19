@@ -23,13 +23,29 @@ import { backdropClose } from "@/lib/modal";
 import { stripHtml } from "@/lib/html";
 import { parseActivitySections, isActivityLocked } from "@/lib/activities";
 
-// 학생 카드 한 장 → 활동별로 "썼는지" 여부 배열
+// '썼다'고 볼 최소 길이 — 공백·문장부호를 포함한 글자 수.
+// 한두 글자만 눌러 둔 것을 완료로 세지 않기 위한 기준입니다.
+export const DONE_MIN_CHARS = 10;
+
+// 학생 카드 한 장 → 활동별로 "충분히 썼는지" 여부 배열
+// (stripHtml이 태그를 지우고 연속 공백을 하나로 줄인 뒤 앞뒤를 다듬으므로,
+//  세는 값은 사람이 눈으로 읽는 글자 수와 같습니다)
 export function cardProgress(card, activityCount) {
   const secs = card ? parseActivitySections(card.content) : [];
   return Array.from({ length: activityCount }, (_, i) =>
-    stripHtml(secs[i]?.content ?? "").trim().length > 0
+    stripHtml(secs[i]?.content ?? "").length >= DONE_MIN_CHARS
   );
 }
+
+// 칸 하나의 상태 — 색으로 구분합니다.
+//   done   연한 초록 : 10자 이상 썼음 (잠겼더라도 쓴 건 쓴 것)
+//   open   연한 주황 : 열려 있는데 아직 덜 씀
+//   locked 회색     : 아직 열어 주지 않음
+function cellState(done, locked) {
+  if (done) return "done";
+  return locked ? "locked" : "open";
+}
+const STATE_LABEL = { done: "작성함", open: "작성 전", locked: "잠김" };
 
 export default function StudyProgressBoard({
   board,
@@ -73,6 +89,20 @@ export default function StudyProgressBoard({
         </div>
 
         {error && <p className="form-error" role="alert">{error}</p>}
+
+        {activities.length > 0 && roster.length > 0 && (
+          <div className="progress-legend">
+            <span className="progress-legend-item">
+              <i className="progress-mark progress-mark--done" /> 작성함({DONE_MIN_CHARS}자 이상)
+            </span>
+            <span className="progress-legend-item">
+              <i className="progress-mark progress-mark--open" /> 작성 전
+            </span>
+            <span className="progress-legend-item">
+              <i className="progress-mark progress-mark--locked" /> 잠김
+            </span>
+          </div>
+        )}
 
         {activities.length === 0 ? (
           <p className="lesson-note-empty">
@@ -124,19 +154,22 @@ export default function StudyProgressBoard({
                       )}
                       <span className="progress-student-name">{r.name}</span>
                     </th>
-                    {activities.map((act, i) => (
-                      <td
-                        key={i}
-                        className={`progress-cell progress-cell--${
-                          r.done[i] ? "done" : isActivityLocked(board, i) ? "locked" : "todo"
-                        }`}
-                        title={`${r.name} · 활동 ${i + 1} ${act} — ${
-                          r.done[i] ? "작성함" : "아직 비어 있음"
-                        }`}
-                      >
-                        {r.done[i] ? "✓" : isActivityLocked(board, i) ? "🔒" : ""}
-                      </td>
-                    ))}
+                    {activities.map((act, i) => {
+                      const st = cellState(r.done[i], isActivityLocked(board, i));
+                      return (
+                        <td
+                          key={i}
+                          className="progress-cell"
+                          title={`${r.name} · 활동 ${i + 1} ${act} — ${STATE_LABEL[st]}`}
+                        >
+                          <span
+                            className={`progress-mark progress-mark--${st}`}
+                            role="img"
+                            aria-label={STATE_LABEL[st]}
+                          />
+                        </td>
+                      );
+                    })}
                   </tr>
                 ))}
               </tbody>

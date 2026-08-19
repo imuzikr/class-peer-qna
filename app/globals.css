@@ -6355,19 +6355,52 @@ pre code {
 .progress-student-name {
   font-weight: 600;
 }
+/* 칸은 배경을 비워 두고, 안에 든 네모 색으로만 상태를 읽습니다
+   (칸 전체를 칠하면 세 가지 색이 표처럼 번져 한눈에 안 들어옵니다) */
 .progress-cell {
-  font-weight: 800;
+  padding: 6px 10px;
 }
-.progress-cell--done {
-  background: #e6f4ea;
-  color: #1e7a3c;
+.progress-mark {
+  display: inline-block;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  vertical-align: middle;
 }
-.progress-cell--todo {
-  background: var(--neutral);
+/* 10자 이상 씀 */
+.progress-mark--done {
+  background: #d8efdf;
+  border: 1px solid #a6d8b6;
 }
-.progress-cell--locked {
-  background: #faf0e8;
+/* 열려 있는데 아직 덜 씀 */
+.progress-mark--open {
+  background: #fbe3d0;
+  border: 1px solid #efc19a;
+}
+/* 아직 열어 주지 않음 */
+.progress-mark--locked {
+  background: #e4e4e1;
+  border: 1px solid #cdcdc8;
+}
+.progress-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 12px;
+  font-size: 12.5px;
+  font-weight: 700;
   color: var(--text-sub);
+}
+.progress-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+/* 범례의 네모는 표의 것보다 작게 */
+.progress-legend .progress-mark {
+  width: 15px;
+  height: 15px;
+  border-radius: 4px;
 }
 
 /* ===================== 참여 전광판 ===================== */
