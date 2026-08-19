@@ -11604,7 +11604,7 @@ pre code {
 }
 .paratext-saved.locked { color: var(--danger); }
 
-/* 일곱 항목을 카드로 — 넓은 화면에서는 두 줄로 접힙니다 */
+/* 여덟 항목을 카드로 — 넓은 화면에서는 두 줄로 접힙니다 */
 .paratext-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
@@ -11753,10 +11753,10 @@ pre code {
   color: var(--text-sub);
   flex-shrink: 0;
 }
-/* 항목별 진행 네모 일곱 개 — 공부방 전광판의 네모와 같은 읽는 방식 */
+/* 항목별 진행 네모 여덟 개 — 공부방 전광판의 네모와 같은 읽는 방식 */
 .paratext-marks {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(8, 1fr);
   gap: 3px;
 }
 .paratext-mark {
