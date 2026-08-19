@@ -12,7 +12,12 @@
 // =============================================================
 import { useEffect, useMemo, useRef, useState } from "react";
 import { backdropClose } from "@/lib/modal";
-import { subscribeBookGroups, subscribeGroupWords } from "@/lib/store";
+import {
+  subscribeBookGroups,
+  subscribeGroupWords,
+  startBroadcast,
+  stopBroadcast,
+} from "@/lib/store";
 import { CONSONANT_LABELS, GRID_SLOTS, CELL_COUNT, cellKey } from "@/lib/consonants";
 
 // 낱말 분포 히트맵 — 한 칸에 모인 낱말이 많을수록 진하게
@@ -28,9 +33,18 @@ function heatLevel(n) {
 // 모둠 색 — 순번대로 돌려 씁니다
 const GROUP_COLORS = ["#E07A5F", "#3D8A72", "#5B7DB1", "#C1873B", "#8B6BB1", "#B5566E"];
 
-// embedded=true — 교사 화면(모둠 카드 아래)에 끼워 넣는 형태.
-// 별도 화면이 아니므로 '← 모둠' 버튼과 <main> 태그를 쓰지 않습니다.
-export default function ConsonantDashboard({ activity, onClose, embedded = false }) {
+// [학생 화면에 중계]
+// 학생은 보안 규칙상 '자기 모둠 낱말'만 읽을 수 있어서, 스스로는 반 전체
+// 집계를 만들 수 없습니다. 그래서 집계 결과를 방송 문서(broadcasts/{반})에
+// 실어 보냅니다 — 학생은 그 문서만 읽으면 되고, 규칙은 그대로 둡니다.
+// 낱말이 바뀌거나 교사가 칸을 크게 열면 그 상태도 같이 실려 갑니다.
+export default function ConsonantDashboard({
+  activity,
+  classId = null,
+  user = null,
+  onClose,
+  embedded = false,
+}) {
   const [groups, setGroups] = useState([]);
   const [wordsByGroup, setWordsByGroup] = useState({});
   const [zoom, setZoom] = useState(false);      // 전체화면(칠판) 모드
@@ -136,6 +150,67 @@ export default function ConsonantDashboard({ activity, onClose, embedded = false
     return () => document.removeEventListener("fullscreenchange", onChange);
   }, []);
 
+  // ── 학생 화면에 중계 ──────────────────────────────────────
+  const [casting, setCasting] = useState(false);
+  const canCast = !!(classId && user);
+
+  // 지금 화면에 보이는 것을 그대로 담은 방송 꾸러미.
+  // (낱말 문서를 통째로 보내지 않고, 이미 합쳐 놓은 결과만 담아 가볍습니다)
+  const castPayload = useMemo(() => {
+    const cells = {};
+    Object.entries(merged).forEach(([k, list]) => {
+      cells[k] = list.map((w) => ({
+        text: w.text,
+        count: w.count,
+        from: w.from,
+      }));
+    });
+    return {
+      mode: "consonant",
+      activityTitle: activity.title ?? "",
+      topic: activity.topic ?? "",
+      cells,
+      groupNames: groups.map((g) => ({
+        index: g.groupIndex,
+        name: g.groupName || `${g.groupIndex}모둠`,
+      })),
+      zoomSlot: zoomSlot ?? null,
+      totalFilled,
+      totalWords,
+      groupCount: groups.length,
+    };
+  }, [merged, groups, zoomSlot, totalFilled, totalWords, activity.title, activity.topic]);
+
+  // 방송 중에는 화면이 바뀔 때마다 다시 보냅니다. 학생이 낱말을 넣을 때마다
+  // 쓰기가 몰리지 않도록 0.8초 쉬었다가 한 번만 보냅니다.
+  const payloadKey = JSON.stringify(castPayload);
+  useEffect(() => {
+    if (!casting || !canCast) return;
+    const t = setTimeout(() => {
+      startBroadcast(user, classId, castPayload).catch(() => {});
+    }, 800);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [casting, canCast, payloadKey]);
+
+  // 화면을 벗어나면 방송도 반드시 종료 — 학생 화면이 갇히지 않게
+  useEffect(() => {
+    if (!casting || !canCast) return;
+    return () => { stopBroadcast(classId).catch(() => {}); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [casting, canCast, classId]);
+
+  async function toggleCast() {
+    if (!canCast) return;
+    if (casting) {
+      setCasting(false);
+      await stopBroadcast(classId).catch(() => {});
+    } else {
+      setCasting(true);
+      await startBroadcast(user, classId, castPayload).catch(() => {});
+    }
+  }
+
   const Root = embedded ? "section" : "main";
   return (
     <Root
@@ -152,9 +227,26 @@ export default function ConsonantDashboard({ activity, onClose, embedded = false
             모둠 {groups.length}개 · {totalFilled} / {CELL_COUNT}칸 · 낱말 {totalWords}개
           </span>
         </div>
-        <button type="button" className="btn-ghost" onClick={toggleZoom}>
-          {zoom ? "축소" : "전체 화면"}
-        </button>
+        <div className="dash-head-actions">
+          {canCast && (
+            <button
+              type="button"
+              className={`btn-ghost dash-cast-btn${casting ? " on" : ""}`}
+              onClick={toggleCast}
+              title={
+                casting
+                  ? "학생 화면을 원래대로 되돌립니다"
+                  : "이 집계 화면을 학생들 화면에 그대로 띄웁니다"
+              }
+            >
+              {casting && <span className="broadcast-live-dot" aria-hidden="true" />}
+              {casting ? "중계 종료" : "학생 화면에 띄우기"}
+            </button>
+          )}
+          <button type="button" className="btn-ghost" onClick={toggleZoom}>
+            {zoom ? "축소" : "전체 화면"}
+          </button>
+        </div>
       </div>
 
       <div className="dash-body">

@@ -26,6 +26,8 @@ export default function ConsonantCanvas({
   user,
   isTeacher,
   viewMode = "group",
+  // embedded — 교사 화면 가운데 칸에 끼워 넣는 형태(자체 머리말·뒤로가기 없음)
+  embedded = false,
   onBack,
 }) {
   const [words, setWords] = useState([]);
@@ -91,37 +93,42 @@ export default function ConsonantCanvas({
     setDraft("");
   }
 
+  const Root = embedded ? "div" : "main";
   return (
-    <main className="canvas-main">
-      <div className="canvas-head">
-        <button type="button" className="btn-ghost" onClick={onBack}>
-          {mineOnly ? "← 활동 목록" : "← 모둠"}
-        </button>
-        <div className="canvas-head-title">
-          <strong>
-            {mineOnly ? "내 판" : group?.groupName || "모둠"}
-          </strong>
-          <span>
-            {activity.title}
-            {mineOnly && group && ` · ${group.groupName || "모둠"}`}
-          </span>
-        </div>
-        <div className="canvas-progress">
-          <div className="canvas-progress-bar">
-            <span style={{ width: `${(filled / CELL_COUNT) * 100}%` }} />
+    <Root className={embedded ? "canvas-embed" : "canvas-main"}>
+      {!embedded && (
+        <div className="canvas-head">
+          <button type="button" className="btn-ghost" onClick={onBack}>
+            {mineOnly ? "← 활동 목록" : "← 모둠"}
+          </button>
+          <div className="canvas-head-title">
+            <strong>
+              {mineOnly ? "내 판" : group?.groupName || "모둠"}
+            </strong>
+            <span>
+              {activity.title}
+              {mineOnly && group && ` · ${group.groupName || "모둠"}`}
+            </span>
           </div>
-          <span className="canvas-progress-text">{filled} / {CELL_COUNT}칸</span>
+          <div className="canvas-progress">
+            <div className="canvas-progress-bar">
+              <span style={{ width: `${(filled / CELL_COUNT) * 100}%` }} />
+            </div>
+            <span className="canvas-progress-text">{filled} / {CELL_COUNT}칸</span>
+          </div>
         </div>
-      </div>
+      )}
 
       {activity.locked ? (
         <p className="book-locked-note">
           <IconLock size={15} /> 잠긴 활동이라 새 단어를 넣을 수 없어요.
         </p>
       ) : !mineOnly ? (
-        <p className="book-locked-note">
-          모둠원이 각자 넣은 낱말을 모아 봅니다. 색으로 누가 넣었는지 알 수 있어요.
-        </p>
+        !embedded && (
+          <p className="book-locked-note">
+            모둠원이 각자 넣은 낱말을 모아 봅니다. 색으로 누가 넣었는지 알 수 있어요.
+          </p>
+        )
       ) : !isMember ? (
         <p className="book-locked-note">이 모둠의 구성원만 단어를 넣을 수 있어요.</p>
       ) : null}
@@ -237,6 +244,6 @@ export default function ConsonantCanvas({
           칸의 ＋를 누르고 단어를 적은 뒤 Enter를 누르세요. 내가 넣은 단어는 ×로 지울 수 있어요.
         </p>
       )}
-    </main>
+    </Root>
   );
 }

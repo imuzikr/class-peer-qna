@@ -4,13 +4,13 @@
 // 책방 — 책을 읽고 함께하는 활동 공간 (반별)
 // -------------------------------------------------------------
 // 화면 흐름 — 교사와 학생이 다릅니다.
-//   교사  활동 목록 → 모둠 카드 + 집계(한 화면) → 모둠 판(모둠원 낱말 모아 보기)
+//   교사  활동 목록 → 작업 화면(왼쪽 모둠 목록 · 가운데 모둠 판 · 오른쪽 진행)
+//                  → '전체 보기'로 반 전체 집계(학생 화면에 중계 가능)
 //   학생  활동 목록 → 내 판(내가 넣은 낱말만 · 입력)
 //
 // · 활동 목록: 교사가 '닿소리 채우기' 독서 활동을 만듭니다.
-// · 교사 화면: 모둠 카드를 누르면 그 모둠의 판이 열리고, 모둠원이 넣은
-//     낱말이 사람마다 다른 색으로 표시됩니다. 카드 아래에는 집계가 붙어
-//     있어 어느 모둠이 막혔는지 화면을 옮기지 않고 볼 수 있습니다.
+// · 교사 작업 화면: 왼쪽에서 모둠을 고르면 가운데가 그 모둠의 판이 되고,
+//     모둠원이 넣은 낱말이 사람마다 다른 색으로 표시됩니다.
 // · 학생 화면: 활동을 누르면 곧바로 자기 판으로 들어가 낱말을 넣습니다.
 //     (아직 모둠이 없으면 모둠 목록을 보여 줘 고르거나 기다리게 합니다)
 // =============================================================
@@ -38,6 +38,7 @@ import ConfirmModal from "@/components/ConfirmModal";
 import BookActivityForm from "@/components/BookActivityForm";
 import BookGroupBoard from "@/components/BookGroupBoard";
 import ConsonantCanvas from "@/components/ConsonantCanvas";
+import ConsonantDashboard from "@/components/ConsonantDashboard";
 import { IconBook, IconTrash } from "@/components/StatusIcons";
 
 export default function BooksPage() {
@@ -55,8 +56,8 @@ export default function BooksPage() {
 
   const [activities, setActivities] = useState([]);
   const [openActivity, setOpenActivity] = useState(null); // 모둠 대시보드로 연 활동
-  const [openGroupId, setOpenGroupId] = useState(null);   // 캔버스로 연 모둠
   const [openGroups, setOpenGroups] = useState([]);       // 연 활동의 모둠 목록
+  const [allView, setAllView] = useState(false);          // 교사: 반 전체 집계 화면
   const [creating, setCreating] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [toast, setToast] = useState("");
@@ -178,15 +179,13 @@ export default function BooksPage() {
     <div className="board-shell">
       <TopNav active="books" />
 
-      {/* 교사: 모둠 카드를 눌러 그 모둠의 판(모둠원 낱말을 색으로 구분)으로 */}
-      {admin && openGroupId && activeActivity ? (
-        <ConsonantCanvas
+      {/* 교사: '전체 보기' — 반 전체 집계. 여기서 학생 화면에 중계할 수 있습니다 */}
+      {admin && allView && activeActivity ? (
+        <ConsonantDashboard
           activity={activeActivity}
-          groupId={openGroupId}
+          classId={classId}
           user={user}
-          isTeacher
-          viewMode="group"
-          onBack={() => setOpenGroupId(null)}
+          onClose={() => setAllView(false)}
         />
       ) : /* 학생: 활동을 열면 자기 판으로 바로 */
       studentCanvasGroupId && activeActivity ? (
@@ -207,7 +206,7 @@ export default function BooksPage() {
           user={user}
           isTeacher={admin}
           roster={roster}
-          onOpenGroup={(gid) => setOpenGroupId(gid)}
+          onOpenAll={() => setAllView(true)}
           onBack={() => setOpenActivity(null)}
           onToast={setToast}
         />
