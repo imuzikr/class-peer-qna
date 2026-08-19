@@ -123,7 +123,14 @@ export default function BookGroupBoard({
               // 들어갈 수 있는 사람: 그 모둠원 또는 교사(교사는 어느 모둠이든 확인 가능)
               const canEnter = isTeacher || mine;
               return (
-                <div key={g.id} className={`book-group-card${mine ? " mine" : ""}`}>
+                <div
+                  key={g.id}
+                  className={`book-group-card${mine ? " mine" : ""}${canEnter ? " clickable" : ""}`}
+                  onClick={canEnter ? () => onOpenGroup(g.id) : undefined}
+                  role={canEnter ? "button" : undefined}
+                  tabIndex={canEnter ? 0 : undefined}
+                  onKeyDown={canEnter ? (e) => e.key === "Enter" && onOpenGroup(g.id) : undefined}
+                >
                   <div className="book-group-card-head">
                     <strong>{g.groupName || `${g.groupIndex}모둠`}</strong>
                     <span className="book-group-count">
@@ -145,22 +152,15 @@ export default function BookGroupBoard({
                     </ul>
                   )}
 
-                  <div className="book-group-card-actions">
-                    {canEnter && (
-                      <button
-                        type="button"
-                        className="btn-primary"
-                        onClick={() => onOpenGroup(g.id)}
-                      >
-                        {mine ? "우리 모둠 판" : "판 보기"}
-                      </button>
-                    )}
-                    {freeMode && !isTeacher && (
-                      mine ? (
+                  {/* 참여/나가기는 판을 여는 조작이 아니므로 카드 클릭과 분리
+                      (stopPropagation 없으면 누를 때마다 판도 함께 열립니다) */}
+                  {freeMode && !isTeacher && (
+                    <div className="book-group-card-actions">
+                      {mine ? (
                         <button
                           type="button"
                           className="btn-ghost"
-                          onClick={() => handleLeave(g)}
+                          onClick={(e) => { e.stopPropagation(); handleLeave(g); }}
                           disabled={busy}
                         >
                           나가기
@@ -169,14 +169,14 @@ export default function BookGroupBoard({
                         <button
                           type="button"
                           className="btn-ghost"
-                          onClick={() => handleJoin(g)}
+                          onClick={(e) => { e.stopPropagation(); handleJoin(g); }}
                           disabled={busy || full || !!myGroup}
                         >
                           {full ? "자리 참" : "참여하기"}
                         </button>
-                      )
-                    )}
-                  </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })}

@@ -10938,6 +10938,17 @@ pre code {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px var(--primary-light);
 }
+/* 판을 볼 수 있는 카드(교사 또는 내 모둠)는 카드 전체가 버튼입니다 */
+.book-group-card.clickable {
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.1s;
+}
+.book-group-card.clickable:hover {
+  border-color: var(--primary);
+}
+.book-group-card.clickable:active {
+  transform: scale(0.99);
+}
 .book-group-card-head {
   display: flex;
   align-items: baseline;
