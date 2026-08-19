@@ -26,7 +26,7 @@ import {
   toDate,
 } from "@/lib/store";
 import { stripHtml } from "@/lib/html";
-import { buildActivityTemplate, nextActivityLocks } from "@/lib/activities";
+import { buildActivityTemplate, nextActivityLocks, isActivityLocked } from "@/lib/activities";
 import StudyCard from "./StudyCard";
 import StudyCardModal from "./StudyCardModal";
 import StudyPresentModal from "./StudyPresentModal";
@@ -215,6 +215,15 @@ export default function StudyBoardColumn({
 
   // 복제 대상 후보 — 현재 보드가 속한 반은 제외
   const otherClasses = classes.filter((c) => c.id !== board.classId);
+
+  // 활동 하나의 잠금을 켜고 끕니다 — 수업 화면의 '활동 열기' 줄과 같은
+  // 보드 문서(activityLocks)를 쓰므로 두 화면이 항상 같은 상태를 봅니다.
+  async function toggleActivityLock(i, lockedNext) {
+    const next = (board.activities ?? []).map((_, j) =>
+      j === i ? lockedNext : board.activityLocks?.[j] === true
+    );
+    await updateStudyBoard(board.id, { activityLocks: next });
+  }
 
   function openActivitiesModal() {
     setActivitiesDraft(
@@ -553,12 +562,6 @@ export default function StudyBoardColumn({
                   </button>
                 </>
               )}
-              <button
-                className="study-sort-btn study-sort-btn--activity"
-                onClick={openActivitiesModal}
-              >
-                활동
-              </button>
             </div>
             <div className="study-settings">
               <label className="study-setting-row">
@@ -603,6 +606,39 @@ export default function StudyBoardColumn({
                   )}
                 </button>
               </label>
+
+              {/* 활동 — 만들어 둔 활동을 하나씩 열고 잠급니다.
+                  (수업 화면의 '활동 열기' 줄과 같은 값을 보고 씁니다) */}
+              <div className="study-setting-row study-setting-row--acts">
+                <span>활동</span>
+                <div className="study-act-chips">
+                  {(board.activities ?? []).map((a, i) => {
+                    const actLocked = isActivityLocked(board, i);
+                    return (
+                      <button
+                        key={`${a}-${i}`}
+                        type="button"
+                        className={`study-act-chip${actLocked ? " locked" : ""}`}
+                        onClick={() => toggleActivityLock(i, !actLocked)}
+                        title={`${a} — ${actLocked ? "눌러서 열기" : "눌러서 잠그기"}`}
+                        aria-pressed={!actLocked}
+                      >
+                        {actLocked ? <IconLock size={12} /> : <IconPen size={12} />}
+                        활동 {i + 1}
+                      </button>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    className="study-act-chip study-act-chip--add"
+                    onClick={openActivitiesModal}
+                    title="학생 카드에 제시할 활동을 추가·수정합니다"
+                  >
+                    + 활동 추가
+                  </button>
+                </div>
+              </div>
+
               <button
                 className="study-chip"
                 onClick={() => setDuplicating(true)}
