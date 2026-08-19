@@ -51,9 +51,6 @@ export default function StudyProgressBoard({
   board,
   roster = [],
   cards = [],
-  onToggleLock,
-  busy = false,
-  error = "",
   onClose,
 }) {
   const activities = board?.activities ?? [];
@@ -87,8 +84,6 @@ export default function StudyProgressBoard({
             ×
           </button>
         </div>
-
-        {error && <p className="form-error" role="alert">{error}</p>}
 
         {activities.length > 0 && roster.length > 0 && (
           <div className="progress-legend">
@@ -124,19 +119,11 @@ export default function StudyProgressBoard({
                       <th key={i} className="progress-act-col">
                         <span className="progress-act-no">활동 {i + 1}</span>
                         <span className="progress-act-name" title={act}>{act}</span>
-                        <button
-                          type="button"
-                          className={`progress-lock-btn${locked ? " locked" : ""}`}
-                          onClick={() => onToggleLock?.(i, !locked)}
-                          disabled={busy}
-                          title={
-                            locked
-                              ? "잠금을 풀어 학생이 입력할 수 있게 합니다"
-                              : "잠가서 더 이상 입력하지 못하게 합니다"
-                          }
-                        >
-                          {locked ? "🔒 잠김" : "🔓 열림"}
-                        </button>
+                        {/* 잠금 조작은 수업 화면의 '활동 열기' 줄에서 합니다.
+                            여기서는 지금 열려 있는지만 알려 줍니다. */}
+                        <span className={`progress-act-state${locked ? " locked" : ""}`}>
+                          {locked ? "잠김" : "열림"}
+                        </span>
                         <span className="progress-act-count">
                           {doneCounts[i]}/{roster.length}
                         </span>

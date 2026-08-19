@@ -32,7 +32,7 @@ import {
   toDate,
 } from "@/lib/store";
 import { stripHtml } from "@/lib/html";
-import { buildActivityTemplate, nextActivityLocks } from "@/lib/activities";
+import { buildActivityTemplate, nextActivityLocks, isActivityLocked } from "@/lib/activities";
 import { getCurrentUser } from "@/lib/user";
 import AttendanceBoard from "./AttendanceBoard";
 import StudyProgressBoard, { cardProgress } from "./StudyProgressBoard";
@@ -344,9 +344,6 @@ export default function LessonMode({
           board={board}
           roster={roster}
           cards={boardCards}
-          busy={lockBusy}
-          error={actError}
-          onToggleLock={toggleActLock}
           onClose={() => setProgressOpen(false)}
         />
       )}
@@ -445,6 +442,41 @@ export default function LessonMode({
             </div>
           </section>
         </div>
+
+        {/* ── 활동 열기 ── 수업 중, 연결된 보드의 활동을 하나씩 열어 줍니다.
+            누르는 즉시 학생 카드의 그 활동 입력칸이 열리고/닫힙니다
+            (보드 문서의 activityLocks 하나만 보고 판정하므로 화면끼리
+             따로 놀 일이 없습니다). 전광판은 결과만 보는 자리입니다. */}
+        {!editing && board && boardActs.length > 0 && (
+          <section className="lesson-card lesson-locks">
+            <div className="lesson-card-head">
+              <h2>활동 열기</h2>
+              <small>누르면 학생이 그 활동을 쓸 수 있어요</small>
+            </div>
+            <div className="lesson-lock-row">
+              {boardActs.map((a, i) => {
+                const locked = isActivityLocked(board, i);
+                return (
+                  <button
+                    key={`${a}-${i}`}
+                    type="button"
+                    className={`lesson-lock-btn${locked ? " locked" : ""}`}
+                    onClick={() => toggleActLock(i, !locked)}
+                    disabled={lockBusy}
+                    title={`${a} — ${locked ? "눌러서 열기" : "눌러서 잠그기"}`}
+                    aria-pressed={!locked}
+                  >
+                    <span className="lesson-lock-icon" aria-hidden="true">
+                      {locked ? "🔒" : "🔓"}
+                    </span>
+                    활동 {i + 1}
+                  </button>
+                );
+              })}
+            </div>
+            {actError && <p className="form-error" role="alert">{actError}</p>}
+          </section>
+        )}
 
         {/* ── 오늘의 수업 목표 ── 교사가 수업 중 참고하는 메모입니다.
             (학생 카드에 들어가는 '활동'은 아래 공부방 연동 섹션에서 관리) */}

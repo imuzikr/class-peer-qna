@@ -6138,6 +6138,49 @@ pre code {
   color: var(--dark);
   margin: 0 0 14px;
 }
+/* 활동 열기 — 슬라이드와 수업 목표 사이. 수업 중 가장 자주 누르는 버튼이라
+   슬라이드 바로 아래, 손이 가는 자리에 가로로 늘어놓습니다. */
+.lesson-locks {
+  margin-top: 48px;
+}
+.lesson-lock-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.lesson-lock-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  /* 열림 — 학생이 지금 쓸 수 있는 상태 */
+  background: var(--primary-light);
+  border: 1px solid #efc19a;
+  color: var(--primary-dark, #c15a2a);
+}
+.lesson-lock-btn:hover:not(:disabled) {
+  border-color: var(--primary);
+}
+/* 잠김 — 아직 열어 주지 않음 */
+.lesson-lock-btn.locked {
+  background: var(--neutral);
+  border-color: var(--border);
+  color: var(--text-sub);
+}
+.lesson-lock-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.lesson-lock-icon {
+  font-size: 13px;
+}
+
 /* 활동 안내 — 슬라이드·해설 아래 전체 폭.
    테두리가 없어 구분이 간격으로만 되므로 위쪽을 확실히 띄웁니다. */
 .lesson-activity {
@@ -6321,24 +6364,20 @@ pre code {
   white-space: nowrap;
   font-weight: 700;
 }
-.progress-lock-btn {
+/* 전광판은 결과만 보는 자리 — 잠금 조작은 수업 화면의 '활동 열기' 줄에서.
+   여기서는 지금 열려 있는지만 글자로 알려 줍니다. */
+.progress-act-state {
   display: inline-block;
   border: 1px solid var(--border);
-  background: #fff;
   border-radius: 999px;
-  padding: 3px 10px;
-  font-size: 12px;
+  padding: 2px 10px;
+  font-size: 11.5px;
   font-weight: 700;
   color: var(--text-sub);
+  background: #fff;
 }
-.progress-lock-btn.locked {
-  background: var(--primary-light);
-  border-color: #ecbfa9;
-  color: var(--primary-dark);
-}
-.progress-lock-btn:disabled {
-  opacity: 0.5;
-  cursor: default;
+.progress-act-state.locked {
+  background: var(--neutral);
 }
 .progress-act-count {
   display: block;
