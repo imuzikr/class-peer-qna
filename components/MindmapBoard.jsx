@@ -238,6 +238,7 @@ function buildPayload(activity, card) {
       id: n.id,
       parentId: n.parentId,
       text: n.text,
+      edgeLabel: n.edgeLabel ?? "",
       // Firestore는 undefined를 저장하지 못해 빈 자리는 null로 맞춥니다
       x: Number.isFinite(n.x) ? n.x : null,
       y: Number.isFinite(n.y) ? n.y : null,

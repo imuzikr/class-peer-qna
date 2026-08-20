@@ -16,8 +16,14 @@
 // 선(엣지)은 노드 뒤에 깔린 SVG 한 장에 그립니다. 노드 배경이 불투명해서
 // 선을 노드 '가운데에서 가운데로' 그어도 겹치는 부분은 노드에 가려집니다
 // — 덕분에 노드의 정확한 크기를 몰라도 선이 깔끔하게 붙습니다.
+//
+// [편집 동작]
+//   · 노드를 더블클릭 → 그 노드의 자식 노드를 만들고 바로 편집 상태로
+//   · 노드를 우클릭  → 그 노드를 편집 상태로 (내용 입력칸이 뜸)
+//   · 선을 클릭      → 그 선(부모→이 노드) 위에 라벨을 입력
+// 세 동작 모두 편집판(onChange가 있을 때)에서만 동작합니다.
 // =============================================================
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
   layoutPositions,
   levelMap,
@@ -26,6 +32,7 @@ import {
   addChild,
   removeNode,
   updateNodeText,
+  updateEdgeLabel,
   moveNode,
 } from "@/lib/mindmap";
 
@@ -36,14 +43,32 @@ const FIT_PAD = 120;
 
 const clampZoom = (z) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z));
 
-// 두 점을 잇는 선. 계층형은 가로로 흐르는 곡선, 방사형은 곧은 선이
-// 뻗어 나가는 느낌을 살립니다.
-function edgePath(a, b, layout) {
+// 두 점을 잇는 곡선 + 그 곡선의 가운데 점(라벨을 놓을 자리).
+// 방사형은 이차 베지어로 살짝 휘게, 계층형은 가로로 흐르는 삼차 베지어입니다.
+// 가운데 점은 실제 곡선 위의 t=0.5 지점이라, 라벨이 선에서 떨어져 보이지 않습니다.
+function edgeGeometry(a, b, layout) {
   if (layout === "tree") {
     const dx = Math.max(30, Math.abs(b.x - a.x) / 2);
-    return `M ${a.x} ${a.y} C ${a.x + dx} ${a.y}, ${b.x - dx} ${b.y}, ${b.x} ${b.y}`;
+    const c1 = { x: a.x + dx, y: a.y };
+    const c2 = { x: b.x - dx, y: b.y };
+    return {
+      d: `M ${a.x} ${a.y} C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${b.x} ${b.y}`,
+      mid: {
+        x: 0.125 * a.x + 0.375 * c1.x + 0.375 * c2.x + 0.125 * b.x,
+        y: 0.125 * a.y + 0.375 * c1.y + 0.375 * c2.y + 0.125 * b.y,
+      },
+    };
   }
-  return `M ${a.x} ${a.y} L ${b.x} ${b.y}`;
+  const dx = b.x - a.x, dy = b.y - a.y;
+  const dist = Math.hypot(dx, dy) || 1;
+  const px = -dy / dist, py = dx / dist; // 직선에 수직인 방향
+  const bow = Math.min(dist * 0.22, 60); // 항상 같은 쪽으로 살짝 휘게(부채꼴 느낌)
+  const cx = (a.x + b.x) / 2 + px * bow;
+  const cy = (a.y + b.y) / 2 + py * bow;
+  return {
+    d: `M ${a.x} ${a.y} Q ${cx} ${cy} ${b.x} ${b.y}`,
+    mid: { x: 0.25 * a.x + 0.5 * cx + 0.25 * b.x, y: 0.25 * a.y + 0.5 * cy + 0.25 * b.y },
+  };
 }
 
 export default function MindmapCanvas({
@@ -59,9 +84,25 @@ export default function MindmapCanvas({
   const stageRef = useRef(null);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
+  // 지금 내용을 고치는 중인 노드/선 — 우클릭(노드)·클릭(선)으로 들어갑니다.
+  const [editingId, setEditingId] = useState(null);
+  const [editingEdgeId, setEditingEdgeId] = useState(null);
+  const editInputRef = useRef(null);
+  const edgeInputRef = useRef(null);
 
   const positions = useMemo(() => layoutPositions(map), [map]);
   const levels = useMemo(() => levelMap(map.nodes), [map.nodes]);
+  const edges = useMemo(() => {
+    return map.nodes
+      .filter((n) => n.parentId !== null)
+      .map((n) => {
+        const a = positions.get(n.parentId);
+        const b = positions.get(n.id);
+        if (!a || !b) return null;
+        return { node: n, ...edgeGeometry(a, b, map.layout) };
+      })
+      .filter(Boolean);
+  }, [map.nodes, map.layout, positions]);
 
   // 휠 처리기는 한 번만 붙이고 계속 쓰므로, 그 안에서 최신 배율·이동을 읽으려면
   // state를 그대로 잡아 두면 안 됩니다(처음 값에 묶임). 거울용 ref를 둡니다.
@@ -71,6 +112,13 @@ export default function MindmapCanvas({
   panRef.current = pan;
 
   const selected = selectedId ? nodeById(map.nodes, selectedId) : null;
+
+  useEffect(() => {
+    if (editingId) editInputRef.current?.focus();
+  }, [editingId]);
+  useEffect(() => {
+    if (editingEdgeId) edgeInputRef.current?.focus();
+  }, [editingEdgeId]);
 
   // ── 화면에 맞추기 ──
   const fit = useCallback(() => {
@@ -168,15 +216,21 @@ export default function MindmapCanvas({
     // 두면 판 끌기가 시작되면서 포인터를 가로채(setPointerCapture) 단추의
     // click이 아예 발생하지 않습니다 — 버튼이 안 눌리던 원인이었습니다.
     if (e.target.closest(".mm-zoom")) return;
+    if (e.target.closest(".mm-edge-label")) return;
+    setEditingId(null);
+    setEditingEdgeId(null);
     if (onSelect) onSelect(null);
     dragRef.current = { kind: "pan", sx: e.clientX, sy: e.clientY, ox: pan.x, oy: pan.y };
     e.currentTarget.setPointerCapture?.(e.pointerId);
   }
 
-  // ── 노드 끌기(방사형 편집판만) ──
+  // ── 노드 끌기(방사형 편집판만) / 선택 ──
   function onNodePointerDown(e, node) {
+    if (e.target.tagName === "INPUT") return; // 편집 입력칸 안의 클릭은 그대로 둡니다
+    if (editingEdgeId) setEditingEdgeId(null);
+    if (editingId && editingId !== node.id) setEditingId(null);
     if (onSelect) onSelect(node.id);
-    if (readOnly || map.layout !== "radial") return;
+    if (readOnly || map.layout !== "radial" || editingId === node.id) return;
     e.stopPropagation();
     const p = positions.get(node.id) ?? { x: 0, y: 0 };
     dragRef.current = {
@@ -189,6 +243,35 @@ export default function MindmapCanvas({
       moved: false,
     };
     e.currentTarget.setPointerCapture?.(e.pointerId);
+  }
+
+  // 더블클릭 — 자식 노드를 만들고 바로 편집 상태로
+  function onNodeDoubleClick(e, node) {
+    if (readOnly || editingId === node.id) return;
+    e.stopPropagation();
+    const next = addChild(map, node.id, "");
+    const child = next.nodes[next.nodes.length - 1];
+    onChange(next);
+    onSelect?.(child.id);
+    setEditingEdgeId(null);
+    setEditingId(child.id);
+  }
+
+  // 우클릭 — 이 노드를 편집 상태로
+  function onNodeContextMenu(e, node) {
+    e.preventDefault();
+    if (readOnly) return;
+    e.stopPropagation();
+    onSelect?.(node.id);
+    setEditingEdgeId(null);
+    setEditingId(node.id);
+  }
+
+  function startEdgeEdit(e, childId) {
+    e.stopPropagation();
+    if (readOnly) return;
+    setEditingId(null);
+    setEditingEdgeId(childId);
   }
 
   function onPointerMove(e) {
@@ -225,43 +308,94 @@ export default function MindmapCanvas({
           className="mm-world"
           style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` }}
         >
-          {/* 선 — 노드 뒤에 깔립니다. 좌표가 음수일 수 있어 넉넉한 판을 잡습니다 */}
+          {/* 선 — 노드 뒤에 깔립니다. 좌표가 음수일 수 있어 넉넉한 판을 잡습니다.
+              편집판에서는 선마다 굵은 투명 선을 하나 더 깔아 클릭 폭을 넓힙니다
+              (실제 선은 1~3px라 그대로면 정확히 못 눌러 라벨을 못 답니다). */}
           <svg className="mm-edges" viewBox="-3000 -3000 6000 6000" aria-hidden="true">
-            {map.nodes.map((n) => {
-              if (n.parentId === null) return null;
-              const a = positions.get(n.parentId);
-              const b = positions.get(n.id);
-              if (!a || !b) return null;
+            {edges.map(({ node: n, d }) => {
               const lv = levels.get(n.id) ?? 1;
               return (
-                <path
-                  key={n.id}
-                  className="mm-edge"
-                  d={edgePath(a, b, map.layout)}
-                  stroke={levelStyle(lv).border}
-                  strokeWidth={Math.max(1.6, 3.2 - lv * 0.4)}
-                />
+                <g key={n.id}>
+                  {!readOnly && (
+                    <path
+                      d={d}
+                      className="mm-edge-hit"
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={(e) => startEdgeEdit(e, n.id)}
+                    />
+                  )}
+                  <path
+                    className="mm-edge"
+                    d={d}
+                    stroke={levelStyle(lv).border}
+                    strokeWidth={Math.max(1.6, 3.2 - lv * 0.4)}
+                  />
+                </g>
               );
             })}
           </svg>
+
+          {/* 선 위 라벨 — 곡선의 가운데 점에 둡니다. 보기 전용에서는 라벨이
+              있는 선만, 편집판에서는 전부(빈 선은 옅은 + 표시) 보여 줍니다. */}
+          {edges.map(({ node: n, mid }) => {
+            const hasLabel = !!n.edgeLabel?.trim();
+            if (readOnly && !hasLabel) return null;
+            const isEditing = editingEdgeId === n.id;
+            return (
+              <div
+                key={`el-${n.id}`}
+                className={`mm-edge-label${hasLabel ? "" : " empty"}${isEditing ? " editing" : ""}`}
+                style={{ left: mid.x, top: mid.y }}
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => startEdgeEdit(e, n.id)}
+              >
+                {isEditing ? (
+                  <input
+                    ref={edgeInputRef}
+                    className="mm-edge-input"
+                    value={n.edgeLabel ?? ""}
+                    placeholder="선 위 글자"
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={(e) => onChange(updateEdgeLabel(map, n.id, e.target.value))}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === "Escape") {
+                        e.preventDefault();
+                        setEditingEdgeId(null);
+                      }
+                    }}
+                    onBlur={() => setEditingEdgeId(null)}
+                    maxLength={24}
+                  />
+                ) : (
+                  hasLabel ? n.edgeLabel : "+"
+                )}
+              </div>
+            );
+          })}
 
           {map.nodes.map((n) => {
             const p = positions.get(n.id) ?? { x: 0, y: 0 };
             const lv = levels.get(n.id) ?? 0;
             const s = levelStyle(lv);
             const isSel = selectedId === n.id;
+            const isEditing = editingId === n.id;
             return (
               <div
                 key={n.id}
-                className={`mm-node${isSel ? " sel" : ""}${lv === 0 ? " root" : ""}`}
+                className={`mm-node${isSel ? " sel" : ""}${lv === 0 ? " root" : ""}${
+                  isEditing ? " editing" : ""
+                }`}
                 style={{
                   left: p.x,
                   top: p.y,
                   background: s.bg,
                   borderColor: isSel ? "var(--primary)" : s.border,
                   color: s.text,
+                  ...(isEditing ? { width: lv === 0 ? 200 : 168 } : {}),
                 }}
                 onPointerDown={(e) => onNodePointerDown(e, n)}
+                onDoubleClick={(e) => onNodeDoubleClick(e, n)}
+                onContextMenu={(e) => onNodeContextMenu(e, n)}
                 role={onSelect ? "button" : undefined}
                 tabIndex={onSelect ? 0 : undefined}
                 onKeyDown={
@@ -275,7 +409,28 @@ export default function MindmapCanvas({
                     : undefined
                 }
               >
-                {n.text.trim() ? n.text : <em className="mm-node-empty">내용을 적어 주세요</em>}
+                {isEditing ? (
+                  <input
+                    ref={editInputRef}
+                    className="mm-node-input"
+                    value={n.text}
+                    placeholder={n.parentId === null ? "가운데 주제" : "가지에 담을 내용"}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={(e) => onChange(updateNodeText(map, n.id, e.target.value))}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === "Escape") {
+                        e.preventDefault();
+                        setEditingId(null);
+                      }
+                    }}
+                    onBlur={() => setEditingId(null)}
+                    maxLength={60}
+                  />
+                ) : n.text.trim() ? (
+                  n.text
+                ) : (
+                  <em className="mm-node-empty">내용을 적어 주세요</em>
+                )}
               </div>
             );
           })}
@@ -290,53 +445,31 @@ export default function MindmapCanvas({
         </div>
       </div>
 
-      {/* 편집 막대 — 고른 노드의 글을 고치고 가지를 더합니다.
-          노드 옆에 두면 축소했을 때 같이 작아져 못 누르므로 판 아래에 고정합니다 */}
+      {/* 편집 막대 — 이제 만들기·고치기는 노드 위 동작(더블클릭·우클릭)으로
+          하므로, 여기는 지우기와 안내만 남깁니다. */}
       {!readOnly && (
         <div className="mm-bar">
           {selected ? (
-            <>
-              <label className="sr-only" htmlFor="mm-node-text">노드 내용</label>
-              <input
-                id="mm-node-text"
-                className="mm-bar-input"
-                type="text"
-                value={selected.text}
-                placeholder={selected.parentId === null ? "가운데 주제" : "가지에 담을 내용"}
-                onChange={(e) => onChange(updateNodeText(map, selected.id, e.target.value))}
-                maxLength={60}
-              />
-              <button
-                type="button"
-                className="btn-primary mm-bar-add"
-                onClick={() => {
-                  const next = addChild(map, selected.id, "");
-                  onChange(next);
-                  onSelect?.(next.nodes[next.nodes.length - 1].id);
-                }}
-              >
-                ＋ 가지 추가
-              </button>
-              <button
-                type="button"
-                className="btn-ghost mm-bar-del"
-                disabled={selected.parentId === null}
-                title={
-                  selected.parentId === null
-                    ? "가운데 주제는 지울 수 없어요"
-                    : "이 가지와 딸린 가지를 모두 지웁니다"
-                }
-                onClick={() => {
-                  onChange(removeNode(map, selected.id));
-                  onSelect?.(null);
-                }}
-              >
-                지우기
-              </button>
-            </>
+            <button
+              type="button"
+              className="btn-ghost mm-bar-del"
+              disabled={selected.parentId === null}
+              title={
+                selected.parentId === null
+                  ? "가운데 주제는 지울 수 없어요"
+                  : "이 가지와 딸린 가지를 모두 지웁니다"
+              }
+              onClick={() => {
+                onChange(removeNode(map, selected.id));
+                onSelect?.(null);
+              }}
+            >
+              지우기
+            </button>
           ) : (
             <span className="mm-bar-hint">
-              노드를 누르면 내용을 고치고 가지를 더할 수 있어요.
+              노드를 더블클릭하면 가지가 생기고, 마우스 오른쪽 버튼을 누르면 내용을 고칠 수 있어요.
+              선을 클릭하면 선 위에 글자를 넣을 수 있어요.
               {map.layout === "radial" && " 노드를 끌어 자리를 옮길 수도 있어요."}
             </span>
           )}
