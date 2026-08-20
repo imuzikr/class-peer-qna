@@ -37,6 +37,7 @@ function authErrorMessage(code) {
     "auth/popup-closed-by-user": "구글 로그인 창이 닫혔습니다.",
     "auth/too-many-requests": "잠시 후 다시 시도해 주세요.",
     "auth/school-domain-required": `학교 이메일(@${SCHOOL_EMAIL_DOMAIN})로만 가입할 수 있습니다.`,
+    "auth/registration-code-invalid": "등록 코드가 올바르지 않습니다. 선생님께 받은 코드를 다시 확인해 주세요.",
   };
   return map[code] || "로그인에 실패했습니다. 다시 시도해 주세요.";
 }
@@ -58,6 +59,7 @@ export default function LandingPage() {
   const [signupRole, setSignupRole] = useState(null); // 회원가입 시 선택: 'student' | 'teacher'
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [regCode, setRegCode] = useState(""); // 회원가입 시 선생님이 알려준 등록 코드
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -83,6 +85,7 @@ export default function LandingPage() {
   function switchMode(mode) {
     setAuthMode(mode);
     setSignupRole(null);
+    setRegCode("");
     setError("");
   }
 
@@ -105,7 +108,7 @@ export default function LandingPage() {
     setBusy(true);
     try {
       if (authMode === "signup") {
-        await signUpWithEmail(email.trim(), password, signupRole);
+        await signUpWithEmail(email.trim(), password, signupRole, regCode);
       } else {
         await signInWithEmail(email.trim(), password);
       }
@@ -121,7 +124,10 @@ export default function LandingPage() {
     setError("");
     setBusy(true);
     try {
-      await signInWithGoogle(authMode === "signup" ? signupRole : null);
+      await signInWithGoogle(
+        authMode === "signup" ? signupRole : null,
+        authMode === "signup" ? regCode : ""
+      );
       router.push("/board");
     } catch (err) {
       setError(authErrorMessage(err?.code));
@@ -258,6 +264,17 @@ export default function LandingPage() {
                       가능해요.
                     </p>
                   )}
+                  <label className="sr-only" htmlFor="auth-regcode">등록 코드</label>
+                  <input
+                    id="auth-regcode"
+                    type="text"
+                    autoComplete="off"
+                    placeholder="등록 코드 (선생님께 받은 코드)"
+                    value={regCode}
+                    onChange={(e) => setRegCode(e.target.value)}
+                    maxLength={24}
+                    required
+                  />
                 </>
               )}
               {/* placeholder는 입력을 시작하면 사라져 라벨을 대신할 수 없습니다.
