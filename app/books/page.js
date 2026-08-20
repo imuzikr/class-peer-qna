@@ -213,6 +213,8 @@ export default function BooksPage() {
           className={
             classes.find((c) => c.id === activeActivity.classId)?.name ?? ""
           }
+          classId={classId}
+          user={user}
           roster={roster}
           onBack={() => setOpenActivity(null)}
         />

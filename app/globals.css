@@ -11528,7 +11528,6 @@ pre code {
   .paratext-grid { grid-template-columns: 1fr; }
   .paratext-card-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
   .book-type-seg { flex-direction: column; }
-  .paratext-modal-body { max-height: 62vh; }
 }
 
 /* 활동 만들기 — 모둠 이름 일괄 입력 */
@@ -11793,58 +11792,6 @@ pre code {
   color: var(--text-sub);
 }
 
-/* ── 교사 화면 — 학생 답 모달 ── */
-/* 학생 이름은 위에 고정해 두고 답만 안쪽에서 굴립니다 — 여러 학생을
-   이어서 볼 때 지금 누구 것을 보는지 놓치지 않게. */
-.paratext-modal {
-  max-width: min(94vw, 720px);
-  overflow: hidden;
-}
-.paratext-modal .modal-head h3 {
-  display: flex;
-  align-items: baseline;
-  gap: 9px;
-}
-.paratext-modal-sum {
-  font-size: 12px;
-  font-weight: 800;
-  color: var(--primary-dark);
-  background: var(--primary-light);
-  border-radius: 999px;
-  padding: 3px 9px;
-}
-.paratext-modal-body {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  /* 모달 자체가 85vh까지라, 머리말·안쪽 여백을 뺀 만큼만 씁니다 */
-  max-height: calc(85vh - 120px);
-  overflow-y: auto;
-  padding-right: 4px;
-}
-.paratext-read {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding-bottom: 15px;
-  border-bottom: 1px solid var(--border);
-}
-.paratext-read:last-child { border-bottom: none; padding-bottom: 0; }
-.paratext-read-field { display: flex; flex-direction: column; gap: 3px; }
-.paratext-read-label {
-  font-size: 11.5px;
-  font-weight: 800;
-  color: var(--text-sub);
-}
-.paratext-read-text {
-  font-size: 13.5px;
-  line-height: 1.65;
-  color: var(--text);
-  /* 학생이 줄바꿈으로 나눠 쓴 글을 쓴 대로 보여 줍니다 */
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-.paratext-read-text.empty { color: var(--text-sub); font-style: italic; }
 
 /* ── 학생 화면 — 항목 하나를 크게 쓰는 모달 ── */
 /* 좁은 칸이 불편하다는 의견에 따라 폭·입력칸을 넉넉하게 키웠습니다 */
@@ -12000,81 +11947,124 @@ pre code {
 /* 지금 방송 중인 학생 카드 */
 .paratext-student-card.casting { border-color: var(--primary); background: var(--primary-light); }
 
-/* ── 교사 모달 ── */
-.raft-modal {
-  max-width: min(94vw, 760px);
-  max-height: 90vh;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-.raft-modal .modal-head h3 {
-  display: flex;
-  align-items: baseline;
-  gap: 9px;
-}
-.raft-modal-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-.raft-modal-body {
-  overflow-y: auto;
-  max-height: calc(90vh - 220px);
-  padding-right: 4px;
-}
-.raft-read-cols {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-  margin-bottom: 16px;
-}
-.raft-read-col {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  padding: 11px 12px;
-  background: var(--bg-deep);
-  border-radius: 12px;
-}
-.raft-read-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  font-weight: 800;
-  color: var(--text-sub);
-}
-/* 모달·방송에서는 앞 글자를 작게 (학생 화면의 28px보다 아담하게) */
-.raft-read-label .paratext-letter {
-  width: 20px;
-  height: 20px;
-  font-size: 12px;
-  border-radius: 6px;
-  font-style: normal;
-}
-.raft-read-writing {
-  padding: 14px 16px;
-  background: var(--bg-deep);
-  border-radius: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-/* ── 학생 화면 중계(방송) ── */
-.broadcast-overlay--raft .broadcast-body { overflow-y: auto; }
-.raft-cast {
-  width: min(96vw, 900px);
-  margin: 0 auto;
-}
-.raft-cast .raft-read-writing { background: #fff; }
-.raft-cast .raft-read-col { background: #fff; }
-.raft-cast .paratext-read-text { font-size: 15px; }
 
 /* ── 모바일 ── */
 @media (max-width: 900px) {
   .raft-grid { grid-template-columns: repeat(2, 1fr); }
-  .raft-read-cols { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 560px) {
   .raft-grid { grid-template-columns: 1fr; }
-  .raft-read-cols { grid-template-columns: 1fr; }
   .raft-sentence { font-size: 13.5px; }
+}
+
+/* =============================================================
+   개인 활동 교사 상세 화면 — 영역을 한 화면에 펼치고 영역별로 방송
+   (곁텍스트 읽기 8영역 · RAFT 글쓰기 5영역 공용)
+   ============================================================= */
+.entry-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 14px;
+  margin-top: 14px;
+}
+.entry-region {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 14px 15px 16px;
+  background: var(--card-bg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.entry-region.done { border-color: #8cc79f; }
+/* 지금 학생 화면에 띄우고 있는 영역 — 한눈에 찾을 수 있게 */
+.entry-region.live {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+.entry-region.done .paratext-letter { background: #3d8a72; }
+.entry-region.live .paratext-letter { background: var(--primary); }
+/* 영역 머리말의 방송 버튼은 오른쪽 끝으로 */
+.entry-region .paratext-card-head .dash-cast-btn { margin-left: auto; flex-shrink: 0; }
+.entry-region-body {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+/* RAFT 글쓰기 칸은 내용이 길어 한 줄을 통째로 씁니다 */
+.raft-detail-grid .entry-region.wide { grid-column: 1 / -1; }
+
+/* ── 방송 상태 막대 ── */
+.cast-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: var(--primary-light);
+  border: 1.5px solid var(--primary);
+  border-radius: var(--radius);
+}
+.cast-bar-text {
+  font-size: 13px;
+  color: var(--primary-dark);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.cast-bar-text strong { font-weight: 800; }
+.cast-bar-step {
+  font-size: 11.5px;
+  font-weight: 800;
+  background: #fff;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+.cast-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+.cast-bar-actions .btn-ghost { background: #fff; }
+.cast-bar-stop { padding: 6px 14px; font-size: 13px; line-height: 1; }
+
+/* ── 학생 화면 중계 — 고른 영역 하나만 크게 ── */
+.broadcast-overlay--entry .broadcast-body { overflow-y: auto; }
+.entry-cast {
+  width: min(94vw, 880px);
+  margin: 0 auto;
+  background: #fff;
+  border-radius: var(--radius);
+  padding: 26px 30px 30px;
+}
+.entry-cast-head {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: 10px;
+}
+.entry-cast-head .paratext-letter { width: 34px; height: 34px; font-size: 18px; }
+.entry-cast-head .paratext-card-title strong { font-size: 20px; }
+.entry-cast-head .paratext-step { margin-left: auto; font-size: 13px; }
+.entry-cast-prompt {
+  font-size: 14px;
+  color: var(--text-sub);
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+.entry-cast-body { display: flex; flex-direction: column; gap: 14px; }
+/* 칠판에 띄우는 화면이라 뒷자리에서도 읽히게 크게 */
+.entry-cast-body .paratext-read-text { font-size: 19px; line-height: 1.75; }
+.entry-cast-body .paratext-read-label { font-size: 13px; }
+
+@media (max-width: 760px) {
+  .entry-detail-grid { grid-template-columns: 1fr; }
+  .cast-bar-actions { margin-left: 0; width: 100%; }
+  .entry-cast { padding: 18px 16px 22px; }
+  .entry-cast-body .paratext-read-text { font-size: 16px; }
 }

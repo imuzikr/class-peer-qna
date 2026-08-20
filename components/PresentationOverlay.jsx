@@ -83,14 +83,16 @@ export default function PresentationOverlay({ broadcast }) {
       </div>
     );
   }
-  // RAFT 글 중계 — 교사가 고른 학생의 글을 학급 전체가 함께 봅니다.
-  // 학생은 남의 기록을 직접 읽을 권한이 없어, 내용이 방송 문서에 실려 옵니다.
-  if (broadcast.mode === "raft") {
-    const columns = broadcast.columns ?? [];
-    const writing = String(broadcast.writing ?? "").trim();
+
+  // 개인 활동(곁텍스트 읽기·RAFT 글쓰기) 영역 중계 — 학생은 남의 기록을
+  // 직접 읽을 권한이 없어, 내용이 방송 문서에 실려 옵니다.
+  // 교사가 고른 '한 영역'만 크게 띄웁니다. 교사가 다른 영역 버튼을 누르면
+  // 이 문서가 새 내용으로 덮여, 화면이 끊김 없이 그 영역으로 바뀝니다.
+  if (broadcast.mode === "entry") {
+    const fields = broadcast.fields ?? [];
     return (
       <div
-        className="broadcast-overlay broadcast-overlay--raft"
+        className="broadcast-overlay broadcast-overlay--entry"
         role="alertdialog"
         aria-modal="true"
         aria-label="선생님이 보여주는 글"
@@ -105,27 +107,35 @@ export default function PresentationOverlay({ broadcast }) {
         </div>
 
         <div className="broadcast-body">
-          <div className="raft-cast">
-            {broadcast.sentence && <p className="raft-sentence done">{broadcast.sentence}</p>}
-            <div className="raft-read-cols">
-              {columns.map((c, i) => (
-                <div key={i} className="raft-read-col">
-                  <span className="raft-read-label">
-                    <i className="paratext-letter" aria-hidden="true">{c.letter}</i>
-                    {c.ko}
-                  </span>
-                  <p className={`paratext-read-text${c.text ? "" : " empty"}`}>
-                    {c.text || "아직 정하지 않았어요"}
+          <div className="entry-cast">
+            <header className="entry-cast-head">
+              {broadcast.letter && (
+                <span className="paratext-letter" aria-hidden="true">{broadcast.letter}</span>
+              )}
+              <span className="paratext-card-title">
+                <strong>{broadcast.label}</strong>
+                {broadcast.labelEn && <em>{broadcast.labelEn}</em>}
+              </span>
+              {typeof broadcast.index === "number" && (
+                <span className="paratext-step">
+                  {broadcast.index + 1} / {broadcast.total}
+                </span>
+              )}
+            </header>
+
+            {broadcast.prompt && <p className="entry-cast-prompt">{broadcast.prompt}</p>}
+            {/* RAFT는 낱말 하나만 뜨면 무슨 말인지 몰라 문장을 함께 보여 줍니다 */}
+            {broadcast.note && <p className="raft-sentence done">{broadcast.note}</p>}
+
+            <div className="entry-cast-body">
+              {fields.map((f, i) => (
+                <div key={i} className="paratext-read-field">
+                  {f.label && <span className="paratext-read-label">{f.label}</span>}
+                  <p className={`paratext-read-text${f.text ? "" : " empty"}`}>
+                    {f.text || "아직 쓰지 않았어요"}
                   </p>
                 </div>
               ))}
-            </div>
-            <div className="raft-read-writing">
-              {writing ? (
-                <p className="paratext-read-text">{writing}</p>
-              ) : (
-                <p className="paratext-read-text empty">아직 쓰지 않았어요</p>
-              )}
             </div>
           </div>
         </div>
