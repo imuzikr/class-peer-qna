@@ -133,6 +133,13 @@ export default function LandingPage() {
 
   async function handleGoogle() {
     setError("");
+    // "Google 계정으로 계속하기"는 type="button"이라 <form>의 required
+    // 검사(등록 코드 입력칸)를 거치지 않습니다 — 그냥 두면 코드 없이도
+    // 구글 팝업이 열려 버립니다. 팝업을 열기 전에 여기서 먼저 막습니다.
+    if (authMode === "signup" && !regCode.trim()) {
+      setError("등록 코드를 입력해 주세요.");
+      return;
+    }
     setBusy(true);
     try {
       await signInWithGoogle(
