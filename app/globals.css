@@ -11984,7 +11984,9 @@ pre code {
   box-shadow: 0 0 0 3px var(--primary-light);
 }
 .entry-region.done .paratext-letter { background: #3d8a72; }
-.entry-region.live .paratext-letter { background: var(--primary); }
+/* 방송 중인 아이콘은 회색 — 안 쓴 칸(주황)과 헷갈리지 않게. 다 쓴 칸이어도
+   지금은 '방송 중'이 더 중요한 정보라 done의 초록보다 우선합니다 */
+.entry-region.live .paratext-letter { background: #8a8a82; }
 /* 영역 머리말의 방송 버튼은 오른쪽 끝으로 */
 .entry-region .paratext-card-head .dash-cast-btn { margin-left: auto; flex-shrink: 0; }
 .entry-region-body {
