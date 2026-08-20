@@ -12068,3 +12068,20 @@ pre code {
   .entry-cast { padding: 18px 16px 22px; }
   .entry-cast-body .paratext-read-text { font-size: 16px; }
 }
+
+/* 방송 종류를 못 알아봤을 때(배포 직후 학생 화면이 구버전일 때) 안내 */
+.broadcast-stale-note {
+  width: min(92vw, 460px);
+  margin: 0 auto;
+  padding: 28px 30px 30px;
+  background: #fff;
+  border-radius: var(--radius);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+}
+.broadcast-stale-note strong { font-size: 17px; font-weight: 800; color: var(--text); }
+.broadcast-stale-note p { font-size: 14px; line-height: 1.7; color: var(--text-sub); }
+.broadcast-stale-note button { padding: 10px 22px; font-size: 14px; }

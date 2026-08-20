@@ -9,7 +9,43 @@
 import { sanitizeHtml } from "@/lib/html";
 import { CONSONANT_LABELS, GRID_SLOTS, CELL_COUNT, cellKey, groupColorOf } from "@/lib/consonants";
 
+// 이 화면이 그릴 줄 아는 방송 종류. 새 종류를 추가하면 여기에도 넣어야 합니다.
+const KNOWN_MODES = ["consonant", "entry", "lesson", "carousel", "single"];
+
 export default function PresentationOverlay({ broadcast }) {
+  // [버전이 어긋났을 때]
+  // 학생 브라우저에 이전 배포의 화면이 열린 채로 남아 있으면, 새로 생긴
+  // 방송 종류를 못 알아봅니다. 그때 그냥 아래로 흘려보내면 빈 발표 카드가
+  // 떠서 '선생님이 빈 화면을 띄웠다'고 오해하게 됩니다. 그래서 모르는
+  // 종류는 무엇을 해야 하는지(새로고침) 분명히 알려 줍니다.
+  if (!KNOWN_MODES.includes(broadcast.mode ?? "")) {
+    return (
+      <div
+        className="broadcast-overlay broadcast-overlay--stale"
+        role="alertdialog"
+        aria-modal="true"
+        aria-label="화면을 불러오지 못했어요"
+      >
+        <div className="broadcast-bar">
+          <span className="broadcast-live-dot" aria-hidden="true" />
+          선생님이 화면을 보여주고 있어요
+        </div>
+        <div className="broadcast-body">
+          <div className="broadcast-stale-note">
+            <strong>화면을 불러오려면 새로고침이 필요해요.</strong>
+            <p>
+              앱이 새 버전으로 바뀌었어요. 브라우저를 새로고침하면
+              선생님 화면이 바로 보입니다.
+            </p>
+            <button type="button" className="btn-primary" onClick={() => location.reload()}>
+              새로고침
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // 책방 전체 집계 중계 — 교사가 보고 있는 집계판을 그대로 띄웁니다.
   // 학생은 다른 모둠 낱말을 읽을 권한이 없으므로, 집계 결과는 방송 문서에
   // 담겨 옵니다(broadcast.cells). 교사가 칸을 크게 열면 zoomSlot도 따라옵니다.
