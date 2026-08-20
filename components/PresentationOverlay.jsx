@@ -8,9 +8,11 @@
 // =============================================================
 import { sanitizeHtml } from "@/lib/html";
 import { CONSONANT_LABELS, GRID_SLOTS, CELL_COUNT, cellKey, groupColorOf } from "@/lib/consonants";
+import { normalizeMindmap } from "@/lib/mindmap";
+import MindmapCanvas from "./MindmapCanvas";
 
 // 이 화면이 그릴 줄 아는 방송 종류. 새 종류를 추가하면 여기에도 넣어야 합니다.
-const KNOWN_MODES = ["consonant", "entry", "lesson", "carousel", "single"];
+const KNOWN_MODES = ["consonant", "entry", "mindmap", "lesson", "carousel", "single"];
 
 export default function PresentationOverlay({ broadcast }) {
   // [버전이 어긋났을 때]
@@ -116,6 +118,35 @@ export default function PresentationOverlay({ broadcast }) {
             </div>
           </div>
         )}
+      </div>
+    );
+  }
+
+  // 마인드맵 중계 — 친구가 만든 마인드맵을 학급 전체 화면에 띄웁니다.
+  // 학생 쪽은 보기 전용이라 편집 막대 없이 그림과 확대/축소만 나옵니다.
+  if (broadcast.mode === "mindmap") {
+    const map = normalizeMindmap(
+      { layout: broadcast.layout, nodes: broadcast.nodes },
+      broadcast.topic
+    );
+    return (
+      <div
+        className="broadcast-overlay broadcast-overlay--mindmap"
+        role="alertdialog"
+        aria-modal="true"
+        aria-label="선생님이 보여주는 마인드맵"
+      >
+        <div className="broadcast-bar">
+          <span className="broadcast-live-dot" aria-hidden="true" />
+          선생님이 친구의 마인드맵을 보여주고 있어요
+          {broadcast.topic && <span className="broadcast-board"># {broadcast.topic}</span>}
+          {broadcast.writerName && (
+            <span className="broadcast-progress">{broadcast.writerName}</span>
+          )}
+        </div>
+        <div className="broadcast-body">
+          <MindmapCanvas map={map} fitKey={`${broadcast.writerName}-${map.nodes.length}`} />
+        </div>
       </div>
     );
   }

@@ -20,6 +20,7 @@ const TYPES = [
   { key: "paratext", label: "곁텍스트 읽기", desc: "표지·제목·목차를 보고 혼자 내용을 짐작합니다", defaultTitle: "곁텍스트 읽기" },
   { key: "raft", label: "RAFT 글쓰기", desc: "역할·청중·형식·주제를 정해 읽은 뒤 글을 씁니다", defaultTitle: "RAFT 글쓰기" },
   { key: "kwls", label: "KWLS로 성찰하기", desc: "읽기 전 아는 것·궁금한 것, 읽은 뒤 알게 된 것을 적습니다", defaultTitle: "KWLS로 성찰하기" },
+  { key: "mindmap", label: "마인드맵", desc: "주제에서 가지를 뻗어 생각을 방사형·계층형으로 펼칩니다", defaultTitle: "마인드맵" },
 ];
 const MODES = [
   { key: "teacher", label: "교사 배정" },
@@ -46,9 +47,9 @@ export default function BookActivityForm({ onSave, onClose }) {
   const [saving, setSaving] = useState(false);
 
   const names = parseNames(namesRaw);
-  // 곁텍스트 읽기·RAFT 글쓰기·KWLS 성찰은 개인 활동이라 모둠 설정이 없고,
+  // 곁텍스트 읽기·RAFT·KWLS·마인드맵은 개인 활동이라 모둠 설정이 없고,
   // 대신 학생이 눌러볼 도서 정보 주소를 받습니다.
-  const isSolo = type === "paratext" || type === "raft" || type === "kwls";
+  const isSolo = ["paratext", "raft", "kwls", "mindmap"].includes(type);
   // 주소를 적었는데 열 수 없는 형태면 만들기 전에 알려 줍니다.
   const urlBad = bookUrl.trim().length > 0 && !safeBookUrl(bookUrl);
 

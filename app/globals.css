@@ -12118,6 +12118,266 @@ pre code {
 }
 
 /* =============================================================
+   마인드맵 — 학생 판 · 교사 화면(왼쪽 목록 + 오른쪽 판) · 방송
+   ============================================================= */
+/* ── 판 ── */
+.mm-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+}
+.mm-viewport {
+  position: relative;
+  /* 판 높이는 여기서 직접 정합니다. 부모(.mm-stage)가 세로 flex라 flex를 주면
+     flex-basis:0이 height를 눌러 판이 2px로 접혀 버립니다(실측). 화면을 채워야
+     하는 방송 화면만 아래에서 flex로 따로 덮어씁니다. */
+  height: clamp(380px, calc(100vh - 300px), 760px);
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 1px 1px, rgba(61, 61, 58, 0.14) 1px, transparent 0)
+    0 0 / 22px 22px,
+    var(--bg-deep);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  cursor: grab;
+  touch-action: none; /* 판을 끌 때 브라우저가 화면을 대신 스크롤하지 않도록 */
+}
+.mm-viewport:active { cursor: grabbing; }
+/* 판의 원점(뿌리 자리)을 화면 한가운데 두고, 이동·확대를 한 번에 겁니다 */
+.mm-world {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  transform-origin: 0 0;
+}
+.mm-edges {
+  position: absolute;
+  left: -3000px;
+  top: -3000px;
+  width: 6000px;
+  height: 6000px;
+  overflow: visible;
+  pointer-events: none;
+}
+.mm-edge { fill: none; stroke-linecap: round; }
+
+/* 노드 — 부드러운 곡률의 사각형. 배경이 불투명해서 가운데로 그은 선을 가립니다 */
+.mm-node {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  /* 부모(.mm-world)가 0×0이라 폭을 알아서 맞추면(shrink-to-fit) 쓸 수 있는
+     너비를 0으로 보고 한 글자씩 줄바꿈합니다(실측). 글자 길이만큼 늘리되
+     max-width에서 멈추도록 max-content를 씁니다. */
+  width: max-content;
+  max-width: 168px;
+  min-width: 62px;
+  padding: 9px 14px;
+  border: 2px solid;
+  border-radius: 14px;
+  font-size: 13.5px;
+  font-weight: 700;
+  line-height: 1.45;
+  text-align: center;
+  word-break: break-word;
+  box-shadow: 0 1px 3px rgba(61, 61, 58, 0.12);
+  user-select: none;
+}
+.mm-node.root {
+  max-width: 200px;
+  padding: 12px 18px;
+  border-radius: 17px;
+  font-size: 15px;
+  font-weight: 800;
+}
+.mm-node.sel { box-shadow: 0 0 0 3px var(--primary-light), 0 1px 3px rgba(61, 61, 58, 0.12); }
+.mm-node-empty { font-style: normal; font-weight: 600; opacity: 0.55; }
+/* 방사형 편집판에서만 노드를 끌 수 있습니다(계층형은 자리가 자동) */
+.mm-viewport.draggable .mm-node { cursor: grab; }
+.mm-viewport.draggable .mm-node:active { cursor: grabbing; }
+
+/* 확대/축소 — 판 위에 떠 있어 배율과 무관하게 크기가 그대로입니다 */
+.mm-zoom {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 6px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  box-shadow: 0 2px 8px rgba(61, 61, 58, 0.12);
+}
+.mm-zoom button {
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-sub);
+  cursor: pointer;
+}
+.mm-zoom button:hover { background: var(--bg-deep); color: var(--text); }
+.mm-zoom-val {
+  min-width: 44px;
+  text-align: center;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--text-sub);
+}
+.mm-zoom .mm-zoom-fit {
+  width: auto;
+  padding: 0 11px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+/* ── 편집 막대 ── */
+.mm-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  background: var(--card-bg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+}
+.mm-bar-input {
+  flex: 1;
+  min-width: 160px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text);
+  background: #fff;
+}
+.mm-bar-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+.mm-bar-add, .mm-bar-del { flex-shrink: 0; padding: 8px 13px; font-size: 13px; }
+.mm-bar-del:disabled { opacity: 0.45; cursor: not-allowed; }
+.mm-bar-hint { font-size: 12.5px; color: var(--text-sub); line-height: 1.6; }
+
+/* ── 형태 고르기(방사형·계층형) ── */
+.mindmap-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+.mindmap-layout-seg { flex-shrink: 0; }
+.mindmap-layout-hint { font-size: 12.5px; color: var(--text-sub); }
+.mindmap-layout-tag {
+  flex-shrink: 0;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--primary-light);
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--primary-dark);
+  white-space: nowrap;
+}
+
+/* ── 학생: 내 카드 ── */
+.mindmap-own-grid { grid-template-columns: minmax(0, 280px); }
+.mindmap-own-card.none { background: var(--bg-deep); }
+.mindmap-own-topic {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── 교사: 왼쪽 학생 목록 + 오른쪽 마인드맵 ── */
+.mindmap-board-body {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  margin-top: 14px;
+}
+.mindmap-student-side { width: 246px; max-height: none; }
+.mindmap-student-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.mindmap-student-card {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  text-align: left;
+  padding: 10px 12px;
+  background: var(--card-bg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-btn);
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.mindmap-student-card:hover { border-color: var(--primary); }
+.mindmap-student-card.done { border-left: 4px solid #8cc79f; }
+/* 지금 보고 있는 학생 — 오른쪽 판과 짝이 맞는다는 것을 색으로 묶어 줍니다 */
+.mindmap-student-card.on {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+.mindmap-student-card.casting { border-color: var(--primary); }
+.mindmap-view {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.mindmap-view-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.mindmap-view-who { display: inline-flex; align-items: center; gap: 7px; }
+.mindmap-view-who strong { font-size: 15px; font-weight: 800; color: var(--text); }
+.mindmap-view-meta { font-size: 12.5px; font-weight: 700; color: var(--text-sub); }
+.mindmap-view-head .dash-cast-btn { margin-left: auto; flex-shrink: 0; }
+.mindmap-view-stage { margin-top: 10px; }
+.mindmap-view-stage .mm-viewport { height: clamp(360px, calc(100vh - 330px), 720px); }
+
+/* ── 학생 화면에 중계된 마인드맵 — 화면을 가득 채우게 ── */
+.broadcast-overlay--mindmap .broadcast-body {
+  flex: 1;
+  min-height: 0;
+  padding: 12px 16px 18px;
+}
+.broadcast-overlay--mindmap .mm-stage { height: 100%; margin-top: 0; }
+/* 여기는 판(.mm-stage)의 높이가 정해져 있어 flex로 남은 높이를 다 줍니다 */
+.broadcast-overlay--mindmap .mm-viewport { flex: 1; min-height: 0; height: auto; }
+
+/* ── 모바일 ── */
+@media (max-width: 900px) {
+  /* 목록과 판을 위아래로 — 좁은 화면에서 옆에 두면 판이 너무 눌립니다 */
+  .mindmap-board-body { flex-direction: column; }
+  .mindmap-student-side { width: auto; align-self: stretch; max-height: 230px; }
+  .mindmap-student-list { flex-direction: row; flex-wrap: wrap; }
+  .mindmap-student-card { width: auto; flex: 1 1 150px; }
+}
+@media (max-width: 560px) {
+  .mm-viewport { height: clamp(300px, 58vh, 460px); }
+  .mindmap-own-grid { grid-template-columns: 1fr; }
+  .mm-bar-input { min-width: 0; }
+}
+
+/* =============================================================
    개인 활동 교사 상세 화면 — 영역을 한 화면에 펼치고 영역별로 방송
    (곁텍스트 읽기 8영역 · RAFT 글쓰기 5영역 · KWLS 4칸 공용)
    ============================================================= */
