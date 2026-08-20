@@ -43,6 +43,8 @@ import ParatextBoard from "@/components/ParatextBoard";
 import ParatextForm from "@/components/ParatextForm";
 import RaftBoard from "@/components/RaftBoard";
 import RaftForm from "@/components/RaftForm";
+import KwlsBoard from "@/components/KwlsBoard";
+import KwlsForm from "@/components/KwlsForm";
 import { IconBook, IconTrash } from "@/components/StatusIcons";
 
 export default function BooksPage() {
@@ -140,10 +142,11 @@ export default function BooksPage() {
     ? activities.find((a) => a.id === openActivity.id) ?? openActivity
     : null;
 
-  // 개인 활동(곁텍스트 읽기·RAFT 글쓰기)은 모둠이 없어 화면 흐름이 따로입니다.
+  // 개인 활동(곁텍스트 읽기·RAFT 글쓰기·KWLS 성찰)은 모둠이 없어 화면 흐름이 따로입니다.
   const isParatext = activeActivity?.type === "paratext";
   const isRaft = activeActivity?.type === "raft";
-  const isSolo = isParatext || isRaft;
+  const isKwls = activeActivity?.type === "kwls";
+  const isSolo = isParatext || isRaft || isKwls;
 
   // 연 활동의 모둠 — 학생이 '내 판'으로 바로 들어가려면 내 모둠을 알아야 합니다.
   useEffect(() => {
@@ -188,8 +191,26 @@ export default function BooksPage() {
     <div className="board-shell">
       <TopNav active="books" />
 
-      {/* RAFT 글쓰기(개인 활동) — 교사는 학생별 카드+방송, 학생은 4열 화면 */}
-      {isRaft && admin ? (
+      {/* KWLS로 성찰하기(개인 활동) — 교사는 학생별 카드+칸별 방송, 학생은 4칸 화면 */}
+      {isKwls && admin ? (
+        <KwlsBoard
+          activity={activeActivity}
+          className={
+            classes.find((c) => c.id === activeActivity.classId)?.name ?? ""
+          }
+          classId={classId}
+          user={user}
+          roster={roster}
+          onBack={() => setOpenActivity(null)}
+        />
+      ) : isKwls ? (
+        <KwlsForm
+          activity={activeActivity}
+          user={user}
+          onBack={() => setOpenActivity(null)}
+        />
+      ) : /* RAFT 글쓰기(개인 활동) — 교사는 학생별 카드+방송, 학생은 4열 화면 */
+      isRaft && admin ? (
         <RaftBoard
           activity={activeActivity}
           className={
@@ -360,10 +381,11 @@ export default function BooksPage() {
 
 // 활동 카드 — 목록에 한 줄씩
 function ActivityCard({ activity, isTeacher, onOpen, onDelete, onToggleLock }) {
-  // 개인 활동(곁텍스트 읽기·RAFT 글쓰기)은 모둠이 없습니다.
+  // 개인 활동(곁텍스트 읽기·RAFT 글쓰기·KWLS 성찰)은 모둠이 없습니다.
   const soloLabel = {
     paratext: "곁텍스트 읽기 · 개인 활동",
     raft: "RAFT 글쓰기 · 개인 활동",
+    kwls: "KWLS로 성찰하기 · 개인 활동",
   }[activity.type];
   const [groups, setGroups] = useState([]);
   // 개인 활동은 모둠이 없으므로 모둠 구독 자체를 걸지 않습니다.

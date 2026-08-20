@@ -10890,8 +10890,13 @@ pre code {
 }
 .book-field--narrow { flex: 0 0 108px; }
 .book-help { font-size: 11.5px; color: var(--text-sub); font-style: normal; line-height: 1.5; }
-/* 활동 종류 고르기 — 설명이 함께 붙어 세로로 쌓는 넓은 버튼 */
-.book-type-seg { display: flex; gap: 8px; }
+/* 활동 종류 고르기 — 설명이 함께 붙어 세로로 쌓는 넓은 버튼.
+   종류가 넷이라 한 줄에 넷을 늘어놓으면 설명이 읽히지 않아 2×2로 놓습니다 */
+.book-type-seg {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
 .book-type-btn {
   flex: 1;
   display: flex;
@@ -11530,7 +11535,7 @@ pre code {
   /* 곁텍스트 — 좁은 화면에서는 카드를 한 줄에 하나씩 */
   .paratext-grid { grid-template-columns: 1fr; }
   .paratext-card-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
-  .book-type-seg { flex-direction: column; }
+  .book-type-seg { grid-template-columns: 1fr; }
 }
 
 /* 활동 만들기 — 모둠 이름 일괄 입력 */
@@ -11879,7 +11884,8 @@ pre code {
   line-height: 1.6;
 }
 .raft-col textarea,
-.raft-write textarea {
+.raft-write textarea,
+.kwls-col textarea {
   width: 100%;
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -11892,13 +11898,15 @@ pre code {
   resize: vertical;
 }
 .raft-col textarea:focus,
-.raft-write textarea:focus {
+.raft-write textarea:focus,
+.kwls-col textarea:focus {
   outline: none;
   border-color: var(--primary);
   box-shadow: 0 0 0 3px var(--primary-light);
 }
 .raft-col textarea:disabled,
-.raft-write textarea:disabled { background: var(--bg-deep); color: var(--text-sub); }
+.raft-write textarea:disabled,
+.kwls-col textarea:disabled { background: var(--bg-deep); color: var(--text-sub); }
 
 /* 형식 고르기 — 학생이 떠올리기 어려워하는 칸이라 눌러 넣게 합니다 */
 .raft-chips { display: flex; flex-wrap: wrap; gap: 5px; }
@@ -11961,8 +11969,131 @@ pre code {
 }
 
 /* =============================================================
+   KWLS로 성찰하기 — 학생 4칸 화면 · 교사 상세 · 방송
+   ============================================================= */
+/* 활동의 흐름(읽기 전 → 읽은 뒤)을 한 줄로 — 지금 어느 칸을 채울 차례인지 */
+.kwls-guide {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  margin: 12px 0 4px;
+  padding: 11px 16px;
+  background: var(--bg-deep);
+  border: 1.5px dashed var(--border);
+  border-radius: var(--radius);
+  font-size: 13.5px;
+  color: var(--text-sub);
+}
+.kwls-guide-step {
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card-bg);
+  font-weight: 700;
+}
+/* 그 묶음을 다 채우면 초록으로 — 남은 묶음이 어디인지 바로 보이게 */
+.kwls-guide-step.done {
+  border-color: #8cc79f;
+  background: #eaf4ee;
+  color: #2f6f57;
+}
+.kwls-guide-step b { font-weight: 800; color: var(--text); }
+.kwls-guide-step.done b { color: #2f6f57; }
+.kwls-guide-arrow { font-weight: 800; color: var(--text-sub); }
+/* 안내 문장은 줄이 바뀌어도 한 덩어리로 보이게 남은 폭을 다 씁니다 */
+.kwls-guide em {
+  flex: 1 1 260px;
+  font-style: normal;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+/* 네 칸을 가로로 — 자료의 표처럼 '알게 된 것'(L) 칸을 넓게 잡습니다 */
+.kwls-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.6fr 1fr;
+  gap: 12px;
+  margin-top: 14px;
+}
+.kwls-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 15px 16px;
+  background: var(--card-bg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  transition: border-color 0.15s;
+}
+.kwls-col.filled { border-color: #8cc79f; }
+.kwls-col.filled .paratext-letter { background: #3d8a72; }
+.kwls-col-head { display: flex; align-items: center; gap: 9px; }
+.kwls-col-prompt {
+  font-size: 12.5px;
+  color: var(--text-sub);
+  line-height: 1.6;
+  /* 칸마다 도움말 길이가 달라 입력칸이 시작하는 높이가 어긋나 보입니다.
+     두 줄 자리를 미리 잡아 자료의 표처럼 네 칸이 나란히 시작하게 합니다 */
+  min-height: 56px;
+}
+/* 남는 높이는 입력칸이 가져갑니다 — 네 칸의 아래끝이 가지런해집니다 */
+.kwls-col textarea { flex: 1; }
+/* 읽기 전/읽은 뒤 딱지 — 좁아져 머리띠가 안 보여도 칸마다 때를 알 수 있게 */
+.kwls-phase-tag {
+  flex-shrink: 0;
+  align-self: flex-start;
+  padding: 3px 8px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.kwls-phase-tag.before {
+  background: #fbf1e4;
+  border-color: #eeddc4;
+  color: #9a6b34;
+}
+.kwls-phase-tag.after {
+  background: #eaf4ee;
+  border-color: #cfe6d8;
+  color: #2f6f57;
+}
+/* 교사 카드의 K·W·L·S 네모 넷 */
+.kwls-marks {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+/* 교사 상세 — K·W·L·S를 학생 화면과 같은 차례로 한 줄에 넷.
+   (기본값인 auto-fill은 3+1로 접혀 S만 아랫줄에 남습니다. 아래에 있는
+   .entry-detail-grid 규칙보다 뒤에 놓일 수 없어 선택자를 한 겹 좁혔습니다) */
+.entry-detail-grid.kwls-detail-grid { grid-template-columns: repeat(4, 1fr); }
+/* 읽기 전/뒤를 왼쪽 띠로 갈라 줍니다. .entry-region.done이 테두리 색을 통째로
+   바꾸므로, 왼쪽 띠만은 그 뒤에도 남도록 선택자를 한 겹 더 좁혀 둡니다 */
+.kwls-detail-grid .entry-region.kwls-region { border-left-width: 5px; }
+.kwls-detail-grid .entry-region.before { border-left-color: #eeddc4; }
+.kwls-detail-grid .entry-region.after { border-left-color: #cfe6d8; }
+
+/* ── 모바일 ── */
+@media (max-width: 1100px) {
+  .entry-detail-grid.kwls-detail-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 900px) {
+  .kwls-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 560px) {
+  .kwls-grid { grid-template-columns: 1fr; }
+  .entry-detail-grid.kwls-detail-grid { grid-template-columns: 1fr; }
+  .kwls-guide { font-size: 12.5px; }
+  /* 한 줄일 때는 도움말 자리를 비워 둘 이유가 없습니다 */
+  .kwls-col-prompt { min-height: 0; }
+}
+
+/* =============================================================
    개인 활동 교사 상세 화면 — 영역을 한 화면에 펼치고 영역별로 방송
-   (곁텍스트 읽기 8영역 · RAFT 글쓰기 5영역 공용)
+   (곁텍스트 읽기 8영역 · RAFT 글쓰기 5영역 · KWLS 4칸 공용)
    ============================================================= */
 .entry-detail-grid {
   display: grid;
