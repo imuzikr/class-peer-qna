@@ -11880,3 +11880,201 @@ pre code {
   padding-top: 16px;
   border-top: 1px solid var(--border);
 }
+
+/* =============================================================
+   RAFT 글쓰기 — 학생 4열 화면 · 교사 모달 · 방송
+   ============================================================= */
+/* 정한 네 요소를 이어 붙인 문장 — 무엇을 쓸지 눈으로 확인시켜 줍니다 */
+.raft-sentence {
+  margin: 12px 0 4px;
+  padding: 12px 16px;
+  background: var(--bg-deep);
+  border: 1.5px dashed var(--border);
+  border-radius: var(--radius);
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: var(--text-sub);
+}
+.raft-sentence.done {
+  border-style: solid;
+  border-color: var(--primary);
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  font-weight: 700;
+}
+
+/* 네 요소를 가로로 — 좁아지면 2열, 더 좁으면 1열로 접힙니다 */
+.raft-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-top: 14px;
+}
+.raft-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 15px 16px;
+  background: var(--card-bg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  transition: border-color 0.15s;
+}
+.raft-col.filled { border-color: #8cc79f; }
+.raft-col-head { display: flex; align-items: center; gap: 9px; }
+.raft-col.filled .paratext-letter { background: #3d8a72; }
+.raft-col-prompt {
+  font-size: 12.5px;
+  color: var(--text-sub);
+  line-height: 1.6;
+}
+.raft-col textarea,
+.raft-write textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: var(--text);
+  background: #fff;
+  resize: vertical;
+}
+.raft-col textarea:focus,
+.raft-write textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+.raft-col textarea:disabled,
+.raft-write textarea:disabled { background: var(--bg-deep); color: var(--text-sub); }
+
+/* 형식 고르기 — 학생이 떠올리기 어려워하는 칸이라 눌러 넣게 합니다 */
+.raft-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.raft-chip {
+  padding: 4px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-sub);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+.raft-chip:hover { border-color: var(--primary); color: var(--primary-dark); }
+.raft-chip.on {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  color: var(--primary-dark);
+}
+
+/* 아래 넓은 글쓰기 칸 — 이 활동의 결과물 */
+.raft-write {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 15px 16px 17px;
+  background: var(--card-bg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+}
+.raft-write-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.raft-write-head strong { font-size: 15px; font-weight: 800; color: var(--text); }
+.raft-write-count { font-size: 12px; font-weight: 800; color: var(--text-sub); }
+
+/* 교사 카드의 네 요소 네모 */
+.raft-marks {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+/* 지금 방송 중인 학생 카드 */
+.paratext-student-card.casting { border-color: var(--primary); background: var(--primary-light); }
+
+/* ── 교사 모달 ── */
+.raft-modal {
+  max-width: min(94vw, 760px);
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.raft-modal .modal-head h3 {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+}
+.raft-modal-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.raft-modal-body {
+  overflow-y: auto;
+  max-height: calc(90vh - 220px);
+  padding-right: 4px;
+}
+.raft-read-cols {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.raft-read-col {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 11px 12px;
+  background: var(--bg-deep);
+  border-radius: 12px;
+}
+.raft-read-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text-sub);
+}
+/* 모달·방송에서는 앞 글자를 작게 (학생 화면의 28px보다 아담하게) */
+.raft-read-label .paratext-letter {
+  width: 20px;
+  height: 20px;
+  font-size: 12px;
+  border-radius: 6px;
+  font-style: normal;
+}
+.raft-read-writing {
+  padding: 14px 16px;
+  background: var(--bg-deep);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ── 학생 화면 중계(방송) ── */
+.broadcast-overlay--raft .broadcast-body { overflow-y: auto; }
+.raft-cast {
+  width: min(96vw, 900px);
+  margin: 0 auto;
+}
+.raft-cast .raft-read-writing { background: #fff; }
+.raft-cast .raft-read-col { background: #fff; }
+.raft-cast .paratext-read-text { font-size: 15px; }
+
+/* ── 모바일 ── */
+@media (max-width: 900px) {
+  .raft-grid { grid-template-columns: repeat(2, 1fr); }
+  .raft-read-cols { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 560px) {
+  .raft-grid { grid-template-columns: 1fr; }
+  .raft-read-cols { grid-template-columns: 1fr; }
+  .raft-sentence { font-size: 13.5px; }
+}

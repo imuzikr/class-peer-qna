@@ -8,8 +8,8 @@
 //      교사 배정/무작위 → 만든 뒤 모둠 대시보드에서 명단을 짜고,
 //      자유 구성 → 학생이 직접 골라 들어갑니다.
 //      모둠 이름을 쉼표로 적으면 그 이름으로 한 번에 만들어집니다.
-//  · 곁텍스트 읽기 — 개인 활동. 모둠이 없어 모둠 설정은 감추고,
-//      대신 학생이 눌러볼 도서 정보 사이트 주소를 받습니다.
+//  · 곁텍스트 읽기 / RAFT 글쓰기 — 개인 활동. 모둠이 없어 모둠 설정은
+//      감추고, 대신 학생이 눌러볼 도서 정보 사이트 주소를 받습니다.
 // =============================================================
 import { backdropClose } from "@/lib/modal";
 import { useState } from "react";
@@ -18,6 +18,7 @@ import { safeBookUrl } from "@/lib/paratext";
 const TYPES = [
   { key: "consonant", label: "닿소리 채우기", desc: "모둠이 함께 자음 칸을 낱말로 채웁니다", defaultTitle: "닿소리 채우기" },
   { key: "paratext", label: "곁텍스트 읽기", desc: "표지·제목·목차를 보고 혼자 내용을 짐작합니다", defaultTitle: "곁텍스트 읽기" },
+  { key: "raft", label: "RAFT 글쓰기", desc: "역할·청중·형식·주제를 정해 읽은 뒤 글을 씁니다", defaultTitle: "RAFT 글쓰기" },
 ];
 const MODES = [
   { key: "teacher", label: "교사 배정" },
@@ -44,7 +45,9 @@ export default function BookActivityForm({ onSave, onClose }) {
   const [saving, setSaving] = useState(false);
 
   const names = parseNames(namesRaw);
-  const isParatext = type === "paratext";
+  // 곁텍스트 읽기·RAFT 글쓰기는 개인 활동이라 모둠 설정이 없고,
+  // 대신 학생이 눌러볼 도서 정보 주소를 받습니다.
+  const isSolo = type === "paratext" || type === "raft";
   // 주소를 적었는데 열 수 없는 형태면 만들기 전에 알려 줍니다.
   const urlBad = bookUrl.trim().length > 0 && !safeBookUrl(bookUrl);
 
@@ -62,7 +65,7 @@ export default function BookActivityForm({ onSave, onClose }) {
     if (!topic.trim() || saving || urlBad) return;
 
     // 이름을 적었는데 모둠 수와 개수가 다르면 만들지 않고 알려 줍니다.
-    if (!isParatext && names.length > 0 && names.length !== groupCount) {
+    if (!isSolo && names.length > 0 && names.length !== groupCount) {
       setWarning(
         `모둠은 ${groupCount}개인데 이름은 ${names.length}개를 적으셨어요.\n` +
           `개수를 맞추거나, 이름을 비우면 '1모둠·2모둠…'으로 자동으로 붙습니다.`
@@ -76,7 +79,7 @@ export default function BookActivityForm({ onSave, onClose }) {
         type,
         title,
         topic,
-        bookUrl: isParatext ? bookUrl.trim() : "",
+        bookUrl: isSolo ? bookUrl.trim() : "",
         groupMode,
         groupCount,
         maxPerGroup,
@@ -136,7 +139,7 @@ export default function BookActivityForm({ onSave, onClose }) {
           </label>
         </div>
 
-        {isParatext ? (
+        {isSolo ? (
           /* 개인 활동 — 모둠 설정 대신 학생이 눌러볼 도서 정보 주소를 받습니다 */
           <label className="book-field">
             <span>
@@ -232,7 +235,7 @@ export default function BookActivityForm({ onSave, onClose }) {
           >
             {saving
               ? "만드는 중…"
-              : isParatext
+              : isSolo
                 ? "학생별 활동으로 만들기"
                 : `모둠 ${groupCount}개와 함께 만들기`}
           </button>

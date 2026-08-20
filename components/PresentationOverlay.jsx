@@ -83,6 +83,56 @@ export default function PresentationOverlay({ broadcast }) {
       </div>
     );
   }
+  // RAFT 글 중계 — 교사가 고른 학생의 글을 학급 전체가 함께 봅니다.
+  // 학생은 남의 기록을 직접 읽을 권한이 없어, 내용이 방송 문서에 실려 옵니다.
+  if (broadcast.mode === "raft") {
+    const columns = broadcast.columns ?? [];
+    const writing = String(broadcast.writing ?? "").trim();
+    return (
+      <div
+        className="broadcast-overlay broadcast-overlay--raft"
+        role="alertdialog"
+        aria-modal="true"
+        aria-label="선생님이 보여주는 글"
+      >
+        <div className="broadcast-bar">
+          <span className="broadcast-live-dot" aria-hidden="true" />
+          선생님이 친구의 글을 보여주고 있어요
+          {broadcast.topic && <span className="broadcast-board"># {broadcast.topic}</span>}
+          {broadcast.writerName && (
+            <span className="broadcast-progress">{broadcast.writerName}</span>
+          )}
+        </div>
+
+        <div className="broadcast-body">
+          <div className="raft-cast">
+            {broadcast.sentence && <p className="raft-sentence done">{broadcast.sentence}</p>}
+            <div className="raft-read-cols">
+              {columns.map((c, i) => (
+                <div key={i} className="raft-read-col">
+                  <span className="raft-read-label">
+                    <i className="paratext-letter" aria-hidden="true">{c.letter}</i>
+                    {c.ko}
+                  </span>
+                  <p className={`paratext-read-text${c.text ? "" : " empty"}`}>
+                    {c.text || "아직 정하지 않았어요"}
+                  </p>
+                </div>
+              ))}
+            </div>
+            <div className="raft-read-writing">
+              {writing ? (
+                <p className="paratext-read-text">{writing}</p>
+              ) : (
+                <p className="paratext-read-text empty">아직 쓰지 않았어요</p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return <PresentationOverlayBody broadcast={broadcast} />;
 }
 

@@ -41,6 +41,8 @@ import ConsonantCanvas from "@/components/ConsonantCanvas";
 import ConsonantDashboard from "@/components/ConsonantDashboard";
 import ParatextBoard from "@/components/ParatextBoard";
 import ParatextForm from "@/components/ParatextForm";
+import RaftBoard from "@/components/RaftBoard";
+import RaftForm from "@/components/RaftForm";
 import { IconBook, IconTrash } from "@/components/StatusIcons";
 
 export default function BooksPage() {
@@ -138,14 +140,16 @@ export default function BooksPage() {
     ? activities.find((a) => a.id === openActivity.id) ?? openActivity
     : null;
 
-  // 곁텍스트 읽기는 모둠이 없는 개인 활동이라 화면 흐름이 따로입니다.
+  // 개인 활동(곁텍스트 읽기·RAFT 글쓰기)은 모둠이 없어 화면 흐름이 따로입니다.
   const isParatext = activeActivity?.type === "paratext";
+  const isRaft = activeActivity?.type === "raft";
+  const isSolo = isParatext || isRaft;
 
   // 연 활동의 모둠 — 학생이 '내 판'으로 바로 들어가려면 내 모둠을 알아야 합니다.
   useEffect(() => {
-    if (!activeActivity || isParatext) { setOpenGroups([]); return; }
+    if (!activeActivity || isSolo) { setOpenGroups([]); return; }
     return subscribeBookGroups(activeActivity.id, setOpenGroups);
-  }, [activeActivity?.id, isParatext]);
+  }, [activeActivity?.id, isSolo]);
 
   const myGroupId = useMemo(
     () => openGroups.find((g) => (g.memberUids ?? []).includes(user?.uid))?.id ?? null,
@@ -184,8 +188,26 @@ export default function BooksPage() {
     <div className="board-shell">
       <TopNav active="books" />
 
-      {/* 곁텍스트 읽기(개인 활동) — 교사는 학생별 카드, 학생은 자기 입력 화면 */}
-      {isParatext && admin ? (
+      {/* RAFT 글쓰기(개인 활동) — 교사는 학생별 카드+방송, 학생은 4열 화면 */}
+      {isRaft && admin ? (
+        <RaftBoard
+          activity={activeActivity}
+          className={
+            classes.find((c) => c.id === activeActivity.classId)?.name ?? ""
+          }
+          classId={classId}
+          user={user}
+          roster={roster}
+          onBack={() => setOpenActivity(null)}
+        />
+      ) : isRaft ? (
+        <RaftForm
+          activity={activeActivity}
+          user={user}
+          onBack={() => setOpenActivity(null)}
+        />
+      ) : /* 곁텍스트 읽기(개인 활동) — 교사는 학생별 카드, 학생은 자기 입력 화면 */
+      isParatext && admin ? (
         <ParatextBoard
           activity={activeActivity}
           className={
@@ -318,9 +340,9 @@ export default function BooksPage() {
           title="활동 삭제"
           preview={confirmDelete.title}
           description={
-            confirmDelete.type === "paratext"
-              ? "학생들이 쓴 내용이 모두 삭제됩니다.\n되돌릴 수 없습니다."
-              : "이 활동의 모둠과 모아둔 단어가\n모두 삭제됩니다. 되돌릴 수 없습니다."
+            confirmDelete.type === "consonant"
+              ? "이 활동의 모둠과 모아둔 단어가\n모두 삭제됩니다. 되돌릴 수 없습니다."
+              : "학생들이 쓴 내용이 모두 삭제됩니다.\n되돌릴 수 없습니다."
           }
           confirmLabel="삭제"
           danger
@@ -336,13 +358,17 @@ export default function BooksPage() {
 
 // 활동 카드 — 목록에 한 줄씩
 function ActivityCard({ activity, isTeacher, onOpen, onDelete, onToggleLock }) {
-  const paratext = activity.type === "paratext";
+  // 개인 활동(곁텍스트 읽기·RAFT 글쓰기)은 모둠이 없습니다.
+  const soloLabel = {
+    paratext: "곁텍스트 읽기 · 개인 활동",
+    raft: "RAFT 글쓰기 · 개인 활동",
+  }[activity.type];
   const [groups, setGroups] = useState([]);
   // 개인 활동은 모둠이 없으므로 모둠 구독 자체를 걸지 않습니다.
   useEffect(() => {
-    if (paratext) return;
+    if (soloLabel) return;
     return subscribeBookGroups(activity.id, setGroups);
-  }, [activity.id, paratext]);
+  }, [activity.id, soloLabel]);
 
   const modeLabel =
     { teacher: "교사 배정", random: "무작위 배정", free: "자유 구성" }[activity.groupMode] ??
@@ -354,7 +380,7 @@ function ActivityCard({ activity, isTeacher, onOpen, onDelete, onToggleLock }) {
         <span className="book-activity-topic">{activity.topic || "주제 미정"}</span>
         <strong className="book-activity-title">{activity.title}</strong>
         <span className="book-activity-meta">
-          {paratext ? "곁텍스트 읽기 · 개인 활동" : `모둠 ${groups.length}개 · ${modeLabel}`}
+          {soloLabel ?? `모둠 ${groups.length}개 · ${modeLabel}`}
           {activity.locked && " · 잠김"}
         </span>
       </button>
