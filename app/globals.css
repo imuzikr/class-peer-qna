@@ -11757,7 +11757,7 @@ pre code {
 .paratext-student-card.none { background: var(--bg-deep); }
 .paratext-student-head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 7px;
   min-width: 0;
 }
