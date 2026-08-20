@@ -11611,18 +11611,26 @@ pre code {
   gap: 14px;
   margin-top: 14px;
 }
+/* 카드는 버튼입니다 — 눌러서 그 항목만 크게 쓰는 모달을 엽니다 */
 .paratext-card {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  width: 100%;
+  text-align: left;
   padding: 15px 16px 17px;
   background: var(--card-bg);
   border: 1.5px solid var(--border);
   border-radius: var(--radius);
-  transition: border-color 0.15s;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
 }
+.paratext-card:hover { border-color: var(--primary); }
 /* 다 쓴 항목은 테두리로만 표시 — 글을 읽는 데 방해가 되지 않게 */
 .paratext-card.done { border-color: #8cc79f; }
+/* 아직 시작조차 안 한 항목 — 배경으로만 구분(테두리는 hover와 겹쳐 혼동될 수 있어) */
+.paratext-card.empty { background: var(--bg-deep); }
 .paratext-card-head {
   display: flex;
   align-items: center;
@@ -11665,6 +11673,7 @@ pre code {
   color: var(--text-sub);
 }
 .paratext-prompt {
+  display: block;
   font-size: 12.5px;
   color: var(--text-sub);
   line-height: 1.6;
@@ -11676,6 +11685,17 @@ pre code {
   font-style: normal;
   color: var(--primary-dark);
 }
+/* 카드에 보이는 미리보기 — 실제로 쓴 글. 길면 두 줄에서 잘라 말줄임표로 */
+.paratext-preview {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text);
+}
+.paratext-preview.empty { color: var(--text-sub); font-style: italic; }
 .paratext-fields { display: flex; flex-direction: column; gap: 9px; }
 .paratext-field { display: flex; flex-direction: column; gap: 4px; }
 .paratext-field > span {
@@ -11825,3 +11845,36 @@ pre code {
   overflow-wrap: anywhere;
 }
 .paratext-read-text.empty { color: var(--text-sub); font-style: italic; }
+
+/* ── 학생 화면 — 항목 하나를 크게 쓰는 모달 ── */
+.paratext-write-modal {
+  max-width: min(94vw, 580px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.paratext-write-modal .modal-head h3 {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.paratext-write-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: -6px 0 12px;
+}
+.paratext-write-modal .paratext-prompt { margin-bottom: 14px; }
+.paratext-write-modal .paratext-fields {
+  overflow-y: auto;
+  max-height: calc(85vh - 260px);
+  padding-right: 4px;
+}
+.paratext-write-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
