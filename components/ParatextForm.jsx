@@ -238,7 +238,7 @@ function SectionModal({ section, index, total, answers, locked, status, onChange
                 </span>
               )}
               <textarea
-                rows={Math.min(f.lines + 1, 6)}
+                rows={Math.max(f.lines + 2, 5)}
                 value={answers[f.key] ?? ""}
                 onChange={(e) => onChange(f.key, e.target.value)}
                 placeholder={f.placeholder}

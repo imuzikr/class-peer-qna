@@ -11707,10 +11707,10 @@ pre code {
   width: 100%;
   border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 8px 10px;
+  padding: 12px 14px;
   font-family: inherit;
-  font-size: 13.5px;
-  line-height: 1.6;
+  font-size: 15px;
+  line-height: 1.7;
   color: var(--text);
   background: #fff;
   resize: vertical;
@@ -11847,8 +11847,10 @@ pre code {
 .paratext-read-text.empty { color: var(--text-sub); font-style: italic; }
 
 /* ── 학생 화면 — 항목 하나를 크게 쓰는 모달 ── */
+/* 좁은 칸이 불편하다는 의견에 따라 폭·입력칸을 넉넉하게 키웠습니다 */
 .paratext-write-modal {
-  max-width: min(94vw, 580px);
+  max-width: min(94vw, 760px);
+  max-height: 90vh;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -11867,7 +11869,7 @@ pre code {
 .paratext-write-modal .paratext-prompt { margin-bottom: 14px; }
 .paratext-write-modal .paratext-fields {
   overflow-y: auto;
-  max-height: calc(85vh - 260px);
+  max-height: calc(90vh - 240px);
   padding-right: 4px;
 }
 .paratext-write-nav {
