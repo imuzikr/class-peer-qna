@@ -38,6 +38,17 @@ function authErrorMessage(code) {
     "auth/too-many-requests": "잠시 후 다시 시도해 주세요.",
     "auth/school-domain-required": `학교 이메일(@${SCHOOL_EMAIL_DOMAIN})로만 가입할 수 있습니다.`,
     "auth/registration-code-invalid": "등록 코드가 올바르지 않습니다. 선생님께 받은 코드를 다시 확인해 주세요.",
+    // 코드를 '확인하지 못한' 경우 — 코드가 틀린 게 아니라 서버 설정 문제라
+    // 학생이 아무리 다시 입력해도 통과하지 못합니다. 그래서 학생을 붙잡지 않고
+    // 선생님께 알리도록 안내합니다.
+    "auth/registration-code-unavailable":
+      "등록 코드를 확인할 수 없습니다. 잠시 후 다시 시도하고, 계속 안 되면 선생님께 알려 주세요.",
+    "auth/profile-create-failed":
+      "가입 정보를 저장하지 못했습니다. 등록 코드를 다시 확인하고, 계속 안 되면 선생님께 알려 주세요.",
+    // 프로필을 읽지 못해 막힌 경우(주로 보안 규칙 문제) — '비밀번호가 틀렸나'
+    // 하고 헤매지 않도록 따로 구분해 줍니다.
+    "permission-denied":
+      "계정 정보를 읽지 못했습니다. 잠시 후 다시 시도하고, 계속 안 되면 선생님께 알려 주세요.",
   };
   return map[code] || "로그인에 실패했습니다. 다시 시도해 주세요.";
 }
