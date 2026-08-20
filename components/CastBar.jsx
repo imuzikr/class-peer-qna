@@ -29,7 +29,7 @@ export default function CastBar({ who, label, index, total, onPrev, onNext, onSt
           다음 영역 →
         </button>
         <button type="button" className="btn-primary cast-bar-stop" onClick={onStop}>
-          방송 끝내기
+          수업 종료
         </button>
       </div>
     </div>

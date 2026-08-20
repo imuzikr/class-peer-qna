@@ -10920,7 +10920,10 @@ pre code {
 /* ── 모둠 대시보드 ── */
 .book-group-title {
   display: flex;
-  align-items: baseline;
+  /* baseline 정렬은 제목의 순수 텍스트 노드와 배지(span) 사이에서
+     브라우저마다 기준선 계산이 어긋나 배지가 붕 떠 보였습니다.
+     center로 두면 글자 크기가 달라도 항상 한 줄에 나란히 보입니다. */
+  align-items: center;
   gap: 10px;
   font-size: 20px;
   font-weight: 800;
