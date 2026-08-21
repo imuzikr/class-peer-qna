@@ -33,7 +33,7 @@ import {
   removeNode,
   updateNodeText,
   updateEdgeLabel,
-  moveNode,
+  moveSubtreeTo,
   reorderFirstLevelChild,
 } from "@/lib/mindmap";
 
@@ -352,7 +352,7 @@ export default function MindmapCanvas({
     } else if (d.kind === "node") {
       if (!d.moved && Math.abs(dx) + Math.abs(dy) < 3) return; // 살짝 눌린 것은 클릭으로
       d.moved = true;
-      onChange(moveNode(map, d.id, d.ox + dx / zoom, d.oy + dy / zoom));
+      onChange(moveSubtreeTo(map, d.id, d.ox + dx / zoom, d.oy + dy / zoom));
     } else if (d.kind === "tree-reorder") {
       if (!d.moved && Math.abs(dx) + Math.abs(dy) < 3) return;
       d.moved = true;
