@@ -228,11 +228,22 @@ export default function MindmapBoard({
 // 마인드맵 한 장을 방송 꾸러미로. 학생은 남의 기록을 직접 읽을 권한이 없어
 // 그림을 그릴 재료(형태·노드)를 방송 문서에 실어 보냅니다.
 function buildPayload(activity, card) {
+  const branchTotal = branchCount(card.map);
+  const depth = maxDepth(card.map);
   return {
     mode: "mindmap",
     activityTitle: activity.title ?? "",
     topic: activity.topic ?? "",
     writerName: card.name,
+    // 오래 켜져 있던 학생 브라우저가 mindmap 전용 오버레이를 아직 모를 때도
+    // 빈 발표 카드가 뜨지 않도록 일반 발표 필드도 함께 싣습니다.
+    boardTitle: activity.title ?? "마인드맵",
+    displayName: card.name,
+    title: `${card.name}의 마인드맵`,
+    content:
+      branchTotal === 0
+        ? "아직 작성된 가지가 없습니다."
+        : `주제: ${activity.topic ?? ""}\n가지 ${branchTotal}개 · ${depth}단계`,
     layout: card.map.layout,
     nodes: card.map.nodes.map((n) => ({
       id: n.id,

@@ -129,6 +129,10 @@ export default function PresentationOverlay({ broadcast }) {
       { layout: broadcast.layout, nodes: broadcast.nodes },
       broadcast.topic
     );
+    const mapSignature = map.nodes
+      .map((n) => `${n.id}:${n.parentId ?? ""}:${n.text}:${n.edgeLabel ?? ""}:${n.x ?? ""}:${n.y ?? ""}`)
+      .join("|");
+    const hasVisibleNode = map.nodes.some((n) => n.text?.trim());
     return (
       <div
         className="broadcast-overlay broadcast-overlay--mindmap"
@@ -145,7 +149,18 @@ export default function PresentationOverlay({ broadcast }) {
           )}
         </div>
         <div className="broadcast-body">
-          <MindmapCanvas map={map} fitKey={`${broadcast.writerName}-${map.nodes.length}`} />
+          {hasVisibleNode ? (
+            <MindmapCanvas
+              map={map}
+              fitKey={`${broadcast.writerName ?? ""}-${map.layout}-${mapSignature}`}
+              className="broadcast-mindmap-stage"
+            />
+          ) : (
+            <div className="broadcast-stale-note">
+              <strong>아직 보여줄 마인드맵 내용이 없어요.</strong>
+              <p>선생님이 다른 학생의 마인드맵을 선택하면 이 화면에 바로 표시됩니다.</p>
+            </div>
+          )}
         </div>
       </div>
     );
