@@ -90,8 +90,7 @@ function edgeGeometry(a, b, layout, parentNode = null, childNode = null, levels 
   const midX = (a.x + b.x) / 2;
   const midY = (a.y + b.y) / 2;
 
-  // 거의 수평인 중심 가지는 곡선을 억제해 차분한 수평선으로 둡니다.
-  // 중심에서 위/아래로 벗어난 가지는 그쪽으로 볼록하게 휘어 방사형 흐름을 살립니다.
+  // 거의 수평인 중심 가지는 참고 마인드맵처럼 차분한 수평선으로 둡니다.
   const horizontal = Math.abs(dy) <= Math.max(10, Math.abs(dx) * 0.08);
   const nearCenter = Math.abs(midY) < 28;
   if (horizontal && nearCenter) {
@@ -101,23 +100,17 @@ function edgeGeometry(a, b, layout, parentNode = null, childNode = null, levels 
     };
   }
 
-  const ux = dx / dist, uy = dy / dist;
-  const px = -uy, py = ux; // 직선에 수직인 방향
-  const bow = Math.min(dist * 0.34, 106);
-  const outward = midX * px + midY * py >= 0 ? 1 : -1;
-  const angleFlavor = Math.sin(Math.atan2(dy, dx) * 1.7);
-  const sweep = Math.sign(angleFlavor || midY || 1);
-  const startBow = bow * (0.12 + Math.abs(angleFlavor) * 0.2);
-  const endBow = bow * (0.9 + Math.abs(angleFlavor) * 0.32);
-  const startSign = outward * sweep;
-  const endSign = outward * (Math.abs(angleFlavor) > 0.46 ? -sweep : sweep);
+  const side = b.x >= a.x ? 1 : -1;
+  const handleBase = Math.min(Math.max(Math.abs(dx) * 0.42 + Math.abs(dy) * 0.18, 54), dist * 0.72);
+  const startHandle = Math.min(handleBase, 240);
+  const endHandle = Math.min(Math.max(Math.abs(dx) * 0.38 + Math.abs(dy) * 0.12, 48), 220);
   const c1 = {
-    x: a.x + ux * dist * 0.18 + px * startBow * startSign,
-    y: a.y + uy * dist * 0.18 + py * startBow * startSign,
+    x: a.x + side * startHandle,
+    y: a.y,
   };
   const c2 = {
-    x: b.x - ux * dist * 0.42 + px * endBow * endSign,
-    y: b.y - uy * dist * 0.42 + py * endBow * endSign,
+    x: b.x - side * endHandle,
+    y: b.y,
   };
   return {
     d: `M ${a.x} ${a.y} C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${b.x} ${b.y}`,
