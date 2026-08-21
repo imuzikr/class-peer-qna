@@ -474,7 +474,7 @@ export default function StudyBoardColumn({
               ▶
             </button>
           )}
-          {isTeacher && !isNotice && (
+          {isTeacher && (
             <button
               className={`study-panel-toggle${panelOpen ? " open" : ""}`}
               onClick={(e) => {
@@ -526,69 +526,73 @@ export default function StudyBoardColumn({
         )}
 
         {/* 정렬·활동·설정 패널 — 제목 카드 클릭 시 한 번에 펼침 */}
-        {isTeacher && !isNotice && (
+        {isTeacher && (
           <div className={`study-board-panel${panelOpen ? " open" : ""}`}>
-            <div className="study-sort">
-              {isGroup ? (
-                /* 모둠 보드: 정렬 대신 모둠 구성 버튼 (카드는 모둠 순번 고정) */
-                <button
-                  className="study-sort-btn study-sort-btn--group"
-                  onClick={() => setComposing(true)}
-                  title="모둠 구성 — 자동/직접 배정"
-                >
-                  👥 모둠 구성
-                </button>
-              ) : (
-                <>
+            {!isNotice && (
+              <div className="study-sort">
+                {isGroup ? (
+                  /* 모둠 보드: 정렬 대신 모둠 구성 버튼 (카드는 모둠 순번 고정) */
                   <button
-                    className={`study-sort-btn study-sort-btn--studentid${sortKey === "studentId" ? " active" : ""}`}
-                    onClick={() => {
-                      setSortKey("studentId");
-                      setStudentIdDir((d) => (d === "asc" ? "desc" : "asc"));
-                    }}
-                    title="학번 정렬"
+                    className="study-sort-btn study-sort-btn--group"
+                    onClick={() => setComposing(true)}
+                    title="모둠 구성 — 자동/직접 배정"
                   >
-                    학번 {studentIdDir === "asc" ? "↑" : "↓"}
+                    👥 모둠 구성
                   </button>
-                  <button
-                    className={`study-sort-btn study-sort-btn--time${sortKey === "time" ? " active" : ""}`}
-                    onClick={() => {
-                      setSortKey("time");
-                      setTimeDir((d) => (d === "asc" ? "desc" : "asc"));
-                    }}
-                    title="제출 시간 정렬"
-                  >
-                    제출 {timeDir === "asc" ? "↑" : "↓"}
-                  </button>
-                </>
-              )}
-            </div>
+                ) : (
+                  <>
+                    <button
+                      className={`study-sort-btn study-sort-btn--studentid${sortKey === "studentId" ? " active" : ""}`}
+                      onClick={() => {
+                        setSortKey("studentId");
+                        setStudentIdDir((d) => (d === "asc" ? "desc" : "asc"));
+                      }}
+                      title="학번 정렬"
+                    >
+                      학번 {studentIdDir === "asc" ? "↑" : "↓"}
+                    </button>
+                    <button
+                      className={`study-sort-btn study-sort-btn--time${sortKey === "time" ? " active" : ""}`}
+                      onClick={() => {
+                        setSortKey("time");
+                        setTimeDir((d) => (d === "asc" ? "desc" : "asc"));
+                      }}
+                      title="제출 시간 정렬"
+                    >
+                      제출 {timeDir === "asc" ? "↑" : "↓"}
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
             <div className="study-settings">
-              <label className="study-setting-row">
-                <span>공개 범위</span>
-                <button
-                  className="study-chip"
-                  onClick={() =>
-                    updateStudyBoard(board.id, {
-                      viewMode:
-                        board.viewMode === "shared" ? "private" : "shared",
-                    })
-                  }
-                  title={
-                    isGroup
-                      ? "자기 모둠만: 각 모둠은 자기 카드만 봄 · 함께 보기: 다른 모둠 카드도 읽기 전용으로 공개"
-                      : undefined
-                  }
-                >
-                  {board.viewMode === "shared" ? (
-                    <><IconPeople size={15} /> 함께 보기</>
-                  ) : isGroup ? (
-                    <><IconLock size={15} /> 자기 모둠만</>
-                  ) : (
-                    <><IconLock size={15} /> 나만 보기</>
-                  )}
-                </button>
-              </label>
+              {!isNotice && (
+                <label className="study-setting-row">
+                  <span>공개 범위</span>
+                  <button
+                    className="study-chip"
+                    onClick={() =>
+                      updateStudyBoard(board.id, {
+                        viewMode:
+                          board.viewMode === "shared" ? "private" : "shared",
+                      })
+                    }
+                    title={
+                      isGroup
+                        ? "자기 모둠만: 각 모둠은 자기 카드만 봄 · 함께 보기: 다른 모둠 카드도 읽기 전용으로 공개"
+                        : undefined
+                    }
+                  >
+                    {board.viewMode === "shared" ? (
+                      <><IconPeople size={15} /> 함께 보기</>
+                    ) : isGroup ? (
+                      <><IconLock size={15} /> 자기 모둠만</>
+                    ) : (
+                      <><IconLock size={15} /> 나만 보기</>
+                    )}
+                  </button>
+                </label>
+              )}
               <label className="study-setting-row">
                 <span>편집 상태</span>
                 <button
@@ -609,35 +613,37 @@ export default function StudyBoardColumn({
 
               {/* 활동 상태 — 만들어 둔 활동을 하나씩 열고 잠급니다.
                   (수업 화면의 '활동 열기' 줄과 같은 값을 보고 씁니다) */}
-              <div className="study-setting-row study-setting-row--acts">
-                <span>활동 상태</span>
-                <div className="study-act-chips">
-                  {(board.activities ?? []).map((a, i) => {
-                    const actLocked = isActivityLocked(board, i);
-                    return (
-                      <button
-                        key={`${a}-${i}`}
-                        type="button"
-                        className={`study-act-chip${actLocked ? " locked" : ""}`}
-                        onClick={() => toggleActivityLock(i, !actLocked)}
-                        title={`${a} — ${actLocked ? "눌러서 열기" : "눌러서 잠그기"}`}
-                        aria-pressed={!actLocked}
-                      >
-                        활동 {i + 1}
-                      </button>
-                    );
-                  })}
-                  <button
-                    type="button"
-                    className="study-act-chip study-act-chip--add"
-                    onClick={openActivitiesModal}
-                    title="학생 카드에 제시할 활동을 추가·수정합니다"
-                    aria-label="활동 추가"
-                  >
-                    +
-                  </button>
+              {!isNotice && (
+                <div className="study-setting-row study-setting-row--acts">
+                  <span>활동 상태</span>
+                  <div className="study-act-chips">
+                    {(board.activities ?? []).map((a, i) => {
+                      const actLocked = isActivityLocked(board, i);
+                      return (
+                        <button
+                          key={`${a}-${i}`}
+                          type="button"
+                          className={`study-act-chip${actLocked ? " locked" : ""}`}
+                          onClick={() => toggleActivityLock(i, !actLocked)}
+                          title={`${a} — ${actLocked ? "눌러서 열기" : "눌러서 잠그기"}`}
+                          aria-pressed={!actLocked}
+                        >
+                          활동 {i + 1}
+                        </button>
+                      );
+                    })}
+                    <button
+                      type="button"
+                      className="study-act-chip study-act-chip--add"
+                      onClick={openActivitiesModal}
+                      title="학생 카드에 제시할 활동을 추가·수정합니다"
+                      aria-label="활동 추가"
+                    >
+                      +
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
 
               <button
                 className="study-chip"
