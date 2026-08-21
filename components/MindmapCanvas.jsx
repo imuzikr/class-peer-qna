@@ -44,7 +44,8 @@ const FIT_PAD = 120;
 const clampZoom = (z) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z));
 
 // 두 점을 잇는 곡선 + 그 곡선의 가운데 점(라벨을 놓을 자리).
-// 방사형은 이차 베지어로 살짝 휘게, 계층형은 가로로 흐르는 삼차 베지어입니다.
+// 방사형은 노드가 놓인 방향에 맞춰 직선/위·아래 볼록을 고르고,
+// 계층형은 가로로 흐르는 삼차 베지어입니다.
 // 가운데 점은 실제 곡선 위의 t=0.5 지점이라, 라벨이 선에서 떨어져 보이지 않습니다.
 function edgeGeometry(a, b, layout) {
   if (layout === "tree") {
@@ -61,13 +62,31 @@ function edgeGeometry(a, b, layout) {
   }
   const dx = b.x - a.x, dy = b.y - a.y;
   const dist = Math.hypot(dx, dy) || 1;
+  const midX = (a.x + b.x) / 2;
+  const midY = (a.y + b.y) / 2;
+
+  // 거의 수평인 중심 가지는 곡선을 억제해 차분한 수평선으로 둡니다.
+  // 중심에서 위/아래로 벗어난 가지는 그쪽으로 볼록하게 휘어 방사형 흐름을 살립니다.
+  const horizontal = Math.abs(dy) <= Math.max(10, Math.abs(dx) * 0.08);
+  const nearCenter = Math.abs(midY) < 28;
+  if (horizontal && nearCenter) {
+    return {
+      d: `M ${a.x} ${a.y} L ${b.x} ${b.y}`,
+      mid: { x: midX, y: midY },
+    };
+  }
+
   const px = -dy / dist, py = dx / dist; // 직선에 수직인 방향
-  const bow = Math.min(dist * 0.22, 60); // 항상 같은 쪽으로 살짝 휘게(부채꼴 느낌)
-  const cx = (a.x + b.x) / 2 + px * bow;
-  const cy = (a.y + b.y) / 2 + py * bow;
+  const bow = Math.min(dist * 0.22, 64);
+  const outward = midX * px + midY * py >= 0 ? 1 : -1;
+  const adjustedCx = midX + px * bow * outward;
+  const adjustedCy = midY + py * bow * outward;
   return {
-    d: `M ${a.x} ${a.y} Q ${cx} ${cy} ${b.x} ${b.y}`,
-    mid: { x: 0.25 * a.x + 0.5 * cx + 0.25 * b.x, y: 0.25 * a.y + 0.5 * cy + 0.25 * b.y },
+    d: `M ${a.x} ${a.y} Q ${adjustedCx} ${adjustedCy} ${b.x} ${b.y}`,
+    mid: {
+      x: 0.25 * a.x + 0.5 * adjustedCx + 0.25 * b.x,
+      y: 0.25 * a.y + 0.5 * adjustedCy + 0.25 * b.y,
+    },
   };
 }
 
