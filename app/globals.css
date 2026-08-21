@@ -12468,10 +12468,21 @@ pre code {
   flex: 1;
   min-height: 0;
   padding: 12px 16px 18px;
+  display: flex;
+  flex-direction: column;
 }
-.broadcast-overlay--mindmap .mm-stage { height: 100%; margin-top: 0; }
-/* 여기는 판(.mm-stage)의 높이가 정해져 있어 flex로 남은 높이를 다 줍니다 */
-.broadcast-overlay--mindmap .mm-viewport { flex: 1; min-height: 0; height: auto; }
+.broadcast-overlay--mindmap .broadcast-mindmap-stage {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  margin-top: 0;
+}
+/* 방송 화면은 부모 높이가 정해진 전체 화면 오버레이라 판을 남은 공간에 고정합니다 */
+.broadcast-overlay--mindmap .broadcast-mindmap-stage .mm-viewport {
+  flex: 1;
+  min-height: 360px;
+  height: 100%;
+}
 
 /* ── 모바일 ── */
 @media (max-width: 900px) {
