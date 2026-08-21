@@ -1,10 +1,9 @@
 "use client";
 
 // =============================================================
-// 학생 KWL 기록 패널 (관리자 대시보드) — 선택한 학생의 KWL을 날짜별로 표시.
-// entries: { id, date, K, W, L }[] (subscribeUserKwl 결과, 최신순)
+// 학생 KWLS 기록 패널 (관리자 대시보드) — 선택한 학생의 KWLS를 날짜별로 표시.
 // =============================================================
-import { IconKwlK, IconKwlW, IconKwlL } from "@/components/StatusIcons";
+import { KWLS_COLUMNS, kwlsAnswersFromEntry } from "@/lib/kwls";
 
 function fmtDate(dateStr) {
   const d = new Date(dateStr + "T00:00:00");
@@ -22,12 +21,12 @@ export default function StudentKwlPanel({ entries = [] }) {
   return (
     <section className="admin-activity-panel kwl-record-panel">
       <div className="admin-panel-head">
-        <h2>📒 KWL 기록</h2>
+        <h2>📒 KWLS 기록</h2>
         <span>{dates.length}일 · {entries.length}건</span>
       </div>
 
       {dates.length === 0 ? (
-        <div className="admin-empty">아직 KWL 기록이 없습니다.</div>
+        <div className="admin-empty">아직 KWLS 기록이 없습니다.</div>
       ) : (
         <div className="kwl-record-list">
           {dates.map((date) => (
@@ -35,24 +34,15 @@ export default function StudentKwlPanel({ entries = [] }) {
               <div className="kwl-record-date">{fmtDate(date)}</div>
               {byDate[date].map((e) => (
                 <div key={e.id} className="kwl-record-entry">
-                  {e.K && (
-                    <div className="kwl-history-row">
-                      <IconKwlK size={22} />
-                      <p>{e.K}</p>
-                    </div>
-                  )}
-                  {e.W && (
-                    <div className="kwl-history-row">
-                      <IconKwlW size={22} />
-                      <p>{e.W}</p>
-                    </div>
-                  )}
-                  {e.L && (
-                    <div className="kwl-history-row">
-                      <IconKwlL size={22} />
-                      <p>{e.L}</p>
-                    </div>
-                  )}
+                  {KWLS_COLUMNS.map((c) => {
+                    const answers = kwlsAnswersFromEntry(e);
+                    return answers[c.key]?.trim() ? (
+                      <div className="kwl-history-row" key={c.key}>
+                        <span className={`kwl-badge kwl-badge-${c.letter.toLowerCase()}`}>{c.letter}</span>
+                        <p>{answers[c.key]}</p>
+                      </div>
+                    ) : null;
+                  })}
                 </div>
               ))}
             </div>
