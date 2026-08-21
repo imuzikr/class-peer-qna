@@ -111,14 +111,9 @@ function edgeGeometry(a, b, layout, parentNode = null, childNode = null, levels 
   const side = b.x >= a.x ? 1 : -1;
   const labelMid = edgeLabelMid(a, b, parentNode, childNode, levels);
   if (childLv > 1) {
-    const levelGap = b.y - a.y;
-    const flatY = Math.abs(levelGap) <= 18 ? a.y : labelMid.y;
-    const c1 = { x: labelMid.x, y: a.y };
-    const c2 = { x: labelMid.x, y: flatY };
-    const c3 = { x: labelMid.x, y: b.y };
     return {
-      d: `M ${a.x} ${a.y} C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${labelMid.x} ${flatY} S ${c3.x} ${c3.y}, ${b.x} ${b.y}`,
-      mid: { x: labelMid.x, y: flatY },
+      d: `M ${a.x} ${a.y} L ${b.x} ${b.y}`,
+      mid: labelMid,
     };
   }
 
