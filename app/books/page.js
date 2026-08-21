@@ -111,6 +111,7 @@ export default function BooksPage() {
         ? localSelectedId
         : myClasses[0].id;
     setTeacherClassId(remembered);
+    if (localSelectedId !== remembered) setSelectedClassId(remembered);
   }, [admin, myClasses, teacherClassId, localSelectedId]);
 
   const classId = admin ? teacherClassId : studentClassId;
@@ -143,6 +144,8 @@ export default function BooksPage() {
   const activeActivity = openActivity
     ? activities.find((a) => a.id === openActivity.id) ?? openActivity
     : null;
+  const activeClassId = activeActivity?.classId ?? classId;
+  const activeClassName = classes.find((c) => c.id === activeClassId)?.name ?? "";
 
   // 개인 활동(곁텍스트 읽기·RAFT·KWLS·마인드맵)은 모둠이 없어 화면 흐름이 따로입니다.
   const isParatext = activeActivity?.type === "paratext";
@@ -198,10 +201,8 @@ export default function BooksPage() {
       {isMindmap && admin ? (
         <MindmapBoard
           activity={activeActivity}
-          className={
-            classes.find((c) => c.id === activeActivity.classId)?.name ?? ""
-          }
-          classId={classId}
+          className={activeClassName}
+          classId={activeClassId}
           user={user}
           roster={roster}
           onBack={() => setOpenActivity(null)}
@@ -216,10 +217,8 @@ export default function BooksPage() {
       isKwls && admin ? (
         <KwlsBoard
           activity={activeActivity}
-          className={
-            classes.find((c) => c.id === activeActivity.classId)?.name ?? ""
-          }
-          classId={classId}
+          className={activeClassName}
+          classId={activeClassId}
           user={user}
           roster={roster}
           onBack={() => setOpenActivity(null)}
@@ -234,10 +233,8 @@ export default function BooksPage() {
       isRaft && admin ? (
         <RaftBoard
           activity={activeActivity}
-          className={
-            classes.find((c) => c.id === activeActivity.classId)?.name ?? ""
-          }
-          classId={classId}
+          className={activeClassName}
+          classId={activeClassId}
           user={user}
           roster={roster}
           onBack={() => setOpenActivity(null)}
@@ -252,10 +249,8 @@ export default function BooksPage() {
       isParatext && admin ? (
         <ParatextBoard
           activity={activeActivity}
-          className={
-            classes.find((c) => c.id === activeActivity.classId)?.name ?? ""
-          }
-          classId={classId}
+          className={activeClassName}
+          classId={activeClassId}
           user={user}
           roster={roster}
           onBack={() => setOpenActivity(null)}
@@ -270,7 +265,7 @@ export default function BooksPage() {
       admin && allView && activeActivity ? (
         <ConsonantDashboard
           activity={activeActivity}
-          classId={classId}
+          classId={activeClassId}
           user={user}
           onClose={() => setAllView(false)}
         />
