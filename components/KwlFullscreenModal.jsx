@@ -1,12 +1,12 @@
 "use client";
 
 // =============================================================
-// KWL 전체 화면 (교사 전용) — 학생들의 K·W·L을 3컬럼으로 크게
+// KWLS 전체 화면 (교사 전용) — 학생들의 K·W·L·S를 4컬럼으로 크게
 // -------------------------------------------------------------
-// · 한 행 = 학생 한 명. K / W / L 세 컬럼을 나란히 보며 성찰 나눔.
+// · 한 행 = 학생 한 명. K / W / L / S 네 컬럼을 나란히 보며 성찰 나눔.
 // · 스크롤하며 전체 학생 기록을 훑을 수 있음. Esc로 닫기.
 // · 학생 이름은 디렉터리의 실명(교사 화면)으로 표시.
-// · 컬럼(학생·K·W·L) 전체에 은은한 배경 띠를 깔아 한눈에 구분되게 합니다.
+// · 컬럼(학생·K·W·L·S) 전체에 은은한 배경 띠를 깔아 한눈에 구분되게 합니다.
 // · 날짜 이동: 좌우 화살표(하루씩) + 달력 아이콘(직접 선택) 두 가지 방법.
 //   날짜가 바뀔 때마다 그 날짜의 기록을 실시간 구독합니다.
 // =============================================================
@@ -19,7 +19,7 @@ import {
   setStudentReward,
   REWARD_MAX,
 } from "@/lib/store";
-import { IconKwlK, IconKwlW, IconKwlL } from "./StatusIcons";
+import { KWLS_COLUMNS, kwlsAnswersFromEntry } from "@/lib/kwls";
 
 function toYMD(d) {
   const y = d.getFullYear();
@@ -126,7 +126,7 @@ export default function KwlFullscreenModal({ classId, initialDate, onClose }) {
       <div className="present-modal kwlfs-modal" onClick={(e) => e.stopPropagation()}>
         <div className="present-head">
           <div className="present-who">
-            <strong className="present-name">📝 KWL</strong>
+            <strong className="present-name">📝 KWLS</strong>
             <span className="present-progress">{rows.length}명</span>
 
             {/* 날짜 이동 — 달력 선택(라벨) + 나란히 붙은 좌우 화살표 */}
@@ -192,7 +192,7 @@ export default function KwlFullscreenModal({ classId, initialDate, onClose }) {
 
         <div className="kwlfs-body">
           {rows.length === 0 ? (
-            <p className="present-empty">{formatDateLabel(date)}에 저장된 KWL이 없어요.</p>
+            <p className="present-empty">{formatDateLabel(date)}에 저장된 KWLS가 없어요.</p>
           ) : (
             <div
               className="kwlfs-table"
@@ -202,26 +202,32 @@ export default function KwlFullscreenModal({ classId, initialDate, onClose }) {
             >
               {/* 컬럼 배경 띠 — 헤더부터 하단 빈 공간까지 관통 (먼저 그려 셀 아래 깔림) */}
               <div className="kwlfs-colbg kwlfs-colbg--name" />
-              <div className="kwlfs-colbg kwlfs-colbg--k" />
-              <div className="kwlfs-colbg kwlfs-colbg--w" />
-              <div className="kwlfs-colbg kwlfs-colbg--l" />
+              {KWLS_COLUMNS.map((c, i) => (
+                <div
+                  key={c.key}
+                  className={`kwlfs-colbg kwlfs-colbg--${c.letter.toLowerCase()}`}
+                  style={{ gridColumn: i + 2 }}
+                />
+              ))}
 
               {/* 컬럼 헤더 */}
               <div className="kwlfs-cell kwlfs-head kwlfs-head--name" style={{ gridRow: 1, gridColumn: 1 }}>
                 학생
               </div>
-              <div className="kwlfs-cell kwlfs-head kwlfs-head--k" style={{ gridRow: 1, gridColumn: 2 }}>
-                <IconKwlK size={22} /> 알고 있었던 것
-              </div>
-              <div className="kwlfs-cell kwlfs-head kwlfs-head--w" style={{ gridRow: 1, gridColumn: 3 }}>
-                <IconKwlW size={22} /> 알고 싶은 것
-              </div>
-              <div className="kwlfs-cell kwlfs-head kwlfs-head--l" style={{ gridRow: 1, gridColumn: 4 }}>
-                <IconKwlL size={22} /> 새롭게 알게 된 것
-              </div>
+              {KWLS_COLUMNS.map((c, i) => (
+                <div
+                  key={c.key}
+                  className={`kwlfs-cell kwlfs-head kwlfs-head--${c.letter.toLowerCase()}`}
+                  style={{ gridRow: 1, gridColumn: i + 2 }}
+                >
+                  <span className={`kwl-badge kwl-badge-${c.letter.toLowerCase()}`}>{c.letter}</span>
+                  {c.ko}
+                </div>
+              ))}
 
               {rows.map((r, i) => {
                 const rowNum = i + 2; // 1행은 헤더
+                const answers = kwlsAnswersFromEntry(r);
                 return (
                   <Fragment key={r.id}>
                     <div className="kwlfs-cell kwlfs-cell--name" style={{ gridRow: rowNum, gridColumn: 1 }}>
@@ -239,15 +245,15 @@ export default function KwlFullscreenModal({ classId, initialDate, onClose }) {
                         ＋
                       </button>
                     </div>
-                    <div className="kwlfs-cell kwlfs-text" style={{ gridRow: rowNum, gridColumn: 2 }}>
-                      {r.K || <span className="kwlfs-none">—</span>}
-                    </div>
-                    <div className="kwlfs-cell kwlfs-text" style={{ gridRow: rowNum, gridColumn: 3 }}>
-                      {r.W || <span className="kwlfs-none">—</span>}
-                    </div>
-                    <div className="kwlfs-cell kwlfs-text" style={{ gridRow: rowNum, gridColumn: 4 }}>
-                      {r.L || <span className="kwlfs-none">—</span>}
-                    </div>
+                    {KWLS_COLUMNS.map((c, colIndex) => (
+                      <div
+                        key={c.key}
+                        className="kwlfs-cell kwlfs-text"
+                        style={{ gridRow: rowNum, gridColumn: colIndex + 2 }}
+                      >
+                        {answers[c.key] || <span className="kwlfs-none">—</span>}
+                      </div>
+                    ))}
                   </Fragment>
                 );
               })}

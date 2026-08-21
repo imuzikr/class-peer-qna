@@ -589,18 +589,18 @@ export default function StudyPage() {
         </main>
       )}
 
-      {/* 모바일 KWL 열기 버튼 (FAB) */}
+      {/* 모바일 KWLS 열기 버튼 (FAB) */}
       {classId && user && !kwlMobileOpen && (
         <button
           className="kwl-fab"
           onClick={() => setKwlMobileOpen(true)}
-          aria-label="KWL 패널 열기"
+          aria-label="KWLS 패널 열기"
         >
-          📝 KWL
+          📝 KWLS
         </button>
       )}
 
-      {/* KWL 패널 열릴 때 배경 오버레이 */}
+      {/* KWLS 패널 열릴 때 배경 오버레이 */}
       {kwlMobileOpen && (
         <div
           className="kwl-mobile-backdrop"

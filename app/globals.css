@@ -7125,13 +7125,13 @@ pre code {
   padding: 22px 30px 30px;
 }
 
-/* CSS Grid: 학생 | K | W | L 네 컬럼. 컬럼 배경 띠(.kwlfs-colbg)를 먼저 깔고
+/* CSS Grid: 학생 | K | W | L | S 다섯 컬럼. 컬럼 배경 띠(.kwlfs-colbg)를 먼저 깔고
    그 위에 헤더·셀을 명시적 grid-row/column으로 겹쳐 올려, 셀 사이 여백과
    무관하게 "컬럼 전체"가 하나의 색으로 이어져 보이게 합니다. */
 .kwlfs-table {
   position: relative;
   display: grid;
-  grid-template-columns: 210px 1fr 1fr 1fr;
+  grid-template-columns: 190px repeat(4, minmax(180px, 1fr));
   column-gap: 14px;
   row-gap: 0;
   /* body 높이만큼 최소 확보 — 마지막 1fr 트랙이 빈 공간을 채우게 함 */
@@ -7158,6 +7158,10 @@ pre code {
 .kwlfs-colbg--l {
   grid-column: 4;
   background: #dfeee4;
+}
+.kwlfs-colbg--s {
+  grid-column: 5;
+  background: #e7e2f2;
 }
 
 .kwlfs-cell {
@@ -7192,6 +7196,10 @@ pre code {
 .kwlfs-head--l {
   background: #dfeee4;
   color: #3f6f50;
+}
+.kwlfs-head--s {
+  background: #e7e2f2;
+  color: #654f8a;
 }
 
 .kwlfs-cell--name {
@@ -7486,6 +7494,7 @@ pre code {
 .kwl-badge-k { background: #3d5a80; color: #d0e4f7; }
 .kwl-badge-w { background: #6b4c2a; color: #f5dfc0; }
 .kwl-badge-l { background: #2e6b3e; color: #c2eacb; }
+.kwl-badge-s { background: #604c8b; color: #e8ddff; }
 
 .kwl-textarea {
   width: 100%;

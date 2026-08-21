@@ -1,12 +1,13 @@
 "use client";
 
-// KWL 사이드 패널 — 공부방 왼쪽 고정 패널
+// KWLS 사이드 패널 — 공부방 왼쪽 고정 패널
 // 하루에 1개 항목만 유지(같은 날 저장 시 덮어쓰기), 저장 후 입력창은 초기화됩니다.
 import { useEffect, useState } from "react";
 import { subscribeMyTodayKwl, subscribeAllKwl, subscribeMyAllKwl, addKwl, updateKwl, deleteKwl } from "@/lib/store";
-import { IconKwlK, IconKwlW, IconKwlL, IconRecord } from "@/components/StatusIcons";
+import { IconRecord } from "@/components/StatusIcons";
 import { IconPen } from "@/components/RichTextEditor";
 import KwlFullscreenModal from "@/components/KwlFullscreenModal";
+import { KWLS_COLUMNS, emptyKwlsAnswers, kwlsAnswersFromEntry } from "@/lib/kwls";
 
 function getToday() {
   // 로컬(사용자 시간대) 자정 기준 날짜 — UTC 기준이면 KST 오전 9시에
@@ -26,19 +27,15 @@ function formatDateLabel(dateStr) {
 function KwlEntry({ entry }) {
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [K, setK] = useState(entry.K ?? "");
-  const [W, setW] = useState(entry.W ?? "");
-  const [L, setL] = useState(entry.L ?? "");
+  const [answers, setAnswers] = useState(() => kwlsAnswersFromEntry(entry));
   const [saving, setSaving] = useState(false);
 
   // 편집 중이 아닐 때만 외부 갱신(실시간 구독)을 입력값에 반영
   useEffect(() => {
     if (!editing) {
-      setK(entry.K ?? "");
-      setW(entry.W ?? "");
-      setL(entry.L ?? "");
+      setAnswers(kwlsAnswersFromEntry(entry));
     }
-  }, [entry.K, entry.W, entry.L, editing]);
+  }, [entry, editing]);
 
   function startEdit(e) {
     e.stopPropagation();
@@ -46,17 +43,15 @@ function KwlEntry({ entry }) {
   }
   function cancelEdit(e) {
     e.stopPropagation();
-    setK(entry.K ?? "");
-    setW(entry.W ?? "");
-    setL(entry.L ?? "");
+    setAnswers(kwlsAnswersFromEntry(entry));
     setEditing(false);
   }
   async function saveEdit(e) {
     e.stopPropagation();
-    if (!K.trim() && !W.trim() && !L.trim()) return;
+    if (!Object.values(answers).some((v) => String(v).trim())) return;
     setSaving(true);
     try {
-      await updateKwl(entry, { K, W, L });
+      await updateKwl(entry, { answers });
       setEditing(false);
     } finally {
       setSaving(false);
@@ -66,21 +61,18 @@ function KwlEntry({ entry }) {
   if (editing) {
     return (
       <div className="kwl-entry kwl-entry--editing">
-        <div className="kwl-edit-row">
-          <IconKwlK size={22} />
-          <textarea className="kwl-edit-textarea" value={K} rows={2}
-            placeholder="알고 있던 것" onChange={(e) => setK(e.target.value)} />
-        </div>
-        <div className="kwl-edit-row">
-          <IconKwlW size={22} />
-          <textarea className="kwl-edit-textarea" value={W} rows={2}
-            placeholder="알고 싶은 것" onChange={(e) => setW(e.target.value)} />
-        </div>
-        <div className="kwl-edit-row">
-          <IconKwlL size={22} />
-          <textarea className="kwl-edit-textarea" value={L} rows={2}
-            placeholder="새롭게 알게 된 것" onChange={(e) => setL(e.target.value)} />
-        </div>
+        {KWLS_COLUMNS.map((c) => (
+          <div className="kwl-edit-row" key={c.key}>
+            <span className={`kwl-badge kwl-badge-${c.letter.toLowerCase()}`}>{c.letter}</span>
+            <textarea
+              className="kwl-edit-textarea"
+              value={answers[c.key] ?? ""}
+              rows={2}
+              placeholder={c.prompt}
+              onChange={(e) => setAnswers((prev) => ({ ...prev, [c.key]: e.target.value }))}
+            />
+          </div>
+        ))}
         <div className="kwl-edit-actions">
           <button type="button" className="kwl-edit-cancel" onClick={cancelEdit} disabled={saving}>
             취소
@@ -93,6 +85,8 @@ function KwlEntry({ entry }) {
     );
   }
 
+  const answersView = kwlsAnswersFromEntry(entry);
+
   return (
     <div
       className={`kwl-entry${expanded ? " kwl-entry--open" : ""}`}
@@ -101,23 +95,13 @@ function KwlEntry({ entry }) {
       tabIndex={0}
       onKeyDown={(e) => e.key === "Enter" && setExpanded((v) => !v)}
     >
-      {entry.K && (
-        <div className="kwl-history-row">
-          <IconKwlK size={26} />
-          <p>{entry.K}</p>
-        </div>
-      )}
-      {entry.W && (
-        <div className="kwl-history-row">
-          <IconKwlW size={26} />
-          <p>{entry.W}</p>
-        </div>
-      )}
-      {entry.L && (
-        <div className="kwl-history-row">
-          <IconKwlL size={26} />
-          <p>{entry.L}</p>
-        </div>
+      {KWLS_COLUMNS.map((c) =>
+        answersView[c.key]?.trim() ? (
+          <div className="kwl-history-row" key={c.key}>
+            <span className={`kwl-badge kwl-badge-${c.letter.toLowerCase()}`}>{c.letter}</span>
+            <p>{answersView[c.key]}</p>
+          </div>
+        ) : null
       )}
       <button type="button" className="kwl-entry-edit-btn" onClick={startEdit} aria-label="수정">
         <IconPen size={14} /> 수정
@@ -130,9 +114,7 @@ export default function KwlPanel({ classId, user, isTeacher, onAsk, mobileOpen, 
   const today = getToday();
 
   const [tab, setTab] = useState("today");
-  const [K, setK] = useState("");
-  const [W, setW] = useState("");
-  const [L, setL] = useState("");
+  const [answers, setAnswers] = useState(() => emptyKwlsAnswers());
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [todayEntries, setTodayEntries] = useState([]);
@@ -140,7 +122,7 @@ export default function KwlPanel({ classId, user, isTeacher, onAsk, mobileOpen, 
   const [showAllW, setShowAllW] = useState(false);
   const [history, setHistory] = useState([]);
   const [expandedDate, setExpandedDate] = useState(null);
-  const [fullscreen, setFullscreen] = useState(false); // 교사: KWL 전체 화면
+  const [fullscreen, setFullscreen] = useState(false); // 교사: KWLS 전체 화면
 
   // 오늘 내 항목 구독
   useEffect(() => {
@@ -162,19 +144,17 @@ export default function KwlPanel({ classId, user, isTeacher, onAsk, mobileOpen, 
 
   async function handleSave() {
     if (!classId || !user) return;
-    if (!K.trim() && !W.trim() && !L.trim()) return;
+    if (!Object.values(answers).some((v) => String(v).trim())) return;
     setSaving(true);
     try {
-      await addKwl(classId, user, today, { K, W, L });
+      await addKwl(classId, user, today, { answers });
       // 과거에 append 방식으로 누적된 오늘의 중복 항목 정리 (표준 ID 1개만 남김)
       const canonicalId = `${user.uid}_${classId}_${today}`;
       await Promise.all(
         todayEntries.filter((e) => e.id !== canonicalId).map((e) => deleteKwl(e))
       );
       // 저장 후 입력창 초기화
-      setK("");
-      setW("");
-      setL("");
+      setAnswers(emptyKwlsAnswers());
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } finally {
@@ -182,8 +162,10 @@ export default function KwlPanel({ classId, user, isTeacher, onAsk, mobileOpen, 
     }
   }
 
-  const allW = allEntries.filter((e) => e.W?.trim() && e.userId !== user?.uid);
-  const isEmpty = !K.trim() && !W.trim() && !L.trim();
+  const allW = allEntries
+    .map((e) => ({ ...e, answers: kwlsAnswersFromEntry(e) }))
+    .filter((e) => e.answers.want?.trim() && e.userId !== user?.uid);
+  const isEmpty = !Object.values(answers).some((v) => String(v).trim());
 
   // 기록 탭: 날짜별로 그룹화
   const historyByDate = history.reduce((acc, entry) => {
@@ -224,7 +206,7 @@ export default function KwlPanel({ classId, user, isTeacher, onAsk, mobileOpen, 
             type="button"
             className="kwl-fullscreen-btn"
             onClick={() => setFullscreen(true)}
-            title="오늘 학생들의 K·W·L을 전체 화면 3컬럼으로 보기"
+            title="오늘 학생들의 K·W·L·S를 전체 화면 4컬럼으로 보기"
           >
             ⛶ 전체 화면
           </button>
@@ -239,58 +221,32 @@ export default function KwlPanel({ classId, user, isTeacher, onAsk, mobileOpen, 
               고치게 합니다(하루 1개, 새 글 추가 대신 수정만 허용). */}
           {todayEntries.length === 0 ? (
             <>
-              <div className="kwl-section">
-                <label className="kwl-label">
-                  <IconKwlK size={26} />
-                  알고 있었던 것
-                </label>
-                <textarea
-                  className="kwl-textarea"
-                  value={K}
-                  onChange={(e) => setK(e.target.value)}
-                  placeholder="이미 알고 있던 내용..."
-                  rows={3}
-                />
-              </div>
-
-              <div className="kwl-section">
-                <div className="kwl-label-row">
-                  <label className="kwl-label">
-                    <IconKwlW size={26} />
-                    알고 싶은 것
-                  </label>
-                  {W.trim() && onAsk && (
-                    <button
-                      type="button"
-                      className="kwl-ask-btn"
-                      onClick={() => onAsk(W.trim())}
-                    >
-                      ❓ 질문으로
-                    </button>
-                  )}
+              {KWLS_COLUMNS.map((c) => (
+                <div className="kwl-section" key={c.key}>
+                  <div className="kwl-label-row">
+                    <label className="kwl-label">
+                      <span className={`kwl-badge kwl-badge-${c.letter.toLowerCase()}`}>{c.letter}</span>
+                      {c.ko}
+                    </label>
+                    {c.key === "want" && answers.want.trim() && onAsk && (
+                      <button
+                        type="button"
+                        className="kwl-ask-btn"
+                        onClick={() => onAsk(answers.want.trim())}
+                      >
+                        ❓ 질문으로
+                      </button>
+                    )}
+                  </div>
+                  <textarea
+                    className="kwl-textarea"
+                    value={answers[c.key] ?? ""}
+                    onChange={(e) => setAnswers((prev) => ({ ...prev, [c.key]: e.target.value }))}
+                    placeholder={c.placeholder}
+                    rows={3}
+                  />
                 </div>
-                <textarea
-                  className="kwl-textarea"
-                  value={W}
-                  onChange={(e) => setW(e.target.value)}
-                  placeholder="궁금한 점, 더 알고 싶은 것..."
-                  rows={3}
-                />
-              </div>
-
-              <div className="kwl-section">
-                <label className="kwl-label">
-                  <IconKwlL size={26} />
-                  새롭게 알게 된 것
-                </label>
-                <textarea
-                  className="kwl-textarea"
-                  value={L}
-                  onChange={(e) => setL(e.target.value)}
-                  placeholder="오늘 배우고 깨달은 것..."
-                  rows={3}
-                />
-              </div>
+              ))}
 
               <button
                 type="button"
@@ -303,7 +259,7 @@ export default function KwlPanel({ classId, user, isTeacher, onAsk, mobileOpen, 
             </>
           ) : (
             <p className="kwl-already-done">
-              ✓ 오늘의 KWL을 작성했어요. 아래 항목의 <strong>수정</strong> 버튼으로 고칠 수 있어요.
+              ✓ 오늘의 KWLS를 작성했어요. 아래 항목의 <strong>수정</strong> 버튼으로 고칠 수 있어요.
             </p>
           )}
 
@@ -337,7 +293,7 @@ export default function KwlPanel({ classId, user, isTeacher, onAsk, mobileOpen, 
                       <span className="kwl-all-w-author">
                         {e.authorEmoji} {e.authorName}
                       </span>
-                      <p className="kwl-all-w-text">{e.W}</p>
+                      <p className="kwl-all-w-text">{e.answers.want}</p>
                     </li>
                   ))}
                 </ul>
@@ -355,7 +311,8 @@ export default function KwlPanel({ classId, user, isTeacher, onAsk, mobileOpen, 
               {historyDates.map((date) => {
                 const open = expandedDate === date;
                 const entries = historyByDate[date];
-                const preview = entries[0]?.K || entries[0]?.W || entries[0]?.L || "";
+                const firstAnswers = kwlsAnswersFromEntry(entries[0]);
+                const preview = KWLS_COLUMNS.map((c) => firstAnswers[c.key]).find(Boolean) || "";
                 return (
                   <li key={date} className="kwl-history-item">
                     <button
@@ -391,7 +348,7 @@ export default function KwlPanel({ classId, user, isTeacher, onAsk, mobileOpen, 
         </div>
       )}
 
-      {/* 교사: KWL 전체 화면 (날짜별 3컬럼, 좌우 화살표·달력으로 날짜 이동) */}
+      {/* 교사: KWLS 전체 화면 (날짜별 4컬럼, 좌우 화살표·달력으로 날짜 이동) */}
       {fullscreen && (
         <KwlFullscreenModal
           classId={classId}
