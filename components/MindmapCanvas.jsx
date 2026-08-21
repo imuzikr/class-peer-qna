@@ -34,6 +34,7 @@ import {
   updateNodeText,
   updateEdgeLabel,
   moveNode,
+  reorderFirstLevelChild,
 } from "@/lib/mindmap";
 
 const ZOOM_MIN = 0.3;
@@ -154,6 +155,7 @@ export default function MindmapCanvas({
   // 지금 내용을 고치는 중인 노드/선 — 우클릭(노드)·클릭(선)으로 들어갑니다.
   const [editingId, setEditingId] = useState(null);
   const [editingEdgeId, setEditingEdgeId] = useState(null);
+  const [dragPreview, setDragPreview] = useState(null);
   const editInputRef = useRef(null);
   const edgeInputRef = useRef(null);
 
@@ -292,17 +294,20 @@ export default function MindmapCanvas({
     e.currentTarget.setPointerCapture?.(e.pointerId);
   }
 
-  // ── 노드 끌기(방사형 편집판만) / 선택 ──
+  // ── 노드 끌기(방사형 위치 조정, 계층형 1단계 순서 조정) / 선택 ──
   function onNodePointerDown(e, node) {
     if (e.target.tagName === "INPUT") return; // 편집 입력칸 안의 클릭은 그대로 둡니다
     if (editingEdgeId) setEditingEdgeId(null);
     if (editingId && editingId !== node.id) setEditingId(null);
     if (onSelect) onSelect(node.id);
-    if (readOnly || map.layout !== "radial" || editingId === node.id) return;
+    if (readOnly || editingId === node.id) return;
+    const lv = levels.get(node.id) ?? 0;
+    if (map.layout === "tree" && lv !== 1) return;
+    if (map.layout !== "radial" && map.layout !== "tree") return;
     e.stopPropagation();
     const p = positions.get(node.id) ?? { x: 0, y: 0 };
     dragRef.current = {
-      kind: "node",
+      kind: map.layout === "tree" ? "tree-reorder" : "node",
       id: node.id,
       sx: e.clientX,
       sy: e.clientY,
@@ -353,11 +358,27 @@ export default function MindmapCanvas({
       if (!d.moved && Math.abs(dx) + Math.abs(dy) < 3) return; // 살짝 눌린 것은 클릭으로
       d.moved = true;
       onChange(moveNode(map, d.id, d.ox + dx / zoom, d.oy + dy / zoom));
+    } else if (d.kind === "tree-reorder") {
+      if (!d.moved && Math.abs(dx) + Math.abs(dy) < 3) return;
+      d.moved = true;
+      setDragPreview({ id: d.id, dy: dy / zoom });
     }
   }
 
-  function onPointerUp() {
+  function onPointerUp(e) {
+    const d = dragRef.current;
+    if (d?.kind === "tree-reorder" && d.moved) {
+      const dropY = d.oy + (e ? (e.clientY - d.sy) / zoom : 0);
+      const firstLevel = map.nodes
+        .filter((n) => (levels.get(n.id) ?? 0) === 1)
+        .map((n) => ({ node: n, y: positions.get(n.id)?.y ?? 0 }))
+        .sort((a, b) => a.y - b.y);
+      const others = firstLevel.filter(({ node }) => node.id !== d.id);
+      const targetIndex = others.findIndex(({ y }) => dropY < y);
+      onChange(reorderFirstLevelChild(map, d.id, targetIndex === -1 ? others.length : targetIndex));
+    }
     dragRef.current = null;
+    setDragPreview(null);
   }
 
   const canDragNodes = !readOnly && map.layout === "radial";
@@ -447,18 +468,21 @@ export default function MindmapCanvas({
             const s = levelStyle(lv);
             const isSel = selectedId === n.id;
             const isEditing = editingId === n.id;
+            const preview = dragPreview?.id === n.id ? dragPreview : null;
+            const canReorder = !readOnly && map.layout === "tree" && lv === 1;
             return (
               <div
                 key={n.id}
                 className={`mm-node${isSel ? " sel" : ""}${lv === 0 ? " root" : ""}${
                   isEditing ? " editing" : ""
-                }`}
+                }${canReorder ? " reorderable" : ""}${preview ? " dragging" : ""}`}
                 style={{
                   left: p.x,
-                  top: p.y,
+                  top: preview ? p.y + preview.dy : p.y,
                   background: s.bg,
                   borderColor: isSel ? "var(--primary)" : s.border,
                   color: s.text,
+                  ...(preview ? { zIndex: 5 } : {}),
                   ...(isEditing ? { width: lv === 0 ? 200 : 168 } : {}),
                 }}
                 onPointerDown={(e) => onNodePointerDown(e, n)}
