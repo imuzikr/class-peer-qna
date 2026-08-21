@@ -29,6 +29,7 @@ import {
   levelMap,
   levelStyle,
   nodeById,
+  subtreeIds,
   addChild,
   removeNode,
   updateNodeText,
@@ -156,18 +157,44 @@ export default function MindmapCanvas({
 
   const positions = useMemo(() => layoutPositions(map), [map]);
   const levels = useMemo(() => levelMap(map.nodes), [map.nodes]);
+  const previewIds = useMemo(() => {
+    if (!dragPreview || map.layout !== "tree") return new Set();
+    return subtreeIds(map.nodes, dragPreview.id);
+  }, [dragPreview, map.layout, map.nodes]);
+  const displayPositions = useMemo(() => {
+    if (!dragPreview || previewIds.size === 0) return positions;
+    const next = new Map(positions);
+    for (const id of previewIds) {
+      const p = positions.get(id);
+      if (p) next.set(id, { x: p.x, y: p.y + dragPreview.dy });
+    }
+    return next;
+  }, [dragPreview, positions, previewIds]);
+  const dropGuideY = useMemo(() => {
+    if (!dragPreview || map.layout !== "tree") return null;
+    const dropY = dragPreview.originY + dragPreview.dy;
+    const firstLevel = map.nodes
+      .filter((n) => (levels.get(n.id) ?? 0) === 1)
+      .map((n) => ({ id: n.id, y: positions.get(n.id)?.y ?? 0 }))
+      .sort((a, b) => a.y - b.y);
+    const others = firstLevel.filter(({ id }) => id !== dragPreview.id);
+    if (others.length === 0) return dropY;
+    const insertBefore = others.find(({ y }) => dropY < y);
+    if (insertBefore) return insertBefore.y - 31;
+    return others[others.length - 1].y + 31;
+  }, [dragPreview, levels, map.layout, map.nodes, positions]);
   const edges = useMemo(() => {
     return map.nodes
       .filter((n) => n.parentId !== null)
       .map((n) => {
-        const a = positions.get(n.parentId);
-        const b = positions.get(n.id);
+        const a = displayPositions.get(n.parentId);
+        const b = displayPositions.get(n.id);
         if (!a || !b) return null;
         const parent = nodeById(map.nodes, n.parentId);
         return { node: n, ...edgeGeometry(a, b, map.layout, parent, n, levels) };
       })
       .filter(Boolean);
-  }, [map.nodes, map.layout, positions, levels]);
+  }, [map.nodes, map.layout, displayPositions, levels]);
 
   // 휠 처리기는 한 번만 붙이고 계속 쓰므로, 그 안에서 최신 배율·이동을 읽으려면
   // state를 그대로 잡아 두면 안 됩니다(처음 값에 묶임). 거울용 ref를 둡니다.
@@ -308,6 +335,7 @@ export default function MindmapCanvas({
       sy: e.clientY,
       ox: p.x,
       oy: p.y,
+      originY: p.y,
       lockY: map.layout === "radial" && lv > 1,
       moved: false,
     };
@@ -357,7 +385,7 @@ export default function MindmapCanvas({
     } else if (d.kind === "tree-reorder") {
       if (!d.moved && Math.abs(dx) + Math.abs(dy) < 3) return;
       d.moved = true;
-      setDragPreview({ id: d.id, dy: dy / zoom });
+      setDragPreview({ id: d.id, dy: dy / zoom, originY: d.originY });
     }
   }
 
@@ -399,6 +427,7 @@ export default function MindmapCanvas({
           <svg className="mm-edges" viewBox="-3000 -3000 6000 6000" aria-hidden="true">
             {edges.map(({ node: n, d }) => {
               const lv = levels.get(n.id) ?? 1;
+              const isPreviewEdge = previewIds.has(n.id);
               return (
                 <g key={n.id}>
                   {!readOnly && (
@@ -410,7 +439,7 @@ export default function MindmapCanvas({
                     />
                   )}
                   <path
-                    className="mm-edge"
+                    className={`mm-edge${isPreviewEdge ? " dragging" : ""}`}
                     d={d}
                     stroke={levelStyle(lv).border}
                     strokeWidth={Math.max(1.6, 3.2 - lv * 0.4)}
@@ -458,27 +487,32 @@ export default function MindmapCanvas({
             );
           })}
 
+          {dropGuideY !== null && <div className="mm-drop-guide" style={{ top: dropGuideY }} />}
+
           {map.nodes.map((n) => {
-            const p = positions.get(n.id) ?? { x: 0, y: 0 };
+            const p = displayPositions.get(n.id) ?? { x: 0, y: 0 };
             const lv = levels.get(n.id) ?? 0;
             const s = levelStyle(lv);
             const isSel = selectedId === n.id;
             const isEditing = editingId === n.id;
-            const preview = dragPreview?.id === n.id ? dragPreview : null;
+            const isPreviewRoot = dragPreview?.id === n.id;
+            const isPreviewChild = !isPreviewRoot && previewIds.has(n.id);
             const canReorder = !readOnly && map.layout === "tree" && lv === 1;
             return (
               <div
                 key={n.id}
                 className={`mm-node${isSel ? " sel" : ""}${lv === 0 ? " root" : ""}${
                   isEditing ? " editing" : ""
-                }${canReorder ? " reorderable" : ""}${preview ? " dragging" : ""}`}
+                }${canReorder ? " reorderable" : ""}${isPreviewRoot ? " dragging" : ""}${
+                  isPreviewChild ? " drag-child" : ""
+                }`}
                 style={{
                   left: p.x,
-                  top: preview ? p.y + preview.dy : p.y,
+                  top: p.y,
                   background: s.bg,
                   borderColor: isSel ? "var(--primary)" : s.border,
                   color: s.text,
-                  ...(preview ? { zIndex: 5 } : {}),
+                  ...(isPreviewRoot || isPreviewChild ? { zIndex: 5 } : {}),
                   ...(isEditing ? { width: lv === 0 ? 200 : 168 } : {}),
                 }}
                 onPointerDown={(e) => onNodePointerDown(e, n)}
