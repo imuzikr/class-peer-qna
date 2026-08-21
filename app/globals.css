@@ -12207,6 +12207,13 @@ pre code {
 /* 방사형 편집판에서만 노드를 끌 수 있습니다(계층형은 자리가 자동) */
 .mm-viewport.draggable .mm-node { cursor: grab; }
 .mm-viewport.draggable .mm-node:active { cursor: grabbing; }
+.mm-node.reorderable { cursor: grab; }
+.mm-node.reorderable:active,
+.mm-node.reorderable.dragging { cursor: grabbing; }
+.mm-node.dragging {
+  opacity: 0.86;
+  box-shadow: 0 8px 18px rgba(61, 61, 58, 0.18);
+}
 /* 우클릭으로 편집 중인 노드 — 안의 입력칸이 노드 크기를 그대로 씁니다 */
 .mm-node.editing { cursor: text; }
 .mm-node-input {
