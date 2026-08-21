@@ -62,7 +62,7 @@ function edgeGeometry(a, b, layout) {
     const c2 = { x: b.x - dx, y: b.y };
     return {
       d: `M ${a.x} ${a.y} C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${b.x} ${b.y}`,
-      mid: cubicAt(a, c1, c2, b, 0.38),
+      mid: cubicAt(a, c1, c2, b, 0.5),
     };
   }
   const dx = b.x - a.x, dy = b.y - a.y;
@@ -83,18 +83,18 @@ function edgeGeometry(a, b, layout) {
 
   const ux = dx / dist, uy = dy / dist;
   const px = -uy, py = ux; // 직선에 수직인 방향
-  const bow = Math.min(dist * 0.16, 52);
+  const bow = Math.min(dist * 0.24, 74);
   const outward = midX * px + midY * py >= 0 ? 1 : -1;
   const angleFlavor = Math.sin(Math.atan2(dy, dx) * 1.7);
-  const startBow = bow * (0.18 + Math.abs(angleFlavor) * 0.18);
-  const endBow = bow * (0.7 + Math.abs(angleFlavor) * 0.22);
+  const startBow = bow * (0.08 + Math.abs(angleFlavor) * 0.18);
+  const endBow = bow * (0.86 + Math.abs(angleFlavor) * 0.28);
   const c1 = {
-    x: a.x + ux * dist * 0.34 + px * startBow * outward,
-    y: a.y + uy * dist * 0.34 + py * startBow * outward,
+    x: a.x + ux * dist * 0.24 + px * startBow * outward,
+    y: a.y + uy * dist * 0.24 + py * startBow * outward,
   };
   const c2 = {
-    x: b.x - ux * dist * 0.28 + px * endBow * outward,
-    y: b.y - uy * dist * 0.28 + py * endBow * outward,
+    x: b.x - ux * dist * 0.34 + px * endBow * outward,
+    y: b.y - uy * dist * 0.34 + py * endBow * outward,
   };
   return {
     d: `M ${a.x} ${a.y} C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${b.x} ${b.y}`,
