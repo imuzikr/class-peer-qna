@@ -43,10 +43,18 @@ const FIT_PAD = 120;
 
 const clampZoom = (z) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z));
 
-// 두 점을 잇는 곡선 + 그 곡선의 가운데 점(라벨을 놓을 자리).
-// 방사형은 노드가 놓인 방향에 맞춰 직선/위·아래 볼록을 고르고,
+// 두 점을 잇는 곡선 + 그 곡선 위 라벨 자리.
+// 방사형은 두 제어점을 둔 cubic 곡선으로 노드 위치마다 휘어짐을 다르게 만들고,
 // 계층형은 가로로 흐르는 삼차 베지어입니다.
-// 가운데 점은 실제 곡선 위의 t=0.5 지점이라, 라벨이 선에서 떨어져 보이지 않습니다.
+// 라벨 자리는 실제 곡선 위의 점이라, 라벨이 선에서 떨어져 보이지 않습니다.
+function cubicAt(a, c1, c2, b, t) {
+  const mt = 1 - t;
+  return {
+    x: mt ** 3 * a.x + 3 * mt ** 2 * t * c1.x + 3 * mt * t ** 2 * c2.x + t ** 3 * b.x,
+    y: mt ** 3 * a.y + 3 * mt ** 2 * t * c1.y + 3 * mt * t ** 2 * c2.y + t ** 3 * b.y,
+  };
+}
+
 function edgeGeometry(a, b, layout) {
   if (layout === "tree") {
     const dx = Math.max(30, Math.abs(b.x - a.x) / 2);
@@ -54,10 +62,7 @@ function edgeGeometry(a, b, layout) {
     const c2 = { x: b.x - dx, y: b.y };
     return {
       d: `M ${a.x} ${a.y} C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${b.x} ${b.y}`,
-      mid: {
-        x: 0.125 * a.x + 0.375 * c1.x + 0.375 * c2.x + 0.125 * b.x,
-        y: 0.125 * a.y + 0.375 * c1.y + 0.375 * c2.y + 0.125 * b.y,
-      },
+      mid: cubicAt(a, c1, c2, b, 0.38),
     };
   }
   const dx = b.x - a.x, dy = b.y - a.y;
@@ -76,17 +81,24 @@ function edgeGeometry(a, b, layout) {
     };
   }
 
-  const px = -dy / dist, py = dx / dist; // 직선에 수직인 방향
-  const bow = Math.min(dist * 0.22, 64);
+  const ux = dx / dist, uy = dy / dist;
+  const px = -uy, py = ux; // 직선에 수직인 방향
+  const bow = Math.min(dist * 0.16, 52);
   const outward = midX * px + midY * py >= 0 ? 1 : -1;
-  const adjustedCx = midX + px * bow * outward;
-  const adjustedCy = midY + py * bow * outward;
+  const angleFlavor = Math.sin(Math.atan2(dy, dx) * 1.7);
+  const startBow = bow * (0.18 + Math.abs(angleFlavor) * 0.18);
+  const endBow = bow * (0.7 + Math.abs(angleFlavor) * 0.22);
+  const c1 = {
+    x: a.x + ux * dist * 0.34 + px * startBow * outward,
+    y: a.y + uy * dist * 0.34 + py * startBow * outward,
+  };
+  const c2 = {
+    x: b.x - ux * dist * 0.28 + px * endBow * outward,
+    y: b.y - uy * dist * 0.28 + py * endBow * outward,
+  };
   return {
-    d: `M ${a.x} ${a.y} Q ${adjustedCx} ${adjustedCy} ${b.x} ${b.y}`,
-    mid: {
-      x: 0.25 * a.x + 0.5 * adjustedCx + 0.25 * b.x,
-      y: 0.25 * a.y + 0.5 * adjustedCy + 0.25 * b.y,
-    },
+    d: `M ${a.x} ${a.y} C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${b.x} ${b.y}`,
+    mid: cubicAt(a, c1, c2, b, 0.5),
   };
 }
 
