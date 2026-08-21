@@ -43,6 +43,21 @@ const FIT_PAD = 120;
 
 const clampZoom = (z) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z));
 
+function textWidth(text, ascii = 7, nonAscii = 13) {
+  return [...String(text ?? "").trim()].reduce((sum, ch) => {
+    return sum + (/[ -~]/.test(ch) ? ascii : nonAscii);
+  }, 0);
+}
+
+function estimatedNodeHalfWidth(node, level) {
+  const pad = level === 0 ? 36 : 28;
+  const max = level === 0 ? 200 : 168;
+  const min = level === 0 ? 94 : 62;
+  const placeholder = "내용을 적어 주세요";
+  const raw = node?.text?.trim() || placeholder;
+  return Math.min(max, Math.max(min, textWidth(raw) + pad)) / 2;
+}
+
 // 두 점을 잇는 곡선 + 그 곡선 위 라벨 자리.
 // 방사형은 두 제어점을 둔 cubic 곡선으로 노드 위치마다 휘어짐을 다르게 만들고,
 // 계층형은 가로로 흐르는 삼차 베지어입니다.
@@ -55,14 +70,19 @@ function cubicAt(a, c1, c2, b, t) {
   };
 }
 
-function edgeGeometry(a, b, layout) {
+function edgeGeometry(a, b, layout, parentNode = null, childNode = null, levels = null) {
   if (layout === "tree") {
     const dx = Math.max(30, Math.abs(b.x - a.x) / 2);
     const c1 = { x: a.x + dx, y: a.y };
     const c2 = { x: b.x - dx, y: b.y };
+    const parentLv = levels?.get(parentNode?.id) ?? 0;
+    const childLv = levels?.get(childNode?.id) ?? 1;
+    const leftEdge = a.x + estimatedNodeHalfWidth(parentNode, parentLv);
+    const rightEdge = b.x - estimatedNodeHalfWidth(childNode, childLv);
+    const mid = cubicAt(a, c1, c2, b, 0.5);
     return {
       d: `M ${a.x} ${a.y} C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${b.x} ${b.y}`,
-      mid: cubicAt(a, c1, c2, b, 0.5),
+      mid: { x: (leftEdge + rightEdge) / 2, y: mid.y },
     };
   }
   const dx = b.x - a.x, dy = b.y - a.y;
@@ -83,18 +103,21 @@ function edgeGeometry(a, b, layout) {
 
   const ux = dx / dist, uy = dy / dist;
   const px = -uy, py = ux; // 직선에 수직인 방향
-  const bow = Math.min(dist * 0.24, 74);
+  const bow = Math.min(dist * 0.34, 106);
   const outward = midX * px + midY * py >= 0 ? 1 : -1;
   const angleFlavor = Math.sin(Math.atan2(dy, dx) * 1.7);
-  const startBow = bow * (0.08 + Math.abs(angleFlavor) * 0.18);
-  const endBow = bow * (0.86 + Math.abs(angleFlavor) * 0.28);
+  const sweep = Math.sign(angleFlavor || midY || 1);
+  const startBow = bow * (0.12 + Math.abs(angleFlavor) * 0.2);
+  const endBow = bow * (0.9 + Math.abs(angleFlavor) * 0.32);
+  const startSign = outward * sweep;
+  const endSign = outward * (Math.abs(angleFlavor) > 0.46 ? -sweep : sweep);
   const c1 = {
-    x: a.x + ux * dist * 0.24 + px * startBow * outward,
-    y: a.y + uy * dist * 0.24 + py * startBow * outward,
+    x: a.x + ux * dist * 0.18 + px * startBow * startSign,
+    y: a.y + uy * dist * 0.18 + py * startBow * startSign,
   };
   const c2 = {
-    x: b.x - ux * dist * 0.34 + px * endBow * outward,
-    y: b.y - uy * dist * 0.34 + py * endBow * outward,
+    x: b.x - ux * dist * 0.42 + px * endBow * endSign,
+    y: b.y - uy * dist * 0.42 + py * endBow * endSign,
   };
   return {
     d: `M ${a.x} ${a.y} C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${b.x} ${b.y}`,
@@ -130,10 +153,11 @@ export default function MindmapCanvas({
         const a = positions.get(n.parentId);
         const b = positions.get(n.id);
         if (!a || !b) return null;
-        return { node: n, ...edgeGeometry(a, b, map.layout) };
+        const parent = nodeById(map.nodes, n.parentId);
+        return { node: n, ...edgeGeometry(a, b, map.layout, parent, n, levels) };
       })
       .filter(Boolean);
-  }, [map.nodes, map.layout, positions]);
+  }, [map.nodes, map.layout, positions, levels]);
 
   // 휠 처리기는 한 번만 붙이고 계속 쓰므로, 그 안에서 최신 배율·이동을 읽으려면
   // state를 그대로 잡아 두면 안 됩니다(처음 값에 묶임). 거울용 ref를 둡니다.
