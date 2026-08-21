@@ -58,6 +58,15 @@ function estimatedNodeHalfWidth(node, level) {
   return Math.min(max, Math.max(min, textWidth(raw) + pad)) / 2;
 }
 
+function edgeLabelMid(a, b, parentNode, childNode, levels) {
+  const side = b.x >= a.x ? 1 : -1;
+  const parentLv = levels?.get(parentNode?.id) ?? 0;
+  const childLv = levels?.get(childNode?.id) ?? 1;
+  const parentEdge = a.x + side * estimatedNodeHalfWidth(parentNode, parentLv);
+  const childEdge = b.x - side * estimatedNodeHalfWidth(childNode, childLv);
+  return { x: (parentEdge + childEdge) / 2, y: (a.y + b.y) / 2 };
+}
+
 // 두 점을 잇는 곡선 + 그 곡선 위 라벨 자리.
 // 방사형은 두 제어점을 둔 cubic 곡선으로 노드 위치마다 휘어짐을 다르게 만들고,
 // 계층형은 가로로 흐르는 삼차 베지어입니다.
@@ -71,18 +80,16 @@ function cubicAt(a, c1, c2, b, t) {
 }
 
 function edgeGeometry(a, b, layout, parentNode = null, childNode = null, levels = null) {
+  const childLv = levels?.get(childNode?.id) ?? 1;
   if (layout === "tree") {
     const dx = Math.max(30, Math.abs(b.x - a.x) / 2);
     const c1 = { x: a.x + dx, y: a.y };
     const c2 = { x: b.x - dx, y: b.y };
-    const parentLv = levels?.get(parentNode?.id) ?? 0;
-    const childLv = levels?.get(childNode?.id) ?? 1;
-    const leftEdge = a.x + estimatedNodeHalfWidth(parentNode, parentLv);
-    const rightEdge = b.x - estimatedNodeHalfWidth(childNode, childLv);
+    const labelMid = edgeLabelMid(a, b, parentNode, childNode, levels);
     const mid = cubicAt(a, c1, c2, b, 0.5);
     return {
       d: `M ${a.x} ${a.y} C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${b.x} ${b.y}`,
-      mid: { x: (leftEdge + rightEdge) / 2, y: mid.y },
+      mid: { x: labelMid.x, y: mid.y },
     };
   }
   const dx = b.x - a.x, dy = b.y - a.y;
@@ -96,11 +103,24 @@ function edgeGeometry(a, b, layout, parentNode = null, childNode = null, levels 
   if (horizontal && nearCenter) {
     return {
       d: `M ${a.x} ${a.y} L ${b.x} ${b.y}`,
-      mid: { x: midX, y: midY },
+      mid: edgeLabelMid(a, b, parentNode, childNode, levels),
     };
   }
 
   const side = b.x >= a.x ? 1 : -1;
+  const labelMid = edgeLabelMid(a, b, parentNode, childNode, levels);
+  if (childLv > 1) {
+    const levelGap = b.y - a.y;
+    const flatY = Math.abs(levelGap) <= 18 ? a.y : labelMid.y;
+    const c1 = { x: labelMid.x, y: a.y };
+    const c2 = { x: labelMid.x, y: flatY };
+    const c3 = { x: labelMid.x, y: b.y };
+    return {
+      d: `M ${a.x} ${a.y} C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${labelMid.x} ${flatY} S ${c3.x} ${c3.y}, ${b.x} ${b.y}`,
+      mid: { x: labelMid.x, y: flatY },
+    };
+  }
+
   const handleBase = Math.min(Math.max(Math.abs(dx) * 0.42 + Math.abs(dy) * 0.18, 54), dist * 0.72);
   const startHandle = Math.min(handleBase, 240);
   const endHandle = Math.min(Math.max(Math.abs(dx) * 0.38 + Math.abs(dy) * 0.12, 48), 220);
@@ -114,7 +134,7 @@ function edgeGeometry(a, b, layout, parentNode = null, childNode = null, levels 
   };
   return {
     d: `M ${a.x} ${a.y} C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${b.x} ${b.y}`,
-    mid: cubicAt(a, c1, c2, b, 0.5),
+    mid: labelMid,
   };
 }
 
