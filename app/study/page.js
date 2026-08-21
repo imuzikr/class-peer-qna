@@ -9,7 +9,7 @@
 // 관련 질문을 모아 볼 수 있습니다.
 // =============================================================
 import { backdropClose } from "@/lib/modal";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import {
   subscribeStudyBoards,
@@ -27,6 +27,7 @@ import {
   leaveClass,
   regenerateJoinCode,
   reorderStudyBoards,
+  ensureDefaultStudyBoard,
   toDate,
 } from "@/lib/store";
 import { isFirebaseConfigured } from "@/lib/firebase";
@@ -91,6 +92,7 @@ export default function StudyPage() {
   const [directory, setDirectory] = useState([]);   // 교사: uid→실명 등 프로필
   const [memberUids, setMemberUids] = useState([]);  // 현재 반 소속 학생 uid
   const [rewards, setRewards] = useState([]);        // 현재 반 보상(과일) 목록
+  const ensuringDefaultBoardRef = useRef(new Set());
   // 보드 접힘 상태는 보드 문서(board.collapsed)에 저장 — 교사가 접으면
   // 학생 화면에도 동일하게 반영됩니다(공유 상태). 쓰기는 교사만(규칙에서 강제).
   function toggleBoardCollapse(board) {
@@ -272,6 +274,17 @@ export default function StudyPage() {
     () => boards.filter((b) => b.classId === classId),
     [boards, classId]
   );
+
+  useEffect(() => {
+    if (!admin || !user || !currentClass || currentClass.archived) return;
+    if (classBoards.some((b) => b.type === "notice")) return;
+    if (ensuringDefaultBoardRef.current.has(currentClass.id)) return;
+    ensuringDefaultBoardRef.current.add(currentClass.id);
+    ensureDefaultStudyBoard(user, currentClass.id).catch((err) => {
+      ensuringDefaultBoardRef.current.delete(currentClass.id);
+      console.warn("[study] 기본 교사용 보드 생성 실패:", err);
+    });
+  }, [admin, user, currentClass, classBoards]);
 
   // 현재 반의 보상(과일) 구독 — 교사·학생 공통 (학생은 규칙상 자기 반만 읽기 가능)
   useEffect(() => {
