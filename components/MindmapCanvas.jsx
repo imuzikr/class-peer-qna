@@ -235,8 +235,10 @@ export default function MindmapCanvas({
 
   // 처음 열릴 때와 형태가 바뀔 때만 맞춥니다(가지를 더할 때마다 튀지 않도록).
   useEffect(() => {
-    const t = setTimeout(fit, 0);
-    return () => clearTimeout(t);
+    let raf = requestAnimationFrame(() => {
+      raf = requestAnimationFrame(fit);
+    });
+    return () => cancelAnimationFrame(raf);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map.layout, fitKey]);
 

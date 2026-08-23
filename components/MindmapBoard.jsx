@@ -92,9 +92,10 @@ export default function MindmapBoard({
     return [...fromRoster, ...strays];
   }, [roster, entries, activity.topic]);
 
-  // 처음 열면 첫 학생을 골라 둡니다 — 빈 오른쪽 판만 보이면 무엇을 해야 할지 모호합니다
+  // 학생 목록이 바뀌어 지금 열어 둔 학생이 사라진 경우에만 선택을 비웁니다.
+  // 처음 진입할 때는 교사가 학생을 직접 고르기 전까지 오른쪽 판을 비워 둡니다.
   useEffect(() => {
-    if (openUid === null && cards.length > 0) setOpenUid(cards[0].uid);
+    if (openUid !== null && !cards.some((c) => c.uid === openUid)) setOpenUid(null);
   }, [cards, openUid]);
 
   const open = openUid ? cards.find((c) => c.uid === openUid) ?? null : null;
