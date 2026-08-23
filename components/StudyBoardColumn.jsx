@@ -492,38 +492,41 @@ export default function StudyBoardColumn({
           )}
         </div>
 
-        {board.description && (
-          isTeacher && editingDesc ? (
-            <div
-              className="study-desc-edit-wrap"
-              onClick={(e) => e.stopPropagation()}
-              onMouseDown={(e) => e.stopPropagation()}
-            >
-              <textarea
-                className="study-desc-inline"
-                value={descDraft}
-                onChange={(e) => setDescDraft(e.target.value)}
-                onBlur={commitDesc}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); commitDesc(); }
-                  else if (e.key === "Escape") { e.preventDefault(); cancelEditDesc(); }
-                }}
-                maxLength={200}
-                placeholder="보드 설명"
-                aria-label="보드 설명 수정"
-                autoFocus
-              />
-            </div>
-          ) : (
+        {/* 활동 안내 — 내용이 없어도 자리를 유지해 교사가 언제든 더블 클릭으로
+            추가할 수 있게 합니다(예전엔 내용이 없으면 이 영역 자체가 사라져
+            보드 생성 뒤에 안내를 추가할 방법이 없었습니다). */}
+        {isTeacher && editingDesc ? (
+          <div
+            className="study-desc-edit-wrap"
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <textarea
+              className="study-desc-inline"
+              value={descDraft}
+              onChange={(e) => setDescDraft(e.target.value)}
+              onBlur={commitDesc}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); commitDesc(); }
+                else if (e.key === "Escape") { e.preventDefault(); cancelEditDesc(); }
+              }}
+              maxLength={200}
+              placeholder="보드 설명"
+              aria-label="보드 설명 수정"
+              autoFocus
+            />
+          </div>
+        ) : (
+          (board.description || isTeacher) && (
             <p
-              className={`study-column-desc${isTeacher ? " study-column-desc--editable" : ""}`}
+              className={`study-column-desc${isTeacher ? " study-column-desc--editable" : ""}${!board.description ? " study-column-desc--empty" : ""}`}
               onClick={isTeacher ? (e) => e.stopPropagation() : undefined}
               onDoubleClick={
                 isTeacher ? (e) => { e.stopPropagation(); startEditDesc(); } : undefined
               }
-              title={isTeacher ? "더블 클릭해 설명 수정" : undefined}
+              title={isTeacher ? "더블 클릭해 활동 안내 추가·수정" : undefined}
             >
-              {board.description}
+              {board.description || (isTeacher ? "더블 클릭해 활동 안내를 적어 주세요." : "")}
             </p>
           )
         )}

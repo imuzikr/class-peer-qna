@@ -8819,8 +8819,10 @@ pre code {
   -webkit-box-orient: vertical;
 }
 
-.is-notice .study-column-desc {
-  background: #fffbf0;
+.study-column-desc--empty {
+  color: var(--text-sub);
+  font-style: italic;
+  opacity: 0.75;
 }
 
 .study-column-tags {
