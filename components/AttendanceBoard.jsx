@@ -54,6 +54,45 @@ function groupMapOf(groupAssignment) {
 
 const LABEL = { on: "보는 중", away: "화면 가려짐", off: "미접속", absent: "결석" };
 
+// 컴포넌트 함수 안에 중첩 정의하면 부모가 리렌더될 때마다(5초 타이머 포함)
+// 새 함수로 취급되어 이 카드들이 전부 통째로 마운트 해제·재마운트됩니다.
+// 드래그 시작 시 dragIndex를 상태로 저장하는데, 그 상태 변경이 리렌더를
+// 일으켜 지금 드래그 중인 카드(드롭 대상)의 DOM 노드가 통째로 교체되면
+// 브라우저가 진행 중이던 드래그 세션을 놓쳐 drop 자체가 발생하지
+// 않았습니다(그래서 처음 한 번은 안 움직이고, 값이 그대로라 리렌더가
+// 안 일어나는 재시도에서만 성공). 최상위로 빼서 항상 같은 컴포넌트로
+// 유지시켜 리렌더가 나도 이 DOM 노드들이 그대로 재사용되게 합니다.
+function StudentCard({ d, draggable = false, onDragStart, onDragEnd, onDropTo }) {
+  const groupName = d.group?.name ?? "미배정";
+  return (
+    <div
+      className={`attend-desk attend-desk--${d.state}`}
+      style={d.group ? { "--group-color": d.group.color } : undefined}
+      title={`${d.name} · ${LABEL[d.state]} · ${groupName}`}
+      draggable={draggable}
+      onDragStart={(e) => {
+        if (!draggable) return;
+        onDragStart(d.index);
+        e.dataTransfer.effectAllowed = "move";
+      }}
+      onDragEnd={() => draggable && onDragEnd()}
+      onDragOver={(e) => draggable && e.preventDefault()}
+      onDrop={(e) => {
+        if (!draggable) return;
+        e.preventDefault();
+        onDropTo(d.index);
+      }}
+    >
+      <span className="attend-desk-no">{d.studentId || "-"}</span>
+      <span className="attend-desk-name">
+        {d.name}
+        {d.state === "absent" && <em> (결석)</em>}
+      </span>
+      <span className="attend-desk-group">{groupName}</span>
+    </div>
+  );
+}
+
 export default function AttendanceBoard({
   roster = [],
   presence = [],
@@ -138,37 +177,6 @@ export default function AttendanceBoard({
       : groups;
   }, [groupAssignment, byUid, roster]);
 
-  function StudentCard({ d, draggable = false }) {
-    const groupName = d.group?.name ?? "미배정";
-    return (
-      <div
-        className={`attend-desk attend-desk--${d.state}`}
-        style={d.group ? { "--group-color": d.group.color } : undefined}
-        title={`${d.name} · ${LABEL[d.state]} · ${groupName}`}
-        draggable={draggable}
-        onDragStart={(e) => {
-          if (!draggable) return;
-          setDragIndex(d.index);
-          e.dataTransfer.effectAllowed = "move";
-        }}
-        onDragEnd={() => setDragIndex(null)}
-        onDragOver={(e) => draggable && e.preventDefault()}
-        onDrop={(e) => {
-          if (!draggable) return;
-          e.preventDefault();
-          moveSeat(dragIndex, d.index);
-        }}
-      >
-        <span className="attend-desk-no">{d.studentId || "-"}</span>
-        <span className="attend-desk-name">
-          {d.name}
-          {d.state === "absent" && <em> (결석)</em>}
-        </span>
-        <span className="attend-desk-group">{groupName}</span>
-      </div>
-    );
-  }
-
   return (
     <div className="modal-backdrop" {...backdropClose(onClose)}>
       <div
@@ -252,7 +260,14 @@ export default function AttendanceBoard({
                   }}
                 />
               ) : (
-                <StudentCard key={d.key} d={d} draggable />
+                <StudentCard
+                  key={d.key}
+                  d={d}
+                  draggable
+                  onDragStart={setDragIndex}
+                  onDragEnd={() => setDragIndex(null)}
+                  onDropTo={(toIndex) => moveSeat(dragIndex, toIndex)}
+                />
               )
             )}
           </div>

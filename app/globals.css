@@ -6744,15 +6744,33 @@ pre code {
   overflow-y: auto;
   padding-right: 2px;
 }
+/* 모둠 구분은 왼쪽 색 띠 하나로만 — 예전엔 카드 테두리 전체를 원색으로
+   두르고 제목도 그 색으로 칠해서, 카드 안 참여 상태 색(초록/주황/빨강)과
+   겹쳐 알록달록해 보였습니다. 섹션당 색은 여기 한 번이면 충분합니다. */
 .attend-group-section {
-  border: 2px solid var(--group-color);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--group-color);
   border-radius: 10px;
-  padding: 10px;
+  background: var(--card-bg, #fff);
+  padding: 12px;
 }
 .attend-group-section h4 {
-  margin: 0 0 8px;
-  color: var(--group-color);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 10px;
+  color: var(--text);
   font-size: 14px;
+  font-weight: 800;
+}
+/* 제목 앞 작은 점으로만 모둠 색을 다시 짚어 줍니다(글자색까지 칠하지 않음) */
+.attend-group-section h4::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--group-color);
 }
 .attend-group-members {
   display: grid;
@@ -6762,6 +6780,13 @@ pre code {
 .attend-group-members .attend-desk {
   aspect-ratio: auto;
   min-height: 72px;
+}
+/* 모둠별 보기 안에서는 섹션 자체가 모둠을 나타내므로, 카드마다 모둠 색
+   테두리를 겹쳐 칠하지 않고 참여 상태 색(배경)만으로 보여 줍니다.
+   (테두리까지 모둠 원색으로 칠하면, 예를 들어 결석=분홍 배경에 모둠색=
+   파랑 테두리가 겹쳐 오히려 상태를 읽기 어려웠습니다) */
+.attend-group-members .attend-desk[style*="--group-color"] {
+  border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 /* 수업 준비 — 자리 배정 / 모둠 설정 */
