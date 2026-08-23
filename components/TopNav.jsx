@@ -24,6 +24,7 @@ import { getSelectedClassId } from "@/lib/classroom";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import UserProfile from "./UserProfile";
 import NotificationBell from "./NotificationBell";
+import QuestionSignalButton from "./QuestionSignalButton";
 import RoleSwitcher from "./RoleSwitcher";
 import RoleManagerModal from "./RoleManagerModal";
 import PresentationOverlay from "./PresentationOverlay";
@@ -228,6 +229,9 @@ export default function TopNav({ active, onPython, pyActive = false }) {
       {/* 오른쪽: 역할 전환(데모 전용) + 프로필 + 로그아웃 */}
       <div className="user-area">
         {!isFirebaseConfigured && <RoleSwitcher />}
+        {user && broadcastClassId && (
+          <QuestionSignalButton classId={broadcastClassId} user={user} isTeacher={admin} />
+        )}
         {!admin && user && (
           <span className="fruit-total-chip" title="지금까지 받은 과일 총 개수">
             🍎 {fruitTotal}

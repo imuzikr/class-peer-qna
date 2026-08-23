@@ -334,6 +334,36 @@ service cloud.firestore {
                     || ownsClassEditable(resource.data.classId);
     }
 
+    // ── 언제든 질문하기(손들기) ───────────────────────────────
+    //  · 문서 ID = `{uid}_{classId}`. 학생은 자기 손들기만 켜고/끄고,
+    //    담당 교사는 현재 반에서 손든 학생 목록만 확인합니다.
+    match /questionSignals/{signalId} {
+      allow read: if signedIn() && (
+        isAdmin()
+        || ownsClass(resource.data.classId)
+        || resource.data.uid == uid()
+      );
+      allow create: if signedIn()
+                    && request.resource.data.uid == uid()
+                    && signalId == (uid() + '_' + request.resource.data.classId)
+                    && isClassMember(request.resource.data.classId)
+                    && request.resource.data.createdAt == request.time
+                    && request.resource.data.updatedAt == request.time;
+      allow update: if signedIn()
+                    && resource.data.uid == uid()
+                    && request.resource.data.uid == resource.data.uid
+                    && request.resource.data.classId == resource.data.classId
+                    && signalId == (uid() + '_' + resource.data.classId)
+                    && isClassMember(resource.data.classId)
+                    && request.resource.data.createdAt == resource.data.createdAt
+                    && request.resource.data.updatedAt == request.time;
+      allow delete: if signedIn() && (
+        resource.data.uid == uid()
+        || isAdmin()
+        || ownsClassEditable(resource.data.classId)
+      );
+    }
+
     // ── 누가기록(학생 관찰 메모) — 반 소유 교사/관리자 전용 (학생 열람 불가) ──
     match /studentNotes/{noteId} {
       allow read: if isAdmin()
