@@ -55,6 +55,7 @@ export default function LessonMode({
   onSaveNote,
   onSaveActivities,
   onSaveBoardId,        // 수업 준비: 연결한 보드 id를 수업 자료에 저장
+  onStart,              // 수업 준비: '수업 시작하기' — 있어야 버튼이 보임
   onClose,
 }) {
   const slides = lesson.slides ?? [];
@@ -320,8 +321,10 @@ export default function LessonMode({
         {/* 수업 도구 — 두 버튼 모두 항상 자리를 지킵니다(있다 없다 하면
             어디를 눌러야 할지 매번 찾게 되므로). 지금 쓸 수 없는 도구는
             비활성으로 두고, 왜 잠겼는지 툴팁으로 알려 줍니다.
-            · 발표중: 학생 화면이 실제로 보이는지 확인 — 발표 중에만 의미가
-              있습니다(발표를 꺼 두면 알려 줄 상태 자체가 없음).
+            · 발표중: 발표 전에도 열립니다 — 참여 전광판에는 실시간 시청
+              여부만이 아니라 출석부(attendanceRecords)도 함께 보이므로,
+              슬라이드를 띄우기 전에 출석 상태부터 확인하는 용도로도
+              씁니다(이때 시청 인원은 신호가 없어 0/전체로 보입니다).
             · 공부중: 교사 화면은 발표에 가려지지 않으므로 언제든 열어
               활동을 관리할 수 있습니다. 보드가 연결돼 있어야 합니다. */}
         {!editing && (
@@ -330,11 +333,10 @@ export default function LessonMode({
               type="button"
               className="lesson-tool-btn"
               onClick={() => setAttendOpen(true)}
-              disabled={!presenting}
               title={
                 presenting
                   ? "학생들이 화면을 보고 있는지 확인합니다"
-                  : "발표를 시작하면 학생들이 화면을 보고 있는지 확인할 수 있어요"
+                  : "출석부를 확인합니다 (발표 전이라 시청 인원은 0명으로 보여요)"
               }
             >
               👀 발표중 {watchingCount}/{roster.length}
@@ -355,6 +357,13 @@ export default function LessonMode({
           </div>
         )}
         <span className="lesson-count">{total === 0 ? 0 : idx + 1} / {total}</span>
+        {/* 수업 준비를 마치고 곧바로 수업 화면으로 — 목록으로 돌아가 다시
+            '수업 시작'을 누르는 한 단계를 줄입니다. */}
+        {editing && onStart && (
+          <button type="button" className="lesson-start-btn" onClick={onStart}>
+            수업 시작하기 ›
+          </button>
+        )}
         <button type="button" className="lesson-exit" onClick={onClose}>
           {editing ? "닫기" : "수업 종료"}
         </button>

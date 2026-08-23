@@ -6233,6 +6233,20 @@ pre code {
 .lesson-exit:hover {
   filter: brightness(1.08);
 }
+.lesson-start-btn {
+  flex-shrink: 0;
+  padding: 7px 16px;
+  border: none;
+  border-radius: var(--radius-btn);
+  background: var(--primary);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.lesson-start-btn:hover {
+  filter: brightness(1.08);
+}
 /* 페이지 본문 — 앞으로 이 안에 수업 관련 섹션을 계속 덧붙입니다 */
 .lesson-page {
   max-width: 1200px;
@@ -6980,6 +6994,7 @@ pre code {
   .lesson-badge-class { margin-left: 4px; }
   .lesson-count { margin-left: 0; flex-shrink: 0; }
   .lesson-exit { padding: 7px 12px; font-size: 12px; }
+  .lesson-start-btn { padding: 7px 12px; font-size: 12px; }
   /* 도구는 둘째 줄을 통째로 써서 가운데 정렬 (order로 맨 뒤에 배치) */
   .lesson-tools {
     position: static;

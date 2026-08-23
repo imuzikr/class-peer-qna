@@ -880,6 +880,14 @@ export default function StudyPage() {
             await updateLesson(editingLesson.id, { activities });
             setEditingLesson({ ...editingLesson, activities });
           }}
+          onStart={() => {
+            if ((editingLesson.slides ?? []).length === 0) {
+              setToast("슬라이드가 없는 자료예요.");
+              return;
+            }
+            setTeaching(editingLesson);
+            setEditingLesson(null);
+          }}
           onClose={() => setEditingLesson(null)}
         />
       )}
