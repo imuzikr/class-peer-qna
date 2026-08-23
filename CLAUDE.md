@@ -12,9 +12,14 @@
 ## 실행
 
 ```bash
-npm run dev   # 개발 서버 (http://localhost:3000)
-npm run build # 프로덕션 빌드
+npm run dev        # 개발 서버 (http://localhost:3000)
+npm run build      # 프로덕션 빌드
+npm run test:rules # Firestore 보안 규칙 테스트 (에뮬레이터, Java 필요)
 ```
+
+규칙 테스트는 `tests/rules/`에 있고 최초 1회 `cd tests/rules && npm install`이
+필요합니다. 루트와 분리한 이유·작성 시 주의점은 `tests/rules/README.md` 참고.
+**`firestore.rules`를 고치면 반드시 이 테스트를 돌리고 배포하세요.**
 
 Firebase 미설정 시 자동으로 **데모 모드**로 동작 (새로고침 시 데이터 초기화).
 실서비스 전환: `lib/firebase.js`의 `firebaseConfig`에 Firebase 콘솔 값 입력.
