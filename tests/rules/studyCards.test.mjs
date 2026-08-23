@@ -96,6 +96,16 @@ describe("공부방 카드 규칙", () => {
     await assertFails(setDoc(doc(db, "studyBoards", "open", "cards", "teacherA"), card("teacherA")));
   });
 
+  // editMode가 없는 보드에서도 학생이 쓸 수 있어야 합니다. 규칙이 .editMode를
+  // 직접 참조하던 시절엔 필드가 없으면 평가 오류로 끝나 쓰기가 통째로 막혔습니다.
+  it("editMode 필드가 없는 보드에서도 학생이 카드를 쓸 수 있다", async () => {
+    await seed(env, (db) =>
+      setDoc(doc(db, "studyBoards", "nofield"), { classId: "cA", title: "필드 없는 보드", type: "cards" })
+    );
+    const db = asStudent(env, "stu1").firestore();
+    await assertSucceeds(setDoc(doc(db, "studyBoards", "nofield", "cards", "stu1"), card("stu1")));
+  });
+
   it("같은 반 학생은 서로의 카드를 읽을 수 있다 (개인 보드 = 함께 보기)", async () => {
     await seed(env, (db) => setDoc(doc(db, "studyBoards", "open", "cards", "stu2"), card("stu2")));
     const db = asStudent(env, "stu1").firestore();
