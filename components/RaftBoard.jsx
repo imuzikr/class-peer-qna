@@ -109,16 +109,16 @@ export default function RaftBoard({
   return (
     <main className="books-main">
       <div className="books-head">
-        <div className="books-head-main">
-          {open ? (
-            <button type="button" className="btn-ghost" onClick={() => setOpenUid(null)}>
-              ← 학생 목록
-            </button>
-          ) : (
-            <button type="button" className="btn-ghost" onClick={onBack}>← 활동 목록</button>
-          )}
-          <h1 className="book-group-title">
-            {open ? open.name : activity.title}
+        <h1 className="book-group-title">{open ? open.name : activity.title}</h1>
+        <div className="books-head-row">
+          <div className="books-head-main">
+            {open ? (
+              <button type="button" className="btn-ghost" onClick={() => setOpenUid(null)}>
+                ← 학생 목록
+              </button>
+            ) : (
+              <button type="button" className="btn-ghost" onClick={onBack}>← 활동 목록</button>
+            )}
             {open ? (
               <>
                 {open.studentId && (
@@ -135,7 +135,7 @@ export default function RaftBoard({
                 {className && <span className="book-group-class">{className}</span>}
               </>
             )}
-          </h1>
+          </div>
           {bookUrl && !open && (
             <a
               className="btn-primary book-info-btn"

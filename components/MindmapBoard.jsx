@@ -129,13 +129,13 @@ export default function MindmapBoard({
   return (
     <main className="books-main mindmap-board-main">
       <div className="books-head">
-        <div className="books-head-main">
-          <button type="button" className="btn-ghost" onClick={onBack}>← 활동 목록</button>
-          <h1 className="book-group-title">
-            {activity.title}
+        <h1 className="book-group-title">{activity.title}</h1>
+        <div className="books-head-row">
+          <div className="books-head-main">
+            <button type="button" className="btn-ghost" onClick={onBack}>← 활동 목록</button>
             <span className="book-group-topic">{activity.topic}</span>
             {className && <span className="book-group-class">{className}</span>}
-          </h1>
+          </div>
           {bookUrl && (
             <a
               className="btn-primary book-info-btn"

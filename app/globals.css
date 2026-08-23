@@ -11365,11 +11365,18 @@ pre code {
 }
 .books-head {
   display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+/* 제목 아래 줄 — 활동목록·도서명·반이름 배지와 우측 버튼(전체 보기 등)이
+   한 행에 나열됩니다. 제목(h1)은 이 행 밖에 따로 두어 항상 먼저 줄바꿈됩니다. */
+.books-head-row {
+  display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
-  margin-bottom: 6px;
 }
 .books-head-main {
   display: flex;

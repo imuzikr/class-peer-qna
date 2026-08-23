@@ -82,18 +82,18 @@ export default function MindmapForm({ activity, user, onBack }) {
   return (
     <main className="books-main mindmap-main">
       <div className="books-head">
-        <div className="books-head-main">
-          {open ? (
-            <button type="button" className="btn-ghost" onClick={() => setOpen(false)}>
-              ← 내 카드
-            </button>
-          ) : (
-            <button type="button" className="btn-ghost" onClick={onBack}>← 활동 목록</button>
-          )}
-          <h1 className="book-group-title">
-            {activity.title}
+        <h1 className="book-group-title">{activity.title}</h1>
+        <div className="books-head-row">
+          <div className="books-head-main">
+            {open ? (
+              <button type="button" className="btn-ghost" onClick={() => setOpen(false)}>
+                ← 내 카드
+              </button>
+            ) : (
+              <button type="button" className="btn-ghost" onClick={onBack}>← 활동 목록</button>
+            )}
             <span className="book-group-topic">{activity.topic}</span>
-          </h1>
+          </div>
           {bookUrl && !open && (
             <a
               className="btn-primary book-info-btn"

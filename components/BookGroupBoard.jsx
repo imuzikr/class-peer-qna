@@ -85,14 +85,14 @@ export default function BookGroupBoard({
 
   const head = (
     <div className="books-head">
-      <div className="books-head-main">
-        <button type="button" className="btn-ghost" onClick={onBack}>← 활동 목록</button>
-        <h1 className="book-group-title">
-          {activity.title}
+      <h1 className="book-group-title">{activity.title}</h1>
+      <div className="books-head-row">
+        <div className="books-head-main">
+          <button type="button" className="btn-ghost" onClick={onBack}>← 활동 목록</button>
           <span className="book-group-topic">{activity.topic}</span>
           {/* 이 활동이 어느 반 것인지 — 학생에게 안 보이면 반이 다른 경우가 많아 표시 */}
           {className && <span className="book-group-class">{className}</span>}
-        </h1>
+        </div>
         {isTeacher && (
           <button type="button" className="btn-primary book-allview-btn" onClick={onOpenAll}>
             전체 보기
