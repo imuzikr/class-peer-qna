@@ -24,10 +24,14 @@ import {
   subscribeClassMembers,
   subscribeClassRewards,
   setStudentReward,
-  leaveClass,
   regenerateJoinCode,
   reorderStudyBoards,
   ensureDefaultStudyBoard,
+  markStudyAttendance,
+  subscribeMyStudyAttendance,
+  subscribeClassStudyAttendance,
+  todayDateKey,
+  subscribeStudyGroupAssignment,
   toDate,
 } from "@/lib/store";
 import { isFirebaseConfigured } from "@/lib/firebase";
@@ -54,6 +58,7 @@ import Toast from "@/components/Toast";
 import KwlPanel from "@/components/KwlPanel";
 import LessonManagerModal from "@/components/LessonManagerModal";
 import LessonMode from "@/components/LessonMode";
+import StudyAttendanceModal from "@/components/StudyAttendanceModal";
 import { updateLesson } from "@/lib/store";
 import { IconKey } from "@/components/StatusIcons";
 
@@ -78,6 +83,10 @@ export default function StudyPage() {
   const [addingBoard, setAddingBoard] = useState(false);
   const [classManagerOpen, setClassManagerOpen] = useState(false);
   const [showCode, setShowCode] = useState(false); // 입장 코드 표시 토글
+  const [attendanceOpen, setAttendanceOpen] = useState(false); // 출석부 모달
+  const [attendanceRecords, setAttendanceRecords] = useState([]);
+  const [baseGroupAssignment, setBaseGroupAssignment] = useState(null);
+  const [attending, setAttending] = useState(false);
   const [lessonPicker, setLessonPicker] = useState(false); // 수업 준비(목록·새로 만들기) 모달
   const [teaching, setTeaching] = useState(null);   // 수업 중인 자료(학생 화면 전환)
   const [editingLesson, setEditingLesson] = useState(null); // 장별 메모 작성
@@ -274,6 +283,25 @@ export default function StudyPage() {
     () => boards.filter((b) => b.classId === classId),
     [boards, classId]
   );
+  const todayAttendanceKey = todayDateKey();
+  const attendedToday = !admin && attendanceRecords.some((r) => r.date === todayAttendanceKey);
+
+  useEffect(() => {
+    if (!classId || !user?.uid) {
+      setAttendanceRecords([]);
+      return;
+    }
+    if (admin) return subscribeClassStudyAttendance(classId, setAttendanceRecords);
+    return subscribeMyStudyAttendance(classId, user.uid, setAttendanceRecords);
+  }, [admin, classId, user?.uid]);
+
+  useEffect(() => {
+    if (!admin || !classId) {
+      setBaseGroupAssignment(null);
+      return;
+    }
+    return subscribeStudyGroupAssignment(classId, setBaseGroupAssignment);
+  }, [admin, classId]);
 
   useEffect(() => {
     if (!admin || !user || !currentClass || currentClass.archived) return;
@@ -389,6 +417,16 @@ export default function StudyPage() {
       setRegenerating(false);
     }
   }
+  async function handleAttendance() {
+    if (!classId || !user || attending || admin) return;
+    setAttending(true);
+    try {
+      await markStudyAttendance(classId, user, todayAttendanceKey);
+      setToast(attendedToday ? "오늘 출석은 이미 기록되어 있어요." : "오늘 출석을 기록했어요.");
+    } finally {
+      setAttending(false);
+    }
+  }
 
   // 보드 순서 변경 — 헤더를 드래그해 다른 보드 위에 놓으면 그 자리로 이동
   async function handleBoardDrop(targetId) {
@@ -442,6 +480,24 @@ export default function StudyPage() {
                 <div className="study-head-main">
                   <div className="study-title-row">
                     <h1>🧩 공부방</h1>
+                    {!admin && currentClass && (
+                      <>
+                        <button
+                          className={`btn-ghost study-attend-btn${attendedToday ? " done" : ""}`}
+                          onClick={handleAttendance}
+                          disabled={attending || attendedToday}
+                          title={attendedToday ? "오늘 출석이 이미 기록되었습니다" : "오늘 출석을 기록합니다"}
+                        >
+                          {attendedToday ? "✅ 출석 완료" : "✅ 출석하기"}
+                        </button>
+                        <button
+                          className="btn-ghost"
+                          onClick={() => setAttendanceOpen(true)}
+                        >
+                          📋 출석부 보기
+                        </button>
+                      </>
+                    )}
                     {admin && currentClass?.archived ? (
                       <span className="study-class-archived-badge" title="보관된 반 — 보기 전용(편집하려면 먼저 복원하세요)">
                         📦 {currentClass.name} · 보관됨
@@ -473,6 +529,14 @@ export default function StudyPage() {
                         title="주제·자료·해설·활동을 준비하고 수업을 시작합니다"
                       >
                         📝 수업준비
+                      </button>
+                    )}
+                    {admin && currentClass && !currentClass.archived && (
+                      <button
+                        className="btn-ghost"
+                        onClick={() => setAttendanceOpen(true)}
+                      >
+                        📋 출석부 보기
                       </button>
                     )}
                     {admin && currentClass && !currentClass.archived && (
@@ -520,18 +584,6 @@ export default function StudyPage() {
                     <p>수업 자료를 확인하고, 활동 결과물을 카드로 남겨 보세요.</p>
                   )}
                 </div>
-
-                {!admin && currentClass && (
-                  <button
-                    className="btn-ghost"
-                    onClick={async () => {
-                      if (user) await leaveClass(user.uid, classId);
-                      setSelectedClassId(null);
-                    }}
-                  >
-                    🚪 반 나가기
-                  </button>
-                )}
               </div>
               {admin && myClassesAll.length === 0 ? (
                 <p className="empty-note">
@@ -561,6 +613,7 @@ export default function StudyPage() {
                           bi !== 0 && bi !== classBoards.length - 1 && !b.collapsed
                       )}
                       classRoster={admin ? roster : []}
+                      baseGroupAssignment={baseGroupAssignment}
                       questions={questions}
                       classes={myClasses}
                       onAsk={(kw) => setAskKeyword(kw)}
@@ -729,6 +782,15 @@ export default function StudyPage() {
         </div>
       )}
 
+      {attendanceOpen && currentClass && (
+        <StudyAttendanceModal
+          isTeacher={admin}
+          records={attendanceRecords}
+          roster={admin ? roster : []}
+          onClose={() => setAttendanceOpen(false)}
+        />
+      )}
+
       {classManagerOpen && (
         <ClassManagerModal
           classes={myClassesAll}
@@ -775,7 +837,7 @@ export default function StudyPage() {
           setAskCode(code);
           setAskKeyword(null);
         }}
-        hasModalOpen={cardModalOpen || classManagerOpen || addingBoard || (askKeyword !== null || askCode !== null)}
+        hasModalOpen={cardModalOpen || classManagerOpen || addingBoard || attendanceOpen || (askKeyword !== null || askCode !== null)}
       />
 
       {/* ── 수업 준비 (목록 · 새로 만들기) ── */}
@@ -800,6 +862,7 @@ export default function StudyPage() {
           lesson={editingLesson}
           mode="edit"
           classId={classId}
+          roster={admin ? roster : []}
           // 학생이 카드를 쓰는 보드만 연결 대상 — '선생님 보드'(공지용)는 제외
           boards={classBoards.filter((b) => b.type !== "notice")}
           onSaveBoardId={async (boardId) => {
@@ -829,6 +892,7 @@ export default function StudyPage() {
           classId={classId}
           className={currentClass?.name ?? ""}
           roster={admin ? roster : []}
+          attendanceRecords={admin ? attendanceRecords : []}
           // '공부중' 전광판이 연결된 수업 보드를 찾는 데 씁니다
           boards={classBoards.filter((b) => b.type !== "notice")}
           onClose={() => setTeaching(null)}

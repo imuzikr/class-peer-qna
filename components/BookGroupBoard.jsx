@@ -32,6 +32,7 @@ export default function BookGroupBoard({
   user,
   isTeacher,
   roster = [],
+  baseGroupAssignment = null,
   onOpenAll,
   onBack,
   onToast,
@@ -101,7 +102,7 @@ export default function BookGroupBoard({
       {isTeacher && !freeMode && (
         <div className="book-head-actions">
           <button className="btn-ghost" onClick={() => setComposing(true)}>
-            <IconPeople size={15} /> 모둠 구성
+            <IconPeople size={15} /> 활동 모둠
           </button>
         </div>
       )}
@@ -123,6 +124,8 @@ export default function BookGroupBoard({
       }))}
       onCompose={composeBookGroups}
       keepEmpty
+      baseGroups={baseGroupAssignment?.groups ?? []}
+      groupSetName={activity.groupSetName || `${activity.topic || activity.title || "독서 활동"} 활동 모둠`}
       onClose={() => setComposing(false)}
       onSaved={() => onToast?.("모둠을 구성했어요.")}
     />
