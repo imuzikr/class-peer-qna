@@ -49,6 +49,62 @@ import MindmapBoard from "@/components/MindmapBoard";
 import MindmapForm from "@/components/MindmapForm";
 import { IconBook, IconTrash } from "@/components/StatusIcons";
 
+const ACTIVITY_KINDS = [
+  {
+    key: "consonant",
+    label: "닿소리 채우기",
+    desc: "모둠이 함께 자음 칸을 낱말로 채웁니다",
+    addLabel: "닿소리 활동 추가하기",
+  },
+  {
+    key: "paratext",
+    label: "곁텍스트 읽기",
+    desc: "표지·제목·목차를 보고 내용을 짐작합니다",
+    addLabel: "곁텍스트 활동 추가하기",
+  },
+  {
+    key: "raft",
+    label: "RAFT 글쓰기",
+    desc: "역할·청중·형식·주제를 정해 글을 씁니다",
+    addLabel: "RAFT 활동 추가하기",
+  },
+  {
+    key: "kwls",
+    label: "KWLS로 성찰하기",
+    desc: "읽기 전후 생각을 K-W-L-S로 정리합니다",
+    addLabel: "KWLS 활동 추가하기",
+  },
+  {
+    key: "mindmap",
+    label: "마인드맵",
+    desc: "주제에서 가지를 뻗어 생각을 펼칩니다",
+    addLabel: "마인드맵 추가하기",
+  },
+];
+
+const ACTIVITY_KIND_BY_KEY = new Map(ACTIVITY_KINDS.map((k) => [k.key, k]));
+
+function activityTime(activity) {
+  const raw = activity?.createdAt;
+  if (!raw) return 0;
+  if (typeof raw.toMillis === "function") return raw.toMillis();
+  if (typeof raw.toDate === "function") return raw.toDate().getTime();
+  if (raw instanceof Date) return raw.getTime();
+  if (typeof raw === "number") return raw;
+  const parsed = new Date(raw).getTime();
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function activityDateLabel(activity) {
+  const time = activityTime(activity);
+  if (!time) return "날짜 없음";
+  return new Intl.DateTimeFormat("ko-KR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(time));
+}
+
 export default function BooksPage() {
   const user = useCurrentUser();
   useRequireAuth();
@@ -66,7 +122,8 @@ export default function BooksPage() {
   const [openActivity, setOpenActivity] = useState(null); // 모둠 대시보드로 연 활동
   const [openGroups, setOpenGroups] = useState([]);       // 연 활동의 모둠 목록
   const [allView, setAllView] = useState(false);          // 교사: 반 전체 집계 화면
-  const [creating, setCreating] = useState(false);
+  const [openKind, setOpenKind] = useState(null);
+  const [creatingType, setCreatingType] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [toast, setToast] = useState("");
 
@@ -146,6 +203,17 @@ export default function BooksPage() {
     : null;
   const activeClassId = activeActivity?.classId ?? classId;
   const activeClassName = classes.find((c) => c.id === activeClassId)?.name ?? "";
+  const openKindInfo = openKind ? ACTIVITY_KIND_BY_KEY.get(openKind) ?? null : null;
+  const activitiesByKind = useMemo(() => {
+    return ACTIVITY_KINDS.map((kind) => {
+      const items = activities
+        .filter((a) => a.type === kind.key)
+        .sort((a, b) => activityTime(a) - activityTime(b));
+      return { ...kind, items };
+    });
+  }, [activities]);
+  const openKindActivities =
+    activitiesByKind.find((kind) => kind.key === openKind)?.items ?? [];
 
   // 개인 활동(곁텍스트 읽기·RAFT·KWLS·마인드맵)은 모둠이 없어 화면 흐름이 따로입니다.
   const isParatext = activeActivity?.type === "paratext";
@@ -171,7 +239,7 @@ export default function BooksPage() {
 
   async function handleCreate(form) {
     await addBookActivity(user, { classId, ...form });
-    setCreating(false);
+    setCreatingType(null);
     setToast("활동을 만들었어요.");
   }
 
@@ -333,45 +401,46 @@ export default function BooksPage() {
               )}
             </div>
             {admin && classId && (
-              <button className="btn-primary" onClick={() => setCreating(true)}>
+              <button className="btn-primary" onClick={() => setCreatingType("consonant")}>
                 ＋ 독서 활동 만들기
               </button>
             )}
           </div>
 
           <p className="books-intro">
-            책을 읽고 떠오른 생각을 모둠 친구들과 함께 모아 보세요.
+            활동 종류를 고르면 지금까지 만든 활동을 날짜 순서대로 보고, 같은 종류의 활동을 계속 추가할 수 있어요.
           </p>
 
           {admin && myClasses.length === 0 ? (
             <p className="empty-note">
               아직 만든 반이 없어요. 공부방에서 반을 먼저 만들어 주세요.
             </p>
-          ) : activities.length === 0 ? (
-            <p className="empty-note">
-              {admin
-                ? `‘${currentClass?.name ?? "이 반"}’에는 아직 활동이 없어요. ‘독서 활동 만들기’로 첫 활동을 열어 보세요.`
-                : `‘${currentClass?.name ?? "우리 반"}’에는 아직 열린 활동이 없어요. 선생님이 활동을 열면 여기에 나타납니다.`}
-            </p>
+          ) : openKindInfo ? (
+            <ActivityKindDashboard
+              kind={openKindInfo}
+              activities={openKindActivities}
+              isTeacher={admin}
+              onBack={() => setOpenKind(null)}
+              onAdd={() => setCreatingType(openKindInfo.key)}
+              onOpen={setOpenActivity}
+              onDelete={setConfirmDelete}
+              onToggleLock={(activity) =>
+                updateBookActivity(activity.id, { locked: !activity.locked })
+              }
+            />
           ) : (
-            <div className="book-activity-grid">
-              {activities.map((a) => (
-                <ActivityCard
-                  key={a.id}
-                  activity={a}
-                  isTeacher={admin}
-                  onOpen={() => setOpenActivity(a)}
-                  onDelete={() => setConfirmDelete(a)}
-                  onToggleLock={() => updateBookActivity(a.id, { locked: !a.locked })}
-                />
-              ))}
-            </div>
+            <ActivityKindGrid kinds={activitiesByKind} onOpen={setOpenKind} />
           )}
         </main>
       )}
 
-      {creating && (
-        <BookActivityForm onSave={handleCreate} onClose={() => setCreating(false)} />
+      {creatingType && (
+        <BookActivityForm
+          initialType={creatingType}
+          fixedType={!!openKindInfo}
+          onSave={handleCreate}
+          onClose={() => setCreatingType(null)}
+        />
       )}
 
       {confirmDelete && (
@@ -392,6 +461,81 @@ export default function BooksPage() {
 
       {toast && <Toast message={toast} onDone={() => setToast("")} />}
     </div>
+  );
+}
+
+function ActivityKindGrid({ kinds, onOpen }) {
+  return (
+    <div className="book-kind-grid">
+      {kinds.map((kind) => {
+        const latest = kind.items[kind.items.length - 1] ?? null;
+        return (
+          <button
+            key={kind.key}
+            type="button"
+            className="book-kind-card"
+            onClick={() => onOpen(kind.key)}
+          >
+            <span className="book-kind-count">{kind.items.length}개</span>
+            <strong>{kind.label}</strong>
+            <em>{kind.desc}</em>
+            <span className="book-kind-meta">
+              {latest ? `최근 활동 ${activityDateLabel(latest)}` : "아직 만든 활동 없음"}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function ActivityKindDashboard({
+  kind,
+  activities,
+  isTeacher,
+  onBack,
+  onAdd,
+  onOpen,
+  onDelete,
+  onToggleLock,
+}) {
+  return (
+    <section className="book-kind-dashboard">
+      <div className="book-kind-head">
+        <button type="button" className="btn-ghost" onClick={onBack}>
+          ← 활동 종류
+        </button>
+        <div>
+          <h2>{kind.label}</h2>
+          <p>{kind.desc}</p>
+        </div>
+        {isTeacher && (
+          <button type="button" className="btn-primary" onClick={onAdd}>
+            ＋ {kind.addLabel}
+          </button>
+        )}
+      </div>
+
+      {activities.length === 0 ? (
+        <p className="empty-note">
+          아직 만든 {kind.label} 활동이 없어요.
+          {isTeacher ? ` ‘${kind.addLabel}’로 첫 활동을 열어 보세요.` : " 선생님이 활동을 열면 여기에 나타납니다."}
+        </p>
+      ) : (
+        <div className="book-activity-grid">
+          {activities.map((a) => (
+            <ActivityCard
+              key={a.id}
+              activity={a}
+              isTeacher={isTeacher}
+              onOpen={() => onOpen(a)}
+              onDelete={() => onDelete(a)}
+              onToggleLock={() => onToggleLock(a)}
+            />
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -420,6 +564,7 @@ function ActivityCard({ activity, isTeacher, onOpen, onDelete, onToggleLock }) {
       <button type="button" className="book-activity-open" onClick={onOpen}>
         <span className="book-activity-topic">{activity.topic || "주제 미정"}</span>
         <strong className="book-activity-title">{activity.title}</strong>
+        <span className="book-activity-date">{activityDateLabel(activity)}</span>
         <span className="book-activity-meta">
           {soloLabel ?? `모둠 ${groups.length}개 · ${modeLabel}`}
           {activity.locked && " · 잠김"}

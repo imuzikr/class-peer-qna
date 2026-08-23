@@ -10797,6 +10797,85 @@ pre code {
 }
 
 /* ── 활동 목록 ── */
+.book-kind-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+}
+.book-kind-card {
+  position: relative;
+  min-height: 164px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 18px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-soft);
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, transform 0.15s;
+}
+.book-kind-card:hover {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  transform: translateY(-1px);
+}
+.book-kind-card strong {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text);
+}
+.book-kind-card em {
+  min-height: 39px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-sub);
+  font-style: normal;
+}
+.book-kind-count {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--primary-dark);
+  background: var(--primary-light);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+.book-kind-meta {
+  margin-top: auto;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.book-kind-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.book-kind-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.book-kind-head > div {
+  min-width: 0;
+  flex: 1;
+}
+.book-kind-head h2 {
+  margin: 0 0 3px;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text);
+}
+.book-kind-head p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-sub);
+}
 .book-activity-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -10837,6 +10916,11 @@ pre code {
   font-size: 15.5px;
   font-weight: 800;
   color: var(--text);
+}
+.book-activity-date {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--primary-dark);
 }
 .book-activity-meta {
   font-size: 12px;
