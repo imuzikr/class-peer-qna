@@ -526,7 +526,7 @@ export default function StudyBoardColumn({
               }
               title={isTeacher ? "더블 클릭해 활동 안내 추가·수정" : undefined}
             >
-              {board.description || (isTeacher ? "더블 클릭해 활동 안내를 적어 주세요." : "")}
+              {board.description || (isTeacher ? "활동 안내를 적어 주세요." : "")}
             </p>
           )
         )}

@@ -8820,8 +8820,6 @@ pre code {
 }
 
 .study-column-desc--empty {
-  color: var(--text-sub);
-  font-style: italic;
   opacity: 0.75;
 }
 
