@@ -30,6 +30,7 @@ import { buildActivityTemplate, nextActivityLocks, isActivityLocked } from "@/li
 import StudyCard from "./StudyCard";
 import StudyCardModal from "./StudyCardModal";
 import StudyPresentModal from "./StudyPresentModal";
+import StudyProgressBoard from "./StudyProgressBoard";
 import GroupComposer from "./GroupComposer";
 import { IconTrash, IconSettings, IconLock, IconDuplicate, IconPen, IconPeople } from "./StatusIcons";
 
@@ -69,6 +70,7 @@ export default function StudyBoardColumn({
   const [activitiesDraft, setActivitiesDraft] = useState([]);
   const [savingActivities, setSavingActivities] = useState(false);
   const [presenting, setPresenting] = useState(false); // 발표 모드
+  const [progressOpen, setProgressOpen] = useState(false); // 공부중 전광판(제출 상태 확인)
   const [titleDraft, setTitleDraft] = useState(board.title); // 보드 제목 편집 초안
   const [editingTitle, setEditingTitle] = useState(false); // 제목 인라인 편집 중
   const [descDraft, setDescDraft] = useState(board.description ?? ""); // 상세 설명 편집 초안
@@ -284,7 +286,7 @@ export default function StudyBoardColumn({
     }
   }
 
-  const modalOpen = selectedCard !== null || creating || presenting;
+  const modalOpen = selectedCard !== null || creating || presenting || progressOpen;
 
   useEffect(() => {
     onModalChange?.(modalOpen);
@@ -562,6 +564,14 @@ export default function StudyBoardColumn({
                     >
                       제출 {timeDir === "asc" ? "↑" : "↓"}
                     </button>
+                    <button
+                      type="button"
+                      className="study-sort-btn study-sort-btn--check"
+                      onClick={() => setProgressOpen(true)}
+                      title="공부중 전광판 — 학생별 제출 상태 확인"
+                    >
+                      확인
+                    </button>
                   </>
                 )}
               </div>
@@ -821,6 +831,16 @@ export default function StudyBoardColumn({
           board={board}
           cards={presentCards}
           onClose={() => setPresenting(false)}
+        />
+      )}
+
+      {/* ── 공부중 전광판(제출 상태 확인) ── */}
+      {progressOpen && (
+        <StudyProgressBoard
+          board={board}
+          roster={classRoster}
+          cards={cards}
+          onClose={() => setProgressOpen(false)}
         />
       )}
 

@@ -9544,6 +9544,18 @@ pre code {
   border-color: var(--primary);
 }
 
+/* 확인 — 공부중 전광판 열기(정렬 버튼이 아니라 눌러도 파란 안내 톤 고정) */
+.study-sort-btn--check {
+  background: #EEF2FF;
+  color: #4338CA;
+  border-color: #C7D2FE;
+}
+.study-sort-btn--check:hover {
+  background: #4F46E5;
+  color: #fff;
+  border-color: #4F46E5;
+}
+
 
 /* 정렬·활동·설정 패널 — 제목 카드 클릭 시 한 번에 펼침 */
 .study-board-panel {
