@@ -278,6 +278,53 @@ service cloud.firestore {
           || ownsClassEditable(cId)
         );
       }
+
+      // ── 공부방 출석부 ─────────────────────────────────────
+      //  · 경로 = classes/{classId}/attendanceRecords/{date_uid}
+      //  · 학생은 자기 출석 기록만 만들고 읽습니다. 교사는 반 전체 기록을 봅니다.
+      match /attendanceRecords/{recordId} {
+        allow read: if signedIn() && (
+          isAdmin()
+          || ownsClass(cId)
+          || resource.data.uid == uid()
+        );
+        allow create: if signedIn()
+                      && request.resource.data.uid == uid()
+                      && request.resource.data.classId == cId
+                      && recordId == (request.resource.data.date + '_' + uid())
+                      && request.resource.data.date is string
+                      && isClassMember(cId)
+                      && request.resource.data.attendedAt == request.time
+                      && request.resource.data.createdAt == request.time;
+        allow update, delete: if false;
+      }
+
+      // ── 참여 전광판 자리표 ─────────────────────────────────
+      //  · default: 수업 준비에서 만든 기본 자리표
+      //  · daily_YYYY-MM-DD: 발표 중 임시 이동한 당일 자리표
+      match /seatLayouts/{layoutId} {
+        allow read: if signedIn() && (isAdmin() || ownsClass(cId));
+        allow create, update: if signedIn()
+                              && (isAdmin() || ownsClassEditable(cId))
+                              && request.resource.data.classId == cId
+                              && request.resource.data.layoutId == layoutId
+                              && request.resource.data.seats is list
+                              && request.resource.data.seats.size() <= 30;
+        allow delete: if signedIn() && (isAdmin() || ownsClassEditable(cId));
+      }
+
+      // ── 참여 전광판 기본 모둠 구성 ─────────────────────────
+      //  · 반 단위 장기 모둠입니다. 참여 전광판의 모둠별 보기에서만 씁니다.
+      match /groupAssignments/{assignmentId} {
+        allow read: if signedIn() && (isAdmin() || ownsClass(cId));
+        allow create, update: if signedIn()
+                              && (isAdmin() || ownsClassEditable(cId))
+                              && assignmentId == 'default'
+                              && request.resource.data.classId == cId
+                              && request.resource.data.groups is list
+                              && request.resource.data.groups.size() <= 6;
+        allow delete: if signedIn() && (isAdmin() || ownsClassEditable(cId));
+      }
     }
 
     // ── 입장 코드 — 문서 ID가 코드 자체. 코드 소유 교사만 관리. ──
@@ -311,11 +358,10 @@ service cloud.firestore {
                          .data.classId == request.resource.data.classId
                     && get(/databases/$(database)/documents/joinCodes/$(request.resource.data.code))
                          .data.expiresAt > request.time;
-      // 학생 본인의 '반 나가기'는 보관 여부와 무관하게 항상 허용(접근을
-      // 줄이는 방향이라 위험하지 않음). 교사가 학생을 내보내는 조작은
-      // 데이터 편집으로 보고 보관 중엔 막습니다.
+      // 학생 본인의 직접 '반 나가기'는 허용하지 않습니다. 소속 변경은
+      // 담당 교사/관리자가 관리합니다.
       allow delete: if signedIn() && (
-        resource.data.uid == uid() || isAdmin() || ownsClassEditable(resource.data.classId)
+        isAdmin() || ownsClassEditable(resource.data.classId)
       );
     }
 
