@@ -34,9 +34,10 @@ function parseNames(raw) {
   return raw.split(",").map((s) => s.trim()).filter(Boolean);
 }
 
-export default function BookActivityForm({ onSave, onClose }) {
-  const [type, setType] = useState("consonant");
-  const [title, setTitle] = useState("닿소리 채우기");
+export default function BookActivityForm({ onSave, onClose, initialType = "consonant", fixedType = false }) {
+  const initial = TYPES.find((t) => t.key === initialType) ?? TYPES[0];
+  const [type, setType] = useState(initial.key);
+  const [title, setTitle] = useState(initial.defaultTitle);
   const [topic, setTopic] = useState("");
   const [bookUrl, setBookUrl] = useState("");
   const [groupMode, setGroupMode] = useState("teacher");
@@ -100,23 +101,25 @@ export default function BookActivityForm({ onSave, onClose }) {
           <button type="button" className="btn-close" onClick={onClose} aria-label="닫기">×</button>
         </div>
 
-        <div className="book-field">
-          <span>활동 종류</span>
-          <div className="book-type-seg">
-            {TYPES.map((t) => (
-              <button
-                key={t.key}
-                type="button"
-                className={`book-type-btn${type === t.key ? " active" : ""}`}
-                onClick={() => pickType(t.key)}
-                aria-pressed={type === t.key}
-              >
-                <strong>{t.label}</strong>
-                <em>{t.desc}</em>
-              </button>
-            ))}
+        {!fixedType && (
+          <div className="book-field">
+            <span>활동 종류</span>
+            <div className="book-type-seg">
+              {TYPES.map((t) => (
+                <button
+                  key={t.key}
+                  type="button"
+                  className={`book-type-btn${type === t.key ? " active" : ""}`}
+                  onClick={() => pickType(t.key)}
+                  aria-pressed={type === t.key}
+                >
+                  <strong>{t.label}</strong>
+                  <em>{t.desc}</em>
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="book-field-row">
           <label className="book-field">
