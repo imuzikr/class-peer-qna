@@ -23,6 +23,7 @@ const {
   onDocumentDeleted,
 } = require("firebase-functions/v2/firestore");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { purgeClassData } = require("./purgeClass");
 const { setGlobalOptions } = require("firebase-functions/v2");
 const admin = require("firebase-admin");
 
@@ -443,22 +444,10 @@ exports.deleteClass = onCall({ enforceAppCheck: true }, async (request) => {
     throw new HttpsError("failed-precondition", "먼저 반을 보관한 뒤에 삭제할 수 있습니다.");
   }
 
-  const boardsSnap = await db.collection("studyBoards").where("classId", "==", classId).get();
-  for (const boardDoc of boardsSnap.docs) {
-    const cardsSnap = await boardDoc.ref.collection("cards").get();
-    for (const cardDoc of cardsSnap.docs) {
-      await deleteAttachedFilesAdmin(cardDoc.data());
-    }
-    const batch = db.batch();
-    cardsSnap.docs.forEach((d) => batch.delete(d.ref));
-    batch.delete(boardDoc.ref);
-    await batch.commit();
-  }
-
-  const warnings = [];
-  await deleteByQuery(db.collection("joinCodes").where("classId", "==", classId), warnings, "입장 코드");
-  await deleteByQuery(db.collection("memberships").where("classId", "==", classId), warnings, "반 소속");
-  await classRef.delete();
+  // 반에 딸린 데이터는 purgeClass.js가 한곳에서 관리합니다.
+  // 무엇을 지우는지·빠뜨린 게 없는지는 tests/rules/deleteClass.test.mjs가
+  // 에뮬레이터에서 실제로 심어 보고 확인합니다.
+  const warnings = await purgeClassData(db, classId, deleteAttachedFilesAdmin);
 
   return { ok: warnings.length === 0, classId, warnings };
 });
