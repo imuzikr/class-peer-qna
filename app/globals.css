@@ -8819,10 +8819,6 @@ pre code {
   -webkit-box-orient: vertical;
 }
 
-.study-column-desc--empty {
-  opacity: 0.75;
-}
-
 .study-column-tags {
   display: flex;
   flex-wrap: wrap;

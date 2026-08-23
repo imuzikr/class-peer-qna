@@ -519,7 +519,7 @@ export default function StudyBoardColumn({
         ) : (
           (board.description || isTeacher) && (
             <p
-              className={`study-column-desc${isTeacher ? " study-column-desc--editable" : ""}${!board.description ? " study-column-desc--empty" : ""}`}
+              className={`study-column-desc${isTeacher ? " study-column-desc--editable" : ""}`}
               onClick={isTeacher ? (e) => e.stopPropagation() : undefined}
               onDoubleClick={
                 isTeacher ? (e) => { e.stopPropagation(); startEditDesc(); } : undefined
