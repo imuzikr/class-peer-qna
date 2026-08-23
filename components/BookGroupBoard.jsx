@@ -89,6 +89,11 @@ export default function BookGroupBoard({
       <div className="books-head-row">
         <div className="books-head-main">
           <button type="button" className="btn-ghost" onClick={onBack}>← 활동 목록</button>
+          {isTeacher && !freeMode && (
+            <button type="button" className="btn-ghost" onClick={() => setComposing(true)}>
+              <IconPeople size={15} /> 활동 모둠
+            </button>
+          )}
           <span className="book-group-topic">{activity.topic}</span>
           {/* 이 활동이 어느 반 것인지 — 학생에게 안 보이면 반이 다른 경우가 많아 표시 */}
           {className && <span className="book-group-class">{className}</span>}
@@ -99,13 +104,6 @@ export default function BookGroupBoard({
           </button>
         )}
       </div>
-      {isTeacher && !freeMode && (
-        <div className="book-head-actions">
-          <button className="btn-ghost" onClick={() => setComposing(true)}>
-            <IconPeople size={15} /> 활동 모둠
-          </button>
-        </div>
-      )}
     </div>
   );
 

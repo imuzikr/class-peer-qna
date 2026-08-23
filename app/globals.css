@@ -11405,12 +11405,6 @@ pre code {
   color: var(--text-sub);
   margin-bottom: 20px;
 }
-.book-head-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
 /* ── 활동 목록 ── */
 .book-kind-grid {
   display: grid;
