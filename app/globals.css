@@ -12445,8 +12445,9 @@ pre code {
 }
 .mindmap-student-card.casting { border-color: var(--primary); }
 .mindmap-view {
-  flex: 1;
+  flex: 1 1 0;
   min-width: 0;
+  align-self: stretch;
   display: flex;
   flex-direction: column;
 }
@@ -12460,8 +12461,21 @@ pre code {
 .mindmap-view-who strong { font-size: 15px; font-weight: 800; color: var(--text); }
 .mindmap-view-meta { font-size: 12.5px; font-weight: 700; color: var(--text-sub); }
 .mindmap-view-head .dash-cast-btn { margin-left: auto; flex-shrink: 0; }
-.mindmap-view-stage { margin-top: 10px; }
-.mindmap-view-stage .mm-viewport { height: clamp(360px, calc(100vh - 330px), 720px); }
+.mindmap-view-stage {
+  width: 100%;
+  min-width: 0;
+  align-self: stretch;
+  margin-top: 10px;
+}
+.mindmap-view-stage .mm-viewport {
+  width: 100%;
+  min-width: 0;
+  height: clamp(360px, calc(100vh - 330px), 720px);
+}
+.mindmap-view-stage .mm-bar {
+  width: 100%;
+  min-width: 0;
+}
 /* 학생이 아직 시작 전인 판 위에 얹는 안내 — 판 자체는 그대로 두고
    교사가 바로 이어서 가지를 만들 수 있게 합니다 */
 .mindmap-empty-hint {
