@@ -14,7 +14,8 @@
 // · 학생 화면: 활동을 누르면 곧바로 자기 판으로 들어가 낱말을 넣습니다.
 //     (아직 모둠이 없으면 모둠 목록을 보여 줘 고르거나 기다리게 합니다)
 // =============================================================
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   subscribeBookActivities,
   subscribeBookGroups,
@@ -107,10 +108,38 @@ function activityDateLabel(activity) {
 }
 
 export default function BooksPage() {
+  // useSearchParams()는 정적 프리렌더 시 Suspense 경계가 필요합니다 —
+  // 활동 종류/활동 상세 화면을 브라우저 히스토리(뒤로 가기)와 맞추려고 씁니다.
+  return (
+    <Suspense fallback={null}>
+      <BooksPageInner />
+    </Suspense>
+  );
+}
+
+function BooksPageInner() {
   const user = useCurrentUser();
   useRequireAuth();
   const admin = user ? isTeacher(user) : false;
   const superAdmin = user ? isAdmin(user) : false;
+
+  // 활동 종류 그리드 → 종류별 목록 → 활동 상세, 이 세 단계를 URL(?kind=&activity=)
+  // 로 관리합니다. 그래야 브라우저의 '뒤로 가기'를 눌렀을 때 이 앱의 상태가
+  // 아니라 그 전 최상위 페이지로 곧장 나가버리지 않고, 한 단계씩 되돌아갑니다.
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const openKind = searchParams.get("kind");
+  const openActivityId = searchParams.get("activity");
+
+  function goToGrid() {
+    router.push("/books");
+  }
+  function goToKind(kindKey) {
+    router.push(kindKey ? `/books?kind=${kindKey}` : "/books");
+  }
+  function goToActivity(activity) {
+    router.push(`/books?kind=${activity.type}&activity=${activity.id}`);
+  }
 
   const [classes, setClasses] = useState([]);
   const [memberships, setMemberships] = useState([]);
@@ -121,10 +150,8 @@ export default function BooksPage() {
   const [baseGroupAssignment, setBaseGroupAssignment] = useState(null);
 
   const [activities, setActivities] = useState([]);
-  const [openActivity, setOpenActivity] = useState(null); // 모둠 대시보드로 연 활동
   const [openGroups, setOpenGroups] = useState([]);       // 연 활동의 모둠 목록
   const [allView, setAllView] = useState(false);          // 교사: 반 전체 집계 화면
-  const [openKind, setOpenKind] = useState(null);
   const [creatingType, setCreatingType] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [toast, setToast] = useState("");
@@ -208,8 +235,8 @@ export default function BooksPage() {
   }, [memberUids, directory]);
 
   // 활동을 열어둔 채 목록이 갱신되면 최신 문서로 맞춰줍니다(주제 수정·잠금 반영).
-  const activeActivity = openActivity
-    ? activities.find((a) => a.id === openActivity.id) ?? openActivity
+  const activeActivity = openActivityId
+    ? activities.find((a) => a.id === openActivityId) ?? null
     : null;
   const activeClassId = activeActivity?.classId ?? classId;
   const activeClassName = classes.find((c) => c.id === activeClassId)?.name ?? "";
@@ -257,7 +284,7 @@ export default function BooksPage() {
     const target = confirmDelete;
     setConfirmDelete(null);
     await deleteBookActivity(target.id);
-    if (openActivity?.id === target.id) setOpenActivity(null);
+    if (openActivityId === target.id) goToKind(target.type);
     setToast("활동을 삭제했어요.");
   }
 
@@ -283,13 +310,13 @@ export default function BooksPage() {
           classId={activeClassId}
           user={user}
           roster={roster}
-          onBack={() => setOpenActivity(null)}
+          onBack={() => goToKind(activeActivity.type)}
         />
       ) : isMindmap ? (
         <MindmapForm
           activity={activeActivity}
           user={user}
-          onBack={() => setOpenActivity(null)}
+          onBack={() => goToKind(activeActivity.type)}
         />
       ) : /* KWLS로 성찰하기(개인 활동) — 교사는 학생별 카드+칸별 방송, 학생은 4칸 화면 */
       isKwls && admin ? (
@@ -299,13 +326,13 @@ export default function BooksPage() {
           classId={activeClassId}
           user={user}
           roster={roster}
-          onBack={() => setOpenActivity(null)}
+          onBack={() => goToKind(activeActivity.type)}
         />
       ) : isKwls ? (
         <KwlsForm
           activity={activeActivity}
           user={user}
-          onBack={() => setOpenActivity(null)}
+          onBack={() => goToKind(activeActivity.type)}
         />
       ) : /* RAFT 글쓰기(개인 활동) — 교사는 학생별 카드+방송, 학생은 4열 화면 */
       isRaft && admin ? (
@@ -315,13 +342,13 @@ export default function BooksPage() {
           classId={activeClassId}
           user={user}
           roster={roster}
-          onBack={() => setOpenActivity(null)}
+          onBack={() => goToKind(activeActivity.type)}
         />
       ) : isRaft ? (
         <RaftForm
           activity={activeActivity}
           user={user}
-          onBack={() => setOpenActivity(null)}
+          onBack={() => goToKind(activeActivity.type)}
         />
       ) : /* 곁텍스트 읽기(개인 활동) — 교사는 학생별 카드, 학생은 자기 입력 화면 */
       isParatext && admin ? (
@@ -331,13 +358,13 @@ export default function BooksPage() {
           classId={activeClassId}
           user={user}
           roster={roster}
-          onBack={() => setOpenActivity(null)}
+          onBack={() => goToKind(activeActivity.type)}
         />
       ) : isParatext ? (
         <ParatextForm
           activity={activeActivity}
           user={user}
-          onBack={() => setOpenActivity(null)}
+          onBack={() => goToKind(activeActivity.type)}
         />
       ) : /* 교사: '전체 보기' — 반 전체 집계. 여기서 학생 화면에 중계할 수 있습니다 */
       admin && allView && activeActivity ? (
@@ -355,7 +382,7 @@ export default function BooksPage() {
           user={user}
           isTeacher={false}
           viewMode="mine"
-          onBack={() => setOpenActivity(null)}
+          onBack={() => goToKind(activeActivity.type)}
         />
       ) : activeActivity ? (
         <BookGroupBoard
@@ -368,7 +395,7 @@ export default function BooksPage() {
           roster={roster}
           baseGroupAssignment={baseGroupAssignment}
           onOpenAll={() => setAllView(true)}
-          onBack={() => setOpenActivity(null)}
+          onBack={() => goToKind(activeActivity.type)}
           onToast={setToast}
         />
       ) : (
@@ -431,16 +458,16 @@ export default function BooksPage() {
               kind={openKindInfo}
               activities={openKindActivities}
               isTeacher={admin}
-              onBack={() => setOpenKind(null)}
+              onBack={goToGrid}
               onAdd={() => setCreatingType(openKindInfo.key)}
-              onOpen={setOpenActivity}
+              onOpen={goToActivity}
               onDelete={setConfirmDelete}
               onToggleLock={(activity) =>
                 updateBookActivity(activity.id, { locked: !activity.locked })
               }
             />
           ) : (
-            <ActivityKindGrid kinds={activitiesByKind} onOpen={setOpenKind} />
+            <ActivityKindGrid kinds={activitiesByKind} onOpen={goToKind} />
           )}
         </main>
       )}
