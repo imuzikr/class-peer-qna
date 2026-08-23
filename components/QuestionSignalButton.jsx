@@ -36,6 +36,13 @@ export default function QuestionSignalButton({ classId, user, isTeacher = false 
 
   const count = isTeacher ? signals.length : mine ? 1 : 0;
   const active = count > 0;
+
+  // 손든 학생이 없어져 아이콘이 사라졌다가 다시 나타날 때, 이전에 열어
+  // 보던 목록이 그대로 펼쳐진 채 나타나지 않도록 닫아 둡니다.
+  useEffect(() => {
+    if (!active) setOpen(false);
+  }, [active]);
+
   if (isTeacher && !active) return null;
 
   async function handleClick() {
