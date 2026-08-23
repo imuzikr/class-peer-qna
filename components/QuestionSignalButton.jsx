@@ -55,7 +55,7 @@ export default function QuestionSignalButton({ classId, user, isTeacher = false 
     <div className="question-signal-wrap" ref={wrapRef}>
       <button
         type="button"
-        className={`btn-ghost question-signal-btn${active ? " on" : ""}`}
+        className={`question-signal-btn${active ? " on" : ""}`}
         onClick={handleClick}
         disabled={!classId || busy}
         aria-haspopup={isTeacher ? "menu" : undefined}
@@ -71,8 +71,9 @@ export default function QuestionSignalButton({ classId, user, isTeacher = false 
               : "질문하기"
         }
       >
-        <span aria-hidden="true">🖐️</span>
-        {count > 0 && <span className="question-signal-badge">{count}</span>}
+        <span className="question-signal-hand" aria-hidden="true">🖐️</span>
+        {!isTeacher && active && <span className="question-signal-dot" aria-hidden="true" />}
+        {isTeacher && count > 0 && <span className="question-signal-badge">{count}</span>}
       </button>
 
       {isTeacher && open && (
