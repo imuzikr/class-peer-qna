@@ -23,7 +23,7 @@
 //   · 선을 클릭      → 그 선(부모→이 노드) 위에 라벨을 입력
 // 세 동작 모두 편집판(onChange가 있을 때)에서만 동작합니다.
 // =============================================================
-import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
   layoutPositions,
   levelMap,
@@ -215,9 +215,9 @@ export default function MindmapCanvas({
   // ── 화면에 맞추기 ──
   const fit = useCallback(() => {
     const stage = stageRef.current;
-    if (!stage || map.nodes.length === 0) return;
+    if (!stage || map.nodes.length === 0) return false;
     const rect = stage.getBoundingClientRect();
-    if (rect.width === 0 || rect.height === 0) return;
+    if (rect.width === 0 || rect.height === 0) return false;
     let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
     for (const n of map.nodes) {
       const p = positions.get(n.id) ?? { x: 0, y: 0 };
@@ -231,12 +231,14 @@ export default function MindmapCanvas({
     const cy = (minY + maxY) / 2;
     setZoom(next);
     setPan({ x: -cx * next, y: -cy * next });
+    return true;
   }, [map.nodes, positions]);
 
   // 처음 열릴 때와 형태가 바뀔 때만 맞춥니다(가지를 더할 때마다 튀지 않도록).
-  useEffect(() => {
-    const t = setTimeout(fit, 0);
-    return () => clearTimeout(t);
+  useLayoutEffect(() => {
+    if (fit()) return undefined;
+    const raf = requestAnimationFrame(fit);
+    return () => cancelAnimationFrame(raf);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map.layout, fitKey]);
 
