@@ -36,6 +36,7 @@ export default function QuestionSignalButton({ classId, user, isTeacher = false 
 
   const count = isTeacher ? signals.length : mine ? 1 : 0;
   const active = count > 0;
+  if (isTeacher && !active) return null;
 
   async function handleClick() {
     if (!classId || !user?.uid || busy) return;
@@ -63,9 +64,7 @@ export default function QuestionSignalButton({ classId, user, isTeacher = false 
         title={isTeacher ? "질문하려고 손든 학생" : mine ? "질문 취소" : "질문하기"}
         aria-label={
           isTeacher
-            ? count > 0
-              ? `질문하려고 손든 학생 ${count}명`
-              : "질문하려고 손든 학생 없음"
+            ? "질문하려고 손든 학생 보기"
             : mine
               ? "질문 취소"
               : "질문하기"
@@ -73,7 +72,6 @@ export default function QuestionSignalButton({ classId, user, isTeacher = false 
       >
         <span className="question-signal-hand" aria-hidden="true">🖐️</span>
         {!isTeacher && active && <span className="question-signal-dot" aria-hidden="true" />}
-        {isTeacher && count > 0 && <span className="question-signal-badge">{count}</span>}
       </button>
 
       {isTeacher && open && (
