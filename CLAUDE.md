@@ -21,6 +21,20 @@ npm run test:rules # Firestore 보안 규칙 테스트 (에뮬레이터, Java �
 필요합니다. 루트와 분리한 이유·작성 시 주의점은 `tests/rules/README.md` 참고.
 **`firestore.rules`를 고치면 반드시 이 테스트를 돌리고 배포하세요.**
 
+## 배포 (Firestore 규칙 · Cloud Functions)
+
+```bash
+npx firebase-tools login   # 최초 1회, 브라우저로 Google 계정 로그인
+npm run deploy             # 규칙 테스트 → firestore:rules + functions 배포
+```
+
+`npm run deploy -- --rules-only` / `--functions-only` / `--skip-tests` 옵션으로
+범위를 좁힐 수 있습니다 (`scripts/deploy.sh` 참고). `firebase-tools`는 npx로
+그때그때 받아 쓰고 루트 devDependency로는 넣지 않았습니다 — Vercel 빌드가
+이 패키지를 전혀 쓰지 않는데 설치 시간만 늘기 때문입니다(`tests/rules/`,
+`functions/`를 별도 워크스페이스로 분리한 것과 같은 이유). 앱 코드(Next.js)는
+`main` 푸시 시 Vercel이 자동 배포하며, 이 스크립트와는 무관합니다.
+
 Firebase 미설정 시 자동으로 **데모 모드**로 동작 (새로고침 시 데이터 초기화).
 실서비스 전환: `lib/firebase.js`의 `firebaseConfig`에 Firebase 콘솔 값 입력.
 
