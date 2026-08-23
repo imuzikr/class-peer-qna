@@ -93,8 +93,12 @@ service cloud.firestore {
     function isBoardClassMember(bId) {
       return isClassMember(studyBoardClassId(bId));
     }
+    // editMode가 없는 보드 문서(콘솔에서 직접 만들었거나 예전 데이터)에서도
+    // 안전하게 판정합니다. 직접 참조(.editMode)하면 필드가 없을 때 규칙 평가가
+    // 오류로 끝나 학생 카드 쓰기가 통째로 막힙니다. 보드는 항상 'open'으로
+    // 만들어지므로 기본값도 'open'이 맞습니다.
     function isBoardLocked(bId) {
-      return get(/databases/$(database)/documents/studyBoards/$(bId)).data.editMode == 'locked';
+      return get(/databases/$(database)/documents/studyBoards/$(bId)).data.get('editMode', 'open') == 'locked';
     }
     // '선생님 보드'(type: notice) — 교사 전용 쓰기. 학생은 읽기만(첨부 다운로드 포함).
     function isNoticeBoard(bId) {
@@ -183,6 +187,13 @@ service cloud.firestore {
         || isTeacher()
         || (changedOnly(['meTooIds'])
             && resource.data.authorId != uid()
+            // 배열에 같은 uid가 여러 번 들어가지 못하게 막습니다.
+            // 아래 두 줄은 집합(toSet)으로만 비교하기 때문에, 중복만으로는
+            // 차집합이 달라지지 않아 ['a','나','나','나'] 같은 배열이 그대로
+            // 통과했습니다. 공감 수와 랭킹은 배열 길이로 세므로(questionRanking.js),
+            // 학생이 자기 uid를 여러 번 넣어 수치를 부풀릴 수 있었습니다.
+            && request.resource.data.meTooIds.size()
+                 == request.resource.data.meTooIds.toSet().size()
             && request.resource.data.meTooIds.toSet()
                  .difference(resource.data.meTooIds.toSet()).hasOnly([uid()])
             && resource.data.meTooIds.toSet()
