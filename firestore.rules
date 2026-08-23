@@ -487,11 +487,18 @@ service cloud.firestore {
         allow read: if signedIn() && (
           isAdmin() || ownsBookActivity(aId) || sId == uid()
         );
-        allow create, update: if signedIn()
-                      && sId == uid()
-                      && request.resource.data.authorId == uid()
-                      && isBookActivityMember(aId)
-                      && !isBookActivityLocked(aId);
+        // 본인(학생) 경로: 잠금이면 못 씀. 교사(담당) 경로: 학생을 대신해 쓸 수
+        // 있고(지금은 마인드맵 편집에 씀), authorId는 여전히 그 학생(sId)으로
+        // 고정해 제출물의 주인이 바뀌지 않게 합니다. 잠금은 학생만 막습니다
+        // (다른 모둠 자료의 groups 규칙과 같은 방식 — 교사는 항상 편집 가능).
+        allow create, update: if signedIn() && (
+          (sId == uid()
+            && request.resource.data.authorId == uid()
+            && isBookActivityMember(aId)
+            && !isBookActivityLocked(aId))
+          || ((isAdmin() || ownsBookActivityEditable(aId))
+              && request.resource.data.authorId == sId)
+        );
         // 지우기는 담당 교사만 — 학생이 실수로 제출물을 통째로 날리지 못하게
         allow delete: if isAdmin() || ownsBookActivityEditable(aId);
       }

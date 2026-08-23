@@ -12462,6 +12462,13 @@ pre code {
 .mindmap-view-head .dash-cast-btn { margin-left: auto; flex-shrink: 0; }
 .mindmap-view-stage { margin-top: 10px; }
 .mindmap-view-stage .mm-viewport { height: clamp(360px, calc(100vh - 330px), 720px); }
+/* 학생이 아직 시작 전인 판 위에 얹는 안내 — 판 자체는 그대로 두고
+   교사가 바로 이어서 가지를 만들 수 있게 합니다 */
+.mindmap-empty-hint {
+  margin: 10px 0 0;
+  font-size: 12.5px;
+  color: var(--text-sub);
+}
 
 /* ── 학생 화면에 중계된 마인드맵 — 화면을 가득 채우게 ── */
 .broadcast-overlay--mindmap .broadcast-body {

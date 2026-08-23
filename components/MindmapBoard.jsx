@@ -7,12 +7,19 @@
 // 상세가 화면을 갈아 끼우지만, 마인드맵은 그림이라 '옆 학생 것과 견주며
 // 훑어보는' 일이 잦아 한 화면에 나란히 둡니다.
 //
+// 오른쪽 판은 교사도 직접 편집할 수 있습니다(수업 중 학생을 도와 가지를
+// 잡아 주거나 예시를 보여줄 때). 학생 화면과 같은 판·같은 저장 함수를 써서
+// '학생 것을 대신 고치는' 것이지 별도 사본이 아닙니다. 방송 중에 고치면
+// 그 내용이 곧바로(0.6초 안에) 학생 화면까지 따라갑니다 — 저장 자체는
+// 살짝 모았다가(900ms) 하지만, 방송은 그보다 먼저 지금 그리는 중인 내용을
+// 그대로 실어 보내므로 학생은 저장 완료를 기다리지 않고 바로 봅니다.
+//
 // 오른쪽 판의 '수업 시작'을 누르면 그 학생의 마인드맵이 학급 전체 화면에
 // 뜹니다. 방송 중에 다른 학생을 고르면 끄지 않아도 그리로 곧바로 바뀝니다
 // (방송 문서를 새 내용으로 덮어쓰기만 하므로 깜빡임이 없습니다).
 // =============================================================
-import { useEffect, useMemo, useState } from "react";
-import { subscribeParatextEntries } from "@/lib/store";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { subscribeParatextEntries, saveParatextEntryFor } from "@/lib/store";
 import { useEntryCast } from "@/lib/useEntryCast";
 import {
   MINDMAP_LAYOUTS,
@@ -39,8 +46,26 @@ export default function MindmapBoard({
 }) {
   const [entries, setEntries] = useState([]);
   const [openUid, setOpenUid] = useState(null);
+  // 교사가 지금 고치는 중인 초안 — 저장이 (디바운스 때문에) 서버를 한 바퀴
+  // 돌아오기 전까지는, entries 구독값이 아니라 이 초안을 화면에 그립니다.
+  // 안 그러면 타이핑 중간에 옛 서버 값이 와서 덮어써 글자가 튀어 보입니다.
+  const [draftMap, setDraftMap] = useState(null);
+  const dirtyRef = useRef(false);
+  const timerRef = useRef(null);
+  const [saveStatus, setSaveStatus] = useState("idle"); // idle | saving | saved
 
   useEffect(() => subscribeParatextEntries(activity.id, setEntries), [activity.id]);
+
+  // 편집판이 노드를 고르고 지울 때 씁니다(학생 화면과 같은 방식).
+  const [selectedId, setSelectedId] = useState(null);
+
+  // 다른 학생으로 옮기면 이전 학생의 초안·선택은 버립니다.
+  useEffect(() => {
+    dirtyRef.current = false;
+    setDraftMap(null);
+    setSaveStatus("idle");
+    setSelectedId(null);
+  }, [openUid]);
 
   const bookUrl = safeBookUrl(activity.bookUrl);
   const cast = useEntryCast(classId, user);
@@ -75,13 +100,42 @@ export default function MindmapBoard({
   const open = openUid ? cards.find((c) => c.uid === openUid) ?? null : null;
   const startedCount = cards.filter((c) => mindmapStarted(c.map)).length;
 
+  // 지금 화면·방송에 실제로 쓸 그림 — 고치는 중이면 서버 값 대신 초안입니다.
+  const displayedMap = dirtyRef.current && draftMap ? draftMap : open?.map ?? null;
+
   const castCard = cast.target ? cards.find((c) => c.uid === cast.target.uid) ?? null : null;
+  // 방송 중인 학생을 지금 편집하고 있으면, 저장이 끝나길 기다리지 않고
+  // 지금 그리는 중인 내용을 그대로 방송에 실어 보냅니다.
+  const castMap = castCard && open?.uid === castCard.uid ? displayedMap : castCard?.map ?? null;
 
   const livePayload = useMemo(() => {
-    if (!castCard) return null;
-    return buildPayload(activity, castCard);
-  }, [castCard, activity]);
+    if (!castCard || !castMap) return null;
+    return buildPayload(activity, { ...castCard, map: castMap });
+  }, [castCard, castMap, activity]);
   cast.useLiveUpdate(livePayload);
+
+  // 교사 편집 — 캔버스에서 바뀔 때마다 화면은 바로 반영하고, 저장은 잠깐
+  // 모았다가 합니다(글자마다 쓰지 않도록. 학생 화면의 자동 저장과 같은 방식).
+  function editMindmap(next) {
+    dirtyRef.current = true;
+    setDraftMap(next);
+  }
+
+  useEffect(() => {
+    if (!dirtyRef.current || !draftMap || !open) return;
+    clearTimeout(timerRef.current);
+    setSaveStatus("saving");
+    timerRef.current = setTimeout(async () => {
+      try {
+        await saveParatextEntryFor(activity.id, open.uid, open.name, draftMap);
+        setSaveStatus("saved");
+      } catch {
+        setSaveStatus("idle");
+      }
+    }, 900);
+    return () => clearTimeout(timerRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftMap]);
 
   function toggleCast(card) {
     cast.cast({ uid: card.uid, key: REGION_KEY }, buildPayload(activity, card));
@@ -186,11 +240,16 @@ export default function MindmapBoard({
                     )}
                   </span>
                   <span className="mindmap-layout-tag">
-                    {MINDMAP_LAYOUTS.find((l) => l.key === open.map.layout)?.ko}
+                    {MINDMAP_LAYOUTS.find((l) => l.key === displayedMap.layout)?.ko}
                   </span>
                   <span className="mindmap-view-meta">
-                    가지 {branchCount(open.map)}개 · {maxDepth(open.map)}단계
+                    가지 {branchCount(displayedMap)}개 · {maxDepth(displayedMap)}단계
                   </span>
+                  {saveStatus !== "idle" && (
+                    <span className="paratext-saved">
+                      {saveStatus === "saving" ? "저장 중…" : "저장됨"}
+                    </span>
+                  )}
                   {cast.canCast && (
                     <button
                       type="button"
@@ -207,13 +266,24 @@ export default function MindmapBoard({
                     </button>
                   )}
                 </header>
-                {mindmapStarted(open.map) ? (
-                  <MindmapCanvas map={open.map} fitKey={open.uid} className="mindmap-view-stage" />
-                ) : (
-                  <p className="empty-note">
-                    {open.name} 학생은 아직 마인드맵을 시작하지 않았어요.
+                {/* 교사도 직접 고칠 수 있습니다 — 학생 화면과 같은 판·같은 조작
+                    (더블클릭으로 가지 추가, 우클릭으로 글 고치기)입니다.
+                    아직 학생이 시작 전이어도 판 자체는 그대로 두고, 대신
+                    가운데 주제만 있다는 안내만 살짝 얹습니다(교사가 대신
+                    가지를 잡아 줄 수 있게). */}
+                {!mindmapStarted(displayedMap) && (
+                  <p className="mindmap-empty-hint">
+                    {open.name} 학생이 아직 시작하지 않았어요 — 여기서 대신 가지를 만들어 줄 수 있어요.
                   </p>
                 )}
+                <MindmapCanvas
+                  map={displayedMap}
+                  onChange={editMindmap}
+                  selectedId={selectedId}
+                  onSelect={setSelectedId}
+                  fitKey={open.uid}
+                  className="mindmap-view-stage"
+                />
               </>
             ) : (
               <p className="empty-note">왼쪽에서 학생을 골라 주세요.</p>
