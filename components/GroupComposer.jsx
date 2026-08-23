@@ -44,6 +44,25 @@ function groupsFromCards(cards) {
       leaderUid: c.leaderUid ?? null,
     }));
 }
+function groupsFromBase(baseGroups = [], roster = []) {
+  const byUid = new Map(roster.map((s) => [s.uid, s]));
+  return baseGroups
+    .slice()
+    .sort((a, b) => (a.index ?? a.groupIndex ?? 0) - (b.index ?? b.groupIndex ?? 0))
+    .map((g, i) => ({
+      index: g.index ?? g.groupIndex ?? i + 1,
+      name: g.name || g.groupName || `${i + 1}모둠`,
+      members: (g.memberUids ?? g.members?.map((m) => m.uid) ?? [])
+        .map((uid) => {
+          const s = byUid.get(uid);
+          const stored = (g.members ?? []).find((m) => m.uid === uid) ?? {};
+          return s
+            ? { uid: s.uid, name: s.name, studentId: s.studentId ?? null, emoji: s.emoji }
+            : { uid, name: stored.name || "이름 미설정", studentId: stored.studentId ?? null, emoji: stored.emoji || "🙂" };
+        }),
+      leaderUid: g.leaderUid ?? null,
+    }));
+}
 
 // onCompose를 주면 그 함수로 저장합니다(책방 등 다른 활동에서 재사용).
 // 주지 않으면 기본값인 공부방 모둠 카드(composeStudyGroups)로 저장합니다.
@@ -56,10 +75,14 @@ export default function GroupComposer({
   cards = [],
   onCompose = null,
   keepEmpty = false,
+  baseGroups = [],
+  groupSetName = "활동 모둠",
   onClose,
   onSaved,
 }) {
   const hasExisting = cards.some((c) => c.groupId && !c.retired);
+  const hasBaseGroups = baseGroups.length > 0;
+  const [mode, setMode] = useState(hasExisting ? "temporary" : hasBaseGroups ? "base" : "temporary");
   const [tab, setTab] = useState(hasExisting ? "manual" : "auto");
   const [saving, setSaving] = useState(false);
   const [dragUid, setDragUid] = useState(null);
@@ -67,14 +90,14 @@ export default function GroupComposer({
   const [activeIndex, setActiveIndex] = useState(null); // 클릭 배정 대상 모둠
 
   const students = useMemo(
-    () => roster.map((s) => ({ uid: s.uid, name: s.name, emoji: s.emoji })),
+    () => roster.map((s) => ({ uid: s.uid, name: s.name, studentId: s.studentId ?? null, emoji: s.emoji })),
     [roster]
   );
   const total = students.length;
 
   // 편집 중인 모둠 미리보기: [{ index, name, members[], leaderUid }]
   const [groups, setGroups] = useState(() =>
-    hasExisting ? groupsFromCards(cards) : defaultGroups()
+    hasExisting ? groupsFromCards(cards) : hasBaseGroups ? groupsFromBase(baseGroups, roster) : defaultGroups()
   );
 
   // 처음부터 최대(6) 모둠으로 시작 — 카드가 시작부터 제 크기로 배치됨
@@ -95,6 +118,14 @@ export default function GroupComposer({
     activeIndex != null && groups.some((g) => g.index === activeIndex)
       ? activeIndex
       : groups[0]?.index ?? null;
+
+  const basePreview = useMemo(() => groupsFromBase(baseGroups, roster), [baseGroups, roster]);
+
+  function startTemporaryFromBase() {
+    setMode("temporary");
+    setTab("manual");
+    setGroups(hasBaseGroups ? groupsFromBase(baseGroups, roster) : defaultGroups());
+  }
 
   // 모둠 수를 n개로 (앞에서부터 1..n 슬롯) — 기존 이름/멤버는 보존
   function setGroupCount(n) {
@@ -185,6 +216,7 @@ export default function GroupComposer({
         memberUids: g.members.map((m) => m.uid),
         members: g.members,
         leaderUid: g.leaderUid,
+        groupSetName,
       }));
       const save = onCompose ?? composeStudyGroups;
       await save(getCurrentUser(), board.id, payload);
@@ -199,21 +231,83 @@ export default function GroupComposer({
     <div className="modal-backdrop" {...backdropClose(onClose)}>
       <div className="modal modal-group-composer" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
-          <h3>👥 모둠 구성 — {board.title}</h3>
+          <h3>👥 {groupSetName}</h3>
           <button className="btn-close" onClick={onClose} aria-label="닫기">×</button>
         </div>
 
-        <div className="gc-tabs" role="tablist">
-          <button type="button" role="tab" aria-selected={tab === "auto"}
-            className={`gc-tab${tab === "auto" ? " active" : ""}`} onClick={() => setTab("auto")}>
-            🎲 자동 구성
+        <div className="gc-tabs gc-tabs--mode" role="tablist">
+          <button type="button" role="tab" aria-selected={mode === "base"}
+            className={`gc-tab${mode === "base" ? " active" : ""}`} onClick={() => setMode("base")}
+            disabled={!hasBaseGroups}>
+            기본 모둠 사용
           </button>
-          <button type="button" role="tab" aria-selected={tab === "manual"}
-            className={`gc-tab${tab === "manual" ? " active" : ""}`} onClick={() => setTab("manual")}>
-            ✋ 직접 구성
+          <button type="button" role="tab" aria-selected={mode === "temporary"}
+            className={`gc-tab${mode === "temporary" ? " active" : ""}`} onClick={startTemporaryFromBase}>
+            이 활동에서만 모둠 바꾸기
           </button>
           <span className="gc-total">반 학생 {total}명</span>
         </div>
+
+        {mode === "base" ? (
+          <>
+            <p className="gc-mode-note">
+              수업 준비 화면에서 만든 기본 모둠을 이 활동의 활동 모둠으로 복사합니다.
+            </p>
+            {basePreview.length === 0 ? (
+              <p className="empty-note">아직 기본 모둠이 없어요. 수업 준비 화면에서 먼저 모둠을 설정해 주세요.</p>
+            ) : (
+              <div className="gc-groups gc-groups--preview">
+                {basePreview.map((g) => (
+                  <div key={g.index} className="gc-group">
+                    <div className="gc-group-head">
+                      <strong className="gc-group-name gc-group-name--readonly">{g.name}</strong>
+                      <span className="gc-group-count">{g.members.length}명</span>
+                    </div>
+                    <div className="gc-group-members">
+                      {g.members.length === 0 ? (
+                        <span className="gc-group-empty">배정된 학생이 없어요</span>
+                      ) : (
+                        g.members.map((m) => (
+                          <span key={m.uid} className="gc-chip gc-chip--member">
+                            {m.emoji} {m.name}
+                          </span>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="gc-foot">
+              <button type="button" className="btn-ghost" onClick={onClose}>취소</button>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={async () => {
+                  setGroups(basePreview);
+                  await handleSaveGroups(basePreview);
+                }}
+                disabled={saving || basePreview.length === 0}
+              >
+                {saving ? "저장 중…" : "기본 모둠으로 활동 모둠 만들기"}
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="gc-mode-note">
+              이 구성은 <strong>{groupSetName}</strong>에만 저장됩니다. 반 기본 모둠은 바뀌지 않습니다.
+            </p>
+            <div className="gc-tabs gc-tabs--sub" role="tablist">
+              <button type="button" role="tab" aria-selected={tab === "auto"}
+                className={`gc-tab${tab === "auto" ? " active" : ""}`} onClick={() => setTab("auto")}>
+                🎲 자동 구성
+              </button>
+              <button type="button" role="tab" aria-selected={tab === "manual"}
+                className={`gc-tab${tab === "manual" ? " active" : ""}`} onClick={() => setTab("manual")}>
+                ✋ 직접 구성
+              </button>
+            </div>
 
         {/* 미배정 학생 명단 — 탭과 모둠 구성 영역 사이 가로 띠 (드롭하면 배정 해제) */}
         <div
@@ -376,10 +470,35 @@ export default function GroupComposer({
           <button type="button" className="btn-ghost" onClick={onClose}>취소</button>
           <button type="button" className="btn-primary" onClick={handleSave}
             disabled={saving || groups.every((g) => g.members.length === 0)}>
-            {saving ? "저장 중…" : "모둠 구성 저장"}
+            {saving ? "저장 중…" : "활동 모둠 저장"}
           </button>
         </div>
+          </>
+        )}
       </div>
     </div>
   );
+
+  async function handleSaveGroups(targetGroups) {
+    if (saving) return;
+    const valid = keepEmpty ? targetGroups : targetGroups.filter((g) => g.members.length > 0);
+    if (valid.length === 0) return;
+    setSaving(true);
+    try {
+      const payload = valid.map((g) => ({
+        index: g.index,
+        name: g.name.trim() || `${g.index}모둠`,
+        memberUids: g.members.map((m) => m.uid),
+        members: g.members,
+        leaderUid: g.leaderUid,
+        groupSetName,
+      }));
+      const save = onCompose ?? composeStudyGroups;
+      await save(getCurrentUser(), board.id, payload, { groupSetName });
+      onSaved?.();
+      onClose();
+    } finally {
+      setSaving(false);
+    }
+  }
 }

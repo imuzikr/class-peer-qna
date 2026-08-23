@@ -25,6 +25,7 @@ import {
   subscribeMyMemberships,
   subscribeClassMembers,
   subscribeUserDirectory,
+  subscribeStudyGroupAssignment,
 } from "@/lib/store";
 import { isFirebaseConfigured } from "@/lib/firebase";
 import { isAdmin, isTeacher } from "@/lib/user";
@@ -117,6 +118,7 @@ export default function BooksPage() {
   const [teacherClassId, setTeacherClassId] = useState(null);
   const [directory, setDirectory] = useState([]);
   const [memberUids, setMemberUids] = useState([]);
+  const [baseGroupAssignment, setBaseGroupAssignment] = useState(null);
 
   const [activities, setActivities] = useState([]);
   const [openActivity, setOpenActivity] = useState(null); // 모둠 대시보드로 연 활동
@@ -175,6 +177,14 @@ export default function BooksPage() {
   const currentClass = (admin ? myClasses : classes).find((c) => c.id === classId) ?? null;
 
   useEffect(() => subscribeBookActivities(classId, setActivities), [classId]);
+
+  useEffect(() => {
+    if (!admin || !classId) {
+      setBaseGroupAssignment(null);
+      return;
+    }
+    return subscribeStudyGroupAssignment(classId, setBaseGroupAssignment);
+  }, [admin, classId]);
 
   // 교사: 모둠 구성용 반 학생 명단
   useEffect(() => {
@@ -238,7 +248,7 @@ export default function BooksPage() {
   const studentCanvasGroupId = !admin && activeActivity ? myGroupId : null;
 
   async function handleCreate(form) {
-    await addBookActivity(user, { classId, ...form });
+    await addBookActivity(user, { classId, ...form, baseGroups: baseGroupAssignment?.groups ?? [] });
     setCreatingType(null);
     setToast("활동을 만들었어요.");
   }
@@ -356,6 +366,7 @@ export default function BooksPage() {
           user={user}
           isTeacher={admin}
           roster={roster}
+          baseGroupAssignment={baseGroupAssignment}
           onOpenAll={() => setAllView(true)}
           onBack={() => setOpenActivity(null)}
           onToast={setToast}

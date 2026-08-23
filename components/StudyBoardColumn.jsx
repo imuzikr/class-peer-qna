@@ -45,6 +45,7 @@ export default function StudyBoardColumn({
   onCollapseAll, // 첫 보드: 교사·최근 보드만 남기고 모두 접기
   canCollapseAll = false, // 접을 수 있는 중간 보드가 남아 있는지 (모두 접기 활성화용)
   classRoster = [], // 교사: 반 학생 명단(모둠 구성용) [{uid, name, emoji}]
+  baseGroupAssignment = null,
   questions = [],
   classes = [],
   onAsk,
@@ -535,9 +536,9 @@ export default function StudyBoardColumn({
                   <button
                     className="study-sort-btn study-sort-btn--group"
                     onClick={() => setComposing(true)}
-                    title="모둠 구성 — 자동/직접 배정"
+                    title="활동 모둠 — 기본 모둠을 쓰거나 이 보드에서만 다르게 구성"
                   >
-                    👥 모둠 구성
+                    👥 활동 모둠
                   </button>
                 ) : (
                   <>
@@ -808,6 +809,8 @@ export default function StudyBoardColumn({
           board={board}
           roster={classRoster}
           cards={cards}
+          baseGroups={baseGroupAssignment?.groups ?? []}
+          groupSetName={`${board.title || "공부방 보드"} 활동 모둠`}
           onClose={() => setComposing(false)}
         />
       )}

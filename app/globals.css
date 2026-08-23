@@ -758,42 +758,48 @@ button.footer-link:hover {
 }
 .question-signal-btn {
   position: relative;
-  min-width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   display: inline-grid;
   place-items: center;
   padding: 0;
   border-radius: 999px;
-  font-size: 19px;
+  font-size: 23px;
   line-height: 1;
-  background: transparent;
   border: none;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  transition: transform 0.14s ease, filter 0.14s ease, opacity 0.14s ease;
 }
 .question-signal-btn:hover {
-  background: var(--neutral);
+  background: none;
+  transform: translateY(-1px);
 }
 .question-signal-btn.on {
-  background: #fff4d8;
-  box-shadow: inset 0 0 0 1.5px #f0b35c;
+  background: none;
+  filter: saturate(1.25) drop-shadow(0 2px 4px rgba(214, 117, 48, 0.28));
 }
 .question-signal-btn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
 }
-.question-signal-badge {
+.question-signal-hand {
+  display: block;
+  transform-origin: 50% 85%;
+}
+.question-signal-btn.on .question-signal-hand {
+  transform: rotate(-8deg) scale(1.08);
+}
+.question-signal-dot {
   position: absolute;
-  top: 1px;
-  right: 0;
-  min-width: 16px;
-  height: 16px;
-  padding: 0 4px;
+  top: 4px;
+  right: 4px;
+  width: 8px;
+  height: 8px;
   border-radius: 999px;
-  background: var(--danger, #d64545);
-  color: #fff;
-  font-size: 10px;
-  font-weight: 800;
-  display: grid;
-  place-items: center;
+  background: #e05a2f;
+  box-shadow: 0 0 0 2px #fff;
 }
 .question-signal-dropdown {
   position: absolute;
@@ -6370,6 +6376,20 @@ pre code {
   opacity: 0.5;
   cursor: default;
 }
+.lesson-seating {
+  margin-top: 18px;
+}
+.lesson-seating-body {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.lesson-seating-summary {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
 
 /* 활동 목록 — 학생 카드에 그대로 들어갈 항목들.
    번호를 '활동 1'처럼 직접 그리므로 기본 목록 마커 자리는 비웁니다. */
@@ -6594,6 +6614,47 @@ pre code {
 .attend-chip--on { background: #d7f0dd; border-color: #8fcea3; }
 .attend-chip--away { background: #ffe2c9; border-color: #f0b483; }
 .attend-chip--off { background: #ececea; }
+.attend-chip--absent { background: #f3d8d8; border-color: #dc9b9b; }
+.attend-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.attend-mode-tabs {
+  display: inline-flex;
+  gap: 4px;
+  padding: 3px;
+  background: var(--neutral);
+  border-radius: var(--radius-btn);
+}
+.attend-mode-tabs button {
+  padding: 7px 11px;
+  border: 0;
+  border-radius: calc(var(--radius-btn) - 2px);
+  background: transparent;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text-sub);
+  cursor: pointer;
+}
+.attend-mode-tabs button.active {
+  color: var(--text);
+  background: #fff;
+  box-shadow: var(--shadow-soft);
+}
+.attend-mode-tabs button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.attend-help {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
 
 /* 교실 자리 — 가로 6칸 × 세로 5줄 고정. 학생이 적으면 남는 자리는 빈 책상 */
 .attend-grid {
@@ -6614,6 +6675,9 @@ pre code {
   text-align: center;
   overflow: hidden;
 }
+.attend-desk[style*="--group-color"] {
+  border: 3px solid var(--group-color);
+}
 .attend-desk--on {
   background: #d7f0dd;
   border-color: #8fcea3;
@@ -6625,6 +6689,10 @@ pre code {
 .attend-desk--off {
   background: #ececea;
   color: var(--text-sub);
+}
+.attend-desk--absent {
+  background: #f3d8d8;
+  color: #7f2b2b;
 }
 /* 빈 자리 — 테두리만 옅게 남겨 '자리는 있으나 학생이 없음'을 표시 */
 .attend-desk--empty {
@@ -6643,6 +6711,224 @@ pre code {
   font-weight: 700;
   line-height: 1.25;
   word-break: keep-all;
+}
+.attend-desk-name em {
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 800;
+}
+.attend-desk-group {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-sub);
+}
+.attend-group-view {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  max-height: 68vh;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+.attend-group-section {
+  border: 2px solid var(--group-color);
+  border-radius: 10px;
+  padding: 10px;
+}
+.attend-group-section h4 {
+  margin: 0 0 8px;
+  color: var(--group-color);
+  font-size: 14px;
+}
+.attend-group-members {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.attend-group-members .attend-desk {
+  aspect-ratio: auto;
+  min-height: 72px;
+}
+
+/* 수업 준비 — 자리 배정 / 모둠 설정 */
+.seat-setup-modal {
+  width: min(980px, 94vw);
+  max-height: 92vh;
+  overflow-y: auto;
+}
+.seat-setup-tabs {
+  display: inline-flex;
+  gap: 4px;
+  padding: 3px;
+  margin-bottom: 14px;
+  background: var(--neutral);
+  border-radius: var(--radius-btn);
+}
+.seat-setup-tabs button,
+.group-setup-toolbar button {
+  padding: 8px 12px;
+  border: 0;
+  border-radius: calc(var(--radius-btn) - 2px);
+  background: transparent;
+  font-family: inherit;
+  font-weight: 800;
+  color: var(--text-sub);
+  cursor: pointer;
+}
+.seat-setup-tabs button.active,
+.group-setup-toolbar button.active {
+  color: var(--text);
+  background: #fff;
+  box-shadow: var(--shadow-soft);
+}
+.seat-setup-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 220px;
+  gap: 14px;
+}
+.seat-setup-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+}
+.seat-slot {
+  aspect-ratio: 1 / 1;
+  padding: 6px;
+  border: 1px dashed #d8d5ce;
+  border-radius: 9px;
+  background: #faf9f5;
+  font-family: inherit;
+  color: var(--text-sub);
+  cursor: pointer;
+  overflow: hidden;
+}
+.seat-slot.filled {
+  border-style: solid;
+  background: #fff;
+  color: var(--text);
+}
+.seat-slot-no {
+  display: block;
+  font-size: 10px;
+  font-weight: 800;
+  opacity: 0.55;
+}
+.seat-slot-name {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: calc(100% - 14px);
+  gap: 2px;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.15;
+}
+.seat-slot-name em,
+.seat-student-chip em {
+  font-style: normal;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  opacity: 0.7;
+}
+.seat-slot-empty,
+.seat-empty-note {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.seat-pool,
+.group-unassigned {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px;
+  background: #fff;
+}
+.seat-pool strong,
+.group-unassigned strong {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+.seat-pool-list,
+.group-setup-members,
+.group-unassigned {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.seat-student-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  background: #fff;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: grab;
+}
+.seat-student-chip.active {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+.seat-setup-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+}
+.group-setup-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.group-setup-toolbar span {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text-sub);
+}
+.group-unassigned {
+  margin-bottom: 12px;
+}
+.group-setup-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.group-setup-card {
+  min-height: 150px;
+  border: 3px solid var(--group-color);
+  border-radius: 10px;
+  padding: 10px;
+  background: #fff;
+}
+.group-setup-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.group-setup-head input[type="text"] {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 900;
+  outline: none;
+}
+.group-setup-head input[type="color"] {
+  width: 34px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
 
 @media (max-width: 768px) {
@@ -8126,6 +8412,147 @@ pre code {
   border-color: var(--primary);
 }
 
+.study-attend-btn.done {
+  color: #2f7d54;
+  border-color: #b7dec6;
+  background: #eef9f2;
+}
+
+.modal.study-attendance-modal {
+  max-width: 720px;
+}
+
+.study-attendance-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  color: var(--text-sub);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.study-attendance-toolbar label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.study-attendance-toolbar select {
+  width: auto;
+  min-width: 150px;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.study-attendance-table-wrap {
+  max-height: 430px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.study-attendance-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+}
+
+.study-attendance-table th,
+.study-attendance-table td {
+  padding: 11px 12px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: middle;
+  font-size: 13px;
+}
+
+.study-attendance-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--card-bg);
+  color: var(--text-sub);
+  font-size: 12px;
+}
+
+.study-attendance-table tr:last-child td {
+  border-bottom: none;
+}
+
+.study-attendance-student {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.study-attendance-student strong {
+  display: block;
+  color: var(--text);
+  font-size: 13.5px;
+}
+
+.study-attendance-student small {
+  display: block;
+  margin-top: 2px;
+  color: var(--text-sub);
+  font-size: 11.5px;
+}
+
+.study-attendance-status {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: #f1eee8;
+  color: var(--text-sub);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.study-attendance-status.on {
+  background: #e8f7ed;
+  color: #26734a;
+}
+
+.study-attendance-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.study-attendance-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.study-attendance-list strong {
+  color: var(--text);
+  font-size: 14px;
+}
+
+.study-attendance-list span {
+  color: #26734a;
+  font-size: 12px;
+  font-weight: 800;
+}
+
 /* 학생 반 입장 화면 */
 .class-entry {
   flex: 1;
@@ -8763,6 +9190,32 @@ pre code {
   font-size: 12.5px;
   font-weight: 700;
   color: var(--text-sub);
+}
+.gc-tabs--mode {
+  margin-bottom: 10px;
+}
+.gc-tabs--sub {
+  margin-bottom: 12px;
+}
+.gc-mode-note {
+  margin: 0 0 12px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.gc-mode-note strong {
+  color: var(--text);
+}
+.gc-groups--preview {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 8px;
+}
+.gc-group-name--readonly {
+  display: block;
+  flex: 1;
+  min-width: 0;
+  font-size: 15px;
+  color: var(--text);
 }
 
 /* 본문: 왼쪽 설정(세로) + 오른쪽 미리보기 */

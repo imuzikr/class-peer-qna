@@ -28,6 +28,12 @@ import {
   updateStudyCard,
   subscribeStudyCards,
   subscribePresence,
+  subscribeStudySeatLayout,
+  saveStudySeatLayout,
+  subscribeStudyGroupAssignment,
+  saveStudyGroupAssignment,
+  dailySeatLayoutId,
+  todayDateKey,
   PRESENCE_STALE_MS,
   toDate,
 } from "@/lib/store";
@@ -36,6 +42,7 @@ import { buildActivityTemplate, nextActivityLocks, isActivityLocked } from "@/li
 import { getCurrentUser } from "@/lib/user";
 import AttendanceBoard from "./AttendanceBoard";
 import StudyProgressBoard, { cardProgress } from "./StudyProgressBoard";
+import SeatGroupSetupModal from "./SeatGroupSetupModal";
 
 export default function LessonMode({
   lesson,
@@ -44,6 +51,7 @@ export default function LessonMode({
   className = "",
   boards = [],          // 수업 준비: 이 반의 공부방 보드 목록(연결 대상)
   roster = [],          // 수업 중: 이 반 학생 명단(참여 전광판 자리 배치용)
+  attendanceRecords = [],
   onSaveNote,
   onSaveActivities,
   onSaveBoardId,        // 수업 준비: 연결한 보드 id를 수업 자료에 저장
@@ -75,6 +83,27 @@ export default function LessonMode({
   // 발표 여부와 상관없이 보드만 연결돼 있으면 쓸 수 있어야 합니다.
   const [progressOpen, setProgressOpen] = useState(false);
   const [lockBusy, setLockBusy] = useState(false);
+  const [seatSetupOpen, setSeatSetupOpen] = useState(false);
+  const [seatSetupTab, setSeatSetupTab] = useState("seats");
+  const [seatLayout, setSeatLayout] = useState(null);
+  const [dailySeatLayout, setDailySeatLayout] = useState(null);
+  const [groupAssignment, setGroupAssignment] = useState(null);
+  const todayLayoutId = dailySeatLayoutId(todayDateKey());
+
+  useEffect(() => {
+    if (!classId) { setSeatLayout(null); return; }
+    return subscribeStudySeatLayout(classId, "default", setSeatLayout);
+  }, [classId]);
+
+  useEffect(() => {
+    if (!classId || editing) { setDailySeatLayout(null); return; }
+    return subscribeStudySeatLayout(classId, todayLayoutId, setDailySeatLayout);
+  }, [classId, editing, todayLayoutId]);
+
+  useEffect(() => {
+    if (!classId) { setGroupAssignment(null); return; }
+    return subscribeStudyGroupAssignment(classId, setGroupAssignment);
+  }, [classId]);
 
   // 활동 하나의 잠금을 켜고 끕니다(전광판의 자물쇠 버튼).
   async function toggleActLock(i, locked) {
@@ -335,7 +364,26 @@ export default function LessonMode({
         <AttendanceBoard
           roster={roster}
           presence={presence}
+          attendanceRecords={attendanceRecords}
+          seatLayout={seatLayout}
+          dailySeatLayout={dailySeatLayout}
+          groupAssignment={groupAssignment}
+          onSaveDailySeats={(seats, user) =>
+            saveStudySeatLayout(classId, todayLayoutId, seats, user, { date: todayDateKey() })
+          }
           onClose={() => setAttendOpen(false)}
+        />
+      )}
+
+      {seatSetupOpen && editing && (
+        <SeatGroupSetupModal
+          roster={roster}
+          seatLayout={seatLayout}
+          groupAssignment={groupAssignment}
+          initialTab={seatSetupTab}
+          onSaveSeats={(seats) => saveStudySeatLayout(classId, "default", seats, getCurrentUser())}
+          onSaveGroups={(groups) => saveStudyGroupAssignment(classId, groups, getCurrentUser())}
+          onClose={() => setSeatSetupOpen(false)}
         />
       )}
 
@@ -595,6 +643,39 @@ export default function LessonMode({
               )}
 
               {actError && <p className="form-error" role="alert">{actError}</p>}
+            </div>
+          </section>
+        )}
+
+        {editing && (
+          <section className="lesson-card lesson-seating">
+            <div className="lesson-card-head">
+              <h2>참여 전광판 설정</h2>
+              <small>실제 좌석과 장기 모둠을 미리 정합니다</small>
+            </div>
+            <div className="lesson-seating-body">
+              <button
+                type="button"
+                className="lesson-board-add"
+                onClick={() => { setSeatSetupTab("seats"); setSeatSetupOpen(true); }}
+                disabled={!classId || roster.length === 0}
+              >
+                자리 배정하기
+              </button>
+              <button
+                type="button"
+                className="lesson-board-add"
+                onClick={() => { setSeatSetupTab("groups"); setSeatSetupOpen(true); }}
+                disabled={!classId || roster.length === 0}
+              >
+                모둠 설정하기
+              </button>
+              <span className="lesson-seating-summary">
+                자리표 {seatLayout?.seats?.filter(Boolean).length ?? 0}명 · 모둠 {(groupAssignment?.groups ?? []).length}개
+              </span>
+              {roster.length === 0 && (
+                <p className="lesson-note-empty">반 학생 명단을 불러온 뒤 자리와 모둠을 설정할 수 있어요.</p>
+              )}
             </div>
           </section>
         )}
