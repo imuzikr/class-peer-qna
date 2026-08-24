@@ -78,34 +78,37 @@ function StudentCard({
   const showTools = !!(onAward || onOpenNotes);
   const maxed = (d.count ?? 0) >= REWARD_MAX;
   return (
-    <div
-      className={`attend-desk attend-desk--${d.state}${notesActive ? " attend-desk--noting" : ""}`}
-      style={d.group ? { "--group-color": d.group.color } : undefined}
-      title={`${d.name} · ${LABEL[d.state]} · ${groupName}`}
-      draggable={draggable}
-      onDragStart={(e) => {
-        if (!draggable) return;
-        onDragStart(d.index);
-        e.dataTransfer.effectAllowed = "move";
-      }}
-      onDragEnd={() => draggable && onDragEnd()}
-      onDragOver={(e) => draggable && e.preventDefault()}
-      onDrop={(e) => {
-        if (!draggable) return;
-        e.preventDefault();
-        onDropTo(d.index);
-      }}
-    >
-      <span className="attend-desk-no">{d.studentId || "-"}</span>
-      <span className="attend-desk-name">
-        {d.name}
-        {d.state === "absent" && <em> (결석)</em>}
-      </span>
-      <span className="attend-desk-group">{groupName}</span>
+    <div className="attend-desk-wrap">
+      <div
+        className={`attend-desk attend-desk--${d.state}${notesActive ? " attend-desk--noting" : ""}`}
+        style={d.group ? { "--group-color": d.group.color } : undefined}
+        title={`${d.name} · ${LABEL[d.state]} · ${groupName}`}
+        draggable={draggable}
+        onDragStart={(e) => {
+          if (!draggable) return;
+          onDragStart(d.index);
+          e.dataTransfer.effectAllowed = "move";
+        }}
+        onDragEnd={() => draggable && onDragEnd()}
+        onDragOver={(e) => draggable && e.preventDefault()}
+        onDrop={(e) => {
+          if (!draggable) return;
+          e.preventDefault();
+          onDropTo(d.index);
+        }}
+      >
+        <span className="attend-desk-no">{d.studentId || "-"}</span>
+        <span className="attend-desk-name">
+          {d.name}
+          {d.state === "absent" && <em> (결석)</em>}
+        </span>
+        <span className="attend-desk-group">{groupName}</span>
+      </div>
 
       {showTools && (
-        // draggable=false — 자리 카드가 draggable이라, 버튼을 누른 채 살짝만
-        // 움직여도 드래그가 시작돼 클릭이 씹히는 것을 막습니다.
+        // 카드 아래 별도 줄 — draggable=false로 자리 카드 드래그와 분리해,
+        // 버튼을 누른 채 살짝만 움직여도 드래그가 시작돼 클릭이 씹히는
+        // 것을 막습니다.
         <span className="attend-desk-tools" draggable={false}>
           {onAward && (
             <button

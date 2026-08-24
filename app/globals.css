@@ -6594,30 +6594,31 @@ pre code {
 /* 자리 수(30)가 고정이라 더 늘어날 일이 없습니다. 스크롤이 생기면
    스크롤바가 오른쪽 안쪽 여백과 둥근 모서리를 덮어 좌우가 어긋나 보이므로,
    내용이 항상 들어가도록 크기를 잡고 가로세로 여백을 대칭으로 둡니다. */
-/* 전광판 + 누가기록 패널을 한 줄로 묶는 껍데기. 패널이 열리면 둘이 함께
-   가운데 정렬되므로, 전광판이 왼쪽으로 밀리며 오른쪽에서 패널이 나옵니다.
-   좁은 화면에서는 줄바꿈되어 패널이 아래로 내려갑니다. */
+/* 전광판 + 누가기록 패널을 담는 껍데기 — position:relative일 뿐 flex가
+   아니므로, 절대 위치로 뺀 패널은 이 껍데기의 크기(=전광판 크기)에
+   영향을 주지 않습니다. 그래야 패널이 열려도 전광판이 제자리에 그대로
+   있고, 패널만 그 오른쪽에 겹쳐 나타납니다(전광판이 옆으로 밀리며
+   함께 다시 가운데 정렬되던 것과 달리, 이번엔 전광판이 고정된 채
+   패널만 슬라이딩합니다). */
 .attend-shell {
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 14px;
+  position: relative;
   max-width: 100%;
   max-height: 100%;
-  overflow-y: auto;
 }
 .attend-modal {
   width: min(680px, 94vw);
   max-height: none;
   overflow: visible;
-  flex-shrink: 0;
 }
 
-/* 누가기록 슬라이드 패널 — 전광판 오른쪽에서 미끄러져 나옵니다 */
+/* 누가기록 슬라이드 패널 — 전광판은 그대로 두고 그 오른쪽에 겹쳐서
+   미끄러져 나옵니다(전광판 크기와 무관하게 위치를 잡도록 절대 위치). */
 .attend-notes-panel {
+  position: absolute;
+  top: 0;
+  left: 100%;
+  margin-left: 14px;
   width: min(340px, 94vw);
-  flex-shrink: 0;
   background: #fff;
   border-radius: 20px;
   padding: 20px;
@@ -6722,13 +6723,24 @@ pre code {
   color: var(--text-sub);
 }
 
-/* 교실 자리 — 가로 6칸 × 세로 5줄 고정. 학생이 적으면 남는 자리는 빈 책상 */
+/* 교실 자리 — 가로 6칸 × 세로 5줄 고정. 학생이 적으면 남는 자리는 빈 책상.
+   align-items:start — 도구 줄이 붙어 키가 커진 칸에 맞춰 빈 자리(사각형
+   그대로)까지 늘어나 찌그러지지 않도록 각 칸을 위쪽에 붙입니다. */
 .attend-grid {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   gap: 10px;
+  align-items: start;
+}
+/* 카드(정사각형) + 도구 줄을 위아래로 묶는 칸 — 실제 그리드 아이템 */
+.attend-desk-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
 }
 .attend-desk {
+  width: 100%;
   aspect-ratio: 1 / 1;
   display: flex;
   flex-direction: column;
@@ -6794,7 +6806,6 @@ pre code {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  margin-top: 3px;
 }
 .attend-tool-btn {
   display: inline-flex;
@@ -6875,7 +6886,10 @@ pre code {
 }
 .attend-group-members .attend-desk {
   aspect-ratio: auto;
-  min-height: 72px;
+  min-height: 56px;
+}
+.attend-group-members .attend-desk-wrap {
+  align-items: stretch;
 }
 /* 모둠별 보기 안에서는 섹션 자체가 모둠을 나타내므로, 카드마다 모둠 색
    테두리를 겹쳐 칠하지 않고 참여 상태 색(배경)만으로 보여 줍니다.
@@ -7084,27 +7098,27 @@ pre code {
 
 @media (max-width: 768px) {
   /* 좁은 화면에서는 6칸을 4칸으로 줄입니다 — 6칸이면 칸 하나가 55px밖에
-     안 돼 이름과 과일·누가기록 버튼이 들어갈 자리가 없습니다. */
+     안 돼 과일·누가기록 버튼 두 개가 나란히 들어갈 자리가 없습니다.
+     카드 자체는 도구 줄이 아래로 빠졌으니 다시 정사각형 그대로 둡니다. */
   .attend-grid {
     gap: 6px;
     grid-template-columns: repeat(4, 1fr);
   }
-  /* 정사각형 고정을 풀어 버튼 줄만큼 칸이 세로로 늘어나게 합니다
-     (aspect-ratio + overflow:hidden이면 버튼이 잘려 보였습니다) */
-  .attend-desk {
-    padding: 5px 3px;
-    aspect-ratio: auto;
-    min-height: 74px;
-  }
-  .attend-desk--empty { min-height: 74px; }
+  .attend-desk { padding: 4px 2px; }
   .attend-desk-name { font-size: 11px; }
   .attend-desk-no { font-size: 10px; }
   /* 자리 칸이 좁아지는 만큼 과일·누가기록 버튼도 함께 줄입니다 */
-  .attend-desk-tools { gap: 3px; margin-top: 2px; }
+  .attend-desk-tools { gap: 3px; }
   .attend-tool-btn { padding: 1px 4px; font-size: 10px; }
-  /* 누가기록 패널은 전광판 아래로 내려오므로 폭을 꽉 채웁니다 */
-  .attend-shell { gap: 10px; }
-  .attend-notes-panel { width: 94vw; padding: 16px; }
+  /* 좁은 화면에서는 절대 위치로 겹치는 대신, 전광판 아래로 자연스럽게
+     줄바꿈되도록 되돌립니다(옆으로 밀어내면 화면 밖으로 나갑니다). */
+  .attend-notes-panel {
+    position: static;
+    margin-left: 0;
+    margin-top: 14px;
+    width: 94vw;
+    padding: 16px;
+  }
   /* ── 수업 화면 머리말 — 좁은 화면에선 두 줄로 나눠 담습니다 ──
      한 줄에 다 넣으면 폭이 모자라 제목이 0px로 찌그러지고, 쪽수와
      '수업 종료'가 화면 밖(375px 기준 562px 지점)으로 밀려나 아예 누를 수
