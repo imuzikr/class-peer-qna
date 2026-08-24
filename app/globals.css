@@ -10510,6 +10510,20 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   font-weight: 700;
   line-height: 1.5;
 }
+/* 글자 수 — 기준(10자)을 채우기 전에는 남은 양이 보이도록 'n / 10자',
+   채우면 초록으로 바뀌어 제출로 인정된다는 걸 바로 알려 줍니다. */
+.activity-form-count {
+  flex-shrink: 0;
+  margin: 6px 2px 0;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.activity-form-count.ok {
+  color: #2f7d54;
+}
 .activity-form-no {
   flex-shrink: 0;
   align-self: flex-start;

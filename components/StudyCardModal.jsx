@@ -566,6 +566,24 @@ export default function StudyCardModal({
                             }}
                             placeholder="내용을 입력해 주세요."
                           />
+                          {/* 글자 수 — 공부중 전광판이 제출 여부를 판정할 때
+                              쓰는 값(stripHtml 결과 길이)을 그대로 세어,
+                              화면에 보이는 수와 판정이 어긋나지 않게 합니다.
+                              (서식 태그는 빠지고, 연속 공백은 하나로 셉니다) */}
+                          {(() => {
+                            const n = stripHtml(activityContents[i] ?? "").length;
+                            const done = n >= DONE_MIN_CHARS;
+                            return (
+                              <p
+                                className={`activity-form-count${done ? " ok" : ""}`}
+                                aria-live="polite"
+                              >
+                                {done
+                                  ? `${n}자 · 제출 인정`
+                                  : `${n} / ${DONE_MIN_CHARS}자`}
+                              </p>
+                            );
+                          })()}
                         </>
                       )}
                     </div>
