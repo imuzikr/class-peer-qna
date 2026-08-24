@@ -228,6 +228,19 @@ export default function StudyBoardColumn({
     await updateStudyBoard(board.id, { activityLocks: next });
   }
 
+  // 모둠 활동 보드를 개별 활동으로 되돌립니다 — 학생이 실수로 모둠 활동을
+  // 골랐거나, 나중에 생각이 바뀐 경우를 위한 것이라 모둠 카드가 이미
+  // 생겼으면(활동 모둠으로 배정을 마쳤으면) 막습니다.
+  async function convertToIndividual() {
+    if (cards.length > 0) {
+      alert(
+        "이미 모둠 카드가 있어서 개별 활동으로 바꿀 수 없어요.\n'활동 모둠'에서 모둠 배정을 먼저 정리한 후 다시 시도해 주세요."
+      );
+      return;
+    }
+    await updateStudyBoard(board.id, { activityType: "individual" });
+  }
+
   function openActivitiesModal() {
     setActivitiesDraft(
       board.activities?.length ? [...board.activities] : [""]
@@ -538,13 +551,23 @@ export default function StudyBoardColumn({
               <div className="study-sort">
                 {isGroup ? (
                   /* 모둠 보드: 정렬 대신 모둠 구성 버튼 (카드는 모둠 순번 고정) */
-                  <button
-                    className="study-sort-btn study-sort-btn--group"
-                    onClick={() => setComposing(true)}
-                    title="활동 모둠 — 기본 모둠을 쓰거나 이 보드에서만 다르게 구성"
-                  >
-                    👥 활동 모둠
-                  </button>
+                  <>
+                    <button
+                      className="study-sort-btn study-sort-btn--group"
+                      onClick={() => setComposing(true)}
+                      title="활동 모둠 — 기본 모둠을 쓰거나 이 보드에서만 다르게 구성"
+                    >
+                      👥 활동 모둠
+                    </button>
+                    <button
+                      type="button"
+                      className="study-sort-btn"
+                      onClick={convertToIndividual}
+                      title="이 보드를 개별 활동으로 바꿉니다(모둠 카드가 아직 없을 때만 가능)"
+                    >
+                      🧑‍🎓 개별 활동
+                    </button>
+                  </>
                 ) : (
                   <>
                     <button
