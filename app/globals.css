@@ -8880,7 +8880,11 @@ pre code {
   gap: 4px;
 }
 .study-cal-cell {
-  aspect-ratio: 1 / 1;
+  /* 목록형 모달과 크기를 맞추려고 모달 높이를 고정했는데, aspect-ratio로
+     칸 높이를 폭(780px÷7열)에 맞추면 한 칸이 90px 안팎까지 커져 달력만으로
+     본문을 다 채워 버립니다(아래 출석 표가 안 보임). 높이를 고정값으로 눌러
+     달력을 늘 같은 크기로 유지합니다. */
+  height: 42px;
   display: flex;
   flex-direction: column;
   align-items: center;
