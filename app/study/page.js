@@ -293,6 +293,17 @@ function StudyPageInner() {
     setTeacherClassId(remembered);
   }, [admin, myClasses, myClassesAll, teacherClassId, localSelectedId]);
 
+  // teacherClassId가 바뀌는 모든 경로(위 자동 대체 포함)를 세션 저장값과
+  // 동기화합니다. 이전엔 드롭다운 선택 등 몇몇 호출부에서만 개별적으로
+  // setSelectedClassId를 불러, 반이 하나뿐이라 드롭다운을 만질 일이 없는
+  // 교사는 이 값이 끝내 비워진 채로 남았습니다 — 그 값을 읽는 TopNav의
+  // '언제든 질문하기(손들기)' 구독이 엉뚱한(또는 없는) 반을 보게 되어,
+  // 학생이 손을 들어도 교사 화면에 아이콘이 나타나지 않는 원인이었습니다.
+  useEffect(() => {
+    if (!admin || !teacherClassId) return;
+    setSelectedClassId(teacherClassId);
+  }, [admin, teacherClassId]);
+
   const classId = admin ? teacherClassId : studentClassId;
   const currentClass =
     (admin ? myClassesAll : classes).find((c) => c.id === classId) ?? null;
@@ -444,15 +455,14 @@ function StudyPageInner() {
   }
 
   // '반 관리하기' 모달에서 새 반을 만들면 그 반으로 전환합니다.
+  // (세션 저장값 동기화는 위 teacherClassId 변경 감지 effect가 도맡습니다)
   function handleClassCreated(newClassId) {
     setTeacherClassId(newClassId);
-    setSelectedClassId(newClassId);
     setClassManagerOpen(false);
   }
   // '반 관리하기'에서 보관된 반의 '보기'를 누르면 그 반을(보기 전용으로) 봅니다.
   function handleViewArchivedClass(id) {
     setTeacherClassId(id);
-    setSelectedClassId(id);
     setShowCode(false);
     setClassManagerOpen(false);
   }
@@ -568,7 +578,6 @@ function StudyPageInner() {
                           value={classId ?? ""}
                           onChange={(e) => {
                             setTeacherClassId(e.target.value);
-                            setSelectedClassId(e.target.value); // 새로고침해도 이 반 유지
                             setShowCode(false);
                           }}
                           aria-label="반 선택"
