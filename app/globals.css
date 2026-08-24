@@ -6776,8 +6776,12 @@ pre code {
 
 /* 수업 준비 — 자리 배정 / 모둠 설정 */
 .seat-setup-modal {
-  width: min(980px, 94vw);
-  max-height: 92vh;
+  /* .modal 기본(max-width:640px)이 그대로 남아 있으면 아래 width가
+     묵살돼 자리 칸이 실제로는 훨씬 좁게 눌려 이름 글자가 세로로
+     쪼개져 보였습니다 — max-width도 함께 풀어 줍니다. */
+  width: min(1180px, 96vw);
+  max-width: none;
+  max-height: 94vh;
   overflow-y: auto;
 }
 .seat-setup-tabs {
@@ -6812,12 +6816,13 @@ pre code {
 }
 .seat-setup-grid {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
 }
 .seat-slot {
   aspect-ratio: 1 / 1;
-  padding: 6px;
+  min-width: 0;
+  padding: 8px 4px;
   border: 1px dashed #d8d5ce;
   border-radius: 9px;
   background: #faf9f5;
@@ -6847,12 +6852,23 @@ pre code {
   font-size: 13px;
   font-weight: 800;
   line-height: 1.15;
+  min-width: 0;
+  width: 100%;
+}
+/* 칸이 좁아도 글자가 세로로 쪼개지지 않고, 넘치면 말줄임표로 잘립니다 */
+.seat-slot-name-text {
+  display: block;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .seat-slot-name em,
 .seat-student-chip em {
   font-style: normal;
   font-family: var(--font-mono);
   font-size: 11px;
+  white-space: nowrap;
   opacity: 0.7;
 }
 .seat-slot-empty,
@@ -7251,10 +7267,16 @@ pre code {
   margin: 0 0 12px;
 }
 /* 목록 맨 위 — 새 수업 만들기 진입 */
-.lesson-create-btn {
-  width: 100%;
-  padding: 12px;
+.lesson-list-toolbar {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
   margin-bottom: 14px;
+}
+.lesson-create-btn {
+  flex: 1;
+  min-width: 0;
+  padding: 12px;
   border: 1.5px dashed var(--primary);
   border-radius: var(--radius);
   background: var(--primary-light);
@@ -7268,6 +7290,10 @@ pre code {
   background: var(--primary);
   color: #fff;
   border-style: solid;
+}
+.lesson-seat-btn {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 .lesson-new {
   display: flex;

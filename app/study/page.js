@@ -607,16 +607,6 @@ function StudyPageInner() {
                         📋 출석부 보기
                       </button>
                     )}
-                    {admin && currentClass && !currentClass.archived && (
-                      <button
-                        className="btn-ghost"
-                        onClick={() => setSeatSetupOpen(true)}
-                        disabled={roster.length === 0}
-                        title={roster.length > 0 ? "실제 좌석과 장기 모둠을 미리 정합니다" : "이 반에 입장한 학생이 없어요"}
-                      >
-                        🪑 자리 배정하기
-                      </button>
-                    )}
                     {admin && (
                       <button
                         className="btn-ghost"
@@ -936,6 +926,8 @@ function StudyPageInner() {
             }
             openLessonTeach(lesson);
           }}
+          onOpenSeatSetup={() => setSeatSetupOpen(true)}
+          seatSetupDisabled={roster.length === 0}
         />
       )}
 

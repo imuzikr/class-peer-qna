@@ -180,7 +180,7 @@ export default function SeatGroupSetupModal({
                       {s ? (
                         <span className="seat-slot-name" {...chipProps(s.uid, "seat")}>
                           {s.studentId && <em>{s.studentId}</em>}
-                          {s.name}
+                          <span className="seat-slot-name-text">{s.name}</span>
                         </span>
                       ) : (
                         <span className="seat-slot-empty">빈 자리</span>

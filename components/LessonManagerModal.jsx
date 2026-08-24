@@ -30,7 +30,13 @@ const MAX_SLIDES = 60;
 // 동시에 올릴 장수 — 교실 회선을 다 잡아먹지 않으면서 왕복 대기를 줄이는 선
 const UPLOAD_CONCURRENCY = 4;
 
-export default function LessonManagerModal({ onStart, onEdit, onClose }) {
+export default function LessonManagerModal({
+  onStart,
+  onEdit,
+  onClose,
+  onOpenSeatSetup,
+  seatSetupDisabled = false,
+}) {
   const [lessons, setLessons] = useState([]);
   const [creating, setCreating] = useState(false); // '새 수업 만들기' 화면 표시 여부
   const [title, setTitle] = useState("");
@@ -157,9 +163,22 @@ export default function LessonManagerModal({ onStart, onEdit, onClose }) {
           </>
         ) : (
           <>
-            <button type="button" className="lesson-create-btn" onClick={() => { setError(""); setCreating(true); }}>
-              ＋ 새 수업 만들기
-            </button>
+            <div className="lesson-list-toolbar">
+              <button type="button" className="lesson-create-btn" onClick={() => { setError(""); setCreating(true); }}>
+                ＋ 새 수업 만들기
+              </button>
+              {onOpenSeatSetup && (
+                <button
+                  type="button"
+                  className="btn-ghost lesson-seat-btn"
+                  onClick={onOpenSeatSetup}
+                  disabled={seatSetupDisabled}
+                  title={seatSetupDisabled ? "이 반에 입장한 학생이 없어요" : "실제 좌석과 장기 모둠을 미리 정합니다"}
+                >
+                  🪑 자리 배정하기
+                </button>
+              )}
+            </div>
 
             {/* 자료 목록 */}
             <div className="lesson-list">
