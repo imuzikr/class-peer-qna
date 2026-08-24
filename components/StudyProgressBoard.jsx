@@ -32,87 +32,69 @@ export const DONE_MIN_CHARS = 10;
 // (stripHtml이 태그를 지우고 연속 공백을 하나로 줄인 뒤 앞뒤를 다듬으므로,
 //  세는 값은 사람이 눈으로 읽는 글자 수와 같습니다)
 //
-// [제목으로 매칭하는 이유]
-// 활동은 교사가 수업 준비에서 언제든 추가·삭제·순서 변경할 수 있습니다.
-// 카드에는 활동별 섹션이 작성 당시 순서 그대로 저장돼 있으므로, 그 뒤에
-// 교사가 중간 활동을 지우거나 순서를 바꾸면 몇 번째 섹션인지(위치)가
-// board.activities의 현재 순서와 어긋납니다 — 그대로 위치로만 대조하면
-// 학생이 분명히 쓴 활동도 다른 활동 칸의 내용으로 잘못 읽혀 '작성 전'으로
-// 보일 수 있습니다. 섹션에는 저장 당시 활동 이름(title)이 함께 있으므로
-// 이름으로 먼저 찾고, **제목 자체가 없는 옛 카드(제목 태그가 생기기 전에
-// 저장된 카드)만** 위치로 대체합니다. 제목이 있는데 못 찾은 경우(활동 이름이
-// 바뀌었거나 그 활동이 삭제됨)는 다른 활동의 위치로 잘못 대조되지 않도록
-// 위치 대체를 하지 않습니다 — 그 섹션 내용은 hasOrphanedContent()가 따로
-// 잡아냅니다.
+// [왜 두 단계로 짝짓는가]
+// 활동은 교사가 수업 준비에서 언제든 이름을 바꾸거나 추가·삭제할 수 있는데,
+// 학생 카드에는 '작성 당시의 활동 이름'이 섹션 제목으로 박혀 저장됩니다.
+// 그래서 수업 도중 교사가 활동 제목을 고치면, 이미 낸 답의 섹션 제목이
+// 현재 활동 이름과 달라집니다. 이때
+//   · 제목으로만 찾으면  → 짝을 못 찾아 '작성 전'으로 보이고
+//   · 위치로만 대조하면  → 활동 수가 줄어든 경우 엉뚱한(빈) 섹션을 집어
+//                          역시 '작성 전'으로 보입니다
+// 실제로 이 두 경우 모두 "학생은 분명히 냈는데 미제출로 표시"되는 신고로
+// 이어졌습니다. 그래서 제목이 같은 것을 먼저 확정해 두고(1단계), 남은
+// 활동에는 아직 짝이 없으면서 '내용이 있는' 섹션을 순서대로 이어 붙입니다
+// (2단계). 이름이 바뀌었어도 학생이 쓴 내용은 그대로 살아남습니다.
 export function cardProgress(card, activities) {
-  const secs = card ? parseActivitySections(card.content) : [];
-  const hasAnyTitledSection = secs.some((s) => s.title);
-  return activities.map((name, i) => {
-    const sec =
-      secs.find((s) => s.title === name) ??
-      (hasAnyTitledSection ? undefined : secs[i]);
-    return stripHtml(sec?.content ?? "").length >= DONE_MIN_CHARS;
+  let secs = card ? parseActivitySections(card.content) : [];
+  // 활동 틀이 아예 없는 카드(활동이 생기기 전에 쓴 자유형 카드 등)는
+  // 본문 전체를 섹션 하나로 봅니다 — 그래야 아래 2단계에서 첫 활동에
+  // 이어 붙어 '작성함'으로 잡힙니다.
+  if (secs.length === 0 && card) {
+    secs = [{ title: "", content: card.content ?? "" }];
+  }
+
+  const paired = new Array(activities.length).fill(null);
+  const used = new Set();
+
+  // 1단계 — 제목이 정확히 같은 섹션을 먼저 확정 (가장 믿을 수 있는 근거)
+  activities.forEach((name, i) => {
+    const at = secs.findIndex(
+      (s, j) => !used.has(j) && s.title && s.title === name
+    );
+    if (at >= 0) {
+      used.add(at);
+      paired[i] = secs[at];
+    }
   });
-}
 
-// 카드가 '활동 틀'(div.activity-section)로 저장돼 있는지.
-// -------------------------------------------------------------
-// 활동이 생기기 전에 쓴 자유형 카드, 또는 저장 과정에서 틀이 사라진 카드는
-// 활동별로 나눌 수가 없어 parseActivitySections가 빈 배열을 돌려줍니다.
-// 예전에는 이때 활동 칸이 전부 '작성 전'으로 칠해져서, 학생이 분명히 제출한
-// 카드가 교사 화면에서는 통째로 미제출처럼 보였습니다. 그래서 '제출은 했는데
-// 활동별로 나눌 수 없는 상태'를 따로 구분합니다.
-export function hasActivityStructure(card) {
-  return card ? parseActivitySections(card.content).length > 0 : false;
-}
+  // 2단계 — 남은 활동에 '내용이 있는' 미사용 섹션을 순서대로 배정.
+  // (빈 섹션은 건너뜁니다. 활동 수가 줄어든 카드에서 앞쪽 빈 섹션이
+  //  실제 답이 든 뒤쪽 섹션을 가리는 일을 막기 위함)
+  const leftovers = secs
+    .map((s, j) => ({ s, j }))
+    .filter(({ s, j }) => !used.has(j) && stripHtml(s.content ?? "").length > 0);
+  let k = 0;
+  for (let i = 0; i < activities.length && k < leftovers.length; i++) {
+    if (paired[i]) continue;
+    used.add(leftovers[k].j);
+    paired[i] = leftovers[k].s;
+    k += 1;
+  }
 
-// 카드 안에 '현재 활동 목록 어디에도 매칭되지 않는' 섹션이 있고, 거기에
-// 학생이 실제로 쓴 내용(10자 이상)이 남아 있는지.
-// -------------------------------------------------------------
-// 교사가 활동 이름을 바꾸거나 활동 수를 줄이면, 학생이 예전 활동 이름으로
-// 써 둔 섹션은 cardProgress()에서 더는 어느 칸에도 대응되지 않습니다(위의
-// 이유로 위치 대체도 하지 않음). 그 내용을 그냥 '작성 전'으로 보여 주면
-// 학생이 아무것도 안 쓴 것처럼 보여 오해를 사므로, 그런 섹션이 있으면
-// '제출함(활동 구분 없음)'으로 알려 줍니다.
-export function hasOrphanedContent(card, activities) {
-  if (!card) return false;
-  const secs = parseActivitySections(card.content);
-  const known = new Set(activities);
-  return secs.some((s) => {
-    if (s.title && known.has(s.title)) return false; // 현재 활동과 정상 매칭됨
-    return stripHtml(s.content ?? "").length >= DONE_MIN_CHARS;
-  });
-}
-
-// 학생이 이 보드에 무언가를 제출했는지 — 글자·그림·첨부 중 하나라도 있으면 제출.
-// (활동 틀 유무와 무관하게 카드 자체를 봅니다)
-export function cardSubmitted(card) {
-  if (!card) return false;
-  return (
-    stripHtml(card.content ?? "").length > 0 ||
-    !!card.imageUrl ||
-    (card.attachments?.length ?? 0) > 0
+  return paired.map(
+    (sec) => stripHtml(sec?.content ?? "").length >= DONE_MIN_CHARS
   );
 }
 
 // 칸 하나의 상태 — 색으로 구분합니다.
 //   done   연한 초록 : 10자 이상 썼음 (잠겼더라도 쓴 건 쓴 것)
-//   free   연한 파랑 : 제출은 했는데 활동 틀이 아니라 활동별로 나눌 수 없음
 //   open   연한 주황 : 열려 있는데 아직 덜 씀
 //   locked 회색     : 아직 열어 주지 않음
-function cellState(done, locked, freeform) {
+function cellState(done, locked) {
   if (done) return "done";
-  // 자유형 카드는 '어느 활동을 썼는지'를 알 수 없을 뿐 제출은 한 것이므로,
-  // 미작성(주황)이 아니라 별도 색으로 표시해 오해를 막습니다.
-  if (freeform) return "free";
   return locked ? "locked" : "open";
 }
-const STATE_LABEL = {
-  done: "작성함",
-  free: "제출함(활동 구분 없음)",
-  open: "작성 전",
-  locked: "잠김",
-};
+const STATE_LABEL = { done: "작성함", open: "작성 전", locked: "잠김" };
 
 export default function StudyProgressBoard({
   board,
@@ -129,16 +111,7 @@ export default function StudyProgressBoard({
     const card = cards.find((c) =>
       isGroup ? c.memberUids?.includes(s.uid) : c.authorId === s.uid
     );
-    const submitted = cardSubmitted(card);
-    return {
-      ...s,
-      done: cardProgress(card, activities),
-      // 제출은 했지만 (1) 활동 틀이 없거나 (2) 활동 이름이 바뀌어/삭제돼
-      // 실제로 쓴 내용이 지금 활동 칸 어디에도 대응되지 않는 카드
-      freeform:
-        submitted &&
-        (!hasActivityStructure(card) || hasOrphanedContent(card, activities)),
-    };
+    return { ...s, done: cardProgress(card, activities) };
   });
 
   // 활동별 작성 인원
@@ -176,11 +149,6 @@ export default function StudyProgressBoard({
             <span className="progress-legend-item">
               <i className="progress-mark progress-mark--locked" /> 잠김
             </span>
-            {rows.some((r) => r.freeform) && (
-              <span className="progress-legend-item">
-                <i className="progress-mark progress-mark--free" /> 제출함(활동 구분 없음)
-              </span>
-            )}
           </div>
         )}
 
@@ -227,11 +195,7 @@ export default function StudyProgressBoard({
                       <span className="progress-student-name">{r.name}</span>
                     </th>
                     {activities.map((act, i) => {
-                      const st = cellState(
-                        r.done[i],
-                        isActivityLocked(board, i),
-                        r.freeform
-                      );
+                      const st = cellState(r.done[i], isActivityLocked(board, i));
                       return (
                         <td
                           key={i}

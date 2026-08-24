@@ -6610,16 +6610,6 @@ pre code {
     transparent calc(50% + 1px)
   );
 }
-/* 제출은 했는데 활동 틀이 아니라 활동별로 나눌 수 없는 카드 — 점을 찍어
-   색 말고 모양으로도 '작성함(초록)'과 구분되게 합니다 */
-.progress-mark--free {
-  background-color: #dbe7f7;
-  border: 1px solid #a8c4e8;
-  background-image: radial-gradient(circle, #4d7fc4 2.5px, transparent 2.6px);
-  background-position: center;
-  background-repeat: no-repeat;
-}
-
 .progress-legend {
   display: flex;
   flex-wrap: wrap;
