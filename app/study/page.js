@@ -9,7 +9,8 @@
 // 관련 질문을 모아 볼 수 있습니다.
 // =============================================================
 import { backdropClose } from "@/lib/modal";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import {
   subscribeStudyBoards,
@@ -32,6 +33,10 @@ import {
   subscribeClassStudyAttendance,
   todayDateKey,
   subscribeStudyGroupAssignment,
+  subscribeStudySeatLayout,
+  saveStudySeatLayout,
+  saveStudyGroupAssignment,
+  subscribeMyLessons,
   toDate,
 } from "@/lib/store";
 import { isFirebaseConfigured } from "@/lib/firebase";
@@ -59,6 +64,7 @@ import KwlPanel from "@/components/KwlPanel";
 import LessonManagerModal from "@/components/LessonManagerModal";
 import LessonMode from "@/components/LessonMode";
 import StudyAttendanceModal from "@/components/StudyAttendanceModal";
+import SeatGroupSetupModal from "@/components/SeatGroupSetupModal";
 import { updateLesson } from "@/lib/store";
 import { IconKey } from "@/components/StatusIcons";
 
@@ -68,8 +74,20 @@ const PythonRunner = dynamic(() => import("@/components/PythonRunner"), {
 });
 
 export default function StudyPage() {
+  // useSearchParams()는 정적 프리렌더 시 Suspense 경계가 필요합니다 —
+  // 수업 준비 목록/편집/진행 화면을 브라우저 히스토리(뒤로 가기)와 맞추려고 씁니다.
+  return (
+    <Suspense fallback={null}>
+      <StudyPageInner />
+    </Suspense>
+  );
+}
+
+function StudyPageInner() {
   const user = useCurrentUser();
   useRequireAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [classes, setClasses] = useState([]);
   const [boards, setBoards] = useState([]);
   const [questions, setQuestions] = useState([]);
@@ -87,9 +105,9 @@ export default function StudyPage() {
   const [attendanceRecords, setAttendanceRecords] = useState([]);
   const [baseGroupAssignment, setBaseGroupAssignment] = useState(null);
   const [attending, setAttending] = useState(false);
-  const [lessonPicker, setLessonPicker] = useState(false); // 수업 준비(목록·새로 만들기) 모달
-  const [teaching, setTeaching] = useState(null);   // 수업 중인 자료(학생 화면 전환)
-  const [editingLesson, setEditingLesson] = useState(null); // 장별 메모 작성
+  const [lessons, setLessons] = useState([]); // 교사: 내가 만든 수업 자료 목록
+  const [seatSetupOpen, setSeatSetupOpen] = useState(false); // 자리 배정·모둠 설정 모달
+  const [seatLayout, setSeatLayout] = useState(null);
   const [askKeyword, setAskKeyword] = useState(null); // "질문하기"로 새 질문 작성
   const [askCode, setAskCode] = useState(null);     // 파이썬 실행기에서 넘어온 코드
   const [askKwlW, setAskKwlW] = useState(null);    // KWL W칸에서 넘어온 텍스트
@@ -302,6 +320,47 @@ export default function StudyPage() {
     }
     return subscribeStudyGroupAssignment(classId, setBaseGroupAssignment);
   }, [admin, classId]);
+
+  // 자리 배정하기 모달용 — 실제 좌석은 반마다 하나("default")만 둡니다
+  // (수업 중 자리 흔들기는 별도 daily 레이아웃, AttendanceBoard가 다룸).
+  useEffect(() => {
+    if (!admin || !classId) {
+      setSeatLayout(null);
+      return;
+    }
+    return subscribeStudySeatLayout(classId, "default", setSeatLayout);
+  }, [admin, classId]);
+
+  // 교사가 만든 수업 자료 목록 — 수업 준비 목록/편집/진행 화면을 URL(?lesson=&mode=)로
+  // 관리하기 위해 여기서 구독합니다. 그래야 브라우저 '뒤로 가기'를 눌렀을 때 이 화면의
+  // 상태가 아니라 그 전 페이지(질문방 등)로 곧장 나가버리지 않고 공부방으로 돌아옵니다.
+  useEffect(() => {
+    if (!admin || !user?.uid) {
+      setLessons([]);
+      return;
+    }
+    return subscribeMyLessons(user.uid, setLessons);
+  }, [admin, user?.uid]);
+
+  const lessonParam = searchParams.get("lesson");
+  const modeParam = searchParams.get("mode");
+  const lessonPicker = admin && searchParams.get("panel") === "lessons";
+  const activeLesson = lessonParam ? lessons.find((l) => l.id === lessonParam) ?? null : null;
+  const editingLesson = modeParam === "edit" ? activeLesson : null;
+  const teaching = modeParam === "teach" ? activeLesson : null;
+
+  function openLessonPicker() {
+    router.push("/study?panel=lessons");
+  }
+  function openLessonEdit(lesson) {
+    router.push(`/study?lesson=${lesson.id}&mode=edit`);
+  }
+  function openLessonTeach(lesson) {
+    router.push(`/study?lesson=${lesson.id}&mode=teach`);
+  }
+  function closeLessonNav() {
+    router.push("/study");
+  }
 
   useEffect(() => {
     if (!admin || !user || !currentClass || currentClass.archived) return;
@@ -525,7 +584,16 @@ export default function StudyPage() {
                     {admin && currentClass && !currentClass.archived && (
                       <button
                         className="btn-ghost"
-                        onClick={() => setLessonPicker(true)}
+                        onClick={() => setShowCode(true)}
+                        title="학생에게 알려 줄 입장 코드 크게 보기"
+                      >
+                        <IconKey size={17} /> 입장 코드
+                      </button>
+                    )}
+                    {admin && currentClass && !currentClass.archived && (
+                      <button
+                        className="btn-ghost"
+                        onClick={openLessonPicker}
                         title="주제·자료·해설·활동을 준비하고 수업을 시작합니다"
                       >
                         📝 수업준비
@@ -542,10 +610,11 @@ export default function StudyPage() {
                     {admin && currentClass && !currentClass.archived && (
                       <button
                         className="btn-ghost"
-                        onClick={() => setShowCode(true)}
-                        title="학생에게 알려 줄 입장 코드 크게 보기"
+                        onClick={() => setSeatSetupOpen(true)}
+                        disabled={roster.length === 0}
+                        title={roster.length > 0 ? "실제 좌석과 장기 모둠을 미리 정합니다" : "이 반에 입장한 학생이 없어요"}
                       >
-                        <IconKey size={17} /> 입장 코드
+                        🪑 자리 배정하기
                       </button>
                     )}
                     {admin && (
@@ -791,6 +860,17 @@ export default function StudyPage() {
         />
       )}
 
+      {seatSetupOpen && currentClass && (
+        <SeatGroupSetupModal
+          roster={roster}
+          seatLayout={seatLayout}
+          groupAssignment={baseGroupAssignment}
+          onSaveSeats={(seats) => saveStudySeatLayout(classId, "default", seats, getCurrentUser())}
+          onSaveGroups={(groups) => saveStudyGroupAssignment(classId, groups, getCurrentUser())}
+          onClose={() => setSeatSetupOpen(false)}
+        />
+      )}
+
       {classManagerOpen && (
         <ClassManagerModal
           classes={myClassesAll}
@@ -837,21 +917,24 @@ export default function StudyPage() {
           setAskCode(code);
           setAskKeyword(null);
         }}
-        hasModalOpen={cardModalOpen || classManagerOpen || addingBoard || attendanceOpen || (askKeyword !== null || askCode !== null)}
+        hasModalOpen={cardModalOpen || classManagerOpen || addingBoard || attendanceOpen || seatSetupOpen || (askKeyword !== null || askCode !== null)}
       />
 
-      {/* ── 수업 준비 (목록 · 새로 만들기) ── */}
+      {/* ── 수업 준비 (목록 · 새로 만들기) ──
+          목록·편집·진행 화면은 모두 URL(?panel=lessons, ?lesson=&mode=)로
+          관리합니다. 그래야 브라우저 '뒤로 가기'를 눌렀을 때 이 화면들의
+          상태가 아니라 그 전 페이지로 곧장 나가버리지 않고, 공부방으로 한
+          단계씩 되돌아갑니다. */}
       {lessonPicker && (
         <LessonManagerModal
-          onClose={() => setLessonPicker(false)}
-          onEdit={(lesson) => { setLessonPicker(false); setEditingLesson(lesson); }}
+          onClose={closeLessonNav}
+          onEdit={(lesson) => openLessonEdit(lesson)}
           onStart={(lesson) => {
             if ((lesson.slides ?? []).length === 0) {
               setToast("슬라이드가 없는 자료예요.");
               return;
             }
-            setLessonPicker(false);
-            setTeaching(lesson);
+            openLessonTeach(lesson);
           }}
         />
       )}
@@ -865,30 +948,22 @@ export default function StudyPage() {
           roster={admin ? roster : []}
           // 학생이 카드를 쓰는 보드만 연결 대상 — '선생님 보드'(공지용)는 제외
           boards={classBoards.filter((b) => b.type !== "notice")}
-          onSaveBoardId={async (boardId) => {
-            await updateLesson(editingLesson.id, { boardId });
-            setEditingLesson({ ...editingLesson, boardId });
-          }}
-          onSaveNote={async (index, text) => {
+          onSaveBoardId={(boardId) => updateLesson(editingLesson.id, { boardId })}
+          onSaveNote={(index, text) => {
             const slides = (editingLesson.slides ?? []).map((s, i) =>
               i === index ? { ...s, note: text } : s
             );
-            await updateLesson(editingLesson.id, { slides });
-            setEditingLesson({ ...editingLesson, slides });
+            return updateLesson(editingLesson.id, { slides });
           }}
-          onSaveActivities={async (activities) => {
-            await updateLesson(editingLesson.id, { activities });
-            setEditingLesson({ ...editingLesson, activities });
-          }}
+          onSaveActivities={(activities) => updateLesson(editingLesson.id, { activities })}
           onStart={() => {
             if ((editingLesson.slides ?? []).length === 0) {
               setToast("슬라이드가 없는 자료예요.");
               return;
             }
-            setTeaching(editingLesson);
-            setEditingLesson(null);
+            openLessonTeach(editingLesson);
           }}
-          onClose={() => setEditingLesson(null)}
+          onClose={closeLessonNav}
         />
       )}
 
@@ -903,7 +978,7 @@ export default function StudyPage() {
           attendanceRecords={admin ? attendanceRecords : []}
           // '공부중' 전광판이 연결된 수업 보드를 찾는 데 씁니다
           boards={classBoards.filter((b) => b.type !== "notice")}
-          onClose={() => setTeaching(null)}
+          onClose={closeLessonNav}
         />
       )}
 
