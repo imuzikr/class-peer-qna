@@ -6875,6 +6875,39 @@ pre code {
   box-shadow: 0 0 0 2px var(--primary) inset;
 }
 
+/* ── 손들기(언제든 질문하기) — 자리에서 바로 눈에 띄게 ── */
+.attend-desk {
+  position: relative; /* 손 아이콘의 기준 */
+}
+.attend-desk--raised {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary);
+}
+/* 카드가 overflow:hidden이라 밖으로 내밀면 잘립니다 — 안쪽 모서리에 둡니다 */
+.attend-desk-hand {
+  position: absolute;
+  top: 2px;
+  right: 3px;
+  font-size: 18px;
+  line-height: 1;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25));
+  animation: attend-hand-wave 1.6s ease-in-out infinite;
+}
+@keyframes attend-hand-wave {
+  0%, 100% { transform: rotate(-9deg); }
+  50%      { transform: rotate(9deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .attend-desk-hand,
+  .attend-seat-hand {
+    animation: none;
+  }
+}
+.attend-legend-item--hand {
+  font-weight: 800;
+  color: var(--primary-dark);
+}
+
 /* ── 카드 클릭 시 뜨는 과일/누가기록 선택 모달 ── */
 /* 전광판(모달) 위에 겹쳐 뜨므로 배경보다 한 단계 위로 올립니다 */
 .attend-tools-backdrop {
@@ -7253,6 +7286,13 @@ pre code {
   .attend-desk-name { font-size: 11px; }
   .attend-desk-no { font-size: 10px; }
   .attend-desk-fruit { font-size: 9.5px; padding: 1px 5px; }
+  /* 출석 관리 > 자리배치도 같은 이유로 4칸 */
+  .attend-seatmap-grid {
+    gap: 6px;
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .attend-seat-name { font-size: 11px; }
+  .attend-seat-no { font-size: 9.5px; }
   /* 좁은 화면에서는 절대 위치로 겹치는 대신, 전광판 아래로 자연스럽게
      줄바꿈되도록 되돌립니다(옆으로 밀어내면 화면 밖으로 나갑니다). */
   .attend-notes-panel {
@@ -8943,6 +8983,98 @@ pre code {
   background: #fff;
   color: var(--text);
   font-weight: 700;
+}
+
+/* ── 출석 관리 > 자리배치 보기 ──
+   누가 어느 자리인지 보고, 질문하려고 손든 학생을 🖐️로 찾습니다.
+   참여 전광판과 같은 손들기 신호를 봅니다. */
+.attend-seatmap-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+/* 교실 앞쪽이 어디인지 알려 주는 표시 — 자리표를 실제 교실과 맞춰 읽도록 */
+.attend-seatmap-board {
+  flex: 1;
+  padding: 6px 0;
+  border-radius: 8px;
+  background: var(--neutral);
+  color: var(--text-sub);
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+  letter-spacing: 0.3em;
+}
+.attend-seatmap-hands {
+  flex-shrink: 0;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: #f1eee8;
+  color: var(--text-sub);
+  font-size: 12.5px;
+  font-weight: 800;
+}
+.attend-seatmap-hands.on {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+}
+.attend-seatmap-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+}
+.attend-seat {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 4px 3px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+  text-align: center;
+  overflow: hidden;
+}
+/* 오늘 출석한 학생 */
+.attend-seat--on {
+  background: #e8f7ed;
+  border-color: #a6d8b6;
+}
+.attend-seat--empty {
+  border-style: dashed;
+  border-color: #e2e0da;
+  background: transparent;
+}
+.attend-seat--raised {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary);
+}
+.attend-seat-no {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.attend-seat-name {
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.2;
+  word-break: keep-all;
+}
+/* 자리 칸도 overflow:hidden이라 안쪽 모서리에 둡니다 */
+.attend-seat-hand {
+  position: absolute;
+  top: 2px;
+  right: 3px;
+  font-size: 17px;
+  line-height: 1;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25));
+  animation: attend-hand-wave 1.6s ease-in-out infinite;
 }
 
 /* 출석 캘린더 — 한 달씩 넘겨 보며 날짜를 고릅니다(교사는 클릭해 아래

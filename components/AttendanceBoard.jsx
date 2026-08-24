@@ -5,7 +5,14 @@
 // =============================================================
 import { useEffect, useMemo, useRef, useState } from "react";
 import { backdropClose } from "@/lib/modal";
-import { PRESENCE_STALE_MS, REWARD_MAX, STUDY_SEAT_COUNT, toDate, todayDateKey } from "@/lib/store";
+import {
+  PRESENCE_STALE_MS,
+  REWARD_MAX,
+  subscribeQuestionSignals,
+  toDate,
+  todayDateKey,
+} from "@/lib/store";
+import { normalizeSeats } from "@/lib/seats";
 import { getCurrentUser } from "@/lib/user";
 import StudentNotesThread from "./StudentNotesThread";
 
@@ -17,26 +24,6 @@ export function deskState(presence, nowMs) {
   const t = presence.updatedAt ? toDate(presence.updatedAt).getTime() : 0;
   if (t && nowMs - t > PRESENCE_STALE_MS) return "off";
   return presence.visible ? "on" : "away";
-}
-
-function normalizeSeats(seats = [], roster = []) {
-  const seen = new Set();
-  const base = Array.from({ length: STUDY_SEAT_COUNT }, (_, i) => {
-    const uid = typeof seats[i] === "string" && seats[i] ? seats[i] : null;
-    if (!uid || seen.has(uid)) return null;
-    seen.add(uid);
-    return uid;
-  });
-  let cursor = 0;
-  roster.forEach((s) => {
-    if (seen.has(s.uid)) return;
-    while (cursor < base.length && base[cursor]) cursor += 1;
-    if (cursor < base.length) {
-      base[cursor] = s.uid;
-      seen.add(s.uid);
-    }
-  });
-  return base;
 }
 
 function groupMapOf(groupAssignment) {
@@ -81,7 +68,7 @@ function StudentCard({
   return (
     <div className="attend-desk-wrap">
       <div
-        className={`attend-desk attend-desk--${d.state}${notesActive ? " attend-desk--noting" : ""}${clickable ? " attend-desk--clickable" : ""}`}
+        className={`attend-desk attend-desk--${d.state}${notesActive ? " attend-desk--noting" : ""}${clickable ? " attend-desk--clickable" : ""}${d.raised ? " attend-desk--raised" : ""}`}
         style={d.group ? { "--group-color": d.group.color } : undefined}
         title={
           clickable
@@ -115,6 +102,13 @@ function StudentCard({
           onDropTo(d.index);
         }}
       >
+        {/* 손들기 — 질문이 있는 학생을 자리에서 바로 찾을 수 있게
+            카드 모서리에 크게 띄웁니다 */}
+        {d.raised && (
+          <span className="attend-desk-hand" aria-label="질문 있어요" title="질문 있어요">
+            🖐️
+          </span>
+        )}
         <span className="attend-desk-no">{d.studentId || "-"}</span>
         <span className="attend-desk-name">
           {d.name}
@@ -221,6 +215,19 @@ export default function AttendanceBoard({
     normalizeSeats(dailySeatLayout?.seats ?? seatLayout?.seats ?? [], roster)
   );
 
+  // 손든 학생(언제든 질문하기) — 자리표/모둠 카드에 🖐️로 표시합니다.
+  // 상단바의 손들기 버튼과 같은 문서를 보므로 두 곳이 항상 같은 상태입니다.
+  const [raisedUids, setRaisedUids] = useState(() => new Set());
+  useEffect(() => {
+    if (!classId) {
+      setRaisedUids(new Set());
+      return;
+    }
+    return subscribeQuestionSignals(classId, (list) =>
+      setRaisedUids(new Set(list.map((s) => s.uid).filter(Boolean)))
+    );
+  }, [classId]);
+
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 5000);
     return () => clearInterval(t);
@@ -257,9 +264,13 @@ export default function AttendanceBoard({
       emoji: s.emoji ?? "🙂",
       count: s.count ?? 0,
       state: stateOf(s.uid),
+      raised: raisedUids.has(s.uid),
       group,
     };
   });
+
+  // 자리표에 앉은 학생 중 손든 사람 수 (명단에 없는 옛 신호는 세지 않음)
+  const raisedCount = roster.filter((s) => raisedUids.has(s.uid)).length;
 
   const counts = desks.reduce(
     (acc, d) => {
@@ -359,6 +370,11 @@ export default function AttendanceBoard({
           <span className="attend-legend-item"><i className="attend-chip attend-chip--away" /> 화면 가려짐 {counts.away}</span>
           <span className="attend-legend-item"><i className="attend-chip attend-chip--off" /> 미접속 {counts.off}</span>
           <span className="attend-legend-item"><i className="attend-chip attend-chip--absent" /> 결석 {counts.absent}</span>
+          {raisedCount > 0 && (
+            <span className="attend-legend-item attend-legend-item--hand">
+              🖐️ 질문 {raisedCount}
+            </span>
+          )}
         </div>
 
         {roster.length === 0 ? (
@@ -382,6 +398,7 @@ export default function AttendanceBoard({
                           emoji: s.emoji ?? "🙂",
                           count: s.count ?? 0,
                           state: stateOf(s.uid),
+                          raised: raisedUids.has(s.uid),
                           group: groupsByUid.get(s.uid) ?? { name: g.name, color: g.color },
                         }}
                         onOpenTools={onAward ? openTools : null}

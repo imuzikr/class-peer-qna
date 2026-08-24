@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { backdropClose } from "@/lib/modal";
-import { toDate, todayDateKey } from "@/lib/store";
+import { subscribeQuestionSignals, toDate, todayDateKey } from "@/lib/store";
+import { normalizeSeats } from "@/lib/seats";
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -116,23 +117,93 @@ function AttendanceCalendar({ records, total = 0, selectedDate = "", onSelectDat
   );
 }
 
+// 자리배치 보기 — 누가 어느 자리인지 한눈에 보고, 질문하려고 손든 학생을
+// 🖐️로 찾습니다. 수업 중 '참여 전광판'과 같은 손들기 신호를 보므로 두
+// 화면이 항상 같은 상태를 보여 줍니다. (여기서는 자리를 옮기지 않습니다 —
+// 자리 바꾸기는 '반 관리하기 → 자리 배정하기'와 참여 전광판에서 합니다)
+function AttendanceSeatMap({ roster, seats, raisedUids, attendedUids }) {
+  const byUid = useMemo(() => new Map(roster.map((s) => [s.uid, s])), [roster]);
+  const raisedCount = roster.filter((s) => raisedUids.has(s.uid)).length;
+
+  return (
+    <div className="attend-seatmap">
+      <div className="attend-seatmap-head">
+        <span className="attend-seatmap-board">칠판</span>
+        <span className={`attend-seatmap-hands${raisedCount > 0 ? " on" : ""}`}>
+          🖐️ 질문 {raisedCount}
+        </span>
+      </div>
+      <div className="attend-seatmap-grid">
+        {seats.map((uid, i) => {
+          const s = uid ? byUid.get(uid) : null;
+          if (!s) {
+            return <div key={`empty-${i}`} className="attend-seat attend-seat--empty" />;
+          }
+          const raised = raisedUids.has(s.uid);
+          const present = attendedUids.has(s.uid);
+          return (
+            <div
+              key={s.uid}
+              className={`attend-seat${present ? " attend-seat--on" : ""}${raised ? " attend-seat--raised" : ""}`}
+              title={`${s.name}${s.studentId ? ` · ${s.studentId}` : ""} — ${present ? "출석" : "기록 없음"}${raised ? " · 질문 있어요" : ""}`}
+            >
+              {raised && (
+                <span className="attend-seat-hand" aria-label="질문 있어요">🖐️</span>
+              )}
+              <span className="attend-seat-no">{s.studentId || "-"}</span>
+              <span className="attend-seat-name">{s.name}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function StudyAttendanceModal({
   isTeacher = false,
   records = [],
   roster = [],
+  classId = null,
+  seatLayout = null,
   attendanceOpenToday = false,
   attendanceBusy = false,
   onStartAttendance = null,
   onStopAttendance = null,
   onClose,
 }) {
-  const [viewMode, setViewMode] = useState("list"); // "list" | "calendar"
+  const [viewMode, setViewMode] = useState("list"); // "list" | "calendar" | "seat"
   const dates = useMemo(
     () => [...new Set(records.map((r) => r.date).filter(Boolean))].sort((a, b) => b.localeCompare(a)),
     [records]
   );
   const [selectedDate, setSelectedDate] = useState("");
   const activeDate = selectedDate || dates[0] || "";
+
+  // 손든 학생 — 자리배치 보기에서만 필요하므로 그 탭을 열었을 때만 구독합니다
+  // (출석부만 보는 동안 쓸데없이 실시간 연결을 잡고 있지 않도록).
+  const [raisedUids, setRaisedUids] = useState(() => new Set());
+  const wantSignals = isTeacher && viewMode === "seat" && !!classId;
+  useEffect(() => {
+    if (!wantSignals) {
+      setRaisedUids(new Set());
+      return;
+    }
+    return subscribeQuestionSignals(classId, (list) =>
+      setRaisedUids(new Set(list.map((s) => s.uid).filter(Boolean)))
+    );
+  }, [wantSignals, classId]);
+
+  const seats = useMemo(
+    () => normalizeSeats(seatLayout?.seats ?? [], roster),
+    [seatLayout?.seats, roster]
+  );
+  // 자리배치는 '오늘' 출석을 기준으로 색을 칠합니다 — 지금 교실에 누가
+  // 와 있는지를 보는 화면이라, 목록/캘린더가 보고 있는 과거 날짜와는 별개입니다.
+  const attendedTodayUids = useMemo(() => {
+    const today = todayDateKey();
+    return new Set(records.filter((r) => r.date === today).map((r) => r.uid));
+  }, [records]);
 
   const byStudent = useMemo(() => {
     const map = new Map();
@@ -207,10 +278,31 @@ export default function StudyAttendanceModal({
           >
             캘린더형
           </button>
+          {/* 자리배치는 교사 전용 — 반 전체 자리와 손들기를 봅니다 */}
+          {isTeacher && (
+            <button
+              type="button"
+              className={viewMode === "seat" ? "active" : ""}
+              onClick={() => setViewMode("seat")}
+            >
+              자리배치
+            </button>
+          )}
         </div>
 
         <div className="study-attendance-body">
-          {isTeacher ? (
+          {isTeacher && viewMode === "seat" ? (
+            roster.length === 0 ? (
+              <p className="lesson-note-empty">이 반에 입장한 학생이 없어요.</p>
+            ) : (
+              <AttendanceSeatMap
+                roster={roster}
+                seats={seats}
+                raisedUids={raisedUids}
+                attendedUids={attendedTodayUids}
+              />
+            )
+          ) : isTeacher ? (
             <>
               {viewMode === "list" ? (
                 dates.length > 0 && (

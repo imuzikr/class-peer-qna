@@ -25,8 +25,15 @@ import { parseActivitySections, isActivityLocked } from "@/lib/activities";
 
 
 // '썼다'고 볼 최소 길이 — 공백·문장부호를 포함한 글자 수.
-// 한두 글자만 눌러 둔 것을 완료로 세지 않기 위한 기준입니다.
-export const DONE_MIN_CHARS = 10;
+// -------------------------------------------------------------
+// 예전에는 10자였는데, 이 전광판이 실제로 답하는 질문은 "이 학생이 냈는가"
+// 이지 "충분히 길게 썼는가"가 아닙니다. 활동에 따라 정답이 원래 짧습니다 —
+// 예를 들어 '읽을 책의 제목과 저자명을 입력하세요'에 "사고외주- 홍진기"라고
+// 제대로 answered한 학생이 9자라는 이유로 '작성 전'(주황)으로 표시돼,
+// 교사에게는 미제출로 보이는 오해가 실제로 있었습니다. 낼 것을 냈는데
+// 미제출로 보이는 쪽이 훨씬 나쁘므로, 무언가 쓰기만 하면 작성한 것으로 봅니다.
+// (활동 틀의 빈 칸은 <p><br></p>라 stripHtml 결과가 0자이므로 그대로 걸러집니다)
+export const DONE_MIN_CHARS = 1;
 
 // 학생 카드 한 장 → 활동별로 "충분히 썼는지" 여부 배열
 // (stripHtml이 태그를 지우고 연속 공백을 하나로 줄인 뒤 앞뒤를 다듬으므로,
@@ -141,7 +148,7 @@ export default function StudyProgressBoard({
         {activities.length > 0 && roster.length > 0 && (
           <div className="progress-legend">
             <span className="progress-legend-item">
-              <i className="progress-mark progress-mark--done" /> 작성함({DONE_MIN_CHARS}자 이상)
+              <i className="progress-mark progress-mark--done" /> 작성함
             </span>
             <span className="progress-legend-item">
               <i className="progress-mark progress-mark--open" /> 작성 전
