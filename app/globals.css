@@ -5991,6 +5991,35 @@ pre code {
   font-size: 18px;
   text-align: center;
 }
+
+/* 활동(질문)이 여러 개인 카드 — 활동마다 제목을 먼저 굵고 크게, 그
+   아래에 그 학생의 내용을 보여줍니다. 왼쪽 정렬해 여러 개가 쌓여도
+   제목·내용의 짝을 눈으로 따라가기 쉽게 합니다. */
+.present-activities {
+  display: flex;
+  flex-direction: column;
+  gap: 34px;
+  text-align: left;
+}
+.present-activity {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.present-activity + .present-activity {
+  padding-top: 30px;
+  border-top: 1px solid var(--border);
+}
+.present-activity-title {
+  font-family: var(--font-serif);
+  font-size: 27px;
+  font-weight: 800;
+  color: var(--dark);
+  line-height: 1.35;
+}
+.present-activities .present-empty {
+  text-align: left;
+}
 .present-foot {
   display: flex;
   align-items: center;
@@ -6591,9 +6620,6 @@ pre code {
 }
 
 /* ===================== 참여 전광판 ===================== */
-/* 자리 수(30)가 고정이라 더 늘어날 일이 없습니다. 스크롤이 생기면
-   스크롤바가 오른쪽 안쪽 여백과 둥근 모서리를 덮어 좌우가 어긋나 보이므로,
-   내용이 항상 들어가도록 크기를 잡고 가로세로 여백을 대칭으로 둡니다. */
 /* 전광판 + 누가기록 패널을 담는 껍데기 — position:relative일 뿐 flex가
    아니므로, 절대 위치로 뺀 패널은 이 껍데기의 크기(=전광판 크기)에
    영향을 주지 않습니다. 그래야 패널이 열려도 전광판이 제자리에 그대로
@@ -6607,8 +6633,11 @@ pre code {
 }
 .attend-modal {
   width: min(680px, 94vw);
-  max-height: none;
-  overflow: visible;
+  /* 누가기록 패널과 최대 높이를 맞춰 나란히 있을 때 크기가 어긋나
+     보이지 않게 합니다. */
+  max-height: 85vh;
+  overflow-y: auto;
+  scrollbar-gutter: stable both-edges;
 }
 
 /* 누가기록 슬라이드 패널 — 전광판은 그대로 두고 그 오른쪽에 겹쳐서
@@ -6647,15 +6676,6 @@ pre code {
 @media (prefers-reduced-motion: reduce) {
   .attend-notes-panel {
     animation: none;
-  }
-}
-/* 혹시라도 넘칠 만큼 창이 낮으면 스크롤을 열되, 양쪽에 같은 자리를 비워
-   둬서 좌우 대칭이 깨지지 않게 합니다. */
-@media (max-height: 700px) {
-  .attend-modal {
-    max-height: 92vh;
-    overflow-y: auto;
-    scrollbar-gutter: stable both-edges;
   }
 }
 .attend-legend {
@@ -8713,6 +8733,181 @@ pre code {
   background: #fff;
   color: var(--text);
   font-weight: 700;
+}
+
+/* 출석 시작/종료 — 교사가 그날 출석 받기를 직접 켜고 끕니다 */
+.study-attendance-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.study-attendance-start,
+.study-attendance-stop {
+  padding: 7px 14px;
+  font-size: 13px;
+}
+.study-attendance-live {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #f1eee8;
+  color: var(--text-sub);
+  font-size: 12px;
+  font-weight: 800;
+}
+.study-attendance-live.on {
+  background: #e8f7ed;
+  color: #26734a;
+}
+
+/* 목록형 / 캘린더형 전환 탭 */
+.study-attendance-view-tabs {
+  display: inline-flex;
+  gap: 4px;
+  padding: 3px;
+  margin-bottom: 12px;
+  background: var(--neutral);
+  border-radius: var(--radius-btn);
+}
+.study-attendance-view-tabs button {
+  padding: 7px 14px;
+  border: 0;
+  border-radius: calc(var(--radius-btn) - 2px);
+  background: transparent;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text-sub);
+  cursor: pointer;
+}
+.study-attendance-view-tabs button.active {
+  color: var(--text);
+  background: #fff;
+  box-shadow: var(--shadow-soft);
+}
+
+.study-attendance-date-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  color: var(--text-sub);
+  font-size: 13px;
+  font-weight: 700;
+}
+.study-attendance-date-picker select {
+  width: auto;
+  min-width: 150px;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--text);
+  font-weight: 700;
+}
+
+/* 출석 캘린더 — 한 달씩 넘겨 보며 날짜를 고릅니다(교사는 클릭해 아래
+   목록의 기준 날짜를 바꿀 수 있고, 학생은 보기 전용입니다) */
+.study-attendance-calendar {
+  margin-bottom: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  background: #fff;
+}
+.study-cal-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 10px;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text);
+}
+.study-cal-head button {
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 8px;
+  width: 26px;
+  height: 26px;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--text-sub);
+}
+.study-cal-head button:hover {
+  background: var(--neutral);
+}
+.study-cal-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 4px;
+}
+.study-cal-weekdays span {
+  text-align: center;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--text-sub);
+}
+.study-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+.study-cal-cell {
+  aspect-ratio: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: none;
+  font-family: inherit;
+  cursor: default;
+  padding: 2px;
+}
+.study-cal-cell--blank {
+  visibility: hidden;
+}
+.study-cal-day {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.study-cal-cell.today .study-cal-day {
+  color: var(--primary-dark);
+}
+.study-cal-cell.has-record {
+  background: #e8f7ed;
+}
+.study-cal-cell.has-record .study-cal-day {
+  color: #26734a;
+  font-weight: 800;
+}
+.study-cal-count {
+  font-size: 9.5px;
+  font-weight: 800;
+  color: #26734a;
+}
+.study-cal-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #26734a;
+}
+.study-cal-cell.selected {
+  border-color: var(--primary);
+}
+button.study-cal-cell:not(:disabled) {
+  cursor: pointer;
+}
+button.study-cal-cell:not(:disabled):hover {
+  background: var(--neutral);
+}
+button.study-cal-cell.has-record:not(:disabled):hover {
+  background: #d8efdf;
 }
 
 .study-attendance-table-wrap {
@@ -11345,6 +11540,9 @@ pre code {
   .present-slide { padding: 28px 22px; border-radius: 18px; }
   .present-slide-title { font-size: 24px; margin-bottom: 18px; }
   .present-slide-content { font-size: 18px; line-height: 1.75; }
+  .present-activities { gap: 24px; }
+  .present-activity + .present-activity { padding-top: 20px; }
+  .present-activity-title { font-size: 20px; }
   .present-foot { padding: 10px 12px; }
   .broadcast-bar { padding: 10px 14px; font-size: 13px; }
   .broadcast-body { padding: 20px 14px; }

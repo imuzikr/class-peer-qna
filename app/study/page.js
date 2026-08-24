@@ -31,6 +31,8 @@ import {
   markStudyAttendance,
   subscribeMyStudyAttendance,
   subscribeClassStudyAttendance,
+  startClassAttendance,
+  stopClassAttendance,
   todayDateKey,
   subscribeStudyGroupAssignment,
   subscribeStudySeatLayout,
@@ -315,6 +317,11 @@ function StudyPageInner() {
   );
   const todayAttendanceKey = todayDateKey();
   const attendedToday = !admin && attendanceRecords.some((r) => r.date === todayAttendanceKey);
+  // 교사가 '출석 시작'을 오늘 눌렀을 때만 유효 — attendanceOpenDate가 오늘과
+  // 다르면(종료를 깜빡 잊고 다음 날로 넘어간 경우) 열려 있어도 오늘은 닫힌
+  // 것으로 봅니다. store.js의 startClassAttendance/보안 규칙과 같은 기준.
+  const attendanceOpenToday =
+    !!currentClass?.attendanceOpen && currentClass?.attendanceOpenDate === todayAttendanceKey;
 
   useEffect(() => {
     if (!classId || !user?.uid) {
@@ -509,13 +516,36 @@ function StudyPageInner() {
     }
   }
   async function handleAttendance() {
-    if (!classId || !user || attending || admin) return;
+    if (!classId || !user || attending || admin || attendedToday || !attendanceOpenToday) return;
     setAttending(true);
     try {
       await markStudyAttendance(classId, user, todayAttendanceKey);
-      setToast(attendedToday ? "오늘 출석은 이미 기록되어 있어요." : "오늘 출석을 기록했어요.");
+      setToast("오늘 출석을 기록했어요.");
     } finally {
       setAttending(false);
+    }
+  }
+
+  // [교사] 출석 시작/종료 — 학생의 '출석하기' 버튼을 켜고 끕니다.
+  const [attendanceBusy, setAttendanceBusy] = useState(false);
+  async function handleStartAttendance() {
+    if (!classId || attendanceBusy) return;
+    setAttendanceBusy(true);
+    try {
+      await startClassAttendance(classId);
+      setToast("출석을 시작했어요. 학생들이 출석할 수 있어요.");
+    } finally {
+      setAttendanceBusy(false);
+    }
+  }
+  async function handleStopAttendance() {
+    if (!classId || attendanceBusy) return;
+    setAttendanceBusy(true);
+    try {
+      await stopClassAttendance(classId);
+      setToast("출석을 종료했어요.");
+    } finally {
+      setAttendanceBusy(false);
     }
   }
 
@@ -576,8 +606,14 @@ function StudyPageInner() {
                         <button
                           className={`btn-ghost study-attend-btn${attendedToday ? " done" : ""}`}
                           onClick={handleAttendance}
-                          disabled={attending || attendedToday}
-                          title={attendedToday ? "오늘 출석이 이미 기록되었습니다" : "오늘 출석을 기록합니다"}
+                          disabled={attending || attendedToday || !attendanceOpenToday}
+                          title={
+                            attendedToday
+                              ? "오늘 출석이 이미 기록되었습니다"
+                              : attendanceOpenToday
+                              ? "오늘 출석을 기록합니다"
+                              : "선생님이 출석을 아직 시작하지 않았어요"
+                          }
                         >
                           {attendedToday ? "✅ 출석 완료" : "✅ 출석하기"}
                         </button>
@@ -635,7 +671,7 @@ function StudyPageInner() {
                         className="btn-ghost"
                         onClick={() => setAttendanceOpen(true)}
                       >
-                        📋 출석부 보기
+                        📋 출석 관리
                       </button>
                     )}
                     {admin && (
@@ -877,6 +913,10 @@ function StudyPageInner() {
           isTeacher={admin}
           records={attendanceRecords}
           roster={admin ? roster : []}
+          attendanceOpenToday={attendanceOpenToday}
+          attendanceBusy={attendanceBusy}
+          onStartAttendance={admin ? handleStartAttendance : null}
+          onStopAttendance={admin ? handleStopAttendance : null}
           onClose={() => setAttendanceOpen(false)}
         />
       )}

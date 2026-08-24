@@ -34,8 +34,17 @@ describe("출석부 규칙", () => {
   beforeEach(async () => {
     await env.clearFirestore();
     await seed(env, async (db) => {
-      await setDoc(doc(db, "classes", "cA"), { createdBy: "teacherA", archived: false, name: "A반" });
-      await setDoc(doc(db, "classes", "cB"), { createdBy: "teacherB", archived: false, name: "B반" });
+      // attendanceOpen/attendanceOpenDate — 교사가 그날 '출석 시작'을 누른
+      // 상태를 흉내냅니다. 아래 두 반 모두 DATE 기준으로 열어 둬, 이 파일의
+      // 기존 테스트들이 새로 추가된 게이트와 무관하게 그대로 통과하게 합니다.
+      await setDoc(doc(db, "classes", "cA"), {
+        createdBy: "teacherA", archived: false, name: "A반",
+        attendanceOpen: true, attendanceOpenDate: DATE,
+      });
+      await setDoc(doc(db, "classes", "cB"), {
+        createdBy: "teacherB", archived: false, name: "B반",
+        attendanceOpen: true, attendanceOpenDate: DATE,
+      });
       await setDoc(doc(db, "memberships", "stu1_cA"), { uid: "stu1", classId: "cA" });
       await setDoc(doc(db, "memberships", "stu2_cA"), { uid: "stu2", classId: "cA" });
     });
@@ -97,6 +106,36 @@ describe("출석부 규칙", () => {
     const db = asStudent(env, "stu1").firestore();
     await assertFails(setDoc(doc(db, ...recPath("cA", "stu1")), { ...payload("cA", "stu1"), name: "고침" }));
     await assertFails(deleteDoc(doc(db, ...recPath("cA", "stu1"))));
+  });
+
+  it("교사가 출석을 시작하지 않았으면(기본값) 기록할 수 없다", async () => {
+    await seed(env, (db) =>
+      setDoc(doc(db, "classes", "cA"), { createdBy: "teacherA", archived: false, name: "A반" })
+    );
+    const db = asStudent(env, "stu1").firestore();
+    await assertFails(setDoc(doc(db, ...recPath("cA", "stu1")), payload("cA", "stu1")));
+  });
+
+  it("교사가 출석을 종료(attendanceOpen: false)했으면 기록할 수 없다", async () => {
+    await seed(env, (db) =>
+      setDoc(doc(db, "classes", "cA"), {
+        createdBy: "teacherA", archived: false, name: "A반",
+        attendanceOpen: false, attendanceOpenDate: DATE,
+      })
+    );
+    const db = asStudent(env, "stu1").firestore();
+    await assertFails(setDoc(doc(db, ...recPath("cA", "stu1")), payload("cA", "stu1")));
+  });
+
+  it("출석 시작 날짜가 오늘과 다르면(교사가 종료를 깜빡 잊은 경우) 기록할 수 없다", async () => {
+    await seed(env, (db) =>
+      setDoc(doc(db, "classes", "cA"), {
+        createdBy: "teacherA", archived: false, name: "A반",
+        attendanceOpen: true, attendanceOpenDate: "2026-08-01",
+      })
+    );
+    const db = asStudent(env, "stu1").firestore();
+    await assertFails(setDoc(doc(db, ...recPath("cA", "stu1")), payload("cA", "stu1")));
   });
 
   it("담당 교사는 반 학생의 출석을 읽을 수 있고, 다른 반 교사는 읽을 수 없다", async () => {

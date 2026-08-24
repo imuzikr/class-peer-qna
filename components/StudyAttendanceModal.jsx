@@ -2,7 +2,9 @@
 
 import { useMemo, useState } from "react";
 import { backdropClose } from "@/lib/modal";
-import { toDate } from "@/lib/store";
+import { toDate, todayDateKey } from "@/lib/store";
+
+const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
 function formatDateLabel(dateKey) {
   if (!dateKey) return "";
@@ -21,12 +23,110 @@ function formatDateTime(value) {
   });
 }
 
+function toDateKey(year, month, day) {
+  return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+function shiftMonth(cursor, delta) {
+  const m = cursor.month + delta;
+  if (m < 0) return { year: cursor.year - 1, month: 11 };
+  if (m > 11) return { year: cursor.year + 1, month: 0 };
+  return { year: cursor.year, month: m };
+}
+
+// 출석 기록을 달력으로 보여 줍니다.
+//  · total이 있으면(교사) 그날 출석 인원을 "n/total"로, 없으면(학생) 출석한
+//    날에만 작은 점으로 표시합니다.
+//  · interactive면(교사) 날짜를 눌러 아래 목록의 기준 날짜를 바꿀 수 있습니다.
+function AttendanceCalendar({ records, total = 0, selectedDate = "", onSelectDate, interactive = false }) {
+  const recordsByDate = useMemo(() => {
+    const map = new Map();
+    records.forEach((r) => {
+      if (!r.date) return;
+      if (!map.has(r.date)) map.set(r.date, []);
+      map.get(r.date).push(r);
+    });
+    return map;
+  }, [records]);
+
+  const [cursor, setCursor] = useState(() => {
+    const anchor = selectedDate || [...recordsByDate.keys()].sort().at(-1) || todayDateKey();
+    const [y, m] = anchor.split("-").map(Number);
+    return { year: y, month: m - 1 };
+  });
+
+  const today = todayDateKey();
+  const first = new Date(cursor.year, cursor.month, 1);
+  const daysInMonth = new Date(cursor.year, cursor.month + 1, 0).getDate();
+  const startWeekday = first.getDay();
+  const cells = Array.from({ length: startWeekday }, () => null).concat(
+    Array.from({ length: daysInMonth }, (_, i) => i + 1)
+  );
+
+  return (
+    <div className="study-attendance-calendar">
+      <div className="study-cal-head">
+        <button type="button" onClick={() => setCursor((c) => shiftMonth(c, -1))} aria-label="이전 달">
+          ‹
+        </button>
+        <span>{cursor.year}년 {cursor.month + 1}월</span>
+        <button type="button" onClick={() => setCursor((c) => shiftMonth(c, 1))} aria-label="다음 달">
+          ›
+        </button>
+      </div>
+      <div className="study-cal-weekdays" aria-hidden="true">
+        {WEEKDAYS.map((w) => (
+          <span key={w}>{w}</span>
+        ))}
+      </div>
+      <div className="study-cal-grid">
+        {cells.map((d, i) => {
+          if (d === null) return <span key={`blank${i}`} className="study-cal-cell study-cal-cell--blank" />;
+          const key = toDateKey(cursor.year, cursor.month, d);
+          const dayRecords = recordsByDate.get(key) ?? [];
+          const has = dayRecords.length > 0;
+          const cls = [
+            "study-cal-cell",
+            has && "has-record",
+            key === selectedDate && "selected",
+            key === today && "today",
+          ].filter(Boolean).join(" ");
+          return (
+            <button
+              key={key}
+              type="button"
+              className={cls}
+              onClick={interactive ? () => onSelectDate?.(key) : undefined}
+              disabled={!interactive}
+              title={has ? (total > 0 ? `${dayRecords.length}/${total}명 출석` : "출석함") : undefined}
+            >
+              <span className="study-cal-day">{d}</span>
+              {has && (
+                total > 0 ? (
+                  <span className="study-cal-count">{dayRecords.length}/{total}</span>
+                ) : (
+                  <span className="study-cal-dot" aria-hidden="true" />
+                )
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function StudyAttendanceModal({
   isTeacher = false,
   records = [],
   roster = [],
+  attendanceOpenToday = false,
+  attendanceBusy = false,
+  onStartAttendance = null,
+  onStopAttendance = null,
   onClose,
 }) {
+  const [viewMode, setViewMode] = useState("list"); // "list" | "calendar"
   const dates = useMemo(
     () => [...new Set(records.map((r) => r.date).filter(Boolean))].sort((a, b) => b.localeCompare(a)),
     [records]
@@ -61,71 +161,125 @@ export default function StudyAttendanceModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-head">
-          <h3 id="study-attendance-title">{isTeacher ? "출석부 보기" : "내 출석부"}</h3>
+          <h3 id="study-attendance-title">{isTeacher ? "출석 관리" : "내 출석부"}</h3>
           <button className="btn-close" onClick={onClose} aria-label="닫기">
             ×
           </button>
         </div>
 
-        {records.length === 0 ? (
-          <p className="lesson-note-empty">
-            {isTeacher ? "아직 출석 기록이 없어요." : "아직 출석한 기록이 없어요."}
-          </p>
-        ) : isTeacher ? (
-          <>
-            <div className="study-attendance-toolbar">
-              <label>
-                날짜
-                <select value={activeDate} onChange={(e) => setSelectedDate(e.target.value)}>
-                  {dates.map((date) => (
-                    <option key={date} value={date}>
-                      {formatDateLabel(date)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <span>
-                출석 {studentRows.filter((s) => s.record).length} / {studentRows.length}
+        {isTeacher && (
+          <div className="study-attendance-toolbar">
+            <div className="study-attendance-controls">
+              <button
+                type="button"
+                className="btn-primary study-attendance-start"
+                onClick={onStartAttendance}
+                disabled={attendanceBusy || attendanceOpenToday}
+              >
+                ▶ 출석 시작
+              </button>
+              <button
+                type="button"
+                className="btn-ghost study-attendance-stop"
+                onClick={onStopAttendance}
+                disabled={attendanceBusy || !attendanceOpenToday}
+              >
+                ⏹ 출석 종료
+              </button>
+              <span className={`study-attendance-live${attendanceOpenToday ? " on" : ""}`}>
+                {attendanceOpenToday ? "출석 진행 중" : "출석 종료됨"}
               </span>
             </div>
-            <div className="study-attendance-table-wrap">
-              <table className="study-attendance-table">
-                <thead>
-                  <tr>
-                    <th>학생</th>
-                    <th>출석 상황</th>
-                    <th>출석 기록</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {studentRows.map((student) => (
-                    <tr key={student.uid}>
-                      <td>
-                        <span className="study-attendance-student">
-                          <span aria-hidden="true">{student.emoji || "🙂"}</span>
-                          <span>
-                            <strong>{student.name || "이름 미설정"}</strong>
-                            {student.studentId && <small>{student.studentId}</small>}
-                          </span>
-                        </span>
-                      </td>
-                      <td>
-                        <span className={`study-attendance-status${student.record ? " on" : ""}`}>
-                          {student.record ? "출석" : "기록 없음"}
-                        </span>
-                      </td>
-                      <td>
-                        {student.record
-                          ? formatDateTime(student.record.attendedAt || student.record.createdAt)
-                          : "-"}
-                      </td>
+            <span className="study-attendance-count">
+              출석 {studentRows.filter((s) => s.record).length} / {studentRows.length}
+            </span>
+          </div>
+        )}
+
+        <div className="study-attendance-view-tabs" role="tablist" aria-label="출석부 보기 방식">
+          <button type="button" className={viewMode === "list" ? "active" : ""} onClick={() => setViewMode("list")}>
+            목록형
+          </button>
+          <button
+            type="button"
+            className={viewMode === "calendar" ? "active" : ""}
+            onClick={() => setViewMode("calendar")}
+          >
+            캘린더형
+          </button>
+        </div>
+
+        {isTeacher ? (
+          <>
+            {viewMode === "list" ? (
+              dates.length > 0 && (
+                <label className="study-attendance-date-picker">
+                  날짜
+                  <select value={activeDate} onChange={(e) => setSelectedDate(e.target.value)}>
+                    {dates.map((date) => (
+                      <option key={date} value={date}>
+                        {formatDateLabel(date)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )
+            ) : (
+              <AttendanceCalendar
+                records={records}
+                total={studentRows.length}
+                selectedDate={activeDate}
+                onSelectDate={setSelectedDate}
+                interactive
+              />
+            )}
+
+            {roster.length === 0 ? (
+              <p className="lesson-note-empty">이 반에 입장한 학생이 없어요.</p>
+            ) : dates.length === 0 ? (
+              <p className="lesson-note-empty">아직 출석 기록이 없어요.</p>
+            ) : (
+              <div className="study-attendance-table-wrap">
+                <table className="study-attendance-table">
+                  <thead>
+                    <tr>
+                      <th>학생</th>
+                      <th>출석 상황</th>
+                      <th>출석 기록</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {studentRows.map((student) => (
+                      <tr key={student.uid}>
+                        <td>
+                          <span className="study-attendance-student">
+                            <span aria-hidden="true">{student.emoji || "🙂"}</span>
+                            <span>
+                              <strong>{student.name || "이름 미설정"}</strong>
+                              {student.studentId && <small>{student.studentId}</small>}
+                            </span>
+                          </span>
+                        </td>
+                        <td>
+                          <span className={`study-attendance-status${student.record ? " on" : ""}`}>
+                            {student.record ? "출석" : "기록 없음"}
+                          </span>
+                        </td>
+                        <td>
+                          {student.record
+                            ? formatDateTime(student.record.attendedAt || student.record.createdAt)
+                            : "-"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </>
-        ) : (
+        ) : records.length === 0 ? (
+          <p className="lesson-note-empty">아직 출석한 기록이 없어요.</p>
+        ) : viewMode === "list" ? (
           <ul className="study-attendance-list">
             {records.map((record) => (
               <li key={record.id}>
@@ -134,6 +288,8 @@ export default function StudyAttendanceModal({
               </li>
             ))}
           </ul>
+        ) : (
+          <AttendanceCalendar records={records} />
         )}
       </div>
     </div>

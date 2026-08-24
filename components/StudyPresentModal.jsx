@@ -19,6 +19,7 @@ import {
 } from "@/lib/store";
 import { getCurrentUser, isTeacher } from "@/lib/user";
 import { sanitizeHtml, stripImgTags } from "@/lib/html";
+import { parseActivitySections } from "@/lib/activities";
 import RewardFruits, { rewardStars } from "./RewardFruits";
 
 export default function StudyPresentModal({ board, cards = [], onClose }) {
@@ -95,6 +96,14 @@ export default function StudyPresentModal({ board, cards = [], onClose }) {
   const textHtml = stripImgTags(safeContent);
   const hasText = textHtml.replace(/<[^>]*>/g, "").trim().length > 0;
 
+  // 활동 틀로 만들어진 카드는 활동(질문)별 제목이 함께 저장돼 있습니다.
+  // 보드에 활동이 3~4개까지 있을 수 있으므로, 하나로 뭉쳐 보여주는 대신
+  // 활동마다 '제목 → 그 학생 내용' 순서로 나눠 보여줍니다.
+  // 원본(card.content)에서 먼저 나눠야 합니다 — sanitizeHtml은 class
+  // 속성과 h4 태그를 허용하지 않아, 정화된 textHtml에서는 활동 구역을
+  // 가르는 표식(.activity-section/.activity-title)이 사라져 있습니다.
+  const activitySections = parseActivitySections(card.content || "");
+
   function awardFruit() {
     if (count >= REWARD_MAX) return;
     // 실명을 함께 저장 — 공부방은 실명 참여 공간(학생 화면 이름표용).
@@ -128,17 +137,44 @@ export default function StudyPresentModal({ board, cards = [], onClose }) {
           <button className="btn-close" onClick={onClose} aria-label="닫기">×</button>
         </div>
 
-        {/* 본문 — 슬라이드 한 장처럼 보이도록 가운데 카드에 텍스트만 크게 */}
+        {/* 본문 — 슬라이드 한 장처럼 보이도록 가운데 카드에 텍스트만 크게.
+            활동 틀 카드는 활동마다 제목을 먼저 굵고 크게 보여준 뒤 그
+            아래에 학생 내용을 붙여, 활동이 여러 개(3~4개)라도 어느 질문에
+            대한 답인지 한눈에 구분되게 합니다. */}
         <div className="present-body" key={card.id}>
           <div className="present-slide">
-            {card.title && <h2 className="present-slide-title">{card.title}</h2>}
-            {hasText ? (
-              <div
-                className="present-slide-content study-card-body"
-                dangerouslySetInnerHTML={{ __html: textHtml }}
-              />
+            {activitySections.length > 0 ? (
+              <div className="present-activities">
+                {activitySections.map((sec, i) => {
+                  const secHtml = stripImgTags(sanitizeHtml(sec.content || ""));
+                  const secText = secHtml.replace(/<[^>]*>/g, "").trim();
+                  return (
+                    <section key={i} className="present-activity">
+                      <h3 className="present-activity-title">{sec.title || `활동 ${i + 1}`}</h3>
+                      {secText.length > 0 ? (
+                        <div
+                          className="present-slide-content study-card-body"
+                          dangerouslySetInnerHTML={{ __html: secHtml }}
+                        />
+                      ) : (
+                        <p className="present-empty">아직 작성한 내용이 없어요.</p>
+                      )}
+                    </section>
+                  );
+                })}
+              </div>
             ) : (
-              <p className="present-empty">아직 작성한 내용이 없어요.</p>
+              <>
+                {card.title && <h2 className="present-slide-title">{card.title}</h2>}
+                {hasText ? (
+                  <div
+                    className="present-slide-content study-card-body"
+                    dangerouslySetInnerHTML={{ __html: textHtml }}
+                  />
+                ) : (
+                  <p className="present-empty">아직 작성한 내용이 없어요.</p>
+                )}
+              </>
             )}
           </div>
         </div>
