@@ -44,6 +44,10 @@ export default function BookGroupBoard({
 
   useEffect(() => subscribeBookGroups(activity.id, setGroups), [activity.id]);
 
+  // 교사 화면 전용 — 학생 쪽 roster는 항상 빈 배열(권한상 구독 안 함)이라
+  // 이 값은 isTeacher 분기(아래) 안에서만 씁니다.
+  const rosterUids = useMemo(() => new Set(roster.map((s) => s.uid)), [roster]);
+
   const freeMode = activity.groupMode === "free";
   const maxPerGroup = activity.maxPerGroup ?? 6;
 
@@ -220,7 +224,10 @@ export default function BookGroupBoard({
           {/* 왼쪽 — 모둠 목록(세로) */}
           <aside className="book-group-rail">
             {groups.map((g) => {
-              const members = g.members ?? [];
+              // 모둠에 저장된 members는 배정 당시 스냅샷이라, 반에서 빠진
+              // (탈퇴 처리된) 학생도 그대로 남아 보였습니다 — 교사 화면의
+              // 반 명단(roster)에 있는 학생만 남깁니다.
+              const members = (g.members ?? []).filter((m) => rosterUids.has(m.uid));
               const on = g.id === picked?.id;
               return (
                 <button

@@ -16,13 +16,16 @@ function normalizedSeats(seats = []) {
   });
 }
 
-function defaultGroups(groups = []) {
+function defaultGroups(groups = [], rosterUids) {
   if (groups.length > 0) {
     return groups.map((g, i) => ({
       index: g.index ?? i + 1,
       name: g.name || `${g.index ?? i + 1}모둠`,
       color: g.color || GROUP_COLORS[i % GROUP_COLORS.length],
-      members: g.members ?? [],
+      // members는 배정 당시 이름을 그대로 복사해 둔 값이라, 그 뒤 반에서
+      // 빠진(탈퇴 처리된) 학생도 지워지지 않고 계속 남아 보였습니다 —
+      // 지금 반 명단(roster)에 있는 학생만 남깁니다.
+      members: (g.members ?? []).filter((m) => rosterUids.has(m.uid)),
     }));
   }
   return Array.from({ length: 4 }, (_, i) => ({
@@ -44,7 +47,9 @@ export default function SeatGroupSetupModal({
 }) {
   const [tab, setTab] = useState(initialTab);
   const [seats, setSeats] = useState(() => normalizedSeats(seatLayout?.seats ?? roster.map((s) => s.uid)));
-  const [groups, setGroups] = useState(() => defaultGroups(groupAssignment?.groups ?? []));
+  const [groups, setGroups] = useState(() =>
+    defaultGroups(groupAssignment?.groups ?? [], new Set(roster.map((s) => s.uid)))
+  );
   const [pickedUid, setPickedUid] = useState(null);
   const [drag, setDrag] = useState(null);
   const [saving, setSaving] = useState(false);

@@ -33,14 +33,17 @@ function shuffle(arr) {
   }
   return a;
 }
-function groupsFromCards(cards) {
+function groupsFromCards(cards, roster = []) {
+  const rosterUids = new Set(roster.map((s) => s.uid));
   return cards
     .filter((c) => c.groupId && !c.retired)
     .sort((a, b) => (a.groupIndex ?? 0) - (b.groupIndex ?? 0))
     .map((c) => ({
       index: c.groupIndex,
       name: c.title || c.groupName || `${c.groupIndex}모둠`,
-      members: c.members ?? [],
+      // 카드에 저장된 members는 배정 당시 스냅샷이라, 반에서 빠진(탈퇴
+      // 처리된) 학생도 그대로 남아 보였습니다 — 지금 명단에 없으면 뺍니다.
+      members: (c.members ?? []).filter((m) => rosterUids.has(m.uid)),
       leaderUid: c.leaderUid ?? null,
     }));
 }
@@ -52,13 +55,13 @@ function groupsFromBase(baseGroups = [], roster = []) {
     .map((g, i) => ({
       index: g.index ?? g.groupIndex ?? i + 1,
       name: g.name || g.groupName || `${i + 1}모둠`,
+      // 지금 반 명단(roster)에 없는 uid는 걸러냅니다 — 예전엔 탈퇴 처리된
+      // 학생도 배정 당시 저장해 둔 이름(stored)으로 계속 남아 보였습니다.
       members: (g.memberUids ?? g.members?.map((m) => m.uid) ?? [])
+        .filter((uid) => byUid.has(uid))
         .map((uid) => {
           const s = byUid.get(uid);
-          const stored = (g.members ?? []).find((m) => m.uid === uid) ?? {};
-          return s
-            ? { uid: s.uid, name: s.name, studentId: s.studentId ?? null, emoji: s.emoji }
-            : { uid, name: stored.name || "이름 미설정", studentId: stored.studentId ?? null, emoji: stored.emoji || "🙂" };
+          return { uid: s.uid, name: s.name, studentId: s.studentId ?? null, emoji: s.emoji };
         }),
       leaderUid: g.leaderUid ?? null,
     }));
@@ -97,7 +100,7 @@ export default function GroupComposer({
 
   // 편집 중인 모둠 미리보기: [{ index, name, members[], leaderUid }]
   const [groups, setGroups] = useState(() =>
-    hasExisting ? groupsFromCards(cards) : hasBaseGroups ? groupsFromBase(baseGroups, roster) : defaultGroups()
+    hasExisting ? groupsFromCards(cards, roster) : hasBaseGroups ? groupsFromBase(baseGroups, roster) : defaultGroups()
   );
 
   // 처음부터 최대(6) 모둠으로 시작 — 카드가 시작부터 제 크기로 배치됨

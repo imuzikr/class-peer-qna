@@ -652,6 +652,7 @@ button.footer-link:hover {
 /* 상단바 알림 벨 */
 .notif-wrap {
   position: relative;
+  flex-shrink: 0;
 }
 .notif-wrap .notif-btn {
   position: relative;
@@ -755,6 +756,7 @@ button.footer-link:hover {
 /* 상단바 질문하기 손들기 */
 .question-signal-wrap {
   position: relative;
+  flex-shrink: 0;
 }
 .question-signal-btn {
   position: relative;
