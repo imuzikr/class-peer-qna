@@ -1001,6 +1001,8 @@ function StudyPageInner() {
           className={currentClass?.name ?? ""}
           roster={admin ? roster : []}
           attendanceRecords={admin ? attendanceRecords : []}
+          // 참여 전광판 카드에서 바로 과일을 줍니다(보관된 반은 쓰기 불가)
+          onAward={admin && !currentClass?.archived ? awardReward : null}
           // '공부중' 전광판이 연결된 수업 보드를 찾는 데 씁니다
           boards={classBoards.filter((b) => b.type !== "notice")}
           onClose={closeLessonNav}

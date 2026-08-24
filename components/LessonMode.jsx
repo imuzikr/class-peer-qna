@@ -50,6 +50,7 @@ export default function LessonMode({
   boards = [],          // 수업 준비: 이 반의 공부방 보드 목록(연결 대상)
   roster = [],          // 수업 중: 이 반 학생 명단(참여 전광판 자리 배치용)
   attendanceRecords = [],
+  onAward,              // 수업 중: 참여 전광판 카드에서 과일 주기(교사만)
   onSaveNote,
   onSaveActivities,
   onSaveBoardId,        // 수업 준비: 연결한 보드 id를 수업 자료에 저장
@@ -377,6 +378,8 @@ export default function LessonMode({
           seatLayout={seatLayout}
           dailySeatLayout={dailySeatLayout}
           groupAssignment={groupAssignment}
+          classId={classId}
+          onAward={onAward}
           onSaveDailySeats={(seats, user) =>
             saveStudySeatLayout(classId, todayLayoutId, seats, user, { date: todayDateKey() })
           }
