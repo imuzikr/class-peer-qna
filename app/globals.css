@@ -7292,7 +7292,12 @@ pre code {
   border-style: solid;
 }
 .lesson-seat-btn {
-  flex-shrink: 0;
+  flex: 1;
+  min-width: 0;
+  justify-content: center;
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 700;
   white-space: nowrap;
 }
 .lesson-new {
@@ -7403,6 +7408,23 @@ pre code {
 .lesson-row-actions .btn-primary {
   padding: 6px 12px;
   font-size: 12px;
+  line-height: 1;
+  box-sizing: border-box;
+}
+/* btn-primary는 테두리가 없어 btn-ghost(1px solid)보다 2px 낮게 보였습니다 —
+   투명 테두리를 같은 두께로 둬 높이를 맞춥니다. */
+.lesson-row-actions .btn-primary {
+  border: 1px solid transparent;
+}
+.lesson-edit-btn {
+  background: var(--primary-light);
+  border-color: #EDCBB8;
+  color: var(--primary-dark);
+}
+.lesson-edit-btn:hover {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
 }
 
 /* ── 교사 화면 — 방송 중일 때 어디서든 바로 끌 수 있는 안전장치 ── */

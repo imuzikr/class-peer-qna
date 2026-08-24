@@ -192,7 +192,7 @@ export default function LessonManagerModal({
                       <span>슬라이드 {(l.slides ?? []).length}장</span>
                     </div>
                     <div className="lesson-row-actions">
-                      <button type="button" className="btn-ghost" onClick={() => onEdit?.(l)}>
+                      <button type="button" className="btn-ghost lesson-edit-btn" onClick={() => onEdit?.(l)}>
                         편집하기
                       </button>
                       <button type="button" className="btn-primary" onClick={() => onStart?.(l)}>
