@@ -7377,6 +7377,12 @@ pre code {
 .lesson-note-empty {
   color: var(--text-sub);
   font-size: 14px;
+  padding: 0 20px;
+  margin: 0;
+}
+.study-attendance-modal .lesson-note-empty {
+  padding: 0 20px;
+}
 }
 /* 이전 · 다음 · 시작/종료 — 셋 다 같은 모양·크기.
    width(고정)를 써서 글자 길이가 달라도 버튼 크기가 늘어나지 않게 합니다
@@ -8716,7 +8722,17 @@ pre code {
 }
 
 .modal.study-attendance-modal {
-  max-width: 720px;
+  max-width: 780px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+.modal.study-attendance-modal .modal-head {
+  flex-shrink: 0;
+}
+.modal.study-attendance-modal > :not(.modal-head) {
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .study-attendance-toolbar {
@@ -8725,18 +8741,84 @@ pre code {
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 14px;
+  padding: 0 20px;
+  color: var(--text-sub);
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.study-attendance-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.study-attendance-start,
+.study-attendance-stop {
+  padding: 7px 14px;
+  font-size: 13px;
+}
+.study-attendance-live {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #f1eee8;
+  color: var(--text-sub);
+  font-size: 12px;
+  font-weight: 800;
+}
+.study-attendance-live.on {
+  background: #ffe4cc;
+  color: var(--primary-dark);
+}
+
+.study-attendance-count {
+  display: inline-block;
+  color: var(--text-sub);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.study-attendance-view-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 14px;
+  padding: 0 20px;
+  flex-shrink: 0;
+}
+.study-attendance-view-tabs button {
+  flex: 1;
+  padding: 10px 14px;
+  border: none;
+  background: transparent;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  color: var(--text-sub);
+  font-size: 13px;
+  font-weight: 600;
+  transition: color 0.15s, border-color 0.15s;
+}
+.study-attendance-view-tabs button:hover:not(.active) {
+  color: var(--text);
+}
+.study-attendance-view-tabs button.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+.study-attendance-date-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding: 0 20px;
+  flex-shrink: 0;
   color: var(--text-sub);
   font-size: 13px;
   font-weight: 700;
 }
 
-.study-attendance-toolbar label {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.study-attendance-toolbar select {
+.study-attendance-date-picker select {
   width: auto;
   min-width: 150px;
   padding: 7px 10px;
@@ -8821,6 +8903,8 @@ pre code {
    목록의 기준 날짜를 바꿀 수 있고, 학생은 보기 전용입니다) */
 .study-attendance-calendar {
   margin-bottom: 14px;
+  margin-left: 20px;
+  margin-right: 20px;
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 12px;
@@ -8923,8 +9007,8 @@ button.study-cal-cell.has-record:not(:disabled):hover {
 }
 
 .study-attendance-table-wrap {
-  max-height: 430px;
-  overflow: auto;
+  margin-left: 20px;
+  margin-right: 20px;
   border: 1px solid var(--border);
   border-radius: 12px;
 }
@@ -8997,7 +9081,7 @@ button.study-cal-cell.has-record:not(:disabled):hover {
 .study-attendance-list {
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: 0 20px;
   display: flex;
   flex-direction: column;
   gap: 8px;
