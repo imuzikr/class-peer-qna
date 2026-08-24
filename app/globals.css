@@ -297,6 +297,18 @@ select:focus {
   font-size: 13px;
 }
 
+/* 카카오톡 등 인앱 브라우저 경고 — 구글 로그인 버튼 바로 위 */
+.auth-inapp-warning {
+  margin: 0;
+  color: #8a5a12;
+  background: rgba(217, 149, 20, 0.1);
+  border: 1px solid rgba(217, 149, 20, 0.3);
+  border-radius: var(--radius-btn);
+  padding: 8px 12px;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
 .auth-divider {
   display: flex;
   align-items: center;
@@ -533,7 +545,7 @@ button.footer-link:hover {
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 14px;
   padding: 0 20px;
   flex-shrink: 0;
 }
@@ -554,6 +566,18 @@ button.footer-link:hover {
   align-items: center;
   gap: 14px;
   min-width: 0;
+  order: 1;
+}
+/* .topbar의 세 형제 요소(topbar-left · topnav-menu · user-area) 순서.
+   넓은 화면에선 로고 옆에 이동 메뉴, 오른쪽 끝에 손들기·과일·프로필.
+   좁은 화면(768px 이하)에서는 이 순서를 뒤집어(user-area가 먼저)
+   topnav-menu만 둘째 줄로 내려갑니다 — 아래 모바일 블록 참고. */
+.topnav-menu {
+  order: 2;
+}
+.user-area {
+  order: 3;
+  margin-left: auto;
 }
 
 .topbar-divider {
@@ -652,6 +676,7 @@ button.footer-link:hover {
 /* 상단바 알림 벨 */
 .notif-wrap {
   position: relative;
+  flex-shrink: 0;
 }
 .notif-wrap .notif-btn {
   position: relative;
@@ -755,6 +780,7 @@ button.footer-link:hover {
 /* 상단바 질문하기 손들기 */
 .question-signal-wrap {
   position: relative;
+  flex-shrink: 0;
 }
 .question-signal-btn {
   position: relative;
@@ -1852,6 +1878,10 @@ button.footer-link:hover {
   flex: 1;
 }
 .class-mgr-create .btn-primary {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.class-mgr-seat-btn {
   flex-shrink: 0;
   white-space: nowrap;
 }
@@ -5973,6 +6003,35 @@ pre code {
   font-size: 18px;
   text-align: center;
 }
+
+/* 활동(질문)이 여러 개인 카드 — 활동마다 제목을 먼저 굵고 크게, 그
+   아래에 그 학생의 내용을 보여줍니다. 왼쪽 정렬해 여러 개가 쌓여도
+   제목·내용의 짝을 눈으로 따라가기 쉽게 합니다. */
+.present-activities {
+  display: flex;
+  flex-direction: column;
+  gap: 34px;
+  text-align: left;
+}
+.present-activity {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.present-activity + .present-activity {
+  padding-top: 30px;
+  border-top: 1px solid var(--border);
+}
+.present-activity-title {
+  font-family: var(--font-serif);
+  font-size: 27px;
+  font-weight: 800;
+  color: var(--dark);
+  line-height: 1.35;
+}
+.present-activities .present-empty {
+  text-align: left;
+}
 .present-foot {
   display: flex;
   align-items: center;
@@ -6573,21 +6632,62 @@ pre code {
 }
 
 /* ===================== 참여 전광판 ===================== */
-/* 자리 수(30)가 고정이라 더 늘어날 일이 없습니다. 스크롤이 생기면
-   스크롤바가 오른쪽 안쪽 여백과 둥근 모서리를 덮어 좌우가 어긋나 보이므로,
-   내용이 항상 들어가도록 크기를 잡고 가로세로 여백을 대칭으로 둡니다. */
+/* 전광판 + 누가기록 패널을 담는 껍데기 — position:relative일 뿐 flex가
+   아니므로, 절대 위치로 뺀 패널은 이 껍데기의 크기(=전광판 크기)에
+   영향을 주지 않습니다. 그래야 패널이 열려도 전광판이 제자리에 그대로
+   있고, 패널만 그 오른쪽에 겹쳐 나타납니다(전광판이 옆으로 밀리며
+   함께 다시 가운데 정렬되던 것과 달리, 이번엔 전광판이 고정된 채
+   패널만 슬라이딩합니다). */
+.attend-shell {
+  position: relative;
+  max-width: 100%;
+  max-height: 100%;
+}
 .attend-modal {
   width: min(680px, 94vw);
-  max-height: none;
-  overflow: visible;
+  /* 누가기록 패널과 최대 높이를 맞춰 나란히 있을 때 크기가 어긋나
+     보이지 않게 합니다. */
+  max-height: 85vh;
+  overflow-y: auto;
+  scrollbar-gutter: stable both-edges;
 }
-/* 혹시라도 넘칠 만큼 창이 낮으면 스크롤을 열되, 양쪽에 같은 자리를 비워
-   둬서 좌우 대칭이 깨지지 않게 합니다. */
-@media (max-height: 700px) {
-  .attend-modal {
-    max-height: 92vh;
-    overflow-y: auto;
-    scrollbar-gutter: stable both-edges;
+
+/* 누가기록 슬라이드 패널 — 전광판은 그대로 두고 그 오른쪽에 겹쳐서
+   미끄러져 나옵니다(전광판 크기와 무관하게 위치를 잡도록 절대 위치). */
+.attend-notes-panel {
+  position: absolute;
+  top: 0;
+  left: 100%;
+  margin-left: 14px;
+  width: min(340px, 94vw);
+  background: #fff;
+  border-radius: 20px;
+  padding: 20px;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-soft);
+  animation: attend-notes-in 0.22s ease-out;
+}
+@keyframes attend-notes-in {
+  from {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+.attend-notes-panel .modal-head h3 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 17px;
+}
+/* 움직임을 줄이도록 설정한 사용자에게는 슬라이드 없이 바로 보여 줍니다 */
+@media (prefers-reduced-motion: reduce) {
+  .attend-notes-panel {
+    animation: none;
   }
 }
 .attend-legend {
@@ -6655,13 +6755,24 @@ pre code {
   color: var(--text-sub);
 }
 
-/* 교실 자리 — 가로 6칸 × 세로 5줄 고정. 학생이 적으면 남는 자리는 빈 책상 */
+/* 교실 자리 — 가로 6칸 × 세로 5줄 고정. 학생이 적으면 남는 자리는 빈 책상.
+   align-items:start — 도구 줄이 붙어 키가 커진 칸에 맞춰 빈 자리(사각형
+   그대로)까지 늘어나 찌그러지지 않도록 각 칸을 위쪽에 붙입니다. */
 .attend-grid {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   gap: 10px;
+  align-items: start;
+}
+/* 카드(정사각형) + 도구 줄을 위아래로 묶는 칸 — 실제 그리드 아이템 */
+.attend-desk-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
 }
 .attend-desk {
+  width: 100%;
   aspect-ratio: 1 / 1;
   display: flex;
   flex-direction: column;
@@ -6721,6 +6832,49 @@ pre code {
   font-weight: 800;
   color: var(--text-sub);
 }
+
+/* 카드 아래 도구 줄 — 과일 주기(＋만) · 누가기록 열기 */
+.attend-desk-tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.attend-tool-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 6px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, transform 0.12s;
+}
+.attend-tool-btn:hover:not(:disabled) {
+  background: #fff;
+  border-color: var(--primary);
+  transform: translateY(-1px);
+}
+.attend-tool-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.attend-tool-count {
+  font-family: var(--font-mono);
+  font-weight: 800;
+  color: var(--text-sub);
+}
+/* 누가기록 패널이 열려 있는 학생 카드를 표시 */
+.attend-desk--noting {
+  box-shadow: 0 0 0 2px var(--primary) inset;
+}
+.attend-desk--noting .attend-tool-note {
+  background: var(--primary);
+  border-color: var(--primary);
+}
 .attend-group-view {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -6764,7 +6918,10 @@ pre code {
 }
 .attend-group-members .attend-desk {
   aspect-ratio: auto;
-  min-height: 72px;
+  min-height: 56px;
+}
+.attend-group-members .attend-desk-wrap {
+  align-items: stretch;
 }
 /* 모둠별 보기 안에서는 섹션 자체가 모둠을 나타내므로, 카드마다 모둠 색
    테두리를 겹쳐 칠하지 않고 참여 상태 색(배경)만으로 보여 줍니다.
@@ -6776,8 +6933,12 @@ pre code {
 
 /* 수업 준비 — 자리 배정 / 모둠 설정 */
 .seat-setup-modal {
-  width: min(980px, 94vw);
-  max-height: 92vh;
+  /* .modal 기본(max-width:640px)이 그대로 남아 있으면 아래 width가
+     묵살돼 자리 칸이 실제로는 훨씬 좁게 눌려 이름 글자가 세로로
+     쪼개져 보였습니다 — max-width도 함께 풀어 줍니다. */
+  width: min(1180px, 96vw);
+  max-width: none;
+  max-height: 94vh;
   overflow-y: auto;
 }
 .seat-setup-tabs {
@@ -6812,12 +6973,13 @@ pre code {
 }
 .seat-setup-grid {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
 }
 .seat-slot {
   aspect-ratio: 1 / 1;
-  padding: 6px;
+  min-width: 0;
+  padding: 8px 4px;
   border: 1px dashed #d8d5ce;
   border-radius: 9px;
   background: #faf9f5;
@@ -6847,12 +7009,23 @@ pre code {
   font-size: 13px;
   font-weight: 800;
   line-height: 1.15;
+  min-width: 0;
+  width: 100%;
+}
+/* 칸이 좁아도 글자가 세로로 쪼개지지 않고, 넘치면 말줄임표로 잘립니다 */
+.seat-slot-name-text {
+  display: block;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .seat-slot-name em,
 .seat-student-chip em {
   font-style: normal;
   font-family: var(--font-mono);
   font-size: 11px;
+  white-space: nowrap;
   opacity: 0.7;
 }
 .seat-slot-empty,
@@ -6956,10 +7129,28 @@ pre code {
 }
 
 @media (max-width: 768px) {
-  .attend-grid { gap: 6px; }
+  /* 좁은 화면에서는 6칸을 4칸으로 줄입니다 — 6칸이면 칸 하나가 55px밖에
+     안 돼 과일·누가기록 버튼 두 개가 나란히 들어갈 자리가 없습니다.
+     카드 자체는 도구 줄이 아래로 빠졌으니 다시 정사각형 그대로 둡니다. */
+  .attend-grid {
+    gap: 6px;
+    grid-template-columns: repeat(4, 1fr);
+  }
   .attend-desk { padding: 4px 2px; }
   .attend-desk-name { font-size: 11px; }
   .attend-desk-no { font-size: 10px; }
+  /* 자리 칸이 좁아지는 만큼 과일·누가기록 버튼도 함께 줄입니다 */
+  .attend-desk-tools { gap: 3px; }
+  .attend-tool-btn { padding: 1px 4px; font-size: 10px; }
+  /* 좁은 화면에서는 절대 위치로 겹치는 대신, 전광판 아래로 자연스럽게
+     줄바꿈되도록 되돌립니다(옆으로 밀어내면 화면 밖으로 나갑니다). */
+  .attend-notes-panel {
+    position: static;
+    margin-left: 0;
+    margin-top: 14px;
+    width: 94vw;
+    padding: 16px;
+  }
   /* ── 수업 화면 머리말 — 좁은 화면에선 두 줄로 나눠 담습니다 ──
      한 줄에 다 넣으면 폭이 모자라 제목이 0px로 찌그러지고, 쪽수와
      '수업 종료'가 화면 밖(375px 기준 562px 지점)으로 밀려나 아예 누를 수
@@ -7251,10 +7442,16 @@ pre code {
   margin: 0 0 12px;
 }
 /* 목록 맨 위 — 새 수업 만들기 진입 */
-.lesson-create-btn {
-  width: 100%;
-  padding: 12px;
+.lesson-list-toolbar {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
   margin-bottom: 14px;
+}
+.lesson-create-btn {
+  flex: 1;
+  min-width: 0;
+  padding: 12px;
   border: 1.5px dashed var(--primary);
   border-radius: var(--radius);
   background: var(--primary-light);
@@ -7268,6 +7465,15 @@ pre code {
   background: var(--primary);
   color: #fff;
   border-style: solid;
+}
+.lesson-seat-btn {
+  flex: 1;
+  min-width: 0;
+  justify-content: center;
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 .lesson-new {
   display: flex;
@@ -7377,6 +7583,23 @@ pre code {
 .lesson-row-actions .btn-primary {
   padding: 6px 12px;
   font-size: 12px;
+  line-height: 1;
+  box-sizing: border-box;
+}
+/* btn-primary는 테두리가 없어 btn-ghost(1px solid)보다 2px 낮게 보였습니다 —
+   투명 테두리를 같은 두께로 둬 높이를 맞춥니다. */
+.lesson-row-actions .btn-primary {
+  border: 1px solid transparent;
+}
+.lesson-edit-btn {
+  background: var(--primary-light);
+  border-color: #EDCBB8;
+  color: var(--primary-dark);
+}
+.lesson-edit-btn:hover {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
 }
 
 /* ── 교사 화면 — 방송 중일 때 어디서든 바로 끌 수 있는 안전장치 ── */
@@ -7730,6 +7953,55 @@ pre code {
   align-self: flex-end;
   padding: 8px 18px;
   font-size: 14px;
+}
+/* 날짜 칸 — '언제 있었던 일인지'를 교사가 직접 적습니다 */
+.notes-date-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--text-sub);
+}
+.notes-date {
+  flex: 1;
+  min-width: 0;
+  font-family: inherit;
+  font-size: 13px;
+}
+/* 편집 중인 기록 — 저장/취소를 나란히 */
+.notes-item--editing {
+  background: #fff;
+  border-color: var(--primary);
+}
+.notes-edit-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.notes-edit-actions .notes-add-btn {
+  align-self: auto;
+}
+.notes-cancel-btn {
+  padding: 8px 14px;
+  font-size: 14px;
+}
+.notes-item-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.notes-edit {
+  border: none;
+  background: none;
+  color: var(--text-sub);
+  font-size: 11.5px;
+  cursor: pointer;
+}
+.notes-edit:hover {
+  color: var(--primary-dark);
+  text-decoration: underline;
 }
 .notes-empty {
   color: var(--text-sub);
@@ -8475,6 +8747,181 @@ pre code {
   font-weight: 700;
 }
 
+/* 출석 시작/종료 — 교사가 그날 출석 받기를 직접 켜고 끕니다 */
+.study-attendance-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.study-attendance-start,
+.study-attendance-stop {
+  padding: 7px 14px;
+  font-size: 13px;
+}
+.study-attendance-live {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #f1eee8;
+  color: var(--text-sub);
+  font-size: 12px;
+  font-weight: 800;
+}
+.study-attendance-live.on {
+  background: #e8f7ed;
+  color: #26734a;
+}
+
+/* 목록형 / 캘린더형 전환 탭 */
+.study-attendance-view-tabs {
+  display: inline-flex;
+  gap: 4px;
+  padding: 3px;
+  margin-bottom: 12px;
+  background: var(--neutral);
+  border-radius: var(--radius-btn);
+}
+.study-attendance-view-tabs button {
+  padding: 7px 14px;
+  border: 0;
+  border-radius: calc(var(--radius-btn) - 2px);
+  background: transparent;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text-sub);
+  cursor: pointer;
+}
+.study-attendance-view-tabs button.active {
+  color: var(--text);
+  background: #fff;
+  box-shadow: var(--shadow-soft);
+}
+
+.study-attendance-date-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  color: var(--text-sub);
+  font-size: 13px;
+  font-weight: 700;
+}
+.study-attendance-date-picker select {
+  width: auto;
+  min-width: 150px;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--text);
+  font-weight: 700;
+}
+
+/* 출석 캘린더 — 한 달씩 넘겨 보며 날짜를 고릅니다(교사는 클릭해 아래
+   목록의 기준 날짜를 바꿀 수 있고, 학생은 보기 전용입니다) */
+.study-attendance-calendar {
+  margin-bottom: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  background: #fff;
+}
+.study-cal-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 10px;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text);
+}
+.study-cal-head button {
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 8px;
+  width: 26px;
+  height: 26px;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--text-sub);
+}
+.study-cal-head button:hover {
+  background: var(--neutral);
+}
+.study-cal-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 4px;
+}
+.study-cal-weekdays span {
+  text-align: center;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--text-sub);
+}
+.study-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+.study-cal-cell {
+  aspect-ratio: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: none;
+  font-family: inherit;
+  cursor: default;
+  padding: 2px;
+}
+.study-cal-cell--blank {
+  visibility: hidden;
+}
+.study-cal-day {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.study-cal-cell.today .study-cal-day {
+  color: var(--primary-dark);
+}
+.study-cal-cell.has-record {
+  background: #e8f7ed;
+}
+.study-cal-cell.has-record .study-cal-day {
+  color: #26734a;
+  font-weight: 800;
+}
+.study-cal-count {
+  font-size: 9.5px;
+  font-weight: 800;
+  color: #26734a;
+}
+.study-cal-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #26734a;
+}
+.study-cal-cell.selected {
+  border-color: var(--primary);
+}
+button.study-cal-cell:not(:disabled) {
+  cursor: pointer;
+}
+button.study-cal-cell:not(:disabled):hover {
+  background: var(--neutral);
+}
+button.study-cal-cell.has-record:not(:disabled):hover {
+  background: #d8efdf;
+}
+
 .study-attendance-table-wrap {
   max-height: 430px;
   overflow: auto;
@@ -8688,15 +9135,19 @@ pre code {
 
 /* 고정(핀) 토글 버튼 — 첫 보드 헤더에만 표시 */
 .study-pin-btn {
+  width: 26px;
+  height: 26px;
   border: none;
   background: transparent;
   font-size: 15px;
   line-height: 1;
-  padding: 4px;
+  padding: 0;
   border-radius: 8px;
   opacity: 0.35;
   flex-shrink: 0;
   filter: grayscale(1);
+  display: grid;
+  place-items: center;
 }
 .study-pin-btn:hover {
   opacity: 0.8;
@@ -8802,10 +9253,6 @@ pre code {
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
-}
-
-.is-notice .study-column-desc {
-  background: #fffbf0;
 }
 
 .study-column-tags {
@@ -9494,12 +9941,13 @@ pre code {
   font-size: 13px;
   font-weight: 600;
   padding: 7px 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-btn);
   border: 1px solid var(--border);
   background: #fff;
   color: var(--text-sub);
   cursor: pointer;
   text-align: center;
+  white-space: nowrap;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 
@@ -9611,14 +10059,33 @@ pre code {
   font-weight: 600;
 }
 
-/* + 토글 버튼 — 열릴 때 45° 회전해서 × 형태 */
-.study-panel-toggle {
+/* 공부중 전광판 열기 — 보드 설정(톱니바퀴) 왼쪽의 체크 아이콘 */
+.study-check-btn {
+  width: 26px;
+  height: 26px;
   background: none;
   border: none;
   cursor: pointer;
-  padding: 2px;
-  display: flex;
-  align-items: center;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+.study-check-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+/* + 토글 버튼 — 열릴 때 45° 회전해서 × 형태 */
+.study-panel-toggle {
+  width: 26px;
+  height: 26px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: grid;
+  place-items: center;
   border-radius: 6px;
   transition: transform 0.25s ease, background 0.15s;
 }
@@ -10849,23 +11316,55 @@ pre code {
 @media (max-width: 768px) {
 
   /* ──────────────────────────────────────────────────────────
-     TopNav: 로고 + 현재 페이지 드롭다운 + 아바타 만 남기기
+     TopNav: 두 줄 레이아웃
+       1줄 — 로고 …… 손들기·과일·프로필·로그아웃(항상 눈에 띄어야 함)
+       2줄 — 이동 메뉴(질문방·공부방·책방·파이썬 실행기·알림·리포트)
+     아이콘만 남기고 다닥다닥 붙여 두던 예전 방식은 아이콘끼리
+     겹쳐 보이는 문제가 있어, 이름을 보여주는 균일한 크기의 칸으로
+     둘째 줄에 펼칩니다(줄에 다 못 들어가면 가로 스크롤).
      ────────────────────────────────────────────────────────── */
   .topbar {
-    padding: 0 14px;
-    height: 52px;
-    gap: 0;
+    flex-wrap: wrap;
+    height: auto;
+    min-height: 52px;
+    padding: 8px 14px;
+    gap: 8px 0;
   }
   .topbar-left { gap: 8px; }
   .topbar-divider { display: none; }
 
-  /* 네비게이션 — 모바일에선 배움나눔 타이틀만 두고 모두 아이콘만 */
-  .topnav-menu .btn-ghost .nav-label { display: none; }
-  .topnav-menu .btn-ghost:not(.topnav-drop-btn) { padding: 5px 8px; }
+  .user-area { order: 2; }
+  .topnav-menu {
+    order: 3;
+    flex-basis: 100%;
+    width: 100%;
+    margin-left: 0;
+    overflow-x: auto;
+    justify-content: flex-start;
+    gap: 6px;
+    padding-bottom: 2px;
+    -webkit-overflow-scrolling: touch;
+  }
 
-  /* 학습 공간 드롭다운도 아이콘만 */
-  .topnav-drop-btn { padding: 5px 9px; font-size: 13px; }
-  .topnav-drop-chevron { display: none; }
+  /* 이동 메뉴 칸 — 아이콘 위에 이름을 작게 두 줄까지 보여주는 균일한
+     정사각형에 가까운 칸. flex:0 0으로 고정해 이름 길이와 무관하게
+     모두 같은 크기입니다. */
+  .topnav-menu .btn-ghost {
+    flex: 0 0 60px;
+    width: 60px;
+    height: 52px;
+    padding: 6px 2px;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+  }
+  .topnav-menu .btn-ghost .nav-label {
+    display: block;
+    font-size: 10px;
+    line-height: 1.15;
+    white-space: normal;
+    text-align: center;
+  }
 
   /* 알림 뱃지 — 버튼 패딩은 줄어드는데 뱃지는 그대로라 종 아이콘을
      너무 많이 가렸습니다. 숫자를 작은 점처럼 줄여 아이콘이 보이게 합니다. */
@@ -10878,7 +11377,7 @@ pre code {
     right: 1px;
   }
 
-  /* 로그아웃 아이콘만 */
+  /* 로그아웃 아이콘만 (1줄 — 프로필과 함께, 공간이 좁아 이름은 생략) */
   .btn-logout .nav-label { display: none; }
 
   /* 역할 전환 스위치 숨김 (개발용) */
@@ -11061,6 +11560,9 @@ pre code {
   .present-slide { padding: 28px 22px; border-radius: 18px; }
   .present-slide-title { font-size: 24px; margin-bottom: 18px; }
   .present-slide-content { font-size: 18px; line-height: 1.75; }
+  .present-activities { gap: 24px; }
+  .present-activity + .present-activity { padding-top: 20px; }
+  .present-activity-title { font-size: 20px; }
   .present-foot { padding: 10px 12px; }
   .broadcast-bar { padding: 10px 14px; font-size: 13px; }
   .broadcast-body { padding: 20px 14px; }
@@ -11187,6 +11689,7 @@ pre code {
     height: 34px;
   }
   .study-panel-toggle,
+  .study-check-btn,
   .study-pin-btn {
     width: 34px;
     height: 34px;
@@ -11361,11 +11864,18 @@ pre code {
 }
 .books-head {
   display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+/* 제목 아래 줄 — 활동목록·도서명·반이름 배지와 우측 버튼(전체 보기 등)이
+   한 행에 나열됩니다. 제목(h1)은 이 행 밖에 따로 두어 항상 먼저 줄바꿈됩니다. */
+.books-head-row {
+  display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
-  margin-bottom: 6px;
 }
 .books-head-main {
   display: flex;
@@ -11394,12 +11904,6 @@ pre code {
   color: var(--text-sub);
   margin-bottom: 20px;
 }
-.book-head-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
 /* ── 활동 목록 ── */
 .book-kind-grid {
   display: grid;
