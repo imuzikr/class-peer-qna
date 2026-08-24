@@ -32,7 +32,7 @@ import StudyCardModal from "./StudyCardModal";
 import StudyPresentModal from "./StudyPresentModal";
 import StudyProgressBoard from "./StudyProgressBoard";
 import GroupComposer from "./GroupComposer";
-import { IconTrash, IconSettings, IconLock, IconDuplicate, IconPen, IconPeople } from "./StatusIcons";
+import { IconTrash, IconSettings, IconLock, IconDuplicate, IconPen, IconPeople, IconStudent } from "./StatusIcons";
 
 export default function StudyBoardColumn({
   board,
@@ -66,6 +66,10 @@ export default function StudyBoardColumn({
   const [sortKey, setSortKey] = useState("time");
   const [studentIdDir, setStudentIdDir] = useState("asc");
   const [timeDir, setTimeDir] = useState("asc");
+  // 모둠 보드 전용 정렬 — 기본은 모둠 순번(생성 순서)순, 버튼을 누르면 모둠명순·제출 시간순으로 전환
+  const [groupSortKey, setGroupSortKey] = useState("groupIndex");
+  const [groupNameDir, setGroupNameDir] = useState("asc");
+  const [groupTimeDir, setGroupTimeDir] = useState("asc");
   const [activitiesOpen, setActivitiesOpen] = useState(false);
   const [activitiesDraft, setActivitiesDraft] = useState([]);
   const [savingActivities, setSavingActivities] = useState(false);
@@ -106,10 +110,22 @@ export default function StudyBoardColumn({
 
   let visibleCards = cards;
   if (isGroup) {
-    // 모둠 카드만(보관된 카드는 교사에게만), 순번 순 정렬
-    visibleCards = cards
-      .filter((c) => c.groupId && (isTeacher || !c.retired))
-      .sort((a, b) => (a.groupIndex ?? 0) - (b.groupIndex ?? 0));
+    // 모둠 카드만(보관된 카드는 교사에게만) — 기본은 모둠 순번(생성 순서)순,
+    // '모둠'·'제출' 버튼을 누르면 모둠명순·제출 시간순으로 바꿔 볼 수 있음
+    const groupCards = cards.filter((c) => c.groupId && (isTeacher || !c.retired));
+    visibleCards = [...groupCards].sort((a, b) => {
+      if (groupSortKey === "groupName") {
+        const aName = a.title || a.groupName || `${a.groupIndex ?? 0}모둠`;
+        const bName = b.title || b.groupName || `${b.groupIndex ?? 0}모둠`;
+        const cmp = aName.localeCompare(bName, "ko", { numeric: true });
+        return groupNameDir === "asc" ? cmp : -cmp;
+      }
+      if (groupSortKey === "time") {
+        const cmp = toDate(a.createdAt) - toDate(b.createdAt);
+        return groupTimeDir === "asc" ? cmp : -cmp;
+      }
+      return (a.groupIndex ?? 0) - (b.groupIndex ?? 0);
+    });
   } else if (!isTeacher && !isNotice && board.viewMode === "private") {
     visibleCards = myCard ? [myCard] : [];
   }
@@ -310,7 +326,8 @@ export default function StudyBoardColumn({
     }
   }
 
-  const modalOpen = selectedCard !== null || creating || presenting || progressOpen;
+  const cardModalOpen = selectedCard !== null || creating;
+  const modalOpen = cardModalOpen || presenting || progressOpen;
 
   useEffect(() => {
     onModalChange?.(modalOpen);
@@ -561,22 +578,43 @@ export default function StudyBoardColumn({
             {!isNotice && (
               <div className="study-sort">
                 {isGroup ? (
-                  /* 모둠 보드: 정렬 대신 모둠 구성 버튼 (카드는 모둠 순번 고정) */
+                  /* 모둠 보드: 개별 보드와 동일하게 4개 버튼(정렬 2개·확인·모둠 설정) */
                   <>
                     <button
-                      className="study-sort-btn study-sort-btn--group"
-                      onClick={() => setComposing(true)}
-                      title="활동 모둠 — 기본 모둠을 쓰거나 이 보드에서만 다르게 구성"
+                      className={`study-sort-btn study-sort-btn--group${groupSortKey === "groupName" ? " active" : ""}`}
+                      onClick={() => {
+                        setGroupSortKey("groupName");
+                        setGroupNameDir((d) => (d === "asc" ? "desc" : "asc"));
+                      }}
+                      title="모둠명 정렬"
                     >
-                      활동 모둠
+                      모둠 {groupNameDir === "asc" ? "↑" : "↓"}
+                    </button>
+                    <button
+                      className={`study-sort-btn study-sort-btn--time${groupSortKey === "time" ? " active" : ""}`}
+                      onClick={() => {
+                        setGroupSortKey("time");
+                        setGroupTimeDir((d) => (d === "asc" ? "desc" : "asc"));
+                      }}
+                      title="제출 시간 정렬"
+                    >
+                      제출 {groupTimeDir === "asc" ? "↑" : "↓"}
+                    </button>
+                    <button
+                      type="button"
+                      className="study-sort-btn study-sort-btn--check"
+                      onClick={() => setProgressOpen(true)}
+                      title="공부중 전광판 — 모둠별 제출 상태 확인"
+                    >
+                      확인
                     </button>
                     <button
                       type="button"
                       className="study-sort-btn"
-                      onClick={toggleActivityType}
-                      title="이 보드를 개별 활동으로 바꿉니다(모둠 카드가 아직 없을 때만 가능)"
+                      onClick={() => setComposing(true)}
+                      title="모둠 설정 — 기본 모둠을 쓰거나 이 보드에서만 다르게 구성"
                     >
-                      개별 활동
+                      모둠 설정
                     </button>
                   </>
                 ) : (
@@ -615,7 +653,7 @@ export default function StudyBoardColumn({
                       onClick={toggleActivityType}
                       title="이 보드를 모둠 활동으로 바꿉니다(학생이 작성한 개인 카드가 없을 때만 가능)"
                     >
-                      모둠 활동
+                      모둠
                     </button>
                   </>
                 )}
@@ -701,6 +739,16 @@ export default function StudyBoardColumn({
                 </div>
               )}
 
+              {isGroup && (
+                <button
+                  type="button"
+                  className="study-chip"
+                  onClick={toggleActivityType}
+                  title="이 보드를 개별 활동으로 바꿉니다(모둠 카드가 아직 없을 때만 가능)"
+                >
+                  <IconStudent size={15} /> 개별 활동으로 전환
+                </button>
+              )}
               <button
                 className="study-chip"
                 onClick={() => setDuplicating(true)}
@@ -823,7 +871,7 @@ export default function StudyBoardColumn({
         </div>
       )}
 
-      {modalOpen && (
+      {cardModalOpen && (
         <StudyCardModal
           board={board}
           card={creating ? null : selectedCard}

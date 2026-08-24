@@ -54,10 +54,14 @@ export default function StudyProgressBoard({
   onClose,
 }) {
   const activities = board?.activities ?? [];
+  const isGroup = board?.activityType === "group";
 
   // 학생별 진행 상황 (카드가 아직 없으면 전부 미작성)
+  // 모둠 보드는 카드 한 장을 모둠원 여럿이 공유하므로 memberUids로 찾음
   const rows = roster.map((s) => {
-    const card = cards.find((c) => c.authorId === s.uid);
+    const card = cards.find((c) =>
+      isGroup ? c.memberUids?.includes(s.uid) : c.authorId === s.uid
+    );
     return { ...s, done: cardProgress(card, activities.length), hasCard: !!card };
   });
 
