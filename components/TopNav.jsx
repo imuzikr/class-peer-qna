@@ -186,6 +186,7 @@ export default function TopNav({ active, onPython, pyActive = false }) {
             🍎 {fruitTotal}
           </span>
         )}
+        {user && isFirebaseConfigured && <NotificationBell uid={user.uid} />}
         <UserProfile
           pendingCount={isStrictAdmin ? pendingTeacherCount : 0}
           onOpenRoleMgr={isStrictAdmin ? () => setRoleMgrOpen(true) : null}
@@ -228,7 +229,6 @@ export default function TopNav({ active, onPython, pyActive = false }) {
         >
           <IconPythonRunner size={20} /> <span className="nav-label">파이썬 실행기</span>
         </button>
-        {user && isFirebaseConfigured && <NotificationBell uid={user.uid} />}
         {admin ? (
           <button
             className={`btn-ghost ${active === "admin" ? "nav-active" : ""}`}

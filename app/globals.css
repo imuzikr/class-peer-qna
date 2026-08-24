@@ -674,11 +674,6 @@ button.footer-link:hover {
   background: none;
   border: none;
 }
-/* 이름표는 좁은 화면의 이동 메뉴 칸에서만 보여 줍니다(아래 모바일
-   블록에서 다시 보이게 함) — 넓은 화면에선 지금처럼 아이콘만. */
-.notif-wrap .nav-label {
-  display: none;
-}
 .notif-wrap .notif-btn:hover {
   background: var(--neutral);
 }
@@ -9563,6 +9558,7 @@ pre code {
   color: var(--text-sub);
   cursor: pointer;
   text-align: center;
+  white-space: nowrap;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 
@@ -10945,12 +10941,7 @@ pre code {
   /* 이동 메뉴 칸 — 아이콘 위에 이름을 작게 두 줄까지 보여주는 균일한
      정사각형에 가까운 칸. flex:0 0으로 고정해 이름 길이와 무관하게
      모두 같은 크기입니다. */
-  .topnav-menu .notif-wrap {
-    flex: 0 0 60px;
-    width: 60px;
-  }
-  .topnav-menu .btn-ghost,
-  .topnav-menu .notif-wrap .notif-btn {
+  .topnav-menu .btn-ghost {
     flex: 0 0 60px;
     width: 60px;
     height: 52px;
@@ -10959,8 +10950,7 @@ pre code {
     justify-content: center;
     gap: 2px;
   }
-  .topnav-menu .btn-ghost .nav-label,
-  .topnav-menu .notif-wrap .nav-label {
+  .topnav-menu .btn-ghost .nav-label {
     display: block;
     font-size: 10px;
     line-height: 1.15;

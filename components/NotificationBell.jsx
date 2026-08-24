@@ -56,7 +56,6 @@ export default function NotificationBell({ uid }) {
       >
         🔔
         {unreadCount > 0 && <span className="notif-badge">{unreadCount}</span>}
-        <span className="nav-label">알림</span>
       </button>
 
       {open && (
