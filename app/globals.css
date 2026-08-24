@@ -6620,26 +6620,6 @@ pre code {
   background-repeat: no-repeat;
 }
 
-/* 제출 여부 열 — 활동별 칸과 별개로 '카드를 냈는지'를 먼저 보여 줍니다 */
-.progress-submit-col {
-  min-width: 74px;
-}
-.progress-submit {
-  display: inline-flex;
-  align-items: center;
-  height: 24px;
-  padding: 0 10px;
-  border-radius: 999px;
-  background: #f1eee8;
-  color: var(--text-sub);
-  font-size: 12px;
-  font-weight: 800;
-}
-.progress-submit.on {
-  background: #e8f7ed;
-  color: #26734a;
-}
-
 .progress-legend {
   display: flex;
   flex-wrap: wrap;

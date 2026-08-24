@@ -39,11 +39,18 @@ export const DONE_MIN_CHARS = 10;
 // board.activities의 현재 순서와 어긋납니다 — 그대로 위치로만 대조하면
 // 학생이 분명히 쓴 활동도 다른 활동 칸의 내용으로 잘못 읽혀 '작성 전'으로
 // 보일 수 있습니다. 섹션에는 저장 당시 활동 이름(title)이 함께 있으므로
-// 이름으로 먼저 찾고, 이름이 없는 옛 카드만 위치로 대체합니다.
+// 이름으로 먼저 찾고, **제목 자체가 없는 옛 카드(제목 태그가 생기기 전에
+// 저장된 카드)만** 위치로 대체합니다. 제목이 있는데 못 찾은 경우(활동 이름이
+// 바뀌었거나 그 활동이 삭제됨)는 다른 활동의 위치로 잘못 대조되지 않도록
+// 위치 대체를 하지 않습니다 — 그 섹션 내용은 hasOrphanedContent()가 따로
+// 잡아냅니다.
 export function cardProgress(card, activities) {
   const secs = card ? parseActivitySections(card.content) : [];
+  const hasAnyTitledSection = secs.some((s) => s.title);
   return activities.map((name, i) => {
-    const sec = secs.find((s) => s.title === name) ?? secs[i];
+    const sec =
+      secs.find((s) => s.title === name) ??
+      (hasAnyTitledSection ? undefined : secs[i]);
     return stripHtml(sec?.content ?? "").length >= DONE_MIN_CHARS;
   });
 }
@@ -57,6 +64,24 @@ export function cardProgress(card, activities) {
 // 활동별로 나눌 수 없는 상태'를 따로 구분합니다.
 export function hasActivityStructure(card) {
   return card ? parseActivitySections(card.content).length > 0 : false;
+}
+
+// 카드 안에 '현재 활동 목록 어디에도 매칭되지 않는' 섹션이 있고, 거기에
+// 학생이 실제로 쓴 내용(10자 이상)이 남아 있는지.
+// -------------------------------------------------------------
+// 교사가 활동 이름을 바꾸거나 활동 수를 줄이면, 학생이 예전 활동 이름으로
+// 써 둔 섹션은 cardProgress()에서 더는 어느 칸에도 대응되지 않습니다(위의
+// 이유로 위치 대체도 하지 않음). 그 내용을 그냥 '작성 전'으로 보여 주면
+// 학생이 아무것도 안 쓴 것처럼 보여 오해를 사므로, 그런 섹션이 있으면
+// '제출함(활동 구분 없음)'으로 알려 줍니다.
+export function hasOrphanedContent(card, activities) {
+  if (!card) return false;
+  const secs = parseActivitySections(card.content);
+  const known = new Set(activities);
+  return secs.some((s) => {
+    if (s.title && known.has(s.title)) return false; // 현재 활동과 정상 매칭됨
+    return stripHtml(s.content ?? "").length >= DONE_MIN_CHARS;
+  });
 }
 
 // 학생이 이 보드에 무언가를 제출했는지 — 글자·그림·첨부 중 하나라도 있으면 제출.
@@ -108,9 +133,11 @@ export default function StudyProgressBoard({
     return {
       ...s,
       done: cardProgress(card, activities),
-      submitted,
-      // 제출은 했지만 활동 틀이 없어 활동별로 나눌 수 없는 카드
-      freeform: submitted && !hasActivityStructure(card),
+      // 제출은 했지만 (1) 활동 틀이 없거나 (2) 활동 이름이 바뀌어/삭제돼
+      // 실제로 쓴 내용이 지금 활동 칸 어디에도 대응되지 않는 카드
+      freeform:
+        submitted &&
+        (!hasActivityStructure(card) || hasOrphanedContent(card, activities)),
     };
   });
 
@@ -118,7 +145,6 @@ export default function StudyProgressBoard({
   const doneCounts = activities.map(
     (_, i) => rows.filter((r) => r.done[i]).length
   );
-  const submittedCount = rows.filter((r) => r.submitted).length;
 
   return (
     <div className="modal-backdrop" {...backdropClose(onClose)}>
@@ -172,14 +198,6 @@ export default function StudyProgressBoard({
               <thead>
                 <tr>
                   <th className="progress-name-col">학생</th>
-                  {/* 제출 여부 — 활동별 칸과 별개로, 카드를 냈는지 자체를
-                      먼저 보여 줍니다(활동 틀이 아닌 카드도 제출로 셈). */}
-                  <th className="progress-submit-col">
-                    <span className="progress-act-no">제출</span>
-                    <span className="progress-act-count">
-                      {submittedCount}/{roster.length}
-                    </span>
-                  </th>
                   {activities.map((act, i) => {
                     const locked = isActivityLocked(board, i);
                     return (
@@ -208,14 +226,6 @@ export default function StudyProgressBoard({
                       )}
                       <span className="progress-student-name">{r.name}</span>
                     </th>
-                    <td className="progress-submit-col">
-                      <span
-                        className={`progress-submit${r.submitted ? " on" : ""}`}
-                        title={`${r.name} — ${r.submitted ? "제출함" : "미제출"}`}
-                      >
-                        {r.submitted ? "제출" : "미제출"}
-                      </span>
-                    </td>
                     {activities.map((act, i) => {
                       const st = cellState(
                         r.done[i],
