@@ -241,6 +241,20 @@ export default function StudyBoardColumn({
     await updateStudyBoard(board.id, { activityType: "individual" });
   }
 
+  // 개별 활동 보드를 모둠 활동으로 바꿉니다 — 학생이 이미 작성한 개인
+  // 카드가 있으면(교사가 만든 예시 카드는 제외) 모둠 카드 구조와 맞지
+  // 않으므로 막습니다.
+  async function convertToGroup() {
+    const studentCards = cards.filter((c) => !c.authorId?.startsWith("teacher_"));
+    if (studentCards.length > 0) {
+      alert(
+        "이미 학생이 작성한 개인 카드가 있어서 모둠 활동으로 바꿀 수 없어요.\n학생 카드를 모두 정리한 후 다시 시도해 주세요."
+      );
+      return;
+    }
+    await updateStudyBoard(board.id, { activityType: "group" });
+  }
+
   function openActivitiesModal() {
     setActivitiesDraft(
       board.activities?.length ? [...board.activities] : [""]
@@ -597,6 +611,14 @@ export default function StudyBoardColumn({
                       title="공부중 전광판 — 학생별 제출 상태 확인"
                     >
                       확인
+                    </button>
+                    <button
+                      type="button"
+                      className="study-sort-btn"
+                      onClick={convertToGroup}
+                      title="이 보드를 모둠 활동으로 바꿉니다(학생이 작성한 개인 카드가 없을 때만 가능)"
+                    >
+                      👥 모둠 활동
                     </button>
                   </>
                 )}
