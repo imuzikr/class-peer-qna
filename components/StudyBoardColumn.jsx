@@ -106,35 +106,30 @@ export default function StudyBoardColumn({
 
   let visibleCards = cards;
   if (isGroup) {
-    // 모둠 카드만(보관된 카드는 교사에게만)
-    visibleCards = cards.filter((c) => c.groupId && (isTeacher || !c.retired));
+    // 모둠 카드만(보관된 카드는 교사에게만), 순번 순 정렬 — 모둠 보드는
+    // 별도 정렬 버튼 없이 항상 모둠 순번(생성 순서) 고정
+    visibleCards = cards
+      .filter((c) => c.groupId && (isTeacher || !c.retired))
+      .sort((a, b) => (a.groupIndex ?? 0) - (b.groupIndex ?? 0));
   } else if (!isTeacher && !isNotice && board.viewMode === "private") {
     visibleCards = myCard ? [myCard] : [];
   }
 
   const currentSortDir = sortKey === "studentId" ? studentIdDir : timeDir;
 
-  // 학번·제출 정렬 버튼은 개별·모둠 보드 공통(교사만) — 모둠 보드는 모둠
-  // 대표(leaderUid)의 학번으로 정렬. 학생 화면은 정렬 UI가 없으니 모둠
-  // 보드는 항상 모둠 순번(생성 순서)으로 고정합니다.
-  if (isTeacher && !isNotice) {
+  if (isTeacher && !isNotice && !isGroup) {
     visibleCards = [...visibleCards].sort((a, b) => {
       let cmp = 0;
       if (sortKey === "studentId") {
-        const aId = isGroup
-          ? a.members?.find((m) => m.uid === a.leaderUid)?.studentId ?? ""
-          : getDirectoryUser(a.authorId)?.studentId ?? a.authorStudentId ?? "";
-        const bId = isGroup
-          ? b.members?.find((m) => m.uid === b.leaderUid)?.studentId ?? ""
-          : getDirectoryUser(b.authorId)?.studentId ?? b.authorStudentId ?? "";
+        // 학번은 게시물에 없으므로 교사용 디렉터리에서 조회 (구버전 카드는 fallback)
+        const aId = getDirectoryUser(a.authorId)?.studentId ?? a.authorStudentId ?? "";
+        const bId = getDirectoryUser(b.authorId)?.studentId ?? b.authorStudentId ?? "";
         cmp = String(aId).localeCompare(String(bId), "ko", { numeric: true });
       } else {
         cmp = toDate(a.createdAt) - toDate(b.createdAt);
       }
       return currentSortDir === "asc" ? cmp : -cmp;
     });
-  } else if (isGroup) {
-    visibleCards = [...visibleCards].sort((a, b) => (a.groupIndex ?? 0) - (b.groupIndex ?? 0));
   }
 
   const canAddNotice = isNotice && isTeacher && !locked;
@@ -567,37 +562,8 @@ export default function StudyBoardColumn({
           <div className={`study-board-panel${panelOpen ? " open" : ""}`}>
             {!isNotice && (
               <div className="study-sort">
-                {/* 학번·제출·확인은 개별·모둠 보드 공통(모둠은 대표 학번 기준 정렬) */}
-                <button
-                  className={`study-sort-btn study-sort-btn--studentid${sortKey === "studentId" ? " active" : ""}`}
-                  onClick={() => {
-                    setSortKey("studentId");
-                    setStudentIdDir((d) => (d === "asc" ? "desc" : "asc"));
-                  }}
-                  title="학번 정렬"
-                >
-                  학번 {studentIdDir === "asc" ? "↑" : "↓"}
-                </button>
-                <button
-                  className={`study-sort-btn study-sort-btn--time${sortKey === "time" ? " active" : ""}`}
-                  onClick={() => {
-                    setSortKey("time");
-                    setTimeDir((d) => (d === "asc" ? "desc" : "asc"));
-                  }}
-                  title="제출 시간 정렬"
-                >
-                  제출 {timeDir === "asc" ? "↑" : "↓"}
-                </button>
-                <button
-                  type="button"
-                  className="study-sort-btn study-sort-btn--check"
-                  onClick={() => setProgressOpen(true)}
-                  title="공부중 전광판 — 학생별 제출 상태 확인"
-                >
-                  확인
-                </button>
                 {isGroup ? (
-                  /* 모둠 보드: 4번째 자리가 '모둠 구성'(멤버 배정)·'개별'(전환) 2개로 확장 */
+                  /* 모둠 보드: 정렬 버튼 대신 '모둠 구성'(멤버 배정)·'개별 활동'(전환) 2개 */
                   <>
                     <button
                       type="button"
@@ -613,18 +579,48 @@ export default function StudyBoardColumn({
                       onClick={toggleActivityType}
                       title="이 보드를 개별 활동으로 바꿉니다(모둠 카드가 아직 없을 때만 가능)"
                     >
-                      개별
+                      개별 활동
                     </button>
                   </>
                 ) : (
-                  <button
-                    type="button"
-                    className="study-sort-btn"
-                    onClick={toggleActivityType}
-                    title="이 보드를 모둠 활동으로 바꿉니다(학생이 작성한 개인 카드가 없을 때만 가능)"
-                  >
-                    모둠
-                  </button>
+                  <>
+                    <button
+                      className={`study-sort-btn study-sort-btn--studentid${sortKey === "studentId" ? " active" : ""}`}
+                      onClick={() => {
+                        setSortKey("studentId");
+                        setStudentIdDir((d) => (d === "asc" ? "desc" : "asc"));
+                      }}
+                      title="학번 정렬"
+                    >
+                      학번 {studentIdDir === "asc" ? "↑" : "↓"}
+                    </button>
+                    <button
+                      className={`study-sort-btn study-sort-btn--time${sortKey === "time" ? " active" : ""}`}
+                      onClick={() => {
+                        setSortKey("time");
+                        setTimeDir((d) => (d === "asc" ? "desc" : "asc"));
+                      }}
+                      title="제출 시간 정렬"
+                    >
+                      제출 {timeDir === "asc" ? "↑" : "↓"}
+                    </button>
+                    <button
+                      type="button"
+                      className="study-sort-btn study-sort-btn--check"
+                      onClick={() => setProgressOpen(true)}
+                      title="공부중 전광판 — 학생별 제출 상태 확인"
+                    >
+                      확인
+                    </button>
+                    <button
+                      type="button"
+                      className="study-sort-btn"
+                      onClick={toggleActivityType}
+                      title="이 보드를 모둠 활동으로 바꿉니다(학생이 작성한 개인 카드가 없을 때만 가능)"
+                    >
+                      모둠
+                    </button>
+                  </>
                 )}
               </div>
             )}
