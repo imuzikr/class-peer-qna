@@ -10,7 +10,7 @@
 // =============================================================
 import { useState } from "react";
 import { getCurrentUser, isTeacher } from "@/lib/user";
-import { getDirectoryRealName } from "@/lib/store";
+import { getDirectoryUser } from "@/lib/store";
 import { IconTeacher } from "@/components/StatusIcons";
 
 export default function AuthorBadge({ name, emoji, realName, uid }) {
@@ -18,9 +18,11 @@ export default function AuthorBadge({ name, emoji, realName, uid }) {
   // 작성자가 교사면(예약어 "선생님") 실명을 드러내지 않습니다 — 항상 "선생님".
   const isTeacherAuthor = name === "선생님";
   const admin = isTeacher(getCurrentUser()) && !isTeacherAuthor;
-  // 실명은 게시물에 저장하지 않으므로, 교사용 사용자 디렉터리에서 조회합니다.
+  // 실명·학번은 게시물에 저장하지 않으므로, 교사용 사용자 디렉터리에서 조회합니다.
   // (구버전 문서엔 realName prop이 남아 있을 수 있어 fallback으로 둡니다.)
-  const resolvedRealName = getDirectoryRealName(uid) || realName;
+  const dirUser = getDirectoryUser(uid);
+  const resolvedRealName = dirUser?.realName || realName;
+  const studentId = dirUser?.studentId || null;
 
   function handleClick(e) {
     if (!admin) return; // 학생은 클릭해도 아무 일도 없음 (카드 클릭은 그대로 동작)
@@ -40,8 +42,8 @@ export default function AuthorBadge({ name, emoji, realName, uid }) {
       <strong className="author-name">{name}</strong>
       {admin && revealed && (
         <span className="author-real">
-          🔓 {resolvedRealName || "정보 없음"}
-          {uid ? ` (${uid})` : ""}
+          🔓 {studentId ? `${studentId} ` : ""}
+          {resolvedRealName || "정보 없음"}
         </span>
       )}
     </span>
