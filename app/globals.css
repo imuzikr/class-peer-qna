@@ -8715,18 +8715,19 @@ pre code {
   background: #eef9f2;
 }
 
+/* 목록형/캘린더형 전환 시 모달이 내용에 따라 커졌다 작았다 하지 않도록
+   높이를 고정합니다 — 헤더/툴바/탭은 flex-shrink:0으로 고정하고,
+   실제로 분량이 달라지는 본문(study-attendance-body)만 내부 스크롤. */
 .modal.study-attendance-modal {
-  max-width: 780px;
-  max-height: 80vh;
+  width: 780px;
+  max-width: 94vw;
+  height: 700px;
+  max-height: 85vh;
   display: flex;
   flex-direction: column;
 }
 .modal.study-attendance-modal .modal-head {
   flex-shrink: 0;
-}
-.modal.study-attendance-modal > :not(.modal-head) {
-  overflow-y: auto;
-  overscroll-behavior: contain;
 }
 
 .study-attendance-toolbar {
@@ -8740,87 +8741,6 @@ pre code {
   font-size: 13px;
   font-weight: 700;
   flex-shrink: 0;
-}
-
-.study-attendance-controls {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-.study-attendance-start,
-.study-attendance-stop {
-  padding: 7px 14px;
-  font-size: 13px;
-}
-.study-attendance-live {
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: #f1eee8;
-  color: var(--text-sub);
-  font-size: 12px;
-  font-weight: 800;
-}
-.study-attendance-live.on {
-  background: #ffe4cc;
-  color: var(--primary-dark);
-}
-
-.study-attendance-count {
-  display: inline-block;
-  color: var(--text-sub);
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.study-attendance-view-tabs {
-  display: flex;
-  gap: 0;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 14px;
-  padding: 0 20px;
-  flex-shrink: 0;
-}
-.study-attendance-view-tabs button {
-  flex: 1;
-  padding: 10px 14px;
-  border: none;
-  background: transparent;
-  border-bottom: 2px solid transparent;
-  cursor: pointer;
-  color: var(--text-sub);
-  font-size: 13px;
-  font-weight: 600;
-  transition: color 0.15s, border-color 0.15s;
-}
-.study-attendance-view-tabs button:hover:not(.active) {
-  color: var(--text);
-}
-.study-attendance-view-tabs button.active {
-  color: var(--primary);
-  border-bottom-color: var(--primary);
-}
-
-.study-attendance-date-picker {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 14px;
-  padding: 0 20px;
-  flex-shrink: 0;
-  color: var(--text-sub);
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.study-attendance-date-picker select {
-  width: auto;
-  min-width: 150px;
-  padding: 7px 10px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: #fff;
-  color: var(--text);
-  font-weight: 700;
 }
 
 /* 출석 시작/종료 — 교사가 그날 출석 받기를 직접 켜고 끕니다 */
@@ -8847,14 +8767,22 @@ pre code {
   color: #26734a;
 }
 
+.study-attendance-count {
+  display: inline-block;
+  color: var(--text-sub);
+  font-size: 12px;
+  font-weight: 700;
+}
+
 /* 목록형 / 캘린더형 전환 탭 */
 .study-attendance-view-tabs {
   display: inline-flex;
   gap: 4px;
   padding: 3px;
-  margin-bottom: 12px;
+  margin: 0 20px 14px;
   background: var(--neutral);
   border-radius: var(--radius-btn);
+  flex-shrink: 0;
 }
 .study-attendance-view-tabs button {
   padding: 7px 14px;
@@ -8871,6 +8799,15 @@ pre code {
   color: var(--text);
   background: #fff;
   box-shadow: var(--shadow-soft);
+}
+
+/* 실제로 목록형·캘린더형 사이에서 분량이 달라지는 부분 —
+   여기만 내부 스크롤을 갖고, 모달 자체 크기는 항상 고정됩니다. */
+.study-attendance-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 20px 20px;
 }
 
 .study-attendance-date-picker {
@@ -8999,8 +8936,6 @@ button.study-cal-cell.has-record:not(:disabled):hover {
 }
 
 .study-attendance-table-wrap {
-  margin-left: 20px;
-  margin-right: 20px;
   border: 1px solid var(--border);
   border-radius: 12px;
 }
@@ -9073,7 +9008,7 @@ button.study-cal-cell.has-record:not(:disabled):hover {
 .study-attendance-list {
   list-style: none;
   margin: 0;
-  padding: 0 20px;
+  padding: 0;
   display: flex;
   flex-direction: column;
   gap: 8px;

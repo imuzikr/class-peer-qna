@@ -209,88 +209,90 @@ export default function StudyAttendanceModal({
           </button>
         </div>
 
-        {isTeacher ? (
-          <>
-            {viewMode === "list" ? (
-              dates.length > 0 && (
-                <label className="study-attendance-date-picker">
-                  날짜
-                  <select value={activeDate} onChange={(e) => setSelectedDate(e.target.value)}>
-                    {dates.map((date) => (
-                      <option key={date} value={date}>
-                        {formatDateLabel(date)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              )
-            ) : (
-              <AttendanceCalendar
-                records={records}
-                total={studentRows.length}
-                selectedDate={activeDate}
-                onSelectDate={setSelectedDate}
-                interactive
-              />
-            )}
+        <div className="study-attendance-body">
+          {isTeacher ? (
+            <>
+              {viewMode === "list" ? (
+                dates.length > 0 && (
+                  <label className="study-attendance-date-picker">
+                    날짜
+                    <select value={activeDate} onChange={(e) => setSelectedDate(e.target.value)}>
+                      {dates.map((date) => (
+                        <option key={date} value={date}>
+                          {formatDateLabel(date)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )
+              ) : (
+                <AttendanceCalendar
+                  records={records}
+                  total={studentRows.length}
+                  selectedDate={activeDate}
+                  onSelectDate={setSelectedDate}
+                  interactive
+                />
+              )}
 
-            {roster.length === 0 ? (
-              <p className="lesson-note-empty">이 반에 입장한 학생이 없어요.</p>
-            ) : dates.length === 0 ? (
-              <p className="lesson-note-empty">아직 출석 기록이 없어요.</p>
-            ) : (
-              <div className="study-attendance-table-wrap">
-                <table className="study-attendance-table">
-                  <thead>
-                    <tr>
-                      <th>학생</th>
-                      <th>출석 상황</th>
-                      <th>출석 기록</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {studentRows.map((student) => (
-                      <tr key={student.uid}>
-                        <td>
-                          <span className="study-attendance-student">
-                            <span aria-hidden="true">{student.emoji || "🙂"}</span>
-                            <span>
-                              <strong>{student.name || "이름 미설정"}</strong>
-                              {student.studentId && <small>{student.studentId}</small>}
-                            </span>
-                          </span>
-                        </td>
-                        <td>
-                          <span className={`study-attendance-status${student.record ? " on" : ""}`}>
-                            {student.record ? "출석" : "기록 없음"}
-                          </span>
-                        </td>
-                        <td>
-                          {student.record
-                            ? formatDateTime(student.record.attendedAt || student.record.createdAt)
-                            : "-"}
-                        </td>
+              {roster.length === 0 ? (
+                <p className="lesson-note-empty">이 반에 입장한 학생이 없어요.</p>
+              ) : dates.length === 0 ? (
+                <p className="lesson-note-empty">아직 출석 기록이 없어요.</p>
+              ) : (
+                <div className="study-attendance-table-wrap">
+                  <table className="study-attendance-table">
+                    <thead>
+                      <tr>
+                        <th>학생</th>
+                        <th>출석 상황</th>
+                        <th>출석 기록</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </>
-        ) : records.length === 0 ? (
-          <p className="lesson-note-empty">아직 출석한 기록이 없어요.</p>
-        ) : viewMode === "list" ? (
-          <ul className="study-attendance-list">
-            {records.map((record) => (
-              <li key={record.id}>
-                <strong>{formatDateLabel(record.date)}</strong>
-                <span>출석</span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <AttendanceCalendar records={records} />
-        )}
+                    </thead>
+                    <tbody>
+                      {studentRows.map((student) => (
+                        <tr key={student.uid}>
+                          <td>
+                            <span className="study-attendance-student">
+                              <span aria-hidden="true">{student.emoji || "🙂"}</span>
+                              <span>
+                                <strong>{student.name || "이름 미설정"}</strong>
+                                {student.studentId && <small>{student.studentId}</small>}
+                              </span>
+                            </span>
+                          </td>
+                          <td>
+                            <span className={`study-attendance-status${student.record ? " on" : ""}`}>
+                              {student.record ? "출석" : "기록 없음"}
+                            </span>
+                          </td>
+                          <td>
+                            {student.record
+                              ? formatDateTime(student.record.attendedAt || student.record.createdAt)
+                              : "-"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </>
+          ) : records.length === 0 ? (
+            <p className="lesson-note-empty">아직 출석한 기록이 없어요.</p>
+          ) : viewMode === "list" ? (
+            <ul className="study-attendance-list">
+              {records.map((record) => (
+                <li key={record.id}>
+                  <strong>{formatDateLabel(record.date)}</strong>
+                  <span>출석</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <AttendanceCalendar records={records} />
+          )}
+        </div>
       </div>
     </div>
   );
