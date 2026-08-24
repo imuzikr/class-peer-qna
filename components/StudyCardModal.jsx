@@ -16,7 +16,11 @@ import {
 } from "@/lib/store";
 import { getCurrentUser, isTeacher } from "@/lib/user";
 import { sanitizeHtml, stripHtml, stripImgTags } from "@/lib/html";
-import { parseActivitySections, isActivityLocked } from "@/lib/activities";
+import {
+  parseActivitySections,
+  isActivityLocked,
+  DONE_MIN_CHARS,
+} from "@/lib/activities";
 import { formatFileSize } from "@/lib/image";
 import { uploadImage, uploadFile, uploadDataUrl } from "@/lib/storageUpload";
 import dynamic from "next/dynamic";
@@ -490,6 +494,13 @@ export default function StudyCardModal({
         >
           {canEdit ? (
             <>
+              {/* 제출 인정 기준 안내 — 교사 화면(공부중 전광판)이 이 기준으로
+                  작성 여부를 판정하므로, 학생이 미리 알 수 있게 위에 둡니다. */}
+              {isActivityCard && (
+                <p className="activity-form-hint">
+                  활동마다 {DONE_MIN_CHARS}자 이상 작성해야 ‘제출’로 인정됩니다.
+                </p>
+              )}
               {isActivityCard ? (
                 /* 활동별 멀티 섹션 폼 — 2개씩 표시, 3개 이상은 스크롤 */
                 <div className="activity-form-list">
