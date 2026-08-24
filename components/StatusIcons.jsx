@@ -445,11 +445,19 @@ export function IconAddFeature({ size = 20, className = "" }) {
   );
 }
 
+// 확인(체크) — 원은 버튼(.study-check-btn)이 테두리로 그리므로 여기서는
+// 체크 표시만 그립니다. 옆의 접기(«)·발표(▶) 버튼과 원 크기를 맞추려면
+// 원이 아이콘 안에 있으면 안 됩니다(아이콘 원은 버튼보다 작게 그려짐).
 export function IconCheck({ size = 20, className = "" }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">
-      <circle cx="12" cy="12" r="10" stroke="#3A312E" strokeWidth="1.55"/>
-      <path d="M7.3 12.3 10.4 15.6 16.7 8.6" stroke="#3A312E" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
+      <path
+        d="M5 12.9 9.6 17.5 19 6.9"
+        stroke="currentColor"
+        strokeWidth="2.9"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }

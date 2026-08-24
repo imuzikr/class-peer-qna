@@ -69,20 +69,38 @@ function StudentCard({
   onDragStart,
   onDragEnd,
   onDropTo,
-  onAward,
-  onOpenNotes,
+  onOpenTools,
   notesActive = false,
 }) {
   const groupName = d.group?.name ?? "미배정";
-  // 과일 주기·누가기록은 교사가 부모에서 핸들러를 넘겼을 때만 보입니다.
-  const showTools = !!(onAward || onOpenNotes);
-  const maxed = (d.count ?? 0) >= REWARD_MAX;
+  // 교사면 카드를 눌러 '과일 주기 / 누가기록' 선택 모달을 엽니다.
+  // (예전에는 카드 아래에 버튼 두 개를 늘 펼쳐 놨는데, 자리 칸이 좁아
+  //  버튼이 잘게 쪼개져 누르기 어려웠습니다)
+  const clickable = !!onOpenTools;
+  const count = d.count ?? 0;
   return (
     <div className="attend-desk-wrap">
       <div
-        className={`attend-desk attend-desk--${d.state}${notesActive ? " attend-desk--noting" : ""}`}
+        className={`attend-desk attend-desk--${d.state}${notesActive ? " attend-desk--noting" : ""}${clickable ? " attend-desk--clickable" : ""}`}
         style={d.group ? { "--group-color": d.group.color } : undefined}
-        title={`${d.name} · ${LABEL[d.state]} · ${groupName}`}
+        title={
+          clickable
+            ? `${d.name} · ${LABEL[d.state]} · ${groupName} — 눌러서 과일 주기·누가기록`
+            : `${d.name} · ${LABEL[d.state]} · ${groupName}`
+        }
+        role={clickable ? "button" : undefined}
+        tabIndex={clickable ? 0 : undefined}
+        onClick={clickable ? () => onOpenTools(d) : undefined}
+        onKeyDown={
+          clickable
+            ? (e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onOpenTools(d);
+                }
+              }
+            : undefined
+        }
         draggable={draggable}
         onDragStart={(e) => {
           if (!draggable) return;
@@ -103,46 +121,80 @@ function StudentCard({
           {d.state === "absent" && <em> (결석)</em>}
         </span>
         <span className="attend-desk-group">{groupName}</span>
+        {/* 지금까지 받은 과일 수 — 카드 안에 작게 붙여 한눈에 보이게 */}
+        {clickable && count > 0 && (
+          <span className="attend-desk-fruit" aria-label={`과일 ${count}개`}>
+            🍎 {count}
+          </span>
+        )}
       </div>
+    </div>
+  );
+}
 
-      {showTools && (
-        // 카드 아래 별도 줄 — draggable=false로 자리 카드 드래그와 분리해,
-        // 버튼을 누른 채 살짝만 움직여도 드래그가 시작돼 클릭이 씹히는
-        // 것을 막습니다.
-        <span className="attend-desk-tools" draggable={false}>
-          {onAward && (
+// 학생 카드를 누르면 뜨는 선택 모달 — 과일을 바로 여러 개 줄 수 있고,
+// 누가기록을 고르면 이 모달은 닫히고 오른쪽 슬라이드 패널이 열립니다.
+function StudentToolsModal({ student, onAward, onOpenNotes, onClose }) {
+  const count = student.count ?? 0;
+  const maxed = count >= REWARD_MAX;
+  return (
+    <div className="modal-backdrop attend-tools-backdrop" {...backdropClose(onClose)}>
+      <div
+        className="modal attend-tools-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label={`${student.name} 과일 주기·누가기록`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="modal-head">
+          <h3>
+            {student.emoji ?? "🙂"} {student.name}
+            {student.studentId && (
+              <span className="attend-tools-no">{student.studentId}</span>
+            )}
+          </h3>
+          <button className="btn-close" onClick={onClose} aria-label="닫기">×</button>
+        </div>
+
+        <section className="attend-tools-section">
+          <div className="attend-tools-row">
+            <span className="attend-tools-label">🍎 과일</span>
+            <strong className="attend-tools-count">{count}</strong>
+            <span className="attend-tools-hint">눌러서 여러 개 줄 수 있어요</span>
+          </div>
+          <div className="attend-tools-award">
             <button
               type="button"
-              className="attend-tool-btn attend-tool-fruit"
-              draggable={false}
-              onClick={(e) => {
-                e.stopPropagation();
-                onAward(d.uid, (d.count ?? 0) + 1);
-              }}
+              className="attend-award-btn attend-award-btn--minus"
+              onClick={() => onAward(student.uid, count - 1)}
+              disabled={count <= 0}
+              aria-label="과일 하나 빼기"
+              title="과일 하나 빼기"
+            >
+              −
+            </button>
+            <button
+              type="button"
+              className="attend-award-btn attend-award-btn--plus"
+              onClick={() => onAward(student.uid, count + 1)}
               disabled={maxed}
-              title={maxed ? "과일이 가득 찼어요" : `${d.name}에게 과일 주기`}
-              aria-label={`${d.name} 과일 주기`}
+              aria-label="과일 하나 주기"
+              title={maxed ? "과일이 가득 찼어요" : "과일 하나 주기"}
             >
-              🍎<span className="attend-tool-count">{d.count ?? 0}</span>
+              🍎 <span>+1</span>
             </button>
-          )}
-          {onOpenNotes && (
-            <button
-              type="button"
-              className="attend-tool-btn attend-tool-note"
-              draggable={false}
-              onClick={(e) => {
-                e.stopPropagation();
-                onOpenNotes(d);
-              }}
-              title={`${d.name} 누가기록`}
-              aria-label={`${d.name} 누가기록`}
-            >
-              📝
-            </button>
-          )}
-        </span>
-      )}
+          </div>
+          {maxed && <p className="attend-tools-maxed">과일이 가득 찼어요 (최대 {REWARD_MAX}개)</p>}
+        </section>
+
+        <button
+          type="button"
+          className="attend-tools-notes"
+          onClick={() => onOpenNotes(student)}
+        >
+          📝 누가기록 열기
+        </button>
+      </div>
     </div>
   );
 }
@@ -155,7 +207,7 @@ export default function AttendanceBoard({
   dailySeatLayout = null,
   groupAssignment = null,
   classId = null,
-  onAward = null,      // 교사만 — 있으면 카드에 과일 주기 버튼이 붙습니다
+  onAward = null,      // 교사만 — 있으면 카드를 눌러 과일 주기·누가기록을 엽니다
   onSaveDailySeats,
   onClose,
 }) {
@@ -163,6 +215,7 @@ export default function AttendanceBoard({
   const [viewMode, setViewMode] = useState("seat");
   const [dragIndex, setDragIndex] = useState(null);
   const [notesFor, setNotesFor] = useState(null); // 누가기록 슬라이드 패널 대상
+  const [toolsFor, setToolsFor] = useState(null); // 카드 클릭 → 과일/누가기록 선택 모달
   const notesPanelRef = useRef(null);
   const [seats, setSeats] = useState(() =>
     normalizeSeats(dailySeatLayout?.seats ?? seatLayout?.seats ?? [], roster)
@@ -223,12 +276,22 @@ export default function AttendanceBoard({
     notesPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [notesFor?.uid]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 같은 학생의 버튼을 다시 누르면 패널을 닫습니다(토글).
+  // 선택 모달에서 '누가기록 열기'를 고르면 모달을 닫고 슬라이드 패널을 엽니다.
   function openNotes(d) {
-    setNotesFor((cur) =>
-      cur?.uid === d.uid ? null : { uid: d.uid, name: d.name, emoji: d.emoji ?? "🙂" }
-    );
+    setToolsFor(null);
+    setNotesFor({ uid: d.uid, name: d.name, emoji: d.emoji ?? "🙂" });
   }
+
+  // 카드 클릭 → 과일/누가기록 선택 모달. 교사(onAward가 있을 때)만 열립니다.
+  function openTools(d) {
+    setToolsFor(d);
+  }
+
+  // 과일을 주면 목록(roster)이 갱신돼 내려오므로, 열려 있는 모달의 숫자도
+  // 최신 값으로 따라가게 합니다(모달이 처음 열릴 때 찍힌 값에 머무르지 않게).
+  const toolsStudent = toolsFor
+    ? { ...toolsFor, count: byUid.get(toolsFor.uid)?.count ?? toolsFor.count ?? 0 }
+    : null;
 
   async function moveSeat(from, to) {
     if (from == null || to == null || from === to) return;
@@ -257,7 +320,10 @@ export default function AttendanceBoard({
     <div className="modal-backdrop" {...backdropClose(onClose)}>
       {/* 전광판과 누가기록 패널을 한 줄로 묶습니다 — 패널이 열리면 전광판
           오른쪽에서 미끄러져 나오고, 둘이 함께 화면 가운데에 놓입니다. */}
-      <div className="attend-shell" onClick={(e) => e.stopPropagation()}>
+      <div
+        className={`attend-shell${notesOpen ? " attend-shell--with-notes" : ""}`}
+        onClick={(e) => e.stopPropagation()}
+      >
       <div
         className="modal attend-modal"
         role="dialog"
@@ -318,8 +384,7 @@ export default function AttendanceBoard({
                           state: stateOf(s.uid),
                           group: groupsByUid.get(s.uid) ?? { name: g.name, color: g.color },
                         }}
-                        onAward={onAward}
-                        onOpenNotes={openNotes}
+                        onOpenTools={onAward ? openTools : null}
                         notesActive={notesFor?.uid === s.uid}
                       />
                     ))
@@ -350,8 +415,7 @@ export default function AttendanceBoard({
                   onDragStart={setDragIndex}
                   onDragEnd={() => setDragIndex(null)}
                   onDropTo={(toIndex) => moveSeat(dragIndex, toIndex)}
-                  onAward={onAward}
-                  onOpenNotes={openNotes}
+                  onOpenTools={onAward ? openTools : null}
                   notesActive={notesFor?.uid === d.uid}
                 />
               )
@@ -386,6 +450,16 @@ export default function AttendanceBoard({
         </aside>
       )}
       </div>
+
+      {/* ── 카드 클릭 → 과일 주기 / 누가기록 선택 ── */}
+      {toolsStudent && onAward && (
+        <StudentToolsModal
+          student={toolsStudent}
+          onAward={onAward}
+          onOpenNotes={openNotes}
+          onClose={() => setToolsFor(null)}
+        />
+      )}
     </div>
   );
 }

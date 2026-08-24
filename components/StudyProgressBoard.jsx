@@ -23,6 +23,7 @@ import { backdropClose } from "@/lib/modal";
 import { stripHtml } from "@/lib/html";
 import { parseActivitySections, isActivityLocked } from "@/lib/activities";
 
+
 // '썼다'고 볼 최소 길이 — 공백·문장부호를 포함한 글자 수.
 // 한두 글자만 눌러 둔 것을 완료로 세지 않기 위한 기준입니다.
 export const DONE_MIN_CHARS = 10;
@@ -47,15 +48,46 @@ export function cardProgress(card, activities) {
   });
 }
 
+// 카드가 '활동 틀'(div.activity-section)로 저장돼 있는지.
+// -------------------------------------------------------------
+// 활동이 생기기 전에 쓴 자유형 카드, 또는 저장 과정에서 틀이 사라진 카드는
+// 활동별로 나눌 수가 없어 parseActivitySections가 빈 배열을 돌려줍니다.
+// 예전에는 이때 활동 칸이 전부 '작성 전'으로 칠해져서, 학생이 분명히 제출한
+// 카드가 교사 화면에서는 통째로 미제출처럼 보였습니다. 그래서 '제출은 했는데
+// 활동별로 나눌 수 없는 상태'를 따로 구분합니다.
+export function hasActivityStructure(card) {
+  return card ? parseActivitySections(card.content).length > 0 : false;
+}
+
+// 학생이 이 보드에 무언가를 제출했는지 — 글자·그림·첨부 중 하나라도 있으면 제출.
+// (활동 틀 유무와 무관하게 카드 자체를 봅니다)
+export function cardSubmitted(card) {
+  if (!card) return false;
+  return (
+    stripHtml(card.content ?? "").length > 0 ||
+    !!card.imageUrl ||
+    (card.attachments?.length ?? 0) > 0
+  );
+}
+
 // 칸 하나의 상태 — 색으로 구분합니다.
 //   done   연한 초록 : 10자 이상 썼음 (잠겼더라도 쓴 건 쓴 것)
+//   free   연한 파랑 : 제출은 했는데 활동 틀이 아니라 활동별로 나눌 수 없음
 //   open   연한 주황 : 열려 있는데 아직 덜 씀
 //   locked 회색     : 아직 열어 주지 않음
-function cellState(done, locked) {
+function cellState(done, locked, freeform) {
   if (done) return "done";
+  // 자유형 카드는 '어느 활동을 썼는지'를 알 수 없을 뿐 제출은 한 것이므로,
+  // 미작성(주황)이 아니라 별도 색으로 표시해 오해를 막습니다.
+  if (freeform) return "free";
   return locked ? "locked" : "open";
 }
-const STATE_LABEL = { done: "작성함", open: "작성 전", locked: "잠김" };
+const STATE_LABEL = {
+  done: "작성함",
+  free: "제출함(활동 구분 없음)",
+  open: "작성 전",
+  locked: "잠김",
+};
 
 export default function StudyProgressBoard({
   board,
@@ -72,13 +104,21 @@ export default function StudyProgressBoard({
     const card = cards.find((c) =>
       isGroup ? c.memberUids?.includes(s.uid) : c.authorId === s.uid
     );
-    return { ...s, done: cardProgress(card, activities), hasCard: !!card };
+    const submitted = cardSubmitted(card);
+    return {
+      ...s,
+      done: cardProgress(card, activities),
+      submitted,
+      // 제출은 했지만 활동 틀이 없어 활동별로 나눌 수 없는 카드
+      freeform: submitted && !hasActivityStructure(card),
+    };
   });
 
   // 활동별 작성 인원
   const doneCounts = activities.map(
     (_, i) => rows.filter((r) => r.done[i]).length
   );
+  const submittedCount = rows.filter((r) => r.submitted).length;
 
   return (
     <div className="modal-backdrop" {...backdropClose(onClose)}>
@@ -110,6 +150,11 @@ export default function StudyProgressBoard({
             <span className="progress-legend-item">
               <i className="progress-mark progress-mark--locked" /> 잠김
             </span>
+            {rows.some((r) => r.freeform) && (
+              <span className="progress-legend-item">
+                <i className="progress-mark progress-mark--free" /> 제출함(활동 구분 없음)
+              </span>
+            )}
           </div>
         )}
 
@@ -127,6 +172,14 @@ export default function StudyProgressBoard({
               <thead>
                 <tr>
                   <th className="progress-name-col">학생</th>
+                  {/* 제출 여부 — 활동별 칸과 별개로, 카드를 냈는지 자체를
+                      먼저 보여 줍니다(활동 틀이 아닌 카드도 제출로 셈). */}
+                  <th className="progress-submit-col">
+                    <span className="progress-act-no">제출</span>
+                    <span className="progress-act-count">
+                      {submittedCount}/{roster.length}
+                    </span>
+                  </th>
                   {activities.map((act, i) => {
                     const locked = isActivityLocked(board, i);
                     return (
@@ -155,8 +208,20 @@ export default function StudyProgressBoard({
                       )}
                       <span className="progress-student-name">{r.name}</span>
                     </th>
+                    <td className="progress-submit-col">
+                      <span
+                        className={`progress-submit${r.submitted ? " on" : ""}`}
+                        title={`${r.name} — ${r.submitted ? "제출함" : "미제출"}`}
+                      >
+                        {r.submitted ? "제출" : "미제출"}
+                      </span>
+                    </td>
                     {activities.map((act, i) => {
-                      const st = cellState(r.done[i], isActivityLocked(board, i));
+                      const st = cellState(
+                        r.done[i],
+                        isActivityLocked(board, i),
+                        r.freeform
+                      );
                       return (
                         <td
                           key={i}
