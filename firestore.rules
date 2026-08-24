@@ -79,6 +79,15 @@ service cloud.firestore {
       return !isClassArchived(cId)
              && exists(/databases/$(database)/documents/memberships/$(uid() + '_' + cId));
     }
+    // 그 반이 지정한 date에 출석을 받고 있는지 — 교사가 '출석 시작'을 누른
+    // 그날(attendanceOpenDate)에만 유효합니다. 종료를 깜빡 잊고 다음 날이
+    // 돼도 날짜가 안 맞아 다시 막히므로, attendanceOpen 하나만으로는 안 되고
+    // 두 값을 함께 봅니다.
+    function isClassAttendanceOpenFor(cId, date) {
+      let cls = get(/databases/$(database)/documents/classes/$(cId)).data;
+      return cls.get('attendanceOpen', false) == true
+             && cls.get('attendanceOpenDate', '') == date;
+    }
 
     // ── 공부방 보드 헬퍼 ──────────────────────────────────────
     function studyBoardClassId(bId) {
@@ -318,6 +327,7 @@ service cloud.firestore {
                       && recordId == (request.resource.data.date + '_' + uid())
                       && request.resource.data.date is string
                       && isClassMember(cId)
+                      && isClassAttendanceOpenFor(cId, request.resource.data.date)
                       && request.resource.data.attendedAt == request.time
                       && request.resource.data.createdAt == request.time;
         allow update, delete: if false;

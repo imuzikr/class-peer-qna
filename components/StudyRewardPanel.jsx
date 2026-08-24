@@ -89,7 +89,9 @@ export default function StudyRewardPanel({
               )}
               <div className="reward-row-top">
                 <span className="reward-avatar" aria-hidden="true">{s.emoji}</span>
-                <span className="reward-name" title={s.name}>{s.name}</span>
+                <span className="reward-name" title={s.name}>
+                  {s.studentId ? `${s.studentId} ${s.name}` : s.name}
+                </span>
                 <button
                   type="button"
                   className="reward-note-btn"

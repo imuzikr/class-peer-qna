@@ -32,7 +32,7 @@ import StudyCardModal from "./StudyCardModal";
 import StudyPresentModal from "./StudyPresentModal";
 import StudyProgressBoard from "./StudyProgressBoard";
 import GroupComposer from "./GroupComposer";
-import { IconTrash, IconSettings, IconLock, IconDuplicate, IconPen, IconPeople } from "./StatusIcons";
+import { IconTrash, IconSettings, IconCheck, IconLock, IconDuplicate, IconPen, IconPeople } from "./StatusIcons";
 
 export default function StudyBoardColumn({
   board,
@@ -106,7 +106,8 @@ export default function StudyBoardColumn({
 
   let visibleCards = cards;
   if (isGroup) {
-    // 모둠 카드만(보관된 카드는 교사에게만), 순번 순 정렬
+    // 모둠 카드만(보관된 카드는 교사에게만), 순번 순 정렬 — 모둠 보드는
+    // 별도 정렬 버튼 없이 항상 모둠 순번(생성 순서) 고정
     visibleCards = cards
       .filter((c) => c.groupId && (isTeacher || !c.retired))
       .sort((a, b) => (a.groupIndex ?? 0) - (b.groupIndex ?? 0));
@@ -228,6 +229,30 @@ export default function StudyBoardColumn({
     await updateStudyBoard(board.id, { activityLocks: next });
   }
 
+  // 개별 활동 ↔ 모둠 활동 전환 — 한 버튼으로 토글합니다. 학생이 이미
+  // 작성한 카드가 있으면(개별: 교사 예시 제외, 모둠: 모둠 카드 자체)
+  // 데이터 구조가 어긋나므로 막습니다.
+  async function toggleActivityType() {
+    if (isGroup) {
+      if (cards.length > 0) {
+        alert(
+          "이미 모둠 카드가 있어서 개별 활동으로 바꿀 수 없어요.\n'활동 모둠'에서 모둠 배정을 먼저 정리한 후 다시 시도해 주세요."
+        );
+        return;
+      }
+      await updateStudyBoard(board.id, { activityType: "individual" });
+    } else {
+      const studentCards = cards.filter((c) => !c.authorId?.startsWith("teacher_"));
+      if (studentCards.length > 0) {
+        alert(
+          "이미 학생이 작성한 개인 카드가 있어서 모둠 활동으로 바꿀 수 없어요.\n학생 카드를 모두 정리한 후 다시 시도해 주세요."
+        );
+        return;
+      }
+      await updateStudyBoard(board.id, { activityType: "group" });
+    }
+  }
+
   function openActivitiesModal() {
     setActivitiesDraft(
       board.activities?.length ? [...board.activities] : [""]
@@ -286,7 +311,8 @@ export default function StudyBoardColumn({
     }
   }
 
-  const modalOpen = selectedCard !== null || creating || presenting || progressOpen;
+  const cardModalOpen = selectedCard !== null || creating;
+  const modalOpen = cardModalOpen || presenting || progressOpen;
 
   useEffect(() => {
     onModalChange?.(modalOpen);
@@ -477,6 +503,19 @@ export default function StudyBoardColumn({
               ▶
             </button>
           )}
+          {isTeacher && !isNotice && !isGroup && (
+            <button
+              className="study-check-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                setProgressOpen(true);
+              }}
+              title="공부중 전광판 — 학생별 제출 상태 확인"
+              aria-label="공부중 전광판"
+            >
+              <IconCheck size={20} />
+            </button>
+          )}
           {isTeacher && (
             <button
               className={`study-panel-toggle${panelOpen ? " open" : ""}`}
@@ -492,38 +531,41 @@ export default function StudyBoardColumn({
           )}
         </div>
 
-        {board.description && (
-          isTeacher && editingDesc ? (
-            <div
-              className="study-desc-edit-wrap"
-              onClick={(e) => e.stopPropagation()}
-              onMouseDown={(e) => e.stopPropagation()}
-            >
-              <textarea
-                className="study-desc-inline"
-                value={descDraft}
-                onChange={(e) => setDescDraft(e.target.value)}
-                onBlur={commitDesc}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); commitDesc(); }
-                  else if (e.key === "Escape") { e.preventDefault(); cancelEditDesc(); }
-                }}
-                maxLength={200}
-                placeholder="보드 설명"
-                aria-label="보드 설명 수정"
-                autoFocus
-              />
-            </div>
-          ) : (
+        {/* 활동 안내 — 내용이 없어도 자리를 유지해 교사가 언제든 더블 클릭으로
+            추가할 수 있게 합니다(예전엔 내용이 없으면 이 영역 자체가 사라져
+            보드 생성 뒤에 안내를 추가할 방법이 없었습니다). */}
+        {isTeacher && editingDesc ? (
+          <div
+            className="study-desc-edit-wrap"
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <textarea
+              className="study-desc-inline"
+              value={descDraft}
+              onChange={(e) => setDescDraft(e.target.value)}
+              onBlur={commitDesc}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); commitDesc(); }
+                else if (e.key === "Escape") { e.preventDefault(); cancelEditDesc(); }
+              }}
+              maxLength={200}
+              placeholder="보드 설명"
+              aria-label="보드 설명 수정"
+              autoFocus
+            />
+          </div>
+        ) : (
+          (board.description || isTeacher) && (
             <p
               className={`study-column-desc${isTeacher ? " study-column-desc--editable" : ""}`}
               onClick={isTeacher ? (e) => e.stopPropagation() : undefined}
               onDoubleClick={
                 isTeacher ? (e) => { e.stopPropagation(); startEditDesc(); } : undefined
               }
-              title={isTeacher ? "더블 클릭해 설명 수정" : undefined}
+              title={isTeacher ? "더블 클릭해 활동 안내 추가·수정" : undefined}
             >
-              {board.description}
+              {board.description || (isTeacher ? "활동 안내를 적어 주세요." : "")}
             </p>
           )
         )}
@@ -534,14 +576,25 @@ export default function StudyBoardColumn({
             {!isNotice && (
               <div className="study-sort">
                 {isGroup ? (
-                  /* 모둠 보드: 정렬 대신 모둠 구성 버튼 (카드는 모둠 순번 고정) */
-                  <button
-                    className="study-sort-btn study-sort-btn--group"
-                    onClick={() => setComposing(true)}
-                    title="활동 모둠 — 기본 모둠을 쓰거나 이 보드에서만 다르게 구성"
-                  >
-                    👥 활동 모둠
-                  </button>
+                  /* 모둠 보드: 정렬 버튼 대신 '모둠 구성'(멤버 배정)·'개별 활동'(전환) 2개 */
+                  <>
+                    <button
+                      type="button"
+                      className="study-sort-btn study-sort-btn--group"
+                      onClick={() => setComposing(true)}
+                      title="모둠 구성 — 기본 모둠을 쓰거나 이 보드에서만 다르게 구성"
+                    >
+                      모둠 구성
+                    </button>
+                    <button
+                      type="button"
+                      className="study-sort-btn"
+                      onClick={toggleActivityType}
+                      title="이 보드를 개별 활동으로 바꿉니다(모둠 카드가 아직 없을 때만 가능)"
+                    >
+                      개별 활동
+                    </button>
+                  </>
                 ) : (
                   <>
                     <button
@@ -566,11 +619,11 @@ export default function StudyBoardColumn({
                     </button>
                     <button
                       type="button"
-                      className="study-sort-btn study-sort-btn--check"
-                      onClick={() => setProgressOpen(true)}
-                      title="공부중 전광판 — 학생별 제출 상태 확인"
+                      className="study-sort-btn"
+                      onClick={toggleActivityType}
+                      title="이 보드를 모둠 활동으로 바꿉니다(학생이 작성한 개인 카드가 없을 때만 가능)"
                     >
-                      확인
+                      모둠
                     </button>
                   </>
                 )}
@@ -778,7 +831,7 @@ export default function StudyBoardColumn({
         </div>
       )}
 
-      {modalOpen && (
+      {cardModalOpen && (
         <StudyCardModal
           board={board}
           card={creating ? null : selectedCard}

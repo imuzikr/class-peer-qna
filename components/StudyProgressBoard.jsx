@@ -30,11 +30,21 @@ export const DONE_MIN_CHARS = 10;
 // 학생 카드 한 장 → 활동별로 "충분히 썼는지" 여부 배열
 // (stripHtml이 태그를 지우고 연속 공백을 하나로 줄인 뒤 앞뒤를 다듬으므로,
 //  세는 값은 사람이 눈으로 읽는 글자 수와 같습니다)
-export function cardProgress(card, activityCount) {
+//
+// [제목으로 매칭하는 이유]
+// 활동은 교사가 수업 준비에서 언제든 추가·삭제·순서 변경할 수 있습니다.
+// 카드에는 활동별 섹션이 작성 당시 순서 그대로 저장돼 있으므로, 그 뒤에
+// 교사가 중간 활동을 지우거나 순서를 바꾸면 몇 번째 섹션인지(위치)가
+// board.activities의 현재 순서와 어긋납니다 — 그대로 위치로만 대조하면
+// 학생이 분명히 쓴 활동도 다른 활동 칸의 내용으로 잘못 읽혀 '작성 전'으로
+// 보일 수 있습니다. 섹션에는 저장 당시 활동 이름(title)이 함께 있으므로
+// 이름으로 먼저 찾고, 이름이 없는 옛 카드만 위치로 대체합니다.
+export function cardProgress(card, activities) {
   const secs = card ? parseActivitySections(card.content) : [];
-  return Array.from({ length: activityCount }, (_, i) =>
-    stripHtml(secs[i]?.content ?? "").length >= DONE_MIN_CHARS
-  );
+  return activities.map((name, i) => {
+    const sec = secs.find((s) => s.title === name) ?? secs[i];
+    return stripHtml(sec?.content ?? "").length >= DONE_MIN_CHARS;
+  });
 }
 
 // 칸 하나의 상태 — 색으로 구분합니다.
@@ -54,11 +64,15 @@ export default function StudyProgressBoard({
   onClose,
 }) {
   const activities = board?.activities ?? [];
+  const isGroup = board?.activityType === "group";
 
   // 학생별 진행 상황 (카드가 아직 없으면 전부 미작성)
+  // 모둠 보드는 카드 한 장을 모둠원 여럿이 공유하므로 memberUids로 찾음
   const rows = roster.map((s) => {
-    const card = cards.find((c) => c.authorId === s.uid);
-    return { ...s, done: cardProgress(card, activities.length), hasCard: !!card };
+    const card = cards.find((c) =>
+      isGroup ? c.memberUids?.includes(s.uid) : c.authorId === s.uid
+    );
+    return { ...s, done: cardProgress(card, activities), hasCard: !!card };
   });
 
   // 활동별 작성 인원

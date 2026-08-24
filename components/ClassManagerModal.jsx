@@ -15,7 +15,16 @@ import { addClass, renameClass, archiveClass, unarchiveClass, deleteClass } from
 import ConfirmModal from "./ConfirmModal";
 import { IconPen, IconTrash } from "./StatusIcons";
 
-export default function ClassManagerModal({ classes, user, onClose, onCreated, onViewClass, onToast }) {
+export default function ClassManagerModal({
+  classes,
+  user,
+  onClose,
+  onCreated,
+  onViewClass,
+  onToast,
+  onOpenSeatSetup,
+  seatSetupDisabled = false,
+}) {
   const [newName, setNewName] = useState("");
   const [creating, setCreating] = useState(false);
   const [renamingId, setRenamingId] = useState(null);
@@ -123,6 +132,17 @@ export default function ClassManagerModal({ classes, user, onClose, onCreated, o
           <button type="submit" className="btn-primary" disabled={creating}>
             {creating ? "만드는 중…" : "➕ 반 만들기"}
           </button>
+          {onOpenSeatSetup && (
+            <button
+              type="button"
+              className="btn-ghost class-mgr-seat-btn"
+              onClick={onOpenSeatSetup}
+              disabled={seatSetupDisabled}
+              title={seatSetupDisabled ? "이 반에 입장한 학생이 없어요" : "실제 좌석과 장기 모둠을 미리 정합니다"}
+            >
+              🪑 자리 배정하기
+            </button>
+          )}
         </form>
 
         {error && <p className="form-error">{error}</p>}

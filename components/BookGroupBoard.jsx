@@ -44,6 +44,10 @@ export default function BookGroupBoard({
 
   useEffect(() => subscribeBookGroups(activity.id, setGroups), [activity.id]);
 
+  // 교사 화면 전용 — 학생 쪽 roster는 항상 빈 배열(권한상 구독 안 함)이라
+  // 이 값은 isTeacher 분기(아래) 안에서만 씁니다.
+  const rosterUids = useMemo(() => new Set(roster.map((s) => s.uid)), [roster]);
+
   const freeMode = activity.groupMode === "free";
   const maxPerGroup = activity.maxPerGroup ?? 6;
 
@@ -85,27 +89,25 @@ export default function BookGroupBoard({
 
   const head = (
     <div className="books-head">
-      <div className="books-head-main">
-        <button type="button" className="btn-ghost" onClick={onBack}>← 활동 목록</button>
-        <h1 className="book-group-title">
-          {activity.title}
+      <h1 className="book-group-title">{activity.title}</h1>
+      <div className="books-head-row">
+        <div className="books-head-main">
+          <button type="button" className="btn-ghost" onClick={onBack}>← 활동 목록</button>
+          {isTeacher && !freeMode && (
+            <button type="button" className="btn-ghost" onClick={() => setComposing(true)}>
+              <IconPeople size={15} /> 활동 모둠
+            </button>
+          )}
           <span className="book-group-topic">{activity.topic}</span>
           {/* 이 활동이 어느 반 것인지 — 학생에게 안 보이면 반이 다른 경우가 많아 표시 */}
           {className && <span className="book-group-class">{className}</span>}
-        </h1>
+        </div>
         {isTeacher && (
           <button type="button" className="btn-primary book-allview-btn" onClick={onOpenAll}>
             전체 보기
           </button>
         )}
       </div>
-      {isTeacher && !freeMode && (
-        <div className="book-head-actions">
-          <button className="btn-ghost" onClick={() => setComposing(true)}>
-            <IconPeople size={15} /> 활동 모둠
-          </button>
-        </div>
-      )}
     </div>
   );
 
@@ -222,7 +224,10 @@ export default function BookGroupBoard({
           {/* 왼쪽 — 모둠 목록(세로) */}
           <aside className="book-group-rail">
             {groups.map((g) => {
-              const members = g.members ?? [];
+              // 모둠에 저장된 members는 배정 당시 스냅샷이라, 반에서 빠진
+              // (탈퇴 처리된) 학생도 그대로 남아 보였습니다 — 교사 화면의
+              // 반 명단(roster)에 있는 학생만 남깁니다.
+              const members = (g.members ?? []).filter((m) => rosterUids.has(m.uid));
               const on = g.id === picked?.id;
               return (
                 <button

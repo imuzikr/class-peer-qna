@@ -157,66 +157,12 @@ export default function TopNav({ active, onPython, pyActive = false }) {
   return (
     <>
     <header className="topbar">
-      {/* 왼쪽: 로고 + 주요 메뉴 */}
+      {/* 로고 — 좁은 화면에서도 항상 첫 줄에 남습니다 */}
       <div className="topbar-left">
         <button className="logo logo-button" onClick={() => go("/board")}>
           <IconLogo size={30} /> 배움나눔
         </button>
         <span className="topbar-divider" aria-hidden="true" />
-        <nav className="topnav-menu">
-
-          {/* 학습 공간 — 질문방 · 공부방 · 책방 (버튼 3개) */}
-          <button
-            className={`btn-ghost ${active === "board" ? "nav-active" : ""}`}
-            onClick={() => go("/board")}
-            title="질문방"
-          >
-            <IconAnswer size={20} /> <span className="nav-label">질문방</span>
-          </button>
-          <button
-            className={`btn-ghost ${active === "study" ? "nav-active" : ""}`}
-            onClick={() => go("/study")}
-            title="공부방"
-          >
-            <IconBlackboard size={20} /> <span className="nav-label">공부방</span>
-          </button>
-          <button
-            className={`btn-ghost ${active === "books" ? "nav-active" : ""}`}
-            onClick={() => go("/books")}
-            title="책방"
-          >
-            <IconBook size={20} /> <span className="nav-label">책방</span>
-          </button>
-
-          <button
-            data-py-toggle
-            className={`btn-ghost ${pyActive ? "py-btn-active" : ""}`}
-            onClick={handlePython}
-            title="파이썬 실행기"
-          >
-            <IconPythonRunner size={20} /> <span className="nav-label">파이썬 실행기</span>
-          </button>
-          {admin ? (
-            <button
-              className={`btn-ghost ${active === "admin" ? "nav-active" : ""}`}
-              onClick={() => go("/admin")}
-              title="선생님 대시보드"
-            >
-              <IconTeacher size={20} />{" "}
-              <span className="nav-label">선생님 대시보드</span>
-            </button>
-          ) : (
-            <button
-              className={`btn-ghost ${active === "report" ? "nav-active" : ""}`}
-              onClick={() => go("/report")}
-              title="학습 리포트"
-            >
-              <IconReport size={20} /> <span className="nav-label">학습 리포트</span>
-            </button>
-          )}
-
-          {/* 역할 관리는 프로필 메뉴의 '관리자 설정'으로 이동 */}
-        </nav>
       </div>
 
       {roleMgrOpen && (
@@ -226,7 +172,10 @@ export default function TopNav({ active, onPython, pyActive = false }) {
         />
       )}
 
-      {/* 오른쪽: 역할 전환(데모 전용) + 프로필 + 로그아웃 */}
+      {/* 첫 줄 오른쪽: 손들기 + 과일 뱃지 + 프로필/로그아웃 — 좁은 화면에서도
+          항상 눈에 띄어야 하는 것들이라 로고와 같은 줄에 둡니다. 나머지
+          이동 메뉴(질문방·공부방 등)는 아래 nav로 분리해 좁은 화면에서
+          둘째 줄로 내려갑니다(.topbar의 flex-wrap + order로 처리). */}
       <div className="user-area">
         {!isFirebaseConfigured && <RoleSwitcher />}
         {user && broadcastClassId && (
@@ -246,6 +195,61 @@ export default function TopNav({ active, onPython, pyActive = false }) {
           <IconLogout size={18} /> <span className="nav-label">로그아웃</span>
         </button>
       </div>
+
+      {/* 둘째 줄(좁은 화면) / 로고 옆(넓은 화면): 이동 메뉴 — 질문방 · 공부방 ·
+          책방 · 파이썬 실행기 · 알림 · 리포트(또는 대시보드) */}
+      <nav className="topnav-menu">
+        <button
+          className={`btn-ghost ${active === "board" ? "nav-active" : ""}`}
+          onClick={() => go("/board")}
+          title="질문방"
+        >
+          <IconAnswer size={20} /> <span className="nav-label">질문방</span>
+        </button>
+        <button
+          className={`btn-ghost ${active === "study" ? "nav-active" : ""}`}
+          onClick={() => go("/study")}
+          title="공부방"
+        >
+          <IconBlackboard size={20} /> <span className="nav-label">공부방</span>
+        </button>
+        <button
+          className={`btn-ghost ${active === "books" ? "nav-active" : ""}`}
+          onClick={() => go("/books")}
+          title="책방"
+        >
+          <IconBook size={20} /> <span className="nav-label">책방</span>
+        </button>
+
+        <button
+          data-py-toggle
+          className={`btn-ghost ${pyActive ? "py-btn-active" : ""}`}
+          onClick={handlePython}
+          title="파이썬 실행기"
+        >
+          <IconPythonRunner size={20} /> <span className="nav-label">파이썬 실행기</span>
+        </button>
+        {admin ? (
+          <button
+            className={`btn-ghost ${active === "admin" ? "nav-active" : ""}`}
+            onClick={() => go("/admin")}
+            title="선생님 대시보드"
+          >
+            <IconTeacher size={20} />{" "}
+            <span className="nav-label">선생님 대시보드</span>
+          </button>
+        ) : (
+          <button
+            className={`btn-ghost ${active === "report" ? "nav-active" : ""}`}
+            onClick={() => go("/report")}
+            title="학습 리포트"
+          >
+            <IconReport size={20} /> <span className="nav-label">학습 리포트</span>
+          </button>
+        )}
+
+        {/* 역할 관리는 프로필 메뉴의 '관리자 설정'으로 이동 */}
+      </nav>
     </header>
 
     {/* 학생 화면 — 교사가 방송 중이면 화면 전체를 강제로 덮습니다(학생은 닫을 수 없음) */}

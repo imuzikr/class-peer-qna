@@ -22,6 +22,7 @@ import {
   onAuthChange,
   SCHOOL_EMAIL_DOMAIN,
 } from "@/lib/auth";
+import { isInAppBrowser } from "@/lib/browser";
 import SiteFooter from "@/components/SiteFooter";
 import { IconLogo } from "@/components/StatusIcons";
 
@@ -34,7 +35,12 @@ function authErrorMessage(code) {
     "auth/invalid-credential": "이메일 또는 비밀번호가 올바르지 않습니다.",
     "auth/email-already-in-use": "이미 가입된 이메일입니다.",
     "auth/weak-password": "비밀번호는 6자 이상이어야 합니다.",
-    "auth/popup-closed-by-user": "구글 로그인 창이 닫혔습니다.",
+    "auth/popup-closed-by-user": "구글 로그인 창이 닫혔습니다. 카카오톡 등 앱 안에서 열었다면 브라우저(Chrome·Safari)에서 다시 시도해 주세요.",
+    "auth/popup-blocked": "브라우저가 로그인 창을 막았어요. 팝업 차단을 해제한 뒤 다시 시도해 주세요.",
+    "auth/cancelled-popup-request": "로그인 창이 중복으로 열려 취소됐어요. 다시 시도해 주세요.",
+    "auth/unauthorized-domain": "이 주소에서는 구글 로그인을 쓸 수 없어요. 선생님께 알려 주세요.",
+    "auth/operation-not-allowed": "구글 로그인이 꺼져 있어요. 선생님께 알려 주세요.",
+    "auth/network-request-failed": "네트워크 연결을 확인하고 다시 시도해 주세요.",
     "auth/too-many-requests": "잠시 후 다시 시도해 주세요.",
     "auth/school-domain-required": `학교 이메일(@${SCHOOL_EMAIL_DOMAIN})로만 가입할 수 있습니다.`,
     "auth/registration-code-invalid": "등록 코드가 올바르지 않습니다. 선생님께 받은 코드를 다시 확인해 주세요.",
@@ -50,7 +56,12 @@ function authErrorMessage(code) {
     "permission-denied":
       "계정 정보를 읽지 못했습니다. 잠시 후 다시 시도하고, 계속 안 되면 선생님께 알려 주세요.",
   };
-  return map[code] || "로그인에 실패했습니다. 다시 시도해 주세요.";
+  if (map[code]) return map[code];
+  // 매핑에 없는 코드는 원인을 짐작할 수 없게 뭉뚱그리지 않고, 코드 값을
+  // 그대로 붙여 보여 줍니다 — 화면 문구만으로는 원인을 알 수 없어 학생이
+  // 겪은 걸 그대로 전해도 재현·진단이 안 되던 문제(예: 구글 계정만 가끔
+  // 가입이 안 된다는 신고)를 다음번엔 코드 값으로 바로 짚을 수 있게 합니다.
+  return code ? `로그인에 실패했습니다. (${code})` : "로그인에 실패했습니다. 다시 시도해 주세요.";
 }
 
 function GoogleMark() {
@@ -73,6 +84,14 @@ export default function LandingPage() {
   const [regCode, setRegCode] = useState(""); // 회원가입 시 선생님이 알려준 등록 코드
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  // 카카오톡 등 인앱 브라우저 — 구글이 이 안에서의 OAuth 로그인 자체를
+  // 막아, 학교 이메일(구글) 계정만 가입이 안 되고 이메일·비밀번호는
+  // 되는 신고의 가장 흔한 원인입니다. 서버에는 navigator가 없어 마운트
+  // 후에만 판별합니다.
+  const [inApp, setInApp] = useState(false);
+  useEffect(() => {
+    setInApp(isInAppBrowser());
+  }, []);
 
   // ── 로그인/회원가입 모달 접근성 ──
   const firstFieldRef = useRef(null);
@@ -330,6 +349,14 @@ export default function LandingPage() {
               {isFirebaseConfigured && (
                 <>
                   <div className="auth-divider"><span>또는</span></div>
+                  {inApp && (
+                    <p className="auth-inapp-warning" role="alert">
+                      ⚠️ 카카오톡 등 앱 안에서 열린 화면이에요. 구글 로그인은
+                      여기서 막힐 수 있으니, 우측 상단 메뉴에서 &apos;다른
+                      브라우저로 열기&apos;를 눌러 Chrome이나 Safari에서
+                      다시 시도해 주세요.
+                    </p>
+                  )}
                   <button
                     type="button"
                     className="btn-google"

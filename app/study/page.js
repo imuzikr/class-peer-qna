@@ -31,6 +31,8 @@ import {
   markStudyAttendance,
   subscribeMyStudyAttendance,
   subscribeClassStudyAttendance,
+  startClassAttendance,
+  stopClassAttendance,
   todayDateKey,
   subscribeStudyGroupAssignment,
   subscribeStudySeatLayout,
@@ -107,6 +109,7 @@ function StudyPageInner() {
   const [attending, setAttending] = useState(false);
   const [lessons, setLessons] = useState([]); // 교사: 내가 만든 수업 자료 목록
   const [seatSetupOpen, setSeatSetupOpen] = useState(false); // 자리 배정·모둠 설정 모달
+  const [seatSetupReturnTo, setSeatSetupReturnTo] = useState(null); // "lessons" | "classManager" | null — 닫을 때 돌아갈 곳
   const [seatLayout, setSeatLayout] = useState(null);
   const [askKeyword, setAskKeyword] = useState(null); // "질문하기"로 새 질문 작성
   const [askCode, setAskCode] = useState(null);     // 파이썬 실행기에서 넘어온 코드
@@ -293,6 +296,17 @@ function StudyPageInner() {
     setTeacherClassId(remembered);
   }, [admin, myClasses, myClassesAll, teacherClassId, localSelectedId]);
 
+  // teacherClassId가 바뀌는 모든 경로(위 자동 대체 포함)를 세션 저장값과
+  // 동기화합니다. 이전엔 드롭다운 선택 등 몇몇 호출부에서만 개별적으로
+  // setSelectedClassId를 불러, 반이 하나뿐이라 드롭다운을 만질 일이 없는
+  // 교사는 이 값이 끝내 비워진 채로 남았습니다 — 그 값을 읽는 TopNav의
+  // '언제든 질문하기(손들기)' 구독이 엉뚱한(또는 없는) 반을 보게 되어,
+  // 학생이 손을 들어도 교사 화면에 아이콘이 나타나지 않는 원인이었습니다.
+  useEffect(() => {
+    if (!admin || !teacherClassId) return;
+    setSelectedClassId(teacherClassId);
+  }, [admin, teacherClassId]);
+
   const classId = admin ? teacherClassId : studentClassId;
   const currentClass =
     (admin ? myClassesAll : classes).find((c) => c.id === classId) ?? null;
@@ -303,6 +317,11 @@ function StudyPageInner() {
   );
   const todayAttendanceKey = todayDateKey();
   const attendedToday = !admin && attendanceRecords.some((r) => r.date === todayAttendanceKey);
+  // 교사가 '출석 시작'을 오늘 눌렀을 때만 유효 — attendanceOpenDate가 오늘과
+  // 다르면(종료를 깜빡 잊고 다음 날로 넘어간 경우) 열려 있어도 오늘은 닫힌
+  // 것으로 봅니다. store.js의 startClassAttendance/보안 규칙과 같은 기준.
+  const attendanceOpenToday =
+    !!currentClass?.attendanceOpen && currentClass?.attendanceOpenDate === todayAttendanceKey;
 
   useEffect(() => {
     if (!classId || !user?.uid) {
@@ -360,6 +379,27 @@ function StudyPageInner() {
   }
   function closeLessonNav() {
     router.push("/study");
+  }
+
+  // 자리 배정·모둠 설정 모달 — 수업 준비(LessonManagerModal)와 반 관리하기
+  // (ClassManagerModal) 양쪽에서 똑같이 열 수 있습니다. 그 뒤에 있던
+  // 모달을 먼저 닫고 열어야 두 모달이 겹쳐 보이지 않고, 닫을 때는
+  // 원래 있던 곳으로 되돌아갑니다.
+  function openSeatSetupFromLessons() {
+    setSeatSetupReturnTo("lessons");
+    closeLessonNav();
+    setSeatSetupOpen(true);
+  }
+  function openSeatSetupFromClassManager() {
+    setSeatSetupReturnTo("classManager");
+    setClassManagerOpen(false);
+    setSeatSetupOpen(true);
+  }
+  function closeSeatSetup() {
+    setSeatSetupOpen(false);
+    if (seatSetupReturnTo === "lessons") openLessonPicker();
+    else if (seatSetupReturnTo === "classManager") setClassManagerOpen(true);
+    setSeatSetupReturnTo(null);
   }
 
   useEffect(() => {
@@ -444,15 +484,14 @@ function StudyPageInner() {
   }
 
   // '반 관리하기' 모달에서 새 반을 만들면 그 반으로 전환합니다.
+  // (세션 저장값 동기화는 위 teacherClassId 변경 감지 effect가 도맡습니다)
   function handleClassCreated(newClassId) {
     setTeacherClassId(newClassId);
-    setSelectedClassId(newClassId);
     setClassManagerOpen(false);
   }
   // '반 관리하기'에서 보관된 반의 '보기'를 누르면 그 반을(보기 전용으로) 봅니다.
   function handleViewArchivedClass(id) {
     setTeacherClassId(id);
-    setSelectedClassId(id);
     setShowCode(false);
     setClassManagerOpen(false);
   }
@@ -477,13 +516,36 @@ function StudyPageInner() {
     }
   }
   async function handleAttendance() {
-    if (!classId || !user || attending || admin) return;
+    if (!classId || !user || attending || admin || attendedToday || !attendanceOpenToday) return;
     setAttending(true);
     try {
       await markStudyAttendance(classId, user, todayAttendanceKey);
-      setToast(attendedToday ? "오늘 출석은 이미 기록되어 있어요." : "오늘 출석을 기록했어요.");
+      setToast("오늘 출석을 기록했어요.");
     } finally {
       setAttending(false);
+    }
+  }
+
+  // [교사] 출석 시작/종료 — 학생의 '출석하기' 버튼을 켜고 끕니다.
+  const [attendanceBusy, setAttendanceBusy] = useState(false);
+  async function handleStartAttendance() {
+    if (!classId || attendanceBusy) return;
+    setAttendanceBusy(true);
+    try {
+      await startClassAttendance(classId);
+      setToast("출석을 시작했어요. 학생들이 출석할 수 있어요.");
+    } finally {
+      setAttendanceBusy(false);
+    }
+  }
+  async function handleStopAttendance() {
+    if (!classId || attendanceBusy) return;
+    setAttendanceBusy(true);
+    try {
+      await stopClassAttendance(classId);
+      setToast("출석을 종료했어요.");
+    } finally {
+      setAttendanceBusy(false);
     }
   }
 
@@ -544,8 +606,14 @@ function StudyPageInner() {
                         <button
                           className={`btn-ghost study-attend-btn${attendedToday ? " done" : ""}`}
                           onClick={handleAttendance}
-                          disabled={attending || attendedToday}
-                          title={attendedToday ? "오늘 출석이 이미 기록되었습니다" : "오늘 출석을 기록합니다"}
+                          disabled={attending || attendedToday || !attendanceOpenToday}
+                          title={
+                            attendedToday
+                              ? "오늘 출석이 이미 기록되었습니다"
+                              : attendanceOpenToday
+                              ? "오늘 출석을 기록합니다"
+                              : "선생님이 출석을 아직 시작하지 않았어요"
+                          }
                         >
                           {attendedToday ? "✅ 출석 완료" : "✅ 출석하기"}
                         </button>
@@ -568,7 +636,6 @@ function StudyPageInner() {
                           value={classId ?? ""}
                           onChange={(e) => {
                             setTeacherClassId(e.target.value);
-                            setSelectedClassId(e.target.value); // 새로고침해도 이 반 유지
                             setShowCode(false);
                           }}
                           aria-label="반 선택"
@@ -604,17 +671,7 @@ function StudyPageInner() {
                         className="btn-ghost"
                         onClick={() => setAttendanceOpen(true)}
                       >
-                        📋 출석부 보기
-                      </button>
-                    )}
-                    {admin && currentClass && !currentClass.archived && (
-                      <button
-                        className="btn-ghost"
-                        onClick={() => setSeatSetupOpen(true)}
-                        disabled={roster.length === 0}
-                        title={roster.length > 0 ? "실제 좌석과 장기 모둠을 미리 정합니다" : "이 반에 입장한 학생이 없어요"}
-                      >
-                        🪑 자리 배정하기
+                        📋 출석 관리
                       </button>
                     )}
                     {admin && (
@@ -856,6 +913,10 @@ function StudyPageInner() {
           isTeacher={admin}
           records={attendanceRecords}
           roster={admin ? roster : []}
+          attendanceOpenToday={attendanceOpenToday}
+          attendanceBusy={attendanceBusy}
+          onStartAttendance={admin ? handleStartAttendance : null}
+          onStopAttendance={admin ? handleStopAttendance : null}
           onClose={() => setAttendanceOpen(false)}
         />
       )}
@@ -867,7 +928,7 @@ function StudyPageInner() {
           groupAssignment={baseGroupAssignment}
           onSaveSeats={(seats) => saveStudySeatLayout(classId, "default", seats, getCurrentUser())}
           onSaveGroups={(groups) => saveStudyGroupAssignment(classId, groups, getCurrentUser())}
-          onClose={() => setSeatSetupOpen(false)}
+          onClose={closeSeatSetup}
         />
       )}
 
@@ -879,6 +940,8 @@ function StudyPageInner() {
           onCreated={handleClassCreated}
           onViewClass={handleViewArchivedClass}
           onToast={setToast}
+          onOpenSeatSetup={openSeatSetupFromClassManager}
+          seatSetupDisabled={roster.length === 0}
         />
       )}
 
@@ -936,6 +999,8 @@ function StudyPageInner() {
             }
             openLessonTeach(lesson);
           }}
+          onOpenSeatSetup={openSeatSetupFromLessons}
+          seatSetupDisabled={roster.length === 0}
         />
       )}
 
@@ -976,6 +1041,8 @@ function StudyPageInner() {
           className={currentClass?.name ?? ""}
           roster={admin ? roster : []}
           attendanceRecords={admin ? attendanceRecords : []}
+          // 참여 전광판 카드에서 바로 과일을 줍니다(보관된 반은 쓰기 불가)
+          onAward={admin && !currentClass?.archived ? awardReward : null}
           // '공부중' 전광판이 연결된 수업 보드를 찾는 데 씁니다
           boards={classBoards.filter((b) => b.type !== "notice")}
           onClose={closeLessonNav}

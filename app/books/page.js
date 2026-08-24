@@ -437,12 +437,12 @@ function BooksPageInner() {
                   <span className="books-class-name">{currentClass.name}</span>
                 )
               )}
+              {admin && classId && !openKindInfo && (
+                <button className="btn-primary" onClick={() => setCreatingType("consonant")}>
+                  ＋ 독서 활동 만들기
+                </button>
+              )}
             </div>
-            {admin && classId && (
-              <button className="btn-primary" onClick={() => setCreatingType("consonant")}>
-                ＋ 독서 활동 만들기
-              </button>
-            )}
           </div>
 
           <p className="books-intro">

@@ -7377,12 +7377,6 @@ pre code {
 .lesson-note-empty {
   color: var(--text-sub);
   font-size: 14px;
-  padding: 0 20px;
-  margin: 0;
-}
-.study-attendance-modal .lesson-note-empty {
-  padding: 0 20px;
-}
 }
 /* 이전 · 다음 · 시작/종료 — 셋 다 같은 모양·크기.
    width(고정)를 써서 글자 길이가 달라도 버튼 크기가 늘어나지 않게 합니다
@@ -8903,8 +8897,6 @@ pre code {
    목록의 기준 날짜를 바꿀 수 있고, 학생은 보기 전용입니다) */
 .study-attendance-calendar {
   margin-bottom: 14px;
-  margin-left: 20px;
-  margin-right: 20px;
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 12px;
