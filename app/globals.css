@@ -1869,6 +1869,10 @@ button.footer-link:hover {
   flex-shrink: 0;
   white-space: nowrap;
 }
+.class-mgr-seat-btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
 .class-mgr-section {
   margin-top: 18px;
   padding-top: 14px;

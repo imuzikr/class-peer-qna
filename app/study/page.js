@@ -107,6 +107,7 @@ function StudyPageInner() {
   const [attending, setAttending] = useState(false);
   const [lessons, setLessons] = useState([]); // 교사: 내가 만든 수업 자료 목록
   const [seatSetupOpen, setSeatSetupOpen] = useState(false); // 자리 배정·모둠 설정 모달
+  const [seatSetupReturnTo, setSeatSetupReturnTo] = useState(null); // "lessons" | "classManager" | null — 닫을 때 돌아갈 곳
   const [seatLayout, setSeatLayout] = useState(null);
   const [askKeyword, setAskKeyword] = useState(null); // "질문하기"로 새 질문 작성
   const [askCode, setAskCode] = useState(null);     // 파이썬 실행기에서 넘어온 코드
@@ -371,6 +372,27 @@ function StudyPageInner() {
   }
   function closeLessonNav() {
     router.push("/study");
+  }
+
+  // 자리 배정·모둠 설정 모달 — 수업 준비(LessonManagerModal)와 반 관리하기
+  // (ClassManagerModal) 양쪽에서 똑같이 열 수 있습니다. 그 뒤에 있던
+  // 모달을 먼저 닫고 열어야 두 모달이 겹쳐 보이지 않고, 닫을 때는
+  // 원래 있던 곳으로 되돌아갑니다.
+  function openSeatSetupFromLessons() {
+    setSeatSetupReturnTo("lessons");
+    closeLessonNav();
+    setSeatSetupOpen(true);
+  }
+  function openSeatSetupFromClassManager() {
+    setSeatSetupReturnTo("classManager");
+    setClassManagerOpen(false);
+    setSeatSetupOpen(true);
+  }
+  function closeSeatSetup() {
+    setSeatSetupOpen(false);
+    if (seatSetupReturnTo === "lessons") openLessonPicker();
+    else if (seatSetupReturnTo === "classManager") setClassManagerOpen(true);
+    setSeatSetupReturnTo(null);
   }
 
   useEffect(() => {
@@ -866,7 +888,7 @@ function StudyPageInner() {
           groupAssignment={baseGroupAssignment}
           onSaveSeats={(seats) => saveStudySeatLayout(classId, "default", seats, getCurrentUser())}
           onSaveGroups={(groups) => saveStudyGroupAssignment(classId, groups, getCurrentUser())}
-          onClose={() => setSeatSetupOpen(false)}
+          onClose={closeSeatSetup}
         />
       )}
 
@@ -878,6 +900,8 @@ function StudyPageInner() {
           onCreated={handleClassCreated}
           onViewClass={handleViewArchivedClass}
           onToast={setToast}
+          onOpenSeatSetup={openSeatSetupFromClassManager}
+          seatSetupDisabled={roster.length === 0}
         />
       )}
 
@@ -935,7 +959,7 @@ function StudyPageInner() {
             }
             openLessonTeach(lesson);
           }}
-          onOpenSeatSetup={() => setSeatSetupOpen(true)}
+          onOpenSeatSetup={openSeatSetupFromLessons}
           seatSetupDisabled={roster.length === 0}
         />
       )}
