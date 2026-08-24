@@ -297,6 +297,18 @@ select:focus {
   font-size: 13px;
 }
 
+/* 카카오톡 등 인앱 브라우저 경고 — 구글 로그인 버튼 바로 위 */
+.auth-inapp-warning {
+  margin: 0;
+  color: #8a5a12;
+  background: rgba(217, 149, 20, 0.1);
+  border: 1px solid rgba(217, 149, 20, 0.3);
+  border-radius: var(--radius-btn);
+  padding: 8px 12px;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
 .auth-divider {
   display: flex;
   align-items: center;
