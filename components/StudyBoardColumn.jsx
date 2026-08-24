@@ -32,7 +32,7 @@ import StudyCardModal from "./StudyCardModal";
 import StudyPresentModal from "./StudyPresentModal";
 import StudyProgressBoard from "./StudyProgressBoard";
 import GroupComposer from "./GroupComposer";
-import { IconTrash, IconSettings, IconLock, IconDuplicate, IconPen, IconPeople } from "./StatusIcons";
+import { IconTrash, IconSettings, IconCheck, IconLock, IconDuplicate, IconPen, IconPeople } from "./StatusIcons";
 
 export default function StudyBoardColumn({
   board,
@@ -503,6 +503,19 @@ export default function StudyBoardColumn({
               ▶
             </button>
           )}
+          {isTeacher && !isNotice && !isGroup && (
+            <button
+              className="study-check-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                setProgressOpen(true);
+              }}
+              title="공부중 전광판 — 학생별 제출 상태 확인"
+              aria-label="공부중 전광판"
+            >
+              <IconCheck size={20} />
+            </button>
+          )}
           {isTeacher && (
             <button
               className={`study-panel-toggle${panelOpen ? " open" : ""}`}
@@ -603,14 +616,6 @@ export default function StudyBoardColumn({
                       title="제출 시간 정렬"
                     >
                       제출 {timeDir === "asc" ? "↑" : "↓"}
-                    </button>
-                    <button
-                      type="button"
-                      className="study-sort-btn study-sort-btn--check"
-                      onClick={() => setProgressOpen(true)}
-                      title="공부중 전광판 — 학생별 제출 상태 확인"
-                    >
-                      확인
                     </button>
                     <button
                       type="button"

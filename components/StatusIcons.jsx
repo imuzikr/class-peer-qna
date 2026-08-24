@@ -445,6 +445,15 @@ export function IconAddFeature({ size = 20, className = "" }) {
   );
 }
 
+export function IconCheck({ size = 20, className = "" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">
+      <circle cx="12" cy="12" r="9" stroke="#3A312E" strokeWidth="1.55"/>
+      <path d="M8 12.3 10.7 15 16 9" stroke="#3A312E" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
 export function IconSettings({ size = 20, className = "" }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">

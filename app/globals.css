@@ -9834,6 +9834,21 @@ pre code {
   font-weight: 600;
 }
 
+/* 공부중 전광판 열기 — 보드 설정(톱니바퀴) 왼쪽의 체크 아이콘 */
+.study-check-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+.study-check-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
 /* + 토글 버튼 — 열릴 때 45° 회전해서 × 형태 */
 .study-panel-toggle {
   background: none;
@@ -11442,6 +11457,7 @@ pre code {
     height: 34px;
   }
   .study-panel-toggle,
+  .study-check-btn,
   .study-pin-btn {
     width: 34px;
     height: 34px;
