@@ -145,9 +145,13 @@ export default function LessonMode({
   }, 0);
 
   // 헤더 버튼에 보여 줄 '활동을 하나라도 쓴' 인원
+  // 모둠 보드는 카드 한 장을 모둠원 여럿이 공유하므로 memberUids로 찾음
+  const isGroupBoard = board?.activityType === "group";
   const studyingCount = roster.reduce((n, s) => {
-    const card = boardCards.find((c) => c.authorId === s.uid);
-    return cardProgress(card, boardActs.length).some(Boolean) ? n + 1 : n;
+    const card = boardCards.find((c) =>
+      isGroupBoard ? c.memberUids?.includes(s.uid) : c.authorId === s.uid
+    );
+    return cardProgress(card, boardActs).some(Boolean) ? n + 1 : n;
   }, 0);
 
   const cur = slides[Math.min(idx, total - 1)];
