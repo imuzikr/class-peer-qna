@@ -6390,21 +6390,6 @@ pre code {
   opacity: 0.5;
   cursor: default;
 }
-.lesson-seating {
-  margin-top: 18px;
-}
-.lesson-seating-body {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-.lesson-seating-summary {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--text-sub);
-}
-
 /* 활동 목록 — 학생 카드에 그대로 들어갈 항목들.
    번호를 '활동 1'처럼 직접 그리므로 기본 목록 마커 자리는 비웁니다. */
 .lesson-board-acts {
@@ -10881,6 +10866,17 @@ pre code {
   /* 학습 공간 드롭다운도 아이콘만 */
   .topnav-drop-btn { padding: 5px 9px; font-size: 13px; }
   .topnav-drop-chevron { display: none; }
+
+  /* 알림 뱃지 — 버튼 패딩은 줄어드는데 뱃지는 그대로라 종 아이콘을
+     너무 많이 가렸습니다. 숫자를 작은 점처럼 줄여 아이콘이 보이게 합니다. */
+  .notif-badge {
+    min-width: 13px;
+    height: 13px;
+    padding: 0 3px;
+    font-size: 8px;
+    top: 1px;
+    right: 1px;
+  }
 
   /* 로그아웃 아이콘만 */
   .btn-logout .nav-label { display: none; }
