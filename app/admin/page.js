@@ -235,6 +235,48 @@ function EmptyPanel({ children }) {
 }
 
 // 좌측 패널의 사용자 행 (학생·선생님 공용)
+// 학생 목록 정렬 — null(기본: 활동량순)이면 그대로 두고, 'name'/'studentId'면
+// 오름차순으로 다시 정렬합니다. 학번이 없는 학생(가입 직후 등)은 뒤로 보냅니다.
+function sortStudentList(list, key) {
+  if (!key) return list;
+  const sorted = [...list];
+  if (key === "name") {
+    sorted.sort((a, b) =>
+      (a.realName || a.name).localeCompare(b.realName || b.name, "ko")
+    );
+  } else if (key === "studentId") {
+    sorted.sort((a, b) => {
+      if (!a.studentId && !b.studentId) return 0;
+      if (!a.studentId) return 1;
+      if (!b.studentId) return -1;
+      return a.studentId.localeCompare(b.studentId, "ko", { numeric: true });
+    });
+  }
+  return sorted;
+}
+
+// 학생 목록 헤더 오른쪽의 정렬 선택 — 같은 버튼을 다시 누르면 기본 순서로 되돌립니다.
+function StudentSortToggle({ sortKey, onChange }) {
+  return (
+    <div className="student-sort-toggle">
+      <button
+        type="button"
+        className={sortKey === "name" ? "active" : ""}
+        onClick={() => onChange(sortKey === "name" ? null : "name")}
+      >
+        이름순
+      </button>
+      <button
+        type="button"
+        className={sortKey === "studentId" ? "active" : ""}
+        onClick={() => onChange(sortKey === "studentId" ? null : "studentId")}
+      >
+        학번순
+      </button>
+    </div>
+  );
+}
+
 function PersonRow({ person, selectedId, onSelect, onEdit, teacher = false }) {
   // 실명 아래엔 이메일(안정적 식별자)을 표시. 세션마다 바뀌는 닉네임은 의미가
   // 없어 표시하지 않습니다. 실명·이메일이 모두 없을 때만 '실명 미등록' 안내.
@@ -288,6 +330,9 @@ export default function AdminDashboardPage() {
   // (한쪽에서 반을 바꿔도 다른 쪽 화면이 같이 흔들리지 않도록)
   const [analysisClassId, setAnalysisClassId] = useState(null);
   const [classMemberIds, setClassMemberIds] = useState(null); // 그 반 소속 uid Set
+  // 학생 목록 정렬 — null(기본: 활동량순) | 'name' | 'studentId'.
+  // 학생별 분석·학급별 분석 양쪽의 학생 목록에 공통으로 적용됩니다.
+  const [studentSortKey, setStudentSortKey] = useState(null);
   const [classes, setClasses] = useState([]);
   const [studyBoards, setStudyBoards] = useState([]);
   const [cardsByBoard, setCardsByBoard] = useState({});
@@ -561,6 +606,15 @@ export default function AdminDashboardPage() {
   const analysisClassName =
     myClasses.find((c) => c.id === analysisClassId)?.name ?? "";
 
+  const sortedStudents = useMemo(
+    () => sortStudentList(students, studentSortKey),
+    [students, studentSortKey]
+  );
+  const sortedClassStudents = useMemo(
+    () => sortStudentList(classStudents, studentSortKey),
+    [classStudents, studentSortKey]
+  );
+
   const allPendingReflections = useMemo(
     () => questions.filter(
       (q) => q.reflectionPending && q.authorId && !q.authorId.startsWith("teacher_")
@@ -812,13 +866,16 @@ export default function AdminDashboardPage() {
                 <h2>학생 목록</h2>
                 <span>{classStudents.length}명</span>
               </div>
+              {classStudents.length > 0 && (
+                <StudentSortToggle sortKey={studentSortKey} onChange={setStudentSortKey} />
+              )}
               {!analysisClassId ? (
                 <EmptyPanel>반을 선택해 주세요.</EmptyPanel>
               ) : classStudents.length === 0 ? (
                 <EmptyPanel>이 반에 소속된 학생이 없습니다.</EmptyPanel>
               ) : (
                 <div className="student-list">
-                  {classStudents.map((student) => (
+                  {sortedClassStudents.map((student) => (
                     <PersonRow
                       key={student.id}
                       person={student}
@@ -874,12 +931,15 @@ export default function AdminDashboardPage() {
             <h2>학생 목록</h2>
             <span>{students.length}명</span>
           </div>
+          {students.length > 0 && (
+            <StudentSortToggle sortKey={studentSortKey} onChange={setStudentSortKey} />
+          )}
 
           {students.length === 0 ? (
             <EmptyPanel>활동 데이터가 없습니다.</EmptyPanel>
           ) : (
             <div className="student-list">
-              {students.map((student) => (
+              {sortedStudents.map((student) => (
                 <PersonRow
                   key={student.id}
                   person={student}
