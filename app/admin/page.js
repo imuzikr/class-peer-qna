@@ -19,6 +19,7 @@ import {
   subscribeStudentRewardTotal,
   subscribeAllRewards,
   subscribeRewardsForClasses,
+  subscribeClassMembers,
   toDate,
   deleteStudent,
   dismissWithdrawalRequest,
@@ -269,7 +270,9 @@ export default function AdminDashboardPage() {
   const [keywordDocs, setKeywordDocs] = useState([]);
   const [answersByQuestion, setAnswersByQuestion] = useState({});
   const [selectedId, setSelectedId] = useState(null);
-  const [pendingOpen, setPendingOpen] = useState(true);
+  // 대시보드에 들어오면 '인사이트 미완료'는 접힌 상태로 시작합니다 —
+  // 목록이 길면 화면 위쪽을 통째로 차지해 본 화면이 밀려 내려갑니다.
+  const [pendingOpen, setPendingOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState(null);
   const [confirmWithdrawStudent, setConfirmWithdrawStudent] = useState(null);
   const [withdrawBusy, setWithdrawBusy] = useState(false);
@@ -279,8 +282,12 @@ export default function AdminDashboardPage() {
   const [selectedNotes, setSelectedNotes] = useState([]); // 선택 학생 멋진 순간(누가기록)
   const [selectedFruits, setSelectedFruits] = useState(0); // 선택 학생 받은 과일 총합
   const [allRewards, setAllRewards] = useState([]); // 전체 반 과일 보상(학급 통계용)
-  const [view, setView] = useState("students"); // 'students' | 'overview'
+  const [view, setView] = useState("students"); // 'students' | 'classes' | 'overview'
   const [selectedClassId, setSelectedClassId] = useState(null); // null = 전체 학급
+  // 학급별 분석에서 고른 반 — 종합 분석의 selectedClassId와 따로 둡니다.
+  // (한쪽에서 반을 바꿔도 다른 쪽 화면이 같이 흔들리지 않도록)
+  const [analysisClassId, setAnalysisClassId] = useState(null);
+  const [classMemberIds, setClassMemberIds] = useState(null); // 그 반 소속 uid Set
   const [classes, setClasses] = useState([]);
   const [studyBoards, setStudyBoards] = useState([]);
   const [cardsByBoard, setCardsByBoard] = useState({});
@@ -325,6 +332,36 @@ export default function AdminDashboardPage() {
     () => myClasses.map((c) => c.id).sort().join(","),
     [myClasses]
   );
+
+  // 학급별 분석의 반 버튼 순서 — 첫 줄에 자주 쓰는 반을 고정으로 놓고,
+  // 나머지는 이름 오름차순. (버튼 그리드가 3열이라 앞의 3개가 첫 줄이 됩니다)
+  const PINNED_CLASS_NAMES = ["정보 B", "정보 C", "GUEST ROOM"];
+  const orderedClasses = useMemo(() => {
+    const norm = (s) => (s ?? "").trim().toLowerCase();
+    const rank = new Map(PINNED_CLASS_NAMES.map((n, i) => [norm(n), i]));
+    const pinned = [];
+    const rest = [];
+    myClasses.forEach((c) => {
+      const at = rank.get(norm(c.name));
+      if (at === undefined) rest.push(c);
+      else pinned[at] = c;
+    });
+    rest.sort((a, b) => (a.name ?? "").localeCompare(b.name ?? "", "ko", { numeric: true }));
+    return [...pinned.filter(Boolean), ...rest];
+  }, [myClasses]);
+
+  // 학급별 분석: 고른 반의 소속 학생(memberships) 구독.
+  // 공부방·KWL 참여 기록이 아니라 실제 소속을 봐야, 아직 활동이 없는
+  // 학생도 그 반 명단에 함께 나옵니다.
+  useEffect(() => {
+    if (!analysisClassId) {
+      setClassMemberIds(null);
+      return;
+    }
+    return subscribeClassMembers(analysisClassId, (uids) =>
+      setClassMemberIds(new Set(uids))
+    );
+  }, [analysisClassId]);
   // 소유 반의 보드만 (공부방 통계·카드 구독 대상)
   const myBoards = useMemo(() => {
     if (superAdmin) return studyBoards;
@@ -513,6 +550,17 @@ export default function AdminDashboardPage() {
   // 선택 대상 조회는 학생+선생님을 합쳐서 (선생님도 클릭해 활동 분석 가능)
   const people = useMemo(() => [...students, ...teachers], [students, teachers]);
 
+  // 학급별 분석에서 왼쪽에 보여 줄 학생 — 고른 반의 소속만.
+  // (구독이 아직 안 끝났으면 null이라 빈 목록으로 보여 줍니다)
+  const classStudents = useMemo(() => {
+    if (!analysisClassId) return [];
+    if (!classMemberIds) return [];
+    return students.filter((s) => classMemberIds.has(s.id));
+  }, [students, classMemberIds, analysisClassId]);
+
+  const analysisClassName =
+    myClasses.find((c) => c.id === analysisClassId)?.name ?? "";
+
   const allPendingReflections = useMemo(
     () => questions.filter(
       (q) => q.reflectionPending && q.authorId && !q.authorId.startsWith("teacher_")
@@ -577,6 +625,22 @@ export default function AdminDashboardPage() {
       setSelectedId(students[0]?.id ?? null);
     }
   }, [selectedId, students, people]);
+
+  // 학급별 분석에 들어오면 반이 하나는 골라져 있게 합니다(첫 번째 반).
+  useEffect(() => {
+    if (view !== "classes") return;
+    if (analysisClassId && myClasses.some((c) => c.id === analysisClassId)) return;
+    setAnalysisClassId(orderedClasses[0]?.id ?? null);
+  }, [view, analysisClassId, myClasses, orderedClasses]);
+
+  // 반을 바꾸면 그 반 학생 중 첫 번째를 자동으로 선택합니다 — 오른쪽이
+  // 다른 반 학생의 분석을 그대로 붙들고 있지 않도록.
+  useEffect(() => {
+    if (view !== "classes" || !classMemberIds) return;
+    if (selectedId && classMemberIds.has(selectedId)) return;
+    setSelectedId(classStudents[0]?.id ?? null);
+    setActiveStatKey(null);
+  }, [view, classMemberIds, classStudents, selectedId]);
 
   // 선택한 학생의 KWL 기록 구독 (반 무관)
   useEffect(() => {
@@ -719,6 +783,56 @@ export default function AdminDashboardPage() {
                 ))}
               </div>
             </>
+          ) : view === "classes" ? (
+            <>
+              {/* 반 고르기 — 3열 버튼 그리드(첫 줄 고정 3개 + 나머지 오름차순) */}
+              <div className="admin-panel-head">
+                <h2>학급 선택</h2>
+                <span>{orderedClasses.length}개 반</span>
+              </div>
+              {orderedClasses.length === 0 ? (
+                <EmptyPanel>담당하는 반이 없습니다.</EmptyPanel>
+              ) : (
+                <div className="class-pick-grid">
+                  {orderedClasses.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      className={`class-pick-btn ${analysisClassId === c.id ? "active" : ""}`}
+                      onClick={() => setAnalysisClassId(c.id)}
+                      title={c.name}
+                    >
+                      {c.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <div className="admin-panel-head admin-panel-head--sub">
+                <h2>학생 목록</h2>
+                <span>{classStudents.length}명</span>
+              </div>
+              {!analysisClassId ? (
+                <EmptyPanel>반을 선택해 주세요.</EmptyPanel>
+              ) : classStudents.length === 0 ? (
+                <EmptyPanel>이 반에 소속된 학생이 없습니다.</EmptyPanel>
+              ) : (
+                <div className="student-list">
+                  {classStudents.map((student) => (
+                    <PersonRow
+                      key={student.id}
+                      person={student}
+                      selectedId={selectedId}
+                      onSelect={() => {
+                        setSelectedId(student.id);
+                        setActiveStatKey(null);
+                      }}
+                      onEdit={() => setEditingStudent(student)}
+                    />
+                  ))}
+                </div>
+              )}
+            </>
           ) : (
           <>
           {pendingStudentWithdrawals.length > 0 && (
@@ -820,10 +934,17 @@ export default function AdminDashboardPage() {
               </button>
               <button
                 type="button"
+                className={`admin-view-tab ${view === "classes" ? "active" : ""}`}
+                onClick={() => setView("classes")}
+              >
+                학급별 분석
+              </button>
+              <button
+                type="button"
                 className={`admin-view-tab ${view === "overview" ? "active" : ""}`}
                 onClick={() => setView("overview")}
               >
-                학급 전체 통계
+                종합 분석
               </button>
             </div>
           )}
@@ -852,7 +973,13 @@ export default function AdminDashboardPage() {
                   <div className="admin-student-title">
                     <span className="avatar">{selected.emoji}</span>
                     <div>
-                      <h1>{selected.realName || selected.name}</h1>
+                      <h1>
+                        {selected.realName || selected.name}
+                        {/* 학급별 분석에서는 지금 어느 반을 보고 있는지 함께 */}
+                        {view === "classes" && analysisClassName && (
+                          <span className="admin-hero-class">{analysisClassName}</span>
+                        )}
+                      </h1>
                       <p>
                         {!selected.realName && "실명 미등록 · "}
                         {selected.email && `${selected.email} · `}

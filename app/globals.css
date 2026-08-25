@@ -4136,7 +4136,55 @@ pre code {
   color: #fff;
 }
 
-/* 학급 목록(사이드바, 학급 전체 통계 모드) */
+/* 학급별 분석 — 반 고르기 버튼 그리드(3열 고정: 첫 줄 3개 + 둘째 줄 3개) */
+.class-pick-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  padding: 0 4px 10px;
+}
+.class-pick-btn {
+  min-width: 0;
+  padding: 9px 6px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--text-sub);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.3;
+  cursor: pointer;
+  /* 반 이름이 길어도 버튼 폭이 밀리지 않게 줄임표로 자릅니다 */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+.class-pick-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+.class-pick-btn.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+/* 학급별 분석 — 지금 보고 있는 반을 학생 이름 옆에 작게 */
+.admin-hero-class {
+  margin-left: 10px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 800;
+  vertical-align: middle;
+}
+
+/* 학급 목록(사이드바, 종합 분석 모드) */
 .class-row {
   display: flex;
   align-items: center;
