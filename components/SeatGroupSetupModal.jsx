@@ -6,6 +6,16 @@ import { STUDY_SEAT_COUNT } from "@/lib/store";
 
 const GROUP_COLORS = ["#2563eb", "#16a34a", "#f97316", "#9333ea", "#dc2626", "#0891b2"];
 
+// 자리표 그리드는 6열입니다(app/globals.css .seat-setup-grid). 실제 자리 배열
+// 순서(배치·저장에 쓰는 인덱스)는 그대로 두고, 화면에 보이는 번호만 각 줄의
+// 오른쪽 끝을 1번으로 삼아 왼쪽으로 세도록 뒤집습니다.
+const SEAT_COLS = 6;
+function seatDisplayNumber(index) {
+  const row = Math.floor(index / SEAT_COLS);
+  const col = index % SEAT_COLS;
+  return row * SEAT_COLS + (SEAT_COLS - col);
+}
+
 function normalizedSeats(seats = []) {
   const seen = new Set();
   return Array.from({ length: STUDY_SEAT_COUNT }, (_, i) => {
@@ -181,7 +191,7 @@ export default function SeatGroupSetupModal({
                         if (drag?.uid) placeSeat(drag.uid, i);
                       }}
                     >
-                      <span className="seat-slot-no">{i + 1}</span>
+                      <span className="seat-slot-no">{seatDisplayNumber(i)}</span>
                       {s ? (
                         <span className="seat-slot-name" {...chipProps(s.uid, "seat")}>
                           {s.studentId && <em>{s.studentId}</em>}
