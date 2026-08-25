@@ -2590,6 +2590,48 @@ button.footer-link:hover {
   color: #fff;
 }
 
+/* 답변 말풍선 아래 작은 반응(엄지 척/하트/웃는 얼굴) */
+.chat-reactions {
+  display: flex;
+  gap: 4px;
+  margin: 4px 4px 0;
+}
+.chat-reaction-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  font-size: 12px;
+  line-height: 1.6;
+  cursor: pointer;
+}
+.chat-reaction-btn:hover:not(:disabled) {
+  background: var(--neutral);
+}
+.chat-reaction-btn:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+.chat-reaction-btn.active {
+  background: var(--primary-light);
+  border-color: var(--primary);
+}
+.chat-reaction-emoji {
+  font-size: 13px;
+  line-height: 1;
+}
+.chat-reaction-count {
+  min-width: 8px;
+  color: var(--text-sub);
+  font-weight: 700;
+}
+.chat-reaction-btn.active .chat-reaction-count {
+  color: var(--primary-dark);
+}
+
 .understood-bulb {
   width: 24px;
   height: 24px;

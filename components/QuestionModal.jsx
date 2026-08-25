@@ -14,6 +14,7 @@ import {
   setQuestionResolved,
   setQuestionPinned,
   setUnderstoodAnswer,
+  setAnswerReaction,
   deleteQuestion,
 } from "@/lib/store";
 import { isPinnedQuestion } from "@/lib/questionRanking";
@@ -34,6 +35,14 @@ import ZoomableImage from "./ZoomableImage";
 
 // 그리기 캔버스는 무거워 열 때만 로딩
 const DrawingCanvas = dynamic(() => import("./DrawingCanvas"), { ssr: false });
+
+// 답변 말풍선 아래의 작은 반응 — 정답이 아니어도 응답자의 노력을 칭찬하는 용도.
+// field는 lib/store.js의 setAnswerReaction과 답변 문서 필드 이름을 그대로 씁니다.
+const ANSWER_REACTIONS = [
+  { kind: "thumbsUp", emoji: "👍", field: "thumbsUpIds" },
+  { kind: "heart", emoji: "❤️", field: "heartIds" },
+  { kind: "smile", emoji: "😊", field: "smileIds" },
+];
 
 export default function QuestionModal({
   question,
@@ -398,24 +407,37 @@ export default function QuestionModal({
                 html={question.content}
               />
 
-              {answers.map((a) => (
-                <ChatMessage
-                  key={a.id}
-                  mine={a.authorId === user.uid}
-                  author={a.authorName}
-                  emoji={a.authorEmoji}
-                  realName={a.authorRealName}
-                  uid={a.authorId}
-                  time={a.createdAt}
-                  html={a.content}
-                  imageUrl={a.imageUrl}
-                  images={a.images}
-                  understood={understoodAnswerId === a.id}
-                  showUnderstoodIcon
-                  canMarkUnderstood={canManageUnderstood && a.authorId !== user.uid}
-                  onToggleUnderstood={() => handleUnderstood(a.id)}
-                />
-              ))}
+              {answers.map((a) => {
+                const isMine = a.authorId === user.uid;
+                return (
+                  <ChatMessage
+                    key={a.id}
+                    mine={isMine}
+                    author={a.authorName}
+                    emoji={a.authorEmoji}
+                    realName={a.authorRealName}
+                    uid={a.authorId}
+                    time={a.createdAt}
+                    html={a.content}
+                    imageUrl={a.imageUrl}
+                    images={a.images}
+                    understood={understoodAnswerId === a.id}
+                    showUnderstoodIcon
+                    canMarkUnderstood={canManageUnderstood && !isMine}
+                    onToggleUnderstood={() => handleUnderstood(a.id)}
+                    reactions={ANSWER_REACTIONS.map((r) => ({
+                      kind: r.kind,
+                      emoji: r.emoji,
+                      count: (a[r.field] ?? []).length,
+                      active: (a[r.field] ?? []).includes(user.uid),
+                    }))}
+                    reactable={!isMine}
+                    onReact={(kind, active) =>
+                      setAnswerReaction(question.id, a.id, kind, user.uid, !active)
+                    }
+                  />
+                );
+              })}
 
               {answers.length === 0 && (
                 <p className="chat-empty">
@@ -568,6 +590,9 @@ function ChatMessage({
   showUnderstoodIcon = false,
   canMarkUnderstood = false,
   onToggleUnderstood,
+  reactions = null,
+  reactable = false,
+  onReact,
 }) {
   const hasText = stripHtml(html ?? "").length > 0;
   return (
@@ -617,6 +642,26 @@ function ChatMessage({
           <ZoomableImage key={i} src={src} alt="첨부 이미지" className="chat-image" />
         ))}
       </div>
+
+      {/* 답변 반응 — 정답이 아니어도 응답자의 노력을 칭찬하는 작은 이모티콘.
+          같은 이모티콘을 다시 누르면 취소되고, 본인 답변에는 반응할 수 없습니다. */}
+      {reactions && (
+        <div className="chat-reactions">
+          {reactions.map((r) => (
+            <button
+              key={r.kind}
+              type="button"
+              className={`chat-reaction-btn${r.active ? " active" : ""}`}
+              onClick={() => onReact(r.kind, r.active)}
+              disabled={!reactable}
+              title={!reactable ? "내 답변에는 반응할 수 없어요" : r.active ? "반응 취소" : "반응 남기기"}
+            >
+              <span className="chat-reaction-emoji">{r.emoji}</span>
+              <span className="chat-reaction-count">{r.count}</span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

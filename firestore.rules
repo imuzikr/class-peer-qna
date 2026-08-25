@@ -89,6 +89,16 @@ service cloud.firestore {
              && cls.get('attendanceOpenDate', '') == date;
     }
 
+    // ── 답변 반응(엄지 척/하트/웃는 얼굴) 배열 토글 검증 ──────────
+    //  · meTooIds와 같은 방식 — 중복 없이, 이번에 바뀐 사람은 오직 나(uid())뿐이어야 함
+    function isOwnReactionToggle(field) {
+      let before = resource.data.get(field, []);
+      let after = request.resource.data.get(field, []);
+      return after.size() == after.toSet().size()
+             && after.toSet().difference(before.toSet()).hasOnly([uid()])
+             && before.toSet().difference(after.toSet()).hasOnly([uid()]);
+    }
+
     // ── 공부방 보드 헬퍼 ──────────────────────────────────────
     function studyBoardClassId(bId) {
       return get(/databases/$(database)/documents/studyBoards/$(bId)).data.classId;
@@ -233,6 +243,17 @@ service cloud.firestore {
           || isTeacher()
           || (changedOnly(['understood'])
               && get(/databases/$(database)/documents/questions/$(qId)).data.authorId == uid())
+          // 답변에 다는 작은 반응(엄지 척/하트/웃는 얼굴) — 정답 여부와 상관없이
+          // 응답자의 노력을 칭찬하는 용도라 본인 답변엔 못 답니다(meTooIds와 같은 이유).
+          || (resource.data.authorId != uid()
+              && changedOnly(['thumbsUpIds'])
+              && isOwnReactionToggle('thumbsUpIds'))
+          || (resource.data.authorId != uid()
+              && changedOnly(['heartIds'])
+              && isOwnReactionToggle('heartIds'))
+          || (resource.data.authorId != uid()
+              && changedOnly(['smileIds'])
+              && isOwnReactionToggle('smileIds'))
         );
         allow delete: if signedIn() && (resource.data.authorId == uid() || isTeacher());
       }
