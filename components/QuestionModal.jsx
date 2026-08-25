@@ -222,13 +222,13 @@ export default function QuestionModal({
                 />
                 <span>·</span>
                 <time>{formatTime(question.createdAt)}</time>
-                {/* 상세 화면에서도 해결 상태를 바로 전환할 수 있습니다 — 단,
-                    글쓴이만 누를 수 있습니다(다른 학생·교사가 봤을 땐 상태만
-                    보여 주는 배지). 텍스트는 상태와 무관하게 늘 '해결됐어요'로
-                    고정합니다 — 예전엔 미해결일 때 '궁금해요'라고 써서,
-                    바로 아래 '나도 궁금해요' 버튼과 글자가 겹쳐 혼동을
+                {/* 상세 화면에서도 해결 상태를 바로 전환할 수 있습니다 — 글쓴이
+                    본인 또는 교사(관리자 포함)만 누를 수 있습니다(다른 학생이
+                    봤을 땐 상태만 보여 주는 배지). 텍스트는 상태와 무관하게 늘
+                    '해결됐어요'로 고정합니다 — 예전엔 미해결일 때 '궁금해요'라고
+                    써서, 바로 아래 '나도 궁금해요' 버튼과 글자가 겹쳐 혼동을
                     일으켰습니다. 지금은 아이콘·색으로만 상태를 구분합니다. */}
-                {mine ? (
+                {mine || admin ? (
                   <button
                     type="button"
                     className={`status-toggle qa-status ${
@@ -353,7 +353,7 @@ export default function QuestionModal({
                 )}
             </div>
 
-            {/* 왼쪽 하단 고정 — 나도 궁금해요 + (내 글이면) 수정 버튼 */}
+            {/* 왼쪽 하단 고정 — 나도 궁금해요 + 고정하기(교사) + 수정(글쓴이·교사) + 삭제 */}
             <div className="qa-foot">
               <MeTooButton question={question} />
               {admin && (
@@ -367,7 +367,7 @@ export default function QuestionModal({
                   📌 {pinned ? "고정 해제" : "고정하기"}
                 </button>
               )}
-              {mine && (
+              {(mine || admin) && (
                 <button
                   type="button"
                   className="btn-ghost qa-edit"

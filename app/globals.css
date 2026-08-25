@@ -2441,9 +2441,17 @@ button.footer-link:hover {
   background: var(--bg);
 }
 
-/* 수정 버튼은 오른쪽 끝으로 */
+/* 왼쪽 하단 버튼 4개(나도 궁금해요·고정하기·수정·삭제) — 아이콘 크기가
+   서로 달라(나도 궁금해요만 22px) 높이가 들쭉날쭉했던 것을 여기서만 맞춤 */
+.qa-foot .metoo-btn,
+.qa-foot .btn-ghost {
+  height: 36px;
+}
+
+/* 수정 버튼 — 고정하기와 삭제 사이 자리에 자연스럽게 흐르도록
+   (예전엔 소유자 전용이라 margin-left:auto로 오른쪽 끝에 띄웠지만,
+   이제 교사도 보이고 고정하기·삭제와 나란히 두는 편이 자연스럽습니다) */
 .qa-edit {
-  margin-left: auto;
   background: #fff;
 }
 
