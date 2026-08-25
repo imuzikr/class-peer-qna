@@ -2,8 +2,15 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { backdropClose } from "@/lib/modal";
-import { subscribeQuestionSignals, toDate, todayDateKey } from "@/lib/store";
+import {
+  subscribeQuestionSignals,
+  subscribeMembersForClasses,
+  subscribeAttendanceForClasses,
+  toDate,
+  todayDateKey,
+} from "@/lib/store";
 import { normalizeSeats } from "@/lib/seats";
+import { summarizeClassAttendance, buildAttendanceDetailRows } from "@/lib/attendanceOverview";
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -117,6 +124,73 @@ function AttendanceCalendar({ records, total = 0, selectedDate = "", onSelectDat
   );
 }
 
+// 출석 상세 표 — 목록형(현재 반)과 캘린더형(반별 목록에서 고른 반)이
+// 같은 모양({uid, name, studentId, emoji, record})을 쓰므로 공유합니다.
+function AttendanceTable({ rows }) {
+  return (
+    <div className="study-attendance-table-wrap">
+      <table className="study-attendance-table">
+        <thead>
+          <tr>
+            <th>학생</th>
+            <th>출석 상황</th>
+            <th>출석 기록</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((student) => (
+            <tr key={student.uid}>
+              <td>
+                <span className="study-attendance-student">
+                  <span aria-hidden="true">{student.emoji || "🙂"}</span>
+                  <span>
+                    <strong>{student.name || "이름 미설정"}</strong>
+                    {student.studentId && <small>{student.studentId}</small>}
+                  </span>
+                </span>
+              </td>
+              <td>
+                <span className={`study-attendance-status${student.record ? " on" : ""}`}>
+                  {student.record ? "출석" : "기록 없음"}
+                </span>
+              </td>
+              <td>
+                {student.record
+                  ? formatDateTime(student.record.attendedAt || student.record.createdAt)
+                  : "-"}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// 캘린더형의 반별 목록 — 날짜 하나를 놓고 반마다 출석/결석 인원을 보여
+// 주고, 고른 반만 강조 표시합니다. 실제 상세 표는 그 아래(부모)에서 그립니다.
+function ClassAttendanceOverview({ classes, selectedId, onSelect }) {
+  return (
+    <ul className="attend-class-overview">
+      {classes.map((c) => (
+        <li key={c.id}>
+          <button
+            type="button"
+            className={`attend-class-row${selectedId === c.id ? " active" : ""}`}
+            onClick={() => onSelect(c.id)}
+          >
+            <span className="attend-class-name">{c.name}</span>
+            <span className="attend-class-stat">
+              <span className="attend-class-present">출석 {c.present}</span>
+              <span className="attend-class-absent">결석 {c.absent}</span>
+            </span>
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 // 자리배치 보기 — 누가 어느 자리인지 한눈에 보고, 질문하려고 손든 학생을
 // 🖐️로 찾습니다. 수업 중 '참여 전광판'과 같은 손들기 신호를 보므로 두
 // 화면이 항상 같은 상태를 보여 줍니다. (여기서는 자리를 옮기지 않습니다 —
@@ -170,6 +244,8 @@ export default function StudyAttendanceModal({
   attendanceBusy = false,
   onStartAttendance = null,
   onStopAttendance = null,
+  allClasses = [],
+  directory = [],
   onClose,
 }) {
   const [viewMode, setViewMode] = useState("list"); // "list" | "calendar" | "seat"
@@ -221,6 +297,44 @@ export default function StudyAttendanceModal({
       })),
     [roster, byStudent]
   );
+
+  // 캘린더형의 '반별 목록' — 날짜를 고르면 지금 반 하나가 아니라 교사가
+  // 가진 반 전체를 반별 출석/결석으로 먼저 보여 주고, 그중 하나를 골라야
+  // 그 반의 학생별 상세가 아래에 나타납니다. 이 탭을 볼 때만 다른 반들의
+  // 소속·출석 기록을 구독합니다(목록형/자리배치를 보는 동안은 불필요).
+  const wantOverview = isTeacher && viewMode === "calendar" && allClasses.length > 0;
+  const classIdsKey = allClasses.map((c) => c.id).join(",");
+
+  const [overviewMembers, setOverviewMembers] = useState({});
+  useEffect(() => {
+    if (!wantOverview) { setOverviewMembers({}); return; }
+    return subscribeMembersForClasses(allClasses.map((c) => c.id), setOverviewMembers);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wantOverview, classIdsKey]);
+
+  const [overviewAttendance, setOverviewAttendance] = useState({});
+  useEffect(() => {
+    if (!wantOverview) { setOverviewAttendance({}); return; }
+    return subscribeAttendanceForClasses(allClasses.map((c) => c.id), setOverviewAttendance);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wantOverview, classIdsKey]);
+
+  const [selectedOverviewClassId, setSelectedOverviewClassId] = useState(null);
+
+  const classOverview = useMemo(() => {
+    if (!wantOverview || !activeDate) return [];
+    return summarizeClassAttendance(allClasses, overviewMembers, overviewAttendance, activeDate);
+  }, [wantOverview, activeDate, allClasses, overviewMembers, overviewAttendance]);
+
+  const overviewDetailRows = useMemo(() => {
+    if (!wantOverview || !selectedOverviewClassId) return [];
+    return buildAttendanceDetailRows(
+      overviewMembers[selectedOverviewClassId] ?? [],
+      directory,
+      overviewAttendance[selectedOverviewClassId] ?? [],
+      activeDate
+    );
+  }, [wantOverview, selectedOverviewClassId, overviewMembers, overviewAttendance, activeDate, directory]);
 
   return (
     <div className="modal-backdrop" {...backdropClose(onClose)}>
@@ -327,47 +441,32 @@ export default function StudyAttendanceModal({
                 />
               )}
 
-              {roster.length === 0 ? (
+              {viewMode === "calendar" ? (
+                allClasses.length === 0 ? (
+                  <p className="lesson-note-empty">아직 만든 반이 없어요.</p>
+                ) : !activeDate ? (
+                  <p className="lesson-note-empty">달력에서 날짜를 골라 보세요.</p>
+                ) : (
+                  <>
+                    <ClassAttendanceOverview
+                      classes={classOverview}
+                      selectedId={selectedOverviewClassId}
+                      onSelect={setSelectedOverviewClassId}
+                    />
+                    {selectedOverviewClassId &&
+                      (overviewDetailRows.length === 0 ? (
+                        <p className="lesson-note-empty">이 반에 입장한 학생이 없어요.</p>
+                      ) : (
+                        <AttendanceTable rows={overviewDetailRows} />
+                      ))}
+                  </>
+                )
+              ) : roster.length === 0 ? (
                 <p className="lesson-note-empty">이 반에 입장한 학생이 없어요.</p>
               ) : dates.length === 0 ? (
                 <p className="lesson-note-empty">아직 출석 기록이 없어요.</p>
               ) : (
-                <div className="study-attendance-table-wrap">
-                  <table className="study-attendance-table">
-                    <thead>
-                      <tr>
-                        <th>학생</th>
-                        <th>출석 상황</th>
-                        <th>출석 기록</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {studentRows.map((student) => (
-                        <tr key={student.uid}>
-                          <td>
-                            <span className="study-attendance-student">
-                              <span aria-hidden="true">{student.emoji || "🙂"}</span>
-                              <span>
-                                <strong>{student.name || "이름 미설정"}</strong>
-                                {student.studentId && <small>{student.studentId}</small>}
-                              </span>
-                            </span>
-                          </td>
-                          <td>
-                            <span className={`study-attendance-status${student.record ? " on" : ""}`}>
-                              {student.record ? "출석" : "기록 없음"}
-                            </span>
-                          </td>
-                          <td>
-                            {student.record
-                              ? formatDateTime(student.record.attendedAt || student.record.createdAt)
-                              : "-"}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <AttendanceTable rows={studentRows} />
               )}
             </>
           ) : records.length === 0 ? (

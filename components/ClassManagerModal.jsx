@@ -9,9 +9,16 @@
 // 할 수 있습니다(편집하려면 먼저 복원). 삭제는 되돌릴 수 없어
 // 보관을 거친 반만 가능합니다.
 // =============================================================
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { backdropClose } from "@/lib/modal";
-import { addClass, renameClass, archiveClass, unarchiveClass, deleteClass } from "@/lib/store";
+import {
+  addClass,
+  renameClass,
+  archiveClass,
+  unarchiveClass,
+  deleteClass,
+  reorderClasses,
+} from "@/lib/store";
 import ConfirmModal from "./ConfirmModal";
 import { IconPen, IconTrash } from "./StatusIcons";
 
@@ -35,6 +42,43 @@ export default function ClassManagerModal({
 
   const active = classes.filter((c) => !c.archived);
   const archived = classes.filter((c) => c.archived);
+
+  // 드래그로 정하는 순서 — classes(구독)가 이미 order 순으로 오지만,
+  // 드래그 도중엔 서버 반영을 기다리지 않고 바로 화면에서 자리를 바꿔
+  // 보여 줍니다(끝나면 activeIds에 맞춰 다시 동기화).
+  const activeIds = useMemo(() => active.map((c) => c.id), [active]);
+  const activeIdsKey = activeIds.join(",");
+  const [order, setOrder] = useState(activeIds);
+  const [draggingId, setDraggingId] = useState(null);
+  useEffect(() => {
+    if (draggingId) return; // 드래그 중엔 props 변경으로 순서가 튀지 않게
+    setOrder(activeIds);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeIdsKey]);
+
+  const byId = useMemo(() => new Map(active.map((c) => [c.id, c])), [active]);
+  const orderedActive = order.map((id) => byId.get(id)).filter(Boolean);
+
+  function handleDragStart(id) {
+    setDraggingId(id);
+  }
+  function handleDragOver(e, overId) {
+    e.preventDefault();
+    if (!draggingId || draggingId === overId) return;
+    setOrder((prev) => {
+      const from = prev.indexOf(draggingId);
+      const to = prev.indexOf(overId);
+      if (from === -1 || to === -1 || from === to) return prev;
+      const next = [...prev];
+      next.splice(from, 1);
+      next.splice(to, 0, draggingId);
+      return next;
+    });
+  }
+  function handleDragEnd() {
+    setDraggingId(null);
+    reorderClasses(order).catch(() => setError("반 순서를 저장하지 못했어요."));
+  }
 
   async function handleCreate(e) {
     e.preventDefault();
@@ -153,8 +197,19 @@ export default function ClassManagerModal({
             <p className="empty-note">아직 만든 반이 없어요.</p>
           ) : (
             <ul className="class-mgr-list">
-              {active.map((c) => (
-                <li key={c.id} className="class-mgr-row">
+              {orderedActive.map((c) => (
+                <li
+                  key={c.id}
+                  className={`class-mgr-row${draggingId === c.id ? " dragging" : ""}`}
+                  draggable
+                  onDragStart={() => handleDragStart(c.id)}
+                  onDragOver={(e) => handleDragOver(e, c.id)}
+                  onDrop={(e) => e.preventDefault()}
+                  onDragEnd={handleDragEnd}
+                >
+                  <span className="class-mgr-drag-handle" aria-hidden="true" title="드래그해서 순서 바꾸기">
+                    ⠿
+                  </span>
                   {renamingId === c.id ? (
                     <input
                       type="text"

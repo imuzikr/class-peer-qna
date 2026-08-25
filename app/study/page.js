@@ -919,6 +919,8 @@ function StudyPageInner() {
           attendanceBusy={attendanceBusy}
           onStartAttendance={admin ? handleStartAttendance : null}
           onStopAttendance={admin ? handleStopAttendance : null}
+          allClasses={admin ? myClasses : []}
+          directory={admin ? directory : []}
           onClose={() => setAttendanceOpen(false)}
         />
       )}
