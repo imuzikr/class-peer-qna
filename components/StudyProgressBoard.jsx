@@ -22,7 +22,7 @@
 import { backdropClose } from "@/lib/modal";
 import { stripHtml } from "@/lib/html";
 import {
-  parseActivitySections,
+  matchActivitySections,
   isActivityLocked,
   DONE_MIN_CHARS,
 } from "@/lib/activities";
@@ -48,42 +48,7 @@ export { DONE_MIN_CHARS };
 // 활동에는 아직 짝이 없으면서 '내용이 있는' 섹션을 순서대로 이어 붙입니다
 // (2단계). 이름이 바뀌었어도 학생이 쓴 내용은 그대로 살아남습니다.
 export function cardProgress(card, activities) {
-  let secs = card ? parseActivitySections(card.content) : [];
-  // 활동 틀이 아예 없는 카드(활동이 생기기 전에 쓴 자유형 카드 등)는
-  // 본문 전체를 섹션 하나로 봅니다 — 그래야 아래 2단계에서 첫 활동에
-  // 이어 붙어 '작성함'으로 잡힙니다.
-  if (secs.length === 0 && card) {
-    secs = [{ title: "", content: card.content ?? "" }];
-  }
-
-  const paired = new Array(activities.length).fill(null);
-  const used = new Set();
-
-  // 1단계 — 제목이 정확히 같은 섹션을 먼저 확정 (가장 믿을 수 있는 근거)
-  activities.forEach((name, i) => {
-    const at = secs.findIndex(
-      (s, j) => !used.has(j) && s.title && s.title === name
-    );
-    if (at >= 0) {
-      used.add(at);
-      paired[i] = secs[at];
-    }
-  });
-
-  // 2단계 — 남은 활동에 '내용이 있는' 미사용 섹션을 순서대로 배정.
-  // (빈 섹션은 건너뜁니다. 활동 수가 줄어든 카드에서 앞쪽 빈 섹션이
-  //  실제 답이 든 뒤쪽 섹션을 가리는 일을 막기 위함)
-  const leftovers = secs
-    .map((s, j) => ({ s, j }))
-    .filter(({ s, j }) => !used.has(j) && stripHtml(s.content ?? "").length > 0);
-  let k = 0;
-  for (let i = 0; i < activities.length && k < leftovers.length; i++) {
-    if (paired[i]) continue;
-    used.add(leftovers[k].j);
-    paired[i] = leftovers[k].s;
-    k += 1;
-  }
-
+  const paired = matchActivitySections(card, activities);
   return paired.map(
     (sec) => stripHtml(sec?.content ?? "").length >= DONE_MIN_CHARS
   );

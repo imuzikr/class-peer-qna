@@ -731,6 +731,7 @@ export default function StudyBoardColumn({
             key={card.id}
             card={card}
             isTeacher={isTeacher}
+            activities={board.activities}
             onClick={() => setSelectedCard(card)}
           />
         ))}

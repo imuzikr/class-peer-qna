@@ -9997,6 +9997,29 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   border-color: #cdbceb;
 }
 
+/* 카드 미리보기의 활동 진행 상태 — 칸마다 색으로 썼는지 표시 */
+.study-card-progress {
+  margin: 2px 0 8px;
+}
+.study-card-progress-bar {
+  display: flex;
+  gap: 3px;
+}
+.study-card-progress-seg {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border);
+}
+.study-card-progress-seg.on {
+  background: #4caf50;
+}
+.study-card-progress-caption {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--text-sub);
+}
+
 /* 카드의 모둠 구성원 줄 */
 .study-card-members {
   font-size: 12px;

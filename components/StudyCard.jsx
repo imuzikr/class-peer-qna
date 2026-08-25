@@ -2,11 +2,12 @@
 
 import { formatTime, getDirectoryUser } from "@/lib/store";
 import { stripHtml } from "@/lib/html";
+import { cardActivitySummary } from "@/lib/activities";
 import { IconTeacher } from "./StatusIcons";
 
 const IMAGE_EXTS = new Set(["jpg", "jpeg", "png", "gif", "webp"]);
 
-export default function StudyCard({ card, onClick, isTeacher = false }) {
+export default function StudyCard({ card, onClick, isTeacher = false, activities }) {
   // 모둠 카드 — 모둠명 + 구성원(대표 👑)을 헤더에 표시
   const isGroupCard = !!card.groupId;
   // 교사 카드: 데모는 "teacher_" 접두, 실서비스는 작성자명이 "선생님"(예약어)
@@ -22,6 +23,8 @@ export default function StudyCard({ card, onClick, isTeacher = false }) {
   const thumbAtt = card.attachments?.find((a) => IMAGE_EXTS.has(a.ext));
   // 이미지가 첨부돼 있을 때만 썸네일 표시 — 본문 이미지(imageUrl) 또는 이미지 첨부
   const thumbSrc = card.imageUrl || thumbAtt?.dataUrl || null;
+  const summary =
+    activities?.length > 0 ? cardActivitySummary(card, activities) : null;
 
   return (
     <article
@@ -57,6 +60,22 @@ export default function StudyCard({ card, onClick, isTeacher = false }) {
         )}
         <time className="study-card-time">{formatTime(card.createdAt)}</time>
       </div>
+
+      {summary && (
+        <div className="study-card-progress">
+          <div className="study-card-progress-bar">
+            {summary.segments.map((on, i) => (
+              <span
+                key={i}
+                className={`study-card-progress-seg${on ? " on" : ""}`}
+              />
+            ))}
+          </div>
+          <p className="study-card-progress-caption">
+            {summary.filled} / {summary.total}칸 · 글 {summary.chars}자
+          </p>
+        </div>
+      )}
 
       {/* 모둠 구성원 — 대표는 👑 */}
       {isGroupCard && card.members?.length > 0 && (
