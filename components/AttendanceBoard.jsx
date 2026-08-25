@@ -7,7 +7,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { backdropClose } from "@/lib/modal";
 import {
   PRESENCE_STALE_MS,
-  REWARD_MAX,
   subscribeQuestionSignals,
   toDate,
   todayDateKey,
@@ -15,6 +14,7 @@ import {
 import { normalizeSeats } from "@/lib/seats";
 import { getCurrentUser } from "@/lib/user";
 import StudentNotesThread from "./StudentNotesThread";
+import StudentToolsModal from "./StudentToolsModal";
 
 const DEFAULT_GROUP_COLORS = ["#2563eb", "#16a34a", "#f97316", "#9333ea", "#dc2626", "#0891b2"];
 
@@ -121,73 +121,6 @@ function StudentCard({
             🍎 {count}
           </span>
         )}
-      </div>
-    </div>
-  );
-}
-
-// 학생 카드를 누르면 뜨는 선택 모달 — 과일을 바로 여러 개 줄 수 있고,
-// 누가기록을 고르면 이 모달은 닫히고 오른쪽 슬라이드 패널이 열립니다.
-function StudentToolsModal({ student, onAward, onOpenNotes, onClose }) {
-  const count = student.count ?? 0;
-  const maxed = count >= REWARD_MAX;
-  return (
-    <div className="modal-backdrop attend-tools-backdrop" {...backdropClose(onClose)}>
-      <div
-        className="modal attend-tools-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-label={`${student.name} 과일 주기·누가기록`}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="modal-head">
-          <h3>
-            {student.emoji ?? "🙂"} {student.name}
-            {student.studentId && (
-              <span className="attend-tools-no">{student.studentId}</span>
-            )}
-          </h3>
-          <button className="btn-close" onClick={onClose} aria-label="닫기">×</button>
-        </div>
-
-        <section className="attend-tools-section">
-          <div className="attend-tools-row">
-            <span className="attend-tools-label">🍎 과일</span>
-            <strong className="attend-tools-count">{count}</strong>
-            <span className="attend-tools-hint">눌러서 여러 개 줄 수 있어요</span>
-          </div>
-          <div className="attend-tools-award">
-            <button
-              type="button"
-              className="attend-award-btn attend-award-btn--minus"
-              onClick={() => onAward(student.uid, count - 1)}
-              disabled={count <= 0}
-              aria-label="과일 하나 빼기"
-              title="과일 하나 빼기"
-            >
-              −
-            </button>
-            <button
-              type="button"
-              className="attend-award-btn attend-award-btn--plus"
-              onClick={() => onAward(student.uid, count + 1)}
-              disabled={maxed}
-              aria-label="과일 하나 주기"
-              title={maxed ? "과일이 가득 찼어요" : "과일 하나 주기"}
-            >
-              🍎 <span>+1</span>
-            </button>
-          </div>
-          {maxed && <p className="attend-tools-maxed">과일이 가득 찼어요 (최대 {REWARD_MAX}개)</p>}
-        </section>
-
-        <button
-          type="button"
-          className="attend-tools-notes"
-          onClick={() => onOpenNotes(student)}
-        >
-          📝 누가기록 열기
-        </button>
       </div>
     </div>
   );
@@ -329,12 +262,9 @@ export default function AttendanceBoard({
 
   return (
     <div className="modal-backdrop" {...backdropClose(onClose)}>
-      {/* 전광판과 누가기록 패널을 한 줄로 묶습니다 — 패널이 열리면 전광판
-          오른쪽에서 미끄러져 나오고, 둘이 함께 화면 가운데에 놓입니다. */}
-      <div
-        className={`attend-shell${notesOpen ? " attend-shell--with-notes" : ""}`}
-        onClick={(e) => e.stopPropagation()}
-      >
+      {/* 전광판과 누가기록 패널을 한 줄로 묶습니다 — 전광판은 제자리에
+          그대로 있고, 누가기록 패널만 그 오른쪽에서 미끄러져 나옵니다. */}
+      <div className="attend-shell" onClick={(e) => e.stopPropagation()}>
       <div
         className="modal attend-modal"
         role="dialog"

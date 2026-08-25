@@ -841,13 +841,38 @@ button.footer-link:hover {
   box-shadow: 0 8px 24px rgba(46, 36, 26, 0.14);
   padding: 6px;
 }
-.question-signal-title {
+/* 목록 머리 — 왼쪽 '질문 대기 n명', 오른쪽 '자리확인' 입구 */
+.question-signal-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   padding: 6px 10px 8px;
   margin-bottom: 4px;
   border-bottom: 1px solid var(--border);
+}
+.question-signal-title {
+  flex: 1;
+  min-width: 0;
   font-size: 13px;
   font-weight: 800;
   color: var(--text);
+}
+.question-signal-seats {
+  flex-shrink: 0;
+  padding: 4px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-sub);
+  cursor: pointer;
+}
+.question-signal-seats:hover {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary-dark);
 }
 .question-signal-empty {
   padding: 16px 10px;
@@ -6823,19 +6848,6 @@ pre code {
   position: relative;
   max-width: 100%;
   max-height: 100%;
-  transition: transform 0.22s ease-out;
-}
-/* 누가기록 패널은 absolute라 전광판 폭에 안 잡힙니다. 그대로 두면 전광판만
-   화면 가운데에 놓이고 패널(340px + 여백 14px)은 오른쪽 화면 밖으로 잘려
-   나갑니다. 패널이 열려 있는 동안에는 둘을 한 덩어리로 보고 그 절반만큼
-   왼쪽으로 밀어, 전광판+패널이 함께 가운데에 오게 합니다. */
-.attend-shell--with-notes {
-  transform: translateX(-177px);
-}
-@media (prefers-reduced-motion: reduce) {
-  .attend-shell {
-    transition: none;
-  }
 }
 .attend-modal {
   width: min(680px, 94vw);
@@ -6870,6 +6882,36 @@ pre code {
   to {
     opacity: 1;
     transform: translateX(0);
+  }
+}
+/* 전광판(680px)이 가운데 있을 때 그 오른쪽에 패널(340px + 여백 14px)이
+   온전히 들어가려면 화면이 1388px은 돼야 합니다. 그보다 좁으면 패널이
+   화면 밖으로 잘리므로 화면 오른쪽 끝에 붙여 항상 다 보이게 합니다
+   — 전광판 오른쪽 끝을 조금 덮지만, 잘려서 못 읽는 것보다 낫습니다.
+   (전광판을 왼쪽으로 밀어 자리를 만들던 예전 방식은, 누가기록을 열 때마다
+   전광판이 통째로 움직여 어지러웠습니다 — 전광판은 이제 고정입니다) */
+@media (max-width: 1400px) {
+  .attend-notes-panel {
+    position: fixed;
+    left: auto;
+    right: 12px;
+    /* 전광판도 화면 가운데에 놓이므로 패널도 세로 가운데로 맞춥니다 */
+    top: 50%;
+    transform: translateY(-50%);
+    margin-left: 0;
+    /* 전광판 위에 겹치므로 떠 있는 느낌이 나도록 그림자를 진하게 */
+    box-shadow: 0 10px 34px rgba(46, 36, 26, 0.26);
+    animation: attend-notes-in-fixed 0.22s ease-out;
+  }
+}
+@keyframes attend-notes-in-fixed {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) translateX(-24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
   }
 }
 .attend-notes-panel .modal-head h3 {
@@ -7110,8 +7152,15 @@ pre code {
   font-weight: 700;
   color: var(--text-sub);
 }
-.attend-tools-section {
+/* 과일 칸과 누가기록 칸 — grid-auto-rows: 1fr로 두 칸 높이를 같게 맞춥니다
+   (내용이 많은 과일 칸에 맞춰 누가기록 칸도 같이 늘어납니다) */
+.attend-tools-cards {
   margin-top: 4px;
+  display: grid;
+  gap: 12px;
+  grid-auto-rows: 1fr;
+}
+.attend-tools-section {
   padding: 14px;
   border: 1px solid var(--border);
   border-radius: 12px;
@@ -7155,21 +7204,22 @@ pre code {
   opacity: 0.4;
   cursor: default;
 }
-.attend-award-btn--minus {
-  width: 44px;
-  height: 44px;
-  font-size: 20px;
-  color: var(--text-sub);
-}
+/* 빼기·주기 버튼은 '과일 -1 / 과일 +1' 한 쌍이라 폭·높이를 똑같이 둡니다 */
+.attend-award-btn--minus,
 .attend-award-btn--plus {
   flex: 1;
   height: 44px;
   font-size: 16px;
+}
+.attend-award-btn--minus {
+  color: var(--text-sub);
+}
+.attend-award-btn--plus {
   background: var(--primary-light);
   border-color: #edcbb8;
   color: var(--primary-dark);
 }
-.attend-award-btn--plus span {
+.attend-award-btn span {
   font-family: var(--font-mono);
 }
 .attend-award-btn:hover:not(:disabled) {
@@ -7185,9 +7235,9 @@ pre code {
   color: var(--danger);
 }
 .attend-tools-notes {
-  margin-top: 12px;
   width: 100%;
-  height: 46px;
+  /* 높이는 .attend-tools-cards 그리드가 과일 칸에 맞춰 정합니다 */
+  min-height: 46px;
   border: 1px solid var(--border);
   border-radius: var(--radius-btn);
   background: #fff;
@@ -7475,18 +7525,27 @@ pre code {
   }
   .attend-seat-name { font-size: 11px; }
   .attend-seat-no { font-size: 9.5px; }
-  /* 좁은 화면에서는 절대 위치로 겹치는 대신, 전광판 아래로 자연스럽게
-     줄바꿈되도록 되돌립니다(옆으로 밀어내면 화면 밖으로 나갑니다). */
+  /* 패널이 전광판 아래로 내려오면 둘을 합친 높이가 화면을 넘어, 배경
+     오버레이는 스크롤되지 않아 패널 아랫부분에 손이 닿지 않았습니다.
+     껍데기 자체를 스크롤되게 해 끝까지 볼 수 있게 합니다. */
+  .attend-shell {
+    overflow-y: auto;
+  }
+  /* 좁은 화면에서는 옆에 세울 자리가 아예 없으므로, 겹치거나 화면 끝에
+     붙이는 대신 전광판 아래로 자연스럽게 줄바꿈되도록 되돌립니다. */
   .attend-notes-panel {
     position: static;
+    right: auto;
+    top: auto;
+    /* 위 1400px 규칙이 걸어 둔 세로 가운데 정렬·전용 애니메이션을 되돌립니다
+       (그대로 두면 흐름에 놓인 패널이 위로 반쯤 떠오릅니다) */
+    transform: none;
+    animation: attend-notes-in 0.22s ease-out;
+    box-shadow: var(--shadow-soft);
     margin-left: 0;
     margin-top: 14px;
     width: 94vw;
     padding: 16px;
-  }
-  /* 패널이 아래로 내려오므로 전광판을 왼쪽으로 밀 이유가 없습니다 */
-  .attend-shell--with-notes {
-    transform: none;
   }
   /* ── 수업 화면 머리말 — 좁은 화면에선 두 줄로 나눠 담습니다 ──
      한 줄에 다 넣으면 폭이 모자라 제목이 0px로 찌그러지고, 쪽수와
@@ -9241,6 +9300,30 @@ pre code {
 }
 .attend-seat--dragging {
   opacity: 0.4;
+}
+/* 손들기 자리 확인 — 자리를 눌러 과일·누가기록을 여는 모드(끌지는 않음) */
+.attend-seat--pick {
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.12s, transform 0.1s, box-shadow 0.12s;
+}
+.attend-seat--pick:hover {
+  border-color: var(--primary);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(46, 36, 26, 0.12);
+}
+/* 자리 칸 안의 과일 수 — 칸이 작아 아래쪽에 작게 붙입니다 */
+.attend-seat-fruit {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--primary-dark);
+}
+
+/* 손들기 자리 확인 모달 — 자리표만 담으므로 전광판보다 조금 좁게 */
+.question-seat-modal {
+  width: min(560px, 94vw);
+  max-height: 85vh;
+  overflow-y: auto;
 }
 .attend-seat--raised {
   border-color: var(--primary);

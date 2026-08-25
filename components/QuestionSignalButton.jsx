@@ -8,8 +8,10 @@ import {
   subscribeMyQuestionSignal,
   subscribeQuestionSignals,
 } from "@/lib/store";
+import QuestionSeatModal from "./QuestionSeatModal";
 
 export default function QuestionSignalButton({ classId, user, isTeacher = false }) {
+  const [seatOpen, setSeatOpen] = useState(false);
   const [signals, setSignals] = useState([]);
   const [mine, setMine] = useState(null);
   const [open, setOpen] = useState(false);
@@ -46,7 +48,9 @@ export default function QuestionSignalButton({ classId, user, isTeacher = false 
     if (!active) setOpen(false);
   }, [active]);
 
-  if (isTeacher && !active) return null;
+  // 자리 확인 창을 열어 둔 동안 마지막 손이 내려가도(active=false) 창이
+  // 통째로 사라지지 않게 합니다 — 교사가 닫을 때까지 그대로 둡니다.
+  if (isTeacher && !active && !seatOpen) return null;
 
   async function handleClick() {
     if (!classId || !user?.uid || busy) return;
@@ -102,7 +106,19 @@ export default function QuestionSignalButton({ classId, user, isTeacher = false 
 
       {isTeacher && open && (
         <div className="question-signal-dropdown" role="menu">
-          <p className="question-signal-title">질문 대기 {signals.length}명</p>
+          <div className="question-signal-head">
+            <p className="question-signal-title">질문 대기 {signals.length}명</p>
+            {/* 이름만으로는 교실에서 누가 손을 든 건지 찾기 어려워, 자리표로
+                한 번에 확인할 수 있는 입구를 둡니다 */}
+            <button
+              type="button"
+              className="question-signal-seats"
+              onClick={() => { setSeatOpen(true); setOpen(false); }}
+              title="자리표에서 손든 학생 확인 — 자리를 눌러 과일·누가기록도 열 수 있어요"
+            >
+              🪑 자리확인
+            </button>
+          </div>
           {signals.length === 0 ? (
             <p className="question-signal-empty">손든 학생이 없어요.</p>
           ) : (
@@ -135,6 +151,10 @@ export default function QuestionSignalButton({ classId, user, isTeacher = false 
             </ul>
           )}
         </div>
+      )}
+
+      {seatOpen && (
+        <QuestionSeatModal classId={classId} onClose={() => setSeatOpen(false)} />
       )}
     </div>
   );
