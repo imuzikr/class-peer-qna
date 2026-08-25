@@ -30,7 +30,7 @@ import { buildActivityTemplate, nextActivityLocks, isActivityLocked } from "@/li
 import StudyCard from "./StudyCard";
 import StudyCardModal from "./StudyCardModal";
 import StudyPresentModal from "./StudyPresentModal";
-import StudyProgressBoard from "./StudyProgressBoard";
+import StudyProgressBoard, { cardProgress } from "./StudyProgressBoard";
 import GroupComposer from "./GroupComposer";
 import { IconTrash, IconSettings, IconCheck, IconLock, IconDuplicate, IconPen, IconPeople } from "./StatusIcons";
 
@@ -144,6 +144,21 @@ export default function StudyBoardColumn({
     : visibleCards.filter(
         (c) => !(c.authorId?.startsWith?.("teacher_") || c.authorName === "선생님")
       );
+
+  // 패널을 펼쳤을 때 제목과 세부 내용 사이에 보여줄 요약 — 전체 활동 중
+  // 몇 개가 열려 있는지, 활동마다 몇 명이 제출했는지(공부중 전광판과 같은
+  // 기준·계산을 재사용). 반 학생 전체(classRoster)를 분모로 삼습니다.
+  const summaryActivities = board.activities ?? [];
+  const summaryOpenCount = summaryActivities.filter((_, i) => !isActivityLocked(board, i)).length;
+  const summaryDoneRows = classRoster.map((s) => {
+    const card = cards.find((c) =>
+      isGroup ? c.memberUids?.includes(s.uid) : c.authorId === s.uid
+    );
+    return cardProgress(card, summaryActivities);
+  });
+  const summaryDoneCounts = summaryActivities.map(
+    (_, i) => summaryDoneRows.filter((d) => d[i]).length
+  );
 
   // 이전 단일 keyword 필드와 새 keywords 배열 모두 지원
   const boardKeywords = Array.isArray(board.keywords)
@@ -530,6 +545,27 @@ export default function StudyBoardColumn({
             </button>
           )}
         </div>
+
+        {/* 패널 요약 — 제목과 세부 내용(활동 안내) 사이. 패널을 펼쳤을 때만
+            보이고, 활동이 하나도 없으면 보여줄 게 없어 숨깁니다. */}
+        {isTeacher && panelOpen && !isNotice && summaryActivities.length > 0 && (
+          <div className="study-board-summary">
+            <span className="study-board-summary-open" title="열려 있는 활동 수">
+              활동 {summaryOpenCount}/{summaryActivities.length}
+            </span>
+            <span className="study-board-summary-counts">
+              {summaryActivities.map((act, i) => (
+                <span
+                  key={`${act}-${i}`}
+                  className="study-board-summary-chip"
+                  title={`활동 ${i + 1} · ${act} — ${summaryDoneCounts[i]}/${classRoster.length}명 제출`}
+                >
+                  {summaryDoneCounts[i]}/{classRoster.length}
+                </span>
+              ))}
+            </span>
+          </div>
+        )}
 
         {/* 활동 안내 — 내용이 없어도 자리를 유지해 교사가 언제든 더블 클릭으로
             추가할 수 있게 합니다(예전엔 내용이 없으면 이 영역 자체가 사라져

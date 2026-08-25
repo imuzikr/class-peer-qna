@@ -9745,6 +9745,38 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   background: rgba(0, 0, 0, 0.06);
 }
 
+/* 패널 요약 — 제목(진한 살구색)과 세부 내용(흰색) 사이의 얇은 안내 줄.
+   전체 활동 중 몇 개가 열려 있는지, 활동마다 몇 명이 제출했는지 보여줍니다. */
+.study-board-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 7px 14px;
+  background: #fbf4f0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+.study-board-summary-open {
+  flex-shrink: 0;
+  font-weight: 700;
+  color: var(--text);
+}
+.study-board-summary-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.study-board-summary-chip {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid var(--border);
+  color: var(--text-sub);
+  font-weight: 600;
+}
+
 .study-column-desc {
   font-size: 13px;
   line-height: 1.5;
