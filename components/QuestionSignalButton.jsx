@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
+  dismissQuestionSignal,
   formatTime,
   setQuestionSignal,
   subscribeMyQuestionSignal,
@@ -13,6 +14,8 @@ export default function QuestionSignalButton({ classId, user, isTeacher = false 
   const [mine, setMine] = useState(null);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  // 확인 처리 중인 학생 uid — 그 항목의 확인 버튼만 잠가 중복 클릭을 막습니다.
+  const [dismissing, setDismissing] = useState(() => new Set());
   const wrapRef = useRef(null);
 
   useEffect(() => {
@@ -59,6 +62,22 @@ export default function QuestionSignalButton({ classId, user, isTeacher = false 
     }
   }
 
+  async function handleDismiss(uid) {
+    if (!classId || dismissing.has(uid)) return;
+    setDismissing((prev) => new Set(prev).add(uid));
+    try {
+      await dismissQuestionSignal(classId, uid);
+    } finally {
+      // signals 구독이 곧 목록을 갱신해 이 항목 자체가 사라지므로, 실패했을
+      // 때만 다시 누를 수 있게 풀어 주면 됩니다.
+      setDismissing((prev) => {
+        const next = new Set(prev);
+        next.delete(uid);
+        return next;
+      });
+    }
+  }
+
   return (
     <div className="question-signal-wrap" ref={wrapRef}>
       <button
@@ -83,6 +102,7 @@ export default function QuestionSignalButton({ classId, user, isTeacher = false 
 
       {isTeacher && open && (
         <div className="question-signal-dropdown" role="menu">
+          <p className="question-signal-title">질문 대기 {signals.length}명</p>
           {signals.length === 0 ? (
             <p className="question-signal-empty">손든 학생이 없어요.</p>
           ) : (
@@ -100,6 +120,15 @@ export default function QuestionSignalButton({ classId, user, isTeacher = false 
                         {formatTime(s.createdAt)}
                       </small>
                     </span>
+                    <button
+                      type="button"
+                      className="question-signal-confirm"
+                      onClick={() => handleDismiss(s.uid)}
+                      disabled={dismissing.has(s.uid)}
+                      title={`${s.name || "이 학생"}의 질문 확인 — 목록에서 지웁니다`}
+                    >
+                      확인
+                    </button>
                   </span>
                 </li>
               ))}
