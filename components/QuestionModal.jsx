@@ -12,9 +12,11 @@ import {
   addAnswer,
   formatTime,
   setQuestionResolved,
+  setQuestionPinned,
   setUnderstoodAnswer,
   deleteQuestion,
 } from "@/lib/store";
+import { isPinnedQuestion } from "@/lib/questionRanking";
 import { getCurrentUser, isTeacher } from "@/lib/user";
 import { isFirebaseConfigured } from "@/lib/firebase";
 import { sanitizeHtml, stripHtml } from "@/lib/html";
@@ -55,6 +57,7 @@ export default function QuestionModal({
   const [pendingAnswerId, setPendingAnswerId] = useState(null); // 이해됐어요 클릭 시 대기 중인 답변 id
   const [saving, setSaving] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [pinBusy, setPinBusy] = useState(false); // 고정 토글 중복 클릭 방지
   const [resetKey, setResetKey] = useState(0); // 전송 후 에디터 비우기
   const [qExpanded, setQExpanded] = useState(false); // 모바일: 질문 접기/펼치기
   const scrollRef = useRef(null);    // 모바일: qa-grid 단일 스크롤 컨테이너
@@ -116,6 +119,17 @@ export default function QuestionModal({
   async function handleDelete() {
     await deleteQuestion(question.id);
     onClose();
+  }
+
+  const pinned = isPinnedQuestion(question);
+  async function handlePinToggle() {
+    if (pinBusy) return;
+    setPinBusy(true);
+    try {
+      await setQuestionPinned(question.id, !pinned);
+    } finally {
+      setPinBusy(false);
+    }
   }
 
   async function handleSend() {
@@ -199,24 +213,40 @@ export default function QuestionModal({
                 />
                 <span>·</span>
                 <time>{formatTime(question.createdAt)}</time>
-                {/* 상세 화면에서도 해결 상태를 바로 전환할 수 있습니다 */}
-                <button
-                  type="button"
-                  className={`status-toggle qa-status ${
-                    question.resolved ? "resolved" : "open"
-                  }${!question.resolved && answers.length === 0 ? " disabled" : ""}`}
-                  onClick={handleResolveToggle}
-                  disabled={!question.resolved && answers.length === 0}
-                  title={
-                    !question.resolved && answers.length === 0
-                      ? "답변이 있어야 해결로 바꿀 수 있어요"
-                      : "클릭해서 상태 바꾸기"
-                  }
-                >
-                  {question.resolved
-                    ? <><IconSolved size={22} /> 해결됐어요</>
-                    : <><IconAsk size={22} /> 궁금해요</>}
-                </button>
+                {/* 상세 화면에서도 해결 상태를 바로 전환할 수 있습니다 — 단,
+                    글쓴이만 누를 수 있습니다(다른 학생·교사가 봤을 땐 상태만
+                    보여 주는 배지). 텍스트는 상태와 무관하게 늘 '해결됐어요'로
+                    고정합니다 — 예전엔 미해결일 때 '궁금해요'라고 써서,
+                    바로 아래 '나도 궁금해요' 버튼과 글자가 겹쳐 혼동을
+                    일으켰습니다. 지금은 아이콘·색으로만 상태를 구분합니다. */}
+                {mine ? (
+                  <button
+                    type="button"
+                    className={`status-toggle qa-status ${
+                      question.resolved ? "resolved" : "open"
+                    }${!question.resolved && answers.length === 0 ? " disabled" : ""}`}
+                    onClick={handleResolveToggle}
+                    disabled={!question.resolved && answers.length === 0}
+                    title={
+                      !question.resolved && answers.length === 0
+                        ? "답변이 있어야 해결로 바꿀 수 있어요"
+                        : question.resolved
+                          ? "클릭하면 다시 궁금해요 상태로 되돌려요"
+                          : "클릭해서 해결됐다고 표시해요"
+                    }
+                  >
+                    {question.resolved ? <IconSolved size={22} /> : <IconAsk size={22} />} 해결됐어요
+                  </button>
+                ) : (
+                  <span
+                    className={`status-toggle qa-status readonly ${
+                      question.resolved ? "resolved" : "open"
+                    }`}
+                    title={question.resolved ? "글쓴이가 해결됐다고 표시했어요" : "아직 해결되지 않았어요"}
+                  >
+                    {question.resolved ? <IconSolved size={22} /> : <IconAsk size={22} />} 해결됐어요
+                  </span>
+                )}
               </div>
               <h3 className="qa-title">{question.title}</h3>
 
@@ -317,6 +347,17 @@ export default function QuestionModal({
             {/* 왼쪽 하단 고정 — 나도 궁금해요 + (내 글이면) 수정 버튼 */}
             <div className="qa-foot">
               <MeTooButton question={question} />
+              {admin && (
+                <button
+                  type="button"
+                  className={`btn-ghost qa-pin${pinned ? " on" : ""}`}
+                  onClick={handlePinToggle}
+                  disabled={pinBusy}
+                  title={pinned ? "고정 해제 — 게시판 상단에서 내림" : "상단 고정 — 게시판 맨 위에 고정"}
+                >
+                  📌 {pinned ? "고정 해제" : "고정하기"}
+                </button>
+              )}
               {mine && (
                 <button
                   type="button"

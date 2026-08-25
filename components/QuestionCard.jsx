@@ -36,7 +36,7 @@ export default function QuestionCard({ question, onClick }) {
       <div className="card-meta">
         <span className="keyword-chip"># {question.keyword}</span>
         {pinned && (
-          <span className="pin-chip" title="상단 고정 — 나도 궁금해요 5회 이상">
+          <span className="pin-chip" title="선생님이 상단에 고정한 질문">
             📌
           </span>
         )}
