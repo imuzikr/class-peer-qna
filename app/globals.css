@@ -7431,7 +7431,7 @@ pre code {
   .attend-desk-name { font-size: 11px; }
   .attend-desk-no { font-size: 10px; }
   .attend-desk-fruit { font-size: 9.5px; padding: 1px 5px; }
-  /* 출석 관리 > 자리배치도 같은 이유로 4칸 */
+  /* 출석 관리 > 자리 배정하기도 같은 이유로 4칸 */
   .attend-seatmap-grid {
     gap: 6px;
     grid-template-columns: repeat(4, 1fr);
@@ -9130,15 +9130,20 @@ pre code {
   font-weight: 700;
 }
 
-/* ── 출석 관리 > 자리배치 보기 ──
+/* ── 출석 관리 > 자리 배정하기 보기 ──
    누가 어느 자리인지 보고, 질문하려고 손든 학생을 🖐️로 찾습니다.
-   참여 전광판과 같은 손들기 신호를 봅니다. */
+   참여 전광판과 같은 손들기 신호를 보고, 드래그로 자리를 바로 바꿀 수 있습니다. */
 .attend-seatmap-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 12px;
+}
+.attend-seatmap-hint {
+  flex-shrink: 0;
+  font-size: 11.5px;
+  color: var(--text-sub);
 }
 /* 교실 앞쪽이 어디인지 알려 주는 표시 — 자리표를 실제 교실과 맞춰 읽도록 */
 .attend-seatmap-board {
@@ -9184,6 +9189,7 @@ pre code {
   background: #fff;
   text-align: center;
   overflow: hidden;
+  cursor: grab;
 }
 /* 오늘 출석한 학생 */
 .attend-seat--on {
@@ -9194,6 +9200,10 @@ pre code {
   border-style: dashed;
   border-color: #e2e0da;
   background: transparent;
+  cursor: default;
+}
+.attend-seat--dragging {
+  opacity: 0.4;
 }
 .attend-seat--raised {
   border-color: var(--primary);
