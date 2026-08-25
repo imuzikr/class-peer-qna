@@ -11,6 +11,7 @@
 // =============================================================
 import { useEffect, useRef, useState } from "react";
 import { addKeyword, renameKeyword, deleteKeyword, reorderKeywords } from "@/lib/store";
+import ConfirmModal from "./ConfirmModal";
 import { IconTrash } from "./StatusIcons";
 
 export default function KeywordSidebar({
@@ -23,7 +24,7 @@ export default function KeywordSidebar({
   const [menuId, setMenuId] = useState(null);      // ⋯ 메뉴 열린 키워드 id
   const [editingId, setEditingId] = useState(null); // 이름 변경 중 id
   const [editName, setEditName] = useState("");
-  const [confirmId, setConfirmId] = useState(null); // 삭제 확인 중 id
+  const [confirmTarget, setConfirmTarget] = useState(null); // 삭제 확인 모달 대상 { id, name } | null
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState("");
   const [dragId, setDragId] = useState(null);
@@ -45,7 +46,13 @@ export default function KeywordSidebar({
     setEditingId(kw.id);
     setEditName(kw.name);
     setMenuId(null);
-    setConfirmId(null);
+    setConfirmTarget(null);
+  }
+
+  async function confirmDelete() {
+    if (!confirmTarget) return;
+    await deleteKeyword(confirmTarget.id, confirmTarget.name);
+    setConfirmTarget(null);
   }
   async function saveEdit(id) {
     const name = editName.trim();
@@ -81,6 +88,7 @@ export default function KeywordSidebar({
   }
 
   return (
+    <>
     <aside className="keyword-col" ref={rootRef}>
       <div className="keyword-col-head">
         <h2>키워드</h2>
@@ -111,15 +119,6 @@ export default function KeywordSidebar({
                 className="kw-edit-input"
               />
               <button className="kw-edit-save" onClick={() => saveEdit(kw.id)} disabled={!editName.trim()}>저장</button>
-            </div>
-          );
-        }
-        if (confirmId === kw.id) {
-          return (
-            <div key={kw.id} className="keyword-item keyword-item--confirm">
-              <span className="kw-confirm-text"># {kw.name} 삭제?</span>
-              <button className="kw-confirm-yes" onClick={() => { deleteKeyword(kw.id); setConfirmId(null); }}>삭제</button>
-              <button className="kw-confirm-no" onClick={() => setConfirmId(null)}>취소</button>
             </div>
           );
         }
@@ -159,7 +158,7 @@ export default function KeywordSidebar({
                 <button
                   className="kw-menu-item kw-menu-item--danger"
                   role="menuitem"
-                  onClick={() => { setConfirmId(kw.id); setMenuId(null); }}
+                  onClick={() => { setConfirmTarget(kw); setMenuId(null); }}
                 >
                   <IconTrash size={15} /> 삭제
                 </button>
@@ -193,5 +192,21 @@ export default function KeywordSidebar({
           </button>
         ))}
     </aside>
+
+    {confirmTarget && (
+      <ConfirmModal
+        title={`# ${confirmTarget.name} 키워드를 삭제할까요?`}
+        description={
+          (counts[confirmTarget.name] ?? 0) > 0
+            ? `이 키워드로 등록된 질문이 ${counts[confirmTarget.name]}개 있어요. 계속 삭제하면 그 질문들의 키워드는 모두 '기타'로 바뀝니다.`
+            : "이 키워드로 등록된 질문은 없어요."
+        }
+        confirmLabel="삭제"
+        danger
+        onConfirm={confirmDelete}
+        onClose={() => setConfirmTarget(null)}
+      />
+    )}
+    </>
   );
 }

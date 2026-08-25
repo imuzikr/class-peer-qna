@@ -1260,10 +1260,9 @@ button.footer-link:hover {
 .kw-menu-item--danger { color: var(--danger, #d64545); }
 .kw-menu-item--danger:hover { background: #fdecec; }
 
-/* 인라인 편집 / 삭제 확인 / 추가 행 */
+/* 인라인 편집 / 추가 행 — 삭제 확인은 ConfirmModal(모달)로 처리합니다 */
 .keyword-item--edit,
-.keyword-item--add,
-.keyword-item--confirm {
+.keyword-item--add {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -1281,9 +1280,7 @@ button.footer-link:hover {
   color: var(--sidebar-text);
 }
 .kw-edit-input::placeholder { color: rgba(255, 255, 255, 0.5); }
-.kw-edit-save,
-.kw-confirm-yes,
-.kw-confirm-no {
+.kw-edit-save {
   flex-shrink: 0;
   padding: 7px 11px;
   border-radius: 7px;
@@ -1291,20 +1288,10 @@ button.footer-link:hover {
   font-size: 12.5px;
   font-weight: 700;
   cursor: pointer;
+  background: var(--primary);
+  color: #fff;
 }
-.kw-edit-save { background: var(--primary); color: #fff; }
 .kw-edit-save:disabled { opacity: 0.5; cursor: default; }
-.kw-confirm-text {
-  flex: 1;
-  min-width: 0;
-  font-size: 13px;
-  color: var(--sidebar-text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.kw-confirm-yes { background: var(--danger, #d64545); color: #fff; }
-.kw-confirm-no { background: rgba(255, 255, 255, 0.14); color: var(--sidebar-text); }
 
 .keyword-add-btn {
   width: 100%;
