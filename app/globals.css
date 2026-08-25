@@ -7151,7 +7151,8 @@ pre code {
 }
 .seat-setup-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  /* 실제 교실 책상 배치(한 줄 6명·총 5줄)에 맞춰 6열로 표시합니다. */
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 10px;
 }
 .seat-slot {
