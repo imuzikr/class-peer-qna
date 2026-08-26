@@ -10233,8 +10233,18 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   display: flex;
   gap: 3px;
 }
-.study-card-progress-seg {
+/* 활동 한 칸 = 막대(진행 색) + 그 아래 글자 수. 막대가 이미 "썼는지"를
+   보여 주므로, 칸마다 글자 수만 작게 덧붙입니다(합산 글자 수 대신). */
+.study-card-progress-col {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+.study-card-progress-seg {
+  width: 100%;
   height: 6px;
   border-radius: 3px;
   background: var(--border);
@@ -10242,9 +10252,8 @@ button.study-cal-cell.has-record:not(:disabled):hover {
 .study-card-progress-seg.on {
   background: #4caf50;
 }
-.study-card-progress-caption {
-  margin: 4px 0 0;
-  font-size: 11px;
+.study-card-progress-chars {
+  font-size: 10.5px;
   color: var(--text-sub);
 }
 

@@ -65,15 +65,12 @@ export default function StudyCard({ card, onClick, isTeacher = false, activities
         <div className="study-card-progress">
           <div className="study-card-progress-bar">
             {summary.segments.map((on, i) => (
-              <span
-                key={i}
-                className={`study-card-progress-seg${on ? " on" : ""}`}
-              />
+              <div key={i} className="study-card-progress-col">
+                <span className={`study-card-progress-seg${on ? " on" : ""}`} />
+                <span className="study-card-progress-chars">{summary.lengths[i]}자</span>
+              </div>
             ))}
           </div>
-          <p className="study-card-progress-caption">
-            {summary.filled} / {summary.total}칸 · 글 {summary.chars}자
-          </p>
         </div>
       )}
 
