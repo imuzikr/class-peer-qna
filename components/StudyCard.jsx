@@ -7,7 +7,23 @@ import { IconTeacher } from "./StatusIcons";
 
 const IMAGE_EXTS = new Set(["jpg", "jpeg", "png", "gif", "webp"]);
 
-export default function StudyCard({ card, onClick, isTeacher = false, activities }) {
+// 답변 반응(QuestionModal)과 같은 3종 — 이모지·필드명 매핑도 lib/store.js의
+// CARD_REACTION_FIELDS와 짝을 맞춥니다.
+const CARD_REACTIONS = [
+  { kind: "thumbsUp", emoji: "👍", field: "thumbsUpIds" },
+  { kind: "heart", emoji: "❤️", field: "heartIds" },
+  { kind: "smile", emoji: "😊", field: "smileIds" },
+];
+
+export default function StudyCard({
+  card,
+  onClick,
+  isTeacher = false,
+  activities,
+  myUid = null,
+  onReact,
+  topReacted = false,
+}) {
   // 모둠 카드 — 모둠명 + 구성원(대표 👑)을 헤더에 표시
   const isGroupCard = !!card.groupId;
   // 교사 카드: 데모는 "teacher_" 접두, 실서비스는 작성자명이 "선생님"(예약어)
@@ -26,9 +42,15 @@ export default function StudyCard({ card, onClick, isTeacher = false, activities
   const summary =
     activities?.length > 0 ? cardActivitySummary(card, activities) : null;
 
+  // 반응은 남의 카드에만 — 모둠 카드는 '내 모둠 카드'인지로 판정합니다
+  // (모둠원끼리는 같은 카드를 공유하므로 자기 모둠엔 반응할 수 없음).
+  const isMine = myUid != null
+    && (isGroupCard ? card.memberUids?.includes(myUid) : card.authorId === myUid);
+  const reactable = !!myUid && !isMine && !!onReact;
+
   return (
     <article
-      className="study-card"
+      className={`study-card${topReacted ? " study-card-top" : ""}`}
       onClick={onClick}
       role="button"
       tabIndex={0}
@@ -93,6 +115,27 @@ export default function StudyCard({ card, onClick, isTeacher = false, activities
       ) : (
         <p className="study-card-preview" aria-hidden="true">{preview}</p>
       )}
+
+      {/* 반응 — 정답 개념이 없는 공부방에서도 서로의 결과물에 가볍게 응원을
+          남길 수 있게. 카드 클릭(모달 열기)과 겹치지 않게 버블링을 막습니다. */}
+      <div className="study-card-reactions" onClick={(e) => e.stopPropagation()}>
+        {CARD_REACTIONS.map((r) => {
+          const active = (card[r.field] ?? []).includes(myUid);
+          return (
+            <button
+              key={r.kind}
+              type="button"
+              className={`chat-reaction-btn${active ? " active" : ""}`}
+              onClick={() => onReact?.(r.kind, active)}
+              disabled={!reactable}
+              title={isMine ? "내 카드에는 반응할 수 없어요" : active ? "반응 취소" : "반응 남기기"}
+            >
+              <span className="chat-reaction-emoji">{r.emoji}</span>
+              <span className="chat-reaction-count">{(card[r.field] ?? []).length}</span>
+            </button>
+          );
+        })}
+      </div>
     </article>
   );
 }

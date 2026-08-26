@@ -574,15 +574,36 @@ service cloud.firestore {
         allow update: if signedIn() && (
           isAdmin()
           || ownsBoardEditable(bId)
+          // changedOnly를 두는 이유: 이 갈래가 없으면 본인 카드는 필드 제한이
+          // 전혀 없어, 반응 필드(thumbsUpIds 등)를 자기 손으로 조작해 스스로에게
+          // 반응을 주거나 남의 uid를 끼워 넣어 수를 부풀릴 수 있었습니다.
           || (cardId == uid()
               && request.resource.data.authorId == resource.data.authorId
               && isBoardClassMember(bId)
               && !isBoardLocked(bId)
-              && !isNoticeBoard(bId))
+              && !isNoticeBoard(bId)
+              && changedOnly(['title','content','imageUrl','attachments','updatedAt']))
           || (isMyGroupCard()
               && isBoardClassMember(bId)
               && !isBoardLocked(bId)
               && changedOnly(['title','content','imageUrl','attachments','updatedAt']))
+          // 카드에 다는 작은 반응(엄지 척/하트/웃는 얼굴) — questions/answers의
+          // 반응과 같은 이유·같은 방식입니다. 자기 카드(모둠 카드는 자기 모둠의
+          // 카드)에는 반응할 수 없고, 잠금(editMode) 여부와는 무관합니다 —
+          // 반응은 제출물을 고치는 게 아니라 남의 결과물에 다는 가벼운
+          // 응원이라 '보기 전용' 기간에도 계속 남길 수 있어야 합니다.
+          || (isBoardClassMember(bId)
+              && (isGroupBoard(bId) ? !isMyGroupCard() : resource.data.authorId != uid())
+              && changedOnly(['thumbsUpIds'])
+              && isOwnReactionToggle('thumbsUpIds'))
+          || (isBoardClassMember(bId)
+              && (isGroupBoard(bId) ? !isMyGroupCard() : resource.data.authorId != uid())
+              && changedOnly(['heartIds'])
+              && isOwnReactionToggle('heartIds'))
+          || (isBoardClassMember(bId)
+              && (isGroupBoard(bId) ? !isMyGroupCard() : resource.data.authorId != uid())
+              && changedOnly(['smileIds'])
+              && isOwnReactionToggle('smileIds'))
         );
         // 삭제 — 관리자 또는 반 소유 교사만(보관 중엔 불가). 학생은 자기
         //   카드도 수정만 가능하고 삭제는 못 합니다(실수로 지운 제출물을

@@ -20,6 +20,7 @@ import {
   subscribeMyGroupCards,
   updateStudyBoard,
   updateStudyCard,
+  setCardReaction,
   deleteStudyBoard,
   duplicateStudyBoard,
   getDirectoryUser,
@@ -137,6 +138,14 @@ export default function StudyBoardColumn({
       return currentSortDir === "asc" ? cmp : -cmp;
     });
   }
+
+  // 반응 합계가 가장 많은 카드 — 테두리 강조 대상. cards(구독된 전체 카드,
+  // '개인 보드'라도 화면엔 내 카드만 보이지만 구독 자체는 전체를 받아 옵니다)
+  // 기준으로 계산해, '나만 보이는' 화면에서도 내 카드가 실제로 반의 1등인지를
+  // 정확히 반영합니다. 전부 0이면(아직 아무 반응도 없으면) 강조하지 않습니다.
+  const cardReactionTotal = (c) =>
+    (c.thumbsUpIds?.length ?? 0) + (c.heartIds?.length ?? 0) + (c.smileIds?.length ?? 0);
+  const maxReactionTotal = cards.reduce((max, c) => Math.max(max, cardReactionTotal(c)), 0);
 
   const canAddNotice = isNotice && isTeacher && !locked;
   // 교사는 보드당 여러 카드 가능(제한 없음), 학생은 카드 1개까지(myCard 없을 때만).
@@ -791,6 +800,12 @@ export default function StudyBoardColumn({
             isTeacher={isTeacher}
             activities={board.activities}
             onClick={() => setSelectedCard(card)}
+            myUid={user?.uid ?? null}
+            onReact={
+              user &&
+              ((kind, active) => setCardReaction(board.id, card.id, kind, user.uid, !active))
+            }
+            topReacted={maxReactionTotal > 0 && cardReactionTotal(card) === maxReactionTotal}
           />
         ))}
 
