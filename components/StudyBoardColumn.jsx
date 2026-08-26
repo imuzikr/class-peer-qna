@@ -435,7 +435,9 @@ export default function StudyBoardColumn({
                   ? (e) => { e.stopPropagation(); startEditTitle(); }
                   : undefined
               }
-              title={isTeacher ? "더블 클릭해 제목 수정" : undefined}
+              // 제목이 길어 말줄임표로 잘릴 수 있으니, 마우스를 올리면
+              // 전체 제목이 보이게 합니다(교사는 수정 방법도 함께 안내).
+              title={isTeacher ? `${board.title} — 더블 클릭해 제목 수정` : board.title}
             >
               {board.title}
             </h3>

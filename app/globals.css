@@ -9839,6 +9839,11 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   color: var(--dark);
   flex: 1;
   min-width: 0;
+  /* 제목이 길어도 한 줄로 잘라 말줄임표(…) 처리 — 보드마다 헤더 높이가
+     들쭉날쭉해지지 않게(줄바꿈되면 그만큼 패널이 늘어져 보였습니다) */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .study-gear {
