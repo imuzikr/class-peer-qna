@@ -42,7 +42,9 @@ function authErrorMessage(code) {
     "auth/operation-not-allowed": "구글 로그인이 꺼져 있어요. 선생님께 알려 주세요.",
     "auth/network-request-failed": "네트워크 연결을 확인하고 다시 시도해 주세요.",
     "auth/too-many-requests": "잠시 후 다시 시도해 주세요.",
-    "auth/school-domain-required": `학교 이메일(@${SCHOOL_EMAIL_DOMAIN})로만 가입할 수 있습니다.`,
+    // 도메인 제한은 이제 등록 코드가 정합니다 — '이 코드로는'이라고 짚어 줘야
+    // 손님용 코드를 받은 사람이 계정을 바꿔 가며 헤매지 않습니다.
+    "auth/school-domain-required": `이 등록 코드는 학교 이메일(@${SCHOOL_EMAIL_DOMAIN})로만 가입할 수 있습니다.`,
     "auth/registration-code-invalid": "등록 코드가 올바르지 않습니다. 선생님께 받은 코드를 다시 확인해 주세요.",
     // 코드를 '확인하지 못한' 경우 — 코드가 틀린 게 아니라 서버 설정 문제라
     // 학생이 아무리 다시 입력해도 통과하지 못합니다. 그래서 학생을 붙잡지 않고
@@ -296,9 +298,13 @@ export default function LandingPage() {
                       이용할 수 있어요.
                     </p>
                   ) : (
+                    // 어떤 이메일을 받아 줄지는 등록 코드가 정합니다 — 손님용
+                    // 코드는 개인 계정도 허용하므로 '학교 이메일만'이라고
+                    // 단정하면 손님이 시도해 보지도 않고 돌아섭니다.
                     <p className="signup-role-note">
-                      가입은 <strong>학교 이메일(@{SCHOOL_EMAIL_DOMAIN})</strong>로만
-                      가능해요.
+                      가입은 <strong>학교 이메일(@{SCHOOL_EMAIL_DOMAIN})</strong>로 하는 것이
+                      기본이에요. <strong>손님용 등록 코드</strong>를 받았다면 다른 이메일이나
+                      개인 구글 계정으로도 가입할 수 있어요.
                     </p>
                   )}
                   <label className="sr-only" htmlFor="auth-regcode">등록 코드</label>

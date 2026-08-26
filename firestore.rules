@@ -37,15 +37,45 @@ service cloud.firestore {
     function isSchoolEmail() {
       return request.auth.token.get('email', '').lower().matches('.*@hansung[.]hs[.]kr$');
     }
-    // 가입 시 함께 낸 등록 코드(registrationCodes 문서 ID)가 실제로 있고
-    // active인지 — users 생성 규칙에서만 씁니다. 코드 값 자체는 여기 규칙이
-    // 아니라 registrationCodes 컬렉션의 데이터로 관리합니다(교체할 때 규칙을
-    // 다시 배포할 필요가 없도록).
-    function hasValidRegistrationCode() {
-      return request.resource.data.get('regCode', '') is string
-             && request.resource.data.regCode != ''
-             && get(/databases/$(database)/documents/registrationCodes/$(request.resource.data.regCode))
-                  .data.get('active', false) == true;
+    // 가입 시 함께 낸 등록 코드(registrationCodes 문서 ID)로 가입 자격을
+    // 통째로 판정합니다 — users 생성 규칙에서만 씁니다. 코드 값도, 그 코드가
+    // 무엇을 허용하는지도 여기 규칙이 아니라 registrationCodes 컬렉션의
+    // 데이터로 관리합니다(코드를 바꾸거나 늘려도 규칙 재배포가 없도록).
+    //
+    // 코드 문서에 둘 수 있는 필드:
+    //  · active         — 이 코드로 가입을 받는 중인지 (없으면 거부)
+    //  · allowAnyDomain — true면 학교 도메인 검사를 면제 (외부 손님용 GUEST 코드)
+    //  · classId        — 이 코드로 가입한 사람을 강제로 소속시킬 반
+    //
+    // exists()로 먼저 확인하는 이유: 없는 문서에 get().data를 하면 규칙 평가가
+    // 오류로 끝나 버려, 아래 memberships의 || 갈래처럼 '한쪽이 실패해도 다른
+    // 쪽으로 통과해야 하는' 자리에서 다루기 어려워집니다.
+    function passesRegistrationGate() {
+      let code = request.resource.data.get('regCode', '');
+      return code is string && code != ''
+             && exists(/databases/$(database)/documents/registrationCodes/$(code))
+             && allowedByCode(
+                  get(/databases/$(database)/documents/registrationCodes/$(code)).data
+                );
+    }
+    // 코드 문서가 실제로 이 가입을 허용하는지.
+    //  · 코드가 도메인을 면제하지 않으면 학교 이메일이어야 함
+    //  · homeClassId(강제 소속 반)는 코드 문서가 지정한 값과 정확히 같아야 함 —
+    //    이 값 하나로 아래 memberships가 입장 코드 없이 소속을 내주므로,
+    //    클라이언트가 아무 반 id나 적어 넣지 못하게 여기서 못박습니다.
+    function allowedByCode(codeData) {
+      return codeData.get('active', false) == true
+             && (isSchoolEmail() || codeData.get('allowAnyDomain', false) == true)
+             && request.resource.data.get('homeClassId', '')
+                == codeData.get('classId', '');
+    }
+    // 내 프로필에 박힌 '강제 소속 반' — 없으면 ''(일반 사용자).
+    // 가입 때 위 규칙이 등록 코드 문서와 대조해 넣은 값이고, users 수정
+    // 허용 필드 목록에 homeClassId가 없어 본인도 교사도 바꿀 수 없습니다.
+    function myHomeClass() {
+      return exists(/databases/$(database)/documents/users/$(uid()))
+             ? get(/databases/$(database)/documents/users/$(uid())).data.get('homeClassId', '')
+             : '';
     }
     // 교사(최고 관리자 포함) — 교사용 기능 접근 관문
     function isTeacher() {
@@ -152,10 +182,14 @@ service cloud.firestore {
       // 코드 자체는 이 문서에 실려 오는 클라이언트 입력값이라 위조될 수 있지만,
       // registrationCodes/{그 코드} 문서가 실제로 있고 active인지를 get()으로
       // 다시 확인하므로 아무 문자열이나 넣어서는 통과하지 못합니다.
+      //
+      // 도메인 제한도 이제 코드가 정합니다(passesRegistrationGate 참고).
+      // 학교 코드는 지금까지처럼 @hansung.hs.kr만, allowAnyDomain을 켠
+      // 손님용 코드(GUEST)는 개인 구글 계정도 가입할 수 있습니다. 대신 그
+      // 코드가 지정한 반(homeClassId)에만 소속됩니다 — 그 강제는 memberships에서.
       allow create: if signedIn() && userId == uid()
                     && request.resource.data.role == 'student'
-                    && (isInitialAdmin() || isSchoolEmail())
-                    && (isInitialAdmin() || hasValidRegistrationCode());
+                    && (isInitialAdmin() || passesRegistrationGate());
       // 쓰기 범위 — '누가' 뿐 아니라 '어떤 필드를' 쓰는지까지 제한합니다.
       //  · 최고 관리자: 전체. 역할 부여와 부트스트랩 자가 치유(lib/auth.js가
       //      초기 관리자 문서에 role='admin'을 맞추는 것)가 여기에 해당합니다.
@@ -406,13 +440,28 @@ service cloud.firestore {
       allow read: if signedIn() && (
         resource.data.uid == uid() || isAdmin() || ownsClass(resource.data.classId)
       );
+      // 소속을 얻는 길은 둘뿐이고, 서로 배타적입니다.
+      //  · 손님(homeClassId 있음): 등록 코드가 정한 그 반에만, 입장 코드 없이
+      //    자동 소속됩니다. 다른 반의 입장 코드를 알아내도 아래 갈래로 넘어갈
+      //    수 없어(homeClassId != '') 그 반을 벗어나지 못합니다 — 이것이
+      //    '손님은 무조건 손님방'을 강제하는 지점입니다.
+      //  · 일반(homeClassId 없음): 지금까지처럼 유효하고 만료되지 않은 입장
+      //    코드로만 소속됩니다.
       allow create: if signedIn()
                     && request.resource.data.uid == uid()
                     && mId == (uid() + '_' + request.resource.data.classId)
-                    && get(/databases/$(database)/documents/joinCodes/$(request.resource.data.code))
-                         .data.classId == request.resource.data.classId
-                    && get(/databases/$(database)/documents/joinCodes/$(request.resource.data.code))
-                         .data.expiresAt > request.time;
+                    && (
+                         myHomeClass() == request.resource.data.classId
+                         || (
+                              myHomeClass() == ''
+                              && request.resource.data.get('code', '') is string
+                              && request.resource.data.get('code', '') != ''
+                              && get(/databases/$(database)/documents/joinCodes/$(request.resource.data.code))
+                                   .data.classId == request.resource.data.classId
+                              && get(/databases/$(database)/documents/joinCodes/$(request.resource.data.code))
+                                   .data.expiresAt > request.time
+                            )
+                       );
       // 학생 본인의 직접 '반 나가기'는 허용하지 않습니다. 소속 변경은
       // 담당 교사/관리자가 관리합니다.
       allow delete: if signedIn() && (
