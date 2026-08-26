@@ -6655,6 +6655,24 @@ pre code {
   opacity: 0.5;
   cursor: default;
 }
+.lesson-board-cancel {
+  padding: 9px 14px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-sub);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  cursor: pointer;
+}
+.lesson-board-cancel:hover:not(:disabled) {
+  background: var(--neutral);
+}
+.lesson-board-cancel:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
 /* 활동 목록 — 학생 카드에 그대로 들어갈 항목들.
    번호를 '활동 1'처럼 직접 그리므로 기본 목록 마커 자리는 비웁니다. */
 .lesson-board-acts {
@@ -10965,16 +10983,36 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   height: auto;
 }
 
-/* 읽기 모드 활동 섹션 */
+/* 읽기 모드 활동 섹션 — 질문(제목)은 위쪽에 소제목처럼, 답은 그 아래
+   사각형 박스 안에 놓입니다. 실제 HTML은 <h4 class="activity-title">
+   바로 뒤에 답 내용이 형제 노드로 이어지는 구조라(공용 편집 틀), 제목을
+   박스 위에 겹치는 띠로 절대 배치해 시각적으로만 분리합니다 — 그래야
+   답이 <p> 하나든 여러 줄이든 항상 하나의 박스로 보입니다. */
 .study-card-body .activity-section {
+  position: relative;
   border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 12px 14px;
-  margin-bottom: 10px;
-  background: var(--bg);
+  padding: 34px 14px 12px;
+  margin-bottom: 14px;
+  background: #fff;
 }
 .study-card-body .activity-section:last-child {
   margin-bottom: 0;
+}
+.study-card-body .activity-title {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+  border-radius: 10px 10px 0 0;
+  background: var(--bg);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary-dark, #c15a2a);
+  font-family: var(--font-serif);
 }
 .activity-title {
   font-size: 14px;

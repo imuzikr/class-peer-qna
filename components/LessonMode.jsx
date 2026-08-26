@@ -76,6 +76,13 @@ export default function LessonMode({
   const [actBusy, setActBusy] = useState(false);
   const [actError, setActError] = useState("");
   const [makingBoard, setMakingBoard] = useState(false);
+  // '+ 수업 보드 추가'는 누르자마자 만들지 않고 이름 입력창을 먼저 엽니다.
+  // (예전엔 클릭 즉시 수업 자료 제목으로 빈 보드를 만들어 버려서, 원치
+  // 않으면 취소할 방법 없이 빈 보드가 그대로 남았습니다 — 닫았다 다시
+  // 열어도 이미 만들어진 보드라 계속 보였습니다)
+  const [addingBoard, setAddingBoard] = useState(false);
+  const [newBoardName, setNewBoardName] = useState("");
+  const newBoardInputRef = useRef(null);
   const boardActs = board?.activities ?? [];
 
   // ── 공부중 전광판 (수업 중) ──
@@ -215,21 +222,36 @@ export default function LessonMode({
     setNewAct("");
   }
 
-  // 수업 자료 이름으로 새 보드를 만들고 바로 연결합니다.
-  async function handleAddBoard() {
-    if (!classId || makingBoard) return;
+  // '+ 수업 보드 추가' 클릭 — 바로 만들지 않고 이름 입력창을 엽니다.
+  function startAddBoard() {
+    setNewBoardName(lesson.title || "");
+    setActError("");
+    setAddingBoard(true);
+  }
+  function cancelAddBoard() {
+    setAddingBoard(false);
+    setNewBoardName("");
+  }
+
+  // 입력한 이름으로 새 보드를 만들고 바로 연결합니다(취소하면 아무것도 안 만듭니다).
+  async function handleAddBoard(e) {
+    e.preventDefault();
+    // 한글 마지막 글자는 조합 중일 수 있어 실제 입력값을 먼저 읽습니다.
+    const name = (newBoardInputRef.current?.value ?? newBoardName).trim();
+    if (!classId || !name || makingBoard) return;
     setMakingBoard(true);
     setActError("");
     try {
       const id = await addStudyBoard(getCurrentUser(), {
-        title: lesson.title || "수업 보드",
+        title: name,
         type: "student",
         description: "",
         classId,
       });
       if (id) await onSaveBoardId?.(id);
-    } catch (e) {
-      setActError(`보드를 만들지 못했어요: ${e?.message ?? "알 수 없는 오류"}`);
+      cancelAddBoard();
+    } catch (e2) {
+      setActError(`보드를 만들지 못했어요: ${e2?.message ?? "알 수 없는 오류"}`);
     } finally {
       setMakingBoard(false);
     }
@@ -565,29 +587,60 @@ export default function LessonMode({
 
             <div className="lesson-board-body">
               {/* 보드 선택 + 새 보드 만들기 */}
-              <div className="lesson-board-pick">
-                <label htmlFor="lesson-board-select">수업 보드</label>
-                <select
-                  id="lesson-board-select"
-                  className="lesson-board-select"
-                  value={boardId ?? ""}
-                  onChange={(e) => onSaveBoardId?.(e.target.value || null)}
-                  disabled={!classId}
-                >
-                  <option value="">연결 안 함</option>
-                  {boards.map((b) => (
-                    <option key={b.id} value={b.id}>{b.title}</option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  className="lesson-board-add"
-                  onClick={handleAddBoard}
-                  disabled={!classId || makingBoard}
-                >
-                  {makingBoard ? "만드는 중…" : "+ 수업 보드 추가"}
-                </button>
-              </div>
+              {addingBoard ? (
+                <form className="lesson-board-pick lesson-board-addform" onSubmit={handleAddBoard}>
+                  <label htmlFor="lesson-board-newname">새 보드 이름</label>
+                  <input
+                    id="lesson-board-newname"
+                    ref={newBoardInputRef}
+                    type="text"
+                    className="lesson-board-select"
+                    value={newBoardName}
+                    onChange={(e) => setNewBoardName(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Escape") { e.preventDefault(); cancelAddBoard(); } }}
+                    placeholder="예) 디지털 사회의 진로"
+                    maxLength={40}
+                    autoFocus
+                  />
+                  {/* 조합 중인 한글은 state에 늦게 들어오므로 입력값으로
+                      버튼을 잠그지 않습니다(빈 값은 handleAddBoard가 거릅니다) */}
+                  <button type="submit" className="lesson-board-add" disabled={makingBoard}>
+                    {makingBoard ? "만드는 중…" : "만들기"}
+                  </button>
+                  <button
+                    type="button"
+                    className="lesson-board-cancel"
+                    onClick={cancelAddBoard}
+                    disabled={makingBoard}
+                  >
+                    취소
+                  </button>
+                </form>
+              ) : (
+                <div className="lesson-board-pick">
+                  <label htmlFor="lesson-board-select">수업 보드</label>
+                  <select
+                    id="lesson-board-select"
+                    className="lesson-board-select"
+                    value={boardId ?? ""}
+                    onChange={(e) => onSaveBoardId?.(e.target.value || null)}
+                    disabled={!classId}
+                  >
+                    <option value="">연결 안 함</option>
+                    {boards.map((b) => (
+                      <option key={b.id} value={b.id}>{b.title}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    className="lesson-board-add"
+                    onClick={startAddBoard}
+                    disabled={!classId}
+                  >
+                    + 수업 보드 추가
+                  </button>
+                </div>
+              )}
 
               {!classId && (
                 <p className="lesson-note-empty">
