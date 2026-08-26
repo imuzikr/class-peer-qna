@@ -55,6 +55,7 @@ export default function LessonMode({
   onSaveActivities,
   onSaveBoardId,        // 수업 준비: 연결한 보드 id를 수업 자료에 저장
   onStart,              // 수업 준비: '수업 시작하기' — 있어야 버튼이 보임
+  onEdit,               // 수업 중: 프레젠테이션이 안 될 때도 수업 자료를 편집하러 감
   onClose,
 }) {
   const slides = lesson.slides ?? [];
@@ -385,6 +386,12 @@ export default function LessonMode({
         {editing && onStart && (
           <button type="button" className="lesson-start-btn" onClick={onStart}>
             수업 시작하기 ›
+          </button>
+        )}
+        {/* 프레젠테이션이 먹통일 때도 수업 자료를 고치러 갈 수 있어야 합니다 */}
+        {!editing && onEdit && (
+          <button type="button" className="lesson-edit-btn" onClick={onEdit}>
+            수업 편집
           </button>
         )}
         <button type="button" className="lesson-exit" onClick={onClose}>

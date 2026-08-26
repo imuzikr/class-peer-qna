@@ -1049,6 +1049,8 @@ function StudyPageInner() {
           onAward={admin && !currentClass?.archived ? awardReward : null}
           // '공부중' 전광판이 연결된 수업 보드를 찾는 데 씁니다
           boards={classBoards.filter((b) => b.type !== "notice")}
+          // 프레젠테이션이 안 될 때도 수업 자료를 바로 고치러 갈 수 있게
+          onEdit={() => openLessonEdit(teaching)}
           onClose={closeLessonNav}
         />
       )}
