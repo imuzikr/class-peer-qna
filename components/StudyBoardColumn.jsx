@@ -65,7 +65,8 @@ export default function StudyBoardColumn({
   const [dragOver, setDragOver] = useState(false);
   const [sortKey, setSortKey] = useState("time");
   const [studentIdDir, setStudentIdDir] = useState("asc");
-  const [timeDir, setTimeDir] = useState("asc");
+  // 최신 카드가 위(카드 추가 버튼 바로 아래)에 보이도록 기본은 내림차순
+  const [timeDir, setTimeDir] = useState("desc");
   const [activitiesOpen, setActivitiesOpen] = useState(false);
   const [activitiesDraft, setActivitiesDraft] = useState([]);
   const [savingActivities, setSavingActivities] = useState(false);
@@ -113,6 +114,11 @@ export default function StudyBoardColumn({
       .sort((a, b) => (a.groupIndex ?? 0) - (b.groupIndex ?? 0));
   } else if (!isTeacher && !isNotice && board.viewMode === "private") {
     visibleCards = myCard ? [myCard] : [];
+  } else {
+    // 카드 추가 버튼이 목록 맨 위에 있으므로, 새로 만든 카드가 그 바로
+    // 아래(맨 위)에 보이도록 최신순으로 뒤집습니다(구독은 생성 순 오름차순).
+    // 아래 교사 정렬(학번/제출)이 적용되는 경우엔 그 결과로 다시 덮어씁니다.
+    visibleCards = [...cards].reverse();
   }
 
   const currentSortDir = sortKey === "studentId" ? studentIdDir : timeDir;
@@ -761,7 +767,21 @@ export default function StudyBoardColumn({
       </div>
 
       {/* ── 학생 카드 목록 ── */}
+      {/* 카드 추가 버튼을 맨 위에 둬서, 카드가 늘어나도 버튼 위치가
+          아래로 밀려나지 않게 합니다(새 카드는 버튼 바로 아래·최신순으로
+          쌓입니다). */}
       <div className="study-column-cards">
+        {canAdd && (
+          <button className="study-add-card" onClick={() => setCreating(true)}>
+            ＋ {isNotice || isTeacher ? "카드 추가" : "내 카드 작성"}
+          </button>
+        )}
+        {!isNotice && myCard && !locked && !isTeacher && (
+          <p className="study-one-card-note">
+            한 보드에는 카드를 하나만 만들 수 있어요.
+          </p>
+        )}
+
         {visibleCards.map((card) => (
           <StudyCard
             key={card.id}
@@ -779,17 +799,6 @@ export default function StudyBoardColumn({
               : isNotice
               ? "안내 카드를 추가해 보세요."
               : "내 카드를 작성해 활동을 시작해 보세요."}
-          </p>
-        )}
-
-        {canAdd && (
-          <button className="study-add-card" onClick={() => setCreating(true)}>
-            ＋ {isNotice || isTeacher ? "카드 추가" : "내 카드 작성"}
-          </button>
-        )}
-        {!isNotice && myCard && !locked && !isTeacher && (
-          <p className="study-one-card-note">
-            한 보드에는 카드를 하나만 만들 수 있어요.
           </p>
         )}
       </div>
