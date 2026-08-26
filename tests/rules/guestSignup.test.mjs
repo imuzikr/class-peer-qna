@@ -1,7 +1,7 @@
 // =============================================================
 // 손님 가입 — 등록 코드가 도메인과 소속 반을 함께 정합니다.
 //
-// 학교 코드(BYDWHS)는 지금까지처럼 @hansung.hs.kr 계정만 받고, 입장 코드로
+// 학교 코드(SCHOOLCODE)는 지금까지처럼 @hansung.hs.kr 계정만 받고, 입장 코드로
 // 아무 반이나 들어갑니다. 손님 코드(GUEST)는 allowAnyDomain으로 도메인을
 // 면제하는 대신 classId가 가리키는 반에만 소속시킵니다.
 //
@@ -49,7 +49,7 @@ describe("손님 등록 코드", () => {
     await env.clearFirestore();
     await seed(env, async (db) => {
       // 학교 코드 — 도메인 제한 유지, 강제 소속 반 없음
-      await setDoc(doc(db, "registrationCodes", "BYDWHS"), { active: true });
+      await setDoc(doc(db, "registrationCodes", "SCHOOLCODE"), { active: true });
       // 손님 코드 — 도메인 면제 + GUEST ROOM 강제 소속
       await setDoc(doc(db, "registrationCodes", "GUEST"), {
         active: true,
@@ -82,14 +82,14 @@ describe("손님 등록 코드", () => {
     it("학교 코드 + 학교 이메일 — 지금까지처럼 가입된다", async () => {
       const db = asSchool(env, "stu1").firestore();
       await assertSucceeds(
-        setDoc(doc(db, "users", "stu1"), profile({ regCode: "BYDWHS" }))
+        setDoc(doc(db, "users", "stu1"), profile({ regCode: "SCHOOLCODE" }))
       );
     });
 
     it("학교 코드 + 개인 계정 — 막힌다", async () => {
       const db = asOutsider(env, "out1").firestore();
       await assertFails(
-        setDoc(doc(db, "users", "out1"), profile({ regCode: "BYDWHS" }))
+        setDoc(doc(db, "users", "out1"), profile({ regCode: "SCHOOLCODE" }))
       );
     });
 
@@ -127,7 +127,7 @@ describe("손님 등록 코드", () => {
       // 통과하면 입장 코드 없이 아무 반이나 소속될 수 있게 됩니다.
       const db = asSchool(env, "stu1").firestore();
       await assertFails(
-        setDoc(doc(db, "users", "stu1"), profile({ regCode: "BYDWHS", homeClassId: "class3" }))
+        setDoc(doc(db, "users", "stu1"), profile({ regCode: "SCHOOLCODE", homeClassId: "class3" }))
       );
     });
 
@@ -155,7 +155,7 @@ describe("손님 등록 코드", () => {
         }));
         // 일반 학생 — 강제 소속 반 없음
         await setDoc(doc(db, "users", "stu1"), profile({
-          regCode: "BYDWHS", homeClassId: "",
+          regCode: "SCHOOLCODE", homeClassId: "",
         }));
       });
     });
