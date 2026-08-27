@@ -6730,32 +6730,33 @@ pre code {
    가로는 활동, 세로는 학생 한 명씩. 표 대신 작은 네모를 촘촘히 깔아
    '누가 어디까지 냈는지'를 색만으로 훑게 합니다. 자세한 내용은 칸을
    눌러 여는 작은 창(.progress-pop)이 맡습니다. */
+/* 한 줄이 활동 하나, 한 칸이 학생 한 명(가로 배치).
+   학생 이름은 칸에 넣지 않습니다 — 반 인원만큼 칸이 늘어서므로 이름을
+   넣으면 잔디가 아니라 표가 됩니다. 누구인지는 툴팁·정보창이 알려 줍니다. */
 .progress-grass {
   display: grid;
-  grid-template-columns: max-content repeat(var(--acts), 34px);
-  gap: 4px;
+  grid-template-columns: max-content repeat(var(--students), 22px);
+  gap: 5px 4px;
   align-items: center;
   padding: 2px 2px 6px;
   width: max-content;
 }
-.grass-corner {
+/* 활동 이름표 — 가로 스크롤에도 왼쪽에 붙어 있게 */
+.grass-act {
   position: sticky;
   left: 0;
-  z-index: 2;
+  z-index: 1;
   background: var(--bg);
-  align-self: end;
-  padding-bottom: 6px;
-  font-size: 11.5px;
-  font-weight: 800;
-  color: var(--text-sub);
-}
-.grass-act {
   display: flex;
   flex-direction: column;
+  gap: 1px;
+  padding-right: 12px;
+  max-width: 220px;
+}
+.grass-act-head {
+  display: flex;
   align-items: center;
-  gap: 2px;
-  padding-bottom: 6px;
-  text-align: center;
+  gap: 6px;
 }
 .grass-act-no {
   font-size: 11px;
@@ -6763,15 +6764,11 @@ pre code {
   color: var(--primary-dark);
   white-space: nowrap;
 }
-/* 활동 이름은 칸(34px)보다 길어 세로로 세워 둡니다 — 칸을 넓히면 잔디가
-   아니라 표가 되어 버려서, 이름 쪽을 접었습니다. */
 .grass-act-name {
-  writing-mode: vertical-rl;
-  max-height: 96px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 11px;
+  font-size: 11.5px;
   color: var(--text-sub);
 }
 .grass-act-count {
@@ -6780,29 +6777,9 @@ pre code {
   color: var(--text-sub);
   white-space: nowrap;
 }
-/* 학생 이름표 — 가로 스크롤에도 왼쪽에 붙어 있게 */
-.grass-name {
-  position: sticky;
-  left: 0;
-  z-index: 1;
-  background: var(--bg);
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  padding-right: 10px;
-  white-space: nowrap;
-  font-size: 12.5px;
-}
-.grass-student-no {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-sub);
-  font-variant-numeric: tabular-nums;
-}
-.grass-student-name { font-weight: 700; color: var(--text); }
 
 .grass-cell {
-  width: 26px;
+  width: 22px;
   height: 22px;
   justify-self: center;
   border-radius: 5px;
@@ -6852,7 +6829,7 @@ pre code {
 .progress-pop {
   position: fixed;
   z-index: 1201;
-  width: 230px;
+  width: 250px;
   padding: 12px 13px;
   border-radius: 12px;
   background: #fff;
@@ -6885,42 +6862,49 @@ pre code {
   cursor: pointer;
   padding: 0 2px;
 }
-.progress-pop-act {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  font-size: 12.5px;
-  color: var(--text);
-  line-height: 1.4;
+/* 학생 한 명의 활동 전체를 줄줄이 — 누른 활동만 살짝 표시해 둡니다 */
+.progress-pop-sub {
+  font-size: 11.5px;
+  color: var(--text-sub);
+  margin-top: -4px;
 }
-.progress-pop-state {
+.progress-pop-acts {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.progress-pop-act-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 7px;
+  border-radius: 8px;
+}
+.progress-pop-act-row.current { background: var(--bg-deep); }
+.progress-pop-act-head {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 9px;
-  border-radius: 8px;
-  font-size: 12.5px;
-  font-weight: 800;
-  background: var(--bg-deep);
-  color: var(--text-sub);
+  min-width: 0;
 }
-.progress-pop-state--done { background: #e8f7ed; color: #3d8a72; }
-.progress-pop-state--open { background: var(--primary-light); color: var(--primary-dark); }
-.progress-pop-rows {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
+.progress-pop-act-name {
   font-size: 12px;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.progress-pop-rows > div {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
+.progress-pop-act-state {
+  flex-shrink: 0;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--text-sub);
+  white-space: nowrap;
 }
-.progress-pop-rows dt { color: var(--text-sub); font-weight: 700; flex-shrink: 0; }
-.progress-pop-rows dd { color: var(--text); text-align: right; }
-.progress-pop-rows dd small { color: var(--text-sub); font-weight: 600; }
+.progress-pop-act-state small { font-weight: 600; }
+.progress-pop-act-state--done { color: #3d8a72; }
+.progress-pop-act-state--open { color: var(--primary-dark); }
 .progress-table {
   border-collapse: separate;
   border-spacing: 0;
