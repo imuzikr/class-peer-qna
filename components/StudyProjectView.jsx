@@ -337,13 +337,15 @@ export default function StudyProjectView({
 
   // 자리 하나를 눌렀을 때
   //  · 내 자리(활동이 있는 프로젝트) → 상세 페이지(StudyMyActivityCard)
-  //  · 교사가 학생이 이미 쓴 카드를 누른 경우도 같은 상세 페이지로(교사는
-  //    학생과 똑같이 활동별 화면을 보고 편집할 수 있어야 하므로)
+  //  · 교사가 학생 자리를 누른 경우도 같은 상세 페이지로 — 아직 안 쓴
+  //    자리라도 진행 상황을 보러 들어갈 수 있어야 하므로. 다만 보안 규칙상
+  //    교사가 학생 명의 카드를 대신 만들 수는 없어(authorId는 실제 로그인한
+  //    사람과 같아야 함), 카드가 아직 없으면 읽기 전용(canEdit=false)으로 엽니다.
   //  · 그 밖의 카드(활동 없는 프로젝트의 카드, 학생이 보는 친구 카드) → 기존 모달
-  //  · 남의 빈 자리 → 아무 일 없음
+  //  · 남의 빈 자리(학생 시점) → 아무 일 없음
   function openSeat(seat) {
     if (seat.locked) return;
-    if (activities.length > 0 && (seat.mine || (isTeacher && seat.card))) {
+    if (activities.length > 0 && (seat.mine || isTeacher)) {
       setDetailSeat(seat);
       return;
     }
@@ -352,15 +354,20 @@ export default function StudyProjectView({
   }
 
   // 활동이 있는 프로젝트의 카드 상세 — 그리드 대신 이 상세 페이지를 통째로
-  // 보여 줍니다. 내 자리면 나 자신 기준, 교사가 학생 카드를 열었으면 그
-  // 학생의 카드를 기준으로 편집 권한(canEditCard)을 판단합니다.
+  // 보여 줍니다. 내 자리면 나 자신 기준, 교사가 학생 자리를 열었으면 그
+  // 학생의 카드를 기준으로 편집 권한(canEditCard)을 판단하되, 카드가 아직
+  // 없으면(학생이 시작 전) 무조건 읽기 전용입니다.
   if (detailSeat) {
     return (
       <StudyMyActivityCard
         board={board}
-        user={detailSeat.mine ? user : { uid: detailSeat.uid }}
+        user={user}
         card={detailSeat.mine ? myCard : detailSeat.card}
-        canEdit={detailSeat.mine ? !locked : canEditCard(detailSeat.card)}
+        canEdit={
+          detailSeat.mine
+            ? !locked
+            : !!detailSeat.card && canEditCard(detailSeat.card)
+        }
         canDelete={isTeacher}
         onBack={() => setDetailSeat(null)}
         onAsk={onAsk}
@@ -680,6 +687,7 @@ export default function StudyProjectView({
               seat={seat}
               activities={activities}
               canStart={seat.mine && !locked}
+              canPeek={isTeacher && activities.length > 0}
               onClick={() => openSeat(seat)}
             />
           )
@@ -804,8 +812,10 @@ export default function StudyProjectView({
 }
 
 // 아직 카드가 없는 자리 / 잠겨서 열 수 없는 친구 자리
-function SeatPlaceholder({ seat, activities, canStart, onClick }) {
-  const clickable = canStart || (seat.card && !seat.locked);
+// canStart: 학생 본인 자리(활동 시작 가능) · canPeek: 교사가 아직 안 쓴
+// 학생 자리를 읽기 전용으로 미리 들어가 볼 수 있음(대신 만들어 줄 순 없음)
+function SeatPlaceholder({ seat, activities, canStart, canPeek, onClick }) {
+  const clickable = canStart || canPeek;
   // 잠긴 자리(친구 카드를 볼 수 없는 경우)는 진행률도 보여주지 않습니다 —
   // 잠금이 '내용은 물론 진행 정도도 안 보여준다'는 뜻이었으므로 유지합니다.
   // 잠기지 않았으면(교사 화면은 항상 이쪽) 카드가 아직 없어도(seat.card는
@@ -829,6 +839,8 @@ function SeatPlaceholder({ seat, activities, canStart, onClick }) {
           ? "이 카드는 본인과 선생님만 볼 수 있어요"
           : canStart
           ? "눌러서 활동을 시작하세요"
+          : canPeek
+          ? "눌러서 진행 상황을 확인하세요"
           : "아직 작성 전이에요"
       }
     >
