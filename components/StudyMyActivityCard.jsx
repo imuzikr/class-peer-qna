@@ -24,6 +24,7 @@
 // 띄웁니다. 방송 중 다른 활동 버튼을 누르면 곧바로 그리로 전환됩니다.
 // =============================================================
 import { useEffect, useMemo, useRef, useState } from "react";
+import { backdropClose } from "@/lib/modal";
 import { addStudyCard, updateStudyCard, deleteStudyCard, formatTime } from "@/lib/store";
 import { useEntryCast } from "@/lib/useEntryCast";
 import { sanitizeHtml, stripHtml, htmlHasImage } from "@/lib/html";
@@ -83,6 +84,8 @@ export default function StudyMyActivityCard({
   const [autoStatus, setAutoStatus] = useState("idle"); // idle | saving | saved | error
   const [showRelated, setShowRelated] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  // 지금 크게 열어 쓰고 있는 활동 번호 (null이면 닫힘)
+  const [editingAct, setEditingAct] = useState(null);
   const [peekQuestion, setPeekQuestion] = useState(null);
 
   const cardIdRef = useRef(card?.id ?? null);
@@ -317,6 +320,24 @@ export default function StudyMyActivityCard({
 
       {board.description && <p className="study-project-view-desc">{board.description}</p>}
 
+      {/* 선생님이 붙인 참고 자료 — 평소엔 접혀 있고 눌러서 펼칩니다
+          (왼쪽 패널의 '자료 제공'에서 넣습니다) */}
+      {(board.materialText || board.materialImage) && (
+        <details className="study-material-view">
+          <summary>📎 선생님이 준 자료</summary>
+          {board.materialText && (
+            <p className="study-material-view-text">{board.materialText}</p>
+          )}
+          {board.materialImage && (
+            <ZoomableImage
+              src={board.materialImage}
+              alt="선생님이 준 자료"
+              className="study-material-view-img"
+            />
+          )}
+        </details>
+      )}
+
       <p className="activity-form-hint">
         활동마다 {DONE_MIN_CHARS}자 이상 작성해야 ‘제출’로 인정됩니다.
       </p>
@@ -389,19 +410,39 @@ export default function StudyMyActivityCard({
                     placeholder={`활동 ${i + 1}`}
                     maxLength={80}
                   />
-                  <div className="study-mycard-editor">
-                    <RichTextEditor
-                      variant="full"
-                      initialHtml={savedSections.current[i]?.content ?? ""}
-                      onChange={(html) => {
-                        setActivityContents((prev) => {
-                          const next = [...prev];
-                          next[i] = html;
-                          return next;
-                        });
-                      }}
-                      placeholder="내용을 입력해 주세요."
-                    />
+                  {/* 칸 안에서 바로 쓰던 것을 미리보기로 바꿨습니다 — 글이
+                      길어지면 칸이 한없이 늘어나 옆 활동과 높이가 어긋나고
+                      화면 밖으로 밀렸습니다. 누르면 큰 모달에서 씁니다. */}
+                  {/* button이 아니라 div입니다 — 학생 글에 <p>·<div> 같은
+                      블록 요소가 들어 있어 button 안에 넣으면 유효하지 않은
+                      중첩이 됩니다. 키보드로도 열 수 있게 role/tabIndex를 둡니다. */}
+                  <div
+                    className="study-mycard-preview"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setEditingAct(i)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setEditingAct(i);
+                      }
+                    }}
+                    title="눌러서 크게 쓰기"
+                  >
+                    {stripHtml(activityContents[i] ?? "").trim() ||
+                    htmlHasImage(activityContents[i] ?? "") ? (
+                      <div
+                        className="study-card-content study-mycard-preview-body"
+                        dangerouslySetInnerHTML={{
+                          __html: sanitizeHtml(activityContents[i] ?? ""),
+                        }}
+                      />
+                    ) : (
+                      <p className="study-mycard-preview-empty">
+                        눌러서 내용을 입력해 주세요.
+                      </p>
+                    )}
+                    <span className="study-mycard-preview-open">✎ 크게 쓰기</span>
                   </div>
                 </>
               )}
@@ -477,7 +518,103 @@ export default function StudyMyActivityCard({
           onBackToList={() => { setPeekQuestion(null); setShowRelated(true); }}
         />
       )}
+
+      {/* 활동 하나를 큰 화면에서 쓰기 — 칸 미리보기를 누르면 열립니다.
+          같은 state를 쓰므로 여기서 쓴 내용도 그대로 자동 저장됩니다. */}
+      {editingAct !== null && (
+        <ActivityEditorModal
+          index={editingAct}
+          title={activityTitles[editingAct] ?? activities[editingAct] ?? ""}
+          html={activityContents[editingAct] ?? ""}
+          autoStatus={autoStatus}
+          onTitleChange={(v) =>
+            setActivityTitles((prev) => {
+              const next = [...prev];
+              next[editingAct] = v;
+              return next;
+            })
+          }
+          onChange={(v) =>
+            setActivityContents((prev) => {
+              const next = [...prev];
+              next[editingAct] = v;
+              return next;
+            })
+          }
+          onClose={() => setEditingAct(null)}
+        />
+      )}
     </section>
+  );
+}
+
+// 활동 하나를 크게 쓰는 모달 — 칸 안에서 쓰던 것을 옮겼습니다.
+// 저장 버튼은 없습니다(부모가 입력이 멈추면 자동 저장). 그래서 머리말에
+// 자동 저장 상태를 그대로 비춰 주어, 닫아도 되는지 알 수 있게 합니다.
+function ActivityEditorModal({
+  index,
+  title,
+  html,
+  autoStatus,
+  onTitleChange,
+  onChange,
+  onClose,
+}) {
+  // 열 때의 내용만 편집기에 심습니다(RichTextEditor는 비제어 컴포넌트라,
+  // 타자 도중 initialHtml이 바뀌면 커서가 튑니다).
+  const initialRef = useRef(html);
+
+  useEffect(() => {
+    function onKey(e) { if (e.key === "Escape") onClose(); }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const chars = stripHtml(html ?? "").length;
+  const done = chars >= DONE_MIN_CHARS;
+
+  return (
+    <div className="modal-backdrop" {...backdropClose(onClose)}>
+      <div
+        className="modal study-act-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label={`활동 ${index + 1} 쓰기`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="study-act-modal-head">
+          <span className="activity-dash-no">활동 {index + 1}</span>
+          <input
+            type="text"
+            className="study-act-modal-title"
+            value={title}
+            onChange={(e) => onTitleChange(e.target.value)}
+            placeholder={`활동 ${index + 1}`}
+            maxLength={80}
+          />
+          <span className={`activity-dash-count${done ? " ok" : ""}`}>
+            {chars}/{DONE_MIN_CHARS}자
+          </span>
+          {autoStatus !== "idle" && (
+            <span className={`study-autosave-pill study-autosave-pill--${autoStatus}`}>
+              {autoStatus === "saving" && "저장 중…"}
+              {autoStatus === "saved" && "✓ 자동 저장됨"}
+              {autoStatus === "error" && "저장 실패"}
+            </span>
+          )}
+          <button className="btn-close" onClick={onClose} aria-label="닫기">×</button>
+        </div>
+
+        <div className="study-act-modal-body">
+          <RichTextEditor
+            variant="full"
+            initialHtml={initialRef.current}
+            onChange={onChange}
+            placeholder="내용을 입력해 주세요."
+          />
+        </div>
+      </div>
+    </div>
   );
 }
 

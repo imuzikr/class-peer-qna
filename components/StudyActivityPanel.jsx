@@ -25,8 +25,12 @@ import {
   isActivityLocked,
   isTeacherAuthoredCard,
 } from "@/lib/activities";
+import { uploadImage } from "@/lib/storageUpload";
 import { cardProgress } from "./StudyProgressBoard";
+import UploadProgress from "./UploadProgress";
 import { IconLock } from "./StatusIcons";
+
+const MATERIAL_MAX_IMAGE = 5 * 1024 * 1024;
 
 export default function StudyActivityPanel({
   board,
@@ -243,8 +247,132 @@ export default function StudyActivityPanel({
               </button>
             </div>
           )}
+
+          {/* 자료 제공 — 늘 맨 아래(margin-top: auto). 평소엔 활동 한 줄과
+              같은 크기로 접혀 있고, 누르면 펼쳐집니다. */}
+          <MaterialSection board={board} />
         </>
       )}
     </aside>
+  );
+}
+
+// 프로젝트에 붙이는 참고 자료 — 학생 활동 화면 맨 위에 펼쳐 볼 수 있는
+// 상자로 나타납니다(StudyMyActivityCard). 보드 문서에 바로 저장합니다.
+function MaterialSection({ board }) {
+  const boardId = board?.id ?? null;
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState(board?.materialText ?? "");
+  const [image, setImage] = useState(board?.materialImage ?? null);
+  const [pct, setPct] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  // 다른 프로젝트로 옮겨 가면 그 프로젝트의 자료로 다시 맞춥니다
+  useEffect(() => {
+    setText(board?.materialText ?? "");
+    setImage(board?.materialImage ?? null);
+    setSaved(false);
+  }, [boardId, board?.materialText, board?.materialImage]);
+
+  const dirty =
+    text !== (board?.materialText ?? "") || image !== (board?.materialImage ?? null);
+  const hasMaterial = !!(board?.materialText || board?.materialImage);
+
+  async function handleImage(e) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (file.size > MATERIAL_MAX_IMAGE) {
+      alert(`이미지는 5MB 이하여야 합니다. (현재: ${(file.size / 1024 / 1024).toFixed(1)}MB)`);
+      return;
+    }
+    setPct(0);
+    try {
+      setImage(await uploadImage(file, { onProgress: setPct }));
+    } catch {
+      alert("이미지 업로드에 실패했어요. 잠시 후 다시 시도해 주세요.");
+    } finally {
+      setPct(null);
+    }
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      await updateStudyBoard(boardId, {
+        materialText: text.trim(),
+        materialImage: image ?? null,
+      });
+      setSaved(true);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className={`study-material${open ? " open" : ""}`}>
+      <button
+        type="button"
+        className="study-material-toggle"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+      >
+        <span className="study-material-label">
+          📎 자료 제공
+          {hasMaterial && <span className="study-material-dot" aria-label="자료 있음" />}
+        </span>
+        <span className="study-material-caret" aria-hidden="true">{open ? "▴" : "▾"}</span>
+      </button>
+
+      {open && (
+        <div className="study-material-body">
+          <p className="study-activity-panel-hint">
+            학생 활동 화면 맨 위에 접힌 상자로 보여 줍니다.
+          </p>
+          <textarea
+            className="study-material-text"
+            value={text}
+            onChange={(e) => { setText(e.target.value); setSaved(false); }}
+            placeholder="설명·참고 글을 적어 주세요."
+            maxLength={2000}
+          />
+
+          <UploadProgress pct={pct} />
+          {image ? (
+            <div className="study-material-image">
+              <img src={image} alt="제공 자료" />
+              <button
+                type="button"
+                className="attach-image-grid-del"
+                onClick={() => { setImage(null); setSaved(false); }}
+                aria-label="이미지 삭제"
+              >
+                ✕
+              </button>
+            </div>
+          ) : (
+            <label className="study-material-image-add">
+              + 이미지 올리기
+              <input
+                type="file"
+                accept=".jpg,.jpeg,.png,.gif,.webp"
+                onChange={handleImage}
+                hidden
+              />
+            </label>
+          )}
+
+          <button
+            type="button"
+            className="study-activity-panel-save"
+            onClick={handleSave}
+            disabled={saving || !dirty}
+          >
+            {saving ? "저장 중..." : saved && !dirty ? "저장됨" : "자료 저장"}
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
