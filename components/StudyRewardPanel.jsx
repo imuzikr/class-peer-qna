@@ -32,6 +32,9 @@ import StudentNotesModal from "./StudentNotesModal";
 
 const COLLAPSE_KEY = "reward_panel_collapsed";
 const GROUP_COLORS = ["#2563eb", "#16a34a", "#f97316", "#9333ea", "#dc2626", "#0891b2"];
+// '자리 배정하기' 모달의 모둠 수 선택([2,3,4,5,6]개)과 같은 범위로 맞춥니다.
+const MIN_GROUPS = 2;
+const MAX_GROUPS = 6;
 
 export default function StudyRewardPanel({
   roster = [],
@@ -119,6 +122,29 @@ export default function StudyRewardPanel({
     await onSaveGroups?.(next);
   }
 
+  // 모둠 수 조절 — 맨 뒤에 하나 추가하거나 맨 뒤 하나를 없앱니다. 없앤
+  // 모둠의 학생은 groupedUids에서 자연히 빠져 '미배정'에 다시 나타납니다
+  // (별도로 옮겨 줄 필요가 없습니다).
+  async function addGroup() {
+    if (groups.length >= MAX_GROUPS) return;
+    const index = groups.length + 1;
+    const next = [...groups, {
+      id: `group_${index}`,
+      index,
+      name: `${index}모둠`,
+      color: GROUP_COLORS[(index - 1) % GROUP_COLORS.length],
+      members: [],
+    }];
+    setGroups(next);
+    await onSaveGroups?.(next);
+  }
+  async function removeGroup() {
+    if (groups.length <= MIN_GROUPS) return;
+    const next = groups.slice(0, -1);
+    setGroups(next);
+    await onSaveGroups?.(next);
+  }
+
   // 접힌 상태 — 세로 슬림 바. 클릭하면 다시 펼침.
   if (collapsed) {
     return (
@@ -195,7 +221,31 @@ export default function StudyRewardPanel({
           '반 관리하기 → 자리 배정하기'에서 합니다. */}
       {groups.length > 0 && (
         <div className="reward-groups">
-          <strong className="reward-groups-title">모둠 현황</strong>
+          <div className="reward-groups-head">
+            <strong className="reward-groups-title">모둠 현황</strong>
+            <div className="reward-groups-count-btns">
+              <button
+                type="button"
+                className="reward-groups-count-btn"
+                onClick={removeGroup}
+                disabled={groups.length <= MIN_GROUPS}
+                title="모둠 하나 줄이기"
+                aria-label="모둠 하나 줄이기"
+              >
+                −
+              </button>
+              <button
+                type="button"
+                className="reward-groups-count-btn"
+                onClick={addGroup}
+                disabled={groups.length >= MAX_GROUPS}
+                title="모둠 하나 늘리기"
+                aria-label="모둠 하나 늘리기"
+              >
+                ＋
+              </button>
+            </div>
+          </div>
           {groups.map((g, i) => (
             <div
               key={g.id ?? g.index ?? i}

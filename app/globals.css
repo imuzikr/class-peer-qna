@@ -5908,10 +5908,42 @@ pre code {
   padding-top: 12px;
   border-top: 1px solid var(--border);
 }
+.reward-groups-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
 .reward-groups-title {
   font-size: 12.5px;
   font-weight: 800;
   color: var(--text-sub);
+}
+.reward-groups-count-btns {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.reward-groups-count-btn {
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--text-sub);
+  cursor: pointer;
+}
+.reward-groups-count-btn:hover:not(:disabled) {
+  background: var(--neutral);
+}
+.reward-groups-count-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 .reward-group-row {
   display: flex;
@@ -5939,7 +5971,12 @@ pre code {
   min-width: 0;
   display: flex;
   flex-wrap: wrap;
+  align-content: flex-start;
   gap: 4px;
+  /* 한 줄에 3명, 최대 6명(2줄) 기준으로 미리 높이를 잡아 둡니다 —
+     인원이 적을 때도 모둠 칸 높이가 들쭉날쭉하지 않게(칩 높이 23px × 2줄
+     + 줄 사이 gap 4px). */
+  min-height: calc(23px * 2 + 4px);
 }
 .reward-group-empty {
   font-style: normal;
@@ -5958,6 +5995,7 @@ pre code {
   background: var(--bg-deep);
   font-family: inherit;
   font-size: 11px;
+  line-height: 15px;
   font-weight: 700;
   color: var(--text);
   cursor: grab;
