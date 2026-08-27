@@ -23,6 +23,9 @@ export default function StudyCard({
   myUid = null,
   onReact,
   topReacted = false,
+  onAward,
+  rewardCount = 0,
+  rewardMax = 100,
 }) {
   // 모둠 카드 — 모둠명 + 구성원(대표 👑)을 헤더에 표시
   const isGroupCard = !!card.groupId;
@@ -47,6 +50,11 @@ export default function StudyCard({
   const isMine = myUid != null
     && (isGroupCard ? card.memberUids?.includes(myUid) : card.authorId === myUid);
   const reactable = !!myUid && !isMine && !!onReact;
+
+  // 과일 주기 — 교사 전용, 실제 학생이 쓴 카드에만(모둠 카드는 대표 한 명이
+  // 아니라 여러 명이 함께 쓴 카드라 한 사람에게 몰아 줄 수 없어 제외).
+  const canAward = isTeacher && !isGroupCard && !isTeacherCard && !!onAward;
+  const rewardMaxed = rewardCount >= rewardMax;
 
   return (
     <article
@@ -117,24 +125,38 @@ export default function StudyCard({
       )}
 
       {/* 반응 — 정답 개념이 없는 공부방에서도 서로의 결과물에 가볍게 응원을
-          남길 수 있게. 카드 클릭(모달 열기)과 겹치지 않게 버블링을 막습니다. */}
+          남길 수 있게. + 교사 전용 과일 주기(오른쪽). 카드 클릭(모달 열기)과
+          겹치지 않게 버블링을 막습니다. */}
       <div className="study-card-reactions" onClick={(e) => e.stopPropagation()}>
-        {CARD_REACTIONS.map((r) => {
-          const active = (card[r.field] ?? []).includes(myUid);
-          return (
-            <button
-              key={r.kind}
-              type="button"
-              className={`chat-reaction-btn${active ? " active" : ""}`}
-              onClick={() => onReact?.(r.kind, active)}
-              disabled={!reactable}
-              title={isMine ? "내 카드에는 반응할 수 없어요" : active ? "반응 취소" : "반응 남기기"}
-            >
-              <span className="chat-reaction-emoji">{r.emoji}</span>
-              <span className="chat-reaction-count">{(card[r.field] ?? []).length}</span>
-            </button>
-          );
-        })}
+        <div className="study-card-reactions-left">
+          {CARD_REACTIONS.map((r) => {
+            const active = (card[r.field] ?? []).includes(myUid);
+            return (
+              <button
+                key={r.kind}
+                type="button"
+                className={`chat-reaction-btn${active ? " active" : ""}`}
+                onClick={() => onReact?.(r.kind, active)}
+                disabled={!reactable}
+                title={isMine ? "내 카드에는 반응할 수 없어요" : active ? "반응 취소" : "반응 남기기"}
+              >
+                <span className="chat-reaction-emoji">{r.emoji}</span>
+                <span className="chat-reaction-count">{(card[r.field] ?? []).length}</span>
+              </button>
+            );
+          })}
+        </div>
+        {canAward && (
+          <button
+            type="button"
+            className="study-card-award-btn"
+            onClick={() => onAward?.()}
+            disabled={rewardMaxed}
+            title={rewardMaxed ? "이미 최대 개수예요" : `과일 주기 (현재 ${rewardCount}개)`}
+          >
+            🍎 주기
+          </button>
+        )}
       </div>
     </article>
   );

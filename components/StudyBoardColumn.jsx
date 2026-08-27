@@ -25,6 +25,7 @@ import {
   duplicateStudyBoard,
   getDirectoryUser,
   toDate,
+  REWARD_MAX,
 } from "@/lib/store";
 import { stripHtml, htmlHasImage } from "@/lib/html";
 import { buildActivityTemplate, nextActivityLocks, isActivityLocked } from "@/lib/activities";
@@ -46,7 +47,8 @@ export default function StudyBoardColumn({
   hasCollapsed = false, // 접힌 보드가 하나라도 있는지 (모두 펴기 활성화용)
   onCollapseAll, // 첫 보드: 교사·최근 보드만 남기고 모두 접기
   canCollapseAll = false, // 접을 수 있는 중간 보드가 남아 있는지 (모두 접기 활성화용)
-  classRoster = [], // 교사: 반 학생 명단(모둠 구성용) [{uid, name, emoji}]
+  classRoster = [], // 교사: 반 학생 명단(모둠 구성·과일 개수 조회용) [{uid, name, emoji, count}]
+  onAward, // 교사: 카드에서 바로 과일 주기(uid, nextCount) — 없으면 카드에 버튼이 안 보임
   baseGroupAssignment = null,
   questions = [],
   classes = [],
@@ -813,6 +815,15 @@ export default function StudyBoardColumn({
               ((kind, active) => setCardReaction(board.id, card.id, kind, user.uid, !active))
             }
             topReacted={maxReactionTotal > 0 && cardReactionTotal(card) === maxReactionTotal}
+            rewardCount={classRoster.find((s) => s.uid === card.authorId)?.count ?? 0}
+            rewardMax={REWARD_MAX}
+            onAward={
+              onAward &&
+              (() => {
+                const cur = classRoster.find((s) => s.uid === card.authorId)?.count ?? 0;
+                onAward(card.authorId, Math.min(REWARD_MAX, cur + 1));
+              })
+            }
           />
         ))}
 

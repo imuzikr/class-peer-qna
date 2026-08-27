@@ -739,6 +739,7 @@ function StudyPageInner() {
                           bi !== 0 && bi !== classBoards.length - 1 && !b.collapsed
                       )}
                       classRoster={admin ? roster : []}
+                      onAward={admin && !currentClass?.archived ? awardReward : null}
                       baseGroupAssignment={baseGroupAssignment}
                       questions={questions}
                       classes={myClasses}

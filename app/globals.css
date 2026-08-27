@@ -10102,11 +10102,39 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   box-shadow: 0 0 0 3px rgba(92, 158, 104, 0.22), 0 6px 16px rgba(46, 36, 26, 0.12);
 }
 
-/* 카드 아래 반응 버튼 줄 — chat-reaction-btn과 같은 모양을 재사용 */
+/* 카드 아래 반응 버튼 줄 — chat-reaction-btn과 같은 모양을 재사용.
+   왼쪽엔 반응 3종, 오른쪽엔 교사 전용 과일 주기 버튼(있을 때만). */
 .study-card-reactions {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 4px;
   margin-top: 10px;
+}
+.study-card-reactions-left {
+  display: flex;
+  gap: 4px;
+}
+.study-card-award-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  font-size: 12px;
+  line-height: 1.6;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.study-card-award-btn:hover:not(:disabled) {
+  background: var(--primary-light);
+  border-color: var(--primary);
+}
+.study-card-award-btn:disabled {
+  cursor: default;
+  opacity: 0.5;
 }
 
 .study-card-head {
