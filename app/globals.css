@@ -9990,6 +9990,45 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   align-items: center;
   gap: 6px;
 }
+
+/* ── 상태 전환 — 토글 하나 대신 상태마다 버튼을 따로 ──
+   예전엔 버튼 하나를 눌러 상태를 뒤집는 방식이라, 지금 보이는 글자가
+   '현재 상태'인지 '누르면 되는 상태'인지 헷갈렸습니다. 두 버튼을 나란히
+   두고 켜진 쪽에만 색을 넣으면 지금 상태와 선택지가 동시에 보입니다.
+   색은 뜻을 따라 갈라 둡니다 — 여는 쪽은 브랜드색(테라코타),
+   제한하는 쪽(나만 보기·보기 전용)은 회색. */
+.study-seg {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+  background: #fff;
+  flex-shrink: 0;
+}
+.study-seg-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 1.5;
+  color: var(--text-sub);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.study-seg-btn + .study-seg-btn { border-left: 1px solid var(--border); }
+.study-seg-btn:hover:not(.on) { background: var(--bg-deep); color: var(--text); }
+.study-seg-btn.on {
+  background: var(--primary);
+  color: #fff;
+  cursor: default;
+}
+.study-seg-btn.on.lock { background: var(--text-sub); }
 .study-project-view-desc {
   font-size: 13px;
   line-height: 1.5;
