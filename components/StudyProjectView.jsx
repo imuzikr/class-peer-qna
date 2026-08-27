@@ -499,27 +499,6 @@ export default function StudyProjectView({
             {/* 교사 도구 — 같은 줄에 이어서 */}
             {isTeacher && (
               <>
-                {!isNotice && (
-                  <button
-                    className="study-present-btn"
-                    onClick={() => presentCards.length > 0 && setPresenting(true)}
-                    disabled={presentCards.length === 0}
-                    title={presentCards.length > 0 ? "발표 모드 — 학생 카드를 크게 넘겨보기" : "아직 제출한 카드가 없어요"}
-                    aria-label="발표 모드"
-                  >
-                    ▶
-                  </button>
-                )}
-                {!isNotice && !isGroup && (
-                  <button
-                    className="study-check-btn"
-                    onClick={() => setProgressOpen(true)}
-                    title="공부중 전광판 — 학생별 제출 상태 확인"
-                    aria-label="공부중 전광판"
-                  >
-                    <IconCheck size={20} />
-                  </button>
-                )}
                 {isGroup && (
                   <button
                     type="button"
@@ -563,6 +542,31 @@ export default function StudyProjectView({
                     </button>
                   )
                 )}
+
+                {/* 수업을 '지금 진행'하는 도구 — 성격이 달라 줄 오른쪽 끝으로 */}
+                <span className="study-project-live-tools">
+                  {!isNotice && (
+                    <button
+                      className="study-present-btn"
+                      onClick={() => presentCards.length > 0 && setPresenting(true)}
+                      disabled={presentCards.length === 0}
+                      title={presentCards.length > 0 ? "발표 모드 — 학생 카드를 크게 넘겨보기" : "아직 제출한 카드가 없어요"}
+                      aria-label="발표 모드"
+                    >
+                      ▶
+                    </button>
+                  )}
+                  {!isNotice && !isGroup && (
+                    <button
+                      className="study-check-btn"
+                      onClick={() => setProgressOpen(true)}
+                      title="공부중 전광판 — 학생별 제출 상태 확인"
+                      aria-label="공부중 전광판"
+                    >
+                      <IconCheck size={20} />
+                    </button>
+                  )}
+                </span>
               </>
             )}
           </div>

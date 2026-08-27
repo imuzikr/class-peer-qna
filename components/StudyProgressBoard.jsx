@@ -19,6 +19,7 @@
 // 화면에서 입력을 막는 수업 진행 도구이지, 서버가 강제하는 권한이
 // 아닙니다(보드 전체 잠금은 규칙으로도 막힙니다).
 // =============================================================
+import { useEffect, useState } from "react";
 import { backdropClose } from "@/lib/modal";
 import { stripHtml } from "@/lib/html";
 import {
@@ -54,6 +55,13 @@ export function cardProgress(card, activities) {
   );
 }
 
+// 활동별 글자 수 — 칸을 눌렀을 때 "몇 자 썼는지"까지 보여 주려고 씁니다.
+function cardCharCounts(card, activities) {
+  return matchActivitySections(card, activities).map(
+    (sec) => stripHtml(sec?.content ?? "").length
+  );
+}
+
 // 칸 하나의 상태 — 색으로 구분합니다.
 //   done   연한 초록 : 10자 이상 썼음 (잠겼더라도 쓴 건 쓴 것)
 //   open   연한 주황 : 열려 있는데 아직 덜 씀
@@ -79,13 +87,69 @@ export default function StudyProgressBoard({
     const card = cards.find((c) =>
       isGroup ? c.memberUids?.includes(s.uid) : c.authorId === s.uid
     );
-    return { ...s, done: cardProgress(card, activities) };
+    return {
+      ...s,
+      done: cardProgress(card, activities),
+      chars: cardCharCounts(card, activities),
+      hasCard: !!card,
+    };
   });
 
   // 활동별 작성 인원
   const doneCounts = activities.map(
     (_, i) => rows.filter((r) => r.done[i]).length
   );
+
+  // 칸을 눌렀을 때 뜨는 작은 정보창 — 누른 칸 바로 옆에 붙습니다.
+  // 화면 오른쪽/아래 끝에서는 잘리지 않도록 여는 방향을 뒤집습니다.
+  const [popup, setPopup] = useState(null);
+  const [tip, setTip] = useState(null);
+
+  useEffect(() => {
+    if (!popup) return;
+    function onKey(e) { if (e.key === "Escape") setPopup(null); }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [popup]);
+
+  const POPUP_W = 230; // 아래 CSS의 .progress-pop 폭과 맞춰 둡니다
+
+  function openCell(e, row, i) {
+    e.stopPropagation();
+    const id = `${row.uid}:${i}`;
+    if (popup?.id === id) { setPopup(null); return; } // 같은 칸을 다시 누르면 닫기
+    const r = e.currentTarget.getBoundingClientRect();
+    // 오른쪽 끝이면 왼쪽으로, 아래 끝이면 위로 열립니다.
+    const openLeft = r.left + POPUP_W + 12 > window.innerWidth;
+    const openUp = r.bottom + 190 > window.innerHeight;
+    const pos = {};
+    if (openLeft) pos.right = Math.max(8, window.innerWidth - r.right);
+    else pos.left = Math.max(8, r.left);
+    if (openUp) pos.bottom = window.innerHeight - r.top + 6;
+    else pos.top = r.bottom + 6;
+    setPopup({ id, row, index: i, pos });
+    setTip(null);
+  }
+
+  function showTip(e, text) {
+    const r = e.currentTarget.getBoundingClientRect();
+    setTip({
+      text,
+      left: Math.min(Math.max(r.left + r.width / 2, 70), window.innerWidth - 70),
+      bottom: window.innerHeight - r.top + 8,
+    });
+  }
+
+  // 칸 하나를 말로 풀어 준 한 줄 — 툴팁·접근성 라벨에 함께 씁니다.
+  function cellSummary(row, i) {
+    const locked = isActivityLocked(board, i);
+    const n = row.chars[i] ?? 0;
+    const who = `${row.studentId ? `${row.studentId} ` : ""}${row.name}`;
+    if (row.done[i]) return `${who} — 활동 ${i + 1} 제출함 (${n}자)`;
+    if (locked) return `${who} — 활동 ${i + 1} 잠김 (아직 열지 않음)`;
+    if (n > 0) return `${who} — 활동 ${i + 1} 작성 중 (${n}자, ${DONE_MIN_CHARS}자 필요)`;
+    return `${who} — 활동 ${i + 1} 아직 시작 전`;
+  }
 
   return (
     <div className="modal-backdrop" {...backdropClose(onClose)}>
@@ -129,62 +193,161 @@ export default function StudyProgressBoard({
             이 반에 입장한 학생이 없어요. 입장 코드를 알려 주세요.
           </p>
         ) : (
-          <div className="progress-scroll">
-            <table className="progress-table">
-              <thead>
-                <tr>
-                  <th className="progress-name-col">학생</th>
-                  {activities.map((act, i) => {
-                    const locked = isActivityLocked(board, i);
-                    return (
-                      <th key={i} className="progress-act-col">
-                        <span className="progress-act-no">활동 {i + 1}</span>
-                        <span className="progress-act-name" title={act}>{act}</span>
-                        {/* 잠금 조작은 수업 화면의 '활동 열기' 줄에서 합니다.
-                            여기서는 지금 열려 있는지만 알려 줍니다. */}
-                        <span className={`progress-act-state${locked ? " locked" : ""}`}>
-                          {locked ? "잠김" : "열림"}
-                        </span>
-                        <span className="progress-act-count">
-                          {doneCounts[i]}/{roster.length}
-                        </span>
-                      </th>
-                    );
-                  })}
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => (
-                  <tr key={r.uid}>
-                    <th className="progress-name-col" scope="row">
-                      {r.studentId && (
-                        <span className="progress-student-no">{r.studentId}</span>
-                      )}
-                      <span className="progress-student-name">{r.name}</span>
-                    </th>
-                    {activities.map((act, i) => {
-                      const st = cellState(r.done[i], isActivityLocked(board, i));
-                      return (
-                        <td
-                          key={i}
-                          className="progress-cell"
-                          title={`${r.name} · 활동 ${i + 1} ${act} — ${STATE_LABEL[st]}`}
-                        >
-                          <span
-                            className={`progress-mark progress-mark--${st}`}
-                            role="img"
-                            aria-label={STATE_LABEL[st]}
-                          />
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          /* 잔디 히트맵 — 가로는 활동, 세로는 학생 한 명씩.
+             칸 위에 마우스를 올리면 한 줄 설명이 뜨고, 누르면 그 칸 옆에
+             작은 정보창이 열립니다. */
+          <div
+            className="progress-scroll"
+            onClick={() => setPopup(null)}
+            onScroll={() => { setTip(null); setPopup(null); }}
+          >
+            <div
+              className="progress-grass"
+              style={{ "--acts": activities.length }}
+            >
+              {/* 머리 줄 — 활동 이름·잠금 상태·제출 인원 */}
+              <span className="grass-corner">학생</span>
+              {activities.map((act, i) => {
+                const locked = isActivityLocked(board, i);
+                return (
+                  <span key={i} className="grass-act">
+                    <span className="grass-act-no">활동 {i + 1}</span>
+                    <span className="grass-act-name" title={act}>{act}</span>
+                    <span className={`progress-act-state${locked ? " locked" : ""}`}>
+                      {locked ? "잠김" : "열림"}
+                    </span>
+                    <span className="grass-act-count">
+                      {doneCounts[i]}/{roster.length}
+                    </span>
+                  </span>
+                );
+              })}
+
+              {/* 학생 줄 */}
+              {rows.map((r) => (
+                <Row
+                  key={r.uid}
+                  row={r}
+                  board={board}
+                  activities={activities}
+                  popupId={popup?.id}
+                  onOpen={openCell}
+                  onTip={showTip}
+                  onTipOut={() => setTip(null)}
+                  summary={cellSummary}
+                />
+              ))}
+            </div>
           </div>
         )}
+
+        {/* 호버 툴팁 — 칸 위쪽 가운데에 붙습니다 */}
+        {tip && (
+          <div
+            className="progress-tip"
+            role="tooltip"
+            style={{ left: tip.left, bottom: tip.bottom }}
+          >
+            {tip.text}
+          </div>
+        )}
+
+        {/* 칸을 누르면 뜨는 작은 정보창 */}
+        {popup && (
+          <CellPopup
+            board={board}
+            activities={activities}
+            row={popup.row}
+            index={popup.index}
+            pos={popup.pos}
+            onClose={() => setPopup(null)}
+          />
+        )}
       </div>
+    </div>
+  );
+}
+
+// 학생 한 줄 — 이름표 + 활동 수만큼의 잔디 칸
+function Row({ row, board, activities, popupId, onOpen, onTip, onTipOut, summary }) {
+  return (
+    <>
+      <span className="grass-name">
+        {row.studentId && <span className="grass-student-no">{row.studentId}</span>}
+        <span className="grass-student-name">{row.name}</span>
+      </span>
+      {activities.map((act, i) => {
+        const st = cellState(row.done[i], isActivityLocked(board, i));
+        const text = summary(row, i);
+        const active = popupId === `${row.uid}:${i}`;
+        return (
+          <button
+            key={i}
+            type="button"
+            className={`grass-cell grass-cell--${st}${active ? " active" : ""}`}
+            onClick={(e) => onOpen(e, row, i)}
+            onMouseEnter={(e) => onTip(e, text)}
+            onMouseLeave={onTipOut}
+            onFocus={(e) => onTip(e, text)}
+            onBlur={onTipOut}
+            aria-label={text}
+          />
+        );
+      })}
+    </>
+  );
+}
+
+// 칸 하나의 자세한 상태 — 누른 칸 옆에 뜨는 작은 창
+function CellPopup({ board, activities, row, index, pos, onClose }) {
+  const locked = isActivityLocked(board, index);
+  const n = row.chars[index] ?? 0;
+  const st = cellState(row.done[index], locked);
+  return (
+    <div
+      className="progress-pop"
+      role="dialog"
+      aria-label="제출 상태"
+      style={pos}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="progress-pop-head">
+        <span className="progress-pop-who">
+          {row.studentId && <small>{row.studentId}</small>}
+          <strong>{row.name}</strong>
+        </span>
+        <button type="button" className="progress-pop-close" onClick={onClose} aria-label="닫기">
+          ×
+        </button>
+      </div>
+
+      <p className="progress-pop-act">
+        <span className="grass-act-no">활동 {index + 1}</span>
+        {activities[index]}
+      </p>
+
+      <p className={`progress-pop-state progress-pop-state--${st}`}>
+        <i className={`progress-mark progress-mark--${st}`} />
+        {STATE_LABEL[st]}
+      </p>
+
+      <dl className="progress-pop-rows">
+        <div>
+          <dt>작성 분량</dt>
+          <dd>
+            {n}자
+            <small> / 제출 인정 {DONE_MIN_CHARS}자</small>
+          </dd>
+        </div>
+        <div>
+          <dt>활동 상태</dt>
+          <dd>{locked ? "잠김 — 아직 열지 않았어요" : "열림 — 지금 쓸 수 있어요"}</dd>
+        </div>
+        <div>
+          <dt>카드</dt>
+          <dd>{row.hasCard ? "만들어짐" : "아직 시작 전"}</dd>
+        </div>
+      </dl>
     </div>
   );
 }

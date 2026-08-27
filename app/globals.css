@@ -6725,6 +6725,202 @@ pre code {
   max-height: 68vh;
   overflow-y: auto;
 }
+
+/* ── 공부중 전광판 — 잔디 히트맵 ──
+   가로는 활동, 세로는 학생 한 명씩. 표 대신 작은 네모를 촘촘히 깔아
+   '누가 어디까지 냈는지'를 색만으로 훑게 합니다. 자세한 내용은 칸을
+   눌러 여는 작은 창(.progress-pop)이 맡습니다. */
+.progress-grass {
+  display: grid;
+  grid-template-columns: max-content repeat(var(--acts), 34px);
+  gap: 4px;
+  align-items: center;
+  padding: 2px 2px 6px;
+  width: max-content;
+}
+.grass-corner {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: var(--bg);
+  align-self: end;
+  padding-bottom: 6px;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--text-sub);
+}
+.grass-act {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding-bottom: 6px;
+  text-align: center;
+}
+.grass-act-no {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--primary-dark);
+  white-space: nowrap;
+}
+/* 활동 이름은 칸(34px)보다 길어 세로로 세워 둡니다 — 칸을 넓히면 잔디가
+   아니라 표가 되어 버려서, 이름 쪽을 접었습니다. */
+.grass-act-name {
+  writing-mode: vertical-rl;
+  max-height: 96px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--text-sub);
+}
+.grass-act-count {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+  white-space: nowrap;
+}
+/* 학생 이름표 — 가로 스크롤에도 왼쪽에 붙어 있게 */
+.grass-name {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--bg);
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding-right: 10px;
+  white-space: nowrap;
+  font-size: 12.5px;
+}
+.grass-student-no {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-sub);
+  font-variant-numeric: tabular-nums;
+}
+.grass-student-name { font-weight: 700; color: var(--text); }
+
+.grass-cell {
+  width: 26px;
+  height: 22px;
+  justify-self: center;
+  border-radius: 5px;
+  border: 1px solid transparent;
+  padding: 0;
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.12s;
+}
+.grass-cell:hover { transform: scale(1.12); }
+.grass-cell.active {
+  box-shadow: 0 0 0 2px var(--primary);
+}
+.grass-cell--done { background: #7fb98a; border-color: #6aa877; }
+.grass-cell--open { background: #f6dfd0; border-color: #eccdb7; }
+.grass-cell--locked {
+  background: var(--neutral);
+  border-color: var(--border);
+  /* 잠긴 칸은 색만으로는 '아직 안 씀'과 헷갈려 빗금을 얹습니다 */
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(0, 0, 0, 0.13) 0 2px,
+    transparent 2px 5px
+  );
+}
+
+/* 칸 위 툴팁 — 칸 바로 위 가운데 */
+.progress-tip {
+  position: fixed;
+  z-index: 1200;
+  transform: translateX(-50%);
+  max-width: 260px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--dark);
+  color: #faf9f5;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.45;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
+}
+
+/* 칸을 누르면 뜨는 작은 정보창 — 누른 칸 옆에 붙습니다 */
+.progress-pop {
+  position: fixed;
+  z-index: 1201;
+  width: 230px;
+  padding: 12px 13px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid var(--border);
+  box-shadow: 0 12px 32px rgba(46, 36, 26, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.progress-pop-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.progress-pop-who {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+.progress-pop-who small { font-size: 11px; color: var(--text-sub); }
+.progress-pop-who strong { font-size: 14px; color: var(--dark); }
+.progress-pop-close {
+  border: none;
+  background: none;
+  font-size: 17px;
+  line-height: 1;
+  color: var(--text-sub);
+  cursor: pointer;
+  padding: 0 2px;
+}
+.progress-pop-act {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--text);
+  line-height: 1.4;
+}
+.progress-pop-state {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 9px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 800;
+  background: var(--bg-deep);
+  color: var(--text-sub);
+}
+.progress-pop-state--done { background: #e8f7ed; color: #3d8a72; }
+.progress-pop-state--open { background: var(--primary-light); color: var(--primary-dark); }
+.progress-pop-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12px;
+}
+.progress-pop-rows > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.progress-pop-rows dt { color: var(--text-sub); font-weight: 700; flex-shrink: 0; }
+.progress-pop-rows dd { color: var(--text); text-align: right; }
+.progress-pop-rows dd small { color: var(--text-sub); font-weight: 600; }
 .progress-table {
   border-collapse: separate;
   border-spacing: 0;
@@ -9313,6 +9509,12 @@ pre code {
 .attend-seatmap--compact .attend-seat-fruit {
   font-size: 7.5px;
 }
+/* 좁은 패널의 자리는 38px 남짓이라 손 표시를 더 줄입니다 */
+.attend-seatmap--compact .attend-seat-hand {
+  font-size: 9.5px;
+  top: 1px;
+  right: 1px;
+}
 .attend-seat {
   position: relative;
   aspect-ratio: 1 / 1;
@@ -9390,11 +9592,13 @@ pre code {
   word-break: keep-all;
 }
 /* 자리 칸도 overflow:hidden이라 안쪽 모서리에 둡니다 */
+/* 손든 표시 — 자리 네모의 오른쪽 위 모서리에 작게. 크면 학번·이름을
+   가려 정작 누가 들었는지 읽기 어려워집니다. */
 .attend-seat-hand {
   position: absolute;
-  top: 2px;
-  right: 3px;
-  font-size: 17px;
+  top: 1px;
+  right: 2px;
+  font-size: 12px;
   line-height: 1;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25));
   animation: attend-hand-wave 1.6s ease-in-out infinite;
@@ -10087,13 +10291,25 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   transition: background 0.15s, color 0.15s;
 }
 .study-seg-btn + .study-seg-btn { border-left: 1px solid var(--border); }
-.study-seg-btn:hover:not(.on) { background: var(--bg-deep); color: var(--text); }
+/* 고르지 않은 쪽은 연한 회색으로 뒤로 물리고 */
+.study-seg-btn { background: var(--bg-deep); }
+.study-seg-btn:hover:not(.on) { background: var(--neutral); color: var(--text); }
+/* 지금 켜진 쪽은 연한 주황으로 앞에 세웁니다 */
 .study-seg-btn.on {
-  background: var(--primary);
-  color: #fff;
+  background: var(--primary-light);
+  color: var(--primary-dark);
   cursor: default;
 }
-.study-seg-btn.on.lock { background: var(--text-sub); }
+
+/* 발표 모드·전광판은 성격이 다른 도구(수업 진행)라 줄 오른쪽 끝으로
+   밀어 두어, 왼쪽의 상태·설정 버튼과 눈으로 갈라 놓습니다. */
+.study-project-live-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
 .study-project-view-desc {
   font-size: 13px;
   line-height: 1.5;

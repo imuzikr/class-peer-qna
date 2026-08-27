@@ -298,6 +298,21 @@ export default function StudyMyActivityCard({
         {card && (
           <time className="study-mycard-time">{formatTime(card.createdAt)}</time>
         )}
+        {/* 삭제는 머리말 오른쪽 끝에 둡니다 — 활동 칸이 길어지면서 페이지
+            맨 아래에 있던 버튼이 화면 밖으로 밀려 눌리지 않았습니다. */}
+        {canDelete && card && (
+          confirmDelete ? (
+            <span className="study-project-delete-confirm">
+              <span>이 카드는 삭제 후 복구할 수 없습니다.</span>
+              <button className="study-chip danger" onClick={handleDelete}>정말 삭제</button>
+              <button className="study-chip" onClick={() => setConfirmDelete(false)}>취소</button>
+            </span>
+          ) : (
+            <button className="study-chip danger" onClick={() => setConfirmDelete(true)}>
+              <IconTrash size={15} /> 삭제
+            </button>
+          )
+        )}
       </div>
 
       {board.description && <p className="study-project-view-desc">{board.description}</p>}
@@ -341,7 +356,7 @@ export default function StudyMyActivityCard({
                     {cast.isCasting(castUid, i) && (
                       <span className="broadcast-live-dot" aria-hidden="true" />
                     )}
-                    {cast.isCasting(castUid, i) ? "수업 종료" : "수업 시작"}
+                    {cast.isCasting(castUid, i) ? "발표 종료" : "발표 모드"}
                   </button>
                 )}
               </header>
@@ -411,8 +426,9 @@ export default function StudyMyActivityCard({
       {/* 업로드 진행률은 어느 활동에 넣든 한 곳에서 보여 줍니다 */}
       <UploadProgress pct={uploadPct} />
 
-      <div className="study-mycard-foot">
-        {linked && (
+      {/* 질문 게시판과 연계된 프로젝트에서만 아래 줄이 생깁니다 */}
+      {linked && (
+        <div className="study-mycard-foot">
           <div className="study-card-modal-links">
             <button className="study-chip" onClick={() => onAsk?.(boardKeywords[0] ?? null)}>
               ❓ 질문하기
@@ -425,21 +441,8 @@ export default function StudyMyActivityCard({
               🔗 관련 질문{relatedQuestions.length > 0 && ` (${relatedQuestions.length})`}
             </button>
           </div>
-        )}
-        {canDelete && card && (
-          confirmDelete ? (
-            <span className="study-project-delete-confirm">
-              <span>이 카드는 삭제 후 복구할 수 없습니다.</span>
-              <button className="study-chip danger" onClick={handleDelete}>정말 삭제</button>
-              <button className="study-chip" onClick={() => setConfirmDelete(false)}>취소</button>
-            </span>
-          ) : (
-            <button className="study-chip danger" onClick={() => setConfirmDelete(true)}>
-              <IconTrash size={15} /> 삭제
-            </button>
-          )
-        )}
-      </div>
+        </div>
+      )}
 
       {linked && showRelated && (
         <div className="study-related">
