@@ -37,7 +37,11 @@ import {
   toDate,
   REWARD_MAX,
 } from "@/lib/store";
-import { isActivityLocked, isTeacherAuthoredCard as isTeacherAuthored } from "@/lib/activities";
+import {
+  isActivityLocked,
+  isTeacherAuthoredCard as isTeacherAuthored,
+  cardActivitySummary,
+} from "@/lib/activities";
 import StudyCard from "./StudyCard";
 import StudyCardModal from "./StudyCardModal";
 import StudyPresentModal from "./StudyPresentModal";
@@ -684,6 +688,7 @@ export default function StudyProjectView({
             <SeatPlaceholder
               key={seat.key}
               seat={seat}
+              activities={activities}
               canStart={seat.mine && !locked}
               onClick={() => openSeat(seat)}
             />
@@ -809,8 +814,17 @@ export default function StudyProjectView({
 }
 
 // 아직 카드가 없는 자리 / 잠겨서 열 수 없는 친구 자리
-function SeatPlaceholder({ seat, canStart, onClick }) {
+function SeatPlaceholder({ seat, activities, canStart, onClick }) {
   const clickable = canStart || (seat.card && !seat.locked);
+  // 잠긴 자리(친구 카드를 볼 수 없는 경우)는 진행률도 보여주지 않습니다 —
+  // 잠금이 '내용은 물론 진행 정도도 안 보여준다'는 뜻이었으므로 유지합니다.
+  // 잠기지 않았으면(교사 화면은 항상 이쪽) 카드가 아직 없어도(seat.card는
+  // null) cardActivitySummary(null, activities)가 빈(모두 off) 막대를
+  // 만들어 줘서, 활동 개수만큼의 막대 칸이 시작 전부터 미리 보입니다.
+  const summary =
+    !seat.locked && activities?.length > 0
+      ? cardActivitySummary(seat.card, activities)
+      : null;
   return (
     <article
       className={`study-seat-empty${seat.locked ? " locked" : ""}${
@@ -835,6 +849,20 @@ function SeatPlaceholder({ seat, canStart, onClick }) {
           <strong>{seat.name}</strong>
         </div>
       </div>
+
+      {summary && (
+        <div className="study-card-progress">
+          <div className="study-card-progress-bar">
+            {summary.segments.map((on, i) => (
+              <div key={i} className="study-card-progress-col">
+                <span className={`study-card-progress-seg${on ? " on" : ""}`} />
+                <span className="study-card-progress-chars">{summary.lengths[i]}자</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <p className="study-seat-empty-note">
         {seat.locked ? "🔒 본인과 선생님만 볼 수 있어요" : canStart ? "＋ 활동 시작하기" : "아직 작성 전"}
       </p>
