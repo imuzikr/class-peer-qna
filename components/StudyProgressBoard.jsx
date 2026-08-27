@@ -21,6 +21,7 @@
 // =============================================================
 import { Fragment, useEffect, useState } from "react";
 import { backdropClose } from "@/lib/modal";
+import { formatTime } from "@/lib/store";
 import { stripHtml } from "@/lib/html";
 import {
   matchActivitySections,
@@ -75,6 +76,7 @@ export default function StudyProgressBoard({
   board,
   roster = [],
   cards = [],
+  onOpenStudent = null, // 정보창의 '카드 열어 보기' — 안 넘기면 버튼이 없습니다
   onClose,
 }) {
   const activities = board?.activities ?? [];
@@ -91,6 +93,7 @@ export default function StudyProgressBoard({
       done: cardProgress(card, activities),
       chars: cardCharCounts(card, activities),
       hasCard: !!card,
+      card: card ?? null,
     };
   });
 
@@ -262,11 +265,10 @@ export default function StudyProgressBoard({
         {/* 칸을 누르면 뜨는 작은 정보창 */}
         {popup && (
           <CellPopup
-            board={board}
             activities={activities}
             row={popup.row}
-            index={popup.index}
             pos={popup.pos}
+            onOpenStudent={onOpenStudent}
             onClose={() => setPopup(null)}
           />
         )}
@@ -275,14 +277,26 @@ export default function StudyProgressBoard({
   );
 }
 
-// 학생 한 명의 활동 전체 — 누른 칸 옆에 뜨는 작은 창.
-// 어느 칸을 눌렀든 그 학생의 활동을 모두 보여 주고, 누른 활동만 표시해 둡니다.
-function CellPopup({ board, activities, row, index, pos, onClose }) {
+// 학생 한 명의 요약 — 누른 칸 옆에 뜨는 작은 창.
+// -------------------------------------------------------------
+// 활동별 제출 여부는 잔디 격자가 이미 색으로 보여 주므로 여기서 되풀이하지
+// 않습니다. 대신 격자가 담지 못하는 것만 모았습니다.
+//   · 누구인지 (격자에는 이름이 없음)
+//   · 얼마나 썼는지 — 활동 수만이 아니라 실제 분량
+//   · 마지막으로 손댄 때 — 지금 쓰고 있는지, 손을 놓았는지
+//   · 첨부 파일 수
+// 그리고 바로 그 학생의 카드로 넘어가는 버튼을 둡니다(교사 화면에서만).
+function CellPopup({ activities, row, pos, onOpenStudent, onClose }) {
+  const filled = row.done.filter(Boolean).length;
+  const totalChars = row.chars.reduce((sum, n) => sum + n, 0);
+  const attachCount = row.card?.attachments?.length ?? 0;
+  const lastAt = row.card?.updatedAt ?? row.card?.createdAt ?? null;
+
   return (
     <div
       className="progress-pop"
       role="dialog"
-      aria-label="제출 상태"
+      aria-label="학생 진행 상황"
       style={pos}
       onClick={(e) => e.stopPropagation()}
     >
@@ -296,39 +310,40 @@ function CellPopup({ board, activities, row, index, pos, onClose }) {
         </button>
       </div>
 
-      <p className="progress-pop-sub">
-        {row.hasCard ? "카드를 만들었어요" : "아직 카드를 시작하지 않았어요"}
-      </p>
+      <dl className="progress-pop-rows">
+        <div>
+          <dt>진행</dt>
+          <dd>
+            <strong>{filled}</strong>
+            <small> / {activities.length}개 활동</small>
+          </dd>
+        </div>
+        <div>
+          <dt>쓴 분량</dt>
+          <dd>
+            <strong>{totalChars}</strong>
+            <small>자</small>
+          </dd>
+        </div>
+        <div>
+          <dt>마지막 기록</dt>
+          <dd>{lastAt ? formatTime(lastAt) : <small>아직 없어요</small>}</dd>
+        </div>
+        <div>
+          <dt>첨부</dt>
+          <dd>{attachCount > 0 ? `${attachCount}개` : <small>없음</small>}</dd>
+        </div>
+      </dl>
 
-      <ul className="progress-pop-acts">
-        {activities.map((act, i) => {
-          const locked = isActivityLocked(board, i);
-          const st = cellState(row.done[i], locked);
-          const n = row.chars[i] ?? 0;
-          return (
-            <li
-              key={i}
-              className={`progress-pop-act-row${i === index ? " current" : ""}`}
-            >
-              <span className="progress-pop-act-head">
-                <i className={`progress-mark progress-mark--${st}`} />
-                <span className="grass-act-no">활동 {i + 1}</span>
-                <span className="progress-pop-act-name" title={act}>{act}</span>
-              </span>
-              <span className={`progress-pop-act-state progress-pop-act-state--${st}`}>
-                {locked && !row.done[i] ? "잠김" : `${n}자`}
-                <small>
-                  {locked && !row.done[i]
-                    ? " · 아직 열지 않음"
-                    : row.done[i]
-                    ? " · 제출함"
-                    : ` / ${DONE_MIN_CHARS}자`}
-                </small>
-              </span>
-            </li>
-          );
-        })}
-      </ul>
+      {onOpenStudent && (
+        <button
+          type="button"
+          className="progress-pop-open"
+          onClick={() => onOpenStudent(row.uid)}
+        >
+          카드 열어 보기 →
+        </button>
+      )}
     </div>
   );
 }

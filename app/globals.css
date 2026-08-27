@@ -6710,9 +6710,12 @@ pre code {
 /* ===================== 공부중 전광판 ===================== */
 /* 왼쪽 학생 이름 열은 고정, 오른쪽 활동 열은 개수만큼 늘어납니다.
    활동이 많아지면 표만 가로로 스크롤됩니다(모달은 그대로). */
+/* 잔디 격자는 반 인원만큼 칸이 가로로 늘어섭니다(28명이면 ~730px) —
+   모달을 넓게 잡아 가로 스크롤 없이 한 화면에 들어오게 합니다. */
 .progress-modal {
-  width: min(900px, 94vw);
-  max-width: 94vw;
+  width: min(1500px, 97vw);
+  max-width: 97vw;
+  padding: 20px 22px 22px;
 }
 .progress-board-name {
   margin-left: 8px;
@@ -6751,7 +6754,7 @@ pre code {
   flex-direction: column;
   gap: 1px;
   padding-right: 12px;
-  max-width: 220px;
+  max-width: 150px;
 }
 .grass-act-head {
   display: flex;
@@ -6862,49 +6865,37 @@ pre code {
   cursor: pointer;
   padding: 0 2px;
 }
-/* 학생 한 명의 활동 전체를 줄줄이 — 누른 활동만 살짝 표시해 둡니다 */
-.progress-pop-sub {
-  font-size: 11.5px;
-  color: var(--text-sub);
-  margin-top: -4px;
-}
-.progress-pop-acts {
+/* 학생 한 명의 요약 — 격자가 담지 못하는 것만(누구인지·분량·마지막 기록) */
+.progress-pop-rows {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-}
-.progress-pop-act-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 5px 7px;
-  border-radius: 8px;
-}
-.progress-pop-act-row.current { background: var(--bg-deep); }
-.progress-pop-act-head {
-  display: flex;
-  align-items: center;
   gap: 6px;
-  min-width: 0;
+  font-size: 12.5px;
 }
-.progress-pop-act-name {
-  font-size: 12px;
-  color: var(--text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.progress-pop-rows > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
 }
-.progress-pop-act-state {
-  flex-shrink: 0;
-  font-size: 11.5px;
+.progress-pop-rows dt { color: var(--text-sub); font-weight: 700; flex-shrink: 0; }
+.progress-pop-rows dd { color: var(--text); text-align: right; }
+.progress-pop-rows dd strong { font-size: 14px; color: var(--dark); }
+.progress-pop-rows dd small { color: var(--text-sub); font-weight: 600; }
+.progress-pop-open {
+  margin-top: 2px;
+  padding: 8px;
+  border: 1px solid var(--primary);
+  border-radius: 10px;
+  background: var(--primary-light);
+  font-family: inherit;
+  font-size: 12.5px;
   font-weight: 800;
-  color: var(--text-sub);
-  white-space: nowrap;
+  color: var(--primary-dark);
+  cursor: pointer;
+  transition: background 0.15s;
 }
-.progress-pop-act-state small { font-weight: 600; }
-.progress-pop-act-state--done { color: #3d8a72; }
-.progress-pop-act-state--open { color: var(--primary-dark); }
+.progress-pop-open:hover { background: #f3d9cb; }
 .progress-table {
   border-collapse: separate;
   border-spacing: 0;
@@ -9517,6 +9508,22 @@ pre code {
 .attend-seat--on {
   background: #e8f7ed;
   border-color: #a6d8b6;
+}
+/* ── 자리표(SeatPickGrid)의 출석 상태 ──
+   출석을 아직 확인하기 전에는 모두 연한 회색으로 두고, 출석을 시작한
+   뒤에야 출석(연한 초록)·결석(연한 주황)으로 갈라 칠합니다. 확인 전에
+   결석으로 칠해 버리면 '아직 안 한 것'과 '안 온 것'이 뒤섞입니다. */
+.attend-seat--unchecked {
+  background: var(--bg-deep);
+  border-color: var(--border);
+}
+.attend-seat--present {
+  background: #e8f7ed;
+  border-color: #a6d8b6;
+}
+.attend-seat--absent {
+  background: var(--primary-light);
+  border-color: #eccdb7;
 }
 .attend-seat--empty {
   border-style: dashed;

@@ -749,6 +749,12 @@ export default function StudyProjectView({
           board={board}
           roster={classRoster}
           cards={cards}
+          // 전광판에서 바로 그 학생 카드로 — 닫고 자리 상세를 엽니다
+          onOpenStudent={(uid) => {
+            const seat = (sortedSeats ?? []).find((s) => s.uid === uid);
+            setProgressOpen(false);
+            if (seat) openSeat(seat);
+          }}
           onClose={() => setProgressOpen(false)}
         />
       )}
