@@ -34,7 +34,6 @@ import {
   deleteStudyBoard,
   duplicateStudyBoard,
   getDirectoryUser,
-  toDate,
   REWARD_MAX,
 } from "@/lib/store";
 import {
@@ -76,14 +75,12 @@ export default function StudyProjectView({
   const [cards, setCards] = useState([]);
   const [selectedCard, setSelectedCard] = useState(null);
   const [creating, setCreating] = useState(false);
-  // 활동이 있는 프로젝트에서 '내 카드'를 열면 모달 대신 이 상세 페이지로
-  // 바꿉니다(StudyMyActivityCard) — 남의 카드를 훑어볼 때는 여전히 모달.
-  const [myCardOpen, setMyCardOpen] = useState(false);
+  // 활동이 있는 프로젝트에서 카드를 열면 모달 대신 이 상세 페이지로 바꿉니다
+  // (StudyMyActivityCard) — 학생은 자기 카드만, 교사는 학생이 이미 쓴 카드라면
+  // 누구 것이든 이 방식으로 봅니다(학생이 친구 카드를 볼 때만 기존 모달 유지).
+  const [detailSeat, setDetailSeat] = useState(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
-  const [sortKey, setSortKey] = useState("studentId");
-  const [studentIdDir, setStudentIdDir] = useState("asc");
-  const [timeDir, setTimeDir] = useState("desc");
   const [presenting, setPresenting] = useState(false);
   const [progressOpen, setProgressOpen] = useState(false);
   const [titleDraft, setTitleDraft] = useState(board.title);
@@ -121,8 +118,6 @@ export default function StudyProjectView({
     (max, c) => Math.max(max, cardReactionTotal(c)),
     0
   );
-
-  const currentSortDir = sortKey === "studentId" ? studentIdDir : timeDir;
 
   // ── 개인 카드 자리 만들기 ────────────────────────────────────
   // seat: { key, uid, name, studentId, emoji, card, mine, locked, isTeacherCard }
@@ -220,27 +215,15 @@ export default function StudyProjectView({
     return [mine, ...rosterSeats, ...extras];
   }, [isNotice, isGroup, isTeacher, cards, classRoster, myCard, shared, user?.uid, user?.emoji]);
 
-  // 자리 정렬 (교사만) — 학번순 / 제출 시간순
+  // 자리 정렬 (교사만) — 학번순 고정
   const sortedSeats = useMemo(() => {
     if (!seats || !isTeacher) return seats;
     return [...seats].sort((a, b) => {
-      let cmp = 0;
-      if (sortKey === "studentId") {
-        const aId = a.studentId ?? getDirectoryUser(a.uid)?.studentId ?? "";
-        const bId = b.studentId ?? getDirectoryUser(b.uid)?.studentId ?? "";
-        cmp = String(aId).localeCompare(String(bId), "ko", { numeric: true });
-      } else {
-        // 카드가 없는 자리는 항상 뒤로 (아직 제출 전)
-        const at = a.card ? toDate(a.card.createdAt) : null;
-        const bt = b.card ? toDate(b.card.createdAt) : null;
-        if (!at && !bt) return 0;
-        if (!at) return 1;
-        if (!bt) return -1;
-        cmp = at - bt;
-      }
-      return currentSortDir === "asc" ? cmp : -cmp;
+      const aId = a.studentId ?? getDirectoryUser(a.uid)?.studentId ?? "";
+      const bId = b.studentId ?? getDirectoryUser(b.uid)?.studentId ?? "";
+      return String(aId).localeCompare(String(bId), "ko", { numeric: true });
     });
-  }, [seats, isTeacher, sortKey, currentSortDir]);
+  }, [seats, isTeacher]);
 
   // 안내(수업 자료)·모둠 프로젝트에서 그리드에 놓을 카드
   const listCards = useMemo(() => {
@@ -354,25 +337,32 @@ export default function StudyProjectView({
 
   // 자리 하나를 눌렀을 때
   //  · 내 자리(활동이 있는 프로젝트) → 상세 페이지(StudyMyActivityCard)
-  //  · 그 밖의 카드(남의 카드·활동 없는 프로젝트의 내 카드) → 기존 모달
+  //  · 교사가 학생이 이미 쓴 카드를 누른 경우도 같은 상세 페이지로(교사는
+  //    학생과 똑같이 활동별 화면을 보고 편집할 수 있어야 하므로)
+  //  · 그 밖의 카드(활동 없는 프로젝트의 카드, 학생이 보는 친구 카드) → 기존 모달
   //  · 남의 빈 자리 → 아무 일 없음
   function openSeat(seat) {
     if (seat.locked) return;
-    if (seat.mine && activities.length > 0) { setMyCardOpen(true); return; }
+    if (activities.length > 0 && (seat.mine || (isTeacher && seat.card))) {
+      setDetailSeat(seat);
+      return;
+    }
     if (seat.card) { setSelectedCard(seat.card); return; }
     if (seat.mine && !locked) setCreating(true);
   }
 
-  // 활동이 있는 프로젝트의 '내 카드' — 그리드 대신 이 상세 페이지를 통째로 보여 줍니다.
-  if (myCardOpen) {
+  // 활동이 있는 프로젝트의 카드 상세 — 그리드 대신 이 상세 페이지를 통째로
+  // 보여 줍니다. 내 자리면 나 자신 기준, 교사가 학생 카드를 열었으면 그
+  // 학생의 카드를 기준으로 편집 권한(canEditCard)을 판단합니다.
+  if (detailSeat) {
     return (
       <StudyMyActivityCard
         board={board}
-        user={user}
-        card={myCard}
-        canEdit={!locked}
+        user={detailSeat.mine ? user : { uid: detailSeat.uid }}
+        card={detailSeat.mine ? myCard : detailSeat.card}
+        canEdit={detailSeat.mine ? !locked : canEditCard(detailSeat.card)}
         canDelete={isTeacher}
-        onBack={() => setMyCardOpen(false)}
+        onBack={() => setDetailSeat(null)}
         onAsk={onAsk}
         relatedQuestions={relatedQuestions}
       />
@@ -536,36 +526,14 @@ export default function StudyProjectView({
                   </button>
                 </>
               ) : (
-                <>
-                  <button
-                    className={`study-sort-btn study-sort-btn--studentid${sortKey === "studentId" ? " active" : ""}`}
-                    onClick={() => {
-                      setSortKey("studentId");
-                      setStudentIdDir((d) => (d === "asc" ? "desc" : "asc"));
-                    }}
-                    title="학번 정렬"
-                  >
-                    학번 {studentIdDir === "asc" ? "↑" : "↓"}
-                  </button>
-                  <button
-                    className={`study-sort-btn study-sort-btn--time${sortKey === "time" ? " active" : ""}`}
-                    onClick={() => {
-                      setSortKey("time");
-                      setTimeDir((d) => (d === "asc" ? "desc" : "asc"));
-                    }}
-                    title="제출 시간 정렬"
-                  >
-                    제출 {timeDir === "asc" ? "↑" : "↓"}
-                  </button>
-                  <button
-                    type="button"
-                    className="study-sort-btn"
-                    onClick={toggleActivityType}
-                    title="이 프로젝트를 모둠 활동으로 바꿉니다(학생이 작성한 개인 카드가 없을 때만 가능)"
-                  >
-                    모둠
-                  </button>
-                </>
+                <button
+                  type="button"
+                  className="study-sort-btn"
+                  onClick={toggleActivityType}
+                  title="이 프로젝트를 모둠 활동으로 바꿉니다(학생이 작성한 개인 카드가 없을 때만 가능)"
+                >
+                  모둠
+                </button>
               )}
             </div>
           )}
@@ -573,7 +541,6 @@ export default function StudyProjectView({
           <div className="study-settings">
             {!isNotice && (
               <label className="study-setting-row">
-                <span>공개 범위</span>
                 <button
                   className="study-chip"
                   onClick={() =>
@@ -598,7 +565,6 @@ export default function StudyProjectView({
               </label>
             )}
             <label className="study-setting-row">
-              <span>편집 상태</span>
               <button
                 className="study-chip"
                 onClick={() =>
