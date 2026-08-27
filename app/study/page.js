@@ -919,7 +919,6 @@ function StudyPageInner() {
           records={attendanceRecords}
           roster={admin ? roster : []}
           classId={classId}
-          seatLayout={seatLayout}
           attendanceOpenToday={attendanceOpenToday}
           attendanceBusy={attendanceBusy}
           onStartAttendance={admin ? handleStartAttendance : null}
