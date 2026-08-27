@@ -114,6 +114,10 @@ export default function StudyCardModal({
   const [uploadPct, setUploadPct] = useState(null); // 첨부 업로드 진행률
   const [autoStatus, setAutoStatus] = useState("idle"); // idle | saving | saved | error
   const [expanded, setExpanded] = useState(false); // 발표 모드처럼 크게 보기
+  // 활동 카드는 대시보드(그리드)로 먼저 보여 주고, 카드를 누르면 그 활동
+  // 하나만 크게 쓰는 모달을 엽니다(책방 곁텍스트 읽기와 같은 방식) — null이면
+  // 대시보드, 숫자면 그 인덱스의 활동을 씁니다.
+  const [openActivityIndex, setOpenActivityIndex] = useState(null);
 
   const me = getCurrentUser();
   // 자동저장 상태 관리용 refs
@@ -510,94 +514,63 @@ export default function StudyCardModal({
                 </p>
               )}
               {isActivityCard ? (
-                /* 활동별 멀티 섹션 폼 — 2개씩 표시, 3개 이상은 스크롤 */
-                <div className="activity-form-list">
-                  {activities.map((act, i) => {
-                    // 잠긴 활동은 아직 열리지 않은 활동입니다 — 칸은 보여 주되
-                    // 입력은 막습니다(교사가 전광판에서 자물쇠를 풀면 열림).
-                    const actLocked = isActivityLocked(board, i);
-                    return (
-                    <div
-                      key={i}
-                      className={`activity-form-section${actLocked ? " activity-form-section--locked" : ""}`}
-                    >
-                      {/* 몇 번째 활동인지 — 활동이 여러 개면 학생이 순서를
-                          바로 알 수 있게 제목 위에 번호를 붙입니다 */}
-                      <span className="activity-form-no">
-                        활동 {i + 1}
-                        {actLocked && <span className="activity-form-lock">🔒 잠김</span>}
-                      </span>
-                      {actLocked ? (
-                        <>
-                          <p className="activity-form-locked-title">
+                /* 활동 대시보드 — 활동 하나가 카드 한 장. 눌러서 그 활동만
+                   크게 쓰는 모달을 엽니다(책방 곁텍스트 읽기와 같은 방식).
+                   모든 활동을 한 모달에 쌓아 스크롤하던 예전 방식 대신,
+                   한 번에 하나씩 편하게 쓰도록 한 선택입니다. */
+                <>
+                  <div className="activity-dash-status">
+                    <span className="activity-dash-progress">
+                      {
+                        activityContents.filter(
+                          (c) => stripHtml(c ?? "").length >= DONE_MIN_CHARS
+                        ).length
+                      }{" "}
+                      / {activities.length}개
+                    </span>
+                  </div>
+                  <div className="activity-dash-grid">
+                    {activities.map((act, i) => {
+                      const actLocked = isActivityLocked(board, i);
+                      const n = stripHtml(activityContents[i] ?? "").length;
+                      const done = n >= DONE_MIN_CHARS;
+                      const preview = stripHtml(activityContents[i] ?? "");
+                      return (
+                        <button
+                          key={i}
+                          type="button"
+                          className={`activity-dash-card${
+                            actLocked ? " locked" : done ? " done" : n > 0 ? " doing" : " empty"
+                          }`}
+                          onClick={() => setOpenActivityIndex(i)}
+                        >
+                          <span className="activity-dash-card-head">
+                            <span className="activity-dash-no">활동 {i + 1}</span>
+                            {actLocked ? (
+                              <span className="activity-dash-lock">🔒 잠김</span>
+                            ) : (
+                              <span className={`activity-dash-count${done ? " ok" : ""}`}>
+                                {n}/{DONE_MIN_CHARS}자
+                              </span>
+                            )}
+                          </span>
+                          <strong className="activity-dash-title">
                             {activityTitles[i] ?? act}
-                          </p>
-                          {stripHtml(activityContents[i] ?? "").trim() ? (
-                            <div
-                              className="study-card-content activity-form-locked-body"
-                              dangerouslySetInnerHTML={{
-                                __html: sanitizeHtml(activityContents[i] ?? ""),
-                              }}
-                            />
+                          </strong>
+                          {preview ? (
+                            <span className="activity-dash-preview">{preview}</span>
                           ) : (
-                            <p className="activity-form-locked-note">
-                              선생님이 이 활동을 열어 주면 입력할 수 있어요.
-                            </p>
+                            <span className="activity-dash-preview empty">
+                              {actLocked
+                                ? "선생님이 열어 주면 쓸 수 있어요"
+                                : "아직 쓰지 않았어요 — 눌러서 써 보세요"}
+                            </span>
                           )}
-                        </>
-                      ) : (
-                        <>
-                          <input
-                            type="text"
-                            className="study-card-title-input"
-                            /* 활동이 방금 늘어난 칸도 곧바로 이름이 보이도록
-                               보드의 활동 이름을 기본값으로 씁니다 */
-                            value={activityTitles[i] ?? act}
-                            onChange={(e) => {
-                              const next = [...activityTitles];
-                              next[i] = e.target.value;
-                              setActivityTitles(next);
-                            }}
-                            placeholder={`활동 ${i + 1}`}
-                            maxLength={80}
-                          />
-                          <RichTextEditor
-                            variant="full"
-                            /* 이미 저장돼 있던 내용을 그대로 이어서 씁니다 */
-                            initialHtml={savedSections.current[i]?.content ?? ""}
-                            onChange={(html) => {
-                              setActivityContents((prev) => {
-                                const next = [...prev];
-                                next[i] = html;
-                                return next;
-                              });
-                            }}
-                            placeholder="내용을 입력해 주세요."
-                          />
-                          {/* 글자 수 — 공부중 전광판이 제출 여부를 판정할 때
-                              쓰는 값(stripHtml 결과 길이)을 그대로 세어,
-                              화면에 보이는 수와 판정이 어긋나지 않게 합니다.
-                              (서식 태그는 빠지고, 연속 공백은 하나로 셉니다) */}
-                          {(() => {
-                            const n = stripHtml(activityContents[i] ?? "").length;
-                            const done = n >= DONE_MIN_CHARS;
-                            return (
-                              <p
-                                className={`activity-form-count${done ? " ok" : ""}`}
-                                aria-live="polite"
-                              >
-                                {done
-                                  ? `${n}자 · 제출 인정`
-                                  : `${n} / ${DONE_MIN_CHARS}자`}
-                              </p>
-                            );
-                          })()}
-                        </>
-                      )}
-                    </div>
-                    );
-                  })}
-                </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
               ) : (
                 /* 기본 단일 편집 폼 */
                 <>
@@ -867,6 +840,150 @@ export default function StudyCardModal({
           onBackToList={() => { setPeekQuestion(null); setShowRelated(true); }}
         />
       )}
+
+      {isActivityCard && openActivityIndex !== null && (
+        <ActivityWriteModal
+          // 활동을 옮길 때마다 통째로 다시 마운트되게 합니다 — RichTextEditor는
+          // initialHtml을 마운트 시 한 번만 반영하므로(RichTextEditor.jsx),
+          // key 없이 index prop만 바뀌면 같은 인스턴스가 재사용돼 에디터
+          // 내용이 이전 활동 것으로 남아 있게 됩니다.
+          key={openActivityIndex}
+          index={openActivityIndex}
+          total={activities.length}
+          title={activityTitles[openActivityIndex] ?? activities[openActivityIndex]}
+          content={activityContents[openActivityIndex] ?? ""}
+          locked={isActivityLocked(board, openActivityIndex)}
+          canEdit={canEdit}
+          autoStatus={autoStatus}
+          onTitleChange={(v) => {
+            setActivityTitles((prev) => {
+              const next = [...prev];
+              next[openActivityIndex] = v;
+              return next;
+            });
+          }}
+          onContentChange={(html) => {
+            setActivityContents((prev) => {
+              const next = [...prev];
+              next[openActivityIndex] = html;
+              return next;
+            });
+          }}
+          onPrev={openActivityIndex > 0 ? () => setOpenActivityIndex(openActivityIndex - 1) : null}
+          onNext={
+            openActivityIndex < activities.length - 1
+              ? () => setOpenActivityIndex(openActivityIndex + 1)
+              : null
+          }
+          onClose={() => setOpenActivityIndex(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+// 활동 하나만 크게 쓰는 모달 — 대시보드 카드를 누르면 열립니다. 이전/다음
+// 버튼으로 다른 활동으로 옮겨 다닐 수 있어(닫지 않고) 여러 활동을 이어서
+// 쓰기 편합니다. 저장은 부모(StudyCardModal)의 기존 자동저장 로직이
+// activityTitles/activityContents 변경을 그대로 지켜보다 처리합니다 —
+// 여기서는 그 배열의 한 칸만 바꿔 줄 뿐, 별도 저장 로직이 없습니다.
+function ActivityWriteModal({
+  index,
+  total,
+  title,
+  content,
+  locked,
+  canEdit,
+  autoStatus,
+  onTitleChange,
+  onContentChange,
+  onPrev,
+  onNext,
+  onClose,
+}) {
+  const n = stripHtml(content ?? "").length;
+  const done = n >= DONE_MIN_CHARS;
+  const readOnly = !canEdit || locked;
+
+  return (
+    <div className="modal-backdrop" {...backdropClose(onClose)}>
+      <div
+        className="modal activity-write-modal"
+        role="dialog"
+        aria-modal="true"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="modal-head">
+          <h3>
+            <span className="activity-write-no">활동 {index + 1}</span>
+            {locked && <span className="activity-dash-lock">🔒 잠김</span>}
+          </h3>
+          <button type="button" className="btn-close" onClick={onClose} aria-label="닫기">
+            ×
+          </button>
+        </div>
+
+        <div className="activity-write-meta">
+          <span className="activity-write-step">{index + 1}/{total}</span>
+          {canEdit && !locked && (
+            <span className={`activity-dash-count${done ? " ok" : ""}`}>
+              {done ? `${n}자 · 제출 인정` : `${n} / ${DONE_MIN_CHARS}자`}
+            </span>
+          )}
+          {canEdit && !locked && autoStatus !== "idle" && (
+            <span className={`study-autosave-pill study-autosave-pill--${autoStatus}`}>
+              {autoStatus === "saving" && "저장 중…"}
+              {autoStatus === "saved" && "✓ 자동 저장됨"}
+              {autoStatus === "error" && "저장 실패"}
+            </span>
+          )}
+        </div>
+
+        {readOnly ? (
+          <>
+            <p className="activity-write-title-static">{title}</p>
+            {locked && !stripHtml(content ?? "").trim() ? (
+              <p className="activity-form-locked-note">
+                선생님이 이 활동을 열어 주면 입력할 수 있어요.
+              </p>
+            ) : (
+              <div
+                className="study-card-content activity-write-body"
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(content ?? "") }}
+              />
+            )}
+          </>
+        ) : (
+          <>
+            <input
+              type="text"
+              className="study-card-title-input"
+              value={title}
+              onChange={(e) => onTitleChange(e.target.value)}
+              placeholder={`활동 ${index + 1}`}
+              maxLength={80}
+              autoFocus
+            />
+            <div className="activity-write-editor">
+              <RichTextEditor
+                variant="full"
+                initialHtml={content}
+                onChange={onContentChange}
+                placeholder="내용을 입력해 주세요."
+              />
+            </div>
+          </>
+        )}
+
+        <div className="activity-write-nav">
+          <button type="button" className="btn-ghost" onClick={onPrev} disabled={!onPrev}>
+            ← 이전 항목
+          </button>
+          <button type="button" className="btn-primary" onClick={onNext ?? onClose}>
+            {onNext ? "다음 항목 →" : "마치기"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
