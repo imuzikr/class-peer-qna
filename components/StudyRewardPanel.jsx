@@ -185,6 +185,14 @@ export default function StudyRewardPanel({
   const groupedUids = new Set(groups.flatMap((g) => (g.members ?? []).map((m) => m.uid)));
   const ungrouped = roster.filter((s) => !groupedUids.has(s.uid));
 
+  // 지금 과일이 가장 많은 학생(들) — 보드의 반응 1등 카드와 같은 방식으로
+  // 자리표에서 테두리를 강조합니다. 아직 아무도 못 받았으면(0개) 강조하지
+  // 않고, 동점이면 모두 강조합니다.
+  const maxRewardCount = roster.reduce((max, s) => Math.max(max, s.count ?? 0), 0);
+  const topRewardUids = new Set(
+    maxRewardCount > 0 ? roster.filter((s) => (s.count ?? 0) === maxRewardCount).map((s) => s.uid) : []
+  );
+
   function openNotes(student) {
     setToolsFor(null);
     setNotesFor({ uid: student.uid, name: student.name, emoji: student.emoji ?? "🙂" });
@@ -229,6 +237,7 @@ export default function StudyRewardPanel({
           onDragStart={setDragIndex}
           onDragEnd={() => setDragIndex(null)}
           onDropTo={(toIndex) => moveSeat(dragIndex, toIndex)}
+          topUids={topRewardUids}
         />
       )}
 

@@ -9427,6 +9427,12 @@ pre code {
   border-color: var(--primary);
   box-shadow: 0 0 0 2px var(--primary);
 }
+/* 지금 과일이 가장 많은 학생 — 공부방 카드의 '반응 1등' 테두리 강조와
+   같은 색으로 맞춰, 자리표에서도 같은 규칙임을 알 수 있게 합니다. */
+.attend-seat--top {
+  border: 2px solid #5c9e68;
+  box-shadow: 0 0 0 2px rgba(92, 158, 104, 0.25);
+}
 .attend-seat-no {
   font-family: var(--font-mono);
   font-size: 10.5px;
