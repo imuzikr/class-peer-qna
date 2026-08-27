@@ -32,7 +32,14 @@ import StudentToolsModal from "./StudentToolsModal";
 // compact: 공부방 "멋진 순간" 패널처럼 좁은 곳에 넣을 때 — 칸을 4열로 줄이고
 // 안내 문구를 뺍니다(패널 폭이 좁아 한 줄에 다 안 들어가고 줄바꿈되면 자리
 // 칸이 오히려 아래로 밀려 보였습니다).
-export function SeatPickGrid({ seats, byUid, raisedUids, raisedCount, onPick, compact = false }) {
+// onDragStart/onDragEnd/onDropTo: 셋 다 있을 때만 자리를 드래그로 옮길 수
+// 있습니다(참여 전광판의 자리표 보기와 같은 방식) — 손든 학생 자리 확인
+// 화면은 실수로 자리가 바뀌면 안 돼서 이 prop들을 넘기지 않고 그대로 둡니다.
+export function SeatPickGrid({
+  seats, byUid, raisedUids, raisedCount, onPick, compact = false,
+  onDragStart, onDragEnd, onDropTo,
+}) {
+  const draggable = !!(onDragStart && onDragEnd && onDropTo);
   return (
     <div className={`attend-seatmap${compact ? " attend-seatmap--compact" : ""}`}>
       <div className="attend-seatmap-head">
@@ -48,7 +55,14 @@ export function SeatPickGrid({ seats, byUid, raisedUids, raisedCount, onPick, co
         {seats.map((uid, i) => {
           const s = uid ? byUid.get(uid) : null;
           if (!s) {
-            return <div key={`empty-${i}`} className="attend-seat attend-seat--empty" />;
+            return (
+              <div
+                key={`empty-${i}`}
+                className="attend-seat attend-seat--empty"
+                onDragOver={draggable ? (e) => e.preventDefault() : undefined}
+                onDrop={draggable ? (e) => { e.preventDefault(); onDropTo(i); } : undefined}
+              />
+            );
           }
           const raised = raisedUids.has(s.uid);
           return (
@@ -57,7 +71,12 @@ export function SeatPickGrid({ seats, byUid, raisedUids, raisedCount, onPick, co
               type="button"
               className={`attend-seat attend-seat--pick${raised ? " attend-seat--raised" : ""}`}
               onClick={() => onPick(s)}
-              title={`${s.name}${s.studentId ? ` · ${s.studentId}` : ""}${raised ? " · 질문 있어요" : ""} — 눌러서 과일 주기·누가기록`}
+              title={`${s.name}${s.studentId ? ` · ${s.studentId}` : ""}${raised ? " · 질문 있어요" : ""} — 눌러서 과일 주기·누가기록${draggable ? ", 끌어서 자리 이동" : ""}`}
+              draggable={draggable}
+              onDragStart={draggable ? (e) => { onDragStart(i); e.dataTransfer.effectAllowed = "move"; } : undefined}
+              onDragEnd={draggable ? onDragEnd : undefined}
+              onDragOver={draggable ? (e) => e.preventDefault() : undefined}
+              onDrop={draggable ? (e) => { e.preventDefault(); onDropTo(i); } : undefined}
             >
               {raised && (
                 <span className="attend-seat-hand" aria-label="질문 있어요">🖐️</span>

@@ -8,6 +8,16 @@
 // 학생 수가 많아지면 특정 학생을 찾기 어려웠는데, 자리표는 교실에서 보이는
 // 위치 그대로라 눈으로 바로 찾을 수 있습니다. 자리를 누르면 참여
 // 전광판과 똑같이 과일 주기·누가기록 선택 모달이 열립니다.
+//
+// 참여 전광판의 '자리표 보기'처럼 드래그로 자리를 바꿀 수도 있습니다 —
+// 다만 여기서 옮기면 그 자리가 기본 자리표(seatLayouts/default)로 곧장
+// 저장됩니다(참여 전광판의 드래그는 그날 하루만 유지되는 daily 자리표를
+// 바꾸는 것과 다릅니다 — 이 패널은 수업 중 상시로 열려 있으므로 '오늘만'이
+// 아니라 계속 쓸 자리로 바로 반영하는 편이 맞습니다).
+//
+// 자리표 아래 빈 공간에는 모둠 현황을 표시합니다(보기 전용 — 모둠을 새로
+// 짜거나 이름·색을 바꾸는 건 '반 관리하기 → 자리 배정하기'에서 합니다).
+//
 // 헤더의 « 버튼으로 접기 — 접으면 세로 슬림 바(개인 설정, localStorage).
 // =============================================================
 import { useEffect, useState } from "react";
@@ -18,17 +28,22 @@ import StudentToolsModal from "./StudentToolsModal";
 import StudentNotesModal from "./StudentNotesModal";
 
 const COLLAPSE_KEY = "reward_panel_collapsed";
+const GROUP_COLORS = ["#2563eb", "#16a34a", "#f97316", "#9333ea", "#dc2626", "#0891b2"];
 
 export default function StudyRewardPanel({
   roster = [],
   onAward,
   classId = null,
   seatLayout = null,
+  groupAssignment = null,
+  onSaveSeats,
 }) {
   const [notesFor, setNotesFor] = useState(null); // 누가기록 모달 대상 학생(교사만)
   const [toolsFor, setToolsFor] = useState(null); // 자리 클릭 → 과일/누가기록 선택 모달
   const [collapsed, setCollapsed] = useState(false);
   const [raisedUids, setRaisedUids] = useState(() => new Set());
+  const [dragIndex, setDragIndex] = useState(null);
+  const [seats, setSeats] = useState(() => normalizeSeats(seatLayout?.seats ?? [], roster));
 
   // 접힘 상태 복원 — 개인 화면 설정이라 localStorage에 저장
   useEffect(() => {
@@ -48,6 +63,23 @@ export default function StudyRewardPanel({
       setRaisedUids(new Set(list.map((s) => s.uid).filter(Boolean)))
     );
   }, [classId]);
+
+  // 저장된 자리표(또는 반 명단)가 바뀌면 화면도 맞춰 갱신 — 단, 드래그로
+  // 옮긴 직후 저장 완료를 기다리는 동안에는 내가 만든 모양을 덮어쓰지
+  // 않도록 seatLayout의 식별값이 바뀔 때만 다시 계산합니다.
+  useEffect(() => {
+    setSeats(normalizeSeats(seatLayout?.seats ?? [], roster));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seatLayout?.updatedAt, roster]);
+
+  async function moveSeat(from, to) {
+    setDragIndex(null);
+    if (from == null || to == null || from === to) return;
+    const next = [...seats];
+    [next[from], next[to]] = [next[to], next[from]];
+    setSeats(next);
+    await onSaveSeats?.(next);
+  }
 
   // 접힌 상태 — 세로 슬림 바. 클릭하면 다시 펼침.
   if (collapsed) {
@@ -69,8 +101,8 @@ export default function StudyRewardPanel({
   }
 
   const byUid = new Map(roster.map((s) => [s.uid, s]));
-  const seats = normalizeSeats(seatLayout?.seats ?? [], roster);
   const raisedCount = roster.filter((s) => raisedUids.has(s.uid)).length;
+  const groups = groupAssignment?.groups ?? [];
 
   function openNotes(student) {
     setToolsFor(null);
@@ -113,7 +145,32 @@ export default function StudyRewardPanel({
           raisedUids={raisedUids}
           raisedCount={raisedCount}
           onPick={setToolsFor}
+          onDragStart={setDragIndex}
+          onDragEnd={() => setDragIndex(null)}
+          onDropTo={(toIndex) => moveSeat(dragIndex, toIndex)}
         />
+      )}
+
+      {/* 모둠 현황 — 보기 전용. 새로 짜거나 이름·색 수정은 '반 관리하기 →
+          자리 배정하기'에서 합니다. */}
+      {groups.length > 0 && (
+        <div className="reward-groups">
+          <strong className="reward-groups-title">모둠 현황</strong>
+          {groups.map((g, i) => (
+            <div
+              key={g.id ?? g.index ?? i}
+              className="reward-group-row"
+              style={{ "--group-color": g.color || GROUP_COLORS[i % GROUP_COLORS.length] }}
+            >
+              <span className="reward-group-name">{g.name || `${g.index ?? i + 1}모둠`}</span>
+              <span className="reward-group-members">
+                {(g.members ?? []).length === 0
+                  ? "학생 없음"
+                  : g.members.map((m) => m.name).join(", ")}
+              </span>
+            </div>
+          ))}
+        </div>
       )}
 
       {toolsStudent && (

@@ -5899,6 +5899,44 @@ pre code {
   line-height: 1.6;
 }
 
+/* 멋진 순간 패널 — 자리표 아래 모둠 현황(보기 전용) */
+.reward-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.reward-groups-title {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--text-sub);
+}
+.reward-group-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: #fff;
+  border-left: 3px solid var(--group-color, var(--border));
+}
+.reward-group-name {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text);
+}
+.reward-group-members {
+  min-width: 0;
+  font-size: 11.5px;
+  color: var(--text-sub);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* 발표 모드 하단의 별 표시 */
 .present-star {
   font-size: 20px;

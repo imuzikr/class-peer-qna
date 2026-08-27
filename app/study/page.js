@@ -775,8 +775,10 @@ function StudyPageInner() {
                 roster={roster}
                 classId={classId}
                 seatLayout={seatLayout}
+                groupAssignment={baseGroupAssignment}
                 readOnly={false}
                 onAward={awardReward}
+                onSaveSeats={(seats) => saveStudySeatLayout(classId, "default", seats, getCurrentUser())}
               />
             )}
           </div>
