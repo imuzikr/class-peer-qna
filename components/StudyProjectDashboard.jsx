@@ -173,6 +173,32 @@ function ProjectCard({
           : true
       ).length;
 
+  // 교사: 학급 전체의 제출 상태를 평균해 막대로 — 활동 칸마다 '그 활동을
+  // 낸 학생 비율'만큼 채웁니다(한 명이라도 안 냈으면 칸이 덜 찹니다).
+  // 분모는 반 명단 인원이라, 아직 카드를 만들지 않은 학생도 0으로 셉니다
+  // (모둠 프로젝트는 명단 대신 살아 있는 모둠 카드 수가 분모).
+  const classSummary = (() => {
+    if (!isTeacher || activities.length === 0) return null;
+    const targets = isGroup
+      ? studentCards.filter((c) => c.groupId && !c.retired)
+      : studentCards;
+    const denom = isGroup ? targets.length : Math.max(rosterCount, targets.length);
+    if (denom === 0) return null;
+    const counts = new Array(activities.length).fill(0);
+    targets.forEach((c) => {
+      cardActivitySummary(c, activities).segments.forEach((on, i) => {
+        if (on) counts[i] += 1;
+      });
+    });
+    const ratios = counts.map((n) => n / denom);
+    return {
+      ratios,
+      total: activities.length,
+      // 학생 한 명이 평균 몇 개 칸을 냈는가 (칸 비율의 합과 같습니다)
+      avgFilled: ratios.reduce((sum, r) => sum + r, 0),
+    };
+  })();
+
   return (
     <article
       className={`study-project-card${isDragging ? " dragging" : ""}${dragOver ? " drag-over" : ""}`}
@@ -211,6 +237,25 @@ function ProjectCard({
             </span>
             <span className="study-project-progress-label">
               내 활동 {mySummary.filled}/{mySummary.total}
+            </span>
+          </span>
+        )}
+
+        {/* 교사: 학급 전체 평균 — 칸마다 제출한 학생 비율만큼 채워집니다 */}
+        {classSummary && (
+          <span className="study-project-progress">
+            <span className="study-project-progress-bar">
+              {classSummary.ratios.map((r, i) => (
+                <span key={i} className="study-project-seg">
+                  <span
+                    className="study-project-seg-fill"
+                    style={{ width: `${Math.round(r * 100)}%` }}
+                  />
+                </span>
+              ))}
+            </span>
+            <span className="study-project-progress-label">
+              학급 평균 {classSummary.avgFilled.toFixed(1)}/{classSummary.total}
             </span>
           </span>
         )}

@@ -156,7 +156,9 @@ export default function StudyProjectView({
           locked: false,
           isTeacherCard: isTeacherAuthored(c),
         }));
-      return [...rows, ...extras];
+      // 선생님 안내 카드는 항상 맨 앞자리(왼쪽 위) — 학생들이 그리드를 열면
+      // 예시·안내부터 보이도록. 명단에 없는 다른 카드는 뒤에 이어 붙입니다.
+      return [...extras, ...rows];
     }
 
     // 학생: 내 자리는 항상 맨 앞(카드가 없어도). 급우도 classRoster로 반
@@ -212,13 +214,21 @@ export default function StudyProjectView({
         locked: !shared && !isTeacherAuthored(c),
         isTeacherCard: isTeacherAuthored(c),
       }));
-    return [mine, ...rosterSeats, ...extras];
+    // 선생님 안내 카드가 맨 앞(왼쪽 위) — 학생이 그리드를 열면 무엇을 어떻게
+    // 쓰는지 먼저 보이고, 바로 다음이 자기 카드입니다.
+    return [
+      ...extras.filter((e) => e.isTeacherCard),
+      mine,
+      ...rosterSeats,
+      ...extras.filter((e) => !e.isTeacherCard),
+    ];
   }, [isNotice, isGroup, isTeacher, cards, classRoster, myCard, shared, user?.uid, user?.emoji]);
 
-  // 자리 정렬 (교사만) — 학번순 고정
+  // 자리 정렬 (교사만) — 선생님 안내 카드가 맨 앞, 나머지는 학번순 고정
   const sortedSeats = useMemo(() => {
     if (!seats || !isTeacher) return seats;
     return [...seats].sort((a, b) => {
+      if (a.isTeacherCard !== b.isTeacherCard) return a.isTeacherCard ? -1 : 1;
       const aId = a.studentId ?? getDirectoryUser(a.uid)?.studentId ?? "";
       const bId = b.studentId ?? getDirectoryUser(b.uid)?.studentId ?? "";
       return String(aId).localeCompare(String(bId), "ko", { numeric: true });
@@ -378,12 +388,8 @@ export default function StudyProjectView({
 
   return (
     <section className="study-project-view">
-      {/* ── 머리말 — 뒤로 가기 · 제목 · 안내 · 교사 도구 ── */}
+      {/* ── 머리말 — 제목이 맨 위, 그 아래 줄에 뒤로 가기·배지 · 교사 도구 ── */}
       <div className="study-project-head">
-        <button type="button" className="btn-ghost study-project-back" onClick={onBack}>
-          ← 프로젝트 목록
-        </button>
-
         <div className="study-project-head-main">
           {isTeacher && editingTitle ? (
             <div className="study-title-edit-wrap">
@@ -425,6 +431,9 @@ export default function StudyProjectView({
           )}
 
           <div className="study-project-head-badges">
+            <button type="button" className="btn-ghost study-project-back" onClick={onBack}>
+              ← 프로젝트 목록
+            </button>
             {!isNotice && (
               <span className={`study-project-badge${isGroup ? " group" : ""}`}>
                 {isGroup ? "👥 모둠 활동" : "🧑‍🎓 개별 활동"}
