@@ -613,18 +613,21 @@ export default function StudyBoardColumn({
             />
           </div>
         ) : (
-          (board.description || isTeacher) && (
-            <p
-              className={`study-column-desc${isTeacher ? " study-column-desc--editable" : ""}`}
-              onClick={isTeacher ? (e) => e.stopPropagation() : undefined}
-              onDoubleClick={
-                isTeacher ? (e) => { e.stopPropagation(); startEditDesc(); } : undefined
-              }
-              title={isTeacher ? "더블 클릭해 활동 안내 추가·수정" : undefined}
-            >
-              {board.description || (isTeacher ? "활동 안내를 적어 주세요." : "")}
-            </p>
-          )
+          // 설명이 없어도 항상 이 영역을 렌더링합니다 — 학생 화면에서만 이
+          // 블록이 통째로 사라지면 보드 패널 높이가 교사 화면과 달라집니다
+          // (아래 study-column-desc는 고정 높이라 비어 있어도 자리를 차지).
+          // 다만 플레이스홀더("활동 안내를 적어 주세요.")는 교사에게만 보여야
+          // 하므로, 학생에게는 설명이 없으면 빈 문자열을 넣습니다.
+          <p
+            className={`study-column-desc${isTeacher ? " study-column-desc--editable" : ""}`}
+            onClick={isTeacher ? (e) => e.stopPropagation() : undefined}
+            onDoubleClick={
+              isTeacher ? (e) => { e.stopPropagation(); startEditDesc(); } : undefined
+            }
+            title={isTeacher ? "더블 클릭해 활동 안내 추가·수정" : undefined}
+          >
+            {board.description || (isTeacher ? "활동 안내를 적어 주세요." : "")}
+          </p>
         )}
 
         {/* 정렬·활동·설정 패널 — 제목 카드 클릭 시 한 번에 펼침 */}
