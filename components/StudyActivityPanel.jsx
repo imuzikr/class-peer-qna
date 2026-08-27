@@ -24,6 +24,7 @@ import {
   nextActivityLocks,
   isActivityLocked,
   isTeacherAuthoredCard,
+  boardMaterials,
 } from "@/lib/activities";
 import { uploadImage } from "@/lib/storageUpload";
 import { cardProgress } from "./StudyProgressBoard";
@@ -250,7 +251,7 @@ export default function StudyActivityPanel({
 
           {/* 자료 제공 — 늘 맨 아래(margin-top: auto). 평소엔 활동 한 줄과
               같은 크기로 접혀 있고, 누르면 펼쳐집니다. */}
-          <MaterialSection board={board} />
+          <MaterialSection board={board} activities={activities} />
         </>
       )}
     </aside>
@@ -259,27 +260,43 @@ export default function StudyActivityPanel({
 
 // 프로젝트에 붙이는 참고 자료 — 학생 활동 화면 맨 위에 펼쳐 볼 수 있는
 // 상자로 나타납니다(StudyMyActivityCard). 보드 문서에 바로 저장합니다.
-function MaterialSection({ board }) {
+//
+// 자료마다 '어느 활동의 것인지'를 골라 둡니다 — 활동이 여러 개인 프로젝트에서
+// 자료를 여러 장 올리면, 학생 쪽에서 어느 활동을 보라고 준 자료인지 알 수
+// 없었습니다. '전체'는 활동을 가리지 않는 공통 자료입니다.
+function MaterialSection({ board, activities }) {
   const boardId = board?.id ?? null;
+  const saved = boardMaterials(board);
+  const savedKey = JSON.stringify(saved);
+
   const [open, setOpen] = useState(false);
-  const [text, setText] = useState(board?.materialText ?? "");
-  const [image, setImage] = useState(board?.materialImage ?? null);
+  const [items, setItems] = useState(saved);
   const [pct, setPct] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
 
-  // 다른 프로젝트로 옮겨 가면 그 프로젝트의 자료로 다시 맞춥니다
+  // 다른 프로젝트로 옮겨 가거나 저장이 반영되면 그 프로젝트의 자료로 맞춥니다
   useEffect(() => {
-    setText(board?.materialText ?? "");
-    setImage(board?.materialImage ?? null);
-    setSaved(false);
-  }, [boardId, board?.materialText, board?.materialImage]);
+    setItems(boardMaterials(board));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [boardId, savedKey]);
 
-  const dirty =
-    text !== (board?.materialText ?? "") || image !== (board?.materialImage ?? null);
-  const hasMaterial = !!(board?.materialText || board?.materialImage);
+  const dirty = JSON.stringify(items) !== savedKey;
+  const hasMaterial = saved.length > 0;
 
-  async function handleImage(e) {
+  function patch(id, changes) {
+    setItems((prev) => prev.map((m) => (m.id === id ? { ...m, ...changes } : m)));
+  }
+  function addItem() {
+    setItems((prev) => [
+      ...prev,
+      { id: `m${Date.now()}`, actIndex: null, text: "", image: null },
+    ]);
+  }
+  function removeItem(id) {
+    setItems((prev) => prev.filter((m) => m.id !== id));
+  }
+
+  async function handleImage(e, id) {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
@@ -289,7 +306,7 @@ function MaterialSection({ board }) {
     }
     setPct(0);
     try {
-      setImage(await uploadImage(file, { onProgress: setPct }));
+      patch(id, { image: await uploadImage(file, { onProgress: setPct }) });
     } catch {
       alert("이미지 업로드에 실패했어요. 잠시 후 다시 시도해 주세요.");
     } finally {
@@ -300,11 +317,20 @@ function MaterialSection({ board }) {
   async function handleSave() {
     setSaving(true);
     try {
+      const cleaned = items
+        .map((m) => ({
+          id: m.id,
+          actIndex: typeof m.actIndex === "number" ? m.actIndex : null,
+          text: (m.text ?? "").trim(),
+          image: m.image ?? null,
+        }))
+        .filter((m) => m.text || m.image);
+      // 예전 단일 자료 필드는 목록으로 옮겨졌으니 비웁니다(중복 표시 방지)
       await updateStudyBoard(boardId, {
-        materialText: text.trim(),
-        materialImage: image ?? null,
+        materials: cleaned,
+        materialText: "",
+        materialImage: null,
       });
-      setSaved(true);
     } finally {
       setSaving(false);
     }
@@ -320,7 +346,9 @@ function MaterialSection({ board }) {
       >
         <span className="study-material-label">
           📎 자료 제공
-          {hasMaterial && <span className="study-material-dot" aria-label="자료 있음" />}
+          {hasMaterial && (
+            <span className="study-material-count">{saved.length}</span>
+          )}
         </span>
         <span className="study-material-caret" aria-hidden="true">{open ? "▴" : "▾"}</span>
       </button>
@@ -328,40 +356,83 @@ function MaterialSection({ board }) {
       {open && (
         <div className="study-material-body">
           <p className="study-activity-panel-hint">
-            학생 활동 화면 맨 위에 접힌 상자로 보여 줍니다.
+            학생 활동 화면 맨 위에 접힌 상자로 보여 줍니다. 자료마다 어느
+            활동의 것인지 골라 주세요.
           </p>
-          <textarea
-            className="study-material-text"
-            value={text}
-            onChange={(e) => { setText(e.target.value); setSaved(false); }}
-            placeholder="설명·참고 글을 적어 주세요."
-            maxLength={2000}
-          />
+
+          {items.length === 0 && (
+            <p className="study-activity-panel-hint">아직 올린 자료가 없어요.</p>
+          )}
+
+          {items.map((m, n) => (
+            <div className="study-material-item" key={m.id}>
+              <div className="study-material-item-head">
+                <select
+                  className="study-material-select"
+                  value={typeof m.actIndex === "number" ? m.actIndex : ""}
+                  onChange={(e) =>
+                    patch(m.id, {
+                      actIndex: e.target.value === "" ? null : Number(e.target.value),
+                    })
+                  }
+                  aria-label={`자료 ${n + 1}의 활동`}
+                >
+                  <option value="">전체 활동</option>
+                  {activities.map((act, i) => (
+                    <option key={i} value={i}>
+                      활동 {i + 1}. {act}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className="study-activity-row-del"
+                  onClick={() => removeItem(m.id)}
+                  aria-label={`자료 ${n + 1} 삭제`}
+                >
+                  ✕
+                </button>
+              </div>
+
+              <textarea
+                className="study-material-text"
+                value={m.text ?? ""}
+                onChange={(e) => patch(m.id, { text: e.target.value })}
+                placeholder="설명·참고 글을 적어 주세요."
+                maxLength={2000}
+              />
+
+              {m.image ? (
+                <div className="study-material-image">
+                  <img src={m.image} alt="제공 자료" />
+                  <button
+                    type="button"
+                    className="attach-image-grid-del"
+                    onClick={() => patch(m.id, { image: null })}
+                    aria-label="이미지 삭제"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                <label className="study-material-image-add">
+                  + 이미지 올리기
+                  <input
+                    type="file"
+                    accept=".jpg,.jpeg,.png,.gif,.webp"
+                    onChange={(e) => handleImage(e, m.id)}
+                    hidden
+                  />
+                </label>
+              )}
+            </div>
+          ))}
 
           <UploadProgress pct={pct} />
-          {image ? (
-            <div className="study-material-image">
-              <img src={image} alt="제공 자료" />
-              <button
-                type="button"
-                className="attach-image-grid-del"
-                onClick={() => { setImage(null); setSaved(false); }}
-                aria-label="이미지 삭제"
-              >
-                ✕
-              </button>
-            </div>
-          ) : (
-            <label className="study-material-image-add">
-              + 이미지 올리기
-              <input
-                type="file"
-                accept=".jpg,.jpeg,.png,.gif,.webp"
-                onChange={handleImage}
-                hidden
-              />
-            </label>
-          )}
+
+          <button type="button" className="study-activity-panel-add" onClick={addItem}>
+            + 자료 추가
+          </button>
 
           <button
             type="button"
@@ -369,7 +440,7 @@ function MaterialSection({ board }) {
             onClick={handleSave}
             disabled={saving || !dirty}
           >
-            {saving ? "저장 중..." : saved && !dirty ? "저장됨" : "자료 저장"}
+            {saving ? "저장 중..." : dirty ? "자료 저장" : "저장됨"}
           </button>
         </div>
       )}

@@ -6710,10 +6710,11 @@ pre code {
 /* ===================== 공부중 전광판 ===================== */
 /* 왼쪽 학생 이름 열은 고정, 오른쪽 활동 열은 개수만큼 늘어납니다.
    활동이 많아지면 표만 가로로 스크롤됩니다(모달은 그대로). */
-/* 잔디 격자는 반 인원만큼 칸이 가로로 늘어섭니다(28명이면 ~730px) —
-   모달을 넓게 잡아 가로 스크롤 없이 한 화면에 들어오게 합니다. */
+/* 잔디 격자는 반 인원만큼 칸이 가로로 늘어섭니다(30명이면 ~800px).
+   폭을 크게 못박아 두면 인원이 적은 반에서 오른쪽이 텅 비므로, 내용 폭에
+   맞춰(max-content) 딱 붙게 하고 화면을 넘길 때만 줄입니다. */
 .progress-modal {
-  width: min(1500px, 97vw);
+  width: max-content;
   max-width: 97vw;
   padding: 20px 22px 22px;
 }
@@ -6753,8 +6754,10 @@ pre code {
   display: flex;
   flex-direction: column;
   gap: 1px;
+  /* 폭을 고정해 모든 줄의 칸이 세로로 맞고, 긴 활동 제목은 말줄임표로
+     잘립니다(제목이 길다고 격자가 밀려나지 않게). */
+  width: 184px;
   padding-right: 12px;
-  max-width: 150px;
 }
 .grass-act-head {
   display: flex;
@@ -11754,8 +11757,30 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   color: var(--text-sub);
 }
 .study-material-view[open] > summary::before { content: "▾ "; }
+.study-material-view-count {
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--neutral);
+  font-size: 11px;
+  color: var(--text-sub);
+}
+/* 자료 하나 — 자료가 여럿이면 사이를 옅은 회색 선으로 갈라 둡니다 */
+.study-material-view-item { padding: 10px 0 2px; }
+.study-material-view-item + .study-material-view-item {
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+}
+.study-material-view-label {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--primary-dark);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .study-material-view-text {
-  margin-top: 8px;
+  margin-top: 6px;
   font-size: 13.5px;
   line-height: 1.7;
   color: var(--text);
@@ -15607,13 +15632,44 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   align-items: center;
   gap: 6px;
 }
-/* 이미 올린 자료가 있으면 접힌 상태에서도 알 수 있게 */
-.study-material-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
+/* 이미 올린 자료가 있으면 접힌 상태에서도 몇 개인지 알 수 있게 */
+.study-material-count {
+  min-width: 17px;
+  padding: 0 5px;
+  border-radius: 999px;
   background: var(--primary);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 800;
+  text-align: center;
 }
+/* 자료 한 장 — 활동 고르기 + 글 + 이미지 */
+.study-material-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.16);
+}
+.study-material-item-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.study-material-select {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 7px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+  background: var(--sidebar-bg);
+  color: #e8e6dd;
+  font-family: inherit;
+  font-size: 12px;
+}
+.study-material-select:focus { outline: none; border-color: var(--primary); }
 .study-material-caret { color: #9a988e; font-size: 11px; }
 .study-material-body {
   display: flex;

@@ -21,7 +21,7 @@
 // =============================================================
 import { Fragment, useEffect, useState } from "react";
 import { backdropClose } from "@/lib/modal";
-import { formatTime } from "@/lib/store";
+import { subscribeCardsForBoards, fetchAnswerCounts } from "@/lib/store";
 import { stripHtml } from "@/lib/html";
 import {
   matchActivitySections,
@@ -76,7 +76,12 @@ export default function StudyProgressBoard({
   board,
   roster = [],
   cards = [],
-  onOpenStudent = null, // 정보창의 '카드 열어 보기' — 안 넘기면 버튼이 없습니다
+  // 정보창의 학생 요약에 쓰는 반 단위 자료 — 안 넘기면 그 줄만 빠집니다.
+  classBoards = [],        // 이 반의 프로젝트 전체(모든 활동 참여도)
+  attendanceRecords = [],  // 이 반의 출석 기록 전체(출석률)
+  questions = [],          // 질문 게시판 전체(질문 수)
+  groupAssignment = null,  // 반 기본 모둠(모둠 정보)
+  onOpenStudent = null,    // 정보창의 '카드 열어 보기' — 안 넘기면 버튼이 없습니다
   onClose,
 }) {
   const activities = board?.activities ?? [];
@@ -101,6 +106,64 @@ export default function StudyProgressBoard({
   const doneCounts = activities.map(
     (_, i) => rows.filter((r) => r.done[i]).length
   );
+
+  // ── 정보창용 반 단위 통계 ──
+  // 전광판이 열려 있는 동안에만 모읍니다(닫으면 구독도 함께 끊깁니다).
+  const boardIds = classBoards.map((b) => b.id).filter(Boolean);
+  const boardIdsKey = boardIds.join(",");
+  const [allCards, setAllCards] = useState({});
+  useEffect(() => {
+    if (!boardIdsKey) { setAllCards({}); return; }
+    return subscribeCardsForBoards(boardIdsKey.split(","), setAllCards);
+  }, [boardIdsKey]);
+
+  // 답변 수는 질문 목록을 함께 받은 화면에서만 셉니다 — 질문 수는 0인데
+  // 답변 수만 진짜 값이 뜨면 두 숫자가 어긋나 보입니다.
+  const rosterKey = roster.map((s) => s.uid).join(",");
+  const wantQnaStats = questions.length > 0;
+  const [answerCounts, setAnswerCounts] = useState({});
+  useEffect(() => {
+    if (!rosterKey || !wantQnaStats) { setAnswerCounts({}); return; }
+    let alive = true;
+    fetchAnswerCounts(rosterKey.split(",")).then((c) => { if (alive) setAnswerCounts(c); });
+    return () => { alive = false; };
+  }, [rosterKey, wantQnaStats]);
+
+  // 이 반이 출석을 실시한 날 수 — 출석률의 분모
+  const attendDays = new Set(attendanceRecords.map((r) => r.date).filter(Boolean)).size;
+
+  // 학생 한 명의 요약 — 격자가 담지 못하는 '이 학생은 평소 어떤가'를 모읍니다.
+  function statsOf(uid) {
+    // 모든 프로젝트의 활동 참여도 (활동이 있는 프로젝트만 셈)
+    let actDone = 0;
+    let actTotal = 0;
+    classBoards.forEach((b) => {
+      const acts = b.activities ?? [];
+      if (acts.length === 0 || b.type === "notice") return;
+      const list = allCards[b.id] ?? [];
+      const c = list.find((x) =>
+        b.activityType === "group" ? x.memberUids?.includes(uid) : x.authorId === uid
+      );
+      actTotal += acts.length;
+      actDone += cardProgress(c, acts).filter(Boolean).length;
+    });
+
+    const group = (groupAssignment?.groups ?? []).find((g) =>
+      (g.members ?? []).some((m) => m.uid === uid)
+    );
+
+    return {
+      attendDays,
+      present: attendanceRecords.filter((r) => r.uid === uid).length,
+      actDone,
+      actTotal,
+      hasQna: wantQnaStats,
+      asked: questions.filter((q) => q.authorId === uid).length,
+      answered: answerCounts[uid] ?? 0,
+      groupName: group?.name ?? null,
+      groupSize: (group?.members ?? []).length,
+    };
+  }
 
   // 칸을 눌렀을 때 뜨는 작은 정보창 — 누른 칸 바로 옆에 붙습니다.
   // 화면 오른쪽/아래 끝에서는 잘리지 않도록 여는 방향을 뒤집습니다.
@@ -265,8 +328,8 @@ export default function StudyProgressBoard({
         {/* 칸을 누르면 뜨는 작은 정보창 */}
         {popup && (
           <CellPopup
-            activities={activities}
             row={popup.row}
+            stats={statsOf(popup.row.uid)}
             pos={popup.pos}
             onOpenStudent={onOpenStudent}
             onClose={() => setPopup(null)}
@@ -279,24 +342,21 @@ export default function StudyProgressBoard({
 
 // 학생 한 명의 요약 — 누른 칸 옆에 뜨는 작은 창.
 // -------------------------------------------------------------
-// 활동별 제출 여부는 잔디 격자가 이미 색으로 보여 주므로 여기서 되풀이하지
-// 않습니다. 대신 격자가 담지 못하는 것만 모았습니다.
-//   · 누구인지 (격자에는 이름이 없음)
-//   · 얼마나 썼는지 — 활동 수만이 아니라 실제 분량
-//   · 마지막으로 손댄 때 — 지금 쓰고 있는지, 손을 놓았는지
-//   · 첨부 파일 수
-// 그리고 바로 그 학생의 카드로 넘어가는 버튼을 둡니다(교사 화면에서만).
-function CellPopup({ activities, row, pos, onOpenStudent, onClose }) {
-  const filled = row.done.filter(Boolean).length;
-  const totalChars = row.chars.reduce((sum, n) => sum + n, 0);
-  const attachCount = row.card?.attachments?.length ?? 0;
-  const lastAt = row.card?.updatedAt ?? row.card?.createdAt ?? null;
+// 이 프로젝트의 활동별 제출 여부는 잔디 격자가 이미 색으로 보여 주므로 여기서
+// 되풀이하지 않습니다. 대신 '이 학생은 평소 어떤가'를 모았습니다 —
+// 출석률, 반의 모든 프로젝트를 통틀어 본 활동 참여도, 질문방에서의 질문·답변
+// 수, 그리고 어느 모둠인지. 수업 중 한 학생을 짚어 볼 때 필요한 것들입니다.
+function CellPopup({ row, stats, pos, onOpenStudent, onClose }) {
+  const attendPct =
+    stats.attendDays > 0 ? Math.round((stats.present / stats.attendDays) * 100) : null;
+  const actPct =
+    stats.actTotal > 0 ? Math.round((stats.actDone / stats.actTotal) * 100) : null;
 
   return (
     <div
       className="progress-pop"
       role="dialog"
-      aria-label="학생 진행 상황"
+      aria-label="학생 정보"
       style={pos}
       onClick={(e) => e.stopPropagation()}
     >
@@ -312,26 +372,57 @@ function CellPopup({ activities, row, pos, onOpenStudent, onClose }) {
 
       <dl className="progress-pop-rows">
         <div>
-          <dt>진행</dt>
+          <dt>출석률</dt>
           <dd>
-            <strong>{filled}</strong>
-            <small> / {activities.length}개 활동</small>
+            {attendPct === null ? (
+              <small>출석 기록 없음</small>
+            ) : (
+              <>
+                <strong>{attendPct}%</strong>
+                <small> · {stats.present}/{stats.attendDays}일</small>
+              </>
+            )}
           </dd>
         </div>
         <div>
-          <dt>쓴 분량</dt>
+          <dt>활동 참여도</dt>
           <dd>
-            <strong>{totalChars}</strong>
-            <small>자</small>
+            {actPct === null ? (
+              <small>활동 없음</small>
+            ) : (
+              <>
+                <strong>{actPct}%</strong>
+                <small> · {stats.actDone}/{stats.actTotal}칸</small>
+              </>
+            )}
           </dd>
         </div>
         <div>
-          <dt>마지막 기록</dt>
-          <dd>{lastAt ? formatTime(lastAt) : <small>아직 없어요</small>}</dd>
+          <dt>질문방</dt>
+          <dd>
+            {stats.hasQna ? (
+              <>
+                질문 <strong>{stats.asked}</strong>
+                <small> · </small>
+                답변 <strong>{stats.answered}</strong>
+              </>
+            ) : (
+              <small>기록 없음</small>
+            )}
+          </dd>
         </div>
         <div>
-          <dt>첨부</dt>
-          <dd>{attachCount > 0 ? `${attachCount}개` : <small>없음</small>}</dd>
+          <dt>모둠</dt>
+          <dd>
+            {stats.groupName ? (
+              <>
+                {stats.groupName}
+                <small> · {stats.groupSize}명</small>
+              </>
+            ) : (
+              <small>배정 전</small>
+            )}
+          </dd>
         </div>
       </dl>
 

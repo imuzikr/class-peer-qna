@@ -65,6 +65,9 @@ export default function StudyProjectView({
   baseGroupAssignment = null,
   questions = [],
   classes = [],
+  // 공부중 전광판의 학생 정보창에서 쓰는 반 단위 자료
+  classBoards = [],
+  attendanceRecords = [],
   onBack,
   onAsk,
   onModalChange,
@@ -749,6 +752,10 @@ export default function StudyProjectView({
           board={board}
           roster={classRoster}
           cards={cards}
+          classBoards={classBoards}
+          attendanceRecords={attendanceRecords}
+          questions={questions}
+          groupAssignment={baseGroupAssignment}
           // 전광판에서 바로 그 학생 카드로 — 닫고 자리 상세를 엽니다
           onOpenStudent={(uid) => {
             const seat = (sortedSeats ?? []).find((s) => s.uid === uid);

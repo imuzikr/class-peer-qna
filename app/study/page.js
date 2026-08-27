@@ -797,6 +797,8 @@ function StudyPageInner() {
                   baseGroupAssignment={baseGroupAssignment}
                   questions={questions}
                   classes={myClasses}
+                  classBoards={admin ? classBoards : []}
+                  attendanceRecords={admin ? attendanceRecords : []}
                   onBack={closeProject}
                   onAsk={(kw) => setAskKeyword(kw)}
                   onModalChange={setCardModalOpen}

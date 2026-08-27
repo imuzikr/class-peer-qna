@@ -28,7 +28,13 @@ import { backdropClose } from "@/lib/modal";
 import { addStudyCard, updateStudyCard, deleteStudyCard, formatTime } from "@/lib/store";
 import { useEntryCast } from "@/lib/useEntryCast";
 import { sanitizeHtml, stripHtml, htmlHasImage } from "@/lib/html";
-import { parseActivitySections, isActivityLocked, DONE_MIN_CHARS } from "@/lib/activities";
+import {
+  parseActivitySections,
+  isActivityLocked,
+  boardMaterials,
+  materialLabel,
+  DONE_MIN_CHARS,
+} from "@/lib/activities";
 import { formatFileSize } from "@/lib/image";
 import { uploadImage, uploadFile, uploadDataUrl } from "@/lib/storageUpload";
 import RichTextEditor from "./RichTextEditor";
@@ -61,6 +67,8 @@ export default function StudyMyActivityCard({
 }) {
   const isNew = card === null;
   const activities = board.activities ?? [];
+  // 선생님이 붙인 참고 자료(활동별) — 예전 단일 자료도 함께 읽힙니다
+  const materials = boardMaterials(board);
   const boardKeywords = Array.isArray(board.keywords)
     ? board.keywords
     : board.keyword
@@ -321,20 +329,31 @@ export default function StudyMyActivityCard({
       {board.description && <p className="study-project-view-desc">{board.description}</p>}
 
       {/* 선생님이 붙인 참고 자료 — 평소엔 접혀 있고 눌러서 펼칩니다
-          (왼쪽 패널의 '자료 제공'에서 넣습니다) */}
-      {(board.materialText || board.materialImage) && (
+          (왼쪽 패널의 '자료 제공'에서 넣습니다). 자료가 여럿이면 어느
+          활동의 것인지 제목을 달고, 사이를 옅은 선으로 갈라 둡니다. */}
+      {materials.length > 0 && (
         <details className="study-material-view">
-          <summary>📎 선생님이 준 자료</summary>
-          {board.materialText && (
-            <p className="study-material-view-text">{board.materialText}</p>
-          )}
-          {board.materialImage && (
-            <ZoomableImage
-              src={board.materialImage}
-              alt="선생님이 준 자료"
-              className="study-material-view-img"
-            />
-          )}
+          <summary>
+            📎 선생님이 준 자료
+            {materials.length > 1 && (
+              <span className="study-material-view-count">{materials.length}개</span>
+            )}
+          </summary>
+          {materials.map((m) => (
+            <section className="study-material-view-item" key={m.id}>
+              <h4 className="study-material-view-label">
+                {materialLabel(m, activities)}
+              </h4>
+              {m.text && <p className="study-material-view-text">{m.text}</p>}
+              {m.image && (
+                <ZoomableImage
+                  src={m.image}
+                  alt={`${materialLabel(m, activities)} 자료`}
+                  className="study-material-view-img"
+                />
+              )}
+            </section>
+          ))}
         </details>
       )}
 
