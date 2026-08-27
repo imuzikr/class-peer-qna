@@ -50,6 +50,8 @@ import {
   saveStudySeatLayout,
   saveStudyGroupAssignment,
   subscribeMyLessons,
+  ensureClassIdSynced,
+  fetchClassRosterProfiles,
   toDate,
 } from "@/lib/store";
 import { isFirebaseConfigured } from "@/lib/firebase";
@@ -231,6 +233,17 @@ function StudyPageInner() {
     }
     return subscribeMyMemberships(user.uid, setMemberships);
   }, [user?.uid, admin]);
+
+  // 학생: 프로필의 classIds에 지금 소속된 반이 다 들어 있는지 확인하고,
+  // 빠진 게 있으면 채워 넣습니다(공부방 급우 명단 공개 판정 기준). 이 기능이
+  // 생기기 전에 이미 가입해 둔 계정은 처음엔 classIds가 비어 있는데,
+  // joinClass를 다시 부를 일이 없어도 이 자가 치유가 대신 채워 줍니다.
+  useEffect(() => {
+    if (!user || admin) return;
+    memberships.forEach((m) => {
+      if (m.classId) ensureClassIdSynced(user, m.classId);
+    });
+  }, [user, admin, memberships]);
 
   // 교사/관리자만 사용자 디렉터리(실명) + 입장 코드 구독.
   // 학생은 보안 규칙상 users·joinCodes 목록을 읽을 수 없으므로 구독하지 않습니다.
@@ -436,14 +449,38 @@ function StudyPageInner() {
     return subscribeClassRewards(classId, setRewards);
   }, [classId]);
 
-  // 교사: 현재 반의 소속 학생 구독 (반이 바뀌면 재구독)
+  // 현재 반의 소속 학생 uid 구독 (반이 바뀌면 재구독) — 교사는 실명 명단을
+  // 만드는 데, 학생은 아래에서 급우 이름표(프로필)를 조회하는 데 씁니다.
   useEffect(() => {
-    if (!admin || !classId) {
+    if (!classId) {
       setMemberUids([]);
       return;
     }
     return subscribeClassMembers(classId, setMemberUids);
-  }, [admin, classId]);
+  }, [classId]);
+
+  // 학생: 급우 uid 목록으로 이름·학번·이모지를 하나씩 조회합니다(교사 전용인
+  // subscribeUserDirectory 대신 — 공부방 프로젝트에서 아직 카드를 안 쓴
+  // 급우도 자리를 미리 보여주는 데 씁니다. lib/store.js의
+  // fetchClassRosterProfiles 참고).
+  const [classmateProfiles, setClassmateProfiles] = useState([]);
+  useEffect(() => {
+    if (admin || memberUids.length === 0) {
+      setClassmateProfiles([]);
+      return;
+    }
+    let cancelled = false;
+    fetchClassRosterProfiles(memberUids).then((list) => {
+      if (!cancelled) setClassmateProfiles(list);
+    });
+    return () => { cancelled = true; };
+  }, [admin, memberUids]);
+  // 학생 화면의 개인 프로젝트 자리 채우기용 — StudyProjectView가 교사 쪽과
+  // 같은 모양({uid, name, studentId, emoji})으로 받아 처리할 수 있게 맞춥니다.
+  const studentClassRoster = useMemo(
+    () => classmateProfiles.map((p) => ({ ...p })),
+    [classmateProfiles]
+  );
 
   // 보상 명단
   //  · 교사: 소속 학생 전체를 디렉터리(실명)·과일 수와 합쳐 학번순 정렬
@@ -743,7 +780,7 @@ function StudyPageInner() {
                   board={activeProject}
                   user={user}
                   isTeacher={admin && !currentClass?.archived}
-                  classRoster={admin ? roster : []}
+                  classRoster={admin ? roster : studentClassRoster}
                   onAward={admin && !currentClass?.archived ? awardReward : null}
                   baseGroupAssignment={baseGroupAssignment}
                   questions={questions}

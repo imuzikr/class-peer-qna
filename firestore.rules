@@ -77,6 +77,37 @@ service cloud.firestore {
              ? get(/databases/$(database)/documents/users/$(uid())).data.get('homeClassId', '')
              : '';
     }
+    // 내가 지금 소속된 반 id 목록 — users/{uid}.classIds에 학생이 반에 들어갈
+    // 때마다 스스로 이어붙입니다(공부방 급우 명단 공개 판정용, isClassmate 참고).
+    function myClassIds() {
+      return exists(/databases/$(database)/documents/users/$(uid()))
+             ? get(/databases/$(database)/documents/users/$(uid())).data.get('classIds', [])
+             : [];
+    }
+    // 같은 반(classIds 교집합이 있음) 학생인지 — users 문서 read 규칙 전용.
+    // resource(대상 프로필)는 이미 있으니 get() 없이 바로 씀 — myClassIds()만
+    // 추가 조회 1회.
+    function isClassmateOf(targetData) {
+      return targetData.get('classIds', []).hasAny(myClassIds());
+    }
+    // classIds에 새 반 id 하나를 이어붙이는 자기 수정인지 검증합니다.
+    //  · 정확히 한 개만, 끝에 추가(순서 변경·복수 추가·삭제 금지)
+    //  · 그 반의 내 memberships 문서가 실제로 있어야 함(가입을 실제로 마친 뒤에만
+    //    호출하므로, 이 시점엔 이미 커밋돼 있음 — lib/store.js의 joinClass 참고)
+    function isValidClassIdsAppend() {
+      let before = resource.data.get('classIds', []);
+      let after = request.resource.data.get('classIds', []);
+      // 뒤에 새로 붙인 값(끝 원소)이 정확히 새로 추가된 것이어야 합니다.
+      // (list + list 연결은 이 규칙 엔진이 지원하지 않아, 순서 보존 대신
+      // 집합 연산으로 "기존 값은 그대로 + 이 값 하나만 늘어남"을 검증합니다
+      // — classIds는 hasAny()로만 쓰여 순서가 의미 없으므로 이걸로 충분합니다.)
+      let added = after[after.size() - 1];
+      return after is list && after.size() == before.size() + 1
+             && added is string && added != ''
+             && before.toSet().difference(after.toSet()).size() == 0
+             && after.toSet().difference(before.toSet()).hasOnly([added])
+             && exists(/databases/$(database)/documents/memberships/$(uid() + '_' + added));
+    }
     // 교사(최고 관리자 포함) — 교사용 기능 접근 관문
     function isTeacher() {
       return signedIn() &&
@@ -169,7 +200,12 @@ service cloud.firestore {
     // 실명·이메일 등 식별 정보(PII)가 여기에만 있으므로, 읽기는 본인+교사로 제한.
     // (질문 게시판은 전체 공유라 교사가 타 반 학생 실명도 확인해야 하므로 교사 전체 허용)
     match /users/{userId} {
-      allow read: if signedIn() && (userId == uid() || isTeacher());
+      // 본인·교사에 더해, 공부방에서 같은 반인 학생끼리도 서로 읽을 수 있게
+      // 열어 둡니다(급우 이름·학번 명단 표시용 — 공부방은 원래 실명 공간이라
+      // 카드를 쓰면 어차피 이름이 보이므로, 아직 카드를 안 쓴 급우도 자리를
+      // 미리 보여주려면 이 정도는 필요합니다). classIds가 없는(비어 있는)
+      // 프로필끼리는 hasAny가 항상 false라 자동으로 막힙니다.
+      allow read: if signedIn() && (userId == uid() || isTeacher() || isClassmateOf(resource.data));
       // 본인만 생성, 가입 시 role은 'student' 고정 (스스로 승격 불가).
       // 가입은 학교 이메일(@hansung.hs.kr)만 허용 — 학생·선생님 모두
       // 마찬가지이며, 최고 관리자 이메일만 유일한 예외입니다. '선생님으로
@@ -205,6 +241,10 @@ service cloud.firestore {
         || (userId == uid()
             && changedOnly(['email','emoji','fcmTokens','requestedRole',
                             'withdrawRequested','withdrawRequestedAt']))
+        // classIds는 별도 갈래 — 반에 들어갈 때마다 한 개씩만 이어붙이는
+        // 자기 수정만 허용(lib/store.js의 joinClass 참고). 다른 필드와
+        // 한 요청에 같이 못 바꾸게 changedOnly를 classIds 하나로 좁힙니다.
+        || (userId == uid() && changedOnly(['classIds']) && isValidClassIdsAppend())
         || (isTeacher()
             && (userId == uid() || resource.data.get('role', 'student') == 'student')
             && changedOnly(['displayName','emoji','realName','email','studentId',
@@ -435,10 +475,14 @@ service cloud.firestore {
                             || (isTeacher() && resource.data.createdBy == uid());
     }
 
-    // ── 소속(멤버십) — 본인 것 + 그 반 소유 교사/관리자만. ──
+    // ── 소속(멤버십) — 본인 것 + 그 반 소유 교사/관리자 + 같은 반 학생(읽기만). ──
     match /memberships/{mId} {
+      // isClassMember 갈래 — 공부방에서 같은 반 급우 uid 명단을 보려면
+      // 학생도 그 반 소속 memberships를 나열할 수 있어야 합니다(rewards의
+      // isClassMember(resource.data.classId) 패턴과 동일).
       allow read: if signedIn() && (
         resource.data.uid == uid() || isAdmin() || ownsClass(resource.data.classId)
+        || isClassMember(resource.data.classId)
       );
       // 소속을 얻는 길은 둘뿐이고, 서로 배타적입니다.
       //  · 손님(homeClassId 있음): 등록 코드가 정한 그 반에만, 입장 코드 없이

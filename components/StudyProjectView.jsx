@@ -156,22 +156,47 @@ export default function StudyProjectView({
       return [...rows, ...extras];
     }
 
-    // 학생: 내 자리는 항상 맨 앞(카드가 없어도), 나머지는 읽어 온 카드로.
-    // 규칙상 개별 프로젝트의 카드는 같은 반이면 읽을 수 있어서, '나만 보기'
-    // 여도 친구 자리가 몇 개인지는 보입니다 — 다만 내용은 열지 않습니다.
+    // 학생: 내 자리는 항상 맨 앞(카드가 없어도). 급우도 classRoster로 반
+    // 전체 자리를 미리 깔아 둡니다 — 아직 카드를 안 쓴 급우도 자리는
+    // 보이되(잠긴 채, "아직 작성 전"), 내용은 볼 수 없습니다. classRoster는
+    // app/study/page.js가 fetchClassRosterProfiles로 채워 주는데, 방금
+    // 반에 들어와 아직 반영 전이면 비어 있을 수 있어 그런 경우엔 아래
+    // extras가 '이미 카드가 있는 급우'만이라도 보여 줍니다(예전과 동일).
+    const myUid = user?.uid ?? null;
+    const rosterUids = new Set(classRoster.map((s) => s.uid));
     const mine = {
-      key: user?.uid ?? "me",
-      uid: user?.uid ?? null,
+      key: myUid ?? "me",
+      uid: myUid,
       name: "내 카드",
-      studentId: null,
+      studentId: classRoster.find((s) => s.uid === myUid)?.studentId ?? null,
       emoji: user?.emoji ?? "🙂",
       card: myCard ?? null,
       mine: true,
       locked: false,
       isTeacherCard: false,
     };
-    const others = cards
-      .filter((c) => c.authorId !== user?.uid)
+    const rosterSeats = classRoster
+      .filter((s) => s.uid !== myUid)
+      .map((s) => {
+        const card = byAuthor.get(s.uid) ?? null;
+        return {
+          key: s.uid,
+          uid: s.uid,
+          name: s.name,
+          studentId: s.studentId ?? null,
+          emoji: s.emoji ?? "🙂",
+          card,
+          mine: false,
+          // 카드가 아직 없으면 '아직 작성 전'일 뿐 잠긴 게 아닙니다 — 카드가
+          // 있을 때만, '나만 보기'에서, 교사 자료가 아닌 경우에 잠급니다.
+          locked: !!card && !shared && !isTeacherAuthored(card),
+          isTeacherCard: card ? isTeacherAuthored(card) : false,
+        };
+      });
+    // classRoster에 아직 안 뜨는 급우의 카드(동기화 전)나 교사 예시 카드는
+    // 놓치지 않도록 남은 걸 이어 붙입니다.
+    const extras = cards
+      .filter((c) => c.authorId !== myUid && !rosterUids.has(c.authorId))
       .map((c) => ({
         key: c.id,
         uid: c.authorId,
@@ -184,7 +209,7 @@ export default function StudyProjectView({
         locked: !shared && !isTeacherAuthored(c),
         isTeacherCard: isTeacherAuthored(c),
       }));
-    return [mine, ...others];
+    return [mine, ...rosterSeats, ...extras];
   }, [isNotice, isGroup, isTeacher, cards, classRoster, myCard, shared, user?.uid, user?.emoji]);
 
   // 자리 정렬 (교사만) — 학번순 / 제출 시간순

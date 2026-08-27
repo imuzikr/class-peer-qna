@@ -138,6 +138,94 @@ describe("사용자 프로필 규칙", () => {
     });
   });
 
+  describe("급우(같은 반) — 공부방 명단 공개", () => {
+    // classIds가 겹치는 학생끼리는 서로 프로필을 읽을 수 있어야 하고(공부방
+    // 프로젝트에서 아직 카드를 안 쓴 급우도 이름표를 미리 보여주기 위함),
+    // 다른 반 학생끼리는 여전히 막혀야 합니다. classIds 자체도 아무렇게나
+    // 못 바꾸고, joinClass가 실제로 하는 것과 똑같은 모양(반에 실제로
+    // 가입한 뒤 그 classId 한 개만 이어붙이기)만 통과해야 합니다.
+    beforeEach(async () => {
+      await seed(env, async (db) => {
+        await setDoc(doc(db, "classes", "classA"), { name: "1반", archived: false });
+        await setDoc(doc(db, "classes", "classB"), { name: "2반", archived: false });
+        await updateDoc(doc(db, "users", "stu1"), { classIds: ["classA"] });
+        await setDoc(doc(db, "users", "stu2"), {
+          uid: "stu2", role: "student", realName: "학생B", studentId: "30102",
+          displayName: "느긋한 판다", emoji: "🐼", classIds: ["classA"],
+        });
+        await setDoc(doc(db, "users", "stu3"), {
+          uid: "stu3", role: "student", realName: "학생C", studentId: "30201",
+          displayName: "씩씩한 여우", emoji: "🦊", classIds: ["classB"],
+        });
+        await setDoc(doc(db, "memberships", "stu1_classA"), { uid: "stu1", classId: "classA" });
+        await setDoc(doc(db, "memberships", "stu2_classA"), { uid: "stu2", classId: "classA" });
+        await setDoc(doc(db, "memberships", "stu3_classB"), { uid: "stu3", classId: "classB" });
+      });
+    });
+
+    it("같은 반 급우 프로필을 읽을 수 있다", async () => {
+      const db = asStudent(env, "stu1").firestore();
+      await assertSucceeds(getDoc(doc(db, "users", "stu2")));
+    });
+
+    it("다른 반 학생 프로필은 읽을 수 없다", async () => {
+      const db = asStudent(env, "stu1").firestore();
+      await assertFails(getDoc(doc(db, "users", "stu3")));
+    });
+
+    it("실제로 가입한 반의 classId 한 개를 이어붙일 수 있다 (joinClass)", async () => {
+      // stu1이 classB에도 새로 가입한 상황을 흉내: memberships 문서부터
+      // (규칙 우회로) 만들어 두고, 그 다음 본인 classIds에 이어붙입니다 —
+      // lib/store.js의 joinClass가 실제로 하는 순서와 같습니다.
+      await seed(env, (db) =>
+        setDoc(doc(db, "memberships", "stu1_classB"), { uid: "stu1", classId: "classB" })
+      );
+      const db = asStudent(env, "stu1").firestore();
+      await assertSucceeds(
+        updateDoc(doc(db, "users", "stu1"), { classIds: ["classA", "classB"] })
+      );
+    });
+
+    it("가입하지 않은(memberships 문서가 없는) 반의 classId는 끼워 넣을 수 없다", async () => {
+      const db = asStudent(env, "stu1").firestore();
+      await assertFails(
+        updateDoc(doc(db, "users", "stu1"), { classIds: ["classA", "classB"] })
+      );
+    });
+
+    it("한 번에 두 개 이상 이어붙일 수 없다", async () => {
+      await seed(env, (db) =>
+        setDoc(doc(db, "memberships", "stu1_classB"), { uid: "stu1", classId: "classB" })
+      );
+      const db = asStudent(env, "stu1").firestore();
+      await assertFails(
+        updateDoc(doc(db, "users", "stu1"), { classIds: ["classA", "classB", "classC"] })
+      );
+    });
+
+    it("기존 값을 지우거나 바꿀 수 없다", async () => {
+      const db = asStudent(env, "stu1").firestore();
+      await assertFails(updateDoc(doc(db, "users", "stu1"), { classIds: [] }));
+    });
+
+    it("classIds를 다른 필드와 한 요청에 같이 바꿀 수 없다", async () => {
+      await seed(env, (db) =>
+        setDoc(doc(db, "memberships", "stu2_classB"), { uid: "stu2", classId: "classB" })
+      );
+      const db = asStudent(env, "stu2").firestore();
+      await assertFails(
+        updateDoc(doc(db, "users", "stu2"), { classIds: ["classA", "classB"], realName: "위조" })
+      );
+    });
+
+    it("다른 학생의 classIds는 바꿀 수 없다", async () => {
+      const db = asStudent(env, "stu1").firestore();
+      await assertFails(
+        updateDoc(doc(db, "users", "stu2"), { classIds: ["classA", "classB"] })
+      );
+    });
+  });
+
   describe("최고 관리자", () => {
     it("역할을 부여할 수 있다", async () => {
       const db = asInitialAdmin(env).firestore();
