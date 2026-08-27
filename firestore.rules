@@ -84,11 +84,29 @@ service cloud.firestore {
              ? get(/databases/$(database)/documents/users/$(uid())).data.get('classIds', [])
              : [];
     }
-    // 같은 반(classIds 교집합이 있음) 학생인지 — users 문서 read 규칙 전용.
-    // resource(대상 프로필)는 이미 있으니 get() 없이 바로 씀 — myClassIds()만
-    // 추가 조회 1회.
-    function isClassmateOf(targetData) {
-      return targetData.get('classIds', []).hasAny(myClassIds());
+    // 같은 반 학생인지 — users 문서 read 규칙 전용. 내(uid()) classIds에 있는
+    // 반 중 하나라도 대상(targetUid)의 memberships 문서가 있으면 급우입니다.
+    // 대상 쪽은 classIds가 아니라 이미 있는 memberships로 확인하는 게 핵심 —
+    // 대상이 아직 이 기능 배포 뒤 한 번도 접속 안 해 자기 classIds를 못
+    // 채웠어도(자가 치유는 각자 접속할 때만 실행됨), 그 학생의 카드 자리는
+    // 곧바로 보여야 하기 때문입니다.
+    //
+    // 이 규칙 엔진은 list에 대한 반복(.exists()/.all() 같은 CEL 매크로)을
+    // 지원하지 않아(실측: "Function not found: exists"), 앞에서부터 5개
+    // 반까지만 하나씩 펼쳐 확인합니다 — 학생 한 명이 이 앱에서 5개 넘는
+    // 반에 동시에 속하는 경우는 없다고 봐도 됩니다(있다면 6번째부터는
+    // 급우 명단에서만 안 보이고, 다른 기능엔 영향 없습니다).
+    function isClassmateOf(targetUid) {
+      let mine = myClassIds();
+      return hasMembership(targetUid, mine, 0)
+             || hasMembership(targetUid, mine, 1)
+             || hasMembership(targetUid, mine, 2)
+             || hasMembership(targetUid, mine, 3)
+             || hasMembership(targetUid, mine, 4);
+    }
+    function hasMembership(targetUid, classIds, i) {
+      return classIds.size() > i
+             && exists(/databases/$(database)/documents/memberships/$(targetUid + '_' + classIds[i]));
     }
     // classIds에 새 반 id 하나를 이어붙이는 자기 수정인지 검증합니다.
     //  · 정확히 한 개만, 끝에 추가(순서 변경·복수 추가·삭제 금지)
@@ -203,9 +221,10 @@ service cloud.firestore {
       // 본인·교사에 더해, 공부방에서 같은 반인 학생끼리도 서로 읽을 수 있게
       // 열어 둡니다(급우 이름·학번 명단 표시용 — 공부방은 원래 실명 공간이라
       // 카드를 쓰면 어차피 이름이 보이므로, 아직 카드를 안 쓴 급우도 자리를
-      // 미리 보여주려면 이 정도는 필요합니다). classIds가 없는(비어 있는)
-      // 프로필끼리는 hasAny가 항상 false라 자동으로 막힙니다.
-      allow read: if signedIn() && (userId == uid() || isTeacher() || isClassmateOf(resource.data));
+      // 미리 보여주려면 이 정도는 필요합니다). isClassmateOf는 내 classIds만
+      // 보고 대상은 memberships로 확인하므로, 상대가 아직 이 기능 배포 뒤
+      // 접속 전이라 classIds가 비어 있어도(자가 치유 전) 곧바로 보입니다.
+      allow read: if signedIn() && (userId == uid() || isTeacher() || isClassmateOf(userId));
       // 본인만 생성, 가입 시 role은 'student' 고정 (스스로 승격 불가).
       // 가입은 학교 이메일(@hansung.hs.kr)만 허용 — 학생·선생님 모두
       // 마찬가지이며, 최고 관리자 이메일만 유일한 예외입니다. '선생님으로

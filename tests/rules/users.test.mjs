@@ -160,12 +160,27 @@ describe("사용자 프로필 규칙", () => {
         await setDoc(doc(db, "memberships", "stu1_classA"), { uid: "stu1", classId: "classA" });
         await setDoc(doc(db, "memberships", "stu2_classA"), { uid: "stu2", classId: "classA" });
         await setDoc(doc(db, "memberships", "stu3_classB"), { uid: "stu3", classId: "classB" });
+        // stu4 — 같은 반(classA) 소속이지만, 이 기능이 배포된 뒤 아직 한 번도
+        // 접속하지 않아 classIds가 비어 있는 학생(자가 치유 전 상태를 흉내).
+        await setDoc(doc(db, "users", "stu4"), {
+          uid: "stu4", role: "student", realName: "학생D", studentId: "30103",
+          displayName: "용감한 토끼", emoji: "🐰",
+        });
+        await setDoc(doc(db, "memberships", "stu4_classA"), { uid: "stu4", classId: "classA" });
       });
     });
 
     it("같은 반 급우 프로필을 읽을 수 있다", async () => {
       const db = asStudent(env, "stu1").firestore();
       await assertSucceeds(getDoc(doc(db, "users", "stu2")));
+    });
+
+    // ── 핵심 회귀 테스트 ──
+    // 예전 설계(classIds 교집합만으로 판정)는 대상도 classIds를 채워 둬야
+    // 해서, 새 기능 배포 뒤 아직 접속 안 한 급우는 계속 안 보였습니다.
+    it("상대가 아직 classIds를 동기화하지 않았어도 같은 반이면 읽을 수 있다", async () => {
+      const db = asStudent(env, "stu1").firestore();
+      await assertSucceeds(getDoc(doc(db, "users", "stu4")));
     });
 
     it("다른 반 학생 프로필은 읽을 수 없다", async () => {
