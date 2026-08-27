@@ -9221,23 +9221,23 @@ pre code {
   grid-template-columns: repeat(6, 1fr);
   gap: 8px;
 }
-/* 공부방 "멋진 순간" 패널처럼 좁은 폭에 넣을 때 — 모바일 자리표와 같은
-   4열로 줄이고 글자도 함께 줄입니다(패널 폭 ~260px 기준). */
+/* 공부방 "멋진 순간" 패널처럼 좁은 폭에 넣을 때 — 실제 자리 배정과 똑같이
+   한 줄 6칸은 그대로 두고, 칸이 작아지는 만큼 글자만 줄입니다
+   (패널 폭 ~260px 기준 → 칸 하나 약 38px). */
 .attend-seatmap--compact .attend-seatmap-head {
   margin-bottom: 8px;
 }
 .attend-seatmap--compact .attend-seatmap-grid {
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
+  gap: 4px;
 }
 .attend-seatmap--compact .attend-seat-name {
-  font-size: 10.5px;
+  font-size: 8.5px;
 }
 .attend-seatmap--compact .attend-seat-no {
-  font-size: 9px;
+  font-size: 7.5px;
 }
 .attend-seatmap--compact .attend-seat-fruit {
-  font-size: 9px;
+  font-size: 7.5px;
 }
 .attend-seat {
   position: relative;
