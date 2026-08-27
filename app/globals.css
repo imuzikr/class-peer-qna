@@ -10095,11 +10095,11 @@ button.study-cal-cell.has-record:not(:disabled):hover {
 
 /* 반응 합계가 가장 많은 카드 — 테두리·은은한 광채로 눈에 띄게 강조 */
 .study-card-top {
-  border: 2px solid #e0a72c;
-  box-shadow: 0 0 0 3px rgba(224, 167, 44, 0.16), 0 4px 14px rgba(46, 36, 26, 0.1);
+  border: 2px solid #5c9e68;
+  box-shadow: 0 0 0 3px rgba(92, 158, 104, 0.16), 0 4px 14px rgba(46, 36, 26, 0.1);
 }
 .study-card-top:hover {
-  box-shadow: 0 0 0 3px rgba(224, 167, 44, 0.22), 0 6px 16px rgba(46, 36, 26, 0.12);
+  box-shadow: 0 0 0 3px rgba(92, 158, 104, 0.22), 0 6px 16px rgba(46, 36, 26, 0.12);
 }
 
 /* 카드 아래 반응 버튼 줄 — chat-reaction-btn과 같은 모양을 재사용 */
