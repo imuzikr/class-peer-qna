@@ -779,6 +779,7 @@ function StudyPageInner() {
                 readOnly={false}
                 onAward={awardReward}
                 onSaveSeats={(seats) => saveStudySeatLayout(classId, "default", seats, getCurrentUser())}
+                onSaveGroups={(groups) => saveStudyGroupAssignment(classId, groups, getCurrentUser())}
               />
             )}
           </div>

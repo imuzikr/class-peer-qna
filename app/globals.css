@@ -5899,7 +5899,7 @@ pre code {
   line-height: 1.6;
 }
 
-/* 멋진 순간 패널 — 자리표 아래 모둠 현황(보기 전용) */
+/* 멋진 순간 패널 — 자리표 아래 모둠 현황(학생 칩을 드래그·탭으로 재배치) */
 .reward-groups {
   display: flex;
   flex-direction: column;
@@ -5915,26 +5915,60 @@ pre code {
 }
 .reward-group-row {
   display: flex;
-  align-items: baseline;
+  align-items: flex-start;
   gap: 6px;
   padding: 6px 8px;
   border-radius: 8px;
   background: #fff;
   border-left: 3px solid var(--group-color, var(--border));
+  cursor: default;
+}
+.reward-group-row--unassigned {
+  border-left-color: var(--border);
+  border-left-style: dashed;
 }
 .reward-group-name {
   flex-shrink: 0;
+  padding-top: 3px;
   font-size: 12px;
   font-weight: 800;
   color: var(--text);
 }
 .reward-group-members {
+  flex: 1;
   min-width: 0;
-  font-size: 11.5px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.reward-group-empty {
+  font-style: normal;
+  font-size: 11px;
   color: var(--text-sub);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  padding-top: 3px;
+}
+/* 모둠 안의 학생 카드 — 드래그로 옮기거나(끌어서), 눌러서 모둠에서 빼거나
+   (모둠 안) 짚어 뒀다가 다른 모둠을 눌러 옮깁니다(미배정 칸) */
+.reward-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-deep);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text);
+  cursor: grab;
+}
+.reward-chip:hover {
+  border-color: var(--primary);
+}
+.reward-chip.picked {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  color: var(--primary-dark);
 }
 
 /* 발표 모드 하단의 별 표시 */

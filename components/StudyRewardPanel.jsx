@@ -15,8 +15,11 @@
 // 바꾸는 것과 다릅니다 — 이 패널은 수업 중 상시로 열려 있으므로 '오늘만'이
 // 아니라 계속 쓸 자리로 바로 반영하는 편이 맞습니다).
 //
-// 자리표 아래 빈 공간에는 모둠 현황을 표시합니다(보기 전용 — 모둠을 새로
-// 짜거나 이름·색을 바꾸는 건 '반 관리하기 → 자리 배정하기'에서 합니다).
+// 자리표 아래 빈 공간에는 모둠 현황을 보여줍니다. 학생을 카드(칩)로 만들어
+// 드래그하거나(데스크톱) 학생을 짚은 뒤 모둠을 눌러서(탭 기반 — 터치 기기
+// 배려) 그 자리에서 바로 기본 모둠 배치를 바꿀 수 있습니다. 모둠을 새로
+// 만들거나 이름·색을 바꾸는 건 여전히 '반 관리하기 → 자리 배정하기'에서
+// 합니다(그건 자주 하는 일이 아니라 이 패널에 옮겨오지 않았습니다).
 //
 // 헤더의 « 버튼으로 접기 — 접으면 세로 슬림 바(개인 설정, localStorage).
 // =============================================================
@@ -37,6 +40,7 @@ export default function StudyRewardPanel({
   seatLayout = null,
   groupAssignment = null,
   onSaveSeats,
+  onSaveGroups,
 }) {
   const [notesFor, setNotesFor] = useState(null); // 누가기록 모달 대상 학생(교사만)
   const [toolsFor, setToolsFor] = useState(null); // 자리 클릭 → 과일/누가기록 선택 모달
@@ -44,6 +48,9 @@ export default function StudyRewardPanel({
   const [raisedUids, setRaisedUids] = useState(() => new Set());
   const [dragIndex, setDragIndex] = useState(null);
   const [seats, setSeats] = useState(() => normalizeSeats(seatLayout?.seats ?? [], roster));
+  const [groups, setGroups] = useState(() => groupAssignment?.groups ?? []);
+  const [dragUid, setDragUid] = useState(null); // 드래그로 옮기는 중인 학생
+  const [pickedUid, setPickedUid] = useState(null); // 짚어 둔 학생(탭으로 옮기기)
 
   // 접힘 상태 복원 — 개인 화면 설정이라 localStorage에 저장
   useEffect(() => {
@@ -72,6 +79,13 @@ export default function StudyRewardPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seatLayout?.updatedAt, roster]);
 
+  // 저장된 모둠이 바뀌면(다른 반으로 전환 포함) 화면도 맞춥니다 — 자리표와
+  // 같은 이유로 updatedAt이 바뀔 때만 다시 계산합니다.
+  useEffect(() => {
+    setGroups(groupAssignment?.groups ?? []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [classId, groupAssignment?.updatedAt]);
+
   async function moveSeat(from, to) {
     setDragIndex(null);
     if (from == null || to == null || from === to) return;
@@ -79,6 +93,30 @@ export default function StudyRewardPanel({
     [next[from], next[to]] = [next[to], next[from]];
     setSeats(next);
     await onSaveSeats?.(next);
+  }
+
+  // 학생 한 명을 다른 모둠으로(targetIndex) 또는 미배정으로(null) 옮깁니다.
+  // 드래그로 놓거나, 학생을 짚은 뒤 모둠을 눌러도 같은 함수를 탑니다.
+  async function moveToGroup(uid, targetIndex) {
+    setDragUid(null);
+    setPickedUid(null);
+    const student = roster.find((s) => s.uid === uid);
+    if (!student) return;
+    const next = groups.map((g) => {
+      const cleaned = { ...g, members: (g.members ?? []).filter((m) => m.uid !== uid) };
+      if (targetIndex == null || g.index !== targetIndex) return cleaned;
+      return {
+        ...cleaned,
+        members: [...cleaned.members, {
+          uid: student.uid,
+          name: student.name,
+          studentId: student.studentId ?? null,
+          emoji: student.emoji ?? "🙂",
+        }],
+      };
+    });
+    setGroups(next);
+    await onSaveGroups?.(next);
   }
 
   // 접힌 상태 — 세로 슬림 바. 클릭하면 다시 펼침.
@@ -102,7 +140,8 @@ export default function StudyRewardPanel({
 
   const byUid = new Map(roster.map((s) => [s.uid, s]));
   const raisedCount = roster.filter((s) => raisedUids.has(s.uid)).length;
-  const groups = groupAssignment?.groups ?? [];
+  const groupedUids = new Set(groups.flatMap((g) => (g.members ?? []).map((m) => m.uid)));
+  const ungrouped = roster.filter((s) => !groupedUids.has(s.uid));
 
   function openNotes(student) {
     setToolsFor(null);
@@ -151,8 +190,9 @@ export default function StudyRewardPanel({
         />
       )}
 
-      {/* 모둠 현황 — 보기 전용. 새로 짜거나 이름·색 수정은 '반 관리하기 →
-          자리 배정하기'에서 합니다. */}
+      {/* 모둠 현황 — 학생을 카드(칩)로 드래그하거나, 짚은 뒤 모둠을 눌러서
+          바로 옮길 수 있습니다. 모둠을 새로 만들거나 이름·색 수정은 여전히
+          '반 관리하기 → 자리 배정하기'에서 합니다. */}
       {groups.length > 0 && (
         <div className="reward-groups">
           <strong className="reward-groups-title">모둠 현황</strong>
@@ -161,15 +201,65 @@ export default function StudyRewardPanel({
               key={g.id ?? g.index ?? i}
               className="reward-group-row"
               style={{ "--group-color": g.color || GROUP_COLORS[i % GROUP_COLORS.length] }}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => { e.preventDefault(); if (dragUid) moveToGroup(dragUid, g.index); }}
+              onClick={() => { if (pickedUid) moveToGroup(pickedUid, g.index); }}
             >
               <span className="reward-group-name">{g.name || `${g.index ?? i + 1}모둠`}</span>
               <span className="reward-group-members">
-                {(g.members ?? []).length === 0
-                  ? "학생 없음"
-                  : g.members.map((m) => m.name).join(", ")}
+                {(g.members ?? []).length === 0 ? (
+                  <em className="reward-group-empty">여기로 끌어 놓기</em>
+                ) : (
+                  g.members.map((m) => (
+                    <button
+                      key={m.uid}
+                      type="button"
+                      className="reward-chip"
+                      draggable
+                      onDragStart={(e) => { setDragUid(m.uid); e.dataTransfer.effectAllowed = "move"; }}
+                      onDragEnd={() => setDragUid(null)}
+                      onClick={(e) => { e.stopPropagation(); moveToGroup(m.uid, null); }}
+                      title={`${m.name} — 눌러서 모둠에서 빼기`}
+                    >
+                      {m.name}
+                    </button>
+                  ))
+                )}
               </span>
             </div>
           ))}
+
+          {/* 미배정 — 아직 어느 모둠에도 없는 학생. 여기로 끌어 놓으면 모둠에서 빠집니다. */}
+          <div
+            className="reward-group-row reward-group-row--unassigned"
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => { e.preventDefault(); if (dragUid) moveToGroup(dragUid, null); }}
+          >
+            <span className="reward-group-name">미배정</span>
+            <span className="reward-group-members">
+              {ungrouped.length === 0 ? (
+                <em className="reward-group-empty">모두 배정됨</em>
+              ) : (
+                ungrouped.map((s) => (
+                  <button
+                    key={s.uid}
+                    type="button"
+                    className={`reward-chip${pickedUid === s.uid ? " picked" : ""}`}
+                    draggable
+                    onDragStart={(e) => { setDragUid(s.uid); e.dataTransfer.effectAllowed = "move"; }}
+                    onDragEnd={() => setDragUid(null)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPickedUid((v) => (v === s.uid ? null : s.uid));
+                    }}
+                    title={`${s.name} — 끌어서 모둠으로, 또는 짚은 뒤 모둠을 눌러 배정`}
+                  >
+                    {s.name}
+                  </button>
+                ))
+              )}
+            </span>
+          </div>
         </div>
       )}
 
