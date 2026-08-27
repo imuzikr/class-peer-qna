@@ -6,7 +6,7 @@ import { backdropClose } from "@/lib/modal";
 import { useState } from "react";
 import { KEYWORDS, addQuestion, updateQuestion } from "@/lib/store";
 import { getCurrentUser } from "@/lib/user";
-import { sanitizeHtml, stripHtml } from "@/lib/html";
+import { sanitizeHtml, stripHtml, htmlHasImage } from "@/lib/html";
 import { uploadImage, uploadDataUrl } from "@/lib/storageUpload";
 import dynamic from "next/dynamic";
 import RichTextEditor, { IconImage, IconPen } from "./RichTextEditor";
@@ -98,7 +98,9 @@ export default function NewQuestionForm({
     const missing = [];
     if (!keyword) missing.push("키워드");
     if (!title.trim()) missing.push("제목");
-    if (stripHtml(html).length === 0) missing.push("본문");
+    // 본문에 글자가 없어도, 붙여넣은 이미지가 있으면(<img>가 본문 HTML 안에
+    // 바로 심어짐 — RichTextEditor의 handlePaste) 유효한 본문으로 인정합니다.
+    if (stripHtml(html).length === 0 && !htmlHasImage(html)) missing.push("본문");
     if (missing.length > 0) {
       setError(`${missing.join(", ")}을(를) 입력해 주세요.`);
       return;

@@ -20,7 +20,7 @@ import {
 import { isPinnedQuestion } from "@/lib/questionRanking";
 import { getCurrentUser, isTeacher } from "@/lib/user";
 import { isFirebaseConfigured } from "@/lib/firebase";
-import { sanitizeHtml, stripHtml } from "@/lib/html";
+import { sanitizeHtml, stripHtml, htmlHasImage } from "@/lib/html";
 import { uploadImage, uploadDataUrl } from "@/lib/storageUpload";
 import dynamic from "next/dynamic";
 import RichTextEditor, { IconImage, IconPen } from "./RichTextEditor";
@@ -144,8 +144,12 @@ export default function QuestionModal({
   async function handleSend() {
     const html = sanitizeHtml(content);
     const hasText = stripHtml(html).length > 0;
+    // 붙여넣은 이미지는 첨부(answerImages)가 아니라 본문 HTML 안에 <img>로
+    // 바로 심기므로(RichTextEditor의 handlePaste), 글자가 없어도 그 이미지가
+    // 있으면 유효한 내용입니다 — 안 그러면 아래에서 html이 통째로 버려집니다.
+    const hasHtmlContent = hasText || htmlHasImage(html);
     // 글이 없어도 이미지만으로 전송 가능
-    if ((!hasText && answerImages.length === 0) || saving) return;
+    if ((!hasHtmlContent && answerImages.length === 0) || saving) return;
     setSaving(true);
     try {
       // 내 질문에 다는 답변(채팅)은 "질문을 올릴 때 부여받은 닉네임"으로 표시.
@@ -155,7 +159,7 @@ export default function QuestionModal({
       const answerUser = mine
         ? { ...user, displayName: question.authorName, emoji: question.authorEmoji }
         : user;
-      await addAnswer(answerUser, question.id, hasText ? html : "", null, answerImages);
+      await addAnswer(answerUser, question.id, hasHtmlContent ? html : "", null, answerImages);
       setContent("");
       setAnswerImages([]);
       setResetKey((k) => k + 1); // 에디터 비우기
@@ -476,7 +480,8 @@ export default function QuestionModal({
                 onSend={handleSend}
                 sendDisabled={
                   saving ||
-                  (stripHtml(content).length === 0 && answerImages.length === 0)
+                  (stripHtml(content).length === 0 && !htmlHasImage(content) &&
+                    answerImages.length === 0)
                 }
               >
                 <label className="rte-tool" title="이미지 첨부">

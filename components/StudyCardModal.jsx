@@ -15,7 +15,7 @@ import {
   stopBroadcast,
 } from "@/lib/store";
 import { getCurrentUser, isTeacher } from "@/lib/user";
-import { sanitizeHtml, stripHtml, stripImgTags } from "@/lib/html";
+import { sanitizeHtml, stripHtml, stripImgTags, htmlHasImage } from "@/lib/html";
 import {
   parseActivitySections,
   isActivityLocked,
@@ -283,15 +283,23 @@ export default function StudyCardModal({
           return `<div class="activity-section"><h4 class="activity-title">${t}</h4>${c}</div>`;
         })
         .join("");
-      const hasContent = activityContents.some(
-        (c) => stripHtml(sanitizeHtml(c)).trim().length > 0
-      );
+      // 텍스트 없이 이미지만 붙여넣은 활동 칸도 '작성함'으로 쳐야 합니다.
+      // stripHtml만 보면 <img>만 있는 칸은 빈칸처럼 보여 카드가 저장되지
+      // 않았습니다(첨부 버튼이 아니라 붙여넣기로 넣은 이미지는 본문 HTML
+      // 안에 있어 attachments에는 잡히지 않음).
+      const hasContent = activityContents.some((c) => {
+        const sc = sanitizeHtml(c ?? "");
+        return stripHtml(sc).trim().length > 0 || htmlHasImage(sc);
+      });
       return { titleToSave: "", htmlToSave, valid: hasContent || !!imageUrl || attachments.length > 0 };
     }
     const htmlToSave = sanitizeHtml(content);
     // 제목을 입력하지 않으면 보드 제목을 기본값으로 사용
     const titleToSave = title.trim() || board.title;
-    const valid = stripHtml(htmlToSave).length > 0 || !!imageUrl || attachments.length > 0;
+    // 위와 같은 이유 — 붙여넣은 이미지만 있고 글자가 없어도 유효한 내용입니다.
+    const valid =
+      stripHtml(htmlToSave).length > 0 || htmlHasImage(htmlToSave) ||
+      !!imageUrl || attachments.length > 0;
     return { titleToSave, htmlToSave, valid };
   }
 

@@ -36,7 +36,7 @@ import {
   PRESENCE_STALE_MS,
   toDate,
 } from "@/lib/store";
-import { stripHtml } from "@/lib/html";
+import { stripHtml, htmlHasImage } from "@/lib/html";
 import { buildActivityTemplate, nextActivityLocks, isActivityLocked } from "@/lib/activities";
 import { getCurrentUser } from "@/lib/user";
 import AttendanceBoard from "./AttendanceBoard";
@@ -178,8 +178,13 @@ export default function LessonMode({
     if (!board) return;
     setActError("");
     const studentCards = boardCards.filter((c) => !c.authorId?.startsWith("teacher_"));
-    // 학생이 이미 쓴 내용을 활동 틀로 덮어쓰면 안 됩니다.
-    if (studentCards.some((c) => stripHtml(c.content ?? "").trim().length > 0)) {
+    // 학생이 이미 쓴 내용을 활동 틀로 덮어쓰면 안 됩니다. 텍스트 없이
+    // 붙여넣은 이미지만 있는 카드도 '이미 쓴 내용'입니다 — stripHtml만 보면
+    // <img>만 있는 카드가 빈 카드로 보여, 그 이미지를 덮어써 버릴 뻔했습니다.
+    if (studentCards.some((c) => {
+      const html = c.content ?? "";
+      return stripHtml(html).trim().length > 0 || htmlHasImage(html);
+    })) {
       setActError("학생이 이미 작성한 내용이 있어 활동을 바꿀 수 없어요. 공부방에서 카드 내용을 비운 뒤 다시 시도해 주세요.");
       return;
     }

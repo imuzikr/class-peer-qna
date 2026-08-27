@@ -26,7 +26,7 @@ import {
   getDirectoryUser,
   toDate,
 } from "@/lib/store";
-import { stripHtml } from "@/lib/html";
+import { stripHtml, htmlHasImage } from "@/lib/html";
 import { buildActivityTemplate, nextActivityLocks, isActivityLocked } from "@/lib/activities";
 import StudyCard from "./StudyCard";
 import StudyCardModal from "./StudyCardModal";
@@ -296,9 +296,13 @@ export default function StudyBoardColumn({
     const studentCards = cards.filter(
       (c) => !c.authorId?.startsWith("teacher_")
     );
-    const hasContent = studentCards.some(
-      (c) => stripHtml(c.content ?? "").trim().length > 0
-    );
+    // 텍스트 없이 붙여넣은 이미지만 있는 카드도 '이미 쓴 내용'입니다 —
+    // stripHtml만 보면 <img>만 있는 카드가 빈 카드로 보여, 활동을 바꾸면서
+    // 그 이미지를 덮어써 버릴 뻔했습니다.
+    const hasContent = studentCards.some((c) => {
+      const html = c.content ?? "";
+      return stripHtml(html).trim().length > 0 || htmlHasImage(html);
+    });
 
     if (hasContent) {
       alert(
