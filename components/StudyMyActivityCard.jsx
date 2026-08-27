@@ -11,9 +11,21 @@
 // 저장은 자동입니다(입력을 멈추면 조용히 저장). 활동 없는 프로젝트나
 // 모둠 카드, 남의 카드를 보는 경우는 이 페이지를 쓰지 않고 여전히
 // StudyCardModal을 씁니다(components/StudyProjectView.jsx의 openSeat 참고).
+//
+// [첨부는 활동별로]
+// 예전에는 카드 하나에 첨부 묶음이 하나뿐이라(페이지 맨 아래), 어느 활동에
+// 낸 파일인지 알 수 없었습니다. 지금은 첨부마다 actIndex(몇 번째 활동인가)를
+// 달아 그 활동 칸 안에서만 보여 줍니다. actIndex가 없는 예전 첨부는 첫 활동
+// 것으로 봅니다(파일이 사라지지 않게).
+//
+// [교사 방송]
+// 교사가 이 페이지를 열면 활동마다 '수업 시작'이 붙습니다 — RAFT 글쓰기·
+// 곁텍스트 읽기와 같은 방식(useEntryCast)으로, 그 활동만 학급 전체 화면에
+// 띄웁니다. 방송 중 다른 활동 버튼을 누르면 곧바로 그리로 전환됩니다.
 // =============================================================
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { addStudyCard, updateStudyCard, deleteStudyCard, formatTime } from "@/lib/store";
+import { useEntryCast } from "@/lib/useEntryCast";
 import { sanitizeHtml, stripHtml, htmlHasImage } from "@/lib/html";
 import { parseActivitySections, isActivityLocked, DONE_MIN_CHARS } from "@/lib/activities";
 import { formatFileSize } from "@/lib/image";
@@ -40,6 +52,8 @@ export default function StudyMyActivityCard({
   card = null,
   canEdit = false,
   canDelete = false,
+  isTeacher = false,
+  writerName = "",
   onBack,
   onAsk,
   relatedQuestions = [],
@@ -165,8 +179,8 @@ export default function StudyMyActivityCard({
     onBack();
   }
 
-  // 이미지·파일 첨부
-  async function handleFileAttach(e) {
+  // 이미지·파일 첨부 — actIndex(몇 번째 활동인가)를 함께 달아 둡니다.
+  async function handleFileAttach(e, actIndex) {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
@@ -201,7 +215,7 @@ export default function StudyMyActivityCard({
     }
     setAttachments((prev) => [
       ...prev,
-      { id: `f${Date.now()}`, name: file.name, ext, size: file.size, dataUrl },
+      { id: `f${Date.now()}`, name: file.name, ext, size: file.size, dataUrl, actIndex },
     ]);
   }
   function removeAttachment(id) {
@@ -213,13 +227,55 @@ export default function StudyMyActivityCard({
     a.download = att.name;
     a.click();
   }
-  const fileAttachments = attachments.filter((a) => !IMAGE_EXTS.has(a.ext));
-  const imageItems = [
-    ...(imageUrl ? [{ id: "__main__", src: imageUrl, isMain: true }] : []),
-    ...attachments.filter((a) => IMAGE_EXTS.has(a.ext)).map((a) => ({ id: a.id, src: a.dataUrl, isMain: false })),
-  ];
+
+  // 활동 i가 가진 첨부 — actIndex가 없는 예전 첨부는 첫 활동 것으로 봅니다.
+  // (예전 카드는 첨부가 카드 전체에 하나로 달려 있어 소속 활동이 없습니다.
+  //  버리면 파일이 화면에서 사라지므로 첫 칸에 모아 보여 줍니다.)
+  function attachOf(i) {
+    return attachments.filter((a) => (a.actIndex ?? 0) === i);
+  }
+  function fileAttachOf(i) {
+    return attachOf(i).filter((a) => !IMAGE_EXTS.has(a.ext));
+  }
+  function imageItemsOf(i) {
+    return [
+      // 예전 카드의 대표 이미지(imageUrl)도 첫 활동에 붙여 보여 줍니다
+      ...(i === 0 && imageUrl ? [{ id: "__main__", src: imageUrl, isMain: true }] : []),
+      ...attachOf(i)
+        .filter((a) => IMAGE_EXTS.has(a.ext))
+        .map((a) => ({ id: a.id, src: a.dataUrl, isMain: false })),
+    ];
+  }
 
   const doneCount = activityContents.filter((c) => stripHtml(c ?? "").length >= DONE_MIN_CHARS).length;
+
+  // ── 교사 방송 — 활동 하나를 학급 전체 화면에 띄우기 ──
+  // 방송 대상은 '학생 uid + 활동 번호'로 구분합니다(RAFT 글쓰기와 같은 방식).
+  const cast = useEntryCast(board.classId, isTeacher ? user : null);
+  const castUid = card?.authorId ?? user?.uid ?? "";
+  function buildCastPayload(i) {
+    return {
+      mode: "entry",
+      activityTitle: board.title ?? "",
+      topic: board.title ?? "",
+      writerName: writerName || "",
+      label: activityTitles[i] ?? activities[i] ?? `활동 ${i + 1}`,
+      prompt: "",
+      index: i,
+      total: activities.length,
+      // 방송 화면은 글자만 그리므로(이미지·서식 제외) 본문을 평문으로 보냅니다.
+      fields: [{ label: "", text: stripHtml(activityContents[i] ?? "").trim() }],
+    };
+  }
+  // 방송 중인 활동의 내용이 바뀌면(학생이 고치거나 교사가 예시를 적으면)
+  // 잠깐 모았다가 다시 보내 학생 화면을 따라가게 합니다.
+  const castIndex = cast.target ? cast.target.key : -1;
+  const livePayload = useMemo(
+    () => (castIndex >= 0 ? buildCastPayload(castIndex) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [castIndex, activityContents, activityTitles, writerName, board.title]
+  );
+  cast.useLiveUpdate(livePayload);
 
   return (
     <section className="study-mycard-page">
@@ -270,6 +326,24 @@ export default function StudyMyActivityCard({
                     {n}/{DONE_MIN_CHARS}자
                   </span>
                 )}
+                {/* 교사 — 이 활동만 학급 전체 화면에 띄우기 */}
+                {isTeacher && cast.canCast && (
+                  <button
+                    type="button"
+                    className={`btn-ghost dash-cast-btn${cast.isCasting(castUid, i) ? " on" : ""}`}
+                    onClick={() => cast.cast({ uid: castUid, key: i }, buildCastPayload(i))}
+                    title={
+                      cast.isCasting(castUid, i)
+                        ? "학생 화면을 원래대로 되돌립니다"
+                        : "이 활동을 학급 전체 화면에 띄웁니다"
+                    }
+                  >
+                    {cast.isCasting(castUid, i) && (
+                      <span className="broadcast-live-dot" aria-hidden="true" />
+                    )}
+                    {cast.isCasting(castUid, i) ? "수업 종료" : "수업 시작"}
+                  </button>
+                )}
               </header>
 
               {readOnly ? (
@@ -316,81 +390,26 @@ export default function StudyMyActivityCard({
                   </div>
                 </>
               )}
+
+              {/* 첨부는 활동마다 따로 — 이 활동에 낸 파일만 여기에 모입니다 */}
+              <ActivityAttach
+                index={i}
+                canEdit={!readOnly}
+                files={fileAttachOf(i)}
+                images={imageItemsOf(i)}
+                total={attachments.length}
+                onAttach={handleFileAttach}
+                onRemove={removeAttachment}
+                onRemoveMainImage={() => setImageUrl(null)}
+                onDownload={downloadAttachment}
+              />
             </section>
           );
         })}
       </div>
 
-      {canEdit && (
-        <>
-          <UploadProgress pct={uploadPct} />
-          <div className="attach-files-section">
-            <div className="attach-files-header">
-              <span className="attach-files-label">📎 파일 첨부</span>
-              <label className="btn-ghost attach-add-btn" title={`HTML, TXT, CSV, Excel, Python, 이미지 파일 (최대 200KB/5MB, ${MAX_ATTACH_COUNT}개)`}>
-                + 파일 추가
-                <input
-                  type="file"
-                  accept=".html,.htm,.txt,.csv,.xlsx,.xls,.py,.jpg,.jpeg,.png,.gif,.webp"
-                  onChange={handleFileAttach}
-                  hidden
-                />
-              </label>
-            </div>
-            {fileAttachments.length > 0 && (
-              <ul className="attach-file-list">
-                {fileAttachments.map((att) => (
-                  <li key={att.id} className="attach-file-item">
-                    <span className={`attach-file-ext ext-${att.ext}`}>
-                      {FILE_EXTS[att.ext] ?? att.ext.toUpperCase()}
-                    </span>
-                    <span className="attach-file-name">{att.name}</span>
-                    <span className="attach-file-size">{formatFileSize(att.size)}</span>
-                    <button type="button" className="attach-file-del" onClick={() => removeAttachment(att.id)} aria-label="삭제">✕</button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-          {imageItems.length > 0 && (
-            <div className="attach-image-grid">
-              {imageItems.map((item) => (
-                <div key={item.id} className="attach-image-cell">
-                  <ZoomableImage src={item.src} alt="첨부 이미지" className="attach-image-grid-thumb" />
-                  <button
-                    type="button"
-                    className="attach-image-grid-del"
-                    onClick={() => (item.isMain ? setImageUrl(null) : removeAttachment(item.id))}
-                    aria-label="삭제"
-                  >
-                    ✕
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </>
-      )}
-
-      {!canEdit && attachments.length > 0 && (
-        <div className="attach-files-section">
-          <p className="attach-files-label">📎 첨부 파일</p>
-          <ul className="attach-file-list">
-            {attachments.map((att) => (
-              <li key={att.id} className="attach-file-item">
-                <span className={`attach-file-ext ext-${att.ext}`}>
-                  {FILE_EXTS[att.ext] ?? att.ext.toUpperCase()}
-                </span>
-                <span className="attach-file-name">{att.name}</span>
-                <span className="attach-file-size">{formatFileSize(att.size)}</span>
-                <button type="button" className="btn-ghost attach-download-btn" onClick={() => downloadAttachment(att)}>
-                  ⬇ 다운로드
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      {/* 업로드 진행률은 어느 활동에 넣든 한 곳에서 보여 줍니다 */}
+      <UploadProgress pct={uploadPct} />
 
       <div className="study-mycard-foot">
         {linked && (
@@ -456,5 +475,101 @@ export default function StudyMyActivityCard({
         />
       )}
     </section>
+  );
+}
+
+// 활동 한 칸의 첨부 영역 — 그 활동에 낸 파일·이미지만 다룹니다.
+// 활동 칸 맨 아래에 붙고(margin-top: auto), 첨부가 없고 편집도 못 하는
+// 경우엔 아예 그리지 않아 읽기 전용 칸이 지저분해지지 않게 합니다.
+function ActivityAttach({
+  index,
+  canEdit,
+  files,
+  images,
+  total,
+  onAttach,
+  onRemove,
+  onRemoveMainImage,
+  onDownload,
+}) {
+  if (!canEdit && files.length === 0 && images.length === 0) return null;
+  const full = total >= MAX_ATTACH_COUNT;
+  return (
+    <div className="study-act-attach">
+      <div className="study-act-attach-head">
+        <span className="study-act-attach-label">📎 파일 첨부</span>
+        {canEdit && (
+          <label
+            className={`btn-ghost attach-add-btn${full ? " disabled" : ""}`}
+            title={
+              full
+                ? `파일은 카드당 최대 ${MAX_ATTACH_COUNT}개까지 첨부할 수 있어요.`
+                : `HTML, TXT, CSV, Excel, Python, 이미지 파일 (최대 200KB/5MB, ${MAX_ATTACH_COUNT}개)`
+            }
+          >
+            + 파일 추가
+            <input
+              type="file"
+              accept=".html,.htm,.txt,.csv,.xlsx,.xls,.py,.jpg,.jpeg,.png,.gif,.webp"
+              onChange={(e) => onAttach(e, index)}
+              disabled={full}
+              hidden
+            />
+          </label>
+        )}
+      </div>
+
+      {files.length > 0 && (
+        <ul className="attach-file-list">
+          {files.map((att) => (
+            <li key={att.id} className="attach-file-item">
+              <span className={`attach-file-ext ext-${att.ext}`}>
+                {FILE_EXTS[att.ext] ?? att.ext.toUpperCase()}
+              </span>
+              <span className="attach-file-name">{att.name}</span>
+              <span className="attach-file-size">{formatFileSize(att.size)}</span>
+              {canEdit ? (
+                <button
+                  type="button"
+                  className="attach-file-del"
+                  onClick={() => onRemove(att.id)}
+                  aria-label="삭제"
+                >
+                  ✕
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="btn-ghost attach-download-btn"
+                  onClick={() => onDownload(att)}
+                >
+                  ⬇ 다운로드
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {images.length > 0 && (
+        <div className="attach-image-grid study-act-images">
+          {images.map((item) => (
+            <div key={item.id} className="attach-image-cell">
+              <ZoomableImage src={item.src} alt="첨부 이미지" className="attach-image-grid-thumb" />
+              {canEdit && (
+                <button
+                  type="button"
+                  className="attach-image-grid-del"
+                  onClick={() => (item.isMain ? onRemoveMainImage() : onRemove(item.id))}
+                  aria-label="삭제"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

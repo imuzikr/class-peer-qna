@@ -10058,6 +10058,26 @@ button.study-cal-cell.has-record:not(:disabled):hover {
 /* 빈 안내는 그리드 한 칸이 아니라 한 줄 전체를 씁니다 */
 .study-project-cards > .study-column-empty { grid-column: 1 / -1; }
 
+/* 자리 그리드(개별 활동) — 학생이 활동을 시작해도 카드 높이가 그대로.
+   반 전체 자리가 한 화면에 깔리는 곳이라, 카드 하나가 커지면 줄 전체가
+   밀려 훑어보기가 어려워집니다. 그래서 두 카드 종류(작성 전 자리 ·
+   작성한 카드)의 높이를 하나로 고정하고, 높이를 벌던 요소는 숨깁니다.
+   (본문 미리보기는 원래 색이 transparent인 '높이 확보용' 자리였고,
+   첨부 썸네일은 머리말의 📎 개수로 갈음합니다.) */
+.study-project-cards--seats > .study-card,
+.study-project-cards--seats > .study-seat-empty {
+  height: 168px;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.study-project-cards--seats .study-card-preview,
+.study-project-cards--seats .study-card-thumb-wrap { display: none; }
+/* 반응 줄·안내 문구는 높이가 남아도 카드 아래쪽에 붙여 줄을 맞춥니다 */
+.study-project-cards--seats .study-card-reactions,
+.study-project-cards--seats .study-seat-empty-note { margin-top: auto; }
+
 /* 아직 카드가 없는 자리 / 잠겨서 열 수 없는 친구 자리.
    카드 문서는 학생이 처음 저장할 때 만들어지므로(보안 규칙상 교사가 대신
    만들 수 없음), 자리만 먼저 깔아 '내 카드가 이미 준비돼 있다'고 보여 줍니다. */
@@ -11265,11 +11285,44 @@ button.study-cal-cell.has-record:not(:disabled):hover {
 .study-mycard-col-body {
   font-size: 14px;
 }
+/* 활동 칸은 아래로 넉넉히 — 첨부가 활동마다 칸 안으로 들어오면서
+   글 쓰는 자리가 좁아지지 않도록 편집기를 크게 잡습니다. */
 .study-mycard-editor .rte-full .rte-area {
-  min-height: 180px;
+  min-height: 340px;
   max-height: none;
   overflow-y: visible;
   height: auto;
+}
+.study-mycard-col { min-height: 460px; }
+
+/* 활동 한 칸의 첨부 — 칸 맨 아래에 붙습니다(그 위 편집기가 남은 높이를 씀) */
+.study-act-attach {
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.study-act-attach-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.study-act-attach-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+/* 칸 폭이 좁아 이미지는 2열로 작게 */
+.attach-image-grid.study-act-images {
+  margin-top: 0;
+  gap: 8px;
+}
+.attach-add-btn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 .study-mycard-foot {
   display: flex;

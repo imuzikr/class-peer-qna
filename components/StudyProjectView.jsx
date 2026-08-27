@@ -379,6 +379,8 @@ export default function StudyProjectView({
             : !!detailSeat.card && canEditCard(detailSeat.card)
         }
         canDelete={isTeacher}
+        isTeacher={isTeacher}
+        writerName={detailSeat.mine ? user?.displayName ?? "" : detailSeat.name}
         onBack={() => setDetailSeat(null)}
         onAsk={onAsk}
         relatedQuestions={relatedQuestions}
@@ -632,8 +634,10 @@ export default function StudyProjectView({
         </div>
       )}
 
-      {/* ── 개인 카드 그리드 ── */}
-      <div className="study-project-cards">
+      {/* ── 개인 카드 그리드 ──
+          자리 그리드(개별 활동)는 카드가 많아 한눈에 훑어야 하므로, 학생이
+          활동을 시작해도 카드 높이가 빈 자리와 같도록 --seats로 고정합니다. */}
+      <div className={`study-project-cards${seats !== null ? " study-project-cards--seats" : ""}`}>
         {/* 안내(수업 자료)·모둠 프로젝트 — 카드 목록을 그대로 */}
         {seats === null &&
           listCards.map((card) => (
