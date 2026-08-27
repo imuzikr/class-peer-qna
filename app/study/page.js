@@ -70,6 +70,7 @@ import StudyRewardPanel from "@/components/StudyRewardPanel";
 import StudyProjectDashboard from "@/components/StudyProjectDashboard";
 import StudyProjectView from "@/components/StudyProjectView";
 import StudyProjectForm from "@/components/StudyProjectForm";
+import StudyActivityPanel from "@/components/StudyActivityPanel";
 import NewQuestionForm from "@/components/NewQuestionForm";
 import ClassEntry from "@/components/ClassEntry";
 import ClassManagerModal from "@/components/ClassManagerModal";
@@ -86,6 +87,11 @@ import { IconKey } from "@/components/StatusIcons";
 const PythonRunner = dynamic(() => import("@/components/PythonRunner"), {
   ssr: false,
 });
+
+// 왼쪽 사이드 패널 — 현재는 프로젝트 활동 추가 패널(StudyActivityPanel)이
+// KWL 패널 자리를 대신합니다. KWL 패널은 삭제하지 않고 잠시 보관 중이며,
+// 이 값을 true로 되돌리면 다시 켤 수 있습니다.
+const KWL_PANEL_ENABLED = false;
 
 export default function StudyPage() {
   // useSearchParams()는 정적 프리렌더 시 Suspense 경계가 필요합니다 —
@@ -128,7 +134,8 @@ function StudyPageInner() {
   const [askKwlW, setAskKwlW] = useState(null);    // KWL W칸에서 넘어온 텍스트
   const [pyOpen, setPyOpen] = useState(false);      // 파이썬 실행 패널
   const [cardModalOpen, setCardModalOpen] = useState(false); // StudyProjectView 모달
-  const [kwlMobileOpen, setKwlMobileOpen] = useState(false); // 모바일 KWL 패널
+  const [kwlMobileOpen, setKwlMobileOpen] = useState(false); // 모바일 KWL 패널 (현재 보관 중)
+  const [activityPanelMobileOpen, setActivityPanelMobileOpen] = useState(false); // 모바일 활동 패널
   const [toast, setToast] = useState("");
   const [directory, setDirectory] = useState([]);   // 교사: uid→실명 등 프로필
   const [memberUids, setMemberUids] = useState([]);  // 현재 반 소속 학생 uid
@@ -590,15 +597,24 @@ function StudyPageInner() {
         <ClassEntry />
       ) : (
         <main className="study-main">
-          {/* 본문 — KWL 사이드 패널 + 보드 컬럼 (사이드바와 동일 높이) */}
+          {/* 본문 — 왼쪽 사이드 패널(프로젝트 활동 추가) + 보드 컬럼 (사이드바와 동일 높이) */}
           <div className="study-body">
-            <KwlPanel
-              classId={classId}
-              user={user}
+            {KWL_PANEL_ENABLED && (
+              <KwlPanel
+                classId={classId}
+                user={user}
+                isTeacher={admin && !currentClass?.archived}
+                onAsk={(text) => setAskKwlW(text)}
+                mobileOpen={kwlMobileOpen}
+                onMobileClose={() => setKwlMobileOpen(false)}
+              />
+            )}
+            <StudyActivityPanel
+              board={activeProject}
               isTeacher={admin && !currentClass?.archived}
-              onAsk={(text) => setAskKwlW(text)}
-              mobileOpen={kwlMobileOpen}
-              onMobileClose={() => setKwlMobileOpen(false)}
+              classRoster={admin ? roster : []}
+              mobileOpen={activityPanelMobileOpen}
+              onMobileClose={() => setActivityPanelMobileOpen(false)}
             />
             <div className="study-cols-wrap">
               {/* 제목 영역 — cols-wrap 안에 위치해 보드 컬럼과 정렬됨 */}
@@ -776,8 +792,8 @@ function StudyPageInner() {
         </main>
       )}
 
-      {/* 모바일 KWLS 열기 버튼 (FAB) */}
-      {classId && user && !kwlMobileOpen && (
+      {/* 모바일 KWLS 열기 버튼 (FAB) — KWL 패널과 함께 잠시 보관 중 */}
+      {KWL_PANEL_ENABLED && classId && user && !kwlMobileOpen && (
         <button
           className="kwl-fab"
           onClick={() => setKwlMobileOpen(true)}
@@ -788,10 +804,29 @@ function StudyPageInner() {
       )}
 
       {/* KWLS 패널 열릴 때 배경 오버레이 */}
-      {kwlMobileOpen && (
+      {KWL_PANEL_ENABLED && kwlMobileOpen && (
         <div
           className="kwl-mobile-backdrop"
           onClick={() => setKwlMobileOpen(false)}
+        />
+      )}
+
+      {/* 모바일 프로젝트 활동 패널 열기 버튼 (FAB) — 교사 전용 */}
+      {admin && currentClass && !currentClass.archived && !activityPanelMobileOpen && (
+        <button
+          className="study-activity-fab"
+          onClick={() => setActivityPanelMobileOpen(true)}
+          aria-label="프로젝트 활동 패널 열기"
+        >
+          🧩 활동
+        </button>
+      )}
+
+      {/* 활동 패널 열릴 때 배경 오버레이 */}
+      {activityPanelMobileOpen && (
+        <div
+          className="study-activity-mobile-backdrop"
+          onClick={() => setActivityPanelMobileOpen(false)}
         />
       )}
 

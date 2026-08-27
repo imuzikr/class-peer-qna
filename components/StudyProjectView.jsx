@@ -37,16 +37,11 @@ import {
   toDate,
   REWARD_MAX,
 } from "@/lib/store";
-import { stripHtml, htmlHasImage } from "@/lib/html";
-import {
-  buildActivityTemplate,
-  nextActivityLocks,
-  isActivityLocked,
-} from "@/lib/activities";
+import { isActivityLocked, isTeacherAuthoredCard as isTeacherAuthored } from "@/lib/activities";
 import StudyCard from "./StudyCard";
 import StudyCardModal from "./StudyCardModal";
 import StudyPresentModal from "./StudyPresentModal";
-import StudyProgressBoard, { cardProgress } from "./StudyProgressBoard";
+import StudyProgressBoard from "./StudyProgressBoard";
 import GroupComposer from "./GroupComposer";
 import {
   IconTrash,
@@ -57,11 +52,6 @@ import {
   IconPen,
   IconPeople,
 } from "./StatusIcons";
-
-// 교사가 올린 예시·자료 카드인지 (데모는 "teacher_" 접두, 실서비스는 작성자명)
-function isTeacherAuthored(card) {
-  return card?.authorId?.startsWith?.("teacher_") || card?.authorName === "선생님";
-}
 
 export default function StudyProjectView({
   board,
@@ -86,9 +76,6 @@ export default function StudyProjectView({
   const [sortKey, setSortKey] = useState("studentId");
   const [studentIdDir, setStudentIdDir] = useState("asc");
   const [timeDir, setTimeDir] = useState("desc");
-  const [activitiesOpen, setActivitiesOpen] = useState(false);
-  const [activitiesDraft, setActivitiesDraft] = useState([]);
-  const [savingActivities, setSavingActivities] = useState(false);
   const [presenting, setPresenting] = useState(false);
   const [progressOpen, setProgressOpen] = useState(false);
   const [titleDraft, setTitleDraft] = useState(board.title);
@@ -238,17 +225,8 @@ export default function StudyProjectView({
     ? listCards.filter((c) => c.groupId && !c.retired)
     : cards.filter((c) => !isTeacherAuthored(c));
 
-  // 교사 요약 — 활동마다 몇 명이 제출했는지 (공부중 전광판과 같은 기준)
+  // 교사 요약 — 몇 개 활동이 열려 있는지 (활동 개수·잠금 관리는 왼쪽 활동 패널이 담당)
   const summaryOpenCount = activities.filter((_, i) => !isActivityLocked(board, i)).length;
-  const summaryDoneCounts = useMemo(() => {
-    const rows = classRoster.map((s) => {
-      const card = cards.find((c) =>
-        isGroup ? c.memberUids?.includes(s.uid) : c.authorId === s.uid
-      );
-      return cardProgress(card, activities);
-    });
-    return activities.map((_, i) => rows.filter((d) => d[i]).length);
-  }, [classRoster, cards, activities, isGroup]);
 
   // 이전 단일 keyword 필드와 새 keywords 배열 모두 지원
   const boardKeywords = Array.isArray(board.keywords)
@@ -313,15 +291,6 @@ export default function StudyProjectView({
   }
   const otherClasses = classes.filter((c) => c.id !== board.classId);
 
-  // 활동 하나의 잠금을 켜고 끕니다 — 수업 화면의 '활동 열기' 줄과 같은
-  // 보드 문서(activityLocks)를 쓰므로 두 화면이 항상 같은 상태를 봅니다.
-  async function toggleActivityLock(i, lockedNext) {
-    const next = activities.map((_, j) =>
-      j === i ? lockedNext : board.activityLocks?.[j] === true
-    );
-    await updateStudyBoard(board.id, { activityLocks: next });
-  }
-
   // 개별 활동 ↔ 모둠 활동 전환 — 이미 쓴 카드가 있으면 구조가 어긋나 막습니다.
   async function toggleActivityType() {
     if (isGroup) {
@@ -344,58 +313,8 @@ export default function StudyProjectView({
     }
   }
 
-  function openActivitiesModal() {
-    setActivitiesDraft(activities.length ? [...activities] : [""]);
-    setActivitiesOpen(true);
-  }
-
-  async function handleSaveActivities() {
-    const newActivities = activitiesDraft.filter((a) => a.trim().length > 0);
-    const studentCards = cards.filter((c) => !isTeacherAuthored(c));
-    // 텍스트 없이 붙여넣은 이미지만 있는 카드도 '이미 쓴 내용'입니다.
-    const hasContent = studentCards.some((c) => {
-      const html = c.content ?? "";
-      return stripHtml(html).trim().length > 0 || htmlHasImage(html);
-    });
-    if (hasContent) {
-      alert(
-        "학생이 입력한 내용이 있어서 활동을 변경할 수 없어요.\n모든 학생 카드의 내용을 비운 후 다시 시도해 주세요."
-      );
-      return;
-    }
-    setSavingActivities(true);
-    try {
-      // 수업 도중 새로 추가한 활동은 잠긴 채로 시작합니다 — 교사가 열어 줘야
-      // 학생이 입력할 수 있습니다(이름이 그대로인 활동은 지금 상태 유지).
-      await updateStudyBoard(board.id, {
-        activities: newActivities,
-        activityLocks: nextActivityLocks(
-          activities,
-          board.activityLocks ?? [],
-          newActivities
-        ),
-      });
-      if (newActivities.length > 0) {
-        const templateHtml = buildActivityTemplate(newActivities);
-        await Promise.all(
-          studentCards.map((c) =>
-            updateStudyCard(board.id, c.id, {
-              title: c.title ?? "",
-              content: templateHtml,
-              imageUrl: c.imageUrl ?? null,
-              attachments: c.attachments ?? [],
-            })
-          )
-        );
-      }
-      setActivitiesOpen(false);
-    } finally {
-      setSavingActivities(false);
-    }
-  }
-
   const cardModalOpen = selectedCard !== null || creating;
-  const modalOpen = cardModalOpen || presenting || progressOpen || activitiesOpen || composing;
+  const modalOpen = cardModalOpen || presenting || progressOpen || composing;
   useEffect(() => {
     onModalChange?.(modalOpen);
   }, [modalOpen]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -641,46 +560,6 @@ export default function StudyProjectView({
               </button>
             </label>
 
-            {/* 활동 상태 — 만들어 둔 활동을 하나씩 열고 잠급니다 */}
-            {!isNotice && (
-              <div className="study-setting-row study-setting-row--acts">
-                <span>활동 상태</span>
-                <div className="study-act-chips">
-                  {activities.map((a, i) => {
-                    const actLocked = isActivityLocked(board, i);
-                    return (
-                      <button
-                        key={`${a}-${i}`}
-                        type="button"
-                        className={`study-act-chip${actLocked ? " locked" : ""}`}
-                        onClick={() => toggleActivityLock(i, !actLocked)}
-                        title={`${a} — ${actLocked ? "눌러서 열기" : "눌러서 잠그기"}${
-                          classRoster.length > 0 ? ` (제출 ${summaryDoneCounts[i]}/${classRoster.length}명)` : ""
-                        }`}
-                        aria-pressed={!actLocked}
-                      >
-                        활동 {i + 1}
-                        {classRoster.length > 0 && (
-                          <span className="study-act-chip-count">
-                            {summaryDoneCounts[i]}/{classRoster.length}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                  <button
-                    type="button"
-                    className="study-act-chip study-act-chip--add"
-                    onClick={openActivitiesModal}
-                    title="학생 카드에 제시할 활동을 추가·수정합니다"
-                    aria-label="활동 추가"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-            )}
-
             {canAddOwnCard && (
               <button
                 className="study-chip"
@@ -805,71 +684,6 @@ export default function StudyProjectView({
           </p>
         )}
       </div>
-
-      {/* ── 활동 설정 모달 ── */}
-      {activitiesOpen && (
-        <div className="modal-backdrop" {...backdropClose(() => setActivitiesOpen(false))}>
-          <div className="study-activity-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="study-activity-modal-head">
-              <h3>활동 설정</h3>
-              <button
-                className="btn-close"
-                onClick={() => setActivitiesOpen(false)}
-                aria-label="닫기"
-              >
-                ×
-              </button>
-            </div>
-            <p className="study-activity-hint">
-              학생 개인 카드에 제시할 활동 내용을 입력하세요.
-            </p>
-            <div className="study-activity-list">
-              {activitiesDraft.map((act, i) => (
-                <div key={i} className="study-activity-item">
-                  <span className="study-activity-label">활동 {i + 1}</span>
-                  <input
-                    className="study-activity-input"
-                    value={act}
-                    onChange={(e) => {
-                      const next = [...activitiesDraft];
-                      next[i] = e.target.value;
-                      setActivitiesDraft(next);
-                    }}
-                    placeholder={`활동 ${i + 1} 내용을 입력하세요`}
-                  />
-                  <button
-                    className="study-activity-del"
-                    onClick={() =>
-                      setActivitiesDraft(activitiesDraft.filter((_, j) => j !== i))
-                    }
-                    aria-label="삭제"
-                  >
-                    ✕
-                  </button>
-                </div>
-              ))}
-            </div>
-            <button
-              className="study-activity-add"
-              onClick={() => setActivitiesDraft([...activitiesDraft, ""])}
-            >
-              + 활동 추가
-            </button>
-            <div className="study-activity-actions">
-              <button className="btn-ghost" onClick={() => setActivitiesOpen(false)}>
-                취소
-              </button>
-              <button
-                className="btn-primary"
-                onClick={handleSaveActivities}
-                disabled={savingActivities}
-              >
-                {savingActivities ? "저장 중..." : "저장"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {cardModalOpen && (
         <StudyCardModal
