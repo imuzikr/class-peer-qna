@@ -145,6 +145,22 @@ export default function StudyRewardPanel({
     await onSaveGroups?.(next);
   }
 
+  // 모둠마다 그 안의 학생을 학번순으로 재배열합니다. 카드에는 학번을
+  // 표시하지 않지만, 각 학생 객체(members[].studentId)엔 저장돼 있어
+  // 정렬 기준으로 쓸 수 있습니다. 학번이 없는 학생은 뒤로 보냅니다.
+  async function sortGroupsByStudentId() {
+    const next = groups.map((g) => ({
+      ...g,
+      members: [...(g.members ?? [])].sort((a, b) => {
+        if (!a.studentId) return b.studentId ? 1 : 0;
+        if (!b.studentId) return -1;
+        return String(a.studentId).localeCompare(String(b.studentId), "ko", { numeric: true });
+      }),
+    }));
+    setGroups(next);
+    await onSaveGroups?.(next);
+  }
+
   // 접힌 상태 — 세로 슬림 바. 클릭하면 다시 펼침.
   if (collapsed) {
     return (
@@ -243,6 +259,15 @@ export default function StudyRewardPanel({
                 aria-label="모둠 하나 늘리기"
               >
                 ＋
+              </button>
+              <button
+                type="button"
+                className="reward-groups-sort-btn"
+                onClick={sortGroupsByStudentId}
+                title="모둠마다 학생을 학번순으로 정렬"
+                aria-label="모둠마다 학생을 학번순으로 정렬"
+              >
+                🔢 정렬
               </button>
             </div>
           </div>
