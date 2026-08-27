@@ -1,23 +1,31 @@
 "use client";
 
 // =============================================================
-// 공부방 보드 추가 모달 (교사 전용)
+// 공부방 프로젝트 만들기 모달 (교사 전용)
 // -------------------------------------------------------------
-// · 제목 행 오른쪽에 토글로 "질문 게시판 연계하기" 설정
-// · 연계 ON 시 키워드 칩을 복수로 선택 가능 (제목 바로 아래)
-// · 설명 입력 (선택)
+// 프로젝트 하나가 곧 학생 개인 카드 한 벌입니다. 여기서 정한 활동이
+// 학생 카드 안의 입력 칸이 되므로, 제목·설명과 함께 '활동'을 이 폼에서
+// 같이 받습니다. (만든 뒤에도 프로젝트 화면의 '활동 설정'에서 고칠 수
+// 있지만, 학생이 이미 쓴 내용이 있으면 바꿀 수 없어 처음에 정해 두는
+// 편이 낫습니다.)
+//
+// · 활동 유형: 개별(학생 1인 1카드) / 모둠(모둠당 1카드)
+// · 제목 행 오른쪽 토글로 "질문 게시판 연계하기"
+// · 연계 ON 시 키워드 칩을 복수로 선택 (제목 바로 아래)
 // =============================================================
 import { backdropClose } from "@/lib/modal";
 import { useState } from "react";
 import { addStudyBoard, addKeyword } from "@/lib/store";
 import { getCurrentUser } from "@/lib/user";
 
-export default function StudyBoardForm({ keywords = [], classId = null, onClose }) {
+export default function StudyProjectForm({ keywords = [], classId = null, onClose, onCreated }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [activityType, setActivityType] = useState("individual"); // 개별 | 모둠
   const [linkKeyword, setLinkKeyword] = useState(false);
   const [selectedKeywords, setSelectedKeywords] = useState([]);
+  // 활동 — 빈 칸 하나로 시작해, 교사가 바로 첫 활동을 적을 수 있게 합니다.
+  const [activities, setActivities] = useState([""]);
   const [saving, setSaving] = useState(false);
   const [addingKw, setAddingKw] = useState(false); // 새 키워드 입력 중
   const [newKw, setNewKw] = useState("");
@@ -28,7 +36,7 @@ export default function StudyBoardForm({ keywords = [], classId = null, onClose 
     );
   }
 
-  // 새 키워드 추가 — 전역 키워드 목록에 만들고(중복이면 생략) 이 보드에 바로 선택.
+  // 새 키워드 추가 — 전역 키워드 목록에 만들고(중복이면 생략) 이 프로젝트에 바로 선택.
   async function handleAddKeyword() {
     const name = newKw.trim().replace(/^#\s*/, "");
     if (!name) return;
@@ -38,19 +46,28 @@ export default function StudyBoardForm({ keywords = [], classId = null, onClose 
     setAddingKw(false);
   }
 
+  function setActivityAt(i, value) {
+    setActivities((prev) => prev.map((a, j) => (j === i ? value : a)));
+  }
+  function removeActivityAt(i) {
+    setActivities((prev) => (prev.length === 1 ? [""] : prev.filter((_, j) => j !== i)));
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     if (!title.trim()) return;
     setSaving(true);
     try {
-      await addStudyBoard(getCurrentUser(), {
+      const newId = await addStudyBoard(getCurrentUser(), {
         title: title.trim(),
         type: "student",
         description: description.trim(),
         keywords: linkKeyword ? selectedKeywords : [],
         classId,
         activityType,
+        activities: activities.map((a) => a.trim()).filter(Boolean),
       });
+      onCreated?.(newId);
       onClose();
     } finally {
       setSaving(false);
@@ -61,7 +78,7 @@ export default function StudyBoardForm({ keywords = [], classId = null, onClose 
     <div className="modal-backdrop" {...backdropClose(onClose)}>
       <div className="modal modal-study-board" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
-          <h3>➕ 새 수업 보드 만들기</h3>
+          <h3>➕ 새 프로젝트 만들기</h3>
           <button className="btn-close" onClick={onClose} aria-label="닫기">
             ×
           </button>
@@ -92,7 +109,7 @@ export default function StudyBoardForm({ keywords = [], classId = null, onClose 
           <div className="study-board-form-title-row">
             <input
               type="text"
-              placeholder="보드 제목 (예: 이온 결합 모형 탐구)"
+              placeholder="프로젝트 제목 (예: 이온 결합 모형 탐구)"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               autoFocus
@@ -154,13 +171,49 @@ export default function StudyBoardForm({ keywords = [], classId = null, onClose 
 
           <textarea
             className="study-board-desc-input"
-            placeholder="활동 안내를 적어 주세요. (선택)"
+            placeholder="프로젝트 안내를 적어 주세요. (선택)"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />
 
+          {/* 활동 — 학생 개인 카드에 그대로 입력 칸으로 만들어집니다 */}
+          <div className="project-form-acts">
+            <div className="project-form-acts-head">
+              <span>활동</span>
+              <small>학생 개인 카드에 이 순서대로 입력 칸이 만들어져요. (선택)</small>
+            </div>
+            <div className="study-activity-list">
+              {activities.map((act, i) => (
+                <div key={i} className="study-activity-item">
+                  <span className="study-activity-label">활동 {i + 1}</span>
+                  <input
+                    className="study-activity-input"
+                    value={act}
+                    onChange={(e) => setActivityAt(i, e.target.value)}
+                    placeholder={`활동 ${i + 1} 내용을 입력하세요`}
+                  />
+                  <button
+                    type="button"
+                    className="study-activity-del"
+                    onClick={() => removeActivityAt(i)}
+                    aria-label={`활동 ${i + 1} 삭제`}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              className="study-activity-add"
+              onClick={() => setActivities((prev) => [...prev, ""])}
+            >
+              + 활동 추가
+            </button>
+          </div>
+
           <button type="submit" className="btn-primary" disabled={saving}>
-            {saving ? "만드는 중..." : "보드 만들기"}
+            {saving ? "만드는 중..." : "프로젝트 만들기"}
           </button>
         </form>
       </div>

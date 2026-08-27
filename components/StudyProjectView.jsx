@@ -1,0 +1,1004 @@
+"use client";
+
+// =============================================================
+// 공부방 — 프로젝트 상세 (개인 카드 그리드)
+// -------------------------------------------------------------
+// 대시보드에서 프로젝트를 누르면 열리는 화면입니다. 반 학생 한 명당
+// '개인 카드 자리'가 한 칸씩 미리 깔려 있고, 자기 카드를 누르면 교사가
+// 프로젝트를 만들 때 정해 둔 활동을 순서대로 수행합니다.
+//
+// [카드 자리를 미리 깔아 두는 이유]
+// 카드 문서(studyBoards/{id}/cards/{uid})는 학생이 처음 저장할 때 만들어
+// 집니다 — 보안 규칙이 카드 생성 시 authorId == 본인을 요구해서, 교사가
+// 학생 카드를 대신 만들어 둘 수 없기 때문입니다. 그래서 문서가 아직
+// 없어도 화면에는 자리를 먼저 보여 줍니다. 학생 눈에는 '내 카드가 이미
+// 준비돼 있고 누르면 바로 활동'으로 보이고, 교사 눈에는 '누가 아직
+// 시작도 안 했는지'가 한눈에 들어옵니다.
+//
+// [공개 범위]
+//   private(기본) — 학생은 자기 카드만 열 수 있고, 친구 카드는 잠긴
+//                   자리로만 보입니다(이름표만, 내용 없음). 교사는 전부.
+//   shared        — 친구 카드도 읽기 전용으로 열립니다.
+//
+// 모둠 프로젝트는 학생 명단 대신 '모둠 구성'으로 만들어진 모둠 카드가
+// 그리드에 놓입니다(모둠당 한 장).
+// =============================================================
+import { backdropClose } from "@/lib/modal";
+import { useEffect, useMemo, useState } from "react";
+import {
+  subscribeStudyCards,
+  subscribeMyGroupCards,
+  updateStudyBoard,
+  updateStudyCard,
+  setCardReaction,
+  deleteStudyBoard,
+  duplicateStudyBoard,
+  getDirectoryUser,
+  toDate,
+  REWARD_MAX,
+} from "@/lib/store";
+import { stripHtml, htmlHasImage } from "@/lib/html";
+import {
+  buildActivityTemplate,
+  nextActivityLocks,
+  isActivityLocked,
+} from "@/lib/activities";
+import StudyCard from "./StudyCard";
+import StudyCardModal from "./StudyCardModal";
+import StudyPresentModal from "./StudyPresentModal";
+import StudyProgressBoard, { cardProgress } from "./StudyProgressBoard";
+import GroupComposer from "./GroupComposer";
+import {
+  IconTrash,
+  IconSettings,
+  IconCheck,
+  IconLock,
+  IconDuplicate,
+  IconPen,
+  IconPeople,
+} from "./StatusIcons";
+
+// 교사가 올린 예시·자료 카드인지 (데모는 "teacher_" 접두, 실서비스는 작성자명)
+function isTeacherAuthored(card) {
+  return card?.authorId?.startsWith?.("teacher_") || card?.authorName === "선생님";
+}
+
+export default function StudyProjectView({
+  board,
+  user,
+  isTeacher,
+  classRoster = [], // 교사: 반 학생 명단 [{uid, name, studentId, emoji, count}]
+  onAward,
+  baseGroupAssignment = null,
+  questions = [],
+  classes = [],
+  onBack,
+  onAsk,
+  onModalChange,
+  onDeleted,
+  onDuplicated,
+}) {
+  const [cards, setCards] = useState([]);
+  const [selectedCard, setSelectedCard] = useState(null);
+  const [creating, setCreating] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [duplicating, setDuplicating] = useState(false);
+  const [sortKey, setSortKey] = useState("studentId");
+  const [studentIdDir, setStudentIdDir] = useState("asc");
+  const [timeDir, setTimeDir] = useState("desc");
+  const [activitiesOpen, setActivitiesOpen] = useState(false);
+  const [activitiesDraft, setActivitiesDraft] = useState([]);
+  const [savingActivities, setSavingActivities] = useState(false);
+  const [presenting, setPresenting] = useState(false);
+  const [progressOpen, setProgressOpen] = useState(false);
+  const [titleDraft, setTitleDraft] = useState(board.title);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [descDraft, setDescDraft] = useState(board.description ?? "");
+  const [editingDesc, setEditingDesc] = useState(false);
+  const [composing, setComposing] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const isNotice = board.type === "notice";
+  const isGroup = board.activityType === "group";
+  const locked = board.editMode === "locked";
+  const shared = board.viewMode === "shared";
+  const activities = board.activities ?? [];
+
+  useEffect(() => {
+    // 모둠 프로젝트 + 학생 + '자기 모둠만': 규칙상 내 모둠 카드만 구독 가능.
+    // '함께 보기'면 다른 모둠 카드도 읽기 전용으로 내려받습니다.
+    if (isGroup && !isTeacher && !shared) {
+      if (!user) return;
+      return subscribeMyGroupCards(board.id, user.uid, setCards);
+    }
+    return subscribeStudyCards(board.id, setCards);
+  }, [board.id, isGroup, isTeacher, shared, user?.uid]);
+
+  // 외부에서 제목·설명이 바뀌면 편집 초안도 동기화
+  useEffect(() => { setTitleDraft(board.title); }, [board.title]);
+
+  const myCard = user ? cards.find((c) => c.authorId === user.uid) : null;
+
+  // ── 반응(👍❤️😊) 최다 카드 — 테두리 강조 대상 ──
+  const cardReactionTotal = (c) =>
+    (c.thumbsUpIds?.length ?? 0) + (c.heartIds?.length ?? 0) + (c.smileIds?.length ?? 0);
+  const maxReactionTotal = cards.reduce(
+    (max, c) => Math.max(max, cardReactionTotal(c)),
+    0
+  );
+
+  const currentSortDir = sortKey === "studentId" ? studentIdDir : timeDir;
+
+  // ── 개인 카드 자리 만들기 ────────────────────────────────────
+  // seat: { key, uid, name, studentId, emoji, card, mine, locked, isTeacherCard }
+  //   card === null  → 아직 안 쓴 자리(빈 카드)
+  //   locked === true → 남의 카드인데 '나만 보기'라 열 수 없는 자리
+  const seats = useMemo(() => {
+    if (isNotice || isGroup) return null; // 안내·모둠은 카드 목록을 그대로 씀
+
+    const byAuthor = new Map();
+    cards.forEach((c) => { if (c.authorId) byAuthor.set(c.authorId, c); });
+
+    if (isTeacher) {
+      // 교사: 반 학생 전원의 자리 + 교사가 올린 예시 카드
+      const rosterUids = new Set(classRoster.map((s) => s.uid));
+      const rows = classRoster.map((s) => ({
+        key: s.uid,
+        uid: s.uid,
+        name: s.name,
+        studentId: s.studentId ?? null,
+        emoji: s.emoji ?? "🙂",
+        card: byAuthor.get(s.uid) ?? null,
+        mine: false,
+        locked: false,
+        isTeacherCard: false,
+      }));
+      const extras = cards
+        .filter((c) => !rosterUids.has(c.authorId))
+        .map((c) => ({
+          key: c.id,
+          uid: c.authorId,
+          name: c.authorName ?? "선생님",
+          studentId: null,
+          emoji: c.authorEmoji ?? "🧑‍🏫",
+          card: c,
+          mine: c.authorId === user?.uid,
+          locked: false,
+          isTeacherCard: isTeacherAuthored(c),
+        }));
+      return [...rows, ...extras];
+    }
+
+    // 학생: 내 자리는 항상 맨 앞(카드가 없어도), 나머지는 읽어 온 카드로.
+    // 규칙상 개별 프로젝트의 카드는 같은 반이면 읽을 수 있어서, '나만 보기'
+    // 여도 친구 자리가 몇 개인지는 보입니다 — 다만 내용은 열지 않습니다.
+    const mine = {
+      key: user?.uid ?? "me",
+      uid: user?.uid ?? null,
+      name: "내 카드",
+      studentId: null,
+      emoji: user?.emoji ?? "🙂",
+      card: myCard ?? null,
+      mine: true,
+      locked: false,
+      isTeacherCard: false,
+    };
+    const others = cards
+      .filter((c) => c.authorId !== user?.uid)
+      .map((c) => ({
+        key: c.id,
+        uid: c.authorId,
+        name: c.authorName ?? "친구",
+        studentId: null,
+        emoji: c.authorEmoji ?? "🙂",
+        card: c,
+        mine: false,
+        // 교사가 올린 자료 카드는 '함께 보기'가 아니어도 모두에게 열어 줍니다
+        locked: !shared && !isTeacherAuthored(c),
+        isTeacherCard: isTeacherAuthored(c),
+      }));
+    return [mine, ...others];
+  }, [isNotice, isGroup, isTeacher, cards, classRoster, myCard, shared, user?.uid, user?.emoji]);
+
+  // 자리 정렬 (교사만) — 학번순 / 제출 시간순
+  const sortedSeats = useMemo(() => {
+    if (!seats || !isTeacher) return seats;
+    return [...seats].sort((a, b) => {
+      let cmp = 0;
+      if (sortKey === "studentId") {
+        const aId = a.studentId ?? getDirectoryUser(a.uid)?.studentId ?? "";
+        const bId = b.studentId ?? getDirectoryUser(b.uid)?.studentId ?? "";
+        cmp = String(aId).localeCompare(String(bId), "ko", { numeric: true });
+      } else {
+        // 카드가 없는 자리는 항상 뒤로 (아직 제출 전)
+        const at = a.card ? toDate(a.card.createdAt) : null;
+        const bt = b.card ? toDate(b.card.createdAt) : null;
+        if (!at && !bt) return 0;
+        if (!at) return 1;
+        if (!bt) return -1;
+        cmp = at - bt;
+      }
+      return currentSortDir === "asc" ? cmp : -cmp;
+    });
+  }, [seats, isTeacher, sortKey, currentSortDir]);
+
+  // 안내(수업 자료)·모둠 프로젝트에서 그리드에 놓을 카드
+  const listCards = useMemo(() => {
+    if (isGroup) {
+      return cards
+        .filter((c) => c.groupId && (isTeacher || !c.retired))
+        .sort((a, b) => (a.groupIndex ?? 0) - (b.groupIndex ?? 0));
+    }
+    if (isNotice) return [...cards].reverse(); // 최신 안내가 앞에
+    return [];
+  }, [cards, isGroup, isNotice, isTeacher]);
+
+  // 발표 모드 대상 — 모둠은 모둠 카드, 개별은 학생 카드만(교사 예시 제외)
+  const presentCards = isGroup
+    ? listCards.filter((c) => c.groupId && !c.retired)
+    : cards.filter((c) => !isTeacherAuthored(c));
+
+  // 교사 요약 — 활동마다 몇 명이 제출했는지 (공부중 전광판과 같은 기준)
+  const summaryOpenCount = activities.filter((_, i) => !isActivityLocked(board, i)).length;
+  const summaryDoneCounts = useMemo(() => {
+    const rows = classRoster.map((s) => {
+      const card = cards.find((c) =>
+        isGroup ? c.memberUids?.includes(s.uid) : c.authorId === s.uid
+      );
+      return cardProgress(card, activities);
+    });
+    return activities.map((_, i) => rows.filter((d) => d[i]).length);
+  }, [classRoster, cards, activities, isGroup]);
+
+  // 이전 단일 keyword 필드와 새 keywords 배열 모두 지원
+  const boardKeywords = Array.isArray(board.keywords)
+    ? board.keywords
+    : board.keyword
+    ? [board.keyword]
+    : [];
+  const relatedQuestions =
+    boardKeywords.length > 0
+      ? questions.filter((q) => boardKeywords.includes(q.keyword))
+      : [];
+
+  // 교사는 예시·자료 카드를 여러 장 올릴 수 있습니다(학생 카드는 자리에서 시작).
+  const canAddOwnCard = isTeacher && !locked;
+
+  function canEditCard(card) {
+    if (locked || !user) return false;
+    if (isTeacher) return true;
+    if (card.groupId) return !!card.memberUids?.includes(user.uid);
+    return card.authorId === user.uid;
+  }
+
+  async function handleDeleteBoard() {
+    await deleteStudyBoard(board.id);
+    onDeleted?.();
+  }
+
+  // 제목 저장 — 제목을 따로 입력하지 않아 '프로젝트 제목'을 기본값으로 쓰던
+  // 카드들의 제목도 함께 바꿔 줍니다(직접 다른 제목을 단 카드는 그대로 유지).
+  async function commitTitle() {
+    const newTitle = titleDraft.trim();
+    setEditingTitle(false);
+    if (!newTitle || newTitle === board.title) {
+      setTitleDraft(board.title);
+      return;
+    }
+    const oldTitle = board.title;
+    await updateStudyBoard(board.id, { title: newTitle });
+    cards.forEach((c) => {
+      if ((c.title ?? "") === oldTitle) {
+        updateStudyCard(board.id, c.id, { title: newTitle });
+      }
+    });
+  }
+  function startEditTitle() { setTitleDraft(board.title); setEditingTitle(true); }
+  function cancelEditTitle() { setTitleDraft(board.title); setEditingTitle(false); }
+
+  async function commitDesc() {
+    const newDesc = descDraft.trim();
+    setEditingDesc(false);
+    if (newDesc === (board.description ?? "")) return;
+    await updateStudyBoard(board.id, { description: newDesc });
+  }
+  function startEditDesc() { setDescDraft(board.description ?? ""); setEditingDesc(true); }
+  function cancelEditDesc() { setDescDraft(board.description ?? ""); setEditingDesc(false); }
+
+  // 다른 반으로 복제 — 학생 카드는 복사하지 않고 활동·공개범위만 유지
+  async function handleDuplicate(targetClass) {
+    await duplicateStudyBoard(board, targetClass.id, user);
+    setDuplicating(false);
+    onDuplicated?.(targetClass.name);
+  }
+  const otherClasses = classes.filter((c) => c.id !== board.classId);
+
+  // 활동 하나의 잠금을 켜고 끕니다 — 수업 화면의 '활동 열기' 줄과 같은
+  // 보드 문서(activityLocks)를 쓰므로 두 화면이 항상 같은 상태를 봅니다.
+  async function toggleActivityLock(i, lockedNext) {
+    const next = activities.map((_, j) =>
+      j === i ? lockedNext : board.activityLocks?.[j] === true
+    );
+    await updateStudyBoard(board.id, { activityLocks: next });
+  }
+
+  // 개별 활동 ↔ 모둠 활동 전환 — 이미 쓴 카드가 있으면 구조가 어긋나 막습니다.
+  async function toggleActivityType() {
+    if (isGroup) {
+      if (cards.length > 0) {
+        alert(
+          "이미 모둠 카드가 있어서 개별 활동으로 바꿀 수 없어요.\n'모둠 구성'에서 모둠 배정을 먼저 정리한 후 다시 시도해 주세요."
+        );
+        return;
+      }
+      await updateStudyBoard(board.id, { activityType: "individual" });
+    } else {
+      const studentCards = cards.filter((c) => !isTeacherAuthored(c));
+      if (studentCards.length > 0) {
+        alert(
+          "이미 학생이 작성한 개인 카드가 있어서 모둠 활동으로 바꿀 수 없어요.\n학생 카드를 모두 정리한 후 다시 시도해 주세요."
+        );
+        return;
+      }
+      await updateStudyBoard(board.id, { activityType: "group" });
+    }
+  }
+
+  function openActivitiesModal() {
+    setActivitiesDraft(activities.length ? [...activities] : [""]);
+    setActivitiesOpen(true);
+  }
+
+  async function handleSaveActivities() {
+    const newActivities = activitiesDraft.filter((a) => a.trim().length > 0);
+    const studentCards = cards.filter((c) => !isTeacherAuthored(c));
+    // 텍스트 없이 붙여넣은 이미지만 있는 카드도 '이미 쓴 내용'입니다.
+    const hasContent = studentCards.some((c) => {
+      const html = c.content ?? "";
+      return stripHtml(html).trim().length > 0 || htmlHasImage(html);
+    });
+    if (hasContent) {
+      alert(
+        "학생이 입력한 내용이 있어서 활동을 변경할 수 없어요.\n모든 학생 카드의 내용을 비운 후 다시 시도해 주세요."
+      );
+      return;
+    }
+    setSavingActivities(true);
+    try {
+      // 수업 도중 새로 추가한 활동은 잠긴 채로 시작합니다 — 교사가 열어 줘야
+      // 학생이 입력할 수 있습니다(이름이 그대로인 활동은 지금 상태 유지).
+      await updateStudyBoard(board.id, {
+        activities: newActivities,
+        activityLocks: nextActivityLocks(
+          activities,
+          board.activityLocks ?? [],
+          newActivities
+        ),
+      });
+      if (newActivities.length > 0) {
+        const templateHtml = buildActivityTemplate(newActivities);
+        await Promise.all(
+          studentCards.map((c) =>
+            updateStudyCard(board.id, c.id, {
+              title: c.title ?? "",
+              content: templateHtml,
+              imageUrl: c.imageUrl ?? null,
+              attachments: c.attachments ?? [],
+            })
+          )
+        );
+      }
+      setActivitiesOpen(false);
+    } finally {
+      setSavingActivities(false);
+    }
+  }
+
+  const cardModalOpen = selectedCard !== null || creating;
+  const modalOpen = cardModalOpen || presenting || progressOpen || activitiesOpen || composing;
+  useEffect(() => {
+    onModalChange?.(modalOpen);
+  }, [modalOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 자리 하나를 눌렀을 때 — 내 빈 자리는 '작성 시작', 남의 빈 자리는 아무 일 없음
+  function openSeat(seat) {
+    if (seat.locked) return;
+    if (seat.card) { setSelectedCard(seat.card); return; }
+    if (seat.mine && !locked) setCreating(true);
+  }
+
+  return (
+    <section className="study-project-view">
+      {/* ── 머리말 — 뒤로 가기 · 제목 · 안내 · 교사 도구 ── */}
+      <div className="study-project-head">
+        <button type="button" className="btn-ghost study-project-back" onClick={onBack}>
+          ← 프로젝트 목록
+        </button>
+
+        <div className="study-project-head-main">
+          {isTeacher && editingTitle ? (
+            <div className="study-title-edit-wrap">
+              <input
+                className="study-title-inline"
+                value={titleDraft}
+                onChange={(e) => setTitleDraft(e.target.value)}
+                onBlur={commitTitle}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") { e.preventDefault(); commitTitle(); }
+                  else if (e.key === "Escape") { e.preventDefault(); cancelEditTitle(); }
+                }}
+                maxLength={40}
+                placeholder="프로젝트 제목"
+                aria-label="프로젝트 제목 수정"
+                autoFocus
+              />
+              <button
+                type="button"
+                className="study-title-save"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={commitTitle}
+                title="제목 저장"
+                aria-label="제목 저장"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            </div>
+          ) : (
+            <h2
+              className={isTeacher ? "study-title-h3--editable" : ""}
+              onDoubleClick={isTeacher ? startEditTitle : undefined}
+              title={isTeacher ? `${board.title} — 더블 클릭해 제목 수정` : board.title}
+            >
+              {board.title}
+            </h2>
+          )}
+
+          <div className="study-project-head-badges">
+            {!isNotice && (
+              <span className={`study-project-badge${isGroup ? " group" : ""}`}>
+                {isGroup ? "👥 모둠 활동" : "🧑‍🎓 개별 활동"}
+              </span>
+            )}
+            {activities.length > 0 && (
+              <span className="study-project-badge soft">
+                활동 {isTeacher ? `${summaryOpenCount}/${activities.length}` : activities.length}개
+              </span>
+            )}
+            {!isNotice && (
+              <span className="study-project-badge soft">
+                {shared ? "함께 보기" : isGroup ? "자기 모둠만" : "나만 보기"}
+              </span>
+            )}
+            {locked && <span className="study-project-badge lock">🔒 보기 전용</span>}
+          </div>
+
+          {isTeacher && editingDesc ? (
+            <div className="study-desc-edit-wrap">
+              <textarea
+                className="study-desc-inline"
+                value={descDraft}
+                onChange={(e) => setDescDraft(e.target.value)}
+                onBlur={commitDesc}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); commitDesc(); }
+                  else if (e.key === "Escape") { e.preventDefault(); cancelEditDesc(); }
+                }}
+                maxLength={200}
+                placeholder="활동 안내"
+                aria-label="활동 안내 수정"
+                autoFocus
+              />
+            </div>
+          ) : (
+            (board.description || isTeacher) && (
+              <p
+                className={`study-project-view-desc${isTeacher ? " study-column-desc--editable" : ""}`}
+                onDoubleClick={isTeacher ? startEditDesc : undefined}
+                title={isTeacher ? "더블 클릭해 활동 안내 추가·수정" : undefined}
+              >
+                {board.description || "활동 안내를 적어 주세요."}
+              </p>
+            )
+          )}
+        </div>
+
+        {isTeacher && (
+          <div className="study-project-tools">
+            {!isNotice && (
+              <button
+                className="study-present-btn"
+                onClick={() => presentCards.length > 0 && setPresenting(true)}
+                disabled={presentCards.length === 0}
+                title={presentCards.length > 0 ? "발표 모드 — 학생 카드를 크게 넘겨보기" : "아직 제출한 카드가 없어요"}
+                aria-label="발표 모드"
+              >
+                ▶
+              </button>
+            )}
+            {!isNotice && !isGroup && (
+              <button
+                className="study-check-btn"
+                onClick={() => setProgressOpen(true)}
+                title="공부중 전광판 — 학생별 제출 상태 확인"
+                aria-label="공부중 전광판"
+              >
+                <IconCheck size={20} />
+              </button>
+            )}
+            <button
+              className={`study-panel-toggle${panelOpen ? " open" : ""}`}
+              onClick={() => setPanelOpen((v) => !v)}
+              title={panelOpen ? "설정 접기" : "정렬·설정 펼치기"}
+              aria-label={panelOpen ? "설정 접기" : "설정 펼치기"}
+            >
+              <IconSettings size={20} />
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* ── 교사 설정 패널 ── */}
+      {isTeacher && panelOpen && (
+        <div className="study-project-panel">
+          {!isNotice && (
+            <div className="study-sort">
+              {isGroup ? (
+                <>
+                  <button
+                    type="button"
+                    className="study-sort-btn study-sort-btn--group"
+                    onClick={() => setComposing(true)}
+                    title="모둠 구성 — 기본 모둠을 쓰거나 이 프로젝트에서만 다르게 구성"
+                  >
+                    모둠 구성
+                  </button>
+                  <button
+                    type="button"
+                    className="study-sort-btn"
+                    onClick={toggleActivityType}
+                    title="이 프로젝트를 개별 활동으로 바꿉니다(모둠 카드가 아직 없을 때만 가능)"
+                  >
+                    개별 활동
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    className={`study-sort-btn study-sort-btn--studentid${sortKey === "studentId" ? " active" : ""}`}
+                    onClick={() => {
+                      setSortKey("studentId");
+                      setStudentIdDir((d) => (d === "asc" ? "desc" : "asc"));
+                    }}
+                    title="학번 정렬"
+                  >
+                    학번 {studentIdDir === "asc" ? "↑" : "↓"}
+                  </button>
+                  <button
+                    className={`study-sort-btn study-sort-btn--time${sortKey === "time" ? " active" : ""}`}
+                    onClick={() => {
+                      setSortKey("time");
+                      setTimeDir((d) => (d === "asc" ? "desc" : "asc"));
+                    }}
+                    title="제출 시간 정렬"
+                  >
+                    제출 {timeDir === "asc" ? "↑" : "↓"}
+                  </button>
+                  <button
+                    type="button"
+                    className="study-sort-btn"
+                    onClick={toggleActivityType}
+                    title="이 프로젝트를 모둠 활동으로 바꿉니다(학생이 작성한 개인 카드가 없을 때만 가능)"
+                  >
+                    모둠
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+
+          <div className="study-settings">
+            {!isNotice && (
+              <label className="study-setting-row">
+                <span>공개 범위</span>
+                <button
+                  className="study-chip"
+                  onClick={() =>
+                    updateStudyBoard(board.id, {
+                      viewMode: shared ? "private" : "shared",
+                    })
+                  }
+                  title={
+                    isGroup
+                      ? "자기 모둠만: 각 모둠은 자기 카드만 봄 · 함께 보기: 다른 모둠 카드도 읽기 전용으로 공개"
+                      : "나만 보기: 학생은 자기 카드만 열 수 있음 · 함께 보기: 친구 카드도 읽기 전용으로 공개"
+                  }
+                >
+                  {shared ? (
+                    <><IconPeople size={15} /> 함께 보기</>
+                  ) : isGroup ? (
+                    <><IconLock size={15} /> 자기 모둠만</>
+                  ) : (
+                    <><IconLock size={15} /> 나만 보기</>
+                  )}
+                </button>
+              </label>
+            )}
+            <label className="study-setting-row">
+              <span>편집 상태</span>
+              <button
+                className="study-chip"
+                onClick={() =>
+                  updateStudyBoard(board.id, { editMode: locked ? "open" : "locked" })
+                }
+              >
+                {locked ? (
+                  <><IconLock size={15} /> 보기 전용</>
+                ) : (
+                  <><IconPen size={15} /> 편집 가능</>
+                )}
+              </button>
+            </label>
+
+            {/* 활동 상태 — 만들어 둔 활동을 하나씩 열고 잠급니다 */}
+            {!isNotice && (
+              <div className="study-setting-row study-setting-row--acts">
+                <span>활동 상태</span>
+                <div className="study-act-chips">
+                  {activities.map((a, i) => {
+                    const actLocked = isActivityLocked(board, i);
+                    return (
+                      <button
+                        key={`${a}-${i}`}
+                        type="button"
+                        className={`study-act-chip${actLocked ? " locked" : ""}`}
+                        onClick={() => toggleActivityLock(i, !actLocked)}
+                        title={`${a} — ${actLocked ? "눌러서 열기" : "눌러서 잠그기"}${
+                          classRoster.length > 0 ? ` (제출 ${summaryDoneCounts[i]}/${classRoster.length}명)` : ""
+                        }`}
+                        aria-pressed={!actLocked}
+                      >
+                        활동 {i + 1}
+                        {classRoster.length > 0 && (
+                          <span className="study-act-chip-count">
+                            {summaryDoneCounts[i]}/{classRoster.length}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    className="study-act-chip study-act-chip--add"
+                    onClick={openActivitiesModal}
+                    title="학생 카드에 제시할 활동을 추가·수정합니다"
+                    aria-label="활동 추가"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {canAddOwnCard && (
+              <button
+                className="study-chip"
+                onClick={() => setCreating(true)}
+                title="교사가 올리는 예시·자료 카드를 추가합니다"
+              >
+                ＋ 카드 추가
+              </button>
+            )}
+            <button
+              className="study-chip"
+              onClick={() => setDuplicating(true)}
+              title="이 프로젝트를 다른 반으로 복제 (학생 기록은 초기화)"
+            >
+              <IconDuplicate size={15} /> 다른 반으로 복제
+            </button>
+            {!isNotice && (
+              confirmDelete ? (
+                <span className="study-project-delete-confirm">
+                  <span>카드까지 모두 삭제됩니다.</span>
+                  <button className="study-chip danger" onClick={handleDeleteBoard}>
+                    정말 삭제
+                  </button>
+                  <button className="study-chip" onClick={() => setConfirmDelete(false)}>
+                    취소
+                  </button>
+                </span>
+              ) : (
+                <button className="study-chip danger" onClick={() => setConfirmDelete(true)}>
+                  <IconTrash size={15} /> 프로젝트 삭제
+                </button>
+              )
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── 개인 카드 그리드 ── */}
+      <div className="study-project-cards">
+        {/* 안내(수업 자료)·모둠 프로젝트 — 카드 목록을 그대로 */}
+        {seats === null &&
+          listCards.map((card) => (
+            <StudyCard
+              key={card.id}
+              card={card}
+              isTeacher={isTeacher}
+              activities={activities}
+              onClick={() => setSelectedCard(card)}
+              myUid={user?.uid ?? null}
+              onReact={
+                user &&
+                ((kind, active) => setCardReaction(board.id, card.id, kind, user.uid, !active))
+              }
+              topReacted={maxReactionTotal > 0 && cardReactionTotal(card) === maxReactionTotal}
+              rewardCount={classRoster.find((s) => s.uid === card.authorId)?.count ?? 0}
+              rewardMax={REWARD_MAX}
+              onAward={
+                onAward &&
+                (() => {
+                  const cur = classRoster.find((s) => s.uid === card.authorId)?.count ?? 0;
+                  onAward(card.authorId, Math.min(REWARD_MAX, cur + 1));
+                })
+              }
+            />
+          ))}
+
+        {/* 개별 프로젝트 — 학생 한 명당 자리 하나 */}
+        {sortedSeats?.map((seat) =>
+          seat.card && !seat.locked ? (
+            <StudyCard
+              key={seat.key}
+              card={seat.card}
+              isTeacher={isTeacher}
+              activities={activities}
+              onClick={() => setSelectedCard(seat.card)}
+              myUid={user?.uid ?? null}
+              onReact={
+                user &&
+                ((kind, active) =>
+                  setCardReaction(board.id, seat.card.id, kind, user.uid, !active))
+              }
+              topReacted={
+                maxReactionTotal > 0 && cardReactionTotal(seat.card) === maxReactionTotal
+              }
+              rewardCount={classRoster.find((s) => s.uid === seat.uid)?.count ?? 0}
+              rewardMax={REWARD_MAX}
+              onAward={
+                onAward &&
+                !seat.isTeacherCard &&
+                (() => {
+                  const cur = classRoster.find((s) => s.uid === seat.uid)?.count ?? 0;
+                  onAward(seat.uid, Math.min(REWARD_MAX, cur + 1));
+                })
+              }
+            />
+          ) : (
+            <SeatPlaceholder
+              key={seat.key}
+              seat={seat}
+              canStart={seat.mine && !locked}
+              onClick={() => openSeat(seat)}
+            />
+          )
+        )}
+
+        {seats !== null && sortedSeats.length === 0 && (
+          <p className="study-column-empty">
+            {isTeacher
+              ? "이 반에 아직 학생이 없어요. ‘반 관리하기’에서 입장 코드를 알려 주세요."
+              : "아직 카드가 없어요."}
+          </p>
+        )}
+        {seats === null && listCards.length === 0 && (
+          <p className="study-column-empty">
+            {isNotice
+              ? isTeacher
+                ? "설정(⚙)에서 ‘＋ 카드 추가’로 수업 자료를 올려 보세요."
+                : "아직 올라온 수업 자료가 없어요."
+              : isTeacher
+              ? "설정(⚙)의 ‘모둠 구성’으로 모둠을 먼저 만들어 주세요."
+              : "아직 모둠이 만들어지지 않았어요."}
+          </p>
+        )}
+      </div>
+
+      {/* ── 활동 설정 모달 ── */}
+      {activitiesOpen && (
+        <div className="modal-backdrop" {...backdropClose(() => setActivitiesOpen(false))}>
+          <div className="study-activity-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="study-activity-modal-head">
+              <h3>활동 설정</h3>
+              <button
+                className="btn-close"
+                onClick={() => setActivitiesOpen(false)}
+                aria-label="닫기"
+              >
+                ×
+              </button>
+            </div>
+            <p className="study-activity-hint">
+              학생 개인 카드에 제시할 활동 내용을 입력하세요.
+            </p>
+            <div className="study-activity-list">
+              {activitiesDraft.map((act, i) => (
+                <div key={i} className="study-activity-item">
+                  <span className="study-activity-label">활동 {i + 1}</span>
+                  <input
+                    className="study-activity-input"
+                    value={act}
+                    onChange={(e) => {
+                      const next = [...activitiesDraft];
+                      next[i] = e.target.value;
+                      setActivitiesDraft(next);
+                    }}
+                    placeholder={`활동 ${i + 1} 내용을 입력하세요`}
+                  />
+                  <button
+                    className="study-activity-del"
+                    onClick={() =>
+                      setActivitiesDraft(activitiesDraft.filter((_, j) => j !== i))
+                    }
+                    aria-label="삭제"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button
+              className="study-activity-add"
+              onClick={() => setActivitiesDraft([...activitiesDraft, ""])}
+            >
+              + 활동 추가
+            </button>
+            <div className="study-activity-actions">
+              <button className="btn-ghost" onClick={() => setActivitiesOpen(false)}>
+                취소
+              </button>
+              <button
+                className="btn-primary"
+                onClick={handleSaveActivities}
+                disabled={savingActivities}
+              >
+                {savingActivities ? "저장 중..." : "저장"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {cardModalOpen && (
+        <StudyCardModal
+          board={board}
+          card={creating ? null : selectedCard}
+          canEdit={
+            creating
+              ? !locked
+              : selectedCard
+              ? canEditCard(selectedCard)
+              : false
+          }
+          mine={
+            creating
+              ? true
+              : selectedCard
+              ? !!(user && (
+                  selectedCard.authorId === user.uid ||
+                  (isNotice && isTeacher) ||
+                  (selectedCard.groupId && selectedCard.memberUids?.includes(user.uid))
+                ))
+              : false
+          }
+          relatedQuestions={relatedQuestions}
+          onClose={() => {
+            setSelectedCard(null);
+            setCreating(false);
+          }}
+          onAsk={onAsk}
+        />
+      )}
+
+      {composing && (
+        <GroupComposer
+          board={board}
+          roster={classRoster}
+          cards={cards}
+          baseGroups={baseGroupAssignment?.groups ?? []}
+          groupSetName={`${board.title || "공부방 프로젝트"} 활동 모둠`}
+          onClose={() => setComposing(false)}
+        />
+      )}
+
+      {presenting && presentCards.length > 0 && (
+        <StudyPresentModal
+          board={board}
+          cards={presentCards}
+          onClose={() => setPresenting(false)}
+        />
+      )}
+
+      {progressOpen && (
+        <StudyProgressBoard
+          board={board}
+          roster={classRoster}
+          cards={cards}
+          onClose={() => setProgressOpen(false)}
+        />
+      )}
+
+      {duplicating && (
+        <div className="modal-backdrop" {...backdropClose(() => setDuplicating(false))}>
+          <div className="modal modal-duplicate" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-head">
+              <h3>📋 다른 반으로 복제</h3>
+              <button className="btn-close" onClick={() => setDuplicating(false)} aria-label="닫기">
+                ×
+              </button>
+            </div>
+            <p className="study-link-hint">
+              <strong>{board.title}</strong> 프로젝트를 복제할 반을 선택하세요.
+              학생이 작성한 카드는 복제되지 않고, 교사가 제시한 활동과 공개 범위만
+              그대로 옮겨집니다.
+            </p>
+            {otherClasses.length === 0 ? (
+              <p className="study-column-empty">복제할 다른 반이 없어요. 먼저 반을 만들어 주세요.</p>
+            ) : (
+              <div className="duplicate-class-list">
+                {otherClasses.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    className="duplicate-class-row"
+                    onClick={() => handleDuplicate(c)}
+                  >
+                    <span className="duplicate-class-icon">📚</span>
+                    <strong>{c.name}</strong>
+                    <span className="duplicate-class-go">복제 →</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+// 아직 카드가 없는 자리 / 잠겨서 열 수 없는 친구 자리
+function SeatPlaceholder({ seat, canStart, onClick }) {
+  const clickable = canStart || (seat.card && !seat.locked);
+  return (
+    <article
+      className={`study-seat-empty${seat.locked ? " locked" : ""}${
+        seat.mine ? " mine" : ""
+      }${clickable ? " clickable" : ""}`}
+      role={clickable ? "button" : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onClick={clickable ? onClick : undefined}
+      onKeyDown={clickable ? (e) => e.key === "Enter" && onClick() : undefined}
+      title={
+        seat.locked
+          ? "이 카드는 본인과 선생님만 볼 수 있어요"
+          : canStart
+          ? "눌러서 활동을 시작하세요"
+          : "아직 작성 전이에요"
+      }
+    >
+      <div className="study-seat-empty-head">
+        <span className="avatar avatar-sm" aria-hidden="true">{seat.emoji}</span>
+        <div className="study-card-author">
+          {seat.studentId && <span className="study-card-studentid">{seat.studentId}</span>}
+          <strong>{seat.name}</strong>
+        </div>
+      </div>
+      <p className="study-seat-empty-note">
+        {seat.locked ? "🔒 본인과 선생님만 볼 수 있어요" : canStart ? "＋ 활동 시작하기" : "아직 작성 전"}
+      </p>
+    </article>
+  );
+}

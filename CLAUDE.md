@@ -44,7 +44,7 @@ Firebase 미설정 시 자동으로 **데모 모드**로 동작 (새로고침 �
 |------|------|
 | `/` | 랜딩 — 수업 코드 입력 |
 | `/board` | 질문 게시판 (3단 레이아웃: 키워드·피드·공지) |
-| `/study` | 공부방 (Trello형 보드 + KWL 패널) |
+| `/study` | 공부방 (프로젝트 대시보드 → 프로젝트 → 개인 카드 + KWL 패널) |
 | `/admin` | 관리자 대시보드 |
 | `/report` | 학생 학습 리포트 |
 
@@ -62,6 +62,9 @@ Firebase 미설정 시 자동으로 **데모 모드**로 동작 (새로고침 �
 | `components/ActivityHeatmap.jsx` | 52주 잔디 히트맵 + ActivityOverview 통합 패널 |
 | `components/ActivityOverview.jsx` | 오각형 레이더 차트 + 막대 요약 (학습 균형) |
 | `components/PythonRunner.jsx` | Python 코드 실행기 (코드 복사 버튼 포함) |
+| `components/StudyProjectDashboard.jsx` | 공부방 첫 화면 — 프로젝트 카드 그리드 (교사·학생 공통) |
+| `components/StudyProjectView.jsx` | 프로젝트 상세 — 개인 카드 그리드 + 교사 도구 |
+| `components/StudyProjectForm.jsx` | 프로젝트 만들기 모달 (제목·안내·활동 목록) |
 
 ## 모바일 레이아웃 핵심 패턴
 
@@ -74,13 +77,14 @@ Firebase 미설정 시 자동으로 **데모 모드**로 동작 (새로고침 �
 - 자동 스크롤: `scrollRef`(qa-grid, 모바일) + `chatScrollRef`(chat-scroll, 데스크톱) 이중 처리
 
 ### 공부방
-- 수평 스냅 스크롤: `scroll-snap-type: x mandatory`
+- 프로젝트 그리드(`study-project-grid`)·개인 카드 그리드(`study-project-cards`)는
+  `repeat(auto-fill, minmax(…, 1fr))` → 768px 이하에서 `1fr`(한 줄에 한 장)
 - KWL 모바일: FAB 버튼(`kwl-fab`) → `kwl-panel--open` 클래스로 오버레이 패널
 
 ## 역할 구분
 
-- **교사(isTeacher)**: 공지 작성, 전체 학생 카드 열람, 보드 설정, 정렬
-- **학생**: 질문 1개 작성, 보드당 카드 1개 작성, KWL 작성
+- **교사(isTeacher)**: 프로젝트 만들기, 공지 작성, 전체 학생 카드 열람, 프로젝트 설정, 정렬
+- **학생**: 질문 1개 작성, 프로젝트당 개인 카드 1개 작성, KWL 작성
 - **관리자(isAdmin)**: 실명 확인, 답변 이해 표시, 회고 현황 확인
 
 역할 전환 (개발용): `RoleSwitcher` 컴포넌트 (`role-switch` CSS 클래스, 모바일에서 숨김)
@@ -89,9 +93,15 @@ Firebase 미설정 시 자동으로 **데모 모드**로 동작 (새로고침 �
 
 - `questions` — 질문 (keyword, authorId, resolved, meTooIds[], reflection) — 익명 닉네임만(authorName/authorEmoji)
 - `answers` — 답변 (questionId, authorId, understood)
-- `studyBoards` — 공부방 보드 (classId, type, viewMode, editMode, keywords[])
-- `studyBoards/{boardId}/cards` — 공부방 카드 **서브컬렉션** (boardId, authorId, authorName, authorEmoji)
-  - 문서 ID = 작성자 uid → 보드당 카드 1개 보장. 전체 조회는 `collectionGroup("cards")` 사용
+- `studyBoards` — 공부방 **프로젝트** (classId, type, viewMode, editMode, keywords[],
+  activityType, activities[], activityLocks[]) — 화면 용어는 '프로젝트',
+  컬렉션 이름은 예전 그대로(기존 데이터 유지)
+  - `type: 'notice'` 하나는 반마다 자동 생성되는 '수업 자료'(선생님 보드)
+- `studyBoards/{boardId}/cards` — 학생 **개인 카드** 서브컬렉션 (boardId, authorId, authorName, authorEmoji)
+  - 문서 ID = 작성자 uid → 프로젝트당 카드 1개 보장. 전체 조회는 `collectionGroup("cards")` 사용
+  - 카드 문서는 **학생이 처음 저장할 때** 생깁니다(규칙이 `authorId == 본인`을
+    요구해 교사가 대신 못 만듦). 화면에서는 명단 기준으로 '빈 자리'를 미리
+    깔아 두어(`StudyProjectView`의 seats) 카드가 이미 있는 것처럼 보입니다.
   - (데모 모드 mock은 평면 배열 `mock.studyCards`로 흉내 — Firebase는 서브컬렉션)
 - `kwl` — KWL 기록 (classId, userId, date, K, W, L) — append 모델 (저장마다 새 문서)
 - `users` — 사용자 프로필 (uid, email, displayName(익명), realName, studentId, role)

@@ -1094,8 +1094,7 @@ button.footer-link:hover {
   line-height: 1;
 }
 /* 공부방 설정 칩 — '복제·삭제'는 전체 폭을 유지하므로 inline-flex가 아닌 flex */
-.study-chip,
-.study-add-card {
+.study-chip {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -6084,83 +6083,6 @@ pre code {
   cursor: default;
 }
 
-/* ── 보드 접기 / 모두 펴기 (« ») — 아이콘 전용 원형 버튼 ── */
-.study-collapse-btn {
-  width: 26px;
-  height: 26px;
-  border: 1px solid var(--border);
-  background: #fff;
-  color: var(--text-sub);
-  font-size: 15px;
-  font-weight: 800;
-  line-height: 1;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  padding-bottom: 2px;
-  flex-shrink: 0;
-}
-.study-collapse-btn:hover:not(:disabled) {
-  background: var(--neutral);
-  color: var(--dark);
-}
-.study-collapse-btn:disabled {
-  opacity: 0.3;
-  cursor: default;
-}
-
-/* ── 접힌 보드 — 폭 48px 세로 슬림 바 ── */
-.study-column.study-column--collapsed {
-  flex: 0 0 48px;
-  width: 48px;
-  max-width: 48px;
-  min-height: 340px;
-  align-self: stretch;
-  /* 일반 보드의 첫 카드(.study-board-info)가 컬럼 상단에서 12px 내려와 시작하므로
-     접힌 슬림 바 상자도 12px 내려 상단을 맞춥니다. */
-  margin-top: 12px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 0 16px;
-  background: var(--bg-deep);
-  border: 1px solid var(--border);
-  cursor: pointer;
-  transition: background 0.15s;
-}
-.study-column.study-column--collapsed:hover {
-  background: var(--neutral);
-}
-.study-collapsed-expand {
-  font-size: 15px;
-  font-weight: 800;
-  color: var(--text-sub);
-}
-.study-collapsed-count {
-  min-width: 24px;
-  height: 24px;
-  padding: 0 6px;
-  border-radius: 999px;
-  background: var(--primary);
-  color: #fff;
-  font-size: 12px;
-  font-weight: 800;
-  display: grid;
-  place-items: center;
-}
-.study-collapsed-title {
-  writing-mode: vertical-rl;
-  font-weight: 700;
-  font-size: 14px;
-  letter-spacing: 3px;
-  color: var(--dark);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-height: 60vh;
-}
-
 .present-backdrop {
   z-index: 1000;
 }
@@ -9820,226 +9742,367 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   font-family: var(--font-mono);
 }
 
-/* 가로 스크롤 컬럼 영역 */
-.study-columns {
+/* =============================================================
+   공부방 — 프로젝트 대시보드 · 프로젝트 상세(개인 카드 그리드)
+   -------------------------------------------------------------
+   study-cols-wrap이 overflow:hidden인 세로 플렉스라, 아래 두 화면이
+   각각 남은 높이를 채우고 스스로 세로 스크롤합니다(제목 줄은 고정).
+   ============================================================= */
+.study-project-dash,
+.study-project-view {
   flex: 1;
-  display: flex;
-  gap: 16px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  padding-bottom: 20px;
-  align-items: flex-start;
-}
-
-.study-column {
-  flex: 0 0 320px;
-  width: 320px;
-  max-height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
   display: flex;
   flex-direction: column;
-  background: var(--bg);
-  border-radius: 12px;
-  overflow: hidden;
+  gap: 14px;
+  padding-bottom: 24px;
 }
 
-.study-column.is-notice {
-  background: #fffaf0;
-}
-
-/* 첫 보드 고정 — 수평 스크롤해도 왼쪽에 붙어 있음(자료·공지 전달용) */
-.study-column.is-pinned {
-  position: sticky;
-  left: 0;
-  z-index: 6;
-  box-shadow: 10px 0 22px -8px rgba(46, 36, 26, 0.28);
-}
-
-/* 고정(핀) 토글 버튼 — 첫 보드 헤더에만 표시 */
-.study-pin-btn {
-  width: 26px;
-  height: 26px;
-  border: none;
-  background: transparent;
-  font-size: 15px;
-  line-height: 1;
-  padding: 0;
-  border-radius: 8px;
-  opacity: 0.35;
-  flex-shrink: 0;
-  filter: grayscale(1);
-  display: grid;
-  place-items: center;
-}
-.study-pin-btn:hover {
-  opacity: 0.8;
-  background: rgba(0, 0, 0, 0.05);
-}
-.study-pin-btn.on {
-  opacity: 1;
-  filter: none;
-}
-.study-pin-mark {
-  font-size: 14px;
-}
-
-/* 보드 추가 — 항상 마지막 보드 오른쪽에 오는 컬럼형 버튼 */
-.study-add-board-col {
-  flex: 0 0 220px;
-  width: 220px;
-  align-self: flex-start;
-  /* 일반 보드 첫 카드와 상단 정렬 (컬럼 상단에서 12px) */
-  margin-top: 12px;
+/* ── 대시보드 머리말 — 안내 문구 + 프로젝트 만들기 ── */
+.study-project-dash-head {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 18px;
-  border: 2px dashed var(--border);
-  border-radius: 12px;
-  background: transparent;
-  color: var(--primary);
-  font-size: 15px;
-  font-weight: 700;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.study-project-intro {
+  flex: 1;
+  min-width: 240px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text-sub);
+}
+
+/* ── 수업 자료(선생님 보드) — 프로젝트 그리드 위에 넓은 한 줄 ── */
+.study-notice-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 14px 16px;
+  background: #fffbf0;
+  border: 1px solid #e8d9b8;
+  border-radius: var(--radius);
+  font-family: inherit;
+  text-align: left;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+  transition: border-color 0.15s, background 0.15s;
 }
-
-.study-add-board-col:hover {
-  background: var(--primary-light);
+.study-notice-card:hover {
   border-color: var(--primary);
+  background: #fff7e6;
 }
-
-.study-add-board-plus {
-  font-size: 18px;
-}
-
-/* 교사 관리 영역 — 보드 정보 카드 */
-.study-board-info {
-  margin: 12px 12px 0;
-  background: var(--primary-light);
-  border: 1px solid var(--border);
-  border-radius: 12px;
+.study-notice-icon {
+  font-size: 20px;
   flex-shrink: 0;
-  box-shadow: 0 1px 3px rgba(46, 36, 26, 0.06);
-  overflow: hidden;
 }
-
-.study-board-info-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 14px 10px;
-  background: var(--primary-light);
-}
-
-.is-notice .study-board-info {
-  background: #fffbf0;
-  border-color: #e8d9b8;
-}
-
-.is-notice .study-board-info-head {
-  background: #fffbf0;
-}
-
-.study-board-info-head h3 {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--dark);
+.study-notice-main {
   flex: 1;
   min-width: 0;
-  /* 제목이 길어도 한 줄로 잘라 말줄임표(…) 처리 — 보드마다 헤더 높이가
-     들쭉날쭉해지지 않게(줄바꿈되면 그만큼 패널이 늘어져 보였습니다) */
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.study-notice-main strong {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--dark);
+}
+.study-notice-desc {
+  font-size: 12.5px;
+  color: var(--text-sub);
+}
+.study-notice-count {
+  flex-shrink: 0;
+  padding: 4px 11px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid #e8d9b8;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--primary-dark);
 }
 
-.study-gear {
+/* ── 프로젝트 카드 그리드 ── */
+.study-project-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 14px;
+}
+.study-project-card {
+  display: flex;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-soft);
+  overflow: hidden;
+  transition: border-color 0.15s, transform 0.15s, opacity 0.15s;
+}
+/* 끌어서 순서 바꾸기 — 잡은 카드는 흐리게, 놓을 자리는 테두리로 표시 */
+.study-project-card.dragging { opacity: 0.45; }
+.study-project-card.drag-over {
+  border-color: var(--primary);
+  transform: translateY(-2px);
+}
+.study-project-open {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 7px;
+  padding: 16px;
   background: none;
   border: none;
+  font-family: inherit;
+  text-align: left;
   cursor: pointer;
-  font-size: 15px;
-  padding: 2px;
-  border-radius: 6px;
+  transition: background 0.15s;
 }
-
-.study-gear:hover {
-  background: rgba(0, 0, 0, 0.06);
-}
-
-/* 패널 요약 — 제목(진한 살구색)과 세부 내용(흰색) 사이의 얇은 안내 줄.
-   전체 활동 중 몇 개가 열려 있는지, 활동마다 몇 명이 제출했는지 보여줍니다. */
-.study-board-summary {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 7px 14px;
-  background: #fbf4f0;
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-  font-size: 12px;
-}
-.study-board-summary-open {
-  flex-shrink: 0;
-  font-weight: 700;
-  color: var(--text);
-}
-.study-board-summary-counts {
+.study-project-open:hover { background: var(--primary-light); }
+.study-project-badges {
   display: flex;
   flex-wrap: wrap;
   gap: 5px;
 }
-.study-board-summary-chip {
-  padding: 1px 7px;
-  border-radius: 999px;
-  background: #fff;
-  border: 1px solid var(--border);
-  color: var(--text-sub);
-  font-weight: 600;
+.study-project-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text);
 }
-
-.study-column-desc {
-  font-size: 13px;
+/* 안내는 2줄까지 — 카드 높이가 프로젝트마다 들쭉날쭉해지지 않게 자리를 고정 */
+.study-project-desc {
+  font-size: 12.5px;
   line-height: 1.5;
   color: var(--text-sub);
-  padding: 8px 14px 12px;
-  background: var(--card-bg);
-  /* 3줄 고정 높이: font-size(13px) × line-height(1.5) × 3줄 + 상하 padding */
-  height: calc(13px * 1.5 * 3 + 8px + 12px);
+  min-height: calc(12.5px * 1.5 * 2);
   overflow: hidden;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
 }
+.study-project-meta {
+  margin-top: auto;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+/* 학생 카드의 활동 진행 — 활동 칸 수만큼 나눈 막대(초록 = 제출 인정) */
+.study-project-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+.study-project-progress-bar {
+  flex: 1;
+  display: flex;
+  gap: 3px;
+  min-width: 0;
+}
+.study-project-seg {
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--neutral);
+}
+.study-project-seg.on { background: #7fb98a; }
+.study-project-progress-label {
+  flex-shrink: 0;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
 
-.study-column-tags {
+/* ── 배지 (대시보드 카드 · 프로젝트 머리말 공용) ── */
+.study-project-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  background: var(--primary-light);
+  border: 1px solid #efc19a;
+  color: var(--primary-dark);
+}
+.study-project-badge.group {
+  background: #efe7fa;
+  border-color: #cdbceb;
+  color: #6b4fa3;
+}
+.study-project-badge.soft {
+  background: var(--neutral);
+  border-color: var(--border);
+  color: var(--text-sub);
+}
+.study-project-badge.lock {
+  background: #f6e7e3;
+  border-color: #e6c3b8;
+  color: #a4553a;
+}
+
+/* ── 프로젝트 상세 — 머리말 ── */
+.study-project-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+.study-project-back { flex-shrink: 0; }
+.study-project-head-main {
+  flex: 1;
+  min-width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.study-project-head-main h2 {
+  font-family: var(--font-serif);
+  font-size: 21px;
+  color: var(--dark);
+}
+.study-project-head-badges {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-top: 8px;
 }
-
-.study-mode-chip {
-  font-size: 11px;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: #fff;
-  border: 1px solid var(--border);
+.study-project-view-desc {
+  font-size: 13px;
+  line-height: 1.5;
   color: var(--text-sub);
 }
-
-.study-mode-chip.shared {
-  background: #eef5ef;
-  border-color: #bcd9c2;
-  color: #3f7a4a;
+.study-project-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
-.study-mode-chip.locked {
-  background: #f3efe6;
-  border-color: #ddd0b5;
-  color: #8a6d2c;
+/* ── 프로젝트 상세 — 교사 설정 패널 ──
+   좁은 컬럼용으로 만들어진 study-settings/study-sort를 넓은 화면에서는
+   가로로 펼칩니다(같은 칩·버튼을 그대로 재사용). */
+.study-project-panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  padding: 12px 14px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+.study-project-panel .study-sort { padding: 0; }
+.study-project-panel .study-settings {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+}
+.study-project-panel .study-setting-row {
+  justify-content: flex-start;
+  gap: 8px;
+}
+.study-project-panel .study-setting-row--acts { align-items: center; }
+.study-project-panel .study-setting-row--acts > span { padding-top: 0; }
+.study-act-chip-count {
+  margin-left: 5px;
+  font-weight: 800;
+  opacity: 0.75;
+}
+.study-project-delete-confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  font-weight: 700;
+  color: #a4553a;
+}
+
+/* ── 프로젝트 상세 — 개인 카드 그리드 ── */
+.study-project-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+  align-content: start;
+}
+/* 빈 안내는 그리드 한 칸이 아니라 한 줄 전체를 씁니다 */
+.study-project-cards > .study-column-empty { grid-column: 1 / -1; }
+
+/* 아직 카드가 없는 자리 / 잠겨서 열 수 없는 친구 자리.
+   카드 문서는 학생이 처음 저장할 때 만들어지므로(보안 규칙상 교사가 대신
+   만들 수 없음), 자리만 먼저 깔아 '내 카드가 이미 준비돼 있다'고 보여 줍니다. */
+.study-seat-empty {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 108px;
+  padding: 12px;
+  background: #fff;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+}
+.study-seat-empty.mine {
+  border-style: solid;
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+.study-seat-empty.locked {
+  background: var(--bg-deep);
+  border-style: solid;
+}
+.study-seat-empty.clickable { cursor: pointer; }
+.study-seat-empty.clickable:hover {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+.study-seat-empty-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.study-seat-empty-note {
+  margin-top: auto;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.study-seat-empty.mine .study-seat-empty-note { color: var(--primary-dark); }
+
+/* ── 프로젝트 만들기 폼 — 활동 목록 ── */
+.project-form-acts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.project-form-acts-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.project-form-acts-head > span {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+.project-form-acts-head small {
+  font-size: 11.5px;
+  color: var(--text-sub);
 }
 
 /* 교사 설정 패널 */
@@ -10122,48 +10185,11 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   color: var(--primary-dark, #c15a2a);
 }
 
-/* 카드 목록 (세로 스크롤) */
-.study-column-cards {
-  flex: 1;
-  overflow-y: auto;
-  /* 스크롤바 자리(약 8px)를 항상 예약하고 오른쪽 패딩(4px)에 흡수
-     → 4 + 8 ≈ 12px로 좌우 여백이 같아져, 카드가 많아 스크롤바가 생겨도
-     카드 폭이 위 보드 헤더 카드(margin 12px)와 항상 동일하게 유지됩니다. */
-  padding: 12px 4px 12px 12px;
-  scrollbar-gutter: stable;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(46, 36, 26, 0.28) transparent;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
 .study-column-empty {
   font-size: 13px;
   color: var(--text-sub);
   text-align: center;
   padding: 16px 8px;
-}
-
-.study-add-card {
-  border: 1px dashed var(--border);
-  background: #fff;
-  border-radius: 10px;
-  padding: 12px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--primary);
-}
-
-.study-add-card:hover {
-  background: var(--primary-light);
-}
-
-.study-one-card-note {
-  font-size: 11px;
-  color: var(--text-sub);
-  text-align: center;
 }
 
 /* 카드 */
@@ -10346,7 +10372,7 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   border-radius: 8px;
   background: #fff;
   resize: none;
-  /* .study-column-desc와 같은 3줄 높이 */
+  /* 활동 안내 3줄 높이 */
   height: calc(13px * 1.5 * 3 + 12px);
 }
 .study-desc-inline:focus {
@@ -10824,38 +10850,12 @@ button.study-cal-cell.has-record:not(:disabled):hover {
 }
 
 
-/* 정렬·활동·설정 패널 — 제목 카드 클릭 시 한 번에 펼침 */
-.study-board-panel {
-  overflow: hidden;
-  max-height: 0;
-  transition: max-height 0.3s ease;
-}
-.study-board-panel.open {
-  max-height: 400px;
-}
-
 /* 설명 더블 클릭으로 편집 — 제목과 같은 방식(단일 클릭은 안내만, 더블 클릭이 편집) */
 .study-column-desc--editable {
   cursor: text;
 }
 .study-column-desc--editable:hover {
   background: var(--primary-light);
-}
-
-/* 보드 순서 변경(드래그) — 헤더가 손잡이 */
-.study-board-info-head.draggable {
-  cursor: grab;
-}
-.study-board-info-head.draggable:active {
-  cursor: grabbing;
-}
-.study-column.board-dragging {
-  opacity: 0.45;
-}
-.study-column.board-drag-over {
-  outline: 2px dashed var(--primary);
-  outline-offset: 2px;
-  border-radius: var(--radius);
 }
 
 /* 다른 반으로 복제 모달 */
@@ -10893,9 +10893,8 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   font-weight: 600;
 }
 
-/* 공부중 전광판 열기 — 보드 설정(톱니바퀴) 왼쪽의 체크 아이콘.
-   접기(«)·발표(▶) 버튼과 완전히 같은 원형 버튼으로 맞춥니다
-   (테두리·크기·정렬 모두 .study-collapse-btn과 동일). */
+/* 공부중 전광판 열기 — 프로젝트 설정(톱니바퀴) 왼쪽의 체크 아이콘.
+   발표(▶) 버튼과 완전히 같은 원형 버튼으로 맞춥니다. */
 .study-check-btn {
   width: 26px;
   height: 26px;
@@ -11655,8 +11654,10 @@ button.study-cal-cell.has-record:not(:disabled):hover {
 }
 
 /* 보드 추가 폼 입력 */
+/* 프로젝트 안내 입력 — 아래에 활동 목록이 이어지므로, 예전 보드 폼처럼
+   350px를 잡아 두면 만들기 버튼이 화면 밖으로 밀려납니다. */
 .study-board-desc-input {
-  min-height: 350px;
+  min-height: 120px;
   resize: vertical;
 }
 
@@ -12399,26 +12400,13 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   .study-head h1 { font-size: 17px; }
   .study-title-row { flex-wrap: wrap; gap: 6px; }
 
-  /* 보드 컬럼: 가로 스냅 스크롤 */
-  .study-columns {
-    gap: 10px;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: 16px;
+  /* 프로젝트 그리드: 좁은 화면에서는 한 줄에 한 장씩 */
+  .study-project-grid,
+  .study-project-cards {
+    grid-template-columns: 1fr;
   }
-  .study-column {
-    flex: 0 0 88vw;
-    max-width: 88vw;
-    scroll-snap-align: start;
-  }
-  .study-add-board-col { flex: 0 0 160px; }
-
-  /* 고정(핀) 보드: 모바일에선 컬럼이 88vw라 sticky로 두면 첫 보드가
-     화면을 덮어 다른 보드가 그 뒤로 숨습니다 → 고정 해제(일반 스크롤) */
-  .study-column.is-pinned {
-    position: static;
-    box-shadow: none;
-  }
+  .study-project-head { gap: 10px; }
+  .study-project-head-main h2 { font-size: 18px; }
 
   /* ──────────────────────────────────────────────────────────
      발표 모드 · KWL 전체 보기 모달: 좁은 화면 대응
@@ -12574,18 +12562,16 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   }
 
   /* ──────────────────────────────────────────────────────────
-     보드 헤더 버튼 — 데스크톱 기준 24~27px이라 손가락으로는 너무 작습니다.
-     헤더 버튼 사이 간격이 8px뿐이라 여백만 넓히면 옆 버튼과 탭 영역이
+     프로젝트 머리말 버튼 — 데스크톱 기준 24~27px이라 손가락으로는 너무
+     작습니다. 버튼 사이 간격이 8px뿐이라 여백만 넓히면 옆 버튼과 탭 영역이
      겹치므로, 버튼 자체를 34px로 키웁니다.
      ────────────────────────────────────────────────────────── */
-  .study-collapse-btn,
   .study-present-btn {
     width: 34px;
     height: 34px;
   }
   .study-panel-toggle,
-  .study-check-btn,
-  .study-pin-btn {
+  .study-check-btn {
     width: 34px;
     height: 34px;
     display: grid;
@@ -12748,7 +12734,6 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   .topbar { padding: 0 10px; }
   .topbar-left .logo { font-size: 15px; }
   .topnav-drop-btn { font-size: 12px; padding: 4px 8px; }
-  .study-column { flex: 0 0 92vw; max-width: 92vw; }
   .modal { padding: 16px 14px 32px; }
   .kwl-panel { width: 92vw; max-width: 92vw; }
   .kwl-fab { bottom: 16px; right: 12px; padding: 10px 14px; font-size: 13px; }

@@ -1,11 +1,23 @@
 "use client";
 
 // =============================================================
-// 공부방 — 수업의 연장. 반(클래스)별 Trello/Padlet 스타일 보드.
+// 공부방 — 수업의 연장. 반(클래스)별 프로젝트 공간.
 //   · 질문 게시판은 전체 공유 공간, 공부방은 "반별" 공간입니다.
-//   · 학생: 입장 코드로 반에 들어와 그 반의 보드만 봅니다.
+//   · 학생: 입장 코드로 반에 들어와 그 반의 프로젝트만 봅니다.
 //   · 교사: 상단 드롭다운으로 반을 고르고, 반을 새로 만들 수 있습니다.
-// 키워드를 연계한 보드에서는 카드에서 바로 질문하고(질문하기),
+//
+// [화면 흐름] 프로젝트 대시보드 → 프로젝트 → 개인 카드(활동)
+//   교사  공부방에 들어오면 '＋ 프로젝트 만들기'가 있는 카드형 대시보드.
+//         프로젝트를 열면 반 학생 전원의 개인 카드가 한 칸씩 깔립니다.
+//   학생  교사가 만든 프로젝트가 카드로 보이고, 프로젝트를 열면 자기
+//         카드에서 교사가 정해 둔 활동을 순서대로 수행합니다.
+//         (개인 카드는 기본적으로 본인과 교사만 볼 수 있습니다)
+//
+// 어느 프로젝트를 열고 있는지는 URL(?project=<보드 id>)로 관리합니다 —
+// 그래야 브라우저 '뒤로 가기'가 공부방을 통째로 벗어나지 않고 대시보드로
+// 한 단계만 되돌아갑니다(수업 준비 화면의 ?panel=·?lesson=과 같은 방식).
+//
+// 키워드를 연계한 프로젝트에서는 카드에서 바로 질문하고(질문하기),
 // 관련 질문을 모아 볼 수 있습니다.
 // =============================================================
 import { backdropClose } from "@/lib/modal";
@@ -14,7 +26,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import {
   subscribeStudyBoards,
-  updateStudyBoard,
   fetchStudyCardsOnce,
   subscribeQuestions,
   subscribeKeywords,
@@ -56,8 +67,9 @@ import {
 } from "@/lib/exportStudy";
 import TopNav from "@/components/TopNav";
 import StudyRewardPanel from "@/components/StudyRewardPanel";
-import StudyBoardColumn from "@/components/StudyBoardColumn";
-import StudyBoardForm from "@/components/StudyBoardForm";
+import StudyProjectDashboard from "@/components/StudyProjectDashboard";
+import StudyProjectView from "@/components/StudyProjectView";
+import StudyProjectForm from "@/components/StudyProjectForm";
 import NewQuestionForm from "@/components/NewQuestionForm";
 import ClassEntry from "@/components/ClassEntry";
 import ClassManagerModal from "@/components/ClassManagerModal";
@@ -100,7 +112,7 @@ function StudyPageInner() {
   const [teacherClassId, setTeacherClassId] = useState(null);
   const [joinCodesMap, setJoinCodesMap] = useState({}); // 교사: classId→{code,expiresAt}
   const [regenerating, setRegenerating] = useState(false);
-  const [addingBoard, setAddingBoard] = useState(false);
+  const [creatingProject, setCreatingProject] = useState(false);
   const [classManagerOpen, setClassManagerOpen] = useState(false);
   const [showCode, setShowCode] = useState(false); // 입장 코드 표시 토글
   const [attendanceOpen, setAttendanceOpen] = useState(false); // 출석부 모달
@@ -115,32 +127,13 @@ function StudyPageInner() {
   const [askCode, setAskCode] = useState(null);     // 파이썬 실행기에서 넘어온 코드
   const [askKwlW, setAskKwlW] = useState(null);    // KWL W칸에서 넘어온 텍스트
   const [pyOpen, setPyOpen] = useState(false);      // 파이썬 실행 패널
-  const [cardModalOpen, setCardModalOpen] = useState(false); // StudyBoardColumn 모달
+  const [cardModalOpen, setCardModalOpen] = useState(false); // StudyProjectView 모달
   const [kwlMobileOpen, setKwlMobileOpen] = useState(false); // 모바일 KWL 패널
-  const [draggingBoardId, setDraggingBoardId] = useState(null); // 보드 순서 변경 DnD
   const [toast, setToast] = useState("");
   const [directory, setDirectory] = useState([]);   // 교사: uid→실명 등 프로필
   const [memberUids, setMemberUids] = useState([]);  // 현재 반 소속 학생 uid
   const [rewards, setRewards] = useState([]);        // 현재 반 보상(과일) 목록
   const ensuringDefaultBoardRef = useRef(new Set());
-  // 보드 접힘 상태는 보드 문서(board.collapsed)에 저장 — 교사가 접으면
-  // 학생 화면에도 동일하게 반영됩니다(공유 상태). 쓰기는 교사만(규칙에서 강제).
-  function toggleBoardCollapse(board) {
-    updateStudyBoard(board.id, { collapsed: !board.collapsed });
-  }
-  function expandAllBoards() {
-    // 첫 보드를 제외한 접힌 보드를 모두 펼침
-    classBoards.forEach((b, bi) => {
-      if (bi !== 0 && b.collapsed) updateStudyBoard(b.id, { collapsed: false });
-    });
-  }
-  function collapseAllBoards() {
-    // 교사 보드(첫 번째)와 가장 최근 보드(마지막)만 남기고 모두 접기
-    const last = classBoards.length - 1;
-    classBoards.forEach((b, bi) => {
-      if (bi !== 0 && bi !== last && !b.collapsed) updateStudyBoard(b.id, { collapsed: true });
-    });
-  }
 
   // 공부방 활동 자료 내보내기 (교사) — 상세 선택은 모달에서
   const [exporting, setExporting] = useState(false);
@@ -368,6 +361,20 @@ function StudyPageInner() {
   const editingLesson = modeParam === "edit" ? activeLesson : null;
   const teaching = modeParam === "teach" ? activeLesson : null;
 
+  // ── 프로젝트 열기/닫기 (?project=<보드 id>) ──
+  // 열려 있는 프로젝트는 목록이 갱신될 때마다 최신 문서로 다시 찾습니다 —
+  // 그래야 교사가 활동을 열거나 제목을 고치면 이 화면도 바로 따라갑니다.
+  const projectParam = searchParams.get("project");
+  const activeProject = projectParam
+    ? classBoards.find((b) => b.id === projectParam) ?? null
+    : null;
+  function openProject(board) {
+    router.push(`/study?project=${board.id}`);
+  }
+  function closeProject() {
+    router.push("/study");
+  }
+
   function openLessonPicker() {
     router.push("/study?panel=lessons");
   }
@@ -549,10 +556,8 @@ function StudyPageInner() {
     }
   }
 
-  // 보드 순서 변경 — 헤더를 드래그해 다른 보드 위에 놓으면 그 자리로 이동
-  async function handleBoardDrop(targetId) {
-    const dragId = draggingBoardId;
-    setDraggingBoardId(null);
+  // 프로젝트 순서 변경 — 카드를 드래그해 다른 카드 위에 놓으면 그 자리로 이동
+  async function handleReorderProjects(dragId, targetId) {
     if (!dragId || dragId === targetId) return;
     const ids = classBoards.map((b) => b.id);
     const from = ids.indexOf(dragId);
@@ -697,17 +702,17 @@ function StudyPageInner() {
                     currentClass?.archived ? (
                       <p>📦 보관된 반의 데이터를 보기 전용으로 보고 있어요. 편집하려면 ‘반 관리하기’에서 먼저 복원하세요.</p>
                     ) : (
-                      <p>수업 자료를 확인하고, 활동 결과물을 카드로 남겨 보세요.</p>
+                      <p>프로젝트를 만들면 학생마다 개인 카드가 생기고, 그 안에서 활동을 수행합니다.</p>
                     )
                   ) : currentClass ? (
                     <p>
                       <strong className="study-class-name">
                         {currentClass.name}
                       </strong>{" "}
-                      — 수업 자료를 확인하고, 활동 결과물을 카드로 남겨 보세요.
+                      — 프로젝트를 열어 내 카드에서 활동을 해 보세요.
                     </p>
                   ) : (
-                    <p>수업 자료를 확인하고, 활동 결과물을 카드로 남겨 보세요.</p>
+                    <p>프로젝트를 열어 내 카드에서 활동을 해 보세요.</p>
                   )}
                 </div>
               </div>
@@ -716,54 +721,39 @@ function StudyPageInner() {
                   아직 만든 반이 없어요. ‘반 관리하기’로 첫 반을 추가하고 학생에게
                   입장 코드를 알려 주세요.
                 </p>
-              ) : !admin && classBoards.length === 0 ? (
-                <p className="empty-note">아직 열린 수업 보드가 없어요.</p>
+              ) : activeProject ? (
+                <StudyProjectView
+                  key={activeProject.id}
+                  board={activeProject}
+                  user={user}
+                  isTeacher={admin && !currentClass?.archived}
+                  classRoster={admin ? roster : []}
+                  onAward={admin && !currentClass?.archived ? awardReward : null}
+                  baseGroupAssignment={baseGroupAssignment}
+                  questions={questions}
+                  classes={myClasses}
+                  onBack={closeProject}
+                  onAsk={(kw) => setAskKeyword(kw)}
+                  onModalChange={setCardModalOpen}
+                  onDeleted={() => {
+                    closeProject();
+                    setToast(`'${activeProject.title}' 프로젝트를 삭제했어요.`);
+                  }}
+                  onDuplicated={(className) =>
+                    setToast(`'${activeProject.title}' 프로젝트를 '${className}' 반으로 복제했어요.`)
+                  }
+                />
               ) : (
-                <div className="study-columns">
-                  {classBoards.map((board, i) => (
-                    <StudyBoardColumn
-                      key={board.id}
-                      board={board}
-                      user={user}
-                      isTeacher={admin && !currentClass?.archived}
-                      isFirst={i === 0}
-                      collapsed={i !== 0 && !!board.collapsed}
-                      onToggleCollapse={() => toggleBoardCollapse(board)}
-                      onExpandAll={expandAllBoards}
-                      hasCollapsed={classBoards.some(
-                        (b, bi) => bi !== 0 && !!b.collapsed
-                      )}
-                      onCollapseAll={collapseAllBoards}
-                      canCollapseAll={classBoards.some(
-                        (b, bi) =>
-                          bi !== 0 && bi !== classBoards.length - 1 && !b.collapsed
-                      )}
-                      classRoster={admin ? roster : []}
-                      onAward={admin && !currentClass?.archived ? awardReward : null}
-                      baseGroupAssignment={baseGroupAssignment}
-                      questions={questions}
-                      classes={myClasses}
-                      onAsk={(kw) => setAskKeyword(kw)}
-                      onModalChange={setCardModalOpen}
-                      onDuplicated={(className) =>
-                        setToast(`'${board.title}' 보드를 '${className}' 반으로 복제했어요.`)
-                      }
-                      isDragging={draggingBoardId === board.id}
-                      onBoardDragStart={() => setDraggingBoardId(board.id)}
-                      onBoardDragEnd={() => setDraggingBoardId(null)}
-                      onBoardDrop={() => handleBoardDrop(board.id)}
-                    />
-                  ))}
-                  {admin && currentClass && !currentClass.archived && (
-                    <button
-                      className="study-add-board-col"
-                      onClick={() => setAddingBoard(true)}
-                    >
-                      <span className="study-add-board-plus">＋</span>
-                      수업 보드 추가
-                    </button>
-                  )}
-                </div>
+                <StudyProjectDashboard
+                  boards={classBoards}
+                  user={user}
+                  isTeacher={admin}
+                  readOnly={!!currentClass?.archived}
+                  roster={admin ? roster : []}
+                  onOpen={openProject}
+                  onCreate={() => setCreatingProject(true)}
+                  onReorder={handleReorderProjects}
+                />
               )}
             </div>
 
@@ -953,11 +943,13 @@ function StudyPageInner() {
         />
       )}
 
-      {addingBoard && currentClass && (
-        <StudyBoardForm
+      {creatingProject && currentClass && (
+        <StudyProjectForm
           keywords={keywordNames}
           classId={currentClass.id}
-          onClose={() => setAddingBoard(false)}
+          onClose={() => setCreatingProject(false)}
+          // 만들자마자 그 프로젝트로 들어가 활동을 이어서 손보게 합니다
+          onCreated={(newId) => router.push(`/study?project=${newId}`)}
         />
       )}
 
@@ -988,7 +980,7 @@ function StudyPageInner() {
           setAskCode(code);
           setAskKeyword(null);
         }}
-        hasModalOpen={cardModalOpen || classManagerOpen || addingBoard || attendanceOpen || seatSetupOpen || (askKeyword !== null || askCode !== null)}
+        hasModalOpen={cardModalOpen || classManagerOpen || creatingProject || attendanceOpen || seatSetupOpen || (askKeyword !== null || askCode !== null)}
       />
 
       {/* ── 수업 준비 (목록 · 새로 만들기) ──
