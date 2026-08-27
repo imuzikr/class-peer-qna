@@ -3,14 +3,19 @@
 // =============================================================
 // 공부방 오른쪽 "멋진 순간" 패널 — 교사 전용
 // -------------------------------------------------------------
-// 반 학생 명단(실명) + ＋/− 과일 주기 + 💬 누가기록 작성.
-// (학생 본인의 과일 총합은 상단바 프로필 옆 뱃지로 확인합니다)
+// 참여 전광판·손들기 자리 확인과 같은 자리표(SeatPickGrid)를 패널 폭에
+// 맞게 축소해 보여줍니다. 이름을 알파벳/학번 순으로 훑어 찾던 예전 목록은
+// 학생 수가 많아지면 특정 학생을 찾기 어려웠는데, 자리표는 교실에서 보이는
+// 위치 그대로라 눈으로 바로 찾을 수 있습니다. 자리를 누르면 참여
+// 전광판과 똑같이 과일 주기·누가기록 선택 모달이 열립니다.
 // 헤더의 « 버튼으로 접기 — 접으면 세로 슬림 바(개인 설정, localStorage).
 // =============================================================
 import { useEffect, useState } from "react";
-import { REWARD_MAX } from "@/lib/store";
+import { subscribeQuestionSignals } from "@/lib/store";
+import { normalizeSeats } from "@/lib/seats";
+import { SeatPickGrid } from "./QuestionSeatModal";
+import StudentToolsModal from "./StudentToolsModal";
 import StudentNotesModal from "./StudentNotesModal";
-import RewardFruits, { rewardStars } from "./RewardFruits";
 
 const COLLAPSE_KEY = "reward_panel_collapsed";
 
@@ -18,9 +23,12 @@ export default function StudyRewardPanel({
   roster = [],
   onAward,
   classId = null,
+  seatLayout = null,
 }) {
   const [notesFor, setNotesFor] = useState(null); // 누가기록 모달 대상 학생(교사만)
+  const [toolsFor, setToolsFor] = useState(null); // 자리 클릭 → 과일/누가기록 선택 모달
   const [collapsed, setCollapsed] = useState(false);
+  const [raisedUids, setRaisedUids] = useState(() => new Set());
 
   // 접힘 상태 복원 — 개인 화면 설정이라 localStorage에 저장
   useEffect(() => {
@@ -32,6 +40,14 @@ export default function StudyRewardPanel({
       return !v;
     });
   }
+
+  // 손든 학생 — 참여 전광판·손들기 자리 확인과 같은 신호를 봅니다.
+  useEffect(() => {
+    if (!classId) { setRaisedUids(new Set()); return; }
+    return subscribeQuestionSignals(classId, (list) =>
+      setRaisedUids(new Set(list.map((s) => s.uid).filter(Boolean)))
+    );
+  }, [classId]);
 
   // 접힌 상태 — 세로 슬림 바. 클릭하면 다시 펼침.
   if (collapsed) {
@@ -52,6 +68,21 @@ export default function StudyRewardPanel({
     );
   }
 
+  const byUid = new Map(roster.map((s) => [s.uid, s]));
+  const seats = normalizeSeats(seatLayout?.seats ?? [], roster);
+  const raisedCount = roster.filter((s) => raisedUids.has(s.uid)).length;
+
+  function openNotes(student) {
+    setToolsFor(null);
+    setNotesFor({ uid: student.uid, name: student.name, emoji: student.emoji ?? "🙂" });
+  }
+
+  // 과일을 주면 roster가 갱신돼 내려오므로, 열려 있는 모달의 숫자도
+  // 최신 값으로 따라가게 합니다(모달이 처음 열릴 때 찍힌 값에 머무르지 않게).
+  const toolsStudent = toolsFor
+    ? { ...toolsFor, count: byUid.get(toolsFor.uid)?.count ?? toolsFor.count ?? 0 }
+    : null;
+
   return (
     <aside className="reward-panel" aria-label="멋진 순간">
       <div className="reward-head">
@@ -67,7 +98,7 @@ export default function StudyRewardPanel({
             »
           </button>
         </div>
-        <span className="reward-sub">＋로 과일을 주세요 · 20개마다 ⭐</span>
+        <span className="reward-sub">자리를 눌러 과일 주기·누가기록 · 20개마다 ⭐</span>
       </div>
 
       {roster.length === 0 ? (
@@ -75,60 +106,23 @@ export default function StudyRewardPanel({
           아직 이 반에 입장한 학생이 없어요. 입장 코드를 알려 주세요.
         </p>
       ) : (
-        <ul className="reward-list">
-          {roster.map((s) => (
-            <li key={s.uid} className="reward-row">
-              {rewardStars(s.count) > 0 && (
-                <div
-                  className="reward-stars-line"
-                  title={`⭐ ${rewardStars(s.count)}개 = 과일 ${rewardStars(s.count) * 20}개`}
-                  aria-label={`별 ${rewardStars(s.count)}개`}
-                >
-                  {"⭐".repeat(rewardStars(s.count))}
-                </div>
-              )}
-              <div className="reward-row-top">
-                <span className="reward-avatar" aria-hidden="true">{s.emoji}</span>
-                <span className="reward-name" title={s.name}>
-                  {s.studentId ? `${s.studentId} ${s.name}` : s.name}
-                </span>
-                <button
-                  type="button"
-                  className="reward-note-btn"
-                  onClick={() => setNotesFor(s)}
-                  title={`${s.name} 누가기록`}
-                  aria-label={`${s.name} 누가기록`}
-                >
-                  💬
-                </button>
-                <span className="reward-count">{s.count}</span>
-                <span className="reward-actions">
-                  {s.count > 0 && (
-                    <button
-                      type="button"
-                      className="reward-btn reward-minus"
-                      onClick={() => onAward(s.uid, s.count - 1)}
-                      aria-label={`${s.name} 과일 빼기`}
-                    >
-                      −
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    className="reward-btn reward-plus"
-                    onClick={() => onAward(s.uid, Math.min(REWARD_MAX, s.count + 1))}
-                    disabled={s.count >= REWARD_MAX}
-                    aria-label={`${s.name} 과일 주기`}
-                  >
-                    ＋
-                  </button>
-                </span>
-              </div>
+        <SeatPickGrid
+          compact
+          seats={seats}
+          byUid={byUid}
+          raisedUids={raisedUids}
+          raisedCount={raisedCount}
+          onPick={setToolsFor}
+        />
+      )}
 
-              <RewardFruits count={s.count} />
-            </li>
-          ))}
-        </ul>
+      {toolsStudent && (
+        <StudentToolsModal
+          student={toolsStudent}
+          onAward={onAward}
+          onOpenNotes={openNotes}
+          onClose={() => setToolsFor(null)}
+        />
       )}
 
       {notesFor && (

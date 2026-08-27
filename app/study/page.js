@@ -774,6 +774,7 @@ function StudyPageInner() {
               <StudyRewardPanel
                 roster={roster}
                 classId={classId}
+                seatLayout={seatLayout}
                 readOnly={false}
                 onAward={awardReward}
               />

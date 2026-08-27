@@ -5899,38 +5899,6 @@ pre code {
   line-height: 1.6;
 }
 
-.reward-list {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.reward-row {
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 8px 10px;
-}
-.reward-row-top {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.reward-avatar {
-  font-size: 18px;
-  flex-shrink: 0;
-}
-/* 과일 20개 = ⭐ — 이름 윗줄에 실제 별 개수만큼 나열(개수 늘어도 이름 안 가림) */
-.reward-stars-line {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1px;
-  font-size: 13px;
-  line-height: 1;
-  margin-bottom: 4px;
-  padding-left: 2px;
-  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.2));
-}
 /* 발표 모드 하단의 별 표시 */
 .present-star {
   font-size: 20px;
@@ -5950,57 +5918,6 @@ pre code {
   font-size: 13.5px;
   color: var(--text-sub);
 }
-.reward-name {
-  flex: 1;
-  min-width: 0;
-  font-size: 13.5px;
-  font-weight: 700;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.reward-count {
-  font-size: 12px;
-  font-weight: 800;
-  color: var(--primary);
-  min-width: 16px;
-  text-align: right;
-}
-.reward-actions {
-  display: flex;
-  gap: 4px;
-  flex-shrink: 0;
-}
-.reward-btn {
-  width: 26px;
-  height: 26px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: #fff;
-  font-size: 16px;
-  font-weight: 800;
-  line-height: 1;
-  color: var(--text-sub);
-  display: grid;
-  place-items: center;
-}
-.reward-btn:hover:not(:disabled) {
-  background: var(--neutral);
-}
-.reward-plus {
-  background: var(--primary);
-  border-color: var(--primary);
-  color: #fff;
-}
-.reward-plus:hover:not(:disabled) {
-  background: var(--primary-dark);
-}
-.reward-plus:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
-
 /* 과일 그리드 — 10개씩 한 줄, 20개면 2줄로 반복 */
 .reward-fruits {
   margin-top: 6px;
@@ -9304,6 +9221,24 @@ pre code {
   grid-template-columns: repeat(6, 1fr);
   gap: 8px;
 }
+/* 공부방 "멋진 순간" 패널처럼 좁은 폭에 넣을 때 — 모바일 자리표와 같은
+   4열로 줄이고 글자도 함께 줄입니다(패널 폭 ~260px 기준). */
+.attend-seatmap--compact .attend-seatmap-head {
+  margin-bottom: 8px;
+}
+.attend-seatmap--compact .attend-seatmap-grid {
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.attend-seatmap--compact .attend-seat-name {
+  font-size: 10.5px;
+}
+.attend-seatmap--compact .attend-seat-no {
+  font-size: 9px;
+}
+.attend-seatmap--compact .attend-seat-fruit {
+  font-size: 9px;
+}
 .attend-seat {
   position: relative;
   aspect-ratio: 1 / 1;
@@ -10118,23 +10053,23 @@ button.study-cal-cell.has-record:not(:disabled):hover {
 .study-card-award-btn {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  padding: 2px 8px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: #fff;
-  font-size: 12px;
-  line-height: 1.6;
+  justify-content: center;
+  padding: 2px 4px;
+  border: none;
+  background: none;
+  font-size: 16px;
+  line-height: 1;
   cursor: pointer;
   flex-shrink: 0;
+  border-radius: 999px;
+  transition: transform 0.1s;
 }
 .study-card-award-btn:hover:not(:disabled) {
-  background: var(--primary-light);
-  border-color: var(--primary);
+  transform: scale(1.15);
 }
 .study-card-award-btn:disabled {
   cursor: default;
-  opacity: 0.5;
+  opacity: 0.35;
 }
 
 .study-card-head {

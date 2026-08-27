@@ -29,14 +29,19 @@ import StudentToolsModal from "./StudentToolsModal";
 
 // 자리표 그리기만 담당 — 데이터 구독은 아래 컨테이너가 합니다.
 // (구독과 표시를 나눠 두면 자리표 모양을 데이터 없이도 확인할 수 있습니다)
-export function SeatPickGrid({ seats, byUid, raisedUids, raisedCount, onPick }) {
+// compact: 공부방 "멋진 순간" 패널처럼 좁은 곳에 넣을 때 — 칸을 4열로 줄이고
+// 안내 문구를 뺍니다(패널 폭이 좁아 한 줄에 다 안 들어가고 줄바꿈되면 자리
+// 칸이 오히려 아래로 밀려 보였습니다).
+export function SeatPickGrid({ seats, byUid, raisedUids, raisedCount, onPick, compact = false }) {
   return (
-    <div className="attend-seatmap">
+    <div className={`attend-seatmap${compact ? " attend-seatmap--compact" : ""}`}>
       <div className="attend-seatmap-head">
         <span className="attend-seatmap-board">칠판</span>
-        <span className="attend-seatmap-hint">자리를 누르면 과일·누가기록을 열 수 있어요</span>
+        {!compact && (
+          <span className="attend-seatmap-hint">자리를 누르면 과일·누가기록을 열 수 있어요</span>
+        )}
         <span className={`attend-seatmap-hands${raisedCount > 0 ? " on" : ""}`}>
-          🖐️ 질문 {raisedCount}
+          🖐️ {compact ? raisedCount : `질문 ${raisedCount}`}
         </span>
       </div>
       <div className="attend-seatmap-grid">

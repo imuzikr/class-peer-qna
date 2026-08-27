@@ -153,8 +153,9 @@ export default function StudyCard({
             onClick={() => onAward?.()}
             disabled={rewardMaxed}
             title={rewardMaxed ? "이미 최대 개수예요" : `과일 주기 (현재 ${rewardCount}개)`}
+            aria-label={rewardMaxed ? "이미 최대 개수예요" : `과일 주기 (현재 ${rewardCount}개)`}
           >
-            🍎 주기
+            🍎
           </button>
         )}
       </div>
