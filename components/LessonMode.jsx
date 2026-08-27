@@ -327,7 +327,7 @@ export default function LessonMode({
             (자리를 아껴서 반 이름이 잘리지 않게. 어느 반에 발표 중인지가
              '프레젠테이션 중'이라는 말보다 더 알아야 할 정보입니다) */}
         {editing ? (
-          <span className="lesson-badge lesson-badge--edit">수업 준비</span>
+          <span className="lesson-badge lesson-badge--edit">수업 관리</span>
         ) : presenting ? (
           <span className="lesson-badge">
             <span className="broadcast-live-dot" aria-hidden="true" />
@@ -373,7 +373,7 @@ export default function LessonMode({
               title={
                 board
                   ? "학생들이 활동을 채워 가는 상황을 확인하고, 활동을 하나씩 열어 줍니다"
-                  : "‘수업준비 → 공부방 연동’에서 보드를 연결하면 활동 현황을 볼 수 있어요"
+                  : "‘수업관리 → 공부방 연동’에서 보드를 연결하면 활동 현황을 볼 수 있어요"
               }
             >
               ✍️ 공부중 {studyingCount}/{roster.length}

@@ -118,7 +118,7 @@ export default function LessonManagerModal({
               ‹ 목록으로
             </button>
           ) : (
-            <h3>📝 수업 준비</h3>
+            <h3>📝 수업 관리</h3>
           )}
           {!busy && (
             <button className="btn-close" onClick={onClose} aria-label="닫기">×</button>

@@ -663,7 +663,7 @@ function StudyPageInner() {
                         onClick={openLessonPicker}
                         title="주제·자료·해설·활동을 준비하고 수업을 시작합니다"
                       >
-                        📝 수업준비
+                        📝 수업관리
                       </button>
                     )}
                     {admin && currentClass && !currentClass.archived && (
