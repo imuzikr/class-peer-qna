@@ -6251,6 +6251,28 @@ pre code {
   line-height: 1.9;
   color: var(--dark);
 }
+/* .study-card-body(14px, 카드 읽기 모드용)가 이 요소에도 같이 붙는데
+   (present-slide-content study-card-body), 두 클래스 선택자의 우선순위가
+   같아 나중에 나오는 .study-card-body가 이겨서 정작 발표 화면에서는
+   23px가 아니라 14px로 작게 보였습니다. 두 클래스를 함께 지정해 확실히
+   이기게 하고, 발표 화면이니 굵게도 더해 눈에 띄게 합니다. */
+.present-slide-content.study-card-body {
+  font-size: 26px;
+  line-height: 1.7;
+  font-weight: 700;
+  color: var(--dark);
+}
+/* 활동 제목(질문) 띠도 같은 이유(.study-card-body .activity-title가 나중에
+   나와 이김)로 작게 보이던 걸, 발표 화면에서는 답 글자 크기에 맞춰 함께
+   키웁니다. 두 클래스를 함께 건 선택자로 확실히 우선하게 합니다. */
+.present-slide-content.study-card-body .activity-title {
+  font-size: 19px;
+}
+/* 제목 띠가 19px로 커진 만큼 띠 자체도 높아져, 고정값이던 padding-top
+   (48px)으로는 답 텍스트와 겹쳤습니다. 발표 화면에서만 더 띄웁니다. */
+.present-slide-content.study-card-body .activity-section {
+  padding-top: 58px;
+}
 .present-empty {
   color: var(--text-sub);
   font-size: 18px;
