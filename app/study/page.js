@@ -980,13 +980,11 @@ function StudyPageInner() {
           isTeacher={admin}
           records={attendanceRecords}
           roster={admin ? roster : []}
-          classId={classId}
+          className={currentClass.name ?? ""}
           attendanceOpenToday={attendanceOpenToday}
           attendanceBusy={attendanceBusy}
           onStartAttendance={admin ? handleStartAttendance : null}
           onStopAttendance={admin ? handleStopAttendance : null}
-          allClasses={admin ? myClasses : []}
-          directory={admin ? directory : []}
           onClose={() => setAttendanceOpen(false)}
         />
       )}
