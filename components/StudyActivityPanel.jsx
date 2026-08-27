@@ -69,6 +69,22 @@ export default function StudyActivityPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [boardId, activitiesKey]);
 
+  // 활동마다 몇 명이 제출했는지 (공부중 전광판과 같은 기준) — isTeacher가
+  // 아닐 때도 이 훅은 항상 호출해야 합니다. 아래 '교사만 렌더링' 분기보다
+  // 먼저 선언해 두지 않으면, 개발용 역할 전환(RoleSwitcher)으로 같은
+  // 컴포넌트 인스턴스에서 isTeacher만 바뀔 때 렌더마다 훅 호출 개수가
+  // 달라져 React가 훅 순서 오류를 던집니다.
+  const doneCounts = useMemo(() => {
+    if (classRoster.length === 0) return [];
+    const rows = classRoster.map((s) => {
+      const card = cards.find((c) =>
+        isGroup ? c.memberUids?.includes(s.uid) : c.authorId === s.uid
+      );
+      return cardProgress(card, activities);
+    });
+    return activities.map((_, i) => rows.filter((d) => d[i]).length);
+  }, [classRoster, cards, activities, isGroup]);
+
   if (!isTeacher) return null;
 
   function setDraftAt(i, value) {
@@ -136,18 +152,6 @@ export default function StudyActivityPanel({
       setSaving(false);
     }
   }
-
-  // 활동마다 몇 명이 제출했는지 (공부중 전광판과 같은 기준)
-  const doneCounts = useMemo(() => {
-    if (classRoster.length === 0) return [];
-    const rows = classRoster.map((s) => {
-      const card = cards.find((c) =>
-        isGroup ? c.memberUids?.includes(s.uid) : c.authorId === s.uid
-      );
-      return cardProgress(card, activities);
-    });
-    return activities.map((_, i) => rows.filter((d) => d[i]).length);
-  }, [classRoster, cards, activities, isGroup]);
 
   return (
     <aside className={`study-activity-panel${mobileOpen ? " study-activity-panel--open" : ""}`}>
