@@ -44,6 +44,7 @@ import {
 } from "@/lib/activities";
 import StudyCard from "./StudyCard";
 import StudyCardModal from "./StudyCardModal";
+import StudyMyActivityCard from "./StudyMyActivityCard";
 import StudyPresentModal from "./StudyPresentModal";
 import StudyProgressBoard from "./StudyProgressBoard";
 import GroupComposer from "./GroupComposer";
@@ -75,6 +76,9 @@ export default function StudyProjectView({
   const [cards, setCards] = useState([]);
   const [selectedCard, setSelectedCard] = useState(null);
   const [creating, setCreating] = useState(false);
+  // 활동이 있는 프로젝트에서 '내 카드'를 열면 모달 대신 이 상세 페이지로
+  // 바꿉니다(StudyMyActivityCard) — 남의 카드를 훑어볼 때는 여전히 모달.
+  const [myCardOpen, setMyCardOpen] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
   const [sortKey, setSortKey] = useState("studentId");
@@ -348,11 +352,31 @@ export default function StudyProjectView({
     onModalChange?.(modalOpen);
   }, [modalOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 자리 하나를 눌렀을 때 — 내 빈 자리는 '작성 시작', 남의 빈 자리는 아무 일 없음
+  // 자리 하나를 눌렀을 때
+  //  · 내 자리(활동이 있는 프로젝트) → 상세 페이지(StudyMyActivityCard)
+  //  · 그 밖의 카드(남의 카드·활동 없는 프로젝트의 내 카드) → 기존 모달
+  //  · 남의 빈 자리 → 아무 일 없음
   function openSeat(seat) {
     if (seat.locked) return;
+    if (seat.mine && activities.length > 0) { setMyCardOpen(true); return; }
     if (seat.card) { setSelectedCard(seat.card); return; }
     if (seat.mine && !locked) setCreating(true);
+  }
+
+  // 활동이 있는 프로젝트의 '내 카드' — 그리드 대신 이 상세 페이지를 통째로 보여 줍니다.
+  if (myCardOpen) {
+    return (
+      <StudyMyActivityCard
+        board={board}
+        user={user}
+        card={myCard}
+        canEdit={!locked}
+        canDelete={isTeacher}
+        onBack={() => setMyCardOpen(false)}
+        onAsk={onAsk}
+        relatedQuestions={relatedQuestions}
+      />
+    );
   }
 
   return (
@@ -663,7 +687,7 @@ export default function StudyProjectView({
               card={seat.card}
               isTeacher={isTeacher}
               activities={activities}
-              onClick={() => setSelectedCard(seat.card)}
+              onClick={() => openSeat(seat)}
               myUid={user?.uid ?? null}
               onReact={
                 user &&

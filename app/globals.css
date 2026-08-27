@@ -11198,6 +11198,80 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   border-top: 1px solid var(--border);
 }
 
+/* =============================================================
+   공부방 — 내 카드 활동 페이지 (StudyMyActivityCard)
+   모달 대신 상세 페이지로, 활동을 RAFT 글쓰기처럼 나란히 배치합니다.
+   ============================================================= */
+.study-mycard-page {
+  padding-bottom: 40px;
+}
+.study-mycard-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.study-mycard-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text);
+  margin-right: auto;
+}
+.study-mycard-time {
+  font-size: 12px;
+  color: var(--text-sub);
+}
+/* 활동 3~4개가 한 화면에 나란히 — 그보다 많으면 다음 줄로 자연스럽게 접힘.
+   .raft-grid.study-mycard-grid로 묶어 우선순위를 높입니다 — 이 규칙이
+   .raft-grid의 grid-template-columns(고정 4열)보다 파일 앞쪽에 있어서,
+   클래스 하나짜리 선택자로는 뒤에 나오는 .raft-grid에 밀려 무시됩니다. */
+.raft-grid.study-mycard-grid {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+.study-mycard-col-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.study-mycard-col.locked {
+  background: var(--neutral);
+}
+.study-mycard-col-title {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text-sub);
+  margin: 0;
+}
+.study-mycard-col-body {
+  font-size: 14px;
+}
+.study-mycard-editor .rte-full .rte-area {
+  min-height: 180px;
+  max-height: none;
+  overflow-y: visible;
+  height: auto;
+}
+.study-mycard-foot {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+@media (max-width: 900px) {
+  .raft-grid.study-mycard-grid { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+}
+@media (max-width: 560px) {
+  .raft-grid.study-mycard-grid { grid-template-columns: 1fr; }
+  .study-mycard-head { gap: 8px; }
+  .study-mycard-title { font-size: 17px; }
+}
+
 /* 읽기 모드 활동 섹션 — 질문(제목)은 위쪽에 소제목처럼, 답은 그 아래
    사각형 박스 안에 놓입니다. 실제 HTML은 <h4 class="activity-title">
    바로 뒤에 답 내용이 형제 노드로 이어지는 구조라(공용 편집 틀), 제목을
