@@ -223,13 +223,16 @@ export default function TeacherKwlPanel({
           {/* ── [A] 학생 × K·W·L·S 격자 ── */}
           <section className="tkwl-section">
             <h4 className="tkwl-title">학생별 진행</h4>
-            <div className="tkwl-grid-head">
-              <span />
-              {KWLS_COLUMNS.map((c) => (
-                <span key={c.key} title={c.ko}>{c.letter}</span>
-              ))}
-            </div>
+            {/* 머리글을 스크롤 영역 '안'에 두고 위에 붙여 둡니다 —
+                밖에 두면 세로 막대 너비만큼 칸과 어긋나 보이고, 스크롤을
+                내리면 K·W·L·S가 무엇이었는지도 사라집니다. */}
             <div className="tkwl-grid">
+              <div className="tkwl-grid-head">
+                <span />
+                {KWLS_COLUMNS.map((c) => (
+                  <span key={c.key} title={c.ko}>{c.letter}</span>
+                ))}
+              </div>
               {rows.map((r) => (
                 <div className="tkwl-row" key={r.uid}>
                   <span className="tkwl-row-name" title={r.name}>

@@ -9057,6 +9057,15 @@ pre code {
   gap: 4px;
   align-items: center;
 }
+/* 머리글은 스크롤 영역 안에 있고 위에 붙습니다 — 칸과 같은 폭을 써서
+   세로 막대가 생겨도 어긋나지 않고, 스크롤을 내려도 K·W·L·S가 남습니다. */
+.tkwl-grid-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--sidebar-bg);
+  padding-bottom: 3px;
+}
 .tkwl-grid-head span {
   text-align: center;
   font-size: 10.5px;
@@ -9069,6 +9078,8 @@ pre code {
   gap: 4px;
   max-height: 320px;
   overflow-y: auto;
+  /* 막대가 칸 위를 덮지 않도록 자리를 미리 비워 둡니다 */
+  scrollbar-gutter: stable;
 }
 .tkwl-row-name {
   display: flex;
@@ -9102,6 +9113,41 @@ pre code {
 .tkwl-cell.on.before { background: #7a9ec4; border-color: #6b8db2; }
 .tkwl-cell.on.after { background: #7fb98a; border-color: #6aa877; }
 .tkwl-cell.picked { box-shadow: 0 0 0 2px var(--primary); }
+
+/* 어두운 사이드 패널의 스크롤 막대 — 기본 막대는 밝고 두꺼워 칸 위에
+   덧댄 것처럼 보입니다. 얇고 반투명하게 낮춰 배경에 묻히게 합니다. */
+.teacher-kwl,
+.tkwl-grid,
+.tkwl-wants,
+.tkwl-pop-text {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+}
+.teacher-kwl::-webkit-scrollbar,
+.tkwl-grid::-webkit-scrollbar,
+.tkwl-wants::-webkit-scrollbar,
+.tkwl-pop-text::-webkit-scrollbar {
+  width: 8px;
+}
+.teacher-kwl::-webkit-scrollbar-track,
+.tkwl-grid::-webkit-scrollbar-track,
+.tkwl-wants::-webkit-scrollbar-track,
+.tkwl-pop-text::-webkit-scrollbar-track {
+  background: transparent;
+}
+.teacher-kwl::-webkit-scrollbar-thumb,
+.tkwl-grid::-webkit-scrollbar-thumb,
+.tkwl-wants::-webkit-scrollbar-thumb,
+.tkwl-pop-text::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+}
+.teacher-kwl::-webkit-scrollbar-thumb:hover,
+.tkwl-grid::-webkit-scrollbar-thumb:hover,
+.tkwl-wants::-webkit-scrollbar-thumb:hover,
+.tkwl-pop-text::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.32);
+}
 
 /* 칸을 누르면 뜨는 전문 — 패널 안 아래쪽에 붙습니다 */
 .tkwl-pop {
