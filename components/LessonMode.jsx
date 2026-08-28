@@ -613,6 +613,7 @@ export default function LessonMode({
                   attendanceRecords={attendanceRecords}
                   seatLayout={seatLayout}
                   dailySeatLayout={dailySeatLayout}
+                  groupAssignment={groupAssignment}
                   classId={classId}
                   now={presenceNow}
                   onAward={onAward}

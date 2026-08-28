@@ -44,16 +44,68 @@ import StudentToolsModal from "./StudentToolsModal";
 // liveState: uid → 'on'|'away'|'off' (지금 화면을 보고 있는지). 있으면
 // 자리 칸 오른쪽 아래에 작은 점으로 얹습니다 — presentUids(출석)와는
 // 별개 신호라 배경색을 바꾸지 않고 점만 덧붙입니다.
+// headLead: 머리줄 왼쪽에 '칠판' 대신 넣을 것(수업하기 자리표의 개별/모둠
+// 보기 탭 등). 안 넘기면 그대로 '칠판'입니다.
+
+// 자리 칸 하나 — 자리표(SeatPickGrid)와 모둠 보기가 똑같은 모양을 쓰도록
+// 최상위로 빼 두었습니다(각자 그리면 출석 색·손들기·과일 배지 규칙이
+// 두 곳에서 갈라집니다). 최상위에 두는 또 다른 이유는 AttendanceBoard의
+// StudentCard와 같습니다 — 컴포넌트 안에 중첩 정의하면 부모가 리렌더될 때
+// DOM이 통째로 교체돼 진행 중이던 드래그가 끊깁니다.
+export function SeatCell({
+  student, raised = false, top = false, att = "unchecked", live = null,
+  onPick, draggable = false, index = null, onDragStart, onDragEnd, onDropTo,
+}) {
+  const s = student;
+  const attLabel = att === "present" ? " · 출석" : att === "absent" ? " · 결석" : "";
+  const liveLabel =
+    live === "on" ? " · 보는 중" : live === "away" ? " · 화면 가려짐" : live === "off" ? " · 미접속" : "";
+  return (
+    <button
+      type="button"
+      className={`attend-seat attend-seat--pick attend-seat--${att}${raised ? " attend-seat--raised" : ""}${top ? " attend-seat--top" : ""}`}
+      onClick={() => onPick?.(s)}
+      title={`${s.name}${s.studentId ? ` · ${s.studentId}` : ""}${attLabel}${liveLabel}${raised ? " · 질문 있어요" : ""}${top ? " · 과일 1등" : ""} — 눌러서 과일 주기·누가기록${draggable ? ", 끌어서 자리 이동" : ""}`}
+      draggable={draggable}
+      onDragStart={draggable ? (e) => { onDragStart(index); e.dataTransfer.effectAllowed = "move"; } : undefined}
+      onDragEnd={draggable ? onDragEnd : undefined}
+      onDragOver={draggable ? (e) => e.preventDefault() : undefined}
+      onDrop={draggable ? (e) => { e.preventDefault(); onDropTo(index); } : undefined}
+    >
+      {raised && (
+        <span className="attend-seat-hand" aria-label="질문 있어요">🖐️</span>
+      )}
+      {live && (
+        <span className={`attend-seat-live attend-seat-live--${live}`} aria-hidden="true" />
+      )}
+      <span className="attend-seat-no">{s.studentId || "-"}</span>
+      <span className="attend-seat-name">{s.name}</span>
+      {s.count > 0 && (
+        <span className="attend-seat-fruit" aria-label={`과일 ${s.count}개`}>
+          🍎 {s.count}
+        </span>
+      )}
+    </button>
+  );
+}
+
+// 출석 확인 전 → unchecked(연한 회색) / 출석 → present(연한 초록)
+// / 결석 → absent(연한 주황)
+export function attStateOf(uid, presentUids) {
+  if (!presentUids) return "unchecked";
+  return presentUids.has(uid) ? "present" : "absent";
+}
+
 export function SeatPickGrid({
   seats, byUid, raisedUids, raisedCount, onPick, compact = false,
   onDragStart, onDragEnd, onDropTo, topUids = null, presentUids = null,
-  liveState = null,
+  liveState = null, headLead = null,
 }) {
   const draggable = !!(onDragStart && onDragEnd && onDropTo);
   return (
     <div className={`attend-seatmap${compact ? " attend-seatmap--compact" : ""}`}>
       <div className="attend-seatmap-head">
-        <span className="attend-seatmap-board">칠판</span>
+        {headLead ?? <span className="attend-seatmap-board">칠판</span>}
         {!compact && (
           <span className="attend-seatmap-hint">자리를 누르면 과일·누가기록을 열 수 있어요</span>
         )}
@@ -74,43 +126,21 @@ export function SeatPickGrid({
               />
             );
           }
-          const raised = raisedUids.has(s.uid);
-          const top = !!topUids?.has(s.uid);
-          // 출석 확인 전 → unchecked(연한 회색) / 출석 → present(연한 초록)
-          // / 결석 → absent(연한 주황)
-          const att = presentUids
-            ? presentUids.has(s.uid) ? "present" : "absent"
-            : "unchecked";
-          const attLabel = att === "present" ? " · 출석" : att === "absent" ? " · 결석" : "";
-          const live = liveState?.get(s.uid) ?? null;
-          const liveLabel = live === "on" ? " · 보는 중" : live === "away" ? " · 화면 가려짐" : live === "off" ? " · 미접속" : "";
           return (
-            <button
+            <SeatCell
               key={s.uid}
-              type="button"
-              className={`attend-seat attend-seat--pick attend-seat--${att}${raised ? " attend-seat--raised" : ""}${top ? " attend-seat--top" : ""}`}
-              onClick={() => onPick(s)}
-              title={`${s.name}${s.studentId ? ` · ${s.studentId}` : ""}${attLabel}${liveLabel}${raised ? " · 질문 있어요" : ""}${top ? " · 과일 1등" : ""} — 눌러서 과일 주기·누가기록${draggable ? ", 끌어서 자리 이동" : ""}`}
+              student={s}
+              raised={raisedUids.has(s.uid)}
+              top={!!topUids?.has(s.uid)}
+              att={attStateOf(s.uid, presentUids)}
+              live={liveState?.get(s.uid) ?? null}
+              onPick={onPick}
               draggable={draggable}
-              onDragStart={draggable ? (e) => { onDragStart(i); e.dataTransfer.effectAllowed = "move"; } : undefined}
-              onDragEnd={draggable ? onDragEnd : undefined}
-              onDragOver={draggable ? (e) => e.preventDefault() : undefined}
-              onDrop={draggable ? (e) => { e.preventDefault(); onDropTo(i); } : undefined}
-            >
-              {raised && (
-                <span className="attend-seat-hand" aria-label="질문 있어요">🖐️</span>
-              )}
-              {live && (
-                <span className={`attend-seat-live attend-seat-live--${live}`} aria-hidden="true" />
-              )}
-              <span className="attend-seat-no">{s.studentId || "-"}</span>
-              <span className="attend-seat-name">{s.name}</span>
-              {s.count > 0 && (
-                <span className="attend-seat-fruit" aria-label={`과일 ${s.count}개`}>
-                  🍎 {s.count}
-                </span>
-              )}
-            </button>
+              index={i}
+              onDragStart={onDragStart}
+              onDragEnd={onDragEnd}
+              onDropTo={onDropTo}
+            />
           );
         })}
       </div>

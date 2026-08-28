@@ -6614,16 +6614,26 @@ pre code {
    나란히 둡니다. 자리표는 기본적으로 버튼 하나로 접혀 있습니다 — 활동이
    없거나 목표가 짧은 수업에서는 왼쪽 칸이 훨씬 짧아, 자리표를 늘 펼쳐 두면
    오른쪽만 유독 길어져 화면이 한쪽으로 쏠립니다. */
+/* 열 나눔은 위의 슬라이드·해설 줄(.lesson-deck)과 똑같이 둡니다 — 그래야
+   자리표의 왼쪽 끝이 바로 위 해설 카드의 왼쪽 끝과 한 줄로 떨어집니다.
+   위쪽 여백도 이 칸에 걸어, 왼쪽 첫 카드(수업 목표 또는 활동 열기)와
+   자리표가 같은 높이에서 시작합니다. */
 .lesson-lower {
   display: grid;
-  grid-template-columns: 1fr 320px;
-  gap: 32px;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
   align-items: start;
+  margin-top: 64px;
 }
 .lesson-lower-main {
   display: flex;
   flex-direction: column;
   min-width: 0;
+}
+/* 카드마다 들고 있는 위쪽 여백은 이 칸 안에서는 첫 카드에만 빼 줍니다
+   (여백이 두 번 겹치면 왼쪽만 아래로 밀려 오른쪽 자리표와 어긋납니다) */
+.lesson-lower-main > :first-child {
+  margin-top: 0;
 }
 /* 접힌 버튼 — 카드 자리와 높이를 맞춰 위쪽 줄이 나란해 보이게 */
 .lesson-seat-toggle {
@@ -6690,6 +6700,97 @@ pre code {
 }
 .lesson-seat-panel .lesson-note-empty {
   margin: 0;
+}
+
+/* 개별/모둠 보기 전환 — 자리표 머리줄에서 '칠판' 자리를 대신합니다.
+   참여 전광판의 보기 탭(.attend-mode-tabs)과 같은 모양으로 맞췄습니다. */
+.lesson-seat-tabs {
+  flex: 1;
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--neutral);
+}
+.lesson-seat-tabs button {
+  flex: 1;
+  padding: 5px 0;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-sub);
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.lesson-seat-tabs button:hover:not(:disabled):not(.active) {
+  color: var(--text);
+}
+.lesson-seat-tabs button.active {
+  background: #fff;
+  color: var(--primary-dark);
+  box-shadow: 0 1px 3px rgba(46, 36, 26, 0.12);
+}
+.lesson-seat-tabs button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* 모둠 보기 — 모둠마다 색 띠를 왼쪽에 두고 학생 칸을 흘려 놓습니다.
+   자리 칸(.attend-seat)은 개별 보기와 같은 것을 쓰되, 여기서는 자리 격자가
+   아니라 흐름 배치라 칸 너비를 따로 정해 줍니다. */
+.lesson-seat-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.lesson-seat-group {
+  padding-left: 9px;
+  border-left: 3px solid var(--group-color, var(--border));
+}
+.lesson-seat-group-name {
+  margin: 0 0 5px;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--group-color, var(--text-sub));
+}
+.lesson-seat-group-members {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.lesson-seat-group-members .attend-seat {
+  width: 52px;
+  flex: none;
+}
+
+/* compact은 '칠판 안내 문구를 빼는' 용도로만 쓰고(공부방 패널과 달리 이
+   패널은 본문 절반 폭이라 칸이 충분히 큽니다), 글자는 원래 크기로 되돌립니다
+   — 좁은 패널 기준으로 줄여 둔 8.5px를 그대로 두면 큰 칸에 깨알 글씨가
+   박힙니다. */
+.lesson-seat-panel .attend-seatmap--compact .attend-seatmap-grid {
+  gap: 6px;
+}
+.lesson-seat-panel .attend-seatmap--compact .attend-seat-name {
+  font-size: 12.5px;
+}
+.lesson-seat-panel .attend-seatmap--compact .attend-seat-no {
+  font-size: 10.5px;
+}
+.lesson-seat-panel .attend-seatmap--compact .attend-seat-fruit {
+  font-size: 10px;
+}
+.lesson-seat-panel .attend-seatmap--compact .attend-seat-hand {
+  font-size: 13px;
+  top: 2px;
+  right: 3px;
+}
+.lesson-seat-group-empty {
+  font-size: 11px;
+  font-style: normal;
+  color: var(--text-sub);
 }
 
 /* ── 수업 준비: 공부방 연동 ── */
