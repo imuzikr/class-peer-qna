@@ -34,6 +34,7 @@ import {
   deleteStudyBoard,
   duplicateStudyBoard,
   getDirectoryUser,
+  todayDateKey,
   REWARD_MAX,
 } from "@/lib/store";
 import {
@@ -54,6 +55,7 @@ import {
   IconDuplicate,
   IconPen,
   IconPeople,
+  IconSettings,
 } from "./StatusIcons";
 
 // 테스트용 학생 계정(test01~test05, 이메일에 포함) — 실제 학생이 아니라
@@ -97,6 +99,8 @@ export default function StudyProjectView({
   const [editingDesc, setEditingDesc] = useState(false);
   const [composing, setComposing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  // 보드 설정·현황 패널 — 예전 '⚙ 설정'을 되살린 자리
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const isNotice = board.type === "notice";
   const isGroup = board.activityType === "group";
@@ -267,6 +271,36 @@ export default function StudyProjectView({
 
   // 교사 요약 — 몇 개 활동이 열려 있는지 (활동 개수·잠금 관리는 왼쪽 활동 패널이 담당)
   const summaryOpenCount = activities.filter((_, i) => !isActivityLocked(board, i)).length;
+
+  // ── 보드 설정 패널의 '현황' 대시보드 ──
+  // 반 명단을 분모로 삼습니다(카드를 아직 안 만든 학생도 0으로 세야 실제
+  // 진행률이 나옵니다). 출석은 '오늘 기록이 하나라도 있는가'로 판단해,
+  // 출석을 아직 확인하지 않은 날에 0/28로 잘못 보이지 않게 합니다.
+  const stats = useMemo(() => {
+    if (isNotice || activities.length === 0 || classRoster.length === 0) return null;
+    const total = classRoster.length;
+    const rows = classRoster.map((s) => {
+      const c = cards.find((x) =>
+        isGroup ? x.memberUids?.includes(s.uid) : x.authorId === s.uid
+      );
+      return cardActivitySummary(c, activities);
+    });
+    const perAct = activities.map((_, i) => rows.filter((r) => r.segments[i]).length);
+    const filledSum = rows.reduce((sum, r) => sum + r.filled, 0);
+    const avgFilled = filledSum / total;
+    const todayKey = todayDateKey();
+    const presentToday = attendanceRecords.filter((r) => r.date === todayKey).length;
+    return {
+      total,
+      perAct,
+      started: rows.filter((r) => r.filled > 0).length,
+      doneAll: rows.filter((r) => r.filled === activities.length).length,
+      avgFilled,
+      avgPct: Math.round((avgFilled / activities.length) * 100),
+      presentToday,
+      attendanceKnown: presentToday > 0,
+    };
+  }, [isNotice, activities, classRoster, cards, isGroup, attendanceRecords]);
 
   // 이전 단일 keyword 필드와 새 keywords 배열 모두 지원
   const boardKeywords = Array.isArray(board.keywords)
@@ -446,144 +480,57 @@ export default function StudyProjectView({
               </span>
             )}
 
-            {/* 학생 — 지금 상태만 배지로 (바꿀 수 있는 건 교사뿐) */}
-            {!isTeacher && !isNotice && (
+            {/* 지금 상태를 한눈에 — 교사도 접힌 상태에선 배지로만 봅니다.
+                (바꾸는 건 아래 '보드 설정'을 펼쳐서) */}
+            {!isNotice && (
               <span className="study-project-badge soft">
                 {shared ? "함께 보기" : isGroup ? "자기 모둠만" : "나만 보기"}
               </span>
             )}
-            {!isTeacher && locked && (
-              <span className="study-project-badge lock">🔒 보기 전용</span>
-            )}
+            {locked && <span className="study-project-badge lock">🔒 보기 전용</span>}
 
-            {/* 교사 — 토글 대신 상태마다 버튼을 따로 두고, 지금 켜진 쪽에만
-                색을 넣습니다(한 번 눌러 봐야 뭐가 되는지 알던 것을 없앰). */}
-            {isTeacher && !isNotice && (
-              <span className="study-seg" role="group" aria-label="공개 범위">
-                <button
-                  type="button"
-                  className={`study-seg-btn${!shared ? " on lock" : ""}`}
-                  aria-pressed={!shared}
-                  onClick={() => shared && updateStudyBoard(board.id, { viewMode: "private" })}
-                  title={
-                    isGroup
-                      ? "각 모둠은 자기 카드만 봅니다"
-                      : "학생은 자기 카드만 열 수 있습니다"
-                  }
-                >
-                  <IconLock size={14} /> {isGroup ? "자기 모둠만" : "나만 보기"}
-                </button>
-                <button
-                  type="button"
-                  className={`study-seg-btn${shared ? " on" : ""}`}
-                  aria-pressed={shared}
-                  onClick={() => !shared && updateStudyBoard(board.id, { viewMode: "shared" })}
-                  title={
-                    isGroup
-                      ? "다른 모둠 카드도 읽기 전용으로 공개합니다"
-                      : "친구 카드도 읽기 전용으로 공개합니다"
-                  }
-                >
-                  <IconPeople size={14} /> 함께 보기
-                </button>
-              </span>
-            )}
-
+            {/* 교사 — 설정·현황은 한 버튼 아래로 모읍니다. 예전에 이 줄에
+                버튼이 열 개 넘게 늘어서서 제목보다 길어졌습니다. */}
             {isTeacher && (
-              <span className="study-seg" role="group" aria-label="편집 상태">
-                <button
-                  type="button"
-                  className={`study-seg-btn${!locked ? " on" : ""}`}
-                  aria-pressed={!locked}
-                  onClick={() => locked && updateStudyBoard(board.id, { editMode: "open" })}
-                  title="학생이 카드를 쓰고 고칠 수 있습니다"
-                >
-                  <IconPen size={14} /> 편집 가능
-                </button>
-                <button
-                  type="button"
-                  className={`study-seg-btn${locked ? " on lock" : ""}`}
-                  aria-pressed={locked}
-                  onClick={() => !locked && updateStudyBoard(board.id, { editMode: "locked" })}
-                  title="학생은 읽기만 할 수 있습니다"
-                >
-                  <IconLock size={14} /> 보기 전용
-                </button>
-              </span>
-            )}
-
-            {/* 교사 도구 — 같은 줄에 이어서 */}
-            {isTeacher && (
-              <>
-                {isGroup && (
-                  <button
-                    type="button"
-                    className="study-chip"
-                    onClick={() => setComposing(true)}
-                    title="모둠 구성 — 기본 모둠을 쓰거나 이 프로젝트에서만 다르게 구성"
-                  >
-                    <IconPeople size={15} /> 모둠 구성
-                  </button>
-                )}
-                {canAddOwnCard && (
-                  <button
-                    className="study-chip"
-                    onClick={() => setCreating(true)}
-                    title="교사가 올리는 예시·자료 카드를 추가합니다"
-                  >
-                    ＋ 카드 추가
-                  </button>
-                )}
-                <button
-                  className="study-chip"
-                  onClick={() => setDuplicating(true)}
-                  title="이 프로젝트를 다른 반으로 복제 (학생 기록은 초기화)"
-                >
-                  <IconDuplicate size={15} /> 다른 반으로 복제
-                </button>
-                {!isNotice && (
-                  confirmDelete ? (
-                    <span className="study-project-delete-confirm">
-                      <span>카드까지 모두 삭제됩니다.</span>
-                      <button className="study-chip danger" onClick={handleDeleteBoard}>
-                        정말 삭제
-                      </button>
-                      <button className="study-chip" onClick={() => setConfirmDelete(false)}>
-                        취소
-                      </button>
-                    </span>
-                  ) : (
-                    <button className="study-chip danger" onClick={() => setConfirmDelete(true)}>
-                      <IconTrash size={15} /> 프로젝트 삭제
-                    </button>
-                  )
-                )}
-
-                {/* 수업을 '지금 진행'하는 도구 — 성격이 달라 줄 오른쪽 끝으로 */}
-                <span className="study-project-live-tools">
-                  {!isNotice && (
-                    <button
-                      className="study-present-btn"
-                      onClick={() => presentCards.length > 0 && setPresenting(true)}
-                      disabled={presentCards.length === 0}
-                      title={presentCards.length > 0 ? "발표 모드 — 학생 카드를 크게 넘겨보기" : "아직 제출한 카드가 없어요"}
-                      aria-label="발표 모드"
-                    >
-                      ▶
-                    </button>
-                  )}
-                  {!isNotice && !isGroup && (
-                    <button
-                      className="study-check-btn"
-                      onClick={() => setProgressOpen(true)}
-                      title="공부중 전광판 — 학생별 제출 상태 확인"
-                      aria-label="공부중 전광판"
-                    >
-                      <IconCheck size={20} />
-                    </button>
-                  )}
+              <button
+                type="button"
+                className={`study-board-toggle${settingsOpen ? " on" : ""}`}
+                onClick={() => setSettingsOpen((v) => !v)}
+                aria-expanded={settingsOpen}
+                title={settingsOpen ? "보드 설정 접기" : "보드 설정·현황 펼치기"}
+              >
+                <IconSettings size={15} /> 보드 설정
+                <span className="study-board-toggle-caret" aria-hidden="true">
+                  {settingsOpen ? "▴" : "▾"}
                 </span>
-              </>
+              </button>
+            )}
+
+            {/* 수업을 '지금 진행'하는 도구 — 성격이 달라 줄 오른쪽 끝으로 */}
+            {isTeacher && (
+              <span className="study-project-live-tools">
+                {!isNotice && (
+                  <button
+                    className="study-present-btn"
+                    onClick={() => presentCards.length > 0 && setPresenting(true)}
+                    disabled={presentCards.length === 0}
+                    title={presentCards.length > 0 ? "발표 모드 — 학생 카드를 크게 넘겨보기" : "아직 제출한 카드가 없어요"}
+                    aria-label="발표 모드"
+                  >
+                    ▶
+                  </button>
+                )}
+                {!isNotice && !isGroup && (
+                  <button
+                    className="study-check-btn"
+                    onClick={() => setProgressOpen(true)}
+                    title="공부중 전광판 — 학생별 제출 상태 확인"
+                    aria-label="공부중 전광판"
+                  >
+                    <IconCheck size={20} />
+                  </button>
+                )}
+              </span>
             )}
           </div>
 
@@ -617,6 +564,191 @@ export default function StudyProjectView({
           )}
         </div>
       </div>
+
+      {/* ── 보드 설정 — 접었다 펴는 패널 ──
+          예전엔 이 설정들이 머리말 한 줄에 모두 늘어서서 제목보다 길었습니다.
+          지금은 '현황'(대시보드)과 '설정'을 이 안에 함께 담아, 필요할 때만
+          펼쳐 보고 관리합니다. */}
+      {isTeacher && settingsOpen && (
+        <div className="study-board-panel">
+          {/* 현황 — 활동 진척도 · 학생 진행률 · 출석 */}
+          {stats && (
+            <section className="study-board-section">
+              <h3 className="study-board-section-title">현황</h3>
+
+              <div className="study-board-stats">
+                <div className="study-board-stat">
+                  <span className="study-board-stat-label">시작한 학생</span>
+                  <strong>{stats.started}</strong>
+                  <small>/ {stats.total}명</small>
+                </div>
+                <div className="study-board-stat">
+                  <span className="study-board-stat-label">모두 제출</span>
+                  <strong>{stats.doneAll}</strong>
+                  <small>/ {stats.total}명</small>
+                </div>
+                <div className="study-board-stat">
+                  <span className="study-board-stat-label">평균 진행률</span>
+                  <strong>{stats.avgPct}%</strong>
+                  <small>{stats.avgFilled.toFixed(1)} / {activities.length}칸</small>
+                </div>
+                <div className="study-board-stat">
+                  <span className="study-board-stat-label">오늘 출석</span>
+                  {stats.attendanceKnown ? (
+                    <>
+                      <strong>{stats.presentToday}</strong>
+                      <small>/ {stats.total}명</small>
+                    </>
+                  ) : (
+                    <small className="study-board-stat-none">아직 확인 전</small>
+                  )}
+                </div>
+              </div>
+
+              {/* 활동별 진척도 — 활동마다 몇 명이 냈는지 */}
+              <ul className="study-board-acts">
+                {activities.map((act, i) => {
+                  const n = stats.perAct[i];
+                  const pct = stats.total > 0 ? Math.round((n / stats.total) * 100) : 0;
+                  const actLocked = isActivityLocked(board, i);
+                  return (
+                    <li key={i} className="study-board-act">
+                      <span className="study-board-act-no">활동 {i + 1}</span>
+                      <span className="study-board-act-name" title={act}>{act}</span>
+                      <span className={`progress-act-state${actLocked ? " locked" : ""}`}>
+                        {actLocked ? "잠김" : "열림"}
+                      </span>
+                      <span className="study-board-act-bar">
+                        <span
+                          className="study-board-act-fill"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </span>
+                      <span className="study-board-act-count">
+                        {n}/{stats.total}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          )}
+
+          {/* 설정 — 공개 범위 · 편집 상태 · 관리 */}
+          <section className="study-board-section">
+            <h3 className="study-board-section-title">설정</h3>
+
+            <div className="study-board-rows">
+              {!isNotice && (
+                <div className="study-board-row">
+                  <span className="study-board-row-label">공개 범위</span>
+                  <span className="study-seg" role="group" aria-label="공개 범위">
+                    <button
+                      type="button"
+                      className={`study-seg-btn${!shared ? " on lock" : ""}`}
+                      aria-pressed={!shared}
+                      onClick={() => shared && updateStudyBoard(board.id, { viewMode: "private" })}
+                      title={
+                        isGroup
+                          ? "각 모둠은 자기 카드만 봅니다"
+                          : "학생은 자기 카드만 열 수 있습니다"
+                      }
+                    >
+                      <IconLock size={14} /> {isGroup ? "자기 모둠만" : "나만 보기"}
+                    </button>
+                    <button
+                      type="button"
+                      className={`study-seg-btn${shared ? " on" : ""}`}
+                      aria-pressed={shared}
+                      onClick={() => !shared && updateStudyBoard(board.id, { viewMode: "shared" })}
+                      title={
+                        isGroup
+                          ? "다른 모둠 카드도 읽기 전용으로 공개합니다"
+                          : "친구 카드도 읽기 전용으로 공개합니다"
+                      }
+                    >
+                      <IconPeople size={14} /> 함께 보기
+                    </button>
+                  </span>
+                </div>
+              )}
+
+              <div className="study-board-row">
+                <span className="study-board-row-label">편집 상태</span>
+                <span className="study-seg" role="group" aria-label="편집 상태">
+                  <button
+                    type="button"
+                    className={`study-seg-btn${!locked ? " on" : ""}`}
+                    aria-pressed={!locked}
+                    onClick={() => locked && updateStudyBoard(board.id, { editMode: "open" })}
+                    title="학생이 카드를 쓰고 고칠 수 있습니다"
+                  >
+                    <IconPen size={14} /> 편집 가능
+                  </button>
+                  <button
+                    type="button"
+                    className={`study-seg-btn${locked ? " on lock" : ""}`}
+                    aria-pressed={locked}
+                    onClick={() => !locked && updateStudyBoard(board.id, { editMode: "locked" })}
+                    title="학생은 읽기만 할 수 있습니다"
+                  >
+                    <IconLock size={14} /> 보기 전용
+                  </button>
+                </span>
+              </div>
+
+              <div className="study-board-row">
+                <span className="study-board-row-label">관리</span>
+                <span className="study-board-row-actions">
+                  {isGroup && (
+                    <button
+                      type="button"
+                      className="study-chip"
+                      onClick={() => setComposing(true)}
+                      title="모둠 구성 — 기본 모둠을 쓰거나 이 프로젝트에서만 다르게 구성"
+                    >
+                      <IconPeople size={15} /> 모둠 구성
+                    </button>
+                  )}
+                  {canAddOwnCard && (
+                    <button
+                      className="study-chip"
+                      onClick={() => setCreating(true)}
+                      title="교사가 올리는 예시·자료 카드를 추가합니다"
+                    >
+                      ＋ 카드 추가
+                    </button>
+                  )}
+                  <button
+                    className="study-chip"
+                    onClick={() => setDuplicating(true)}
+                    title="이 프로젝트를 다른 반으로 복제 (학생 기록은 초기화)"
+                  >
+                    <IconDuplicate size={15} /> 다른 반으로 복제
+                  </button>
+                  {!isNotice && (
+                    confirmDelete ? (
+                      <span className="study-project-delete-confirm">
+                        <span>카드까지 모두 삭제됩니다.</span>
+                        <button className="study-chip danger" onClick={handleDeleteBoard}>
+                          정말 삭제
+                        </button>
+                        <button className="study-chip" onClick={() => setConfirmDelete(false)}>
+                          취소
+                        </button>
+                      </span>
+                    ) : (
+                      <button className="study-chip danger" onClick={() => setConfirmDelete(true)}>
+                        <IconTrash size={15} /> 프로젝트 삭제
+                      </button>
+                    )
+                  )}
+                </span>
+              </div>
+            </div>
+          </section>
+        </div>
+      )}
 
       {/* ── 개인 카드 그리드 ──
           자리 그리드(개별 활동)는 카드가 많아 한눈에 훑어야 하므로, 학생이

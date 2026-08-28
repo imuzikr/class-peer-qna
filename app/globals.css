@@ -10506,6 +10506,166 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   margin-left: auto;
   flex-shrink: 0;
 }
+
+/* ── 보드 설정 — 접었다 펴는 버튼과 패널 ──
+   설정 버튼을 다시 둔 이유: 상태·관리 버튼을 모두 머리말 한 줄에 늘어놓으니
+   제목보다 줄이 길어져, 정작 무슨 프로젝트인지가 묻혔습니다. 평소엔 지금
+   상태만 배지로 보여 주고, 바꿀 때만 펼칩니다. */
+.study-board-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.study-board-toggle:hover {
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+.study-board-toggle.on {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+.study-board-toggle-caret { font-size: 9px; }
+
+.study-board-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px 28px;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg-deep);
+  flex-shrink: 0;
+}
+.study-board-section {
+  flex: 1;
+  min-width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.study-board-section-title {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: var(--text-sub);
+}
+
+/* 현황 요약 타일 — 시작한 학생 / 모두 제출 / 평균 진행률 / 오늘 출석 */
+.study-board-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(108px, 1fr));
+  gap: 8px;
+}
+.study-board-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+}
+.study-board-stat-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.study-board-stat strong {
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--dark);
+  line-height: 1.2;
+}
+.study-board-stat small { font-size: 11px; color: var(--text-sub); }
+.study-board-stat-none { padding: 5px 0; }
+
+/* 활동별 진척도 — 활동마다 '몇 명이 냈는가'를 막대로 */
+.study-board-acts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.study-board-act {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+.study-board-act-no {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--primary-dark);
+  white-space: nowrap;
+}
+/* 활동 이름이 길어도 막대가 밀리지 않게 잘라 둡니다 */
+.study-board-act-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+.study-board-act-bar {
+  flex-shrink: 0;
+  width: 110px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--neutral);
+  overflow: hidden;
+}
+.study-board-act-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: #a6d8b6;
+}
+.study-board-act-count {
+  flex-shrink: 0;
+  min-width: 42px;
+  text-align: right;
+  font-weight: 700;
+  color: var(--text-sub);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 설정 줄 — 라벨 + 조작 */
+.study-board-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.study-board-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+}
+.study-board-row-label {
+  width: 62px;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.study-board-row-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
 .study-project-view-desc {
   font-size: 13px;
   line-height: 1.5;
