@@ -35,7 +35,6 @@ import ConfirmModal from "@/components/ConfirmModal";
 import StudentNotesThread from "@/components/StudentNotesThread";
 import RewardFruits, { rewardStars } from "@/components/RewardFruits";
 import StudentKwlPanel from "@/components/StudentKwlPanel";
-import StudyProjectGrid from "@/components/StudyProjectGrid";
 import BookActivityStats from "@/components/BookActivityStats";
 import ClassOverview from "@/components/ClassOverview";
 import StudyRoomStats from "@/components/StudyRoomStats";
@@ -624,18 +623,6 @@ export default function AdminDashboardPage() {
     [questions]
   );
 
-  // 종합 분석에서 고른 반의 소속 학생 uid — 아래 참여자 집합
-  // (classParticipantIds)과 다릅니다. 저쪽은 '카드나 KWL을 남긴 사람'이라
-  // 아무것도 안 한 학생이 빠지는데, 제출 격자는 바로 그 학생을 보여주는
-  // 것이 목적이라 명단이 따로 필요합니다.
-  const [overviewMemberIds, setOverviewMemberIds] = useState(null);
-  useEffect(() => {
-    if (!selectedClassId) { setOverviewMemberIds(null); return; }
-    return subscribeClassMembers(selectedClassId, (uids) =>
-      setOverviewMemberIds(new Set(uids))
-    );
-  }, [selectedClassId]);
-
   // 학급 전체 통계 — 선택한 반(selectedClassId)의 참여 학생 집합.
   // 질문은 반 구분이 없으므로, "그 반의 공부방/KWL에 참여한 학생"을 반의
   // 명부로 보고 그들의 (전역) 질문·답변을 집계합니다. null = 전체 학급.
@@ -656,17 +643,6 @@ export default function AdminDashboardPage() {
       });
     return ids;
   }, [selectedClassId, myBoards, cardsByBoard, allKwl]);
-
-  // 격자에 넘길 학생 — 반 명단이 기본이고, 명단에 없는데 활동 기록이 있는
-  // 학생(예전 데이터)도 빠지지 않게 참여자 집합과 합칩니다.
-  const gridStudents = useMemo(() => {
-    if (!selectedClassId) return [];
-    const ids = new Set([
-      ...(overviewMemberIds ?? []),
-      ...(classParticipantIds ?? []),
-    ]);
-    return students.filter((s) => ids.has(s.id));
-  }, [selectedClassId, overviewMemberIds, classParticipantIds, students]);
 
   const overviewStudents = classParticipantIds
     ? students.filter((s) => classParticipantIds.has(s.id))
@@ -1050,17 +1026,6 @@ export default function AdminDashboardPage() {
                 kwl={allKwl}
                 classId={selectedClassId}
               />
-              {/* 학생 × 프로젝트 격자 — 반을 하나 골랐을 때만.
-                  전체 학급을 합쳐 깔면 학생도 프로젝트도 서로 다른 반의
-                  것이 섞여 격자의 가로·세로줄이 뜻을 잃습니다. */}
-              {selectedClassId && (
-                <StudyProjectGrid
-                  boards={myBoards.filter((b) => b.classId === selectedClassId)}
-                  cardsByBoard={cardsByBoard}
-                  students={gridStudents}
-                  className={myClasses.find((c) => c.id === selectedClassId)?.name ?? ""}
-                />
-              )}
               {/* 책방도 반 단위 — 게다가 활동 하나씩만 집계할 수 있습니다
                   (words·entries에 collectionGroup 규칙이 없음) */}
               {selectedClassId && <BookActivityStats classId={selectedClassId} />}
