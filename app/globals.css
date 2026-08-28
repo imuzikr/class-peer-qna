@@ -15797,9 +15797,12 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   color: #e8956c;
 }
 
-/* ── 자료 제공 — 패널 맨 아래에 늘 붙어 있는 접이식 칸 ──
-   접혀 있을 때는 활동 한 줄(.study-activity-row)과 같은 크기라, 활동 목록
-   끝에 한 줄이 더 있는 것처럼 보입니다. 누르면 아래로 펼쳐집니다. */
+/* ── 자료 제공 — 패널 맨 아래 버튼 + 화면 가운데 모달 ──
+   버튼은 활동 한 줄(.study-activity-row)과 같은 크기라 활동 목록 끝에 한 줄이
+   더 있는 것처럼 보입니다. 누르면 가운데 모달이 열립니다 — 패널 폭(약 260px)
+   안에서 펼치면 설명 입력칸이 너무 좁았습니다.
+   아래 폼 요소들은 흰 모달 안에 놓이므로 밝은 색으로 맞춥니다(패널의 어두운
+   배색을 쓰는 것은 .study-material-toggle 하나뿐입니다). */
 .study-material {
   margin-top: auto; /* 활동이 몇 개든 항상 맨 아래 */
   padding-top: 12px;
@@ -15830,10 +15833,6 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   border-color: var(--primary);
   background: rgba(217, 119, 87, 0.14);
 }
-.study-material.open .study-material-toggle {
-  border-color: var(--primary);
-  color: #fff;
-}
 .study-material-label {
   display: inline-flex;
   align-items: center;
@@ -15850,50 +15849,77 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   font-weight: 800;
   text-align: center;
 }
+.study-material-caret { color: #9a988e; font-size: 13px; font-weight: 800; }
+
+/* ── 자료 제공 모달 ── */
+.study-material-modal {
+  max-width: 720px;
+  display: flex;
+  flex-direction: column;
+}
+/* 어느 프로젝트의 자료인지 — 제목 옆에 작게 */
+.study-material-modal-project {
+  margin-left: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-sub);
+}
+.study-material-hint {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--text-sub);
+}
+.study-material-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
 /* 자료 한 장 — 활동 고르기 + 글 + 이미지 */
 .study-material-item {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 8px;
-  background: rgba(0, 0, 0, 0.16);
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  background: var(--bg-deep);
 }
 .study-material-item-head {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 .study-material-select {
   flex: 1;
   min-width: 0;
-  padding: 5px 7px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 6px;
-  background: var(--sidebar-bg);
-  color: #e8e6dd;
-  font-family: inherit;
-  font-size: 12px;
-}
-.study-material-select:focus { outline: none; border-color: var(--primary); }
-.study-material-caret { color: #9a988e; font-size: 11px; }
-.study-material-body {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.study-material-text {
-  width: 100%;
-  min-height: 96px;
-  padding: 8px 10px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 8px;
-  background: rgba(0, 0, 0, 0.22);
-  color: #e8e6dd;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  background: #fff;
+  color: var(--text);
   font-family: inherit;
   font-size: 13px;
-  line-height: 1.6;
+}
+.study-material-select:focus { outline: none; border-color: var(--primary); }
+/* 모달 안에서는 자료 삭제 ✕도 밝은 배경에 맞춥니다 */
+.study-material-item .study-activity-row-del {
+  color: var(--text-sub);
+}
+.study-material-item .study-activity-row-del:hover {
+  color: var(--danger);
+}
+/* 좁은 패널에서 벗어난 만큼 입력칸을 넉넉하게 — 여기가 이 모달의 핵심입니다 */
+.study-material-text {
+  width: 100%;
+  min-height: 200px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  background: #fff;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1.75;
   resize: vertical;
 }
 .study-material-text:focus {
@@ -15902,31 +15928,82 @@ button.study-cal-cell.has-record:not(:disabled):hover {
 }
 .study-material-image {
   position: relative;
-  border-radius: 8px;
+  border-radius: var(--radius-btn);
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  border: 1px solid var(--border);
 }
 .study-material-image img {
   display: block;
   width: 100%;
-  max-height: 180px;
-  object-fit: cover;
+  max-height: 260px;
+  object-fit: contain;
+  background: #fff;
 }
 .study-material-image-add {
   display: block;
-  padding: 8px;
-  border: 1px dashed rgba(255, 255, 255, 0.18);
-  border-radius: 8px;
-  font-size: 12.5px;
-  color: #9a988e;
+  padding: 12px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-btn);
+  font-size: 13px;
+  color: var(--text-sub);
   text-align: center;
   cursor: pointer;
   transition: border-color 0.15s, color 0.15s;
 }
 .study-material-image-add:hover {
   border-color: var(--primary);
-  color: #e8956c;
+  color: var(--primary-dark);
 }
+.study-material-add {
+  padding: 10px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-btn);
+  background: none;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-sub);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.study-material-add:hover {
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+/* 저장 줄 — 자료가 많아 본문이 길어져도 버튼이 늘 보이게 아래에 고정 */
+.study-material-modal-foot {
+  position: sticky;
+  bottom: -28px; /* .modal의 아래 padding만큼 당겨 바닥에 붙입니다 */
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+  padding: 14px 0;
+  border-top: 1px solid var(--border);
+  background: #fff;
+}
+.study-material-cancel,
+.study-material-save {
+  flex: 1;
+  border: none;
+  border-radius: var(--radius-btn);
+  padding: 11px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.study-material-cancel {
+  background: var(--neutral);
+  color: var(--text);
+}
+.study-material-cancel:hover { background: var(--border); }
+.study-material-save {
+  background: var(--primary);
+  color: #fff;
+}
+.study-material-save:hover:not(:disabled) { background: var(--primary-dark); }
+.study-material-save:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .study-activity-panel-actions {
   display: flex;

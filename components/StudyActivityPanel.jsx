@@ -27,6 +27,7 @@ import {
   boardMaterials,
 } from "@/lib/activities";
 import { uploadImage } from "@/lib/storageUpload";
+import { backdropClose } from "@/lib/modal";
 import { cardProgress } from "./StudyProgressBoard";
 import UploadProgress from "./UploadProgress";
 import { IconLock } from "./StatusIcons";
@@ -264,6 +265,11 @@ export default function StudyActivityPanel({
 // 자료마다 '어느 활동의 것인지'를 골라 둡니다 — 활동이 여러 개인 프로젝트에서
 // 자료를 여러 장 올리면, 학생 쪽에서 어느 활동을 보라고 준 자료인지 알 수
 // 없었습니다. '전체'는 활동을 가리지 않는 공통 자료입니다.
+//
+// 버튼은 패널 맨 아래에 두되, 실제 작성은 화면 가운데 모달에서 합니다 —
+// 사이드 패널 폭(약 260px)에서 펼치면 설명 글 입력칸이 손바닥만 해서 몇 줄만
+// 써도 답답했고, 활동 목록까지 밀려 내려가 자료를 쓰는 동안 활동이 안
+// 보였습니다.
 function MaterialSection({ board, activities }) {
   const boardId = board?.id ?? null;
   const saved = boardMaterials(board);
@@ -336,12 +342,21 @@ function MaterialSection({ board, activities }) {
     }
   }
 
+  // 모달을 닫을 때 저장하지 않은 편집분이 있으면 한 번 물어봅니다 — 넓은
+  // 입력칸에서 길게 쓰다 배경을 잘못 눌러 통째로 날리는 일을 막습니다.
+  function requestClose() {
+    if (dirty && !confirm("저장하지 않은 자료 편집 내용이 있어요. 닫을까요?")) return;
+    setItems(boardMaterials(board));
+    setOpen(false);
+  }
+
   return (
-    <div className={`study-material${open ? " open" : ""}`}>
+    <div className="study-material">
       <button
         type="button"
         className="study-material-toggle"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => setOpen(true)}
+        aria-haspopup="dialog"
         aria-expanded={open}
       >
         <span className="study-material-label">
@@ -350,98 +365,125 @@ function MaterialSection({ board, activities }) {
             <span className="study-material-count">{saved.length}</span>
           )}
         </span>
-        <span className="study-material-caret" aria-hidden="true">{open ? "▴" : "▾"}</span>
+        <span className="study-material-caret" aria-hidden="true">＋</span>
       </button>
 
       {open && (
-        <div className="study-material-body">
-          <p className="study-activity-panel-hint">
-            학생 활동 화면 맨 위에 접힌 상자로 보여 줍니다. 자료마다 어느
-            활동의 것인지 골라 주세요.
-          </p>
-
-          {items.length === 0 && (
-            <p className="study-activity-panel-hint">아직 올린 자료가 없어요.</p>
-          )}
-
-          {items.map((m, n) => (
-            <div className="study-material-item" key={m.id}>
-              <div className="study-material-item-head">
-                <select
-                  className="study-material-select"
-                  value={typeof m.actIndex === "number" ? m.actIndex : ""}
-                  onChange={(e) =>
-                    patch(m.id, {
-                      actIndex: e.target.value === "" ? null : Number(e.target.value),
-                    })
-                  }
-                  aria-label={`자료 ${n + 1}의 활동`}
-                >
-                  <option value="">전체 활동</option>
-                  {activities.map((act, i) => (
-                    <option key={i} value={i}>
-                      활동 {i + 1}. {act}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  className="study-activity-row-del"
-                  onClick={() => removeItem(m.id)}
-                  aria-label={`자료 ${n + 1} 삭제`}
-                >
-                  ✕
-                </button>
-              </div>
-
-              <textarea
-                className="study-material-text"
-                value={m.text ?? ""}
-                onChange={(e) => patch(m.id, { text: e.target.value })}
-                placeholder="설명·참고 글을 적어 주세요."
-                maxLength={2000}
-              />
-
-              {m.image ? (
-                <div className="study-material-image">
-                  <img src={m.image} alt="제공 자료" />
-                  <button
-                    type="button"
-                    className="attach-image-grid-del"
-                    onClick={() => patch(m.id, { image: null })}
-                    aria-label="이미지 삭제"
-                  >
-                    ✕
-                  </button>
-                </div>
-              ) : (
-                <label className="study-material-image-add">
-                  + 이미지 올리기
-                  <input
-                    type="file"
-                    accept=".jpg,.jpeg,.png,.gif,.webp"
-                    onChange={(e) => handleImage(e, m.id)}
-                    hidden
-                  />
-                </label>
-              )}
-            </div>
-          ))}
-
-          <UploadProgress pct={pct} />
-
-          <button type="button" className="study-activity-panel-add" onClick={addItem}>
-            + 자료 추가
-          </button>
-
-          <button
-            type="button"
-            className="study-activity-panel-save"
-            onClick={handleSave}
-            disabled={saving || !dirty}
+        <div className="modal-backdrop" {...backdropClose(requestClose)}>
+          <div
+            className="modal study-material-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="study-material-title"
+            onClick={(e) => e.stopPropagation()}
           >
-            {saving ? "저장 중..." : dirty ? "자료 저장" : "저장됨"}
-          </button>
+            <div className="modal-head">
+              <h3 id="study-material-title">
+                📎 자료 제공
+                {board?.title && (
+                  <span className="study-material-modal-project">{board.title}</span>
+                )}
+              </h3>
+              <button className="btn-close" onClick={requestClose} aria-label="닫기">
+                ×
+              </button>
+            </div>
+
+            <div className="study-material-body">
+              <p className="study-material-hint">
+                학생 활동 화면 맨 위에 접힌 상자로 보여 줍니다. 자료마다 어느
+                활동의 것인지 골라 주세요.
+              </p>
+
+              {items.length === 0 && (
+                <p className="study-material-hint">아직 올린 자료가 없어요.</p>
+              )}
+
+              {items.map((m, n) => (
+                <div className="study-material-item" key={m.id}>
+                  <div className="study-material-item-head">
+                    <select
+                      className="study-material-select"
+                      value={typeof m.actIndex === "number" ? m.actIndex : ""}
+                      onChange={(e) =>
+                        patch(m.id, {
+                          actIndex: e.target.value === "" ? null : Number(e.target.value),
+                        })
+                      }
+                      aria-label={`자료 ${n + 1}의 활동`}
+                    >
+                      <option value="">전체 활동</option>
+                      {activities.map((act, i) => (
+                        <option key={i} value={i}>
+                          활동 {i + 1}. {act}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      className="study-activity-row-del"
+                      onClick={() => removeItem(m.id)}
+                      aria-label={`자료 ${n + 1} 삭제`}
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  <textarea
+                    className="study-material-text"
+                    value={m.text ?? ""}
+                    onChange={(e) => patch(m.id, { text: e.target.value })}
+                    placeholder="설명·참고 글을 적어 주세요."
+                    maxLength={2000}
+                  />
+
+                  {m.image ? (
+                    <div className="study-material-image">
+                      <img src={m.image} alt="제공 자료" />
+                      <button
+                        type="button"
+                        className="attach-image-grid-del"
+                        onClick={() => patch(m.id, { image: null })}
+                        aria-label="이미지 삭제"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="study-material-image-add">
+                      + 이미지 올리기
+                      <input
+                        type="file"
+                        accept=".jpg,.jpeg,.png,.gif,.webp"
+                        onChange={(e) => handleImage(e, m.id)}
+                        hidden
+                      />
+                    </label>
+                  )}
+                </div>
+              ))}
+
+              <UploadProgress pct={pct} />
+
+              <button type="button" className="study-material-add" onClick={addItem}>
+                + 자료 추가
+              </button>
+            </div>
+
+            <div className="study-material-modal-foot">
+              <button type="button" className="study-material-cancel" onClick={requestClose}>
+                닫기
+              </button>
+              <button
+                type="button"
+                className="study-material-save"
+                onClick={handleSave}
+                disabled={saving || !dirty}
+              >
+                {saving ? "저장 중..." : dirty ? "자료 저장" : "저장됨"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
