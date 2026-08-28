@@ -78,6 +78,7 @@ import ClassEntry from "@/components/ClassEntry";
 import ClassManagerModal from "@/components/ClassManagerModal";
 import Toast from "@/components/Toast";
 import KwlPanel from "@/components/KwlPanel";
+import TeacherKwlPanel from "@/components/TeacherKwlPanel";
 import LessonManagerModal from "@/components/LessonManagerModal";
 import LessonMode from "@/components/LessonMode";
 import StudyAttendanceModal from "@/components/StudyAttendanceModal";
@@ -665,23 +666,32 @@ function StudyPageInner() {
             {/* KWLS 차트 (학생) — 떠 있는 오버레이가 아니라 플렉스 칸을 차지해,
                 폭이 0에서 벌어지며 오른쪽 화면을 밀어냅니다. 칸(슬롯)은 늘
                 자리에 있고 폭만 바뀌므로 여닫이가 부드럽게 이어집니다. */}
-            {!admin && classId && user && (
+            {classId && user && (
               <div
                 className={`study-kwl-slot${kwlPanelOpen ? " open" : ""}`}
                 aria-hidden={!kwlPanelOpen}
               >
-                {kwlPanelOpen && (
-                  <KwlPanel
-                    classId={classId}
-                    user={user}
-                    isTeacher={false}
-                    onAsk={(text) => setAskKwlW(text)}
-                    /* 모바일에선 폭을 벌릴 자리가 없어 예전처럼 떠 있는
-                       패널로 열립니다(.kwl-panel--open) */
-                    mobileOpen={kwlPanelOpen}
-                    onMobileClose={() => setKwlPanelOpen(false)}
-                  />
-                )}
+                {kwlPanelOpen &&
+                  (admin ? (
+                    // 교사 — 내가 쓰는 곳이 아니라 '반이 어디까지 썼나'를 봅니다
+                    <TeacherKwlPanel
+                      classId={classId}
+                      user={user}
+                      roster={roster}
+                      onClose={() => setKwlPanelOpen(false)}
+                    />
+                  ) : (
+                    <KwlPanel
+                      classId={classId}
+                      user={user}
+                      isTeacher={false}
+                      onAsk={(text) => setAskKwlW(text)}
+                      /* 모바일에선 폭을 벌릴 자리가 없어 예전처럼 떠 있는
+                         패널로 열립니다(.kwl-panel--open) */
+                      mobileOpen={kwlPanelOpen}
+                      onMobileClose={() => setKwlPanelOpen(false)}
+                    />
+                  ))}
               </div>
             )}
             <StudyActivityPanel
@@ -788,6 +798,20 @@ function StudyPageInner() {
                         onClick={() => setClassManagerOpen(true)}
                       >
                         🗂 반 관리하기
+                      </button>
+                    )}
+                    {admin && currentClass && (
+                      <button
+                        className={`btn-ghost${kwlPanelOpen ? " active" : ""}`}
+                        onClick={() => setKwlPanelOpen((v) => !v)}
+                        aria-pressed={kwlPanelOpen}
+                        title={
+                          kwlPanelOpen
+                            ? "KWLS 차트를 닫습니다"
+                            : "KWLS 차트를 왼쪽에 펼칩니다 — 작성 현황·궁금한 점 모아보기"
+                        }
+                      >
+                        📝 KWLS 차트
                       </button>
                     )}
                     {admin && currentClass && classBoards.length > 0 && (
@@ -897,7 +921,7 @@ function StudyPageInner() {
       )}
 
       {/* 학생 KWLS 차트 — 모바일에서 떠 있을 때의 배경(누르면 닫힘) */}
-      {!admin && kwlPanelOpen && (
+      {kwlPanelOpen && (
         <div
           className="kwl-mobile-backdrop"
           onClick={() => setKwlPanelOpen(false)}

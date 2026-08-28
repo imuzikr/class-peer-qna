@@ -8909,7 +8909,237 @@ pre code {
 }
 .study-kwl-slot.open { width: 300px; }
 /* 닫히는 동안 안쪽 패널이 찌그러지지 않도록 폭을 붙잡아 둡니다 */
-.study-kwl-slot > .kwl-panel {
+.study-kwl-slot > /* ── KWLS 차트 · 교사용 패널 ──
+   학생용과 같은 자리(.kwl-panel)를 쓰되 담는 게 다릅니다 — 작성 현황,
+   '알기를 원하는 것' 모아보기, 학생 × K·W·L·S 격자. 어두운 사이드바
+   배경 위라 글자·선 색을 밝은 쪽으로 맞춥니다. */
+.teacher-kwl { gap: 14px; }
+.tkwl-head {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.tkwl-date {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #fff;
+}
+.tkwl-date button {
+  width: 24px;
+  height: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 6px;
+  background: none;
+  color: #c5c4bc;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+.tkwl-date button:hover { border-color: var(--primary); color: #e8956c; }
+.tkwl-head-actions { display: flex; gap: 6px; }
+.tkwl-today,
+.tkwl-full {
+  flex: 1;
+  padding: 5px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  background: none;
+  color: #c5c4bc;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.tkwl-today:hover,
+.tkwl-full:hover { border-color: var(--primary); color: #e8956c; }
+
+.tkwl-section { display: flex; flex-direction: column; gap: 8px; }
+.tkwl-title {
+  font-size: 12px;
+  font-weight: 800;
+  color: #c5c4bc;
+  letter-spacing: 0.4px;
+}
+.tkwl-title small { font-weight: 600; color: #8f8d84; margin-left: 4px; }
+.tkwl-empty { font-size: 12.5px; color: #8f8d84; line-height: 1.6; }
+
+/* [C] 집계 — K·W·L·S 칸마다 작성 인원 */
+.tkwl-counts { display: flex; align-items: center; gap: 6px; }
+.tkwl-count {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 6px 2px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.18);
+}
+.tkwl-count b { font-size: 11px; font-weight: 800; color: #e8956c; }
+.tkwl-count em { font-style: normal; font-size: 15px; font-weight: 800; color: #fff; }
+.tkwl-count--total {
+  flex: 0 0 auto;
+  border: none;
+  background: none;
+  font-size: 11.5px;
+  color: #8f8d84;
+}
+.tkwl-notstarted {
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: #9a988e;
+}
+.tkwl-notstarted > span {
+  display: block;
+  font-weight: 800;
+  color: #d99a7f;
+}
+
+/* [B] '알기를 원하는 것' 모아보기 — 수업에서 바로 집어 쓰는 목록 */
+.tkwl-wants {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+.tkwl-wants li {
+  padding: 8px 9px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.18);
+}
+.tkwl-wants li.live { border-color: var(--primary); }
+.tkwl-want-text {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: #e8e6dd;
+  white-space: pre-wrap;
+}
+.tkwl-want-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 5px;
+}
+.tkwl-want-who { font-size: 11px; font-weight: 700; color: #8f8d84; }
+.tkwl-cast {
+  padding: 3px 9px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  background: none;
+  color: #c5c4bc;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.tkwl-cast:hover { border-color: var(--primary); color: #e8956c; }
+.tkwl-cast.on {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+/* [A] 학생 × K·W·L·S 격자 — 전광판과 같은 시각 언어 */
+.tkwl-grid-head,
+.tkwl-row {
+  display: grid;
+  grid-template-columns: 1fr repeat(4, 20px);
+  gap: 4px;
+  align-items: center;
+}
+.tkwl-grid-head span {
+  text-align: center;
+  font-size: 10.5px;
+  font-weight: 800;
+  color: #8f8d84;
+}
+.tkwl-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.tkwl-row-name {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  min-width: 0;
+  font-size: 11.5px;
+  color: #d8d6cc;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tkwl-row-name em {
+  font-style: normal;
+  font-size: 10px;
+  color: #8f8d84;
+  font-variant-numeric: tabular-nums;
+}
+.tkwl-cell {
+  width: 20px;
+  height: 18px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  padding: 0;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+.tkwl-cell:hover { transform: scale(1.15); }
+/* 읽기 전(K·W)과 읽은 뒤(L·S)를 색으로 갈라, 어디서 멈췄는지 바로 보이게 */
+.tkwl-cell.on.before { background: #7a9ec4; border-color: #6b8db2; }
+.tkwl-cell.on.after { background: #7fb98a; border-color: #6aa877; }
+.tkwl-cell.picked { box-shadow: 0 0 0 2px var(--primary); }
+
+/* 칸을 누르면 뜨는 전문 — 패널 안 아래쪽에 붙습니다 */
+.tkwl-pop {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--primary);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.28);
+}
+.tkwl-pop-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.tkwl-pop-head strong { font-size: 13px; color: #fff; }
+.tkwl-pop-head button {
+  border: none;
+  background: none;
+  color: #8f8d84;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+.tkwl-pop-label { font-size: 11px; font-weight: 800; color: #e8956c; }
+.tkwl-pop-text {
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: #e8e6dd;
+  white-space: pre-wrap;
+  max-height: 160px;
+  overflow-y: auto;
+}
+.tkwl-pop-text.empty { color: #8f8d84; }
+
+.kwl-panel {
   width: 300px;
   height: 100%;
 }
