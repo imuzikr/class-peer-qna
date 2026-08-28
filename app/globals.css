@@ -9468,6 +9468,119 @@ pre code {
   margin-bottom: 6px;
 }
 
+/* ── KWLS 학기 히트맵 (기록 탭 맨 위) ──────────────────────────
+   사이드바가 300px뿐이라 주 컬럼에 고정 폭을 주면 넘칩니다. 한 학기(약
+   19주)를 flex로 균등 분할해 폭에 맞춰 늘고 줄게 둡니다 — 공부방
+   히트맵(.heatmap-week)이 쓰는 방식과 같습니다.
+   농도는 그날 채운 칸 수(0~4). 어두운 패널이라 밝은 화면용 팔레트
+   (LEVEL_COLORS) 대신 kwl-badge-l(#2e6b3e)~tkwl-cell.on.after(#7fb98a)
+   사이를 잇는 어두운 배경용 다섯 단계를 씁니다. */
+.kwls-hm {
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  padding-bottom: 12px;
+  margin-bottom: 10px;
+}
+
+.kwls-hm-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 8px;
+}
+.kwls-hm-head h4 {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #c5c4bc;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.kwls-hm-head h4 small {
+  font-size: 10.5px;
+  font-weight: 400;
+  color: #87867f;
+}
+.kwls-hm-stat { font-size: 11px; color: #87867f; }
+.kwls-hm-stat b { color: #7fb98a; font-weight: 700; }
+
+.kwls-hm-grid { display: flex; gap: 4px; }
+
+.kwls-hm-days {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-shrink: 0;
+  padding-top: 13px; /* 달 이름 줄만큼 내려 칸과 줄을 맞춥니다 */
+}
+.kwls-hm-days span {
+  height: 11px;
+  font-size: 8px;
+  line-height: 11px;
+  color: #6f6e68;
+}
+
+.kwls-hm-weeks { flex: 1; min-width: 0; }
+
+.kwls-hm-months {
+  display: flex;
+  gap: 2px;
+  height: 13px;
+}
+.kwls-hm-months span {
+  flex: 1;
+  min-width: 0;
+  font-size: 8.5px;
+  color: #6f6e68;
+  white-space: nowrap;
+}
+
+.kwls-hm-body { display: flex; gap: 2px; }
+
+.kwls-hm-week {
+  flex: 1;
+  min-width: 0; /* 고정 폭이면 19주가 300px 패널을 넘칩니다 */
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.kwls-hm-cell {
+  height: 11px;
+  border: none;
+  padding: 0;
+  border-radius: 2px;
+  background: rgba(255,255,255,0.06);
+}
+.kwls-hm-cell:not(:disabled) { cursor: pointer; }
+.kwls-hm-cell.lv1 { background: #2e6b3e; }
+.kwls-hm-cell.lv2 { background: #3f8a52; }
+.kwls-hm-cell.lv3 { background: #5aa86b; }
+.kwls-hm-cell.lv4 { background: #7fb98a; }
+/* 아직 오지 않은 날 — 격자 모양은 지키되 '안 씀'과 구분되게 더 흐리게 */
+.kwls-hm-cell.future { background: rgba(255,255,255,0.02); }
+.kwls-hm-cell.on { box-shadow: 0 0 0 2px var(--primary, #e07a5f); }
+.kwls-hm-cell:not(:disabled):hover { box-shadow: 0 0 0 2px rgba(255,255,255,0.45); }
+
+.kwls-hm-legend {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 8px;
+  font-size: 9.5px;
+  color: #6f6e68;
+}
+.kwls-hm-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: rgba(255,255,255,0.06);
+}
+.kwls-hm-swatch.lv1 { background: #2e6b3e; }
+.kwls-hm-swatch.lv2 { background: #3f8a52; }
+.kwls-hm-swatch.lv3 { background: #5aa86b; }
+.kwls-hm-swatch.lv4 { background: #7fb98a; }
+
 /* ── KWL 지난 기록 탭 ── */
 .kwl-history { flex: 1; overflow-y: auto; }
 

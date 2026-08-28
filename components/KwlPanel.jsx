@@ -7,7 +7,13 @@ import { subscribeMyTodayKwl, subscribeAllKwl, subscribeMyAllKwl, addKwl, update
 import { IconRecord } from "@/components/StatusIcons";
 import { IconPen } from "@/components/RichTextEditor";
 import KwlFullscreenModal from "@/components/KwlFullscreenModal";
-import { KWLS_COLUMNS, emptyKwlsAnswers, kwlsAnswersFromEntry } from "@/lib/kwls";
+import {
+  KWLS_COLUMNS,
+  emptyKwlsAnswers,
+  kwlsAnswersFromEntry,
+  kwlsFilledKeysOf,
+} from "@/lib/kwls";
+import KwlSemesterHeatmap from "@/components/KwlSemesterHeatmap";
 
 function getToday() {
   // 로컬(사용자 시간대) 자정 기준 날짜 — UTC 기준이면 KST 오전 9시에
@@ -22,19 +28,6 @@ function getToday() {
 function formatDateLabel(dateStr) {
   const d = new Date(dateStr + "T00:00:00");
   return d.toLocaleDateString("ko-KR", { month: "long", day: "numeric", weekday: "short" });
-}
-
-// 그 날 채운 칸 모으기 — 한 날짜에 항목이 여럿이면 합쳐서 봅니다.
-// (하루 1개가 원칙이지만 예전 append 방식으로 쌓인 날이 있습니다)
-function filledKeysOf(entries) {
-  const filled = new Set();
-  entries.forEach((e) => {
-    const a = kwlsAnswersFromEntry(e);
-    KWLS_COLUMNS.forEach((c) => {
-      if (String(a[c.key] ?? "").trim()) filled.add(c.key);
-    });
-  });
-  return filled;
 }
 
 // 그 날의 진행 단계 — 왼쪽 색 띠에 씁니다. 교사 격자(tkwl-cell)와 같은
@@ -334,13 +327,20 @@ export default function KwlPanel({ classId, user, isTeacher, onAsk, mobileOpen, 
           {historyDates.length === 0 ? (
             <p className="kwl-history-empty">아직 저장된 기록이 없어요.</p>
           ) : (
-            <ul className="kwl-history-list">
+            <>
+              {/* 한 학기를 한 판에 — 칸을 누르면 아래 목록에서 그 날이 펼쳐집니다 */}
+              <KwlSemesterHeatmap
+                entries={history}
+                selectedDate={expandedDate}
+                onPickDate={(d) => setExpandedDate((prev) => (prev === d ? null : d))}
+              />
+              <ul className="kwl-history-list">
               {historyDates.map((date) => {
                 const open = expandedDate === date;
                 const entries = historyByDate[date];
                 const firstAnswers = kwlsAnswersFromEntry(entries[0]);
                 const preview = KWLS_COLUMNS.map((c) => firstAnswers[c.key]).find(Boolean) || "";
-                const filled = filledKeysOf(entries);
+                const filled = kwlsFilledKeysOf(entries);
                 const stage = historyStageOf(filled);
                 return (
                   <li
@@ -395,7 +395,8 @@ export default function KwlPanel({ classId, user, isTeacher, onAsk, mobileOpen, 
                   </li>
                 );
               })}
-            </ul>
+              </ul>
+            </>
           )}
         </div>
       )}
