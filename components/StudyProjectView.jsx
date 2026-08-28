@@ -37,10 +37,12 @@ import {
   todayDateKey,
   REWARD_MAX,
 } from "@/lib/store";
+import { stripHtml } from "@/lib/html";
 import {
   isActivityLocked,
   isTeacherAuthoredCard as isTeacherAuthored,
   cardActivitySummary,
+  matchActivitySections,
 } from "@/lib/activities";
 import StudyCard from "./StudyCard";
 import StudyCardModal from "./StudyCardModal";
@@ -274,6 +276,31 @@ export default function StudyProjectView({
 
   // 교사 요약 — 몇 개 활동이 열려 있는지 (활동 개수·잠금 관리는 왼쪽 활동 패널이 담당)
   const summaryOpenCount = activities.filter((_, i) => !isActivityLocked(board, i)).length;
+
+  // 모아보기에 넘길 답 — 한 활동 칸만 뽑아 학생별로 정리합니다.
+  // (열려 있을 때만 계산 — 활동이 여럿이면 매번 파싱할 이유가 없습니다)
+  const wallRows = useMemo(() => {
+    if (wallIndex === null) return [];
+    return classRoster.map((s) => {
+      const card = cards.find((c) =>
+        isGroup ? c.memberUids?.includes(s.uid) : c.authorId === s.uid
+      );
+      const html = card
+        ? matchActivitySections(card, activities)[wallIndex]?.content ?? ""
+        : "";
+      const text = stripHtml(html).trim();
+      return {
+        uid: s.uid,
+        name: s.name,
+        studentId: s.studentId ?? null,
+        count: s.count ?? 0,
+        html,
+        text,
+        chars: text.length,
+        at: card?.updatedAt ?? card?.createdAt ?? null,
+      };
+    });
+  }, [wallIndex, classRoster, cards, activities, isGroup]);
 
   // ── 보드 설정 패널의 '현황' 대시보드 ──
   // 반 명단을 분모로 삼습니다(카드를 아직 안 만든 학생도 0으로 세야 실제
@@ -944,11 +971,12 @@ export default function StudyProjectView({
 
       {wallIndex !== null && (
         <StudyActivityWall
-          board={board}
-          index={wallIndex}
+          classId={board.classId}
           user={user}
-          roster={classRoster}
-          cards={cards}
+          label={`활동 ${wallIndex + 1}`}
+          title={activities[wallIndex] ?? `활동 ${wallIndex + 1}`}
+          castKey={`act:${wallIndex}`}
+          rows={wallRows}
           onAward={onAward}
           onClose={() => setWallIndex(null)}
         />

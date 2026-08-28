@@ -28,6 +28,7 @@ import {
   kwlsStarted,
 } from "@/lib/kwls";
 import KwlFullscreenModal from "./KwlFullscreenModal";
+import StudyActivityWall from "./StudyActivityWall";
 
 // 날짜를 하루씩 옮깁니다 (YYYY-MM-DD 문자열 기준)
 function shiftDate(dateKey, days) {
@@ -60,6 +61,7 @@ export default function TeacherKwlPanel({
   const [entries, setEntries] = useState([]);
   const [fullscreen, setFullscreen] = useState(false);
   const [picked, setPicked] = useState(null); // { uid, key } — 팝오버 대상
+  const [wallKey, setWallKey] = useState(null); // 모아보기로 크게 볼 칸(W·S)
 
   useEffect(() => {
     if (!classId) { setEntries([]); return; }
@@ -90,11 +92,35 @@ export default function TeacherKwlPanel({
   );
   const notStarted = rows.filter((r) => !r.started);
 
-  // [W 모음] 오늘 나온 '알기를 원하는 것'만
-  const wantKey = KWLS_COLUMNS.find((c) => c.letter === "W")?.key ?? "want";
-  const wants = rows
-    .map((r) => ({ ...r, text: (r.answers[wantKey] ?? "").trim() }))
-    .filter((r) => r.text.length > 0);
+  // [모음] 학생이 '묻고 남긴' 두 칸만 따로 모읍니다 —
+  //   W 알기를 원하는 것 / S 더 알고 싶은 것.
+  // 수업에서 곧바로 다룰거리가 되는 칸이라, K·L(사실 정리)과 달리
+  // 목록으로 훑고 골라 띄우는 쓰임이 있습니다.
+  const COLLECT = KWLS_COLUMNS.filter((c) => c.letter === "W" || c.letter === "S");
+  function textsOf(key) {
+    return rows
+      .map((r) => ({ ...r, text: (r.answers[key] ?? "").trim() }))
+      .filter((r) => r.text.length > 0);
+  }
+
+  // 모아보기에 넘길 답 — 안 쓴 학생까지 포함해야 '몇 명 중 몇 명'이 맞습니다
+  const wallRows =
+    wallKey === null
+      ? []
+      : rows.map((r) => {
+          const text = (r.answers[wallKey] ?? "").trim();
+          return {
+            uid: r.uid,
+            name: r.name,
+            studentId: r.studentId,
+            count: 0,
+            html: text,
+            text,
+            chars: text.length,
+            at: null,
+          };
+        });
+  const wallCol = KWLS_COLUMNS.find((c) => c.key === wallKey) ?? null;
 
   // ── 학급 화면에 띄우기 (RAFT 글쓰기와 같은 방식) ──
   const cast = useEntryCast(classId, user);
@@ -186,39 +212,59 @@ export default function TeacherKwlPanel({
             )}
           </section>
 
-          {/* ── [B] W 모아보기 ── */}
-          <section className="tkwl-section">
-            <h4 className="tkwl-title">
-              알기를 원하는 것 <small>W · {wants.length}개</small>
-            </h4>
-            {wants.length === 0 ? (
-              <p className="tkwl-empty">아직 쓴 학생이 없어요.</p>
-            ) : (
-              <ul className="tkwl-wants">
-                {wants.map((r) => {
-                  const live = cast.isCasting(r.uid, wantKey);
-                  return (
-                    <li key={r.uid} className={live ? "live" : ""}>
-                      <p className="tkwl-want-text">{r.text}</p>
-                      <span className="tkwl-want-foot">
-                        <span className="tkwl-want-who">{r.name}</span>
-                        {cast.canCast && (
-                          <button
-                            type="button"
-                            className={`tkwl-cast${live ? " on" : ""}`}
-                            onClick={() => castCell(r, wantKey)}
-                            title={live ? "학생 화면을 되돌립니다" : "학급 전체 화면에 띄웁니다"}
-                          >
-                            {live ? "끄기" : "띄우기"}
-                          </button>
-                        )}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </section>
+          {/* ── [B] W·S 모아보기 ── */}
+          {COLLECT.map((col) => {
+            const list = textsOf(col.key);
+            return (
+              <section className="tkwl-section" key={col.key}>
+                <h4 className="tkwl-title">
+                  <span>
+                    {col.ko} <small>{col.letter} · {list.length}개</small>
+                  </span>
+                  <button
+                    type="button"
+                    className="tkwl-wall-btn"
+                    onClick={() => setWallKey(col.key)}
+                    disabled={list.length === 0}
+                    title={
+                      list.length === 0
+                        ? "아직 쓴 학생이 없어요"
+                        : "큰 화면에 모아 놓고 골라 띄웁니다"
+                    }
+                  >
+                    모아보기
+                  </button>
+                </h4>
+                {list.length === 0 ? (
+                  <p className="tkwl-empty">아직 쓴 학생이 없어요.</p>
+                ) : (
+                  <ul className="tkwl-wants">
+                    {list.map((r) => {
+                      const live = cast.isCasting(r.uid, col.key);
+                      return (
+                        <li key={r.uid} className={live ? "live" : ""}>
+                          <p className="tkwl-want-text">{r.text}</p>
+                          <span className="tkwl-want-foot">
+                            <span className="tkwl-want-who">{r.name}</span>
+                            {cast.canCast && (
+                              <button
+                                type="button"
+                                className={`tkwl-cast${live ? " on" : ""}`}
+                                onClick={() => castCell(r, col.key)}
+                                title={live ? "학생 화면을 되돌립니다" : "학급 전체 화면에 띄웁니다"}
+                              >
+                                {live ? "끄기" : "띄우기"}
+                              </button>
+                            )}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </section>
+            );
+          })}
 
           {/* ── [A] 학생 × K·W·L·S 격자 ── */}
           <section className="tkwl-section">
@@ -301,6 +347,18 @@ export default function TeacherKwlPanel({
             );
           })}
         </div>
+      )}
+
+      {wallCol && (
+        <StudyActivityWall
+          classId={classId}
+          user={user}
+          label={wallCol.letter}
+          title={wallCol.ko}
+          castKey={`kwls:${wallCol.key}`}
+          rows={wallRows}
+          onClose={() => setWallKey(null)}
+        />
       )}
 
       {fullscreen && (

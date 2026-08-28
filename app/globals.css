@@ -8961,11 +8961,30 @@ pre code {
 
 .tkwl-section { display: flex; flex-direction: column; gap: 8px; }
 .tkwl-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   font-size: 12px;
   font-weight: 800;
   color: #c5c4bc;
   letter-spacing: 0.4px;
 }
+/* 좁은 패널에서 훑기 어려운 W·S를 큰 화면으로 옮겨 고르는 버튼 */
+.tkwl-wall-btn {
+  flex-shrink: 0;
+  padding: 2px 9px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  background: none;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  color: #c5c4bc;
+  cursor: pointer;
+}
+.tkwl-wall-btn:hover:not(:disabled) { border-color: var(--primary); color: #e8956c; }
+.tkwl-wall-btn:disabled { opacity: 0.4; cursor: default; }
 .tkwl-title small { font-weight: 600; color: #8f8d84; margin-left: 4px; }
 .tkwl-empty { font-size: 12.5px; color: #8f8d84; line-height: 1.6; }
 
