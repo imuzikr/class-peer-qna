@@ -41,9 +41,13 @@ import StudentToolsModal from "./StudentToolsModal";
 // 전이라 자리를 모두 연한 회색으로 둡니다(출석/결석을 섣불리 단정하지
 // 않으려고). 집합이 오면 그 안에 있으면 연한 초록(출석), 없으면 연한
 // 주황(결석)으로 칠합니다.
+// liveState: uid → 'on'|'away'|'off' (지금 화면을 보고 있는지). 있으면
+// 자리 칸 오른쪽 아래에 작은 점으로 얹습니다 — presentUids(출석)와는
+// 별개 신호라 배경색을 바꾸지 않고 점만 덧붙입니다.
 export function SeatPickGrid({
   seats, byUid, raisedUids, raisedCount, onPick, compact = false,
   onDragStart, onDragEnd, onDropTo, topUids = null, presentUids = null,
+  liveState = null,
 }) {
   const draggable = !!(onDragStart && onDragEnd && onDropTo);
   return (
@@ -78,13 +82,15 @@ export function SeatPickGrid({
             ? presentUids.has(s.uid) ? "present" : "absent"
             : "unchecked";
           const attLabel = att === "present" ? " · 출석" : att === "absent" ? " · 결석" : "";
+          const live = liveState?.get(s.uid) ?? null;
+          const liveLabel = live === "on" ? " · 보는 중" : live === "away" ? " · 화면 가려짐" : live === "off" ? " · 미접속" : "";
           return (
             <button
               key={s.uid}
               type="button"
               className={`attend-seat attend-seat--pick attend-seat--${att}${raised ? " attend-seat--raised" : ""}${top ? " attend-seat--top" : ""}`}
               onClick={() => onPick(s)}
-              title={`${s.name}${s.studentId ? ` · ${s.studentId}` : ""}${attLabel}${raised ? " · 질문 있어요" : ""}${top ? " · 과일 1등" : ""} — 눌러서 과일 주기·누가기록${draggable ? ", 끌어서 자리 이동" : ""}`}
+              title={`${s.name}${s.studentId ? ` · ${s.studentId}` : ""}${attLabel}${liveLabel}${raised ? " · 질문 있어요" : ""}${top ? " · 과일 1등" : ""} — 눌러서 과일 주기·누가기록${draggable ? ", 끌어서 자리 이동" : ""}`}
               draggable={draggable}
               onDragStart={draggable ? (e) => { onDragStart(i); e.dataTransfer.effectAllowed = "move"; } : undefined}
               onDragEnd={draggable ? onDragEnd : undefined}
@@ -93,6 +99,9 @@ export function SeatPickGrid({
             >
               {raised && (
                 <span className="attend-seat-hand" aria-label="질문 있어요">🖐️</span>
+              )}
+              {live && (
+                <span className={`attend-seat-live attend-seat-live--${live}`} aria-hidden="true" />
               )}
               <span className="attend-seat-no">{s.studentId || "-"}</span>
               <span className="attend-seat-name">{s.name}</span>

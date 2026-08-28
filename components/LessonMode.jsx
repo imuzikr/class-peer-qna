@@ -3,9 +3,10 @@
 // =============================================================
 // 수업하기 — 교사용 수업 페이지
 // -------------------------------------------------------------
-// 위아래로 스크롤되는 '페이지'입니다. 지금은 슬라이드 카드와 해설 카드
-// 두 장이 2열로 놓여 있고, 앞으로 수업 관련 기능을 이 아래에 섹션으로
-// 계속 덧붙일 수 있게 만들었습니다.
+// 위아래로 스크롤되는 '페이지'입니다. 슬라이드 카드와 해설 카드 두 장이
+// 2열로 놓여 있고, 그 아래(수업 중)엔 왼쪽에 활동 관리, 오른쪽에 자리표를
+// 나란히 둡니다. 앞으로 수업 관련 기능도 이 아래에 섹션으로 계속 덧붙일
+// 수 있습니다.
 //
 // 같은 화면을 두 가지 모드로 씁니다.
 //  · mode="edit"  — 수업 전, 장마다 해설을 적어 두는 화면(자동 저장)
@@ -41,6 +42,7 @@ import { buildActivityTemplate, nextActivityLocks, isActivityLocked } from "@/li
 import { getCurrentUser } from "@/lib/user";
 import AttendanceBoard from "./AttendanceBoard";
 import StudyProgressBoard, { cardProgress } from "./StudyProgressBoard";
+import LessonSeatPanel from "./LessonSeatPanel";
 
 export default function LessonMode({
   lesson,
@@ -324,6 +326,35 @@ export default function LessonMode({
     return () => window.removeEventListener("keydown", onKey);
   }, [total]);
 
+  // 편집/수업 중 두 레이아웃(아래)에서 그대로 재사용 — 내용은 editing으로
+  // 이미 스스로 갈립니다.
+  const activityGoalsSection = (
+    <section className="lesson-card lesson-activity">
+      <div className="lesson-card-head">
+        <h2>오늘의 수업 목표!</h2>
+        {editing && <small>한 줄에 하나씩 · 자동 저장</small>}
+      </div>
+      <div className="lesson-activity-body">
+        {editing ? (
+          <textarea
+            className="lesson-activity-input"
+            value={acts}
+            onChange={(e) => setActs(e.target.value)}
+            placeholder={"한 줄에 목표 하나씩 적어 주세요.\n예) 이온 결합과 공유 결합의 차이를 설명할 수 있다"}
+          />
+        ) : (lesson.activities ?? []).length > 0 ? (
+          <ul className="lesson-activity-list">
+            {(lesson.activities ?? []).map((a, i) => (
+              <li key={i}>{a}</li>
+            ))}
+          </ul>
+        ) : (
+          <p className="lesson-note-empty">아직 등록한 목표가 없어요.</p>
+        )}
+      </div>
+    </section>
+  );
+
   return (
     <div className="lesson-mode">
       <div className="lesson-head">
@@ -525,67 +556,74 @@ export default function LessonMode({
           </section>
         </div>
 
-        {/* ── 활동 열기 ── 수업 중, 연결된 보드의 활동을 하나씩 열어 줍니다.
-            누르는 즉시 학생 카드의 그 활동 입력칸이 열리고/닫힙니다
-            (보드 문서의 activityLocks 하나만 보고 판정하므로 화면끼리
-             따로 놀 일이 없습니다). 전광판은 결과만 보는 자리입니다. */}
-        {!editing && board && boardActs.length > 0 && (
-          <section className="lesson-card lesson-locks">
-            <div className="lesson-card-head">
-              <h2>활동 열기</h2>
-              <small>누르면 학생이 그 활동을 쓸 수 있어요</small>
-            </div>
-            <div className="lesson-lock-row">
-              {boardActs.map((a, i) => {
-                const locked = isActivityLocked(board, i);
-                return (
-                  <button
-                    key={`${a}-${i}`}
-                    type="button"
-                    className={`lesson-lock-btn${locked ? " locked" : ""}`}
-                    onClick={() => toggleActLock(i, !locked)}
-                    disabled={lockBusy}
-                    title={`${a} — ${locked ? "눌러서 열기" : "눌러서 잠그기"}`}
-                    aria-pressed={!locked}
-                  >
-                    <span className="lesson-lock-icon" aria-hidden="true">
-                      {locked ? "🔒" : "🔓"}
-                    </span>
-                    활동 {i + 1}
-                  </button>
-                );
-              })}
-            </div>
-            {actError && <p className="form-error" role="alert">{actError}</p>}
-          </section>
-        )}
+        {/* ── 활동 열기 / 오늘의 수업 목표 / 자리표 ──
+            수업 중(!editing)에는 왼쪽에 활동 관리, 오른쪽에 자리표를 나란히
+            둡니다. 자리표(LessonSeatPanel)는 참여 전광판과 같은 자리·과일·
+            누가기록 문서를 공유하는 축소판이라, 전광판을 열지 않고도 슬라이드
+            아래에서 바로 출석·시청 확인, 과일 주기, 자리 이동을 할 수
+            있습니다(전광판은 그대로 남겨 둡니다 — 모둠별 큰 화면이 필요할 때). */}
+        {editing ? (
+          activityGoalsSection
+        ) : (
+          <div className="lesson-lower">
+            <div className="lesson-lower-main">
+              {/* 연결된 보드의 활동을 하나씩 열어 줍니다. 누르는 즉시 학생
+                  카드의 그 활동 입력칸이 열리고/닫힙니다(보드 문서의
+                  activityLocks 하나만 보고 판정하므로 화면끼리 따로 놀 일이
+                  없습니다). 전광판은 결과만 보는 자리입니다. */}
+              {board && boardActs.length > 0 && (
+                <section className="lesson-card lesson-locks">
+                  <div className="lesson-card-head">
+                    <h2>활동 열기</h2>
+                    <small>누르면 학생이 그 활동을 쓸 수 있어요</small>
+                  </div>
+                  <div className="lesson-lock-row">
+                    {boardActs.map((a, i) => {
+                      const locked = isActivityLocked(board, i);
+                      return (
+                        <button
+                          key={`${a}-${i}`}
+                          type="button"
+                          className={`lesson-lock-btn${locked ? " locked" : ""}`}
+                          onClick={() => toggleActLock(i, !locked)}
+                          disabled={lockBusy}
+                          title={`${a} — ${locked ? "눌러서 열기" : "눌러서 잠그기"}`}
+                          aria-pressed={!locked}
+                        >
+                          <span className="lesson-lock-icon" aria-hidden="true">
+                            {locked ? "🔒" : "🔓"}
+                          </span>
+                          활동 {i + 1}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {actError && <p className="form-error" role="alert">{actError}</p>}
+                </section>
+              )}
 
-        {/* ── 오늘의 수업 목표 ── 교사가 수업 중 참고하는 메모입니다.
-            (학생 카드에 들어가는 '활동'은 아래 공부방 연동 섹션에서 관리) */}
-        <section className="lesson-card lesson-activity">
-          <div className="lesson-card-head">
-            <h2>오늘의 수업 목표!</h2>
-            {editing && <small>한 줄에 하나씩 · 자동 저장</small>}
-          </div>
-          <div className="lesson-activity-body">
-            {editing ? (
-              <textarea
-                className="lesson-activity-input"
-                value={acts}
-                onChange={(e) => setActs(e.target.value)}
-                placeholder={"한 줄에 목표 하나씩 적어 주세요.\n예) 이온 결합과 공유 결합의 차이를 설명할 수 있다"}
-              />
-            ) : (lesson.activities ?? []).length > 0 ? (
-              <ul className="lesson-activity-list">
-                {(lesson.activities ?? []).map((a, i) => (
-                  <li key={i}>{a}</li>
-                ))}
-              </ul>
-            ) : (
-              <p className="lesson-note-empty">아직 등록한 목표가 없어요.</p>
+              {activityGoalsSection}
+            </div>
+
+            {classId && (
+              <div className="lesson-lower-side">
+                <LessonSeatPanel
+                  roster={roster}
+                  presence={presence}
+                  attendanceRecords={attendanceRecords}
+                  seatLayout={seatLayout}
+                  dailySeatLayout={dailySeatLayout}
+                  classId={classId}
+                  now={presenceNow}
+                  onAward={onAward}
+                  onSaveSeats={(seats, user) =>
+                    saveStudySeatLayout(classId, todayLayoutId, seats, user, { date: todayDateKey() })
+                  }
+                />
+              </div>
             )}
           </div>
-        </section>
+        )}
 
         {/* ── 공부방 연동 ── 수업 준비에서만 보입니다.
             수업 중에는 이미 준비가 끝난 상태이고, 활동을 바꾸면 학생이
@@ -712,8 +750,6 @@ export default function LessonMode({
           </section>
         )}
 
-        {/* 앞으로 수업 관련 기능(출석·퀴즈 등)은 이 아래에 섹션으로 덧붙이면
-            됩니다. 슬라이드 카드와 독립적이라 방송에는 영향 없습니다. */}
       </div>
     </div>
   );
