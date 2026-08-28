@@ -469,44 +469,29 @@ export default function StudyProjectView({
             <button type="button" className="btn-ghost study-project-back" onClick={onBack}>
               ← 프로젝트 목록
             </button>
-            {!isNotice && (
-              <span className={`study-project-badge${isGroup ? " group" : ""}`}>
-                {isGroup ? "👥 모둠 활동" : "🧑‍🎓 개별 활동"}
-              </span>
-            )}
-            {activities.length > 0 && (
-              <span className="study-project-badge soft">
-                활동 {isTeacher ? `${summaryOpenCount}/${activities.length}` : activities.length}개
-              </span>
+
+            {/* 학생 — 바꿀 수 있는 게 없으니 지금 상태를 배지로 그대로 봅니다.
+                (교사는 이 배지들이 '보드 설정' 안으로 들어갑니다) */}
+            {!isTeacher && (
+              <>
+                {!isNotice && (
+                  <span className={`study-project-badge${isGroup ? " group" : ""}`}>
+                    {isGroup ? "👥 모둠 활동" : "🧑‍🎓 개별 활동"}
+                  </span>
+                )}
+                {activities.length > 0 && (
+                  <span className="study-project-badge soft">활동 {activities.length}개</span>
+                )}
+                {!isNotice && (
+                  <span className="study-project-badge soft">
+                    {shared ? "함께 보기" : isGroup ? "자기 모둠만" : "나만 보기"}
+                  </span>
+                )}
+                {locked && <span className="study-project-badge lock">🔒 보기 전용</span>}
+              </>
             )}
 
-            {/* 지금 상태를 한눈에 — 교사도 접힌 상태에선 배지로만 봅니다.
-                (바꾸는 건 아래 '보드 설정'을 펼쳐서) */}
-            {!isNotice && (
-              <span className="study-project-badge soft">
-                {shared ? "함께 보기" : isGroup ? "자기 모둠만" : "나만 보기"}
-              </span>
-            )}
-            {locked && <span className="study-project-badge lock">🔒 보기 전용</span>}
-
-            {/* 교사 — 설정·현황은 한 버튼 아래로 모읍니다. 예전에 이 줄에
-                버튼이 열 개 넘게 늘어서서 제목보다 길어졌습니다. */}
-            {isTeacher && (
-              <button
-                type="button"
-                className={`study-board-toggle${settingsOpen ? " on" : ""}`}
-                onClick={() => setSettingsOpen((v) => !v)}
-                aria-expanded={settingsOpen}
-                title={settingsOpen ? "보드 설정 접기" : "보드 설정·현황 펼치기"}
-              >
-                <IconSettings size={15} /> 보드 설정
-                <span className="study-board-toggle-caret" aria-hidden="true">
-                  {settingsOpen ? "▴" : "▾"}
-                </span>
-              </button>
-            )}
-
-            {/* 수업을 '지금 진행'하는 도구 — 성격이 달라 줄 오른쪽 끝으로 */}
+            {/* 교사 — 이 줄에는 도구만. 상태 배지와 설정은 아래 패널로 */}
             {isTeacher && (
               <span className="study-project-live-tools">
                 {!isNotice && (
@@ -530,6 +515,16 @@ export default function StudyProjectView({
                     <IconCheck size={20} />
                   </button>
                 )}
+                <button
+                  type="button"
+                  className={`study-panel-toggle${settingsOpen ? " open" : ""}`}
+                  onClick={() => setSettingsOpen((v) => !v)}
+                  aria-expanded={settingsOpen}
+                  title={settingsOpen ? "보드 설정 접기" : "보드 설정·현황 펼치기"}
+                  aria-label={settingsOpen ? "보드 설정 접기" : "보드 설정 펼치기"}
+                >
+                  <IconSettings size={20} />
+                </button>
               </span>
             )}
           </div>
@@ -571,6 +566,26 @@ export default function StudyProjectView({
           펼쳐 보고 관리합니다. */}
       {isTeacher && settingsOpen && (
         <div className="study-board-panel">
+          {/* 지금 상태 — 머리말에 늘어놓던 배지를 이 안으로 옮겼습니다 */}
+          <div className="study-board-badges">
+            {!isNotice && (
+              <span className={`study-project-badge${isGroup ? " group" : ""}`}>
+                {isGroup ? "👥 모둠 활동" : "🧑‍🎓 개별 활동"}
+              </span>
+            )}
+            {activities.length > 0 && (
+              <span className="study-project-badge soft">
+                활동 {summaryOpenCount}/{activities.length}개 열림
+              </span>
+            )}
+            {!isNotice && (
+              <span className="study-project-badge soft">
+                {shared ? "함께 보기" : isGroup ? "자기 모둠만" : "나만 보기"}
+              </span>
+            )}
+            {locked && <span className="study-project-badge lock">🔒 보기 전용</span>}
+          </div>
+
           {/* 현황 — 활동 진척도 · 학생 진행률 · 출석 */}
           {stats && (
             <section className="study-board-section">

@@ -10507,36 +10507,11 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   flex-shrink: 0;
 }
 
-/* ── 보드 설정 — 접었다 펴는 버튼과 패널 ──
+/* ── 보드 설정 — 톱니바퀴 버튼과 펼침 패널 ──
    설정 버튼을 다시 둔 이유: 상태·관리 버튼을 모두 머리말 한 줄에 늘어놓으니
-   제목보다 줄이 길어져, 정작 무슨 프로젝트인지가 묻혔습니다. 평소엔 지금
-   상태만 배지로 보여 주고, 바꿀 때만 펼칩니다. */
-.study-board-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 10px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: #fff;
-  font-family: inherit;
-  font-size: 11.5px;
-  font-weight: 700;
-  color: var(--text-sub);
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
-}
-.study-board-toggle:hover {
-  border-color: var(--primary);
-  color: var(--primary-dark);
-}
-.study-board-toggle.on {
-  background: var(--primary-light);
-  border-color: var(--primary);
-  color: var(--primary-dark);
-}
-.study-board-toggle-caret { font-size: 9px; }
-
+   제목보다 줄이 길어져, 정작 무슨 프로젝트인지가 묻혔습니다. 교사 머리말에는
+   도구(발표·전광판·설정)만 남기고, 상태 배지와 설정은 이 패널 안으로
+   들어갔습니다. 버튼 모양은 예전 그대로 — 배경 없는 동그란 톱니바퀴. */
 .study-board-panel {
   display: flex;
   flex-wrap: wrap;
@@ -10546,6 +10521,14 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   border-radius: 14px;
   background: var(--bg-deep);
   flex-shrink: 0;
+}
+/* 패널 맨 위의 상태 배지 줄 — 한 줄 전체를 씁니다 */
+.study-board-badges {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
 }
 .study-board-section {
   flex: 1;
@@ -11673,8 +11656,11 @@ button.study-cal-cell.has-record:not(:disabled):hover {
 .study-panel-toggle:hover {
   background: rgba(0, 0, 0, 0.06);
 }
+/* 열려 있음을 색으로 — 예전 '+' 아이콘용 45° 회전은 톱니바퀴엔 어색해
+   작은 각도만 돌리고 색으로 상태를 알립니다. */
 .study-panel-toggle.open {
-  transform: rotate(45deg);
+  transform: rotate(30deg);
+  color: var(--primary-dark);
 }
 
 /* 활동 설정 모달 */
