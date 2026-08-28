@@ -162,6 +162,9 @@ export default function TopNav({ active, onPython, pyActive = false }) {
         <button className="logo logo-button" onClick={() => go("/board")}>
           <IconLogo size={30} /> 배움나눔
         </button>
+        {/* 로고 옆 한 줄 — 버튼 '밖'에 둡니다. 안에 넣으면 클릭 영역과
+            버튼 이름에 함께 딸려 들어갑니다. */}
+        <span className="topbar-tagline">작은 변화를 꾸준하게</span>
         <span className="topbar-divider" aria-hidden="true" />
       </div>
 

@@ -705,10 +705,7 @@ function StudyPageInner() {
               <div className="study-head">
                 <div className="study-head-main">
                   <div className="study-title-row">
-                    <div className="study-title-group">
-                      <h1>🧩 공부방</h1>
-                      <p className="study-title-tagline">작은 변화를 꾸준하게</p>
-                    </div>
+                    <h1>🧩 공부방</h1>
                     {!admin && currentClass && (
                       <>
                         <button
