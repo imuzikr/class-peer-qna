@@ -84,7 +84,6 @@ import LessonMode from "@/components/LessonMode";
 import StudyAttendanceModal from "@/components/StudyAttendanceModal";
 import SeatGroupSetupModal from "@/components/SeatGroupSetupModal";
 import { updateLesson } from "@/lib/store";
-import { IconKey } from "@/components/StatusIcons";
 
 // 파이썬 실행기(CodeMirror 등)는 무거워 지연 로딩 → 초기 로드/전환 속도 개선
 const PythonRunner = dynamic(() => import("@/components/PythonRunner"), {
@@ -721,13 +720,13 @@ function StudyPageInner() {
                               : "선생님이 출석을 아직 시작하지 않았어요"
                           }
                         >
-                          {attendedToday ? "✅ 출석 완료" : "✅ 출석하기"}
+                          {attendedToday ? "출석 완료" : "출석하기"}
                         </button>
                         <button
                           className="btn-ghost"
                           onClick={() => setAttendanceOpen(true)}
                         >
-                          📋 출석부 보기
+                          출석부 보기
                         </button>
                         <button
                           className={`btn-ghost${kwlPanelOpen ? " active" : ""}`}
@@ -739,7 +738,7 @@ function StudyPageInner() {
                               : "KWLS 차트를 왼쪽에 펼칩니다"
                           }
                         >
-                          📝 KWLS 차트
+                          KWLS 차트
                         </button>
                       </>
                     )}
@@ -772,7 +771,7 @@ function StudyPageInner() {
                         onClick={() => setShowCode(true)}
                         title="학생에게 알려 줄 입장 코드 크게 보기"
                       >
-                        <IconKey size={17} /> 입장 코드
+                        입장 코드
                       </button>
                     )}
                     {admin && currentClass && !currentClass.archived && (
@@ -781,7 +780,7 @@ function StudyPageInner() {
                         onClick={openLessonPicker}
                         title="주제·자료·해설·활동을 준비하고 수업을 시작합니다"
                       >
-                        📝 수업관리
+                        수업관리
                       </button>
                     )}
                     {admin && currentClass && !currentClass.archived && (
@@ -789,7 +788,7 @@ function StudyPageInner() {
                         className="btn-ghost"
                         onClick={() => setAttendanceOpen(true)}
                       >
-                        📋 출석 관리
+                        출석 관리
                       </button>
                     )}
                     {admin && (
@@ -797,7 +796,7 @@ function StudyPageInner() {
                         className="btn-ghost"
                         onClick={() => setClassManagerOpen(true)}
                       >
-                        🗂 반 관리하기
+                        반 관리하기
                       </button>
                     )}
                     {admin && currentClass && (
@@ -811,7 +810,7 @@ function StudyPageInner() {
                             : "KWLS 차트를 왼쪽에 펼칩니다 — 작성 현황·궁금한 점 모아보기"
                         }
                       >
-                        📝 KWLS 차트
+                        KWLS 차트
                       </button>
                     )}
                     {admin && currentClass && classBoards.length > 0 && (
@@ -820,7 +819,7 @@ function StudyPageInner() {
                         onClick={() => setExportOpen(true)}
                         title="활동 자료 다운로드 (CSV·Excel·PDF)"
                       >
-                        ⬇ 다운로드
+                        다운로드
                       </button>
                     )}
                   </div>

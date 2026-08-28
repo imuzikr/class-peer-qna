@@ -9711,6 +9711,13 @@ pre code {
 }
 .study-title-row::-webkit-scrollbar { display: none; }
 .study-title-row > * { flex-shrink: 0; }
+/* 도구 버튼은 글자만 — 아이콘을 빼고 여백을 줄여 줄을 짧게 유지합니다
+   (버튼이 여섯 개라 아이콘까지 붙으면 줄이 화면을 넘어갑니다). */
+.study-title-row .btn-ghost {
+  padding: 5px 11px;
+  font-size: 12.5px;
+  white-space: nowrap;
+}
 
 .study-class-select {
   width: auto; /* 전역 select { width:100% } 무시 — 제목 옆에 인라인 배치 */
