@@ -24,6 +24,33 @@ function formatDateLabel(dateStr) {
   return d.toLocaleDateString("ko-KR", { month: "long", day: "numeric", weekday: "short" });
 }
 
+// 그 날 채운 칸 모으기 — 한 날짜에 항목이 여럿이면 합쳐서 봅니다.
+// (하루 1개가 원칙이지만 예전 append 방식으로 쌓인 날이 있습니다)
+function filledKeysOf(entries) {
+  const filled = new Set();
+  entries.forEach((e) => {
+    const a = kwlsAnswersFromEntry(e);
+    KWLS_COLUMNS.forEach((c) => {
+      if (String(a[c.key] ?? "").trim()) filled.add(c.key);
+    });
+  });
+  return filled;
+}
+
+// 그 날의 진행 단계 — 왼쪽 색 띠에 씁니다. 교사 격자(tkwl-cell)와 같은
+// 시각 언어예요: 읽기 전(K·W)은 파랑, 읽은 뒤(L·S)까지 마치면 초록.
+// 색이 장식이 아니라 '어디까지 갔는지'를 말하도록 맞춥니다.
+function historyStageOf(filled) {
+  const done = KWLS_COLUMNS.every((c) => filled.has(c.key));
+  if (done) return "done";
+  const beforeDone = KWLS_COLUMNS.filter((c) => c.phase === "before").every((c) =>
+    filled.has(c.key)
+  );
+  const touchedAfter = KWLS_COLUMNS.some((c) => c.phase === "after" && filled.has(c.key));
+  if (beforeDone && !touchedAfter) return "before";
+  return "partial";
+}
+
 function KwlEntry({ entry }) {
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -313,19 +340,44 @@ export default function KwlPanel({ classId, user, isTeacher, onAsk, mobileOpen, 
                 const entries = historyByDate[date];
                 const firstAnswers = kwlsAnswersFromEntry(entries[0]);
                 const preview = KWLS_COLUMNS.map((c) => firstAnswers[c.key]).find(Boolean) || "";
+                const filled = filledKeysOf(entries);
+                const stage = historyStageOf(filled);
                 return (
-                  <li key={date} className="kwl-history-item">
+                  <li
+                    key={date}
+                    className={`kwl-history-item kwl-history-item--${stage}`}
+                  >
                     <button
                       type="button"
                       className="kwl-history-toggle"
                       onClick={() => setExpandedDate(open ? null : date)}
+                      aria-label={`${formatDateLabel(date)} — 네 칸 중 ${filled.size}칸 작성`}
                     >
                       <span className="kwl-history-toggle-inner">
-                        <span className="kwl-history-date">
-                          {formatDateLabel(date)}
-                          {entries.length > 1 && (
-                            <span className="kwl-history-count"> ×{entries.length}</span>
-                          )}
+                        <span className="kwl-history-head">
+                          <span className="kwl-history-date">
+                            {formatDateLabel(date)}
+                            {entries.length > 1 && (
+                              <span className="kwl-history-count"> ×{entries.length}</span>
+                            )}
+                          </span>
+                          {/* 그 날 쓴 칸을 K·W·L·S 딱지로 — 채운 칸만 제 색이
+                              들어오고 안 쓴 칸은 흐리게 남습니다. 접힌 채로도
+                              'K·W만 쓰고 멈춘 날'과 '끝까지 간 날'이 갈립니다. */}
+                          <span className="kwl-history-chips" aria-hidden="true">
+                            {KWLS_COLUMNS.map((c) => (
+                              <span
+                                key={c.key}
+                                className={`kwl-badge kwl-badge--mini ${
+                                  filled.has(c.key)
+                                    ? `kwl-badge-${c.letter.toLowerCase()}`
+                                    : "kwl-badge--off"
+                                }`}
+                              >
+                                {c.letter}
+                              </span>
+                            ))}
+                          </span>
                         </span>
                         {!open && preview && (
                           <span className="kwl-history-preview">{preview}</span>

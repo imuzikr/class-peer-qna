@@ -9285,6 +9285,23 @@ pre code {
 .kwl-badge-l { background: #2e6b3e; color: #c2eacb; }
 .kwl-badge-s { background: #604c8b; color: #e8ddff; }
 
+/* 기록 탭의 요약 딱지 — 같은 팔레트를 작게 쓴 것. 색은 위 네 줄이 그대로
+   맡고 여기서는 크기만 줄입니다(팔레트를 두 벌로 만들지 않기 위함). */
+.kwl-badge--mini {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 700;
+}
+/* 안 쓴 칸 — 색을 빼고 자리만 남깁니다. 지워 버리면 네 칸 중
+   '어느' 칸이 비었는지 알 수 없어 윤곽만 남겨 둡니다. */
+.kwl-badge--off {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: rgba(255, 255, 255, 0.28);
+}
+
 .kwl-textarea {
   width: 100%;
   background: rgba(255, 255, 255, 0.06);
@@ -9457,16 +9474,31 @@ pre code {
   gap: 4px;
 }
 
+/* 날짜 칸 — 왼쪽 색 띠가 그날 어디까지 갔는지를 말합니다.
+   교사 격자(.tkwl-cell.on.before/.after)와 같은 색 언어:
+     읽기 전(K·W)까지  → 파랑
+     읽은 뒤(L·S)까지  → 초록
+     그 밖의 부분 작성 → 흐린 갈색
+   회색 목록이던 곳에 색을 넣되, 장식이 아니라 진행도를 읽게 했습니다. */
 .kwl-history-item {
   border-radius: 7px;
   overflow: hidden;
   background: rgba(255,255,255,0.04);
+  border-left: 3px solid transparent;
+}
+
+.kwl-history-item--partial { border-left-color: #6b4c2a; }
+.kwl-history-item--before  { border-left-color: #7a9ec4; }
+.kwl-history-item--done {
+  border-left-color: #7fb98a;
+  background: rgba(127, 185, 138, 0.09);
 }
 
 .kwl-history-toggle {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 6px; /* K·W·L·S 딱지가 오른쪽 화살표에 달라붙지 않게 */
   width: 100%;
   background: none;
   border: none;
@@ -9487,7 +9519,21 @@ pre code {
   min-width: 0;
 }
 
-.kwl-history-date { flex: 1; }
+/* 날짜(왼쪽) + K·W·L·S 딱지(오른쪽) 한 줄 */
+.kwl-history-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.kwl-history-date { flex: 1; min-width: 0; }
+
+.kwl-history-chips {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
 
 .kwl-history-preview {
   font-size: 11px;
