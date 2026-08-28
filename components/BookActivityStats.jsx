@@ -18,6 +18,11 @@
 // [두 가지를 봅니다]
 //  · 닿소리 14칸 격자 — 어느 자음이 매번 비는가. 활동이 쓰는 3×5 격자를
 //    그대로 써서, 교사가 수업 중 보던 배치 그대로 돌아보게 합니다.
+// 개인 활동(곁텍스트·RAFT·KWLS·마인드맵)은 여기서 다루지 않습니다. 이 패널이
+// 하는 일이 '모둠이 고르게 했는가'인데, 모둠이 없는 활동은 그 질문에 답할 게
+// 없어 '몇 명이 냈다' 한 줄만 남았습니다. 개인 활동의 제출 현황은 학생별
+// 분석에서 보는 편이 맞습니다.
+//
 //  · 모둠 기여 균형 — 모둠 총계로는 절대 안 보이는 '한 명이 다 썼다'를
 //    드러냅니다. 막대를 [최다 기여자 몫 | 나머지] 두 조각으로만 나눕니다.
 //    모둠원마다 다른 색을 주는 건 읽는 일과 어긋납니다 — 여기서 알고 싶은
@@ -32,18 +37,11 @@ import {
   subscribeBookActivities,
   subscribeBookGroups,
   subscribeGroupWords,
-  subscribeParatextEntries,
   BOOK_SOLO_TYPES,
 } from "@/lib/store";
 import { CONSONANT_LABELS, GRID_SLOTS, CELL_COUNT, cellKey } from "@/lib/consonants";
 
-const TYPE_LABEL = {
-  consonant: "닿소리 채우기",
-  paratext: "곁텍스트 읽기",
-  raft: "RAFT 글쓰기",
-  kwls: "KWLS 성찰",
-  mindmap: "마인드맵",
-};
+const TYPE_LABEL = { consonant: "닿소리 채우기" };
 
 // 한 칸에 모인 낱말 수 → 0~3단계. 0은 램프 밖 중립색으로 빼서
 // '아무도 못 채운 칸'이 '조금 채운 칸'과 섞이지 않게 합니다.
@@ -55,16 +53,21 @@ function cellLevel(n) {
 }
 
 export default function BookActivityStats({ classId }) {
-  const [activities, setActivities] = useState([]);
+  const [allActivities, setAllActivities] = useState([]);
   const [actId, setActId] = useState(null);
   const [groups, setGroups] = useState([]);
   const [wordsByGroup, setWordsByGroup] = useState({});
-  const [soloEntries, setSoloEntries] = useState([]);
 
   useEffect(() => {
-    if (!classId) { setActivities([]); return; }
-    return subscribeBookActivities(classId, setActivities);
+    if (!classId) { setAllActivities([]); return; }
+    return subscribeBookActivities(classId, setAllActivities);
   }, [classId]);
+
+  // 모둠이 있는 활동만 — 지금은 닿소리 채우기 하나입니다.
+  const activities = useMemo(
+    () => allActivities.filter((a) => !BOOK_SOLO_TYPES.includes(a.type)),
+    [allActivities]
+  );
 
   // 고른 활동은 state로 '채우지' 않고 렌더에서 바로 정합니다.
   // useEffect로 채우면 첫 렌더 한 프레임 동안 activity가 null이라, 아래
@@ -74,17 +77,11 @@ export default function BookActivityStats({ classId }) {
   const activity =
     activities.find((a) => a.id === actId) ?? activities[0] ?? null;
   const currentId = activity?.id ?? null;
-  const isSolo = activity ? BOOK_SOLO_TYPES.includes(activity.type) : false;
 
   useEffect(() => {
-    if (!currentId || isSolo) { setGroups([]); return; }
+    if (!currentId) { setGroups([]); return; }
     return subscribeBookGroups(currentId, setGroups);
-  }, [currentId, isSolo]);
-
-  useEffect(() => {
-    if (!currentId || !isSolo) { setSoloEntries([]); return; }
-    return subscribeParatextEntries(currentId, setSoloEntries);
-  }, [currentId, isSolo]);
+  }, [currentId]);
 
   // 모둠마다 낱말을 따로 구독 (규칙상 한 번에 못 읽습니다)
   const groupIdsKey = useMemo(
@@ -153,12 +150,14 @@ export default function BookActivityStats({ classId }) {
   return (
     <section className="admin-activity-panel">
       <div className="admin-panel-head">
-        <h2>📖 책방 활동</h2>
+        <h2>📖 책방 — 모둠 활동</h2>
         <span>{activities.length}개 활동</span>
       </div>
 
       {activities.length === 0 ? (
-        <div className="admin-empty">이 반에 책방 활동이 없습니다.</div>
+        <div className="admin-empty">
+          이 반에 모둠으로 하는 책방 활동이 없습니다.
+        </div>
       ) : (
         <>
           {/* 활동을 하나 고릅니다 — 위 주석의 규칙 제약 참고 */}
@@ -176,13 +175,7 @@ export default function BookActivityStats({ classId }) {
             ))}
           </div>
 
-          {!activity ? null : isSolo ? (
-            <p className="bks-solo-note">
-              <b>{TYPE_LABEL[activity.type] ?? activity.type}</b>은 개인 활동이라
-              모둠 집계가 없습니다. 지금까지 <b>{soloEntries.length}명</b>이
-              기록을 남겼습니다.
-            </p>
-          ) : (
+          {activity && (
             <div className="bks-body">
               {/* ── 닿소리 14칸 ── */}
               <div className="bks-block">

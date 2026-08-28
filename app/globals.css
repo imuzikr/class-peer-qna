@@ -17211,14 +17211,6 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   font-weight: 600;
 }
 
-.bks-solo-note {
-  margin: 0;
-  font-size: 13px;
-  color: var(--text-sub);
-  line-height: 1.6;
-}
-.bks-solo-note b { color: var(--text); }
-
 /* 두 시각화를 나란히 — 좁으면 아래로 접힙니다 */
 .bks-body {
   display: flex;
