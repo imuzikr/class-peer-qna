@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+// =============================================================
+// 출석 관리 모달 — 지금 보고 있는 '이 반'의 출석만 다룹니다.
+// -------------------------------------------------------------
+// 예전 캘린더형은 교사가 가진 반 전체를 한 화면에 늘어놓고 그중 하나를
+// 다시 고르게 했는데, 모달을 연 맥락(지금 이 반)과 어긋나 어느 반을 보고
+// 있는지 헷갈렸습니다. 지금은 목록형·캘린더형 모두 이 반의 기록만 씁니다.
+// =============================================================
+import { useMemo, useState } from "react";
 import { backdropClose } from "@/lib/modal";
-import {
-  subscribeMembersForClasses,
-  subscribeAttendanceForClasses,
-  toDate,
-  todayDateKey,
-} from "@/lib/store";
-import { summarizeClassAttendance, buildAttendanceDetailRows } from "@/lib/attendanceOverview";
+import { toDate, todayDateKey } from "@/lib/store";
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -44,7 +45,17 @@ function shiftMonth(cursor, delta) {
 //  · total이 있으면(교사) 그날 출석 인원을 "n/total"로, 없으면(학생) 출석한
 //    날에만 작은 점으로 표시합니다.
 //  · interactive면(교사) 날짜를 눌러 아래 목록의 기준 날짜를 바꿀 수 있습니다.
-function AttendanceCalendar({ records, total = 0, selectedDate = "", onSelectDate, interactive = false }) {
+//  · roster를 주면 왼쪽 위 '상세 보기'가 켜지고, 기록이 있는 날짜 아래에
+//    그날 결석한 학생 이름이 작게 펼쳐집니다(달력을 벗어나지 않고 결석자를
+//    바로 확인하려던 것 — 날짜를 하나씩 눌러 표를 보던 수고를 덜어 줍니다).
+function AttendanceCalendar({
+  records,
+  total = 0,
+  roster = [],
+  selectedDate = "",
+  onSelectDate,
+  interactive = false,
+}) {
   const recordsByDate = useMemo(() => {
     const map = new Map();
     records.forEach((r) => {
@@ -60,6 +71,8 @@ function AttendanceCalendar({ records, total = 0, selectedDate = "", onSelectDat
     const [y, m] = anchor.split("-").map(Number);
     return { year: y, month: m - 1 };
   });
+  const [showDetail, setShowDetail] = useState(false);
+  const canDetail = roster.length > 0;
 
   const today = todayDateKey();
   const first = new Date(cursor.year, cursor.month, 1);
@@ -69,9 +82,30 @@ function AttendanceCalendar({ records, total = 0, selectedDate = "", onSelectDat
     Array.from({ length: daysInMonth }, (_, i) => i + 1)
   );
 
+  // 그날 기록에 없는 명단 인원 = 결석
+  function absenteesOf(dayRecords) {
+    const present = new Set(dayRecords.map((r) => r.uid));
+    return roster.filter((s) => !present.has(s.uid));
+  }
+
   return (
     <div className="study-attendance-calendar">
       <div className="study-cal-head">
+        {canDetail && (
+          <button
+            type="button"
+            className={`study-cal-detail-btn${showDetail ? " on" : ""}`}
+            onClick={() => setShowDetail((v) => !v)}
+            aria-pressed={showDetail}
+            title={
+              showDetail
+                ? "날짜 아래의 결석생 명단을 접습니다"
+                : "기록이 있는 날짜 아래에 결석생 명단을 펼칩니다"
+            }
+          >
+            {showDetail ? "간단히" : "상세 보기"}
+          </button>
+        )}
         <button type="button" onClick={() => setCursor((c) => shiftMonth(c, -1))} aria-label="이전 달">
           ‹
         </button>
@@ -85,12 +119,13 @@ function AttendanceCalendar({ records, total = 0, selectedDate = "", onSelectDat
           <span key={w}>{w}</span>
         ))}
       </div>
-      <div className="study-cal-grid">
+      <div className={`study-cal-grid${showDetail && canDetail ? " detail" : ""}`}>
         {cells.map((d, i) => {
           if (d === null) return <span key={`blank${i}`} className="study-cal-cell study-cal-cell--blank" />;
           const key = toDateKey(cursor.year, cursor.month, d);
           const dayRecords = recordsByDate.get(key) ?? [];
           const has = dayRecords.length > 0;
+          const absentees = showDetail && canDetail && has ? absenteesOf(dayRecords) : null;
           const cls = [
             "study-cal-cell",
             has && "has-record",
@@ -113,6 +148,19 @@ function AttendanceCalendar({ records, total = 0, selectedDate = "", onSelectDat
                 ) : (
                   <span className="study-cal-dot" aria-hidden="true" />
                 )
+              )}
+              {absentees && (
+                <span className="study-cal-absents">
+                  {absentees.length === 0 ? (
+                    <span className="study-cal-absent-none">모두 출석</span>
+                  ) : (
+                    absentees.map((s) => (
+                      <span key={s.uid} className="study-cal-absent-name">
+                        {s.name || "이름 미설정"}
+                      </span>
+                    ))
+                  )}
+                </span>
               )}
             </button>
           );
@@ -165,41 +213,15 @@ function AttendanceTable({ rows }) {
   );
 }
 
-// 캘린더형의 반별 목록 — 날짜 하나를 놓고 반마다 출석/결석 인원을 보여
-// 주고, 고른 반만 강조 표시합니다. 실제 상세 표는 그 아래(부모)에서 그립니다.
-function ClassAttendanceOverview({ classes, selectedId, onSelect }) {
-  return (
-    <ul className="attend-class-overview">
-      {classes.map((c) => (
-        <li key={c.id}>
-          <button
-            type="button"
-            className={`attend-class-row${selectedId === c.id ? " active" : ""}`}
-            onClick={() => onSelect(c.id)}
-          >
-            <span className="attend-class-name">{c.name}</span>
-            <span className="attend-class-stat">
-              <span className="attend-class-present">출석 {c.present}</span>
-              <span className="attend-class-absent">결석 {c.absent}</span>
-            </span>
-          </button>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 export default function StudyAttendanceModal({
   isTeacher = false,
   records = [],
   roster = [],
-  classId = null,
+  className = "",
   attendanceOpenToday = false,
   attendanceBusy = false,
   onStartAttendance = null,
   onStopAttendance = null,
-  allClasses = [],
-  directory = [],
   onClose,
 }) {
   const [viewMode, setViewMode] = useState("list"); // "list" | "calendar"
@@ -227,44 +249,6 @@ export default function StudyAttendanceModal({
     [roster, byStudent]
   );
 
-  // 캘린더형의 '반별 목록' — 날짜를 고르면 지금 반 하나가 아니라 교사가
-  // 가진 반 전체를 반별 출석/결석으로 먼저 보여 주고, 그중 하나를 골라야
-  // 그 반의 학생별 상세가 아래에 나타납니다. 이 탭을 볼 때만 다른 반들의
-  // 소속·출석 기록을 구독합니다(목록형을 보는 동안은 불필요).
-  const wantOverview = isTeacher && viewMode === "calendar" && allClasses.length > 0;
-  const classIdsKey = allClasses.map((c) => c.id).join(",");
-
-  const [overviewMembers, setOverviewMembers] = useState({});
-  useEffect(() => {
-    if (!wantOverview) { setOverviewMembers({}); return; }
-    return subscribeMembersForClasses(allClasses.map((c) => c.id), setOverviewMembers);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wantOverview, classIdsKey]);
-
-  const [overviewAttendance, setOverviewAttendance] = useState({});
-  useEffect(() => {
-    if (!wantOverview) { setOverviewAttendance({}); return; }
-    return subscribeAttendanceForClasses(allClasses.map((c) => c.id), setOverviewAttendance);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wantOverview, classIdsKey]);
-
-  const [selectedOverviewClassId, setSelectedOverviewClassId] = useState(null);
-
-  const classOverview = useMemo(() => {
-    if (!wantOverview || !activeDate) return [];
-    return summarizeClassAttendance(allClasses, overviewMembers, overviewAttendance, activeDate);
-  }, [wantOverview, activeDate, allClasses, overviewMembers, overviewAttendance]);
-
-  const overviewDetailRows = useMemo(() => {
-    if (!wantOverview || !selectedOverviewClassId) return [];
-    return buildAttendanceDetailRows(
-      overviewMembers[selectedOverviewClassId] ?? [],
-      directory,
-      overviewAttendance[selectedOverviewClassId] ?? [],
-      activeDate
-    );
-  }, [wantOverview, selectedOverviewClassId, overviewMembers, overviewAttendance, activeDate, directory]);
-
   return (
     <div className="modal-backdrop" {...backdropClose(onClose)}>
       <div
@@ -275,7 +259,11 @@ export default function StudyAttendanceModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-head">
-          <h3 id="study-attendance-title">{isTeacher ? "출석 관리" : "내 출석부"}</h3>
+          <h3 id="study-attendance-title">
+            {isTeacher ? "출석 관리" : "내 출석부"}
+            {/* 어느 반의 출석을 보고 있는지 제목에 못 박아 둡니다 */}
+            {className && <span className="study-attendance-class">{className}</span>}
+          </h3>
           <button className="btn-close" onClick={onClose} aria-label="닫기">
             ×
           </button>
@@ -343,38 +331,30 @@ export default function StudyAttendanceModal({
                 <AttendanceCalendar
                   records={records}
                   total={studentRows.length}
+                  roster={roster}
                   selectedDate={activeDate}
                   onSelectDate={setSelectedDate}
                   interactive
                 />
               )}
 
-              {viewMode === "calendar" ? (
-                allClasses.length === 0 ? (
-                  <p className="lesson-note-empty">아직 만든 반이 없어요.</p>
-                ) : !activeDate ? (
-                  <p className="lesson-note-empty">달력에서 날짜를 골라 보세요.</p>
-                ) : (
-                  <>
-                    <ClassAttendanceOverview
-                      classes={classOverview}
-                      selectedId={selectedOverviewClassId}
-                      onSelect={setSelectedOverviewClassId}
-                    />
-                    {selectedOverviewClassId &&
-                      (overviewDetailRows.length === 0 ? (
-                        <p className="lesson-note-empty">이 반에 입장한 학생이 없어요.</p>
-                      ) : (
-                        <AttendanceTable rows={overviewDetailRows} />
-                      ))}
-                  </>
-                )
-              ) : roster.length === 0 ? (
+              {/* 목록형·캘린더형 모두 이 반의 상세 표를 그대로 씁니다 —
+                  캘린더형은 달력에서 고른 날짜가 기준이 됩니다. */}
+              {roster.length === 0 ? (
                 <p className="lesson-note-empty">이 반에 입장한 학생이 없어요.</p>
               ) : dates.length === 0 ? (
                 <p className="lesson-note-empty">아직 출석 기록이 없어요.</p>
+              ) : viewMode === "calendar" && !activeDate ? (
+                <p className="lesson-note-empty">달력에서 날짜를 골라 보세요.</p>
               ) : (
-                <AttendanceTable rows={studentRows} />
+                <>
+                  {viewMode === "calendar" && activeDate && (
+                    <p className="study-attendance-active-date">
+                      {formatDateLabel(activeDate)} 기준
+                    </p>
+                  )}
+                  <AttendanceTable rows={studentRows} />
+                </>
               )}
             </>
           ) : records.length === 0 ? (

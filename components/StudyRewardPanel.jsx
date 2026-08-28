@@ -42,6 +42,8 @@ export default function StudyRewardPanel({
   classId = null,
   seatLayout = null,
   groupAssignment = null,
+  // 오늘 출석한 학생 uid 집합. null이면 아직 출석 확인 전(자리 모두 회색).
+  presentUids = null,
   onSaveSeats,
   onSaveGroups,
 }) {
@@ -238,6 +240,7 @@ export default function StudyRewardPanel({
           onDragEnd={() => setDragIndex(null)}
           onDropTo={(toIndex) => moveSeat(dragIndex, toIndex)}
           topUids={topRewardUids}
+          presentUids={presentUids}
         />
       )}
 

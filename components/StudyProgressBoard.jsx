@@ -19,7 +19,9 @@
 // 화면에서 입력을 막는 수업 진행 도구이지, 서버가 강제하는 권한이
 // 아닙니다(보드 전체 잠금은 규칙으로도 막힙니다).
 // =============================================================
+import { Fragment, useEffect, useState } from "react";
 import { backdropClose } from "@/lib/modal";
+import { subscribeCardsForBoards, fetchAnswerCounts } from "@/lib/store";
 import { stripHtml } from "@/lib/html";
 import {
   matchActivitySections,
@@ -54,6 +56,13 @@ export function cardProgress(card, activities) {
   );
 }
 
+// 활동별 글자 수 — 칸을 눌렀을 때 "몇 자 썼는지"까지 보여 주려고 씁니다.
+function cardCharCounts(card, activities) {
+  return matchActivitySections(card, activities).map(
+    (sec) => stripHtml(sec?.content ?? "").length
+  );
+}
+
 // 칸 하나의 상태 — 색으로 구분합니다.
 //   done   연한 초록 : 10자 이상 썼음 (잠겼더라도 쓴 건 쓴 것)
 //   open   연한 주황 : 열려 있는데 아직 덜 씀
@@ -62,12 +71,17 @@ function cellState(done, locked) {
   if (done) return "done";
   return locked ? "locked" : "open";
 }
-const STATE_LABEL = { done: "작성함", open: "작성 전", locked: "잠김" };
 
 export default function StudyProgressBoard({
   board,
   roster = [],
   cards = [],
+  // 정보창의 학생 요약에 쓰는 반 단위 자료 — 안 넘기면 그 줄만 빠집니다.
+  classBoards = [],        // 이 반의 프로젝트 전체(모든 활동 참여도)
+  attendanceRecords = [],  // 이 반의 출석 기록 전체(출석률)
+  questions = [],          // 질문 게시판 전체(질문 수)
+  groupAssignment = null,  // 반 기본 모둠(모둠 정보)
+  onOpenStudent = null,    // 정보창의 '카드 열어 보기' — 안 넘기면 버튼이 없습니다
   onClose,
 }) {
   const activities = board?.activities ?? [];
@@ -79,13 +93,129 @@ export default function StudyProgressBoard({
     const card = cards.find((c) =>
       isGroup ? c.memberUids?.includes(s.uid) : c.authorId === s.uid
     );
-    return { ...s, done: cardProgress(card, activities) };
+    return {
+      ...s,
+      done: cardProgress(card, activities),
+      chars: cardCharCounts(card, activities),
+      hasCard: !!card,
+      card: card ?? null,
+    };
   });
 
   // 활동별 작성 인원
   const doneCounts = activities.map(
     (_, i) => rows.filter((r) => r.done[i]).length
   );
+
+  // ── 정보창용 반 단위 통계 ──
+  // 전광판이 열려 있는 동안에만 모읍니다(닫으면 구독도 함께 끊깁니다).
+  const boardIds = classBoards.map((b) => b.id).filter(Boolean);
+  const boardIdsKey = boardIds.join(",");
+  const [allCards, setAllCards] = useState({});
+  useEffect(() => {
+    if (!boardIdsKey) { setAllCards({}); return; }
+    return subscribeCardsForBoards(boardIdsKey.split(","), setAllCards);
+  }, [boardIdsKey]);
+
+  // 답변 수는 질문 목록을 함께 받은 화면에서만 셉니다 — 질문 수는 0인데
+  // 답변 수만 진짜 값이 뜨면 두 숫자가 어긋나 보입니다.
+  const rosterKey = roster.map((s) => s.uid).join(",");
+  const wantQnaStats = questions.length > 0;
+  const [answerCounts, setAnswerCounts] = useState({});
+  useEffect(() => {
+    if (!rosterKey || !wantQnaStats) { setAnswerCounts({}); return; }
+    let alive = true;
+    fetchAnswerCounts(rosterKey.split(",")).then((c) => { if (alive) setAnswerCounts(c); });
+    return () => { alive = false; };
+  }, [rosterKey, wantQnaStats]);
+
+  // 이 반이 출석을 실시한 날 수 — 출석률의 분모
+  const attendDays = new Set(attendanceRecords.map((r) => r.date).filter(Boolean)).size;
+
+  // 학생 한 명의 요약 — 격자가 담지 못하는 '이 학생은 평소 어떤가'를 모읍니다.
+  function statsOf(uid) {
+    // 모든 프로젝트의 활동 참여도 (활동이 있는 프로젝트만 셈)
+    let actDone = 0;
+    let actTotal = 0;
+    classBoards.forEach((b) => {
+      const acts = b.activities ?? [];
+      if (acts.length === 0 || b.type === "notice") return;
+      const list = allCards[b.id] ?? [];
+      const c = list.find((x) =>
+        b.activityType === "group" ? x.memberUids?.includes(uid) : x.authorId === uid
+      );
+      actTotal += acts.length;
+      actDone += cardProgress(c, acts).filter(Boolean).length;
+    });
+
+    const group = (groupAssignment?.groups ?? []).find((g) =>
+      (g.members ?? []).some((m) => m.uid === uid)
+    );
+
+    return {
+      attendDays,
+      present: attendanceRecords.filter((r) => r.uid === uid).length,
+      actDone,
+      actTotal,
+      hasQna: wantQnaStats,
+      asked: questions.filter((q) => q.authorId === uid).length,
+      answered: answerCounts[uid] ?? 0,
+      groupName: group?.name ?? null,
+      groupSize: (group?.members ?? []).length,
+    };
+  }
+
+  // 칸을 눌렀을 때 뜨는 작은 정보창 — 누른 칸 바로 옆에 붙습니다.
+  // 화면 오른쪽/아래 끝에서는 잘리지 않도록 여는 방향을 뒤집습니다.
+  const [popup, setPopup] = useState(null);
+  const [tip, setTip] = useState(null);
+
+  useEffect(() => {
+    if (!popup) return;
+    function onKey(e) { if (e.key === "Escape") setPopup(null); }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [popup]);
+
+  const POPUP_W = 250; // 아래 CSS의 .progress-pop 폭과 맞춰 둡니다
+
+  // 어느 칸을 누르든 그 학생의 활동 전체를 보여 줍니다 — 칸 하나만 열면
+  // "그럼 나머지 활동은?"을 보려고 옆 칸을 다시 눌러야 했습니다.
+  function openCell(e, row, i) {
+    e.stopPropagation();
+    if (popup?.uid === row.uid) { setPopup(null); return; } // 같은 학생을 다시 누르면 닫기
+    const r = e.currentTarget.getBoundingClientRect();
+    // 오른쪽 끝이면 왼쪽으로, 아래 끝이면 위로 열립니다.
+    const openLeft = r.left + POPUP_W + 12 > window.innerWidth;
+    const openUp = r.bottom + 60 + activities.length * 34 > window.innerHeight;
+    const pos = {};
+    if (openLeft) pos.right = Math.max(8, window.innerWidth - r.right);
+    else pos.left = Math.max(8, r.left);
+    if (openUp) pos.bottom = window.innerHeight - r.top + 6;
+    else pos.top = r.bottom + 6;
+    setPopup({ uid: row.uid, row, index: i, pos });
+    setTip(null);
+  }
+
+  function showTip(e, text) {
+    const r = e.currentTarget.getBoundingClientRect();
+    setTip({
+      text,
+      left: Math.min(Math.max(r.left + r.width / 2, 70), window.innerWidth - 70),
+      bottom: window.innerHeight - r.top + 8,
+    });
+  }
+
+  // 칸 하나를 말로 풀어 준 한 줄 — 툴팁·접근성 라벨에 함께 씁니다.
+  function cellSummary(row, i) {
+    const locked = isActivityLocked(board, i);
+    const n = row.chars[i] ?? 0;
+    const who = `${row.studentId ? `${row.studentId} ` : ""}${row.name}`;
+    if (row.done[i]) return `${who} — 활동 ${i + 1} 제출함 (${n}자)`;
+    if (locked) return `${who} — 활동 ${i + 1} 잠김 (아직 열지 않음)`;
+    if (n > 0) return `${who} — 활동 ${i + 1} 작성 중 (${n}자, ${DONE_MIN_CHARS}자 필요)`;
+    return `${who} — 활동 ${i + 1} 아직 시작 전`;
+  }
 
   return (
     <div className="modal-backdrop" {...backdropClose(onClose)}>
@@ -129,62 +259,182 @@ export default function StudyProgressBoard({
             이 반에 입장한 학생이 없어요. 입장 코드를 알려 주세요.
           </p>
         ) : (
-          <div className="progress-scroll">
-            <table className="progress-table">
-              <thead>
-                <tr>
-                  <th className="progress-name-col">학생</th>
-                  {activities.map((act, i) => {
-                    const locked = isActivityLocked(board, i);
-                    return (
-                      <th key={i} className="progress-act-col">
-                        <span className="progress-act-no">활동 {i + 1}</span>
-                        <span className="progress-act-name" title={act}>{act}</span>
-                        {/* 잠금 조작은 수업 화면의 '활동 열기' 줄에서 합니다.
-                            여기서는 지금 열려 있는지만 알려 줍니다. */}
+          /* 잔디 히트맵 — 한 줄이 활동 하나, 한 칸이 학생 한 명(가로 배치).
+             학생 이름은 칸에 적지 않습니다. 칸 수가 반 인원만큼이라 이름을
+             넣으면 잔디가 아니라 표가 되고, 누구인지는 마우스를 올리면 뜨는
+             설명과 눌렀을 때 열리는 정보창이 알려 줍니다. */
+          <div
+            className="progress-scroll"
+            onClick={() => setPopup(null)}
+            onScroll={() => { setTip(null); setPopup(null); }}
+          >
+            <div
+              className="progress-grass"
+              style={{ "--students": rows.length }}
+            >
+              {activities.map((act, i) => {
+                const locked = isActivityLocked(board, i);
+                return (
+                  <Fragment key={i}>
+                    <span className="grass-act">
+                      <span className="grass-act-head">
+                        <span className="grass-act-no">활동 {i + 1}</span>
                         <span className={`progress-act-state${locked ? " locked" : ""}`}>
                           {locked ? "잠김" : "열림"}
                         </span>
-                        <span className="progress-act-count">
+                        <span className="grass-act-count">
                           {doneCounts[i]}/{roster.length}
                         </span>
-                      </th>
-                    );
-                  })}
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => (
-                  <tr key={r.uid}>
-                    <th className="progress-name-col" scope="row">
-                      {r.studentId && (
-                        <span className="progress-student-no">{r.studentId}</span>
-                      )}
-                      <span className="progress-student-name">{r.name}</span>
-                    </th>
-                    {activities.map((act, i) => {
-                      const st = cellState(r.done[i], isActivityLocked(board, i));
+                      </span>
+                      <span className="grass-act-name" title={act}>{act}</span>
+                    </span>
+                    {rows.map((r) => {
+                      const st = cellState(r.done[i], locked);
+                      const text = cellSummary(r, i);
                       return (
-                        <td
-                          key={i}
-                          className="progress-cell"
-                          title={`${r.name} · 활동 ${i + 1} ${act} — ${STATE_LABEL[st]}`}
-                        >
-                          <span
-                            className={`progress-mark progress-mark--${st}`}
-                            role="img"
-                            aria-label={STATE_LABEL[st]}
-                          />
-                        </td>
+                        <button
+                          key={r.uid}
+                          type="button"
+                          className={`grass-cell grass-cell--${st}${
+                            popup?.uid === r.uid ? " active" : ""
+                          }`}
+                          onClick={(e) => openCell(e, r, i)}
+                          onMouseEnter={(e) => showTip(e, text)}
+                          onMouseLeave={() => setTip(null)}
+                          onFocus={(e) => showTip(e, text)}
+                          onBlur={() => setTip(null)}
+                          aria-label={text}
+                        />
                       );
                     })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                  </Fragment>
+                );
+              })}
+            </div>
           </div>
         )}
+
+        {/* 호버 툴팁 — 칸 위쪽 가운데에 붙습니다 */}
+        {tip && (
+          <div
+            className="progress-tip"
+            role="tooltip"
+            style={{ left: tip.left, bottom: tip.bottom }}
+          >
+            {tip.text}
+          </div>
+        )}
+
+        {/* 칸을 누르면 뜨는 작은 정보창 */}
+        {popup && (
+          <CellPopup
+            row={popup.row}
+            stats={statsOf(popup.row.uid)}
+            pos={popup.pos}
+            onOpenStudent={onOpenStudent}
+            onClose={() => setPopup(null)}
+          />
+        )}
       </div>
+    </div>
+  );
+}
+
+// 학생 한 명의 요약 — 누른 칸 옆에 뜨는 작은 창.
+// -------------------------------------------------------------
+// 이 프로젝트의 활동별 제출 여부는 잔디 격자가 이미 색으로 보여 주므로 여기서
+// 되풀이하지 않습니다. 대신 '이 학생은 평소 어떤가'를 모았습니다 —
+// 출석률, 반의 모든 프로젝트를 통틀어 본 활동 참여도, 질문방에서의 질문·답변
+// 수, 그리고 어느 모둠인지. 수업 중 한 학생을 짚어 볼 때 필요한 것들입니다.
+function CellPopup({ row, stats, pos, onOpenStudent, onClose }) {
+  const attendPct =
+    stats.attendDays > 0 ? Math.round((stats.present / stats.attendDays) * 100) : null;
+  const actPct =
+    stats.actTotal > 0 ? Math.round((stats.actDone / stats.actTotal) * 100) : null;
+
+  return (
+    <div
+      className="progress-pop"
+      role="dialog"
+      aria-label="학생 정보"
+      style={pos}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="progress-pop-head">
+        <span className="progress-pop-who">
+          {row.studentId && <small>{row.studentId}</small>}
+          <strong>{row.name}</strong>
+        </span>
+        <button type="button" className="progress-pop-close" onClick={onClose} aria-label="닫기">
+          ×
+        </button>
+      </div>
+
+      <dl className="progress-pop-rows">
+        <div>
+          <dt>출석률</dt>
+          <dd>
+            {attendPct === null ? (
+              <small>출석 기록 없음</small>
+            ) : (
+              <>
+                <strong>{attendPct}%</strong>
+                <small> · {stats.present}/{stats.attendDays}일</small>
+              </>
+            )}
+          </dd>
+        </div>
+        <div>
+          <dt>활동 참여도</dt>
+          <dd>
+            {actPct === null ? (
+              <small>활동 없음</small>
+            ) : (
+              <>
+                <strong>{actPct}%</strong>
+                <small> · {stats.actDone}/{stats.actTotal}칸</small>
+              </>
+            )}
+          </dd>
+        </div>
+        <div>
+          <dt>질문방</dt>
+          <dd>
+            {stats.hasQna ? (
+              <>
+                질문 <strong>{stats.asked}</strong>
+                <small> · </small>
+                답변 <strong>{stats.answered}</strong>
+              </>
+            ) : (
+              <small>기록 없음</small>
+            )}
+          </dd>
+        </div>
+        <div>
+          <dt>모둠</dt>
+          <dd>
+            {stats.groupName ? (
+              <>
+                {stats.groupName}
+                <small> · {stats.groupSize}명</small>
+              </>
+            ) : (
+              <small>배정 전</small>
+            )}
+          </dd>
+        </div>
+      </dl>
+
+      {onOpenStudent && (
+        <button
+          type="button"
+          className="progress-pop-open"
+          onClick={() => onOpenStudent(row.uid)}
+        >
+          카드 열어 보기 →
+        </button>
+      )}
     </div>
   );
 }

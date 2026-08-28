@@ -336,6 +336,18 @@ function StudyPageInner() {
   const attendanceOpenToday =
     !!currentClass?.attendanceOpen && currentClass?.attendanceOpenDate === todayAttendanceKey;
 
+  // 자리표 색칠용 — 오늘 출석한 학생 집합.
+  // 아직 출석을 시작하지도, 기록이 하나도 남지도 않았다면 null을 주어
+  // 자리를 모두 '확인 전(회색)'으로 둡니다. 출석을 열자마자 반 전체가
+  // 결석(주황)으로 물드는 일이 없도록, 출석 중이면 기록이 없어도 색을
+  // 나눠 줍니다(아직 안 누른 학생이 곧 결석 후보라는 뜻).
+  const todayPresentUids = useMemo(() => {
+    if (!admin) return null;
+    const todays = attendanceRecords.filter((r) => r.date === todayAttendanceKey);
+    if (!attendanceOpenToday && todays.length === 0) return null;
+    return new Set(todays.map((r) => r.uid).filter(Boolean));
+  }, [admin, attendanceRecords, todayAttendanceKey, attendanceOpenToday]);
+
   useEffect(() => {
     if (!classId || !user?.uid) {
       setAttendanceRecords([]);
@@ -786,6 +798,8 @@ function StudyPageInner() {
                   baseGroupAssignment={baseGroupAssignment}
                   questions={questions}
                   classes={myClasses}
+                  classBoards={admin ? classBoards : []}
+                  attendanceRecords={admin ? attendanceRecords : []}
                   onBack={closeProject}
                   onAsk={(kw) => setAskKeyword(kw)}
                   onModalChange={setCardModalOpen}
@@ -820,6 +834,7 @@ function StudyPageInner() {
                 classId={classId}
                 seatLayout={seatLayout}
                 groupAssignment={baseGroupAssignment}
+                presentUids={todayPresentUids}
                 readOnly={false}
                 onAward={awardReward}
                 onSaveSeats={(seats) => saveStudySeatLayout(classId, "default", seats, getCurrentUser())}
@@ -981,13 +996,11 @@ function StudyPageInner() {
           isTeacher={admin}
           records={attendanceRecords}
           roster={admin ? roster : []}
-          classId={classId}
+          className={currentClass.name ?? ""}
           attendanceOpenToday={attendanceOpenToday}
           attendanceBusy={attendanceBusy}
           onStartAttendance={admin ? handleStartAttendance : null}
           onStopAttendance={admin ? handleStopAttendance : null}
-          allClasses={admin ? myClasses : []}
-          directory={admin ? directory : []}
           onClose={() => setAttendanceOpen(false)}
         />
       )}

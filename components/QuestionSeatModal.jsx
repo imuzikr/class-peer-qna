@@ -37,9 +37,13 @@ import StudentToolsModal from "./StudentToolsModal";
 // 화면은 실수로 자리가 바뀌면 안 돼서 이 prop들을 넘기지 않고 그대로 둡니다.
 // topUids: 공부방 카드의 '반응 1등' 테두리 강조와 같은 방식으로, 지금 과일이
 // 가장 많은 학생의 자리를 눈에 띄게 표시합니다(안 넘기면 강조 없음).
+// presentUids: 오늘 출석한 학생 uid 집합. null이면 아직 출석을 확인하기
+// 전이라 자리를 모두 연한 회색으로 둡니다(출석/결석을 섣불리 단정하지
+// 않으려고). 집합이 오면 그 안에 있으면 연한 초록(출석), 없으면 연한
+// 주황(결석)으로 칠합니다.
 export function SeatPickGrid({
   seats, byUid, raisedUids, raisedCount, onPick, compact = false,
-  onDragStart, onDragEnd, onDropTo, topUids = null,
+  onDragStart, onDragEnd, onDropTo, topUids = null, presentUids = null,
 }) {
   const draggable = !!(onDragStart && onDragEnd && onDropTo);
   return (
@@ -68,13 +72,19 @@ export function SeatPickGrid({
           }
           const raised = raisedUids.has(s.uid);
           const top = !!topUids?.has(s.uid);
+          // 출석 확인 전 → unchecked(연한 회색) / 출석 → present(연한 초록)
+          // / 결석 → absent(연한 주황)
+          const att = presentUids
+            ? presentUids.has(s.uid) ? "present" : "absent"
+            : "unchecked";
+          const attLabel = att === "present" ? " · 출석" : att === "absent" ? " · 결석" : "";
           return (
             <button
               key={s.uid}
               type="button"
-              className={`attend-seat attend-seat--pick${raised ? " attend-seat--raised" : ""}${top ? " attend-seat--top" : ""}`}
+              className={`attend-seat attend-seat--pick attend-seat--${att}${raised ? " attend-seat--raised" : ""}${top ? " attend-seat--top" : ""}`}
               onClick={() => onPick(s)}
-              title={`${s.name}${s.studentId ? ` · ${s.studentId}` : ""}${raised ? " · 질문 있어요" : ""}${top ? " · 과일 1등" : ""} — 눌러서 과일 주기·누가기록${draggable ? ", 끌어서 자리 이동" : ""}`}
+              title={`${s.name}${s.studentId ? ` · ${s.studentId}` : ""}${attLabel}${raised ? " · 질문 있어요" : ""}${top ? " · 과일 1등" : ""} — 눌러서 과일 주기·누가기록${draggable ? ", 끌어서 자리 이동" : ""}`}
               draggable={draggable}
               onDragStart={draggable ? (e) => { onDragStart(i); e.dataTransfer.effectAllowed = "move"; } : undefined}
               onDragEnd={draggable ? onDragEnd : undefined}

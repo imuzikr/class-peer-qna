@@ -15,7 +15,8 @@
 // =============================================================
 import { backdropClose } from "@/lib/modal";
 import { useState } from "react";
-import { addStudyBoard, addKeyword } from "@/lib/store";
+import { addStudyBoard, addStudyCard, addKeyword } from "@/lib/store";
+import { buildActivityTemplate } from "@/lib/activities";
 import { getCurrentUser } from "@/lib/user";
 
 export default function StudyProjectForm({ keywords = [], classId = null, onClose, onCreated }) {
@@ -58,15 +59,32 @@ export default function StudyProjectForm({ keywords = [], classId = null, onClos
     if (!title.trim()) return;
     setSaving(true);
     try {
-      const newId = await addStudyBoard(getCurrentUser(), {
+      const me = getCurrentUser();
+      const acts = activities.map((a) => a.trim()).filter(Boolean);
+      const newId = await addStudyBoard(me, {
         title: title.trim(),
         type: "student",
         description: description.trim(),
         keywords: linkKeyword ? selectedKeywords : [],
         classId,
         activityType,
-        activities: activities.map((a) => a.trim()).filter(Boolean),
+        activities: acts,
       });
+      // 선생님 안내 카드를 한 장 미리 깔아 둡니다 — 학생 카드 그리드의 맨
+      // 앞자리에 놓여(StudyProjectView의 seats) 예시·안내 역할을 합니다.
+      // 활동 틀을 그대로 채워 두어, 교사가 열면 곧바로 활동마다 예시를
+      // 적어 넣을 수 있습니다.
+      if (newId) {
+        try {
+          await addStudyCard(me, newId, {
+            title: "안내",
+            content: buildActivityTemplate(acts),
+          });
+        } catch {
+          // 안내 카드는 부가 기능이라 실패해도 프로젝트 생성은 그대로 둡니다
+          // (교사가 설정에서 '＋ 카드 추가'로 언제든 만들 수 있습니다).
+        }
+      }
       onCreated?.(newId);
       onClose();
     } finally {

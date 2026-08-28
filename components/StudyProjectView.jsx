@@ -34,7 +34,6 @@ import {
   deleteStudyBoard,
   duplicateStudyBoard,
   getDirectoryUser,
-  toDate,
   REWARD_MAX,
 } from "@/lib/store";
 import {
@@ -50,7 +49,6 @@ import StudyProgressBoard from "./StudyProgressBoard";
 import GroupComposer from "./GroupComposer";
 import {
   IconTrash,
-  IconSettings,
   IconCheck,
   IconLock,
   IconDuplicate,
@@ -74,6 +72,9 @@ export default function StudyProjectView({
   baseGroupAssignment = null,
   questions = [],
   classes = [],
+  // 공부중 전광판의 학생 정보창에서 쓰는 반 단위 자료
+  classBoards = [],
+  attendanceRecords = [],
   onBack,
   onAsk,
   onModalChange,
@@ -83,14 +84,11 @@ export default function StudyProjectView({
   const [cards, setCards] = useState([]);
   const [selectedCard, setSelectedCard] = useState(null);
   const [creating, setCreating] = useState(false);
-  // 활동이 있는 프로젝트에서 '내 카드'를 열면 모달 대신 이 상세 페이지로
-  // 바꿉니다(StudyMyActivityCard) — 남의 카드를 훑어볼 때는 여전히 모달.
-  const [myCardOpen, setMyCardOpen] = useState(false);
-  const [panelOpen, setPanelOpen] = useState(false);
+  // 활동이 있는 프로젝트에서 카드를 열면 모달 대신 이 상세 페이지로 바꿉니다
+  // (StudyMyActivityCard) — 학생은 자기 카드만, 교사는 학생이 이미 쓴 카드라면
+  // 누구 것이든 이 방식으로 봅니다(학생이 친구 카드를 볼 때만 기존 모달 유지).
+  const [detailSeat, setDetailSeat] = useState(null);
   const [duplicating, setDuplicating] = useState(false);
-  const [sortKey, setSortKey] = useState("studentId");
-  const [studentIdDir, setStudentIdDir] = useState("asc");
-  const [timeDir, setTimeDir] = useState("desc");
   const [presenting, setPresenting] = useState(false);
   const [progressOpen, setProgressOpen] = useState(false);
   const [titleDraft, setTitleDraft] = useState(board.title);
@@ -128,8 +126,6 @@ export default function StudyProjectView({
     (max, c) => Math.max(max, cardReactionTotal(c)),
     0
   );
-
-  const currentSortDir = sortKey === "studentId" ? studentIdDir : timeDir;
 
   // ── 개인 카드 자리 만들기 ────────────────────────────────────
   // seat: { key, uid, name, studentId, emoji, card, mine, locked, isTeacherCard }
@@ -170,7 +166,9 @@ export default function StudyProjectView({
           locked: false,
           isTeacherCard: isTeacherAuthored(c),
         }));
-      return [...rows, ...extras];
+      // 선생님 안내 카드는 항상 맨 앞자리(왼쪽 위) — 학생들이 그리드를 열면
+      // 예시·안내부터 보이도록. 명단에 없는 다른 카드는 뒤에 이어 붙입니다.
+      return [...extras, ...rows];
     }
 
     // 학생: 내 자리는 항상 맨 앞(카드가 없어도). 급우도 classRoster로 반
@@ -226,34 +224,30 @@ export default function StudyProjectView({
         locked: !shared && !isTeacherAuthored(c),
         isTeacherCard: isTeacherAuthored(c),
       }));
-    return [mine, ...rosterSeats, ...extras];
+    // 선생님 안내 카드가 맨 앞(왼쪽 위) — 학생이 그리드를 열면 무엇을 어떻게
+    // 쓰는지 먼저 보이고, 바로 다음이 자기 카드입니다.
+    return [
+      ...extras.filter((e) => e.isTeacherCard),
+      mine,
+      ...rosterSeats,
+      ...extras.filter((e) => !e.isTeacherCard),
+    ];
   }, [isNotice, isGroup, isTeacher, cards, classRoster, myCard, shared, user?.uid, user?.emoji]);
 
-  // 자리 정렬 (교사만) — 학번순 / 제출 시간순. 테스트 계정(test01~test05)은
-  // 정렬 기준·방향과 무관하게 항상 맨 뒤에 고정합니다.
+  // 자리 정렬 (교사만) — 선생님 안내 카드가 맨 앞, 테스트 계정(test01~test05)은
+  // 맨 뒤, 나머지는 학번순 고정
   const sortedSeats = useMemo(() => {
     if (!seats || !isTeacher) return seats;
     return [...seats].sort((a, b) => {
+      if (a.isTeacherCard !== b.isTeacherCard) return a.isTeacherCard ? -1 : 1;
       const aTest = isTestAccountEmail(a.email ?? getDirectoryUser(a.uid)?.email);
       const bTest = isTestAccountEmail(b.email ?? getDirectoryUser(b.uid)?.email);
       if (aTest !== bTest) return aTest ? 1 : -1;
-      let cmp = 0;
-      if (sortKey === "studentId") {
-        const aId = a.studentId ?? getDirectoryUser(a.uid)?.studentId ?? "";
-        const bId = b.studentId ?? getDirectoryUser(b.uid)?.studentId ?? "";
-        cmp = String(aId).localeCompare(String(bId), "ko", { numeric: true });
-      } else {
-        // 카드가 없는 자리는 항상 뒤로 (아직 제출 전)
-        const at = a.card ? toDate(a.card.createdAt) : null;
-        const bt = b.card ? toDate(b.card.createdAt) : null;
-        if (!at && !bt) return 0;
-        if (!at) return 1;
-        if (!bt) return -1;
-        cmp = at - bt;
-      }
-      return currentSortDir === "asc" ? cmp : -cmp;
+      const aId = a.studentId ?? getDirectoryUser(a.uid)?.studentId ?? "";
+      const bId = b.studentId ?? getDirectoryUser(b.uid)?.studentId ?? "";
+      return String(aId).localeCompare(String(bId), "ko", { numeric: true });
     });
-  }, [seats, isTeacher, sortKey, currentSortDir]);
+  }, [seats, isTeacher]);
 
   // 안내(수업 자료)·모둠 프로젝트에서 그리드에 놓을 카드
   const listCards = useMemo(() => {
@@ -337,27 +331,9 @@ export default function StudyProjectView({
   }
   const otherClasses = classes.filter((c) => c.id !== board.classId);
 
-  // 개별 활동 ↔ 모둠 활동 전환 — 이미 쓴 카드가 있으면 구조가 어긋나 막습니다.
-  async function toggleActivityType() {
-    if (isGroup) {
-      if (cards.length > 0) {
-        alert(
-          "이미 모둠 카드가 있어서 개별 활동으로 바꿀 수 없어요.\n'모둠 구성'에서 모둠 배정을 먼저 정리한 후 다시 시도해 주세요."
-        );
-        return;
-      }
-      await updateStudyBoard(board.id, { activityType: "individual" });
-    } else {
-      const studentCards = cards.filter((c) => !isTeacherAuthored(c));
-      if (studentCards.length > 0) {
-        alert(
-          "이미 학생이 작성한 개인 카드가 있어서 모둠 활동으로 바꿀 수 없어요.\n학생 카드를 모두 정리한 후 다시 시도해 주세요."
-        );
-        return;
-      }
-      await updateStudyBoard(board.id, { activityType: "group" });
-    }
-  }
+  // 개별 ↔ 모둠 전환 버튼은 없앴습니다 — 활동 유형은 프로젝트를 만들 때
+  // 고르며, 이미 쓴 카드가 있으면 되돌릴 수 없어 나중에 바꾸는 길을 열어
+  // 두면 사고가 납니다.
 
   const cardModalOpen = selectedCard !== null || creating;
   const modalOpen = cardModalOpen || presenting || progressOpen || composing;
@@ -367,25 +343,41 @@ export default function StudyProjectView({
 
   // 자리 하나를 눌렀을 때
   //  · 내 자리(활동이 있는 프로젝트) → 상세 페이지(StudyMyActivityCard)
-  //  · 그 밖의 카드(남의 카드·활동 없는 프로젝트의 내 카드) → 기존 모달
-  //  · 남의 빈 자리 → 아무 일 없음
+  //  · 교사가 학생 자리를 누른 경우도 같은 상세 페이지로 — 아직 안 쓴
+  //    자리라도 진행 상황을 보러 들어갈 수 있어야 하므로. 다만 보안 규칙상
+  //    교사가 학생 명의 카드를 대신 만들 수는 없어(authorId는 실제 로그인한
+  //    사람과 같아야 함), 카드가 아직 없으면 읽기 전용(canEdit=false)으로 엽니다.
+  //  · 그 밖의 카드(활동 없는 프로젝트의 카드, 학생이 보는 친구 카드) → 기존 모달
+  //  · 남의 빈 자리(학생 시점) → 아무 일 없음
   function openSeat(seat) {
     if (seat.locked) return;
-    if (seat.mine && activities.length > 0) { setMyCardOpen(true); return; }
+    if (activities.length > 0 && (seat.mine || isTeacher)) {
+      setDetailSeat(seat);
+      return;
+    }
     if (seat.card) { setSelectedCard(seat.card); return; }
     if (seat.mine && !locked) setCreating(true);
   }
 
-  // 활동이 있는 프로젝트의 '내 카드' — 그리드 대신 이 상세 페이지를 통째로 보여 줍니다.
-  if (myCardOpen) {
+  // 활동이 있는 프로젝트의 카드 상세 — 그리드 대신 이 상세 페이지를 통째로
+  // 보여 줍니다. 내 자리면 나 자신 기준, 교사가 학생 자리를 열었으면 그
+  // 학생의 카드를 기준으로 편집 권한(canEditCard)을 판단하되, 카드가 아직
+  // 없으면(학생이 시작 전) 무조건 읽기 전용입니다.
+  if (detailSeat) {
     return (
       <StudyMyActivityCard
         board={board}
         user={user}
-        card={myCard}
-        canEdit={!locked}
+        card={detailSeat.mine ? myCard : detailSeat.card}
+        canEdit={
+          detailSeat.mine
+            ? !locked
+            : !!detailSeat.card && canEditCard(detailSeat.card)
+        }
         canDelete={isTeacher}
-        onBack={() => setMyCardOpen(false)}
+        isTeacher={isTeacher}
+        writerName={detailSeat.mine ? user?.displayName ?? "" : detailSeat.name}
+        onBack={() => setDetailSeat(null)}
         onAsk={onAsk}
         relatedQuestions={relatedQuestions}
       />
@@ -394,12 +386,8 @@ export default function StudyProjectView({
 
   return (
     <section className="study-project-view">
-      {/* ── 머리말 — 뒤로 가기 · 제목 · 안내 · 교사 도구 ── */}
+      {/* ── 머리말 — 제목이 맨 위, 그 아래 줄에 뒤로 가기·배지 · 교사 도구 ── */}
       <div className="study-project-head">
-        <button type="button" className="btn-ghost study-project-back" onClick={onBack}>
-          ← 프로젝트 목록
-        </button>
-
         <div className="study-project-head-main">
           {isTeacher && editingTitle ? (
             <div className="study-title-edit-wrap">
@@ -440,7 +428,13 @@ export default function StudyProjectView({
             </h2>
           )}
 
+          {/* 상태와 도구를 모두 이 한 줄에 — 접었다 펴는 설정 패널 없이,
+              지금 어떤 상태인지(색이 켜진 쪽)와 무엇을 할 수 있는지가
+              제목 바로 아래에서 한눈에 보이도록. */}
           <div className="study-project-head-badges">
+            <button type="button" className="btn-ghost study-project-back" onClick={onBack}>
+              ← 프로젝트 목록
+            </button>
             {!isNotice && (
               <span className={`study-project-badge${isGroup ? " group" : ""}`}>
                 {isGroup ? "👥 모둠 활동" : "🧑‍🎓 개별 활동"}
@@ -451,12 +445,146 @@ export default function StudyProjectView({
                 활동 {isTeacher ? `${summaryOpenCount}/${activities.length}` : activities.length}개
               </span>
             )}
-            {!isNotice && (
+
+            {/* 학생 — 지금 상태만 배지로 (바꿀 수 있는 건 교사뿐) */}
+            {!isTeacher && !isNotice && (
               <span className="study-project-badge soft">
                 {shared ? "함께 보기" : isGroup ? "자기 모둠만" : "나만 보기"}
               </span>
             )}
-            {locked && <span className="study-project-badge lock">🔒 보기 전용</span>}
+            {!isTeacher && locked && (
+              <span className="study-project-badge lock">🔒 보기 전용</span>
+            )}
+
+            {/* 교사 — 토글 대신 상태마다 버튼을 따로 두고, 지금 켜진 쪽에만
+                색을 넣습니다(한 번 눌러 봐야 뭐가 되는지 알던 것을 없앰). */}
+            {isTeacher && !isNotice && (
+              <span className="study-seg" role="group" aria-label="공개 범위">
+                <button
+                  type="button"
+                  className={`study-seg-btn${!shared ? " on lock" : ""}`}
+                  aria-pressed={!shared}
+                  onClick={() => shared && updateStudyBoard(board.id, { viewMode: "private" })}
+                  title={
+                    isGroup
+                      ? "각 모둠은 자기 카드만 봅니다"
+                      : "학생은 자기 카드만 열 수 있습니다"
+                  }
+                >
+                  <IconLock size={14} /> {isGroup ? "자기 모둠만" : "나만 보기"}
+                </button>
+                <button
+                  type="button"
+                  className={`study-seg-btn${shared ? " on" : ""}`}
+                  aria-pressed={shared}
+                  onClick={() => !shared && updateStudyBoard(board.id, { viewMode: "shared" })}
+                  title={
+                    isGroup
+                      ? "다른 모둠 카드도 읽기 전용으로 공개합니다"
+                      : "친구 카드도 읽기 전용으로 공개합니다"
+                  }
+                >
+                  <IconPeople size={14} /> 함께 보기
+                </button>
+              </span>
+            )}
+
+            {isTeacher && (
+              <span className="study-seg" role="group" aria-label="편집 상태">
+                <button
+                  type="button"
+                  className={`study-seg-btn${!locked ? " on" : ""}`}
+                  aria-pressed={!locked}
+                  onClick={() => locked && updateStudyBoard(board.id, { editMode: "open" })}
+                  title="학생이 카드를 쓰고 고칠 수 있습니다"
+                >
+                  <IconPen size={14} /> 편집 가능
+                </button>
+                <button
+                  type="button"
+                  className={`study-seg-btn${locked ? " on lock" : ""}`}
+                  aria-pressed={locked}
+                  onClick={() => !locked && updateStudyBoard(board.id, { editMode: "locked" })}
+                  title="학생은 읽기만 할 수 있습니다"
+                >
+                  <IconLock size={14} /> 보기 전용
+                </button>
+              </span>
+            )}
+
+            {/* 교사 도구 — 같은 줄에 이어서 */}
+            {isTeacher && (
+              <>
+                {isGroup && (
+                  <button
+                    type="button"
+                    className="study-chip"
+                    onClick={() => setComposing(true)}
+                    title="모둠 구성 — 기본 모둠을 쓰거나 이 프로젝트에서만 다르게 구성"
+                  >
+                    <IconPeople size={15} /> 모둠 구성
+                  </button>
+                )}
+                {canAddOwnCard && (
+                  <button
+                    className="study-chip"
+                    onClick={() => setCreating(true)}
+                    title="교사가 올리는 예시·자료 카드를 추가합니다"
+                  >
+                    ＋ 카드 추가
+                  </button>
+                )}
+                <button
+                  className="study-chip"
+                  onClick={() => setDuplicating(true)}
+                  title="이 프로젝트를 다른 반으로 복제 (학생 기록은 초기화)"
+                >
+                  <IconDuplicate size={15} /> 다른 반으로 복제
+                </button>
+                {!isNotice && (
+                  confirmDelete ? (
+                    <span className="study-project-delete-confirm">
+                      <span>카드까지 모두 삭제됩니다.</span>
+                      <button className="study-chip danger" onClick={handleDeleteBoard}>
+                        정말 삭제
+                      </button>
+                      <button className="study-chip" onClick={() => setConfirmDelete(false)}>
+                        취소
+                      </button>
+                    </span>
+                  ) : (
+                    <button className="study-chip danger" onClick={() => setConfirmDelete(true)}>
+                      <IconTrash size={15} /> 프로젝트 삭제
+                    </button>
+                  )
+                )}
+
+                {/* 수업을 '지금 진행'하는 도구 — 성격이 달라 줄 오른쪽 끝으로 */}
+                <span className="study-project-live-tools">
+                  {!isNotice && (
+                    <button
+                      className="study-present-btn"
+                      onClick={() => presentCards.length > 0 && setPresenting(true)}
+                      disabled={presentCards.length === 0}
+                      title={presentCards.length > 0 ? "발표 모드 — 학생 카드를 크게 넘겨보기" : "아직 제출한 카드가 없어요"}
+                      aria-label="발표 모드"
+                    >
+                      ▶
+                    </button>
+                  )}
+                  {!isNotice && !isGroup && (
+                    <button
+                      className="study-check-btn"
+                      onClick={() => setProgressOpen(true)}
+                      title="공부중 전광판 — 학생별 제출 상태 확인"
+                      aria-label="공부중 전광판"
+                    >
+                      <IconCheck size={20} />
+                    </button>
+                  )}
+                </span>
+              </>
+            )}
           </div>
 
           {isTeacher && editingDesc ? (
@@ -488,183 +616,12 @@ export default function StudyProjectView({
             )
           )}
         </div>
-
-        {isTeacher && (
-          <div className="study-project-tools">
-            {!isNotice && (
-              <button
-                className="study-present-btn"
-                onClick={() => presentCards.length > 0 && setPresenting(true)}
-                disabled={presentCards.length === 0}
-                title={presentCards.length > 0 ? "발표 모드 — 학생 카드를 크게 넘겨보기" : "아직 제출한 카드가 없어요"}
-                aria-label="발표 모드"
-              >
-                ▶
-              </button>
-            )}
-            {!isNotice && !isGroup && (
-              <button
-                className="study-check-btn"
-                onClick={() => setProgressOpen(true)}
-                title="공부중 전광판 — 학생별 제출 상태 확인"
-                aria-label="공부중 전광판"
-              >
-                <IconCheck size={20} />
-              </button>
-            )}
-            <button
-              className={`study-panel-toggle${panelOpen ? " open" : ""}`}
-              onClick={() => setPanelOpen((v) => !v)}
-              title={panelOpen ? "설정 접기" : "정렬·설정 펼치기"}
-              aria-label={panelOpen ? "설정 접기" : "설정 펼치기"}
-            >
-              <IconSettings size={20} />
-            </button>
-          </div>
-        )}
       </div>
 
-      {/* ── 교사 설정 패널 ── */}
-      {isTeacher && panelOpen && (
-        <div className="study-project-panel">
-          {!isNotice && (
-            <div className="study-sort">
-              {isGroup ? (
-                <>
-                  <button
-                    type="button"
-                    className="study-sort-btn study-sort-btn--group"
-                    onClick={() => setComposing(true)}
-                    title="모둠 구성 — 기본 모둠을 쓰거나 이 프로젝트에서만 다르게 구성"
-                  >
-                    모둠 구성
-                  </button>
-                  <button
-                    type="button"
-                    className="study-sort-btn"
-                    onClick={toggleActivityType}
-                    title="이 프로젝트를 개별 활동으로 바꿉니다(모둠 카드가 아직 없을 때만 가능)"
-                  >
-                    개별 활동
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    className={`study-sort-btn study-sort-btn--studentid${sortKey === "studentId" ? " active" : ""}`}
-                    onClick={() => {
-                      setSortKey("studentId");
-                      setStudentIdDir((d) => (d === "asc" ? "desc" : "asc"));
-                    }}
-                    title="학번 정렬"
-                  >
-                    학번 {studentIdDir === "asc" ? "↑" : "↓"}
-                  </button>
-                  <button
-                    className={`study-sort-btn study-sort-btn--time${sortKey === "time" ? " active" : ""}`}
-                    onClick={() => {
-                      setSortKey("time");
-                      setTimeDir((d) => (d === "asc" ? "desc" : "asc"));
-                    }}
-                    title="제출 시간 정렬"
-                  >
-                    제출 {timeDir === "asc" ? "↑" : "↓"}
-                  </button>
-                  <button
-                    type="button"
-                    className="study-sort-btn"
-                    onClick={toggleActivityType}
-                    title="이 프로젝트를 모둠 활동으로 바꿉니다(학생이 작성한 개인 카드가 없을 때만 가능)"
-                  >
-                    모둠
-                  </button>
-                </>
-              )}
-            </div>
-          )}
-
-          <div className="study-settings">
-            {!isNotice && (
-              <label className="study-setting-row">
-                <span>공개 범위</span>
-                <button
-                  className="study-chip"
-                  onClick={() =>
-                    updateStudyBoard(board.id, {
-                      viewMode: shared ? "private" : "shared",
-                    })
-                  }
-                  title={
-                    isGroup
-                      ? "자기 모둠만: 각 모둠은 자기 카드만 봄 · 함께 보기: 다른 모둠 카드도 읽기 전용으로 공개"
-                      : "나만 보기: 학생은 자기 카드만 열 수 있음 · 함께 보기: 친구 카드도 읽기 전용으로 공개"
-                  }
-                >
-                  {shared ? (
-                    <><IconPeople size={15} /> 함께 보기</>
-                  ) : isGroup ? (
-                    <><IconLock size={15} /> 자기 모둠만</>
-                  ) : (
-                    <><IconLock size={15} /> 나만 보기</>
-                  )}
-                </button>
-              </label>
-            )}
-            <label className="study-setting-row">
-              <span>편집 상태</span>
-              <button
-                className="study-chip"
-                onClick={() =>
-                  updateStudyBoard(board.id, { editMode: locked ? "open" : "locked" })
-                }
-              >
-                {locked ? (
-                  <><IconLock size={15} /> 보기 전용</>
-                ) : (
-                  <><IconPen size={15} /> 편집 가능</>
-                )}
-              </button>
-            </label>
-
-            {canAddOwnCard && (
-              <button
-                className="study-chip"
-                onClick={() => setCreating(true)}
-                title="교사가 올리는 예시·자료 카드를 추가합니다"
-              >
-                ＋ 카드 추가
-              </button>
-            )}
-            <button
-              className="study-chip"
-              onClick={() => setDuplicating(true)}
-              title="이 프로젝트를 다른 반으로 복제 (학생 기록은 초기화)"
-            >
-              <IconDuplicate size={15} /> 다른 반으로 복제
-            </button>
-            {!isNotice && (
-              confirmDelete ? (
-                <span className="study-project-delete-confirm">
-                  <span>카드까지 모두 삭제됩니다.</span>
-                  <button className="study-chip danger" onClick={handleDeleteBoard}>
-                    정말 삭제
-                  </button>
-                  <button className="study-chip" onClick={() => setConfirmDelete(false)}>
-                    취소
-                  </button>
-                </span>
-              ) : (
-                <button className="study-chip danger" onClick={() => setConfirmDelete(true)}>
-                  <IconTrash size={15} /> 프로젝트 삭제
-                </button>
-              )
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ── 개인 카드 그리드 ── */}
-      <div className="study-project-cards">
+      {/* ── 개인 카드 그리드 ──
+          자리 그리드(개별 활동)는 카드가 많아 한눈에 훑어야 하므로, 학생이
+          활동을 시작해도 카드 높이가 빈 자리와 같도록 --seats로 고정합니다. */}
+      <div className={`study-project-cards${seats !== null ? " study-project-cards--seats" : ""}`}>
         {/* 안내(수업 자료)·모둠 프로젝트 — 카드 목록을 그대로 */}
         {seats === null &&
           listCards.map((card) => (
@@ -727,6 +684,7 @@ export default function StudyProjectView({
               seat={seat}
               activities={activities}
               canStart={seat.mine && !locked}
+              canPeek={isTeacher && activities.length > 0}
               onClick={() => openSeat(seat)}
             />
           )
@@ -807,6 +765,16 @@ export default function StudyProjectView({
           board={board}
           roster={classRoster}
           cards={cards}
+          classBoards={classBoards}
+          attendanceRecords={attendanceRecords}
+          questions={questions}
+          groupAssignment={baseGroupAssignment}
+          // 전광판에서 바로 그 학생 카드로 — 닫고 자리 상세를 엽니다
+          onOpenStudent={(uid) => {
+            const seat = (sortedSeats ?? []).find((s) => s.uid === uid);
+            setProgressOpen(false);
+            if (seat) openSeat(seat);
+          }}
           onClose={() => setProgressOpen(false)}
         />
       )}
@@ -851,8 +819,10 @@ export default function StudyProjectView({
 }
 
 // 아직 카드가 없는 자리 / 잠겨서 열 수 없는 친구 자리
-function SeatPlaceholder({ seat, activities, canStart, onClick }) {
-  const clickable = canStart || (seat.card && !seat.locked);
+// canStart: 학생 본인 자리(활동 시작 가능) · canPeek: 교사가 아직 안 쓴
+// 학생 자리를 읽기 전용으로 미리 들어가 볼 수 있음(대신 만들어 줄 순 없음)
+function SeatPlaceholder({ seat, activities, canStart, canPeek, onClick }) {
+  const clickable = canStart || canPeek;
   // 잠긴 자리(친구 카드를 볼 수 없는 경우)는 진행률도 보여주지 않습니다 —
   // 잠금이 '내용은 물론 진행 정도도 안 보여준다'는 뜻이었으므로 유지합니다.
   // 잠기지 않았으면(교사 화면은 항상 이쪽) 카드가 아직 없어도(seat.card는
@@ -876,6 +846,8 @@ function SeatPlaceholder({ seat, activities, canStart, onClick }) {
           ? "이 카드는 본인과 선생님만 볼 수 있어요"
           : canStart
           ? "눌러서 활동을 시작하세요"
+          : canPeek
+          ? "눌러서 진행 상황을 확인하세요"
           : "아직 작성 전이에요"
       }
     >
