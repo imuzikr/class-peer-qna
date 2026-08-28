@@ -36,6 +36,7 @@ import StudentNotesThread from "@/components/StudentNotesThread";
 import RewardFruits, { rewardStars } from "@/components/RewardFruits";
 import StudentKwlPanel from "@/components/StudentKwlPanel";
 import StudyProjectGrid from "@/components/StudyProjectGrid";
+import BookActivityStats from "@/components/BookActivityStats";
 import ClassOverview from "@/components/ClassOverview";
 import StudyRoomStats from "@/components/StudyRoomStats";
 import { IconSchool, IconBlackboard } from "@/components/StatusIcons";
@@ -1060,6 +1061,9 @@ export default function AdminDashboardPage() {
                   className={myClasses.find((c) => c.id === selectedClassId)?.name ?? ""}
                 />
               )}
+              {/* 책방도 반 단위 — 게다가 활동 하나씩만 집계할 수 있습니다
+                  (words·entries에 collectionGroup 규칙이 없음) */}
+              {selectedClassId && <BookActivityStats classId={selectedClassId} />}
             </>
           ) : selected ? (
             <>
