@@ -47,6 +47,7 @@ import StudyCardModal from "./StudyCardModal";
 import StudyMyActivityCard from "./StudyMyActivityCard";
 import StudyPresentModal from "./StudyPresentModal";
 import StudyProgressBoard from "./StudyProgressBoard";
+import StudyActivityWall from "./StudyActivityWall";
 import GroupComposer from "./GroupComposer";
 import {
   IconTrash,
@@ -101,6 +102,8 @@ export default function StudyProjectView({
   const [confirmDelete, setConfirmDelete] = useState(false);
   // 보드 설정·현황 패널 — 예전 '⚙ 설정'을 되살린 자리
   const [settingsOpen, setSettingsOpen] = useState(false);
+  // 활동 모아보기 — 그 활동에 대한 반 전체의 답을 한 화면에 (활동 번호)
+  const [wallIndex, setWallIndex] = useState(null);
 
   const isNotice = board.type === "notice";
   const isGroup = board.activityType === "group";
@@ -370,7 +373,8 @@ export default function StudyProjectView({
   // 두면 사고가 납니다.
 
   const cardModalOpen = selectedCard !== null || creating;
-  const modalOpen = cardModalOpen || presenting || progressOpen || composing;
+  const modalOpen =
+    cardModalOpen || presenting || progressOpen || composing || wallIndex !== null;
   useEffect(() => {
     onModalChange?.(modalOpen);
   }, [modalOpen]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -622,6 +626,19 @@ export default function StudyProjectView({
                       <span className="study-board-act-count">
                         {n}/{stats.total}
                       </span>
+                      <button
+                        type="button"
+                        className="study-board-act-wall"
+                        onClick={() => setWallIndex(i)}
+                        disabled={n === 0}
+                        title={
+                          n === 0
+                            ? "아직 이 활동을 쓴 학생이 없어요"
+                            : "이 활동의 답을 모두 한 화면에 모아 봅니다"
+                        }
+                      >
+                        모아보기
+                      </button>
                     </li>
                   );
                 })}
@@ -922,6 +939,18 @@ export default function StudyProjectView({
             if (seat) openSeat(seat);
           }}
           onClose={() => setProgressOpen(false)}
+        />
+      )}
+
+      {wallIndex !== null && (
+        <StudyActivityWall
+          board={board}
+          index={wallIndex}
+          user={user}
+          roster={classRoster}
+          cards={cards}
+          onAward={onAward}
+          onClose={() => setWallIndex(null)}
         />
       )}
 

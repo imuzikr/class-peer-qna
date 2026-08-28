@@ -10832,6 +10832,243 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   flex-shrink: 0;
 }
 
+/* 활동별 진척도 줄의 '모아보기' — 그 활동의 답을 한 화면에 */
+.study-board-act-wall {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-sub);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.study-board-act-wall:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+.study-board-act-wall:disabled { opacity: 0.4; cursor: default; }
+
+/* ── 활동 모아보기 — 반 전체의 답을 한 화면에 ── */
+.modal.wall-modal {
+  width: min(1240px, 95vw);
+  max-width: 95vw;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px 22px 22px;
+  overflow: hidden;
+}
+.wall-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.wall-head-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+.wall-head-title h3 {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--dark);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 42ch;
+}
+.wall-count {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+/* 정렬 — 세그먼트 버튼과 같은 결 */
+.wall-sorts {
+  display: inline-flex;
+  margin-left: auto;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+  background: #fff;
+}
+.wall-sort {
+  padding: 4px 11px;
+  border: none;
+  background: var(--bg-deep);
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+  cursor: pointer;
+}
+.wall-sort + .wall-sort { border-left: 1px solid var(--border); }
+.wall-sort:hover:not(.on) { background: var(--neutral); color: var(--text); }
+.wall-sort.on {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  cursor: default;
+}
+.wall-cast-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 13px;
+  border: 1px solid var(--primary);
+  border-radius: 999px;
+  background: var(--primary-light);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--primary-dark);
+  cursor: pointer;
+}
+.wall-cast-all:hover:not(:disabled) { background: #f3d9cb; }
+.wall-cast-all:disabled { opacity: 0.45; cursor: default; }
+.wall-cast-all.on {
+  background: var(--primary);
+  color: #fff;
+}
+
+.wall-grid {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+  align-content: start;
+  padding-right: 4px;
+}
+.wall-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 13px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+}
+.wall-card.live {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary-light);
+}
+.wall-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.wall-card-who {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+.wall-card-who small { font-size: 11px; color: var(--text-sub); }
+.wall-card-who strong { font-size: 13.5px; color: var(--dark); }
+.wall-card-chars {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.wall-card-chars.ok { color: #3d8a72; }
+/* 답이 길어도 카드 높이가 들쭉날쭉해지지 않게 — 넘치면 그 안에서 스크롤 */
+.wall-card-body {
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: var(--text);
+  max-height: 220px;
+  overflow-y: auto;
+}
+.wall-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+}
+.wall-card-cast {
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+  cursor: pointer;
+}
+.wall-card-cast:hover { border-color: var(--primary); color: var(--primary-dark); }
+.wall-card-cast.on {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+.wall-card-award {
+  border: none;
+  background: none;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+.wall-card-award:disabled { opacity: 0.35; cursor: default; }
+.wall-notyet {
+  flex-shrink: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-sub);
+}
+.wall-notyet > span {
+  font-weight: 800;
+  color: var(--primary-dark);
+  margin-right: 6px;
+}
+
+/* 학생 화면 — 모아보기 방송 */
+/* .broadcast-body는 가운데 정렬이라, 카드가 많아 넘치면 위쪽이 잘린 채
+   스크롤로도 닿지 않습니다. 모아보기에서는 위에서부터 쌓습니다. */
+.broadcast-overlay--wall .broadcast-body { align-items: flex-start; }
+.broadcast-wall {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+  align-content: start;
+  width: 100%;
+}
+.broadcast-wall-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.94);
+}
+.broadcast-wall-who {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--primary-dark);
+}
+.broadcast-wall-text {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--text);
+  white-space: pre-wrap;
+}
+.broadcast-wall-empty {
+  font-size: 18px;
+  color: #f0ece4;
+}
+
 /* ── 보드 설정 — 톱니바퀴 버튼과 펼침 패널 ──
    설정 버튼을 다시 둔 이유: 상태·관리 버튼을 모두 머리말 한 줄에 늘어놓으니
    제목보다 줄이 길어져, 정작 무슨 프로젝트인지가 묻혔습니다. 교사 머리말에는

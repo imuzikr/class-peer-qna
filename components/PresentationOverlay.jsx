@@ -12,7 +12,7 @@ import { normalizeMindmap } from "@/lib/mindmap";
 import MindmapCanvas from "./MindmapCanvas";
 
 // 이 화면이 그릴 줄 아는 방송 종류. 새 종류를 추가하면 여기에도 넣어야 합니다.
-const KNOWN_MODES = ["consonant", "entry", "mindmap", "lesson", "carousel", "single"];
+const KNOWN_MODES = ["consonant", "entry", "wall", "mindmap", "lesson", "carousel", "single"];
 
 export default function PresentationOverlay({ broadcast }) {
   // [버전이 어긋났을 때]
@@ -170,6 +170,42 @@ export default function PresentationOverlay({ broadcast }) {
   // 직접 읽을 권한이 없어, 내용이 방송 문서에 실려 옵니다.
   // 교사가 고른 '한 영역'만 크게 띄웁니다. 교사가 다른 영역 버튼을 누르면
   // 이 문서가 새 내용으로 덮여, 화면이 끊김 없이 그 영역으로 바뀝니다.
+  // 활동 모아보기 — 반 전체의 답을 한 화면에 타일로. 교사가 '이 화면
+  // 학급에 띄우기'를 누르면 학생 화면도 같은 배치로 바뀝니다.
+  if (broadcast.mode === "wall") {
+    const items = broadcast.items ?? [];
+    return (
+      <div
+        className="broadcast-overlay broadcast-overlay--wall"
+        role="alertdialog"
+        aria-modal="true"
+        aria-label="선생님이 보여주는 친구들의 답"
+      >
+        <div className="broadcast-bar">
+          <span className="broadcast-live-dot" aria-hidden="true" />
+          선생님이 친구들의 답을 함께 보여주고 있어요
+          {broadcast.topic && <span className="broadcast-board"># {broadcast.topic}</span>}
+          <span className="broadcast-progress">{items.length}명</span>
+        </div>
+
+        <div className="broadcast-body">
+          {items.length === 0 ? (
+            <p className="broadcast-wall-empty">아직 올라온 답이 없어요.</p>
+          ) : (
+            <div className="broadcast-wall">
+              {items.map((it, i) => (
+                <article key={i} className="broadcast-wall-card">
+                  <strong className="broadcast-wall-who">{it.name}</strong>
+                  <p className="broadcast-wall-text">{it.text}</p>
+                </article>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   if (broadcast.mode === "entry") {
     const fields = broadcast.fields ?? [];
     return (
