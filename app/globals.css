@@ -11022,8 +11022,10 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   border-radius: 3px;
   background: var(--border);
 }
+/* 프로젝트 카드의 진행 막대(.study-project-seg.on)와 같은 연한 초록입니다 —
+   칸이 가로로 길어 진한 초록(#4caf50)은 카드 목록에서 너무 튀었습니다. */
 .study-card-progress-seg.on {
-  background: #4caf50;
+  background: #7fb98a;
 }
 .study-card-progress-chars {
   font-size: 10.5px;
