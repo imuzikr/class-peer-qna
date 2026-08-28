@@ -508,6 +508,7 @@ function StudyPageInner() {
           name: d.realName || d.studentId || "이름 미설정",
           studentId: d.studentId || null,
           emoji: d.emoji || "🙂",
+          email: d.email || null,
           count: countByUid[uid] ?? 0,
         };
       })

@@ -58,6 +58,13 @@ import {
   IconPeople,
 } from "./StatusIcons";
 
+// 테스트용 학생 계정(test01~test05, 이메일에 포함) — 실제 학생이 아니라
+// 화면 확인용 더미 계정이라, 교사가 보는 학생 카드 목록에서 정렬 기준·
+// 방향과 무관하게 항상 맨 뒤로 보냅니다(sortedSeats 참고).
+function isTestAccountEmail(email) {
+  return /test0[1-5]/i.test(email ?? "");
+}
+
 export default function StudyProjectView({
   board,
   user,
@@ -143,6 +150,7 @@ export default function StudyProjectView({
         name: s.name,
         studentId: s.studentId ?? null,
         emoji: s.emoji ?? "🙂",
+        email: s.email ?? getDirectoryUser(s.uid)?.email ?? null,
         card: byAuthor.get(s.uid) ?? null,
         mine: false,
         locked: false,
@@ -156,6 +164,7 @@ export default function StudyProjectView({
           name: c.authorName ?? "선생님",
           studentId: null,
           emoji: c.authorEmoji ?? "🧑‍🏫",
+          email: getDirectoryUser(c.authorId)?.email ?? null,
           card: c,
           mine: c.authorId === user?.uid,
           locked: false,
@@ -220,10 +229,14 @@ export default function StudyProjectView({
     return [mine, ...rosterSeats, ...extras];
   }, [isNotice, isGroup, isTeacher, cards, classRoster, myCard, shared, user?.uid, user?.emoji]);
 
-  // 자리 정렬 (교사만) — 학번순 / 제출 시간순
+  // 자리 정렬 (교사만) — 학번순 / 제출 시간순. 테스트 계정(test01~test05)은
+  // 정렬 기준·방향과 무관하게 항상 맨 뒤에 고정합니다.
   const sortedSeats = useMemo(() => {
     if (!seats || !isTeacher) return seats;
     return [...seats].sort((a, b) => {
+      const aTest = isTestAccountEmail(a.email ?? getDirectoryUser(a.uid)?.email);
+      const bTest = isTestAccountEmail(b.email ?? getDirectoryUser(b.uid)?.email);
+      if (aTest !== bTest) return aTest ? 1 : -1;
       let cmp = 0;
       if (sortKey === "studentId") {
         const aId = a.studentId ?? getDirectoryUser(a.uid)?.studentId ?? "";
