@@ -571,14 +571,20 @@ button.footer-link:hover {
 .topbar-tagline {
   order: 3;
   margin-left: auto;
+  /* 메인 타이틀(.topbar .logo)과 같은 서식 — 세리프 19px/700, --dark.
+     본문 크기로 줄이면 그냥 설명 문구로 읽혀서, 요청대로 제목 급으로 둡니다. */
   font-family: var(--font-serif);
-  font-size: 13.5px;
-  color: var(--text-sub);
+  font-weight: 700;
+  font-size: 19px;
+  color: var(--dark);
   white-space: nowrap;
   flex-shrink: 0;
 }
 
-@media (max-width: 1180px) {
+/* 제목 크기(19px)라 181px를 먹습니다. 좌우 여유가 1340px에서 34px,
+   1300px 아래로는 14px(.topbar의 gap)까지 붙어 버려 버튼에 낀 것처럼
+   보입니다 — 그 앞에서 접습니다. 1366px 노트북에서는 47px 여유로 보입니다. */
+@media (max-width: 1340px) {
   .topbar-tagline { display: none; }
 }
 
