@@ -829,12 +829,13 @@ function StudyPageInner() {
 
                 {/* 안내 문구는 제목 줄 오른쪽 끝으로 — 제목 아래를 차지하면
                     바로 밑의 프로젝트 화면이 그만큼 밀려납니다. */}
+                {/* 교사에게는 안내 문구를 두지 않습니다 — 매번 같은 설명이라
+                    한 번 읽고 나면 자리만 차지합니다. 보관된 반 경고는
+                    '지금 편집이 막혀 있다'는 상태라 그대로 둡니다. */}
                 {admin ? (
                   currentClass?.archived ? (
                     <p className="study-head-note">📦 보관된 반의 데이터를 보기 전용으로 보고 있어요. 편집하려면 ‘반 관리하기’에서 먼저 복원하세요.</p>
-                  ) : (
-                    <p className="study-head-note">프로젝트를 만들면 학생마다 개인 카드가 생기고, 그 안에서 활동을 수행합니다.</p>
-                  )
+                  ) : null
                 ) : currentClass ? (
                   <p className="study-head-note">
                     <strong className="study-class-name">

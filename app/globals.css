@@ -9652,12 +9652,20 @@ pre code {
   min-width: 0;
 }
 
+/* 제목 + 도구 버튼 한 줄 — KWLS 차트를 펼치면 가운데 폭이 300px 줄어드는데,
+   그때 버튼이 아랫줄로 접히면 화면이 통째로 밀립니다. 접지 않고 한 줄을
+   지키되, 자리가 정 모자라면 가로로 밀어 볼 수 있게 합니다(스크롤 막대는
+   숨김 — 버튼 줄에 막대가 보이면 지저분합니다). */
 .study-title-row {
   display: flex;
   align-items: center;
   gap: 10px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
+.study-title-row::-webkit-scrollbar { display: none; }
+.study-title-row > * { flex-shrink: 0; }
 
 .study-class-select {
   width: auto; /* 전역 select { width:100% } 무시 — 제목 옆에 인라인 배치 */
