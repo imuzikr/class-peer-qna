@@ -9007,8 +9007,6 @@ pre code {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  max-height: 240px;
-  overflow-y: auto;
 }
 .tkwl-wants li {
   padding: 8px 9px;
@@ -9050,10 +9048,13 @@ pre code {
 }
 
 /* [A] 학생 × K·W·L·S 격자 — 전광판과 같은 시각 언어 */
+/* 이름 칸을 minmax(0, 1fr)로 — 그냥 1fr이면 최소 폭이 '내용 크기'라
+   긴 이름에서 줄이 넓어지고 가로 스크롤이 생깁니다. 0까지 줄어들 수
+   있어야 이름이 말줄임표로 잘립니다. */
 .tkwl-grid-head,
 .tkwl-row {
   display: grid;
-  grid-template-columns: 1fr repeat(4, 20px);
+  grid-template-columns: minmax(0, 1fr) repeat(4, 20px);
   gap: 4px;
   align-items: center;
 }
@@ -9072,20 +9073,21 @@ pre code {
   font-weight: 800;
   color: #8f8d84;
 }
+/* 스크롤은 패널 하나만 — 패널 안에 스크롤 영역을 여럿 두니 막대가
+   겹쳐 보이고, 어느 걸 굴려야 할지도 헷갈렸습니다. 격자는 길이대로
+   늘어나고 패널이 통째로 스크롤됩니다(머리글은 sticky로 남습니다). */
 .tkwl-grid {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  max-height: 320px;
-  overflow-y: auto;
-  /* 막대가 칸 위를 덮지 않도록 자리를 미리 비워 둡니다 */
-  scrollbar-gutter: stable;
+  min-width: 0;
 }
 .tkwl-row-name {
   display: flex;
   align-items: baseline;
   gap: 5px;
   min-width: 0;
+  overflow: hidden;
   font-size: 11.5px;
   color: #d8d6cc;
   white-space: nowrap;
@@ -9117,47 +9119,44 @@ pre code {
 /* 어두운 사이드 패널의 스크롤 막대 — 기본 막대는 밝고 두꺼워 칸 위에
    덧댄 것처럼 보입니다. 얇고 반투명하게 낮춰 배경에 묻히게 합니다. */
 .teacher-kwl,
-.tkwl-grid,
-.tkwl-wants,
 .tkwl-pop-text {
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
 }
 .teacher-kwl::-webkit-scrollbar,
-.tkwl-grid::-webkit-scrollbar,
-.tkwl-wants::-webkit-scrollbar,
 .tkwl-pop-text::-webkit-scrollbar {
   width: 8px;
 }
 .teacher-kwl::-webkit-scrollbar-track,
-.tkwl-grid::-webkit-scrollbar-track,
-.tkwl-wants::-webkit-scrollbar-track,
 .tkwl-pop-text::-webkit-scrollbar-track {
   background: transparent;
 }
 .teacher-kwl::-webkit-scrollbar-thumb,
-.tkwl-grid::-webkit-scrollbar-thumb,
-.tkwl-wants::-webkit-scrollbar-thumb,
 .tkwl-pop-text::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.2);
   border-radius: 999px;
 }
 .teacher-kwl::-webkit-scrollbar-thumb:hover,
-.tkwl-grid::-webkit-scrollbar-thumb:hover,
-.tkwl-wants::-webkit-scrollbar-thumb:hover,
 .tkwl-pop-text::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.32);
 }
 
 /* 칸을 누르면 뜨는 전문 — 패널 안 아래쪽에 붙습니다 */
+/* 칸을 누르면 뜨는 전문 — 패널 아래에 붙여 두어, 격자를 굴리며 다른
+   칸을 눌러도 내용이 늘 같은 자리에 보입니다(예전엔 목록 끝까지
+   내려가야 보였습니다). */
 .tkwl-pop {
+  position: sticky;
+  bottom: 0;
   display: flex;
   flex-direction: column;
   gap: 6px;
   padding: 10px;
   border: 1px solid var(--primary);
   border-radius: 10px;
-  background: rgba(0, 0, 0, 0.28);
+  /* 아래에 붙어 있는 동안 격자가 비쳐 보이면 안 되므로 불투명하게 */
+  background: #1e1e1d;
+  box-shadow: 0 -6px 16px rgba(0, 0, 0, 0.35);
 }
 .tkwl-pop-head {
   display: flex;
