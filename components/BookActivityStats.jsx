@@ -66,24 +66,25 @@ export default function BookActivityStats({ classId }) {
     return subscribeBookActivities(classId, setActivities);
   }, [classId]);
 
-  // 반을 바꾸거나 고른 활동이 사라지면 가장 최근 활동으로 되돌립니다
-  useEffect(() => {
-    if (activities.length === 0) { setActId(null); return; }
-    if (!activities.some((a) => a.id === actId)) setActId(activities[0].id);
-  }, [activities, actId]);
-
-  const activity = activities.find((a) => a.id === actId) ?? null;
+  // 고른 활동은 state로 '채우지' 않고 렌더에서 바로 정합니다.
+  // useEffect로 채우면 첫 렌더 한 프레임 동안 activity가 null이라, 아래
+  // 렌더가 그 순간을 반드시 견뎌야 합니다(실제로 못 견뎌 터졌습니다).
+  // 반을 바꿔 목록이 갈리면 옛 actId는 아무것도 못 찾으니 자연히 최신 활동으로
+  // 떨어집니다 — 되돌리는 effect도 따로 필요 없습니다.
+  const activity =
+    activities.find((a) => a.id === actId) ?? activities[0] ?? null;
+  const currentId = activity?.id ?? null;
   const isSolo = activity ? BOOK_SOLO_TYPES.includes(activity.type) : false;
 
   useEffect(() => {
-    if (!actId || isSolo) { setGroups([]); return; }
-    return subscribeBookGroups(actId, setGroups);
-  }, [actId, isSolo]);
+    if (!currentId || isSolo) { setGroups([]); return; }
+    return subscribeBookGroups(currentId, setGroups);
+  }, [currentId, isSolo]);
 
   useEffect(() => {
-    if (!actId || !isSolo) { setSoloEntries([]); return; }
-    return subscribeParatextEntries(actId, setSoloEntries);
-  }, [actId, isSolo]);
+    if (!currentId || !isSolo) { setSoloEntries([]); return; }
+    return subscribeParatextEntries(currentId, setSoloEntries);
+  }, [currentId, isSolo]);
 
   // 모둠마다 낱말을 따로 구독 (규칙상 한 번에 못 읽습니다)
   const groupIdsKey = useMemo(
@@ -93,12 +94,12 @@ export default function BookActivityStats({ classId }) {
   useEffect(() => {
     if (!groupIdsKey) { setWordsByGroup({}); return; }
     const unsubs = groupIdsKey.split(",").map((gid) =>
-      subscribeGroupWords(actId, gid, (list) =>
+      subscribeGroupWords(currentId, gid, (list) =>
         setWordsByGroup((prev) => ({ ...prev, [gid]: list }))
       )
     );
     return () => unsubs.forEach((u) => u());
-  }, [actId, groupIdsKey]);
+  }, [currentId, groupIdsKey]);
 
   const allWords = useMemo(
     () => groups.flatMap((g) => wordsByGroup[g.id] ?? []),
@@ -166,7 +167,7 @@ export default function BookActivityStats({ classId }) {
               <button
                 key={a.id}
                 type="button"
-                className={`bks-pick${a.id === actId ? " on" : ""}`}
+                className={`bks-pick${a.id === currentId ? " on" : ""}`}
                 onClick={() => setActId(a.id)}
                 title={`${TYPE_LABEL[a.type] ?? a.type} · ${a.topic ?? ""}`}
               >
@@ -175,7 +176,7 @@ export default function BookActivityStats({ classId }) {
             ))}
           </div>
 
-          {isSolo ? (
+          {!activity ? null : isSolo ? (
             <p className="bks-solo-note">
               <b>{TYPE_LABEL[activity.type] ?? activity.type}</b>은 개인 활동이라
               모둠 집계가 없습니다. 지금까지 <b>{soloEntries.length}명</b>이
