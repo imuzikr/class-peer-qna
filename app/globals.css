@@ -1050,6 +1050,14 @@ button.footer-link:hover {
   font-weight: 600;
 }
 
+/* 눌러서 켜 두는 btn-ghost(예: KWLS 차트 토글) — 지금 켜져 있음을 색으로 */
+.btn-ghost.active {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary-dark);
+  font-weight: 700;
+}
+
 .btn-ghost {
   background: none;
   border: 1px solid var(--border);
@@ -8888,6 +8896,27 @@ pre code {
 }
 
 /* ── KWL 사이드 패널 ── */
+/* ── KWLS 차트 슬롯 (학생) ──
+   떠 있는 오버레이가 아니라 .study-body의 플렉스 칸 하나를 차지합니다.
+   폭을 0 ↔ 300px로 바꾸면 오른쪽 화면이 그만큼 밀렸다가 되돌아오므로,
+   '왼쪽에서 밀고 들어오는' 움직임이 됩니다(파이썬 실행기와 같은 결).
+   칸 자체는 늘 자리에 있고 폭만 바뀌어서 여닫이가 끊기지 않습니다. */
+.study-kwl-slot {
+  width: 0;
+  flex-shrink: 0;
+  overflow: hidden;
+  transition: width 0.26s ease;
+}
+.study-kwl-slot.open { width: 300px; }
+/* 닫히는 동안 안쪽 패널이 찌그러지지 않도록 폭을 붙잡아 둡니다 */
+.study-kwl-slot > .kwl-panel {
+  width: 300px;
+  height: 100%;
+}
+@media (prefers-reduced-motion: reduce) {
+  .study-kwl-slot { transition: none; }
+}
+
 .kwl-panel {
   width: 300px;
   flex-shrink: 0;
@@ -13565,6 +13594,10 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   /* 참여 보상 패널은 모바일에서 숨김(교사 관리용, 데스크톱 전용) */
   .reward-panel { display: none; }
   .kwl-panel.kwl-panel--open { display: flex; }
+  /* 모바일에선 패널이 position: fixed로 떠오르므로 슬롯은 폭을 벌리지
+     않습니다(벌리면 본문이 밀린 채 빈 칸만 생깁니다) */
+  .study-kwl-slot.open { width: 0; }
+  .study-kwl-slot { overflow: visible; }
 
   .kwl-mobile-backdrop {
     display: block;
