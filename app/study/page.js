@@ -764,23 +764,26 @@ function StudyPageInner() {
                     )}
                   </div>
 
-                  {admin ? (
-                    currentClass?.archived ? (
-                      <p>📦 보관된 반의 데이터를 보기 전용으로 보고 있어요. 편집하려면 ‘반 관리하기’에서 먼저 복원하세요.</p>
-                    ) : (
-                      <p>프로젝트를 만들면 학생마다 개인 카드가 생기고, 그 안에서 활동을 수행합니다.</p>
-                    )
-                  ) : currentClass ? (
-                    <p>
-                      <strong className="study-class-name">
-                        {currentClass.name}
-                      </strong>{" "}
-                      — 프로젝트를 열어 내 카드에서 활동을 해 보세요.
-                    </p>
-                  ) : (
-                    <p>프로젝트를 열어 내 카드에서 활동을 해 보세요.</p>
-                  )}
                 </div>
+
+                {/* 안내 문구는 제목 줄 오른쪽 끝으로 — 제목 아래를 차지하면
+                    바로 밑의 프로젝트 화면이 그만큼 밀려납니다. */}
+                {admin ? (
+                  currentClass?.archived ? (
+                    <p className="study-head-note">📦 보관된 반의 데이터를 보기 전용으로 보고 있어요. 편집하려면 ‘반 관리하기’에서 먼저 복원하세요.</p>
+                  ) : (
+                    <p className="study-head-note">프로젝트를 만들면 학생마다 개인 카드가 생기고, 그 안에서 활동을 수행합니다.</p>
+                  )
+                ) : currentClass ? (
+                  <p className="study-head-note">
+                    <strong className="study-class-name">
+                      {currentClass.name}
+                    </strong>{" "}
+                    — 프로젝트를 열어 내 카드에서 활동을 해 보세요.
+                  </p>
+                ) : (
+                  <p className="study-head-note">프로젝트를 열어 내 카드에서 활동을 해 보세요.</p>
+                )}
               </div>
               {admin && myClassesAll.length === 0 ? (
                 <p className="empty-note">

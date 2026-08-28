@@ -357,9 +357,9 @@ export default function StudyMyActivityCard({
         </details>
       )}
 
-      <p className="activity-form-hint">
-        활동마다 {DONE_MIN_CHARS}자 이상 작성해야 ‘제출’로 인정됩니다.
-      </p>
+      {/* '활동마다 n자 이상' 안내 줄은 뺐습니다 — 같은 기준을 활동 칸마다
+          '7/10자'로 이미 보여 주고 있어, 넓은 띠로 한 번 더 말할 이유가
+          없습니다(그만큼 활동 칸이 아래로 밀렸습니다). */}
 
       <div className="raft-grid study-mycard-grid">
         {activities.map((act, i) => {

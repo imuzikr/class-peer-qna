@@ -9371,6 +9371,18 @@ pre code {
   font-size: 14px;
 }
 
+/* 공부방 안내 문구 — 제목 줄 오른쪽 끝. 제목 아래에 두면 그만큼 아래
+   프로젝트 화면이 밀려나서, 빈 오른쪽 공간으로 옮겼습니다. */
+.study-head-note {
+  margin: 0 0 0 auto;
+  align-self: center;
+  max-width: 46ch;
+  text-align: right;
+  color: var(--text-sub);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
 .study-class-name {
   color: var(--primary-dark);
   font-weight: 700;
