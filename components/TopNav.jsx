@@ -162,9 +162,6 @@ export default function TopNav({ active, onPython, pyActive = false }) {
         <button className="logo logo-button" onClick={() => go("/board")}>
           <IconLogo size={30} /> 배움나눔
         </button>
-        {/* 로고 옆 한 줄 — 버튼 '밖'에 둡니다. 안에 넣으면 클릭 영역과
-            버튼 이름에 함께 딸려 들어갑니다. */}
-        <span className="topbar-tagline">작은 변화를 꾸준하게</span>
         <span className="topbar-divider" aria-hidden="true" />
       </div>
 
@@ -253,6 +250,13 @@ export default function TopNav({ active, onPython, pyActive = false }) {
 
         {/* 역할 관리는 프로필 메뉴의 '관리자 설정'으로 이동 */}
       </nav>
+
+      {/* 이동 메뉴(…선생님 대시보드)와 오른쪽 사용자 영역(알림 종·프로필)
+          사이의 빈 자리. .topbar의 형제로 두고 order로 그 사이에 끼웁니다 —
+          어느 한쪽 안에 넣으면 버튼 줄이나 아이콘 줄에 딸려 붙습니다.
+          자기 margin-left:auto와 .user-area의 margin-left:auto가 남는 폭을
+          반씩 나눠 가져, 문구가 그 사이 가운데에 섭니다. */}
+      <span className="topbar-tagline">작은 변화를 꾸준하게</span>
     </header>
 
     {/* 학생 화면 — 교사가 방송 중이면 화면 전체를 강제로 덮습니다(학생은 닫을 수 없음) */}

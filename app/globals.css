@@ -560,17 +560,26 @@ button.footer-link:hover {
   gap: 8px;
 }
 
-/* 로고 옆 한 줄 — 로고와 같은 서식(세리프)을 쓰되 크기와 농도만 낮춰
-   '배움나눔'을 밀어내지 않게 합니다. 좁은 화면에서는 이동 메뉴에 자리를
-   내주고 숨깁니다(아래 모바일 블록). */
+/* 이동 메뉴와 사용자 영역(알림 종·프로필) 사이에 놓이는 한 줄.
+   로고와 같은 서식(세리프)을 쓰되 크기와 농도만 낮춰 '배움나눔'과
+   경쟁하지 않게 합니다.
+   order 3으로 .topnav-menu(2)와 .user-area(4) 사이에 끼우고, 자기
+   margin-left:auto와 .user-area의 margin-left:auto가 남는 폭을 반씩
+   나눠 가져 그 사이 가운데에 섭니다.
+   1180px 아래에서는 이동 메뉴 다섯 개와 사용자 영역만으로도 줄이 차서
+   숨깁니다 — 남겨 두면 문구가 버튼에 달라붙습니다. */
 .topbar-tagline {
+  order: 3;
+  margin-left: auto;
   font-family: var(--font-serif);
   font-size: 13.5px;
   color: var(--text-sub);
   white-space: nowrap;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  flex-shrink: 0;
+}
+
+@media (max-width: 1180px) {
+  .topbar-tagline { display: none; }
 }
 
 /* 상단바 왼쪽: 로고 + 접속 사용자 프로필 */
@@ -589,7 +598,7 @@ button.footer-link:hover {
   order: 2;
 }
 .user-area {
-  order: 3;
+  order: 4; /* .topbar-tagline(3)이 이동 메뉴와 이 영역 사이에 들어갑니다 */
   margin-left: auto;
 }
 
