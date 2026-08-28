@@ -6611,8 +6611,9 @@ pre code {
 
 /* ── 수업 중: 왼쪽 활동 관리 + 오른쪽 자리표 ──
    활동 열기·수업 목표는 왼쪽(가변 폭), 자리표는 오른쪽에 카드 폭으로 고정해
-   나란히 둡니다. 자리표는 스크롤해도 계속 보이도록 위치를 고정합니다
-   (공부방 "멋진 순간" 패널과 같은 상시 확인 용도). */
+   나란히 둡니다. 자리표는 기본적으로 버튼 하나로 접혀 있습니다 — 활동이
+   없거나 목표가 짧은 수업에서는 왼쪽 칸이 훨씬 짧아, 자리표를 늘 펼쳐 두면
+   오른쪽만 유독 길어져 화면이 한쪽으로 쏠립니다. */
 .lesson-lower {
   display: grid;
   grid-template-columns: 1fr 320px;
@@ -6624,9 +6625,38 @@ pre code {
   flex-direction: column;
   min-width: 0;
 }
-.lesson-lower-side {
-  position: sticky;
-  top: 20px;
+/* 접힌 버튼 — 카드 자리와 높이를 맞춰 위쪽 줄이 나란해 보이게 */
+.lesson-seat-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-deep);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.lesson-seat-toggle:hover {
+  border-color: var(--primary);
+  background: #fff;
+}
+.lesson-seat-toggle-icon {
+  font-size: 16px;
+}
+.lesson-seat-toggle-hand {
+  margin-left: auto;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  font-size: 12px;
+  font-weight: 800;
 }
 .lesson-seat-panel {
   border: 1px solid var(--border);
@@ -6635,7 +6665,28 @@ pre code {
   padding: 16px 14px 18px;
 }
 .lesson-seat-panel .lesson-card-head {
-  padding-bottom: 10px;
+  padding-bottom: 0;
+}
+.lesson-seat-hint {
+  margin: 2px 0 12px;
+  font-size: 11.5px;
+  color: var(--text-sub);
+}
+.lesson-seat-collapse-btn {
+  margin-left: auto;
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--text-sub);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.lesson-seat-collapse-btn:hover {
+  background: var(--neutral);
 }
 .lesson-seat-panel .lesson-note-empty {
   margin: 0;
@@ -13202,10 +13253,8 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   /* 수업하기 — 좁은 화면에서는 슬라이드 카드 위 / 해설 카드 아래로 */
   .lesson-page { padding: 12px 12px 28px; }
   .lesson-deck { grid-template-columns: 1fr; gap: 28px; }
-  /* 자리표는 활동 관리 아래로 내려가고, 고정 위치도 풉니다(좁은 화면에서
-     계속 붙어 있으면 슬라이드·해설을 가립니다) */
+  /* 자리표는 활동 관리 아래로 내려갑니다 */
   .lesson-lower { grid-template-columns: 1fr; gap: 28px; }
-  .lesson-lower-side { position: static; top: auto; }
   /* 세로로 쌓이면 옆에 높이를 정해 줄 카드가 없으므로 일반 흐름으로 되돌립니다
      (절대 배치를 그대로 두면 해설 카드 높이가 0이 됩니다) */
   .lesson-note-body { position: static; padding: 0; }

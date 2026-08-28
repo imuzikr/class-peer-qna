@@ -14,6 +14,11 @@
 // 손들기 자리 확인(QuestionSeatModal)의 SeatPickGrid를 그대로 씁니다.
 // 거기 없는 '실시간 시청 여부'만 liveState로 얹어, 출석(배경색)과 시청
 // (자리 칸의 작은 점)을 한 자리에서 함께 보여 줍니다.
+//
+// 처음엔 버튼 하나로만 보입니다 — 활동 관리 쪽 내용이 짧은 수업(활동이
+// 없거나 목표만 몇 줄인 경우)에서 자리표가 항상 펼쳐져 있으면 옆 칸만 유독
+// 길어져 화면이 한쪽으로 쏠립니다. 눌러야 펼쳐지게 해 평소엔 균형을 맞추고,
+// 필요할 때만 크게 봅니다.
 // =============================================================
 import { useEffect, useMemo, useState } from "react";
 import { subscribeQuestionSignals, todayDateKey } from "@/lib/store";
@@ -35,6 +40,7 @@ export default function LessonSeatPanel({
   onAward = null, // 없으면(학생 화면 등) 자리를 눌러도 아무 일도 안 일어남
   onSaveSeats,    // (seats) => Promise — 참여 전광판과 같은 daily 자리표에 저장
 }) {
+  const [open, setOpen] = useState(false);
   const [raisedUids, setRaisedUids] = useState(() => new Set());
   const [dragIndex, setDragIndex] = useState(null);
   const [toolsFor, setToolsFor] = useState(null);
@@ -91,12 +97,36 @@ export default function LessonSeatPanel({
     ? { ...toolsFor, count: byUid.get(toolsFor.uid)?.count ?? toolsFor.count ?? 0 }
     : null;
 
+  if (!open) {
+    return (
+      <button
+        type="button"
+        className="lesson-seat-toggle"
+        onClick={() => setOpen(true)}
+      >
+        <span className="lesson-seat-toggle-icon" aria-hidden="true">🪑</span>
+        자리표
+        {raisedCount > 0 && (
+          <span className="lesson-seat-toggle-hand">🖐️ {raisedCount}</span>
+        )}
+      </button>
+    );
+  }
+
   return (
     <section className="lesson-seat-panel" aria-label="자리표">
       <div className="lesson-card-head">
         <h2>🪑 자리표</h2>
-        <small>자리를 눌러 과일·누가기록 · 끌어서 자리 이동</small>
+        <button
+          type="button"
+          className="lesson-seat-collapse-btn"
+          onClick={() => setOpen(false)}
+          aria-label="자리표 접기"
+        >
+          접기
+        </button>
       </div>
+      <p className="lesson-seat-hint">자리를 눌러 과일·누가기록 · 끌어서 자리 이동</p>
       {roster.length === 0 ? (
         <p className="lesson-note-empty">이 반에 입장한 학생이 없어요.</p>
       ) : (
