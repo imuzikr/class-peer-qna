@@ -10376,12 +10376,13 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   position: relative;
   overflow: hidden;
 }
-.study-project-seg.on { background: #7fb98a; }
+/* 학생 카드 막대(.study-card-progress-seg.on)와 같은 연한 초록 */
+.study-project-seg.on { background: #a6d8b6; }
 .study-project-seg-fill {
   display: block;
   height: 100%;
   border-radius: 999px;
-  background: #7fb98a;
+  background: #a6d8b6;
 }
 .study-project-progress-label {
   flex-shrink: 0;
@@ -11022,10 +11023,12 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   border-radius: 3px;
   background: var(--border);
 }
-/* 프로젝트 카드의 진행 막대(.study-project-seg.on)와 같은 연한 초록입니다 —
-   칸이 가로로 길어 진한 초록(#4caf50)은 카드 목록에서 너무 튀었습니다. */
+/* 출석부의 '출석' 자리 테두리(.attend-seat--present)와 같은 연한 초록입니다 —
+   진행 막대는 어디서나 같은 색이어야 해서 프로젝트 카드 막대와도 맞췄습니다.
+   (출석 자리의 배경색 #e8f7ed는 막대 바탕(--border)과 거의 구분이 안 돼
+    같은 계열에서 한 단계 진한 테두리 쪽 값을 씁니다) */
 .study-card-progress-seg.on {
-  background: #7fb98a;
+  background: #a6d8b6;
 }
 .study-card-progress-chars {
   font-size: 10.5px;
