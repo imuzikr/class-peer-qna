@@ -6623,7 +6623,11 @@ pre code {
   grid-template-columns: 1fr 1fr;
   gap: 48px;
   align-items: start;
-  margin-top: 64px;
+  /* 위 슬라이드 줄과 나누는 희미한 가로선 — 여백만으로는 두 줄이 한 덩어리로
+     보여서, 선을 두고 위아래 간격을 반씩 나눠 줍니다. */
+  margin-top: 40px;
+  padding-top: 40px;
+  border-top: 1px solid var(--border);
 }
 .lesson-lower-main {
   display: flex;
