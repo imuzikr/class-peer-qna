@@ -566,26 +566,6 @@ export default function StudyProjectView({
           펼쳐 보고 관리합니다. */}
       {isTeacher && settingsOpen && (
         <div className="study-board-panel">
-          {/* 지금 상태 — 머리말에 늘어놓던 배지를 이 안으로 옮겼습니다 */}
-          <div className="study-board-badges">
-            {!isNotice && (
-              <span className={`study-project-badge${isGroup ? " group" : ""}`}>
-                {isGroup ? "👥 모둠 활동" : "🧑‍🎓 개별 활동"}
-              </span>
-            )}
-            {activities.length > 0 && (
-              <span className="study-project-badge soft">
-                활동 {summaryOpenCount}/{activities.length}개 열림
-              </span>
-            )}
-            {!isNotice && (
-              <span className="study-project-badge soft">
-                {shared ? "함께 보기" : isGroup ? "자기 모둠만" : "나만 보기"}
-              </span>
-            )}
-            {locked && <span className="study-project-badge lock">🔒 보기 전용</span>}
-          </div>
-
           {/* 현황 — 활동 진척도 · 학생 진행률 · 출석 */}
           {stats && (
             <section className="study-board-section">
@@ -654,6 +634,25 @@ export default function StudyProjectView({
             <h3 className="study-board-section-title">설정</h3>
 
             <div className="study-board-rows">
+              {/* 유형 — 바꾸는 값이 아니라 '지금 이런 프로젝트'라는 표시.
+                  공개 범위·편집 상태는 바로 아래 버튼이 색으로 보여 주므로
+                  여기서 배지로 되풀이하지 않습니다. */}
+              <div className="study-board-row">
+                <span className="study-board-row-label">유형</span>
+                <span className="study-board-row-actions">
+                  {!isNotice && (
+                    <span className={`study-project-badge${isGroup ? " group" : ""}`}>
+                      {isGroup ? "👥 모둠 활동" : "🧑‍🎓 개별 활동"}
+                    </span>
+                  )}
+                  {activities.length > 0 && (
+                    <span className="study-project-badge soft">
+                      활동 {summaryOpenCount}/{activities.length}개 열림
+                    </span>
+                  )}
+                </span>
+              </div>
+
               {!isNotice && (
                 <div className="study-board-row">
                   <span className="study-board-row-label">공개 범위</span>

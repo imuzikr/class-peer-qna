@@ -10522,14 +10522,6 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   background: var(--bg-deep);
   flex-shrink: 0;
 }
-/* 패널 맨 위의 상태 배지 줄 — 한 줄 전체를 씁니다 */
-.study-board-badges {
-  width: 100%;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-}
 .study-board-section {
   flex: 1;
   min-width: 280px;
