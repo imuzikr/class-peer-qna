@@ -16008,6 +16008,14 @@ button.study-cal-cell.has-record:not(:disabled):hover {
 .study-material-save:hover:not(:disabled) { background: var(--primary-dark); }
 .study-material-save:disabled { opacity: 0.5; cursor: not-allowed; }
 
+/* 어두운 패널 위에서는 --danger(#c04a3f)가 거의 안 읽혀 밝은 쪽으로 올립니다 */
+.study-activity-panel-error {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: #f0a094;
+}
+
 .study-activity-panel-actions {
   display: flex;
   gap: 8px;

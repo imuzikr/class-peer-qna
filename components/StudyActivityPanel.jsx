@@ -30,9 +30,28 @@ import { uploadImage } from "@/lib/storageUpload";
 import { backdropClose } from "@/lib/modal";
 import { cardProgress } from "./StudyProgressBoard";
 import UploadProgress from "./UploadProgress";
-import { IconLock } from "./StatusIcons";
+import { IconLock, IconPen } from "./StatusIcons";
+import ConfirmModal from "./ConfirmModal";
 
 const MATERIAL_MAX_IMAGE = 5 * 1024 * 1024;
+
+function blankMaterial() {
+  return { id: `m${Date.now()}`, actIndex: null, text: "", image: null };
+}
+
+// 자료 목록을 저장할 모양으로 다듬습니다 — 글도 이미지도 없는 줄은 버립니다.
+// 저장할 때와 '바뀌었는가'를 볼 때 같은 함수를 써야, 화면에만 있는 빈 줄이
+// 편집으로 잡히지 않습니다.
+function cleanMaterials(list) {
+  return (list ?? [])
+    .map((m) => ({
+      id: m.id,
+      actIndex: typeof m.actIndex === "number" ? m.actIndex : null,
+      text: (m.text ?? "").trim(),
+      image: m.image ?? null,
+    }))
+    .filter((m) => m.text || m.image);
+}
 
 export default function StudyActivityPanel({
   board,
@@ -51,6 +70,7 @@ export default function StudyActivityPanel({
   const [draft, setDraft] = useState(activities.length ? [...activities] : [""]);
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
 
   // 학생 카드 내용 검사(활동 변경 가능 여부)용 — 교사가 볼 때만 필요
   useEffect(() => {
@@ -127,11 +147,12 @@ export default function StudyActivityPanel({
       return stripHtml(html).trim().length > 0 || htmlHasImage(html);
     });
     if (hasContent) {
-      alert(
-        "학생이 입력한 내용이 있어서 활동을 변경할 수 없어요.\n모든 학생 카드의 내용을 비운 후 다시 시도해 주세요."
+      setSaveError(
+        "학생이 입력한 내용이 있어서 활동을 변경할 수 없어요. 모든 학생 카드의 내용을 비운 뒤 다시 시도해 주세요."
       );
       return;
     }
+    setSaveError("");
     setSaving(true);
     try {
       // 수업 도중 새로 추가한 활동은 잠긴 채로 시작합니다 — 교사가 열어 줘야
@@ -154,6 +175,8 @@ export default function StudyActivityPanel({
         );
       }
       setDirty(false);
+    } catch (e) {
+      setSaveError(`활동을 저장하지 못했어요: ${e?.message ?? "알 수 없는 오류"}`);
     } finally {
       setSaving(false);
     }
@@ -250,8 +273,12 @@ export default function StudyActivityPanel({
             </div>
           )}
 
-          {/* 자료 제공 — 늘 맨 아래(margin-top: auto). 평소엔 활동 한 줄과
-              같은 크기로 접혀 있고, 누르면 펼쳐집니다. */}
+          {saveError && (
+            <p className="form-error study-activity-panel-error" role="alert">{saveError}</p>
+          )}
+
+          {/* 자료 제공 — 늘 맨 아래(margin-top: auto). 버튼만 있고, 누르면
+              화면 가운데 모달이 열립니다. */}
           <MaterialSection board={board} activities={activities} />
         </>
       )}
@@ -279,6 +306,8 @@ function MaterialSection({ board, activities }) {
   const [items, setItems] = useState(saved);
   const [pct, setPct] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [closeAsk, setCloseAsk] = useState(false);
 
   // 다른 프로젝트로 옮겨 가거나 저장이 반영되면 그 프로젝트의 자료로 맞춥니다
   useEffect(() => {
@@ -286,17 +315,17 @@ function MaterialSection({ board, activities }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [boardId, savedKey]);
 
-  const dirty = JSON.stringify(items) !== savedKey;
+  // '바뀌었는가'는 다듬은 결과끼리 비교합니다 — 모달을 열 때 미리 깔아 두는
+  // 빈 줄이 편집으로 잡혀 저장 버튼이 켜지거나 닫을 때 확인창이 뜨면 안 됩니다.
+  const cleaned = cleanMaterials(items);
+  const dirty = JSON.stringify(cleaned) !== JSON.stringify(cleanMaterials(saved));
   const hasMaterial = saved.length > 0;
 
   function patch(id, changes) {
     setItems((prev) => prev.map((m) => (m.id === id ? { ...m, ...changes } : m)));
   }
   function addItem() {
-    setItems((prev) => [
-      ...prev,
-      { id: `m${Date.now()}`, actIndex: null, text: "", image: null },
-    ]);
+    setItems((prev) => [...prev, blankMaterial()]);
   }
   function removeItem(id) {
     setItems((prev) => prev.filter((m) => m.id !== id));
@@ -307,14 +336,15 @@ function MaterialSection({ board, activities }) {
     e.target.value = "";
     if (!file) return;
     if (file.size > MATERIAL_MAX_IMAGE) {
-      alert(`이미지는 5MB 이하여야 합니다. (현재: ${(file.size / 1024 / 1024).toFixed(1)}MB)`);
+      setError(`이미지는 5MB 이하여야 해요. (지금 파일: ${(file.size / 1024 / 1024).toFixed(1)}MB)`);
       return;
     }
+    setError("");
     setPct(0);
     try {
       patch(id, { image: await uploadImage(file, { onProgress: setPct }) });
     } catch {
-      alert("이미지 업로드에 실패했어요. 잠시 후 다시 시도해 주세요.");
+      setError("이미지 업로드에 실패했어요. 잠시 후 다시 시도해 주세요.");
     } finally {
       setPct(null);
     }
@@ -322,31 +352,44 @@ function MaterialSection({ board, activities }) {
 
   async function handleSave() {
     setSaving(true);
+    setError("");
     try {
-      const cleaned = items
-        .map((m) => ({
-          id: m.id,
-          actIndex: typeof m.actIndex === "number" ? m.actIndex : null,
-          text: (m.text ?? "").trim(),
-          image: m.image ?? null,
-        }))
-        .filter((m) => m.text || m.image);
       // 예전 단일 자료 필드는 목록으로 옮겨졌으니 비웁니다(중복 표시 방지)
       await updateStudyBoard(boardId, {
         materials: cleaned,
         materialText: "",
         materialImage: null,
       });
+    } catch (e) {
+      setError(`자료를 저장하지 못했어요: ${e?.message ?? "알 수 없는 오류"}`);
     } finally {
       setSaving(false);
     }
   }
 
+  // 열자마자 바로 쓸 수 있게 빈 자료 줄을 하나 깔아 둡니다 — '자료 추가'를
+  // 한 번 더 눌러야 입력칸이 나오던 단계를 없앴습니다. 이미 올린 자료가
+  // 있으면 그것들을 그대로 보여 줍니다.
+  function openModal() {
+    const base = boardMaterials(board);
+    setItems(base.length ? base : [blankMaterial()]);
+    setError("");
+    setOpen(true);
+  }
+
   // 모달을 닫을 때 저장하지 않은 편집분이 있으면 한 번 물어봅니다 — 넓은
   // 입력칸에서 길게 쓰다 배경을 잘못 눌러 통째로 날리는 일을 막습니다.
   function requestClose() {
-    if (dirty && !confirm("저장하지 않은 자료 편집 내용이 있어요. 닫을까요?")) return;
+    if (dirty) {
+      setCloseAsk(true);
+      return;
+    }
+    discardAndClose();
+  }
+  function discardAndClose() {
+    setCloseAsk(false);
     setItems(boardMaterials(board));
+    setError("");
     setOpen(false);
   }
 
@@ -355,7 +398,7 @@ function MaterialSection({ board, activities }) {
       <button
         type="button"
         className="study-material-toggle"
-        onClick={() => setOpen(true)}
+        onClick={openModal}
         aria-haspopup="dialog"
         aria-expanded={open}
       >
@@ -468,6 +511,10 @@ function MaterialSection({ board, activities }) {
               <button type="button" className="study-material-add" onClick={addItem}>
                 + 자료 추가
               </button>
+
+              {error && (
+                <p className="form-error" role="alert">{error}</p>
+              )}
             </div>
 
             <div className="study-material-modal-foot">
@@ -485,6 +532,20 @@ function MaterialSection({ board, activities }) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* 저장하지 않고 닫으려 할 때 — 브라우저 confirm 대신 앱 안의 모달 */}
+      {closeAsk && (
+        <ConfirmModal
+          icon={<IconPen size={40} />}
+          title="저장하지 않고 닫을까요?"
+          description="아직 저장하지 않은 자료 편집 내용이 있어요. 닫으면 사라집니다."
+          confirmLabel="닫기"
+          cancelLabel="계속 쓰기"
+          danger
+          onConfirm={discardAndClose}
+          onClose={() => setCloseAsk(false)}
+        />
       )}
     </div>
   );
