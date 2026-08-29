@@ -103,7 +103,14 @@ Firebase 미설정 시 자동으로 **데모 모드**로 동작 (새로고침 �
     요구해 교사가 대신 못 만듦). 화면에서는 명단 기준으로 '빈 자리'를 미리
     깔아 두어(`StudyProjectView`의 seats) 카드가 이미 있는 것처럼 보입니다.
   - (데모 모드 mock은 평면 배열 `mock.studyCards`로 흉내 — Firebase는 서브컬렉션)
-- `kwl` — KWL 기록 (classId, userId, date, K, W, L) — append 모델 (저장마다 새 문서)
+- `kwl` — **KWLS 기록** (classId, userId, date, answers{know,want,learned,still}
+  + 옛 K/W/L/S 필드) — 문서 ID 고정 upsert (append 아님)
+  - 공부방 하루 성찰: ID = `uid_classId_date`
+  - 책방 KWLS 활동: ID = `uid_classId_act_활동id` + `activityId`·`topic`.
+    책방 원본은 `bookActivities/{id}/entries/{uid}` 에 그대로 두고 여기에도
+    적습니다 — 관찰 화면(히트맵·리포트·교사 패널)이 전부 이 컬렉션을 보므로
+    이것만으로 두 곳의 KWLS가 한 흐름이 됩니다. 과거분은
+    `npm run kwls:backfill` 로 옮깁니다(기본은 미리보기, `--apply` 로 실제 쓰기)
 - `users` — 사용자 프로필 (uid, email, displayName(익명), realName, studentId, role)
   - **식별 정보(실명·이메일·학번)는 여기에만** 저장. 게시물·카드엔 익명 정보만 넣음.
   - 읽기 규칙: 본인+교사. 교사 화면은 `subscribeUserDirectory`로 uid→실명/학번 조회.
