@@ -289,6 +289,7 @@ export default function QuestionSeatModal({ classId, onClose }) {
       {toolsStudent && (
         <StudentToolsModal
           student={toolsStudent}
+          classId={classId}
           onAward={handleAward}
           onOpenNotes={openNotes}
           onClose={() => setToolsFor(null)}

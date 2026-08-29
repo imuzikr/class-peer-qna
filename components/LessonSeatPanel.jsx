@@ -250,6 +250,7 @@ export default function LessonSeatPanel({
       {toolsStudent && onAward && (
         <StudentToolsModal
           student={toolsStudent}
+          classId={classId}
           onAward={onAward}
           onOpenNotes={openNotes}
           onClose={() => setToolsFor(null)}

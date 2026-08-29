@@ -7574,11 +7574,16 @@ pre code {
 }
 /* 과일 칸과 누가기록 칸 — grid-auto-rows: 1fr로 두 칸 높이를 같게 맞춥니다
    (내용이 많은 과일 칸에 맞춰 누가기록 칸도 같이 늘어납니다) */
+/* 예전에는 grid-auto-rows: 1fr로 두 칸 높이를 억지로 맞췄습니다. 과일 칸에
+   펼쳤다 접는 '과일 받은 흐름'이 들어오면서 그 방식을 버렸습니다 — 흐름을
+   펼치면 그 높이에 맞춰 누가기록 버튼까지 같이 늘어나 화면 절반짜리 버튼이
+   됩니다. 이제 각 칸은 제 내용만큼만 차지하고, 누가기록 버튼은 자기
+   min-height(46px)로 충분한 크기를 지킵니다. */
 .attend-tools-cards {
   margin-top: 4px;
   display: grid;
   gap: 12px;
-  grid-auto-rows: 1fr;
+  grid-auto-rows: auto;
 }
 .attend-tools-section {
   padding: 14px;
@@ -7656,7 +7661,6 @@ pre code {
 }
 .attend-tools-notes {
   width: 100%;
-  /* 높이는 .attend-tools-cards 그리드가 과일 칸에 맞춰 정합니다 */
   min-height: 46px;
   border: 1px solid var(--border);
   border-radius: var(--radius-btn);
@@ -8873,6 +8877,17 @@ pre code {
   margin: 0;
   font-size: 11px;
   color: var(--text-sub);
+}
+/* 과일 주기 모달 안 — 이미 테두리 있는 칸 안이라 또 상자를 겹치지 않고
+   위아래 실선으로만 나눕니다(누가기록 패널에서는 상자 그대로). */
+.attend-tools-section .rwtrend {
+  padding: 11px 0;
+  margin-bottom: 12px;
+  border: none;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background: none;
 }
 .notes-compose {
   display: flex;

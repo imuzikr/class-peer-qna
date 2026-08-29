@@ -353,6 +353,7 @@ export default function StudyRewardPanel({
       {toolsStudent && (
         <StudentToolsModal
           student={toolsStudent}
+          classId={classId}
           onAward={onAward}
           onOpenNotes={openNotes}
           onClose={() => setToolsFor(null)}

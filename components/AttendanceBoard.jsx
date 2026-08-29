@@ -402,6 +402,7 @@ export default function AttendanceBoard({
       {toolsStudent && onAward && (
         <StudentToolsModal
           student={toolsStudent}
+          classId={classId}
           onAward={onAward}
           onOpenNotes={openNotes}
           onClose={() => setToolsFor(null)}
