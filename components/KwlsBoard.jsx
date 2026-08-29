@@ -14,7 +14,7 @@
 // 학생과 읽은 뒤까지 마친 학생을 한눈에 가려낼 수 있습니다.
 // =============================================================
 import { useEffect, useMemo, useState } from "react";
-import { subscribeParatextEntries } from "@/lib/store";
+import { subscribeActivityKwl } from "@/lib/store";
 import { useEntryCast } from "@/lib/useEntryCast";
 import {
   KWLS_COLUMNS,
@@ -44,7 +44,13 @@ export default function KwlsBoard({
   const [entries, setEntries] = useState([]);
   const [openUid, setOpenUid] = useState(null);
 
-  useEffect(() => subscribeParatextEntries(activity.id, setEntries), [activity.id]);
+  // 제출물을 kwl 스트림에서 읽습니다 — 공부방·책방 KWLS를 한 곳에서 보기
+  // 위한 전환입니다(store.js의 subscribeActivityKwl 주석 참고). 반환 모양은
+  // 예전 entries와 같게 맞춰 두어 아래 코드는 그대로입니다.
+  useEffect(
+    () => subscribeActivityKwl(classId, activity.id, setEntries),
+    [classId, activity.id]
+  );
 
   const bookUrl = safeBookUrl(activity.bookUrl);
   const cast = useEntryCast(classId, user);
