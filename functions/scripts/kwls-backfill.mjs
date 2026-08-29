@@ -33,13 +33,17 @@ const LEGACY = { know: "K", want: "W", learned: "L", still: "S" };
 // 기준 문자열이라(lib/store.js의 todayDateKey), UTC로 자르면 오전 9시 이전
 // 기록이 하루 앞으로 밀립니다.
 function seoulDateKey(value) {
+  // instanceof Timestamp로 좁히지 않습니다 — node_modules에 firebase-admin이
+  // 두 벌 들어가면 클래스가 달라 instanceof가 어긋나고, 그러면 시각이 멀쩡한
+  // 기록까지 전부 '시각 없음'으로 빠져 한 건도 안 옮겨집니다(조용히).
+  // toDate()를 가졌는지만 봅니다.
   const d =
-    value instanceof Timestamp
+    typeof value?.toDate === "function"
       ? value.toDate()
       : value instanceof Date
       ? value
       : null;
-  if (!d) return null;
+  if (!d || Number.isNaN(d.getTime())) return null;
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Seoul",
     year: "numeric",
@@ -60,14 +64,12 @@ function isEmpty(answers) {
   return KWLS_KEYS.every((k) => !answers[k]);
 }
 
-async function main() {
-  if (!getApps().length) {
-    initializeApp({ credential: applicationDefault(), projectId: PROJECT_ID });
-  }
-  const db = getFirestore();
-
-  console.log(`\n대상 프로젝트: ${PROJECT_ID}`);
-  console.log(APPLY ? "모드: 실제 쓰기(--apply)\n" : "모드: 미리보기 (아무것도 쓰지 않습니다)\n");
+// db를 밖에서 받습니다 — 가짜 db를 물려 분류 로직만 따로 돌려 볼 수 있게
+// (학생 데이터를 다루는 스크립트라, 처음 실행이 실제 데이터가 되면 안 됩니다).
+export async function runBackfill(db, { apply = false, projectId = PROJECT_ID } = {}) {
+  console.log(`\n대상 프로젝트: ${projectId}`);
+  console.log(apply ? "모드: 실제 쓰기(--apply)\n" : "모드: 미리보기 (아무것도 쓰지 않습니다)\n");
+  const APPLY = apply;
 
   const acts = await db
     .collection("bookActivities")
@@ -178,6 +180,15 @@ async function main() {
   console.log("책방 쪽 원본(entries)은 그대로 두었습니다 — 안전망으로 남깁니다.\n");
 }
 
+async function main() {
+  if (!getApps().length) {
+    initializeApp({ credential: applicationDefault(), projectId: PROJECT_ID });
+  }
+  return runBackfill(getFirestore(), { apply: APPLY });
+}
+
+// 직접 실행할 때만 자격 증명을 잡습니다(import만 하면 아무 일도 안 일어남)
+if (process.argv[1] && process.argv[1].endsWith("kwls-backfill.mjs")) {
 main().catch((err) => {
   console.error("\n실패:", err?.message ?? err);
   if (String(err?.message ?? "").includes("credential")) {
@@ -189,3 +200,4 @@ main().catch((err) => {
   }
   process.exit(1);
 });
+}
