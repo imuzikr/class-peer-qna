@@ -14892,6 +14892,20 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   .kwl-save-btn { min-height: 44px; }
   .filter-btn { min-height: 40px; }
   .vote-btn { min-height: 40px; min-width: 40px; }
+
+  /* 과일 흐름·자리표에 새로 붙인 조작들 — 데스크톱 기준으로 잡아 둔 크기가
+     손가락에는 작습니다. 글자는 그대로 두고 높이만 확보합니다. */
+  .rwtrend-toggle { min-height: 40px; padding: 4px 16px; }
+  .lesson-seat-collapse-btn { min-height: 40px; padding: 5px 16px; }
+  .lesson-seat-tabs button { min-height: 38px; }
+  .lesson-seat-toggle { min-height: 48px; }
+  /* 모달 제목 옆 뒤로 화살표 — 22px 글자만으로는 짚기 어려워 정사각으로 */
+  .modal-back {
+    min-width: 40px;
+    min-height: 40px;
+    margin-right: 4px;
+    padding: 0;
+  }
 }
 
 /* ── 480px 이하: 더 좁은 화면 ── */
@@ -17375,6 +17389,18 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   body:has(.confirm-backdrop) .study-activity-fab {
     display: none;
   }
+
+  /* ── 자료 제공 모달 ──
+     이 규칙들은 반드시 이 블록에 둡니다 — 위쪽 공용 모바일 블록(768px)에
+     적으면 아래의 기본 규칙이 나중에 나와 그대로 덮어써 버립니다
+     (미디어 쿼리는 우선순위를 올리지 않고 순서만 따집니다). */
+  .study-material-cancel,
+  .study-material-save { min-height: 46px; }
+  .study-material-add,
+  .study-material-image-add { min-height: 44px; }
+  /* 저장 줄은 .modal 아래 패딩만큼 끌어내려 바닥에 붙입니다 —
+     모바일은 그 패딩이 36px이라 데스크톱(28px)과 다릅니다. */
+  .study-material-modal-foot { bottom: -36px; }
 }
 
 @media (max-width: 480px) {
