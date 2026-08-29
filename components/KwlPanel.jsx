@@ -115,6 +115,13 @@ function KwlEntry({ entry }) {
       tabIndex={0}
       onKeyDown={(e) => e.key === "Enter" && setExpanded((v) => !v)}
     >
+      {/* 책방 KWLS 활동에서 넘어온 기록 — 같은 날짜 아래 두 건이 나란히
+          놓일 수 있어, 어디서 쓴 것인지 밝혀 둡니다. */}
+      {entry.activityId && (
+        <span className="kwl-entry-src" title="책방에서 쓴 성찰이에요. 고치려면 책방 활동에서 고쳐 주세요.">
+          📖 {entry.activityTitle || entry.topic || "책방 활동"}
+        </span>
+      )}
       {KWLS_COLUMNS.map((c) =>
         answersView[c.key]?.trim() ? (
           <div className="kwl-history-row" key={c.key}>
@@ -123,9 +130,14 @@ function KwlEntry({ entry }) {
           </div>
         ) : null
       )}
-      <button type="button" className="kwl-entry-edit-btn" onClick={startEdit} aria-label="수정">
-        <IconPen size={14} /> 수정
-      </button>
+      {/* 책방에서 온 기록은 여기서 고치지 않습니다. 이 화면이 고치는 건
+          kwl 사본뿐이라, 책방 원본(bookActivities/entries)과 어긋납니다.
+          고치려면 책방 활동에서 고쳐야 합니다. */}
+      {!entry.activityId && (
+        <button type="button" className="kwl-entry-edit-btn" onClick={startEdit} aria-label="수정">
+          <IconPen size={14} /> 수정
+        </button>
+      )}
     </div>
   );
 }
@@ -168,10 +180,15 @@ export default function KwlPanel({ classId, user, isTeacher, onAsk, mobileOpen, 
     setSaving(true);
     try {
       await addKwl(classId, user, today, { answers });
-      // 과거에 append 방식으로 누적된 오늘의 중복 항목 정리 (표준 ID 1개만 남김)
+      // 과거에 append 방식으로 누적된 오늘의 중복 항목 정리 (표준 ID 1개만 남김).
+      // 책방 KWLS 활동에서 온 기록(activityId 있음)은 건드리지 않습니다 —
+      // 같은 날 같은 반이라 이 목록에 함께 들어오지만 별개의 성찰이고,
+      // 원본은 bookActivities 쪽에 따로 있어 여기서 지우면 짝이 어긋납니다.
       const canonicalId = `${user.uid}_${classId}_${today}`;
       await Promise.all(
-        todayEntries.filter((e) => e.id !== canonicalId).map((e) => deleteKwl(e))
+        todayEntries
+          .filter((e) => !e.activityId && e.id !== canonicalId)
+          .map((e) => deleteKwl(e))
       );
       // 저장 후 입력창 초기화
       setAnswers(emptyKwlsAnswers());

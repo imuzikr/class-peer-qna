@@ -13,7 +13,7 @@
 // 저장은 자동입니다(입력을 멈추면 조용히 저장).
 // =============================================================
 import { useEffect, useMemo, useRef, useState } from "react";
-import { subscribeMyParatextEntry, saveParatextEntry } from "@/lib/store";
+import { subscribeMyParatextEntry, saveKwlsActivityEntry } from "@/lib/store";
 import {
   KWLS_COLUMNS,
   KWLS_COLUMN_COUNT,
@@ -53,7 +53,9 @@ export default function KwlsForm({ activity, user, onBack }) {
     setStatus("saving");
     timerRef.current = setTimeout(async () => {
       try {
-        await saveParatextEntry(activity.id, user, answers);
+        // 책방 기록과 함께 공부방 KWLS 스트림(kwl)에도 적습니다 —
+        // 두 곳에서 쓴 성찰을 한 흐름으로 보기 위함(store.js 주석 참고).
+        await saveKwlsActivityEntry(activity, user, answers);
         setStatus("saved");
       } catch {
         setStatus("idle");

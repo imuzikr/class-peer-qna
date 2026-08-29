@@ -70,18 +70,39 @@ export default function TeacherKwlPanel({
 
   // 학생 한 명당 한 줄 — 오늘(고른 날짜) 기록을 붙여 둡니다.
   // KWLS는 하루 1개라 uid로 바로 짝지어집니다.
+  // 한 학생이 같은 날 여러 건을 쓸 수 있습니다 — 공부방에서 하루치 성찰을
+  // 쓰고 책방 KWLS 활동도 했다면 두 건입니다. 예전에는 Map에 덮어써서 뒤엣
+  // 것만 남고 앞엣것이 조용히 사라졌습니다. 칸마다 '누구든 썼는가'로 합치고,
+  // 원문은 출처별로 따로 들고 있다가 팝오버에서 나란히 보여 줍니다.
   const rows = useMemo(() => {
     const byUid = new Map();
-    entries.forEach((e) => { if (e.userId) byUid.set(e.userId, e); });
+    entries.forEach((e) => {
+      if (!e.userId) return;
+      if (!byUid.has(e.userId)) byUid.set(e.userId, []);
+      byUid.get(e.userId).push(e);
+    });
     return roster.map((s) => {
-      const entry = byUid.get(s.uid) ?? null;
-      const answers = entry ? kwlsAnswersFromEntry(entry) : {};
+      const mine = byUid.get(s.uid) ?? [];
+      const parts = mine.map((e) => ({
+        // 책방 활동에서 온 기록은 어느 활동인지 밝혀 둡니다
+        source: e.activityId ? e.activityTitle || e.topic || "책방 활동" : null,
+        answers: kwlsAnswersFromEntry(e),
+      }));
+      // 칸별 대표 텍스트 — 여러 건이면 줄바꿈으로 이어 붙입니다(격자·모아보기용)
+      const answers = {};
+      KWLS_COLUMNS.forEach((c) => {
+        answers[c.key] = parts
+          .map((p) => String(p.answers[c.key] ?? "").trim())
+          .filter(Boolean)
+          .join("\n");
+      });
       return {
         uid: s.uid,
         name: s.name,
         studentId: s.studentId ?? null,
         answers,
-        started: entry ? kwlsStarted(answers) : false,
+        parts,
+        started: kwlsStarted(answers),
       };
     });
   }, [roster, entries]);
@@ -331,9 +352,25 @@ export default function TeacherKwlPanel({
                 <p className="tkwl-pop-label">
                   {c.letter} · {c.ko}
                 </p>
-                <p className={`tkwl-pop-text${text ? "" : " empty"}`}>
-                  {text || "아직 쓰지 않았어요"}
-                </p>
+                {text ? (
+                  /* 출처가 여럿이면(공부방 하루 성찰 + 책방 활동) 어디서 쓴
+                     것인지 밝혀 나란히 보여 줍니다 — 이어 붙여 한 덩어리로
+                     두면 누가 어느 자리에서 쓴 말인지 알 수 없습니다. */
+                  pickedRow.parts
+                    .filter((part) => String(part.answers[c.key] ?? "").trim())
+                    .map((part, i) => (
+                      <div key={i} className="tkwl-pop-part">
+                        {part.source && (
+                          <span className="tkwl-pop-src">📖 {part.source}</span>
+                        )}
+                        <p className="tkwl-pop-text">
+                          {String(part.answers[c.key]).trim()}
+                        </p>
+                      </div>
+                    ))
+                ) : (
+                  <p className="tkwl-pop-text empty">아직 쓰지 않았어요</p>
+                )}
                 {cast.canCast && text && (
                   <button
                     type="button"

@@ -17287,3 +17287,27 @@ button.study-cal-cell.has-record:not(:disabled):hover {
 
 
 .report-kwl .kwls-hm { padding-bottom: 0; }
+
+/* 책방 KWLS 활동에서 넘어온 기록 표시 — 같은 날짜 아래 공부방 하루 성찰과
+   나란히 놓이므로, 어디서 쓴 것인지 밝혀 둡니다. */
+.kwl-entry-src {
+  display: inline-block;
+  font-size: 10.5px;
+  color: #c2c0b6;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  padding: 2px 8px;
+  margin-bottom: 6px;
+}
+
+.tkwl-pop-part + .tkwl-pop-part {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+.tkwl-pop-src {
+  display: inline-block;
+  font-size: 10px;
+  color: #b9b7ad;
+  margin-bottom: 3px;
+}
