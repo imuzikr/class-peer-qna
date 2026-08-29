@@ -8786,6 +8786,10 @@ pre code {
   font-weight: 700;
   color: var(--text);
 }
+/* 제목 없이 버튼만 두는 자리(과일 주기 모달) — 버튼을 오른쪽에 붙입니다 */
+.rwtrend-head--bare {
+  justify-content: flex-end;
+}
 /* 펼치기 버튼 — 전자칠판에 비치는 화면이라 기본은 접힌 채로 둡니다 */
 .rwtrend-toggle {
   padding: 4px 11px;
@@ -8878,6 +8882,65 @@ pre code {
   font-size: 11px;
   color: var(--text-sub);
 }
+/* 모달 제목 왼쪽의 뒤로 화살표 — 과일 주기 → 누가기록으로 넘어온 길을
+   되짚어 갑니다(닫고 자리를 다시 누르는 수고를 없앰) */
+.modal-back {
+  border: none;
+  background: none;
+  padding: 0 2px 0 0;
+  margin-right: 2px;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--text-sub);
+  cursor: pointer;
+}
+.modal-back:hover { color: var(--primary-dark); }
+
+/* 자리표 확대 보기 — 좁은 패널의 8.5px 글씨를 큰 폭에서 제 크기로 봅니다.
+   내용은 같은 SeatPickGrid라 자리 이동·과일 주기가 그대로 동작합니다. */
+.reward-seat-zoom {
+  flex: 1;
+  padding: 5px 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text-sub);
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.reward-seat-zoom:hover {
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+.reward-zoom-modal {
+  width: min(760px, 94vw);
+  max-width: 760px;
+}
+/* 학생이 자기 과일 흐름을 여는 모달 — 내용이 막대 하나뿐이라 좁게 */
+.fruit-trend-modal {
+  width: min(560px, 94vw);
+  max-width: 560px;
+}
+.fruit-trend-modal .rwtrend {
+  border: none;
+  background: none;
+  padding: 0;
+}
+/* 상단바 과일 뱃지 — 이제 누를 수 있으므로 눌리는 것처럼 보이게 */
+.fruit-total-chip--btn {
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.fruit-total-chip--btn:hover {
+  border-color: var(--primary);
+}
+
 /* ── 반 전체 과일 흐름 (교사 대시보드) — 학생 × 수업일 격자 ──
    가로로 읽으면 그 학생이 꾸준한지, 세로로 읽으면 그날 반이 활발했는지가
    보입니다. 칸 색은 한 가지 색의 진하기만 씁니다(많고 적음은 순서가 있는

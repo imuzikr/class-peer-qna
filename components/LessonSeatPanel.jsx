@@ -260,6 +260,7 @@ export default function LessonSeatPanel({
       {notesFor && (
         <StudentNotesModal
           student={notesFor}
+          onBack={() => { setNotesFor(null); setToolsFor(notesFor); }}
           classId={classId}
           onClose={() => setNotesFor(null)}
         />

@@ -55,7 +55,7 @@ export default function StudentToolsModal({
                 보고 주면 '요즘 조용한 아이'와 '초반에 몰아 받은 아이'가
                 구분되지 않아, 주기 직전에 흐름을 펼쳐 볼 수 있게 둡니다.
                 기본은 접힘 — 이 화면이 전자칠판에 비칩니다. */}
-            <StudentRewardTrend studentUid={student.uid} classId={classId} />
+            <StudentRewardTrend studentUid={student.uid} classId={classId} bare />
 
             <div className="attend-tools-award">
               <button

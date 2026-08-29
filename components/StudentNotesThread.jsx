@@ -22,7 +22,13 @@ import {
 import { getCurrentUser } from "@/lib/user";
 import StudentRewardTrend from "./StudentRewardTrend";
 
-export default function StudentNotesThread({ studentUid, classId = null, readOnly = false }) {
+export default function StudentNotesThread({
+  studentUid,
+  classId = null,
+  readOnly = false,
+  // 과일 주기 모달에서 넘어온 누가기록은 거기서 이미 흐름을 볼 수 있어 끕니다.
+  showRewardTrend = true,
+}) {
   const [notes, setNotes] = useState([]);
   const [text, setText] = useState("");
   const [date, setDate] = useState(() => todayDateKey());
@@ -81,7 +87,7 @@ export default function StudentNotesThread({ studentUid, classId = null, readOnl
       {/* 과일 받은 흐름 — 무슨 일이 있었나(기록)와 얼마나 받았나(수치)를
           나란히 놓아, 기록을 쓰면서 그 학생의 변화를 함께 보게 합니다.
           아직 한 번도 못 받은 학생에게는 아무것도 그리지 않습니다. */}
-      <StudentRewardTrend studentUid={studentUid} classId={classId} />
+      {showRewardTrend && <StudentRewardTrend studentUid={studentUid} classId={classId} />}
 
       {/* 읽기 전용(대시보드)에서는 입력창을 숨기고 기록만 보여 줍니다 */}
       {!readOnly && (

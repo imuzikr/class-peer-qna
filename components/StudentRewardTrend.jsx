@@ -76,6 +76,11 @@ export default function StudentRewardTrend({
   // 본인이 자기 리포트에서 볼 때는 펼친 채로 — 감출 이유가 없습니다.
   defaultOpen = false,
   title = "🍎 과일 받은 흐름",
+  // 제목 없이 버튼만 — 과일 주기 모달처럼 바로 위에 이미 '🍎 과일 n'이 적혀
+  // 있는 자리에서는 제목이 같은 말을 두 번 하는 셈이라 뺍니다.
+  bare = false,
+  // 흐름을 보려고 연 화면(과일 뱃지 모달)에서는 접는 버튼이 할 일이 없습니다.
+  showToggle = true,
 }) {
   const [events, setEvents] = useState([]);
   const [loaded, setLoaded] = useState(false);
@@ -122,13 +127,6 @@ export default function StudentRewardTrend({
   if (!classId && !idsKey) return null;
 
   const shown = days.slice(-MAX_DAYS);
-  const gained = days.reduce((sum, d) => sum + Math.max(0, d.delta), 0);
-  // '지금 몇 개'는 반마다 따로 셉니다(과일은 반별 총계라 서로 더할 수 없는
-  // 값이 아니라, 반별 최신 count를 합쳐야 지금 가진 전부가 됩니다).
-  const total = [...new Map(events.map((e) => [e.classId, e.count ?? 0])).values()].reduce(
-    (sum, n) => sum + n,
-    0
-  );
   // 막대 높이는 그날 움직인 양의 절댓값 기준 — 하루 1개씩 주는 반에서도
   // 막대가 보이도록 최소 1로 잡습니다.
   const peak = Math.max(1, ...shown.map((d) => Math.abs(d.delta)));
@@ -136,8 +134,9 @@ export default function StudentRewardTrend({
 
   return (
     <section className="rwtrend" aria-label="과일 받은 흐름">
-      <div className="rwtrend-head">
-        <h4 className="rwtrend-title">{title}</h4>
+      {(!bare || showToggle) && (
+      <div className={`rwtrend-head${bare ? " rwtrend-head--bare" : ""}`}>
+        {!bare && <h4 className="rwtrend-title">{title}</h4>}
         <button
           type="button"
           className="rwtrend-toggle"
@@ -147,6 +146,7 @@ export default function StudentRewardTrend({
           {open ? "이력 접기" : "이력 보기"}
         </button>
       </div>
+      )}
 
       {!open ? null : !loaded ? (
         <p className="rwtrend-note">불러오는 중…</p>
@@ -154,11 +154,9 @@ export default function StudentRewardTrend({
         <p className="rwtrend-note">아직 과일을 받은 기록이 없어요.</p>
       ) : (
         <>
-          <p className="rwtrend-summary">
-            지금 <b>{total}</b>개 · 받은 날 <b>{days.length}</b>일
-            {gained !== total && <> · 누적 <b>{gained}</b>개</>}
-          </p>
-
+          {/* 총 개수 요약은 두지 않습니다 — 학생은 상단바에, 교사는 자리표와
+              과일 주기 모달에 지금 몇 개인지가 이미 적혀 있어 같은 말이
+              반복됩니다. 여기서 알고 싶은 것은 '언제 얼마나'입니다. */}
           <div className="rwtrend-plot" role="img"
                aria-label={`최근 ${shown.length}개 수업일의 과일 변화. ` +
                  shown.map((d) => `${shortDate(d.date)} ${d.delta > 0 ? "+" : ""}${d.delta}개`).join(", ")}>

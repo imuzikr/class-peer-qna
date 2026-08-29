@@ -25,6 +25,7 @@
 // =============================================================
 import { useEffect, useState } from "react";
 import { subscribeQuestionSignals } from "@/lib/store";
+import { backdropClose } from "@/lib/modal";
 import { normalizeSeats } from "@/lib/seats";
 import { SeatPickGrid } from "./QuestionSeatModal";
 import StudentToolsModal from "./StudentToolsModal";
@@ -56,6 +57,7 @@ export default function StudyRewardPanel({
   const [groups, setGroups] = useState(() => groupAssignment?.groups ?? []);
   const [dragUid, setDragUid] = useState(null); // 드래그로 옮기는 중인 학생
   const [pickedUid, setPickedUid] = useState(null); // 짚어 둔 학생(탭으로 옮기기)
+  const [zoom, setZoom] = useState(false); // 자리표 확대 보기
 
   // 접힘 상태 복원 — 개인 화면 설정이라 localStorage에 저장
   useEffect(() => {
@@ -231,6 +233,16 @@ export default function StudyRewardPanel({
       ) : (
         <SeatPickGrid
           compact
+          headLead={
+            <button
+              type="button"
+              className="reward-seat-zoom"
+              onClick={() => setZoom(true)}
+              title="자리표를 크게 보기"
+            >
+              ⤢ 확대
+            </button>
+          }
           seats={seats}
           byUid={byUid}
           raisedUids={raisedUids}
@@ -242,6 +254,41 @@ export default function StudyRewardPanel({
           topUids={topRewardUids}
           presentUids={presentUids}
         />
+      )}
+
+      {/* 확대 보기 — 좁은 패널에서는 이름이 8.5px까지 줄어 멀리서 안 보입니다.
+          같은 SeatPickGrid를 큰 폭으로 한 번 더 그릴 뿐이라, 자리를 눌러
+          과일·누가기록을 열고 끌어서 옮기는 동작이 그대로 살아 있습니다
+          (seats·moveSeat 같은 상태를 공유하므로 두 화면이 어긋나지 않습니다). */}
+      {zoom && (
+        <div className="modal-backdrop" {...backdropClose(() => setZoom(false))}>
+          <div
+            className="modal reward-zoom-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="자리표 크게 보기"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-head">
+              <h3>🪑 자리표</h3>
+              <button className="btn-close" onClick={() => setZoom(false)} aria-label="닫기">
+                ×
+              </button>
+            </div>
+            <SeatPickGrid
+              seats={seats}
+              byUid={byUid}
+              raisedUids={raisedUids}
+              raisedCount={raisedCount}
+              onPick={setToolsFor}
+              onDragStart={setDragIndex}
+              onDragEnd={() => setDragIndex(null)}
+              onDropTo={(toIndex) => moveSeat(dragIndex, toIndex)}
+              topUids={topRewardUids}
+              presentUids={presentUids}
+            />
+          </div>
+        </div>
       )}
 
       {/* 모둠 현황 — 학생을 카드(칩)로 드래그하거나, 짚은 뒤 모둠을 눌러서
@@ -363,6 +410,7 @@ export default function StudyRewardPanel({
       {notesFor && (
         <StudentNotesModal
           student={notesFor}
+          onBack={() => { setNotesFor(null); setToolsFor(notesFor); }}
           classId={classId}
           onClose={() => setNotesFor(null)}
         />

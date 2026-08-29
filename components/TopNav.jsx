@@ -10,6 +10,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { isAdmin, isTeacher } from "@/lib/user";
 import { isFirebaseConfigured } from "@/lib/firebase";
+import { backdropClose } from "@/lib/modal";
+import StudentRewardTrend from "./StudentRewardTrend";
 import { signOutUser } from "@/lib/auth";
 import {
   subscribeUserDirectory,
@@ -40,6 +42,7 @@ export default function TopNav({ active, onPython, pyActive = false }) {
   const [fruitTotal, setFruitTotal] = useState(0);
   const [memberships, setMemberships] = useState([]);
   const [sessionClassId, setSessionClassId] = useState(null);
+  const [fruitOpen, setFruitOpen] = useState(false); // 과일 뱃지 → 받은 흐름 모달
 
   // 관리자만 사용자 디렉터리를 구독(역할 관리·승인 대기 표시용)
   useEffect(() => {
@@ -172,6 +175,34 @@ export default function TopNav({ active, onPython, pyActive = false }) {
         />
       )}
 
+      {/* 과일 뱃지를 누르면 — 자기 기록이라 펼친 채로 엽니다. 여러 반에
+          속해 있으면 한 흐름으로 합칩니다(리포트와 같은 컴포넌트). */}
+      {fruitOpen && (
+        <div className="modal-backdrop" {...backdropClose(() => setFruitOpen(false))}>
+          <div
+            className="modal fruit-trend-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="내가 받은 과일"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-head">
+              <h3>🍎 내가 받은 과일</h3>
+              <button className="btn-close" onClick={() => setFruitOpen(false)} aria-label="닫기">
+                ×
+              </button>
+            </div>
+            <StudentRewardTrend
+              studentUid={user.uid}
+              classIds={membershipIds}
+              defaultOpen
+              bare
+              showToggle={false}
+            />
+          </div>
+        </div>
+      )}
+
       {/* 첫 줄 오른쪽: 손들기 + 과일 뱃지 + 프로필/로그아웃 — 좁은 화면에서도
           항상 눈에 띄어야 하는 것들이라 로고와 같은 줄에 둡니다. 나머지
           이동 메뉴(질문방·공부방 등)는 아래 nav로 분리해 좁은 화면에서
@@ -181,10 +212,18 @@ export default function TopNav({ active, onPython, pyActive = false }) {
         {user && broadcastClassId && (
           <QuestionSignalButton classId={broadcastClassId} user={user} isTeacher={admin} />
         )}
+        {/* 눌러서 '언제 얼마나 받았는지'까지 — 숫자만으로는 요즘 어떤지가
+            안 보입니다. 학생 리포트에 있는 것과 같은 흐름을 여기서도 바로
+            열어 볼 수 있게 합니다. */}
         {!admin && user && (
-          <span className="fruit-total-chip" title="지금까지 받은 과일 총 개수">
+          <button
+            type="button"
+            className="fruit-total-chip fruit-total-chip--btn"
+            onClick={() => setFruitOpen(true)}
+            title="지금까지 받은 과일 — 눌러서 받은 흐름 보기"
+          >
             🍎 {fruitTotal}
-          </span>
+          </button>
         )}
         {user && isFirebaseConfigured && <NotificationBell uid={user.uid} />}
         <UserProfile
