@@ -256,7 +256,7 @@ export default function TopNav({ active, onPython, pyActive = false }) {
           어느 한쪽 안에 넣으면 버튼 줄이나 아이콘 줄에 딸려 붙습니다.
           자기 margin-left:auto와 .user-area의 margin-left:auto가 남는 폭을
           반씩 나눠 가져, 문구가 그 사이 가운데에 섭니다. */}
-      <span className="topbar-tagline">작은 변화를 꾸준하게</span>
+      <span className="topbar-tagline">매일 같은 작은 변화</span>
     </header>
 
     {/* 학생 화면 — 교사가 방송 중이면 화면 전체를 강제로 덮습니다(학생은 닫을 수 없음) */}
