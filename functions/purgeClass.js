@@ -17,6 +17,7 @@ const CLASS_SUBCOLLECTIONS = [
   "seatLayouts",       // 자리표(기본 + 날짜별 임시)
   "groupAssignments",  // 반 기본 모둠 — 실명·학번 포함
   "questionSignals",   // 손들기 — 실명·학번 포함
+  "rewardEvents",      // 과일 지급 이력 — uid·지급 시각(참여 기록)
 ];
 
 // classId 필드로 묶여 있는 최상위 컬렉션들.
@@ -112,7 +113,9 @@ async function purgeClassData(db, classId, onCardAttachments) {
     warnings.push(`방송 상태: ${e && e.message}`);
   }
 
-  // 5) 반 문서 — 하위 컬렉션(출석부·자리표·기본 모둠·손들기)까지 통째로.
+  // 5) 반 문서 — 하위 컬렉션(CLASS_SUBCOLLECTIONS)까지 통째로.
+  //    이력이라 규칙상 아무도 못 지우는 rewardEvents도 여기서 함께 사라집니다
+  //    (admin SDK는 규칙을 우회합니다).
   //    맨 마지막에 지웁니다. 중간에 실패하면 반 문서가 남아 있어야 교사가
   //    다시 삭제를 눌러 이어서 정리할 수 있습니다.
   try {
