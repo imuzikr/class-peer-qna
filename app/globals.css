@@ -8755,6 +8755,108 @@ pre code {
   flex-direction: column;
   gap: 12px;
 }
+
+/* ── 과일 받은 흐름 — 누가기록 맨 위의 작은 시계열 ──
+   수업은 띄엄띄엄 있는 사건이라 하루를 막대 하나로 세웁니다(선으로 이으면
+   수업 사이가 이어진 변화처럼 읽힙니다). 회수한 날은 기준선 아래로 —
+   색이 아니라 방향과 부호가 먼저 알려 주게 합니다. */
+.rwtrend {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  background: var(--bg-deep);
+}
+.rwtrend-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.rwtrend-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+.rwtrend-summary {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-sub);
+  font-variant-numeric: tabular-nums;
+}
+.rwtrend-summary b {
+  color: var(--text);
+  font-weight: 700;
+}
+.rwtrend-plot {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+.rwtrend-col {
+  flex: 1 1 0;
+  min-width: 26px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+/* 위/아래 칸을 같은 높이로 잡아 두어야 기준선이 늘 같은 자리에 섭니다 */
+.rwtrend-slot {
+  width: 100%;
+  height: 46px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.rwtrend-slot--down {
+  height: 16px;
+  align-items: flex-start;
+}
+.rwtrend-bar {
+  width: 11px;
+  min-height: 3px;
+  display: block;
+}
+/* 데이터가 끝나는 쪽만 둥글게 — 기준선 쪽은 각지게 붙여 둡니다 */
+.rwtrend-bar--up {
+  background: #d97757;
+  border-radius: 4px 4px 0 0;
+}
+.rwtrend-bar--down {
+  background: #1f6f9c;
+  border-radius: 0 0 4px 4px;
+}
+/* 기준선(0) — 눈금이 아니라 바닥이라는 표시라 아주 옅게 */
+.rwtrend-base {
+  width: 100%;
+  height: 1px;
+  background: var(--border);
+}
+.rwtrend-val {
+  margin-top: 5px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.rwtrend-date {
+  font-size: 10px;
+  color: var(--text-sub);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.rwtrend-note {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-sub);
+}
 .notes-compose {
   display: flex;
   flex-direction: column;

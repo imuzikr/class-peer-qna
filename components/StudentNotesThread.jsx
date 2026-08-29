@@ -20,6 +20,7 @@ import {
   todayDateKey,
 } from "@/lib/store";
 import { getCurrentUser } from "@/lib/user";
+import StudentRewardTrend from "./StudentRewardTrend";
 
 export default function StudentNotesThread({ studentUid, classId = null, readOnly = false }) {
   const [notes, setNotes] = useState([]);
@@ -77,6 +78,11 @@ export default function StudentNotesThread({ studentUid, classId = null, readOnl
 
   return (
     <div className="notes-thread">
+      {/* 과일 받은 흐름 — 무슨 일이 있었나(기록)와 얼마나 받았나(수치)를
+          나란히 놓아, 기록을 쓰면서 그 학생의 변화를 함께 보게 합니다.
+          아직 한 번도 못 받은 학생에게는 아무것도 그리지 않습니다. */}
+      <StudentRewardTrend studentUid={studentUid} classId={classId} />
+
       {/* 읽기 전용(대시보드)에서는 입력창을 숨기고 기록만 보여 줍니다 */}
       {!readOnly && (
         <form className="notes-compose" onSubmit={handleAdd}>
