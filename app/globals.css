@@ -581,11 +581,11 @@ button.footer-link:hover {
   flex-shrink: 0;
 }
 
-/* 제목 크기(19px)라 166px를 먹습니다. 좌우 여유가 1340px에서 41px,
-   1280px 아래로는 14px(.topbar의 gap)까지 붙어 버려 버튼에 낀 것처럼
-   보입니다 — 넉넉할 때만 두려고 그 한참 앞에서 접습니다.
-   1366px 노트북에서는 54px 여유로 보입니다. */
-@media (max-width: 1340px) {
+/* 제목 크기(19px)에 16자라 285px를 먹습니다. 좌우 여유가 1440px에서 32px,
+   1400px 아래로는 14px(.topbar의 gap)까지 붙어 버튼에 낀 것처럼 보입니다.
+   그래서 1440px 미만에서는 접습니다 — 1366px 노트북에서는 안 보입니다.
+   문구를 짧게 하거나 크기를 낮추지 않는 한 피할 수 없는 맞바꿈입니다. */
+@media (max-width: 1439px) {
   .topbar-tagline { display: none; }
 }
 
