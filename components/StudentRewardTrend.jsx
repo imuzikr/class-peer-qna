@@ -130,7 +130,6 @@ export default function StudentRewardTrend({
   // 막대 높이는 그날 움직인 양의 절댓값 기준 — 하루 1개씩 주는 반에서도
   // 막대가 보이도록 최소 1로 잡습니다.
   const peak = Math.max(1, ...shown.map((d) => Math.abs(d.delta)));
-  const hasWithdrawal = shown.some((d) => d.delta < 0);
 
   return (
     <section className="rwtrend" aria-label="과일 받은 흐름">
@@ -203,9 +202,6 @@ export default function StudentRewardTrend({
           <p className="rwtrend-note">
             막대 높이는 이 기간에서 가장 많은 날(<b>{peak}개</b>) 기준이에요.
           </p>
-          {hasWithdrawal && (
-            <p className="rwtrend-note">아래로 내려간 날(−)은 과일을 도로 뺀 날입니다.</p>
-          )}
           {days.length > MAX_DAYS && (
             <p className="rwtrend-note">최근 {MAX_DAYS}개 수업일만 보여 줍니다.</p>
           )}

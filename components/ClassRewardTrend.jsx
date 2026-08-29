@@ -213,10 +213,6 @@ export default function ClassRewardTrend({ classId, roster = [] }) {
                 진한 칸이 몇 개인지 적어 둡니다 — 안 적으면 다른 반·다른
                 기간의 격자와 색을 그대로 견주게 됩니다. */}
             <span className="crtrend-legend-label">많이({peak}개)</span>
-            <span className="crtrend-legend-gap" />
-            <span className="crtrend-legend-label">
-              <i className="crtrend-swatch crtrend-cell--minus" /> 회수(−)
-            </span>
           </div>
         </>
       )}

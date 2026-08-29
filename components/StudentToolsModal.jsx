@@ -46,13 +46,9 @@ export default function StudentToolsModal({
 
         <div className="attend-tools-cards">
           <section className="attend-tools-section">
-            <div className="attend-tools-row">
-              <span className="attend-tools-label">🍎 과일</span>
-              <strong className="attend-tools-count">{count}</strong>
-            </div>
-            {/* 과일 받은 흐름 — 주는 버튼 바로 위. 지금 몇 개인지(위 숫자)만
-                보고 주면 '요즘 조용한 아이'와 '초반에 몰아 받은 아이'가
-                구분되지 않아, 주기 직전에 흐름을 펼쳐 볼 수 있게 둡니다.
+            {/* 과일 받은 흐름 — 주는 버튼 바로 위. 지금 몇 개인지는 자리표에
+                이미 적혀 있고, 주기 직전에 알고 싶은 건 '요즘 어떤가'라
+                여기서 펼쳐 볼 수 있게 둡니다.
                 기본은 접힘 — 이 화면이 전자칠판에 비칩니다. */}
             <StudentRewardTrend studentUid={student.uid} classId={classId} bare />
 

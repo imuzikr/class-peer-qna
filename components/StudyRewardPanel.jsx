@@ -276,6 +276,7 @@ export default function StudyRewardPanel({
               </button>
             </div>
             <SeatPickGrid
+              headLead={<span className="reward-zoom-lead" aria-hidden="true" />}
               seats={seats}
               byUid={byUid}
               raisedUids={raisedUids}
