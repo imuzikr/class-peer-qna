@@ -49,6 +49,11 @@ describe("반 삭제 시 하위 데이터 정리", () => {
     await db.doc(`classes/${GONE}/questionSignals/stu1`).set({
       classId: GONE, uid: "stu1", name: "학생A", studentId: "30101",
     });
+    // 과일 지급 이력 — 규칙상 아무도 못 지우게 잠가 둔 컬렉션이라, 반을
+    // 지울 때 여기서 정말 사라지는지 확인해 두어야 합니다.
+    await db.doc(`classes/${GONE}/rewardEvents/e1`).set({
+      classId: GONE, uid: "stu1", delta: 1, count: 1, byUid: "teacherA", at: new Date(),
+    });
 
     // 공부방 보드 + 카드(하위 컬렉션)
     await db.doc(`studyBoards/b1`).set({ classId: GONE, title: "보드", type: "cards", editMode: "open" });
@@ -103,11 +108,12 @@ describe("반 삭제 시 하위 데이터 정리", () => {
     await gone(`classes/${GONE}`);
   });
 
-  it("반 하위 컬렉션이 남지 않는다 (출석부·자리표·기본 모둠·손들기)", async () => {
+  it("반 하위 컬렉션이 남지 않는다 (출석부·자리표·기본 모둠·손들기·과일 이력)", async () => {
     await gone(`classes/${GONE}/attendanceRecords/2026-08-23_stu1`);
     await gone(`classes/${GONE}/seatLayouts/default`);
     await gone(`classes/${GONE}/groupAssignments/default`);
     await gone(`classes/${GONE}/questionSignals/stu1`);
+    await gone(`classes/${GONE}/rewardEvents/e1`);
   });
 
   it("공부방 보드와 카드가 남지 않는다", async () => {
