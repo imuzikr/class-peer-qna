@@ -20,6 +20,15 @@
 // 누가기록(StudentNotesThread) 맨 위에 놓입니다 — 교사가 한 학생을 들여다보는
 // 자리가 거기라, 정성 기록(무슨 일이 있었나)과 정량 기록(얼마나 받았나)을
 // 나란히 놓고 대조할 수 있게 합니다.
+//
+// [왜 기본이 접힘인가]
+// 수업 중 교사 화면은 전자칠판에 그대로 비칩니다. 요즘 과일을 못 받은 학생의
+// 빈 막대가 반 전체에 펼쳐지면 그 학생이 마음 상합니다. 이건 교사가 혼자
+// 들여다보는 자료지 학생들과 함께 볼 자료가 아니므로, 펼치는 것을 교사의
+// 의식적인 동작으로 둡니다. 요약 숫자까지 함께 감춥니다 — '받은 날 n일'만
+// 봐도 최근에 못 받은 것이 드러나기 때문입니다.
+// 학생을 바꾸면 다시 접힙니다(아래 useEffect) — 앞 학생을 보려고 펼쳐 둔
+// 상태가 다음 학생에게 딸려가면 같은 사고가 납니다.
 // =============================================================
 import { useEffect, useMemo, useState } from "react";
 import { subscribeStudentRewardEvents, toDate, todayDateKey } from "@/lib/store";
@@ -55,6 +64,8 @@ function shortDate(key) {
 export default function StudentRewardTrend({ studentUid, classId = null }) {
   const [events, setEvents] = useState([]);
   const [loaded, setLoaded] = useState(false);
+  // 기본은 접힘 — 아래 [왜 기본이 접힘인가] 참고
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     setLoaded(false);
@@ -65,6 +76,12 @@ export default function StudentRewardTrend({ studentUid, classId = null }) {
       setLoaded(true);
     });
   }, [classId, studentUid]);
+
+  // 다른 학생으로 넘어가면 반드시 다시 접습니다 — 수업 중 교사 화면이 그대로
+  // 비칠 때, 앞 학생을 보려고 펼쳐 둔 상태가 다음 학생에게 딸려가면 안 됩니다.
+  useEffect(() => {
+    setOpen(false);
+  }, [studentUid]);
 
   const days = useMemo(() => groupRewardsByDate(events), [events]);
 
@@ -84,55 +101,68 @@ export default function StudentRewardTrend({ studentUid, classId = null }) {
     <section className="rwtrend" aria-label="과일 받은 흐름">
       <div className="rwtrend-head">
         <h4 className="rwtrend-title">🍎 과일 받은 흐름</h4>
-        <p className="rwtrend-summary">
-          지금 <b>{total}</b>개 · 받은 날 <b>{days.length}</b>일
-          {gained !== total && <> · 누적 <b>{gained}</b>개</>}
-        </p>
+        <button
+          type="button"
+          className="rwtrend-toggle"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+        >
+          {open ? "이력 접기" : "이력 보기"}
+        </button>
       </div>
 
-      <div className="rwtrend-plot" role="img"
-           aria-label={`최근 ${shown.length}개 수업일의 과일 변화. ` +
-             shown.map((d) => `${shortDate(d.date)} ${d.delta > 0 ? "+" : ""}${d.delta}개`).join(", ")}>
-        {shown.map((d) => {
-          const h = Math.round((Math.abs(d.delta) / peak) * 100);
-          const down = d.delta < 0;
-          return (
-            <div
-              key={d.date}
-              className="rwtrend-col"
-              title={`${d.date} · ${d.delta > 0 ? "+" : ""}${d.delta}개 · 그날까지 ${d.total}개`}
-            >
-              <div className="rwtrend-slot">
-                {!down && (
-                  <span
-                    className="rwtrend-bar rwtrend-bar--up"
-                    style={{ height: `${h}%` }}
-                  />
-                )}
-              </div>
-              <span className="rwtrend-base" aria-hidden="true" />
-              <div className="rwtrend-slot rwtrend-slot--down">
-                {down && (
-                  <span
-                    className="rwtrend-bar rwtrend-bar--down"
-                    style={{ height: `${h}%` }}
-                  />
-                )}
-              </div>
-              <span className="rwtrend-val">
-                {d.delta > 0 ? "+" : ""}{d.delta}
-              </span>
-              <span className="rwtrend-date">{shortDate(d.date)}</span>
-            </div>
-          );
-        })}
-      </div>
+      {!open ? null : (
+        <>
+          <p className="rwtrend-summary">
+            지금 <b>{total}</b>개 · 받은 날 <b>{days.length}</b>일
+            {gained !== total && <> · 누적 <b>{gained}</b>개</>}
+          </p>
 
-      {hasWithdrawal && (
-        <p className="rwtrend-note">아래로 내려간 날(−)은 과일을 도로 뺀 날입니다.</p>
-      )}
-      {days.length > MAX_DAYS && (
-        <p className="rwtrend-note">최근 {MAX_DAYS}개 수업일만 보여 줍니다.</p>
+          <div className="rwtrend-plot" role="img"
+               aria-label={`최근 ${shown.length}개 수업일의 과일 변화. ` +
+                 shown.map((d) => `${shortDate(d.date)} ${d.delta > 0 ? "+" : ""}${d.delta}개`).join(", ")}>
+            {shown.map((d) => {
+              const h = Math.round((Math.abs(d.delta) / peak) * 100);
+              const down = d.delta < 0;
+              return (
+                <div
+                  key={d.date}
+                  className="rwtrend-col"
+                  title={`${d.date} · ${d.delta > 0 ? "+" : ""}${d.delta}개 · 그날까지 ${d.total}개`}
+                >
+                  <div className="rwtrend-slot">
+                    {!down && (
+                      <span
+                        className="rwtrend-bar rwtrend-bar--up"
+                        style={{ height: `${h}%` }}
+                      />
+                    )}
+                  </div>
+                  <span className="rwtrend-base" aria-hidden="true" />
+                  <div className="rwtrend-slot rwtrend-slot--down">
+                    {down && (
+                      <span
+                        className="rwtrend-bar rwtrend-bar--down"
+                        style={{ height: `${h}%` }}
+                      />
+                    )}
+                  </div>
+                  <span className="rwtrend-val">
+                    {d.delta > 0 ? "+" : ""}{d.delta}
+                  </span>
+                  <span className="rwtrend-date">{shortDate(d.date)}</span>
+                </div>
+              );
+            })}
+          </div>
+
+          {hasWithdrawal && (
+            <p className="rwtrend-note">아래로 내려간 날(−)은 과일을 도로 뺀 날입니다.</p>
+          )}
+          {days.length > MAX_DAYS && (
+            <p className="rwtrend-note">최근 {MAX_DAYS}개 수업일만 보여 줍니다.</p>
+          )}
+        </>
       )}
     </section>
   );
