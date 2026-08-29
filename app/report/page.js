@@ -9,6 +9,8 @@ import {
   subscribeQuestions,
   subscribeStudyBoards,
   subscribeMyStudyCards,
+  subscribeMyMemberships,
+  subscribeUserKwl,
   toDate,
 } from "@/lib/store";
 import { isFirebaseConfigured } from "@/lib/firebase";
@@ -17,6 +19,7 @@ import { isTeacher as isTeacherRole } from "@/lib/user";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import { useRequireAuth } from "@/lib/useRequireAuth";
 import { getMeTooCount } from "@/lib/questionRanking";
+import { cardActivitySummary, DONE_MIN_CHARS } from "@/lib/activities";
 import dynamic from "next/dynamic";
 import TopNav from "@/components/TopNav";
 import { IconRecord } from "@/components/StatusIcons";
@@ -25,6 +28,10 @@ import { IconRecord } from "@/components/StatusIcons";
 const ActivityHeatmap = dynamic(() => import("@/components/ActivityHeatmap"), {
   ssr: false,
 });
+const KwlSemesterHeatmap = dynamic(
+  () => import("@/components/KwlSemesterHeatmap"),
+  { ssr: false }
+);
 
 const DAY_MS = 1000 * 60 * 60 * 24;
 
@@ -131,6 +138,8 @@ export default function StudentReportPage() {
   const [activeStatKey, setActiveStatKey] = useState(null); // 통계 카드 드릴다운
   const [studyBoards, setStudyBoards] = useState([]);
   const [myCards, setMyCards] = useState([]); // 내가 낸 공부방 카드(전체)
+  const [myMemberships, setMyMemberships] = useState([]); // 내가 속한 반
+  const [myKwl, setMyKwl] = useState([]); // 내 KWLS 기록(전 기간)
 
   // 학습 리포트는 학생 화면 — 관리자 보기로 바뀌면 관리자 대시보드로 이동
   const isTeacher = user ? isTeacherRole(user) : false;
@@ -156,6 +165,21 @@ export default function StudentReportPage() {
       return;
     }
     return subscribeMyStudyCards(user.uid, setMyCards);
+  }, [user?.uid]);
+
+  // 내가 속한 반 — 공부방 진행률의 분모를 내 반으로 좁히는 데 씁니다.
+  // subscribeStudyBoards는 학교 전체 보드를 내려주므로(규칙상 보드 메타는
+  // 공개), 이걸로 거르지 않으면 남의 반 프로젝트까지 분모에 들어갑니다.
+  useEffect(() => {
+    if (!user) { setMyMemberships([]); return; }
+    return subscribeMyMemberships(user.uid, setMyMemberships);
+  }, [user?.uid]);
+
+  // 내 KWLS 기록 — 반 무관 전 기간. 리포트는 반을 고르는 화면이 아니라
+  // subscribeMyAllKwl(classId 필요) 대신 이쪽을 씁니다(규칙상 본인 것은 읽힘).
+  useEffect(() => {
+    if (!user) { setMyKwl([]); return; }
+    return subscribeUserKwl(user.uid, setMyKwl);
   }, [user?.uid]);
 
   // 답변 구독 — 질문 id 집합이 바뀔 때만 재연결 (좋아요/해결 등 잦은
@@ -223,18 +247,49 @@ export default function StudentReportPage() {
     ? myQuestions.filter((q) => q.reflectionPending)
     : [];
 
-  // 공부방 활동 — 내가 작성한 카드를 보드별로 모읍니다 (수업 안내 보드 제외).
-  const myStudyCards = useMemo(() => {
-    if (!user) return [];
-    return myCards
-      .map((card) => {
-        const board = studyBoards.find((b) => b.id === card.boardId);
-        return board && board.type !== "notice" ? { board, card } : null;
-      })
-      .filter(Boolean)
-      .sort((a, b) => toDate(b.card.createdAt) - toDate(a.card.createdAt));
-  }, [studyBoards, myCards, user]);
-  const studentBoardCount = studyBoards.filter((b) => b.type !== "notice").length;
+  // 내 반의 학생용 프로젝트만 — 예전에는 studyBoards 전체를 셌는데,
+  // 그건 학교 전체 반의 프로젝트라 "3/7 제출"의 7이 남의 반 것까지
+  // 포함한 숫자였습니다.
+  const myClassIds = useMemo(
+    () => new Set(myMemberships.map((m) => m.classId)),
+    [myMemberships]
+  );
+  const myBoards = useMemo(
+    () =>
+      studyBoards.filter(
+        (b) => b.type !== "notice" && myClassIds.has(b.classId)
+      ),
+    [studyBoards, myClassIds]
+  );
+  const studentBoardCount = myBoards.length;
+
+  // 활동 '칸' 기준 진행 — 카드를 냈는지만 세면, 활동 세 칸 중 한 칸만 쓴
+  // 카드도 제출 완료로 잡힙니다. 학생이 자기 리포트를 보고 "다 했네" 하고
+  // 넘어가게 만드는 표시라, 칸 단위로 셉니다.
+  // 활동 목록이 없는 예전 보드는 카드 한 장을 한 칸으로 봅니다.
+  const studyProgress = useMemo(() => {
+    const cardByBoard = new Map(myCards.map((c) => [c.boardId, c]));
+    let total = 0;
+    let filled = 0;
+    const rows = myBoards.map((board) => {
+      const card = cardByBoard.get(board.id) ?? null;
+      const activities = board.activities ?? [];
+      if (activities.length === 0) {
+        const ok =
+          !!card && stripHtml(card.content ?? "").length >= DONE_MIN_CHARS;
+        total += 1;
+        filled += ok ? 1 : 0;
+        return { board, card, total: 1, filled: ok ? 1 : 0, segments: [ok] };
+      }
+      const sum = card
+        ? cardActivitySummary(card, activities)
+        : { total: activities.length, filled: 0, segments: activities.map(() => false) };
+      total += sum.total;
+      filled += sum.filled;
+      return { board, card, total: sum.total, filled: sum.filled, segments: sum.segments };
+    });
+    return { rows, total, filled };
+  }, [myBoards, myCards]);
   // 통계 카드 드릴다운 목록
   const statDetailItems = useMemo(() => {
     switch (activeStatKey) {
@@ -584,7 +639,7 @@ export default function StudentReportPage() {
             <h2>🧩 공부방 활동</h2>
             <span>
               {studentBoardCount > 0
-                ? `${myStudyCards.length} / ${studentBoardCount} 보드 제출`
+                ? `활동 ${studyProgress.filled} / ${studyProgress.total}칸 · 프로젝트 ${studentBoardCount}개`
                 : "활동 보드 없음"}
             </span>
           </div>
@@ -592,42 +647,58 @@ export default function StudentReportPage() {
             <EmptyPanel>아직 열린 수업 보드가 없어요.</EmptyPanel>
           ) : (
             <>
-              {/* 보드별 제출 현황 막대 */}
+              {/* 전체 활동 칸 진행 */}
               <div className="study-report-bar">
                 <div
                   className="study-report-fill"
                   style={{
-                    width: `${(myStudyCards.length / studentBoardCount) * 100}%`,
+                    width: `${
+                      studyProgress.total > 0
+                        ? (studyProgress.filled / studyProgress.total) * 100
+                        : 0
+                    }%`,
                   }}
                 />
               </div>
-              {myStudyCards.length === 0 ? (
-                <EmptyPanel>
-                  아직 작성한 카드가 없어요.{" "}
-                  <button
-                    className="link-button"
-                    onClick={() => router.push("/study")}
-                  >
-                    공부방으로 가기 →
-                  </button>
-                </EmptyPanel>
-              ) : (
+              {/* 아직 안 쓴 프로젝트도 함께 늘어놓습니다 — '무엇이 남았나'가
+                  이 목록의 요점이라, 쓴 것만 보여주면 정작 알아야 할 것이
+                  빠집니다. 줄마다 눌러 공부방으로 갈 수 있어 따로 안내 버튼을
+                  두지 않았습니다. */}
+              {(
                 <div className="study-report-list">
-                  {myStudyCards.map(({ board, card }) => (
+                  {studyProgress.rows.map((row) => (
                     <button
-                      key={board.id}
+                      key={row.board.id}
                       type="button"
                       className="study-report-item"
                       onClick={() => router.push("/study")}
                     >
-                      {board.keyword && (
-                        <span className="keyword-chip"># {board.keyword}</span>
+                      {/* 키워드가 없어도 자리는 둡니다 — 줄마다 칸 수가 달라지면
+                          격자 열이 밀려 제목·칸·미리보기가 어긋납니다. */}
+                      {row.board.keyword ? (
+                        <span className="keyword-chip"># {row.board.keyword}</span>
+                      ) : (
+                        <span />
                       )}
-                      <span className="study-report-title">{board.title}</span>
+                      <span className="study-report-title">{row.board.title}</span>
                       <span className="study-report-preview">
-                        {stripHtml(card.content)}
+                        {row.card
+                          ? stripHtml(row.card.content)
+                          : "아직 쓰지 않았어요"}
                       </span>
-                      <time>{formatTime(card.createdAt)}</time>
+                      {/* 진행 표시는 오른쪽 한 칸에 모읍니다 — 가운데에 두면
+                          미리보기가 여덟 글자로 잘려 쓸모가 없어집니다.
+                          칸을 순서대로 늘어놓는 이유는 개수만으로는 '무엇을'
+                          마저 써야 하는지 알 수 없어서입니다. */}
+                      <span className="study-seg-num">
+                        <span className="study-seg" aria-hidden="true">
+                          {row.segments.map((done, i) => (
+                            <i key={i} className={done ? "on" : ""} />
+                          ))}
+                        </span>
+                        {row.filled}/{row.total}칸
+                        {row.card && <time>{formatTime(row.card.createdAt)}</time>}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -635,6 +706,19 @@ export default function StudentReportPage() {
             </>
           )}
         </section>
+
+        {/* KWLS 학기 히트맵 — 공부방 패널의 그 격자를 밝은 바탕으로.
+            '나는 꾸준한가'는 리포트가 답해야 할 물음인데 지금까지는
+            질문·답변 잔디만 있었습니다. */}
+        {myKwl.length > 0 && (
+          <section className="study-report report-kwl">
+            <div className="admin-panel-head">
+              <h2>📒 KWLS 성찰</h2>
+              <span>{myKwl.length}건</span>
+            </div>
+            <KwlSemesterHeatmap entries={myKwl} tone="light" />
+          </section>
+        )}
 
         <section className="report-reflection">
           <div className="admin-panel-head">

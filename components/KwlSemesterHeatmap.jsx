@@ -54,7 +54,15 @@ function ymd(date) {
   return `${y}-${m}-${d}`;
 }
 
-export default function KwlSemesterHeatmap({ entries = [], selectedDate, onPickDate }) {
+// tone — 'dark'는 공부방 사이드바(어두운 패널), 'light'는 학습 리포트(흰 패널).
+// 같은 격자를 두 바탕에서 쓰는데, 색을 자동으로 뒤집으면 명도 순서가 무너져
+// '많이 쓴 날'이 옅어집니다. 바탕마다 검증기를 통과시킨 램프를 따로 둡니다.
+export default function KwlSemesterHeatmap({
+  entries = [],
+  selectedDate,
+  onPickDate,
+  tone = "dark",
+}) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const year = semesterYearOf(today);
@@ -117,7 +125,7 @@ export default function KwlSemesterHeatmap({ entries = [], selectedDate, onPickD
   ).length;
 
   return (
-    <section className="kwls-hm">
+    <section className={`kwls-hm${tone === "light" ? " kwls-hm--light" : ""}`}>
       <div className="kwls-hm-head">
         <h4>
           {year}년 2학기
