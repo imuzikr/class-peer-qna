@@ -29,6 +29,8 @@
 // 봐도 최근에 못 받은 것이 드러나기 때문입니다.
 // 학생을 바꾸면 다시 접힙니다(아래 useEffect) — 앞 학생을 보려고 펼쳐 둔
 // 상태가 다음 학생에게 딸려가면 같은 사고가 납니다.
+// 접힌 모습은 누구나 똑같습니다 — 기록이 없는 학생이라고 칸을 감추면 그
+// '없음'이 곧 신호가 되어 버립니다(아래 return 앞 주석 참고).
 // =============================================================
 import { useEffect, useMemo, useState } from "react";
 import { subscribeStudentRewardEvents, toDate, todayDateKey } from "@/lib/store";
@@ -85,9 +87,14 @@ export default function StudentRewardTrend({ studentUid, classId = null }) {
 
   const days = useMemo(() => groupRewardsByDate(events), [events]);
 
-  // 이 반에서 아직 한 번도 안 준 학생이면 자리만 차지하므로 아예 접습니다.
-  if (!classId || (loaded && days.length === 0)) return null;
-  if (!loaded) return null;
+  // 반이 없으면 조회할 대상 자체가 없습니다(그 밖에는 늘 자리를 지킵니다).
+  //
+  // [기록이 없는 학생에게도 이 칸을 남기는 이유]
+  // 예전에는 기록이 없으면 이 영역을 통째로 감췄습니다. 그러면 학생마다 화면
+  // 생김새가 달라져, 전자칠판에 비칠 때 '이 칸이 없는 아이 = 한 번도 못 받은
+  // 아이'로 읽힙니다. 감추려던 것이 오히려 없다는 사실로 드러나는 셈이라,
+  // 누구에게나 똑같이 접힌 칸을 두고 펼쳤을 때만 안내를 보여 줍니다.
+  if (!classId) return null;
 
   const shown = days.slice(-MAX_DAYS);
   const gained = days.reduce((sum, d) => sum + Math.max(0, d.delta), 0);
@@ -111,7 +118,11 @@ export default function StudentRewardTrend({ studentUid, classId = null }) {
         </button>
       </div>
 
-      {!open ? null : (
+      {!open ? null : !loaded ? (
+        <p className="rwtrend-note">불러오는 중…</p>
+      ) : days.length === 0 ? (
+        <p className="rwtrend-note">아직 과일을 받은 기록이 없어요.</p>
+      ) : (
         <>
           <p className="rwtrend-summary">
             지금 <b>{total}</b>개 · 받은 날 <b>{days.length}</b>일
