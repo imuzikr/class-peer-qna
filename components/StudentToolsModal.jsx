@@ -49,7 +49,6 @@ export default function StudentToolsModal({
             <div className="attend-tools-row">
               <span className="attend-tools-label">🍎 과일</span>
               <strong className="attend-tools-count">{count}</strong>
-              <span className="attend-tools-hint">눌러서 여러 개 줄 수 있어요</span>
             </div>
             {/* 과일 받은 흐름 — 주는 버튼 바로 위. 지금 몇 개인지(위 숫자)만
                 보고 주면 '요즘 조용한 아이'와 '초반에 몰아 받은 아이'가

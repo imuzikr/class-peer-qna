@@ -7606,11 +7606,6 @@ pre code {
   font-size: 18px;
   color: var(--primary-dark);
 }
-.attend-tools-hint {
-  margin-left: auto;
-  font-size: 11.5px;
-  color: var(--text-sub);
-}
 .attend-tools-award {
   display: flex;
   align-items: center;
