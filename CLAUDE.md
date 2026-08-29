@@ -111,6 +111,11 @@ Firebase 미설정 시 자동으로 **데모 모드**로 동작 (새로고침 �
     적습니다 — 관찰 화면(히트맵·리포트·교사 패널)이 전부 이 컬렉션을 보므로
     이것만으로 두 곳의 KWLS가 한 흐름이 됩니다. 과거분은
     `npm run kwls:backfill` 로 옮깁니다(기본은 미리보기, `--apply` 로 실제 쓰기)
+- `classes/{classId}/rewardEvents` — **과일 지급 이력** (uid, delta, count, byUid, at)
+  - `rewards`는 누적 총계뿐이라 '언제 몇 개 받았나'가 없습니다. 참여의 변화를
+    보려면 시계열이 필요해 지급할 때마다 한 건 적습니다(`setStudentReward`가
+    총계와 **한 트랜잭션**으로 씁니다 — 동시 지급 유실도 이때 함께 막힙니다).
+  - 이력이라 수정·삭제 불가. 반 삭제 시 `purgeClass`의 recursiveDelete가 정리.
 - `users` — 사용자 프로필 (uid, email, displayName(익명), realName, studentId, role)
   - **식별 정보(실명·이메일·학번)는 여기에만** 저장. 게시물·카드엔 익명 정보만 넣음.
   - 읽기 규칙: 본인+교사. 교사 화면은 `subscribeUserDirectory`로 uid→실명/학번 조회.
