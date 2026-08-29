@@ -22,6 +22,7 @@ import { getMeTooCount } from "@/lib/questionRanking";
 import { cardActivitySummary, DONE_MIN_CHARS } from "@/lib/activities";
 import dynamic from "next/dynamic";
 import TopNav from "@/components/TopNav";
+import StudentRewardTrend from "@/components/StudentRewardTrend";
 import { IconRecord } from "@/components/StatusIcons";
 
 // 활동 히트맵·레이더 차트는 무거워 지연 로딩
@@ -485,6 +486,19 @@ export default function StudentReportPage() {
         </section>
 
         <ActivityHeatmap questions={myQuestions} answerEvents={myAnswerEvents} overviewValues={overviewValues} />
+
+        {/* 내가 받은 과일 — 총계만으로는 '요즘 어떤지'가 안 보여, 수업마다
+            받은 양을 날짜로 늘어놓습니다. 여러 반에 속해 있으면 한 흐름으로
+            합쳐 보여 줍니다(과일은 반마다 따로 쌓이지만 학생에게는 하나입니다).
+            교사 화면과 달리 펼친 채로 둡니다 — 자기 기록이라 감출 이유가 없습니다. */}
+        {user && myClassIds.size > 0 && (
+          <StudentRewardTrend
+            studentUid={user.uid}
+            classIds={[...myClassIds]}
+            defaultOpen
+            title="🍎 내가 받은 과일"
+          />
+        )}
 
         <section className="admin-charts report-charts">
           <div className="admin-chart-panel">

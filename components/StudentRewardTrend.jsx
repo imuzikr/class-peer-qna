@@ -33,7 +33,12 @@
 // '없음'이 곧 신호가 되어 버립니다(아래 return 앞 주석 참고).
 // =============================================================
 import { useEffect, useMemo, useState } from "react";
-import { subscribeStudentRewardEvents, toDate, todayDateKey } from "@/lib/store";
+import {
+  subscribeStudentRewardEvents,
+  subscribeStudentRewardEventsForClasses,
+  toDate,
+  todayDateKey,
+} from "@/lib/store";
 
 // 한 화면에 세우는 최대 수업일 수 — 넘으면 최근 것부터 남깁니다.
 // (막대가 너무 얇아지면 날짜를 짚어 읽을 수 없어집니다)
@@ -63,26 +68,46 @@ function shortDate(key) {
   return `${Number(m)}/${Number(d)}`;
 }
 
-export default function StudentRewardTrend({ studentUid, classId = null }) {
+export default function StudentRewardTrend({
+  studentUid,
+  classId = null,
+  // 학생 리포트처럼 여러 반의 이력을 한 흐름으로 볼 때 씁니다(classId 대신).
+  classIds = null,
+  // 본인이 자기 리포트에서 볼 때는 펼친 채로 — 감출 이유가 없습니다.
+  defaultOpen = false,
+  title = "🍎 과일 받은 흐름",
+}) {
   const [events, setEvents] = useState([]);
   const [loaded, setLoaded] = useState(false);
   // 기본은 접힘 — 아래 [왜 기본이 접힘인가] 참고
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
+
+  // 여러 반을 볼 때는 배열이 매 렌더 새로 만들어져도 구독이 다시 붙지 않도록
+  // 내용으로 키를 잡습니다.
+  const idsKey = classIds ? [...new Set(classIds.filter(Boolean))].sort().join(",") : "";
 
   useEffect(() => {
     setLoaded(false);
     setEvents([]);
-    if (!classId || !studentUid) return;
-    return subscribeStudentRewardEvents(classId, studentUid, (list) => {
+    if (!studentUid) return;
+    const done = (list) => {
       setEvents(list);
       setLoaded(true);
-    });
-  }, [classId, studentUid]);
+    };
+    if (classIds) {
+      if (!idsKey) return;
+      return subscribeStudentRewardEventsForClasses(idsKey.split(","), studentUid, done);
+    }
+    if (!classId) return;
+    return subscribeStudentRewardEvents(classId, studentUid, done);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [classId, idsKey, studentUid]);
 
   // 다른 학생으로 넘어가면 반드시 다시 접습니다 — 수업 중 교사 화면이 그대로
   // 비칠 때, 앞 학생을 보려고 펼쳐 둔 상태가 다음 학생에게 딸려가면 안 됩니다.
   useEffect(() => {
-    setOpen(false);
+    setOpen(defaultOpen);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [studentUid]);
 
   const days = useMemo(() => groupRewardsByDate(events), [events]);
@@ -94,11 +119,16 @@ export default function StudentRewardTrend({ studentUid, classId = null }) {
   // 생김새가 달라져, 전자칠판에 비칠 때 '이 칸이 없는 아이 = 한 번도 못 받은
   // 아이'로 읽힙니다. 감추려던 것이 오히려 없다는 사실로 드러나는 셈이라,
   // 누구에게나 똑같이 접힌 칸을 두고 펼쳤을 때만 안내를 보여 줍니다.
-  if (!classId) return null;
+  if (!classId && !idsKey) return null;
 
   const shown = days.slice(-MAX_DAYS);
   const gained = days.reduce((sum, d) => sum + Math.max(0, d.delta), 0);
-  const total = days[days.length - 1]?.total ?? 0;
+  // '지금 몇 개'는 반마다 따로 셉니다(과일은 반별 총계라 서로 더할 수 없는
+  // 값이 아니라, 반별 최신 count를 합쳐야 지금 가진 전부가 됩니다).
+  const total = [...new Map(events.map((e) => [e.classId, e.count ?? 0])).values()].reduce(
+    (sum, n) => sum + n,
+    0
+  );
   // 막대 높이는 그날 움직인 양의 절댓값 기준 — 하루 1개씩 주는 반에서도
   // 막대가 보이도록 최소 1로 잡습니다.
   const peak = Math.max(1, ...shown.map((d) => Math.abs(d.delta)));
@@ -107,7 +137,7 @@ export default function StudentRewardTrend({ studentUid, classId = null }) {
   return (
     <section className="rwtrend" aria-label="과일 받은 흐름">
       <div className="rwtrend-head">
-        <h4 className="rwtrend-title">🍎 과일 받은 흐름</h4>
+        <h4 className="rwtrend-title">{title}</h4>
         <button
           type="button"
           className="rwtrend-toggle"

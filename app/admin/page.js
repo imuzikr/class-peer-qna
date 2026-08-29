@@ -37,6 +37,7 @@ import RewardFruits, { rewardStars } from "@/components/RewardFruits";
 import StudentKwlPanel from "@/components/StudentKwlPanel";
 import BookActivityStats from "@/components/BookActivityStats";
 import ClassOverview from "@/components/ClassOverview";
+import ClassRewardTrend from "@/components/ClassRewardTrend";
 import StudyRoomStats from "@/components/StudyRoomStats";
 import { IconSchool, IconBlackboard } from "@/components/StatusIcons";
 
@@ -1026,6 +1027,11 @@ export default function AdminDashboardPage() {
                 kwl={allKwl}
                 classId={selectedClassId}
               />
+              {/* 과일 흐름도 반 단위 — 이력이 반마다 따로 있는 하위
+                  컬렉션이고, 규칙상 담당 교사만 나열할 수 있습니다 */}
+              {selectedClassId && (
+                <ClassRewardTrend classId={selectedClassId} roster={overviewStudents} />
+              )}
               {/* 책방도 반 단위 — 게다가 활동 하나씩만 집계할 수 있습니다
                   (words·entries에 collectionGroup 규칙이 없음) */}
               {selectedClassId && <BookActivityStats classId={selectedClassId} />}
