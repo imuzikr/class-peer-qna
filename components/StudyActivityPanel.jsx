@@ -31,6 +31,7 @@ import { backdropClose } from "@/lib/modal";
 import { cardProgress } from "./StudyProgressBoard";
 import UploadProgress from "./UploadProgress";
 import { IconLock, IconPen } from "./StatusIcons";
+import StudyTodayFeed from "./StudyTodayFeed";
 import ConfirmModal from "./ConfirmModal";
 
 const MATERIAL_MAX_IMAGE = 5 * 1024 * 1024;
@@ -57,6 +58,10 @@ export default function StudyActivityPanel({
   board,
   isTeacher,
   classRoster = [],
+  // 프로젝트를 열기 전 '오늘의 움직임'에 쓰는 반 단위 자료
+  classId = null,
+  boards = [],
+  attendanceRecords = [],
   mobileOpen,
   onMobileClose,
 }) {
@@ -190,8 +195,12 @@ export default function StudyActivityPanel({
         </button>
       )}
 
+      {/* 제목도 지금 무엇을 다루는지에 맞춥니다 — 프로젝트를 안 열었는데
+          '프로젝트 활동'이라고 붙어 있으면 아래 내용과 말이 어긋납니다. */}
       <div className="study-activity-panel-head">
-        <span className="study-activity-panel-title">🧩 프로젝트 활동</span>
+        <span className="study-activity-panel-title">
+          {board ? "🧩 프로젝트 활동" : "📌 오늘의 움직임"}
+        </span>
         {board && (
           <span className="study-activity-panel-project" title={board.title}>
             {board.title}
@@ -200,9 +209,15 @@ export default function StudyActivityPanel({
       </div>
 
       {!board ? (
-        <p className="study-activity-panel-empty">
-          프로젝트를 열면 이곳에서 활동을 추가·수정할 수 있어요.
-        </p>
+        // 프로젝트를 열기 전 — 이 자리는 '열려 있는 프로젝트의 활동'을 다루는
+        // 곳이라 대상이 없습니다. 대신 교사가 공부방을 여는 순간 가장 알고
+        // 싶은 것(오늘 이 반이 어떻게 움직였나)을 보여 줍니다.
+        <StudyTodayFeed
+          classId={classId}
+          boards={boards}
+          roster={classRoster}
+          attendanceRecords={attendanceRecords}
+        />
       ) : isNotice ? (
         <p className="study-activity-panel-empty">
           수업 자료 프로젝트에는 활동이 없어요.

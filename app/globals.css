@@ -17275,6 +17275,73 @@ button.study-cal-cell.has-record:not(:disabled):hover {
 .study-material-save:hover:not(:disabled) { background: var(--primary-dark); }
 .study-material-save:disabled { opacity: 0.5; cursor: not-allowed; }
 
+/* ── 오늘의 움직임 — 프로젝트를 열기 전 왼쪽 패널 ──
+   어두운 패널 위라 글자는 밝은 쪽, 칸은 흰색을 살짝 얹은 정도로 둡니다. */
+.today-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+}
+.today-feed-counts {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.today-feed-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 7px 2px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 10.5px;
+  color: #9a988e;
+}
+.today-feed-chip b {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 800;
+  color: #e8e6dd;
+  font-variant-numeric: tabular-nums;
+}
+/* 목록이 길어져도 패널 아래(자료 제공)를 밀어내지 않게 여기서만 스크롤 */
+.today-feed-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+  min-height: 0;
+}
+.today-feed-item {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  padding: 6px 4px;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #c2c0b6;
+}
+.today-feed-item + .today-feed-item {
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+.today-feed-icon { flex-shrink: 0; font-size: 12px; }
+.today-feed-body { flex: 1; min-width: 0; }
+.today-feed-body b { color: #e8e6dd; font-weight: 700; }
+.today-feed-time {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: #83817a;
+  font-variant-numeric: tabular-nums;
+}
+
 /* 어두운 패널 위에서는 --danger(#c04a3f)가 거의 안 읽혀 밝은 쪽으로 올립니다 */
 .study-activity-panel-error {
   margin: 0;

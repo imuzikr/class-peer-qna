@@ -697,6 +697,9 @@ function StudyPageInner() {
               board={activeProject}
               isTeacher={admin && !currentClass?.archived}
               classRoster={admin ? roster : []}
+              classId={classId}
+              boards={classBoards}
+              attendanceRecords={admin ? attendanceRecords : []}
               mobileOpen={activityPanelMobileOpen}
               onMobileClose={() => setActivityPanelMobileOpen(false)}
             />
