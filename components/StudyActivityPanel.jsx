@@ -89,6 +89,9 @@ export default function StudyActivityPanel({
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [collapsed, setCollapsed] = useState(false);
+  // 순서 바꾸기(끌어 놓기) — 집어 든 줄과 지금 올려 둔 줄
+  const [dragIdx, setDragIdx] = useState(null);
+  const [overIdx, setOverIdx] = useState(null);
 
   // 접힘 상태 복원 — 훅이므로 아래 isTeacher 조기 반환보다 반드시 앞에 둡니다
   useEffect(() => {
@@ -178,6 +181,30 @@ export default function StudyActivityPanel({
   function cancelDraft() {
     setDraft(activities.length ? [...activities] : [""]);
     setDirty(false);
+    setDragIdx(null);
+    setOverIdx(null);
+  }
+
+  // 순서 바꾸기 — from번째를 뽑아 to번째 자리에 끼워 넣습니다(자리를 맞바꾸지
+  // 않는 이유: 끌어 놓는 몸짓은 '여기로 옮긴다'이지 '이 둘을 맞바꾼다'가
+  // 아니라, 맞바꾸면 사이에 있던 활동들이 엉뚱하게 튑니다).
+  //
+  // 이름 편집과 마찬가지로 초안만 바꾸고, '저장'을 눌러야 반영됩니다 —
+  // 이 패널은 저장/취소가 있는 편집 화면이라 끌자마자 저장하면 되돌릴 수가
+  // 없습니다. 잠금은 저장할 때 nextActivityLocks가 이름으로 짝을 찾아
+  // 그대로 따라옵니다(열어 둔 활동이 자리를 옮겼다고 다시 잠기지 않음).
+  function moveDraft(from, to) {
+    setDragIdx(null);
+    setOverIdx(null);
+    if (from == null || to == null || from === to) return;
+    if (to < 0 || to >= draft.length) return;
+    setDraft((prev) => {
+      const next = [...prev];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      return next;
+    });
+    setDirty(true);
   }
 
   // 활동 하나의 잠금을 켜고 끕니다 — 이름 편집(저장 필요)과 달리 즉시 반영됩니다.
@@ -290,7 +317,53 @@ export default function StudyActivityPanel({
               const savedActLocked = isActivityLocked(board, i);
               const isSaved = i < activities.length;
               return (
-                <div className="study-activity-row" key={i}>
+                <div
+                  className={
+                    "study-activity-row" +
+                    (dragIdx === i ? " is-dragging" : "") +
+                    (overIdx === i && dragIdx !== i
+                      // 놓으면 그 줄의 번호를 가져갑니다 — 위로 끌면 그 줄 앞,
+                      // 아래로 끌면 그 줄 뒤에 들어가므로 선도 그쪽에 긋습니다.
+                      ? dragIdx > i
+                        ? " is-over is-over--up"
+                        : " is-over is-over--down"
+                      : "")
+                  }
+                  key={i}
+                  onDragOver={
+                    dragIdx == null
+                      ? undefined
+                      : (e) => { e.preventDefault(); setOverIdx(i); }
+                  }
+                  onDrop={
+                    dragIdx == null
+                      ? undefined
+                      : (e) => { e.preventDefault(); moveDraft(dragIdx, i); }
+                  }
+                >
+                  {/* 끌기 손잡이 — 이름 칸은 글자를 고르고 고치는 자리라,
+                      끌기까지 겹치면 글자를 선택하려던 손이 줄을 옮겨
+                      버립니다. 마우스가 없어도 옮기도록 ↑↓ 키도 받습니다. */}
+                  <button
+                    type="button"
+                    className="study-activity-drag"
+                    draggable
+                    onDragStart={(e) => {
+                      setDragIdx(i);
+                      e.dataTransfer.effectAllowed = "move";
+                      // 파이어폭스는 데이터가 없으면 끌기를 시작하지 않습니다
+                      e.dataTransfer.setData("text/plain", String(i));
+                    }}
+                    onDragEnd={() => { setDragIdx(null); setOverIdx(null); }}
+                    onKeyDown={(e) => {
+                      if (e.key === "ArrowUp") { e.preventDefault(); moveDraft(i, i - 1); }
+                      if (e.key === "ArrowDown") { e.preventDefault(); moveDraft(i, i + 1); }
+                    }}
+                    aria-label={`활동 ${i + 1} 순서 바꾸기`}
+                    title="끌어서 순서 바꾸기 (↑↓ 키로도 옮길 수 있어요)"
+                  >
+                    ⠿
+                  </button>
                   {isSaved && (
                     <button
                       type="button"
