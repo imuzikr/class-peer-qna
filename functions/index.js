@@ -539,5 +539,27 @@ exports.sendClassNotice = onCall({ enforceAppCheck: true }, async (request) => {
     await batch.commit();
   }
 
+  // 보낸 쪽에도 한 건 남깁니다.
+  // -------------------------------------------------------------
+  // 지금까지는 공지가 학생 알림으로만 갔습니다. 학생은 '읽음'으로 치우면
+  // 그만이지만, 교사에게는 "무엇을 언제 보냈는지"가 어디에도 안 남았습니다.
+  // 같은 내용을 두 번 보내거나, 보냈는지 아닌지 헷갈리는 일이 생깁니다.
+  //
+  // 반에 딸린 이력이므로 반 하위 컬렉션에 둡니다(rewardEvents와 같은 자리·
+  // 같은 이유). 이름을 classNotices로 둔 것은 질문방의 전체 공지(최상위
+  // notices)와 헷갈리지 않게 하기 위해서입니다 — 그쪽은 게시글이고
+  // 이쪽은 발송 기록입니다.
+  //
+  // 학생 알림을 다 보낸 뒤에 씁니다. 순서가 반대면 '보냈다고 적혀 있는데
+  // 실제로는 안 간' 기록이 남을 수 있습니다.
+  await db.collection(`classes/${classId}/classNotices`).add({
+    classId,
+    text: body,
+    sentCount: uids.length,
+    senderUid: request.auth.uid,
+    senderName,
+    sentAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+
   return { ok: true, sent: uids.length };
 });
