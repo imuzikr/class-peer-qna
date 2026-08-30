@@ -82,10 +82,11 @@ export default function StudentNotesThread({
 
   return (
     <div className="notes-thread">
-      {/* 과일 받은 흐름 — 무슨 일이 있었나(기록)와 얼마나 받았나(수치)를
-          나란히 놓아, 기록을 쓰면서 그 학생의 변화를 함께 보게 합니다.
+      {/* 과일 받은 흐름 — 기록을 쓰면서 그 학생의 변화를 함께 보게 합니다.
+          제목 없이 '이력 보기' 버튼만 둡니다(bare) — 모달 제목에 이미 누구의
+          무엇인지가 적혀 있어 한 줄을 더 쓸 값어치가 없습니다.
           기본은 접힘이고, 접힌 모습은 누구나 똑같습니다. */}
-      <StudentRewardTrend studentUid={studentUid} classId={classId} />
+      <StudentRewardTrend studentUid={studentUid} classId={classId} bare />
 
       {/* 읽기 전용(대시보드)에서는 입력창을 숨기고 기록만 보여 줍니다 */}
       {!readOnly && (
