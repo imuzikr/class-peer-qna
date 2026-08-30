@@ -60,6 +60,11 @@ describe("반 삭제 시 하위 데이터 정리", () => {
       classId: GONE, text: "내일 준비물", sentCount: 2,
       senderUid: "teacherA", senderName: "강현수", sentAt: new Date(),
     });
+    // 수업 메모 — 교사만 읽는 수업 운영 메모
+    await db.doc(`classes/${GONE}/lessonMemos/m1`).set({
+      classId: GONE, text: "3번 활동 설명이 길었다",
+      authorId: "teacherA", authorName: "강현수", createdAt: new Date(),
+    });
 
     // 공부방 보드 + 카드(하위 컬렉션)
     await db.doc(`studyBoards/b1`).set({ classId: GONE, title: "보드", type: "cards", editMode: "open" });
@@ -114,13 +119,14 @@ describe("반 삭제 시 하위 데이터 정리", () => {
     await gone(`classes/${GONE}`);
   });
 
-  it("반 하위 컬렉션이 남지 않는다 (출석부·자리표·기본 모둠·손들기·과일 이력·공지 이력)", async () => {
+  it("반 하위 컬렉션이 남지 않는다 (출석부·자리표·기본 모둠·손들기·과일 이력·공지 이력·수업 메모)", async () => {
     await gone(`classes/${GONE}/attendanceRecords/2026-08-23_stu1`);
     await gone(`classes/${GONE}/seatLayouts/default`);
     await gone(`classes/${GONE}/groupAssignments/default`);
     await gone(`classes/${GONE}/questionSignals/stu1`);
     await gone(`classes/${GONE}/rewardEvents/e1`);
     await gone(`classes/${GONE}/classNotices/n1`);
+    await gone(`classes/${GONE}/lessonMemos/m1`);
   });
 
   it("공부방 보드와 카드가 남지 않는다", async () => {

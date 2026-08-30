@@ -81,6 +81,8 @@ import TeacherKwlPanel from "@/components/TeacherKwlPanel";
 import LessonManagerModal from "@/components/LessonManagerModal";
 import StudyAttendanceModal from "@/components/StudyAttendanceModal";
 import SeatGroupSetupModal from "@/components/SeatGroupSetupModal";
+import ClassNotesManagerModal from "@/components/ClassNotesManagerModal";
+import LessonMemoModal from "@/components/LessonMemoModal";
 import { updateLesson } from "@/lib/store";
 
 // 파이썬 실행기(CodeMirror 등)는 무거워 지연 로딩 → 초기 로드/전환 속도 개선
@@ -145,6 +147,8 @@ function StudyPageInner() {
   const [baseGroupAssignment, setBaseGroupAssignment] = useState(null);
   const [attending, setAttending] = useState(false);
   const [lessons, setLessons] = useState([]); // 교사: 내가 만든 수업 자료 목록
+  const [notesManagerOpen, setNotesManagerOpen] = useState(false); // 누가기록 관리 모달
+  const [memoOpen, setMemoOpen] = useState(false); // 수업 메모 모달
   const [seatSetupOpen, setSeatSetupOpen] = useState(false); // 자리 배정·모둠 설정 모달
   const [seatSetupReturnTo, setSeatSetupReturnTo] = useState(null); // "lessons" | "classManager" | null — 닫을 때 돌아갈 곳
   const [seatLayout, setSeatLayout] = useState(null);
@@ -831,6 +835,24 @@ function StudyPageInner() {
                         KWLS 차트
                       </button>
                     )}
+                    {admin && currentClass && (
+                      <button
+                        className="btn-ghost"
+                        onClick={() => setNotesManagerOpen(true)}
+                        title="반 학생별 누가기록 — 누가 기록이 있고 없는지 한눈에"
+                      >
+                        누가기록 관리
+                      </button>
+                    )}
+                    {admin && currentClass && (
+                      <button
+                        className="btn-ghost"
+                        onClick={() => setMemoOpen(true)}
+                        title="수업 중 짧게 적어 두기 (학생에게는 보이지 않음)"
+                      >
+                        수업 메모
+                      </button>
+                    )}
                     {admin && currentClass && classBoards.length > 0 && (
                       <button
                         className="btn-ghost"
@@ -1224,6 +1246,24 @@ function StudyPageInner() {
           // 프레젠테이션이 안 될 때도 수업 자료를 바로 고치러 갈 수 있게
           onEdit={() => openLessonEdit(teaching)}
           onClose={closeLessonNav}
+        />
+      )}
+
+      {notesManagerOpen && admin && currentClass && (
+        <ClassNotesManagerModal
+          classId={classId}
+          className={currentClass.name ?? ""}
+          roster={roster}
+          onClose={() => setNotesManagerOpen(false)}
+        />
+      )}
+
+      {memoOpen && admin && currentClass && (
+        <LessonMemoModal
+          classId={classId}
+          className={currentClass.name ?? ""}
+          user={user}
+          onClose={() => setMemoOpen(false)}
         />
       )}
 

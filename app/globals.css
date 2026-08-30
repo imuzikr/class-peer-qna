@@ -842,6 +842,235 @@ button.footer-link:hover {
   color: var(--text-sub);
 }
 
+/* ===== 누가기록 관리 (교사) ===== */
+.modal.modal-notes-manager {
+  max-width: 720px;
+}
+.notes-mgr-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 4px 0 12px;
+}
+.notes-mgr-summary {
+  font-size: 13px;
+  color: var(--text-sub);
+}
+.notes-mgr-summary strong {
+  color: var(--text);
+}
+.notes-mgr-filter {
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text-sub);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+.notes-mgr-filter:hover {
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+.notes-mgr-filter.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+.notes-mgr-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 2px;
+}
+.notes-mgr-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 12px;
+  padding: 10px 8px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s, transform 0.08s;
+}
+.notes-mgr-card:hover {
+  border-color: var(--primary);
+  transform: translateY(-1px);
+}
+/* 기록이 있는 학생은 카드 바탕까지 바꿉니다 — 뱃지만으로는 스물여덟 장을
+   훑을 때 눈에 잘 안 들어옵니다. */
+.notes-mgr-card.has {
+  background: var(--primary-light);
+  border-color: var(--primary-light);
+}
+.notes-mgr-emoji {
+  font-size: 22px;
+  line-height: 1.2;
+}
+.notes-mgr-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  word-break: keep-all;
+}
+.notes-mgr-no {
+  font-size: 11px;
+  color: var(--text-sub);
+}
+/* 있음/없음을 색만으로 나누지 않습니다 — 색 구분이 어려운 사람에게는
+   글자가 유일한 단서입니다. */
+.notes-mgr-badge {
+  margin-top: 3px;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--neutral);
+  color: var(--text-sub);
+}
+.notes-mgr-badge.has {
+  background: var(--primary);
+  color: #fff;
+}
+
+/* ===== 수업 메모 (교사) ===== */
+.modal.modal-lesson-memo {
+  max-width: 560px;
+}
+.memo-field {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.65;
+}
+.memo-field--edit {
+  font-size: 13px;
+}
+.memo-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 8px;
+}
+.memo-hint {
+  font-size: 11.5px;
+  color: var(--text-sub);
+}
+.memo-save {
+  padding: 7px 18px;
+  font-size: 13px;
+}
+.memo-history {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.memo-history-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  cursor: pointer;
+}
+.memo-history-toggle em {
+  font-style: normal;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--primary);
+  border-radius: 999px;
+  padding: 1px 7px;
+}
+.memo-caret {
+  display: inline-block;
+  transition: transform 0.15s;
+  color: var(--text-sub);
+}
+.memo-caret.open {
+  transform: rotate(90deg);
+}
+.memo-empty {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--text-sub);
+}
+.memo-list {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  max-height: 300px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.memo-item {
+  background: var(--neutral);
+  border-radius: 10px;
+  padding: 9px 11px;
+}
+.memo-item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 3px;
+}
+.memo-item-time {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.memo-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.memo-mini-btn {
+  border: none;
+  background: none;
+  padding: 2px 4px;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+  cursor: pointer;
+}
+.memo-mini-btn:hover {
+  color: var(--primary-dark);
+}
+.memo-mini-btn.danger {
+  color: var(--danger, #d64545);
+}
+.memo-item-text {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
 /* 보낸 공지 이력 — 입력칸 아래. 최근 것만 보여 주고 넘치면 스크롤합니다.
    팝오버 전체가 길어지면 화면 밖으로 나가므로 여기서만 높이를 묶습니다. */
 .notice-log {
