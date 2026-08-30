@@ -75,6 +75,21 @@ select:focus {
 }
 
 /* ===================== 랜딩 페이지 ===================== */
+
+/* 이미 로그인한 사람이 / 로 들어왔을 때 — 랜딩을 잠깐 보여 주고 /board로
+   넘어가던 깜빡임을 막습니다. 표시는 app/layout.js의 인라인 스크립트가 첫
+   페인트 전에 달고, 인증이 확정되면 app/page.js가 지웁니다(스크립트 자체도
+   3초 뒤 안전하게 지웁니다 — 자세한 사정은 그 두 파일의 주석 참고).
+
+   display:none이 아니라 visibility:hidden인 이유: 자리는 그대로 두어야
+   레이아웃이 잡히고, 로그아웃 상태로 판명돼 표시가 지워질 때 화면이 튀지
+   않습니다. 배경은 그대로 보이므로 흰 화면이 아니라 배경만 있는 상태입니다. */
+html[data-auth-pending] .landing-top,
+html[data-auth-pending] .landing,
+html[data-auth-pending] .site-footer {
+  visibility: hidden;
+}
+
 .landing {
   min-height: 100vh;
   display: flex;

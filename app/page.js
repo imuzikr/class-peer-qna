@@ -122,10 +122,20 @@ export default function LandingPage() {
   }
 
   // 이미 로그인되어 있으면 게시판으로
+  //
+  // 로그인한 사람에게는 이 페이지가 스쳐 지나가는 자리라, 첫 페인트 전에
+  // app/layout.js의 스크립트가 랜딩을 숨겨 둡니다(지난 접속에서 남긴 힌트가
+  // 있을 때만). 여기서 인증이 확정되면 그 표시를 지웁니다 — 로그인 상태면
+  // 어차피 곧 넘어가고, 아니면 랜딩을 바로 보여 줘야 하기 때문입니다.
+  // (세션이 만료됐거나 다른 기기에서 로그아웃한 경우가 후자입니다)
   useEffect(() => {
-    if (!isFirebaseConfigured) return;
+    if (!isFirebaseConfigured) {
+      document.documentElement.removeAttribute("data-auth-pending");
+      return;
+    }
     return onAuthChange((u) => {
       if (u) router.replace("/board");
+      else document.documentElement.removeAttribute("data-auth-pending");
     });
   }, [router]);
 

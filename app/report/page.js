@@ -4,9 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   formatTime,
-  subscribeAnswers,
   subscribeKeywords,
-  subscribeQuestions,
+  subscribeMyQuestions,
+  subscribeMyAnswerEvents,
   subscribeStudyBoards,
   subscribeMyStudyCards,
   subscribeMyMemberships,
@@ -133,9 +133,12 @@ export default function StudentReportPage() {
   const router = useRouter();
   const user = useCurrentUser();
   useRequireAuth();
-  const [questions, setQuestions] = useState([]);
+  // 내가 쓴 질문과 내가 쓴 답변만 받습니다. 예전에는 학교 전체 질문을 받아
+  // authorId로 걸러 쓰고, 거기에 더해 질문마다 답변 리스너를 하나씩 걸었습니다
+  // (질문 5,000개면 리스너 5,000개). 리포트에 필요한 건 내 것뿐입니다.
+  const [myQuestions, setMyQuestions] = useState([]);
   const [keywordDocs, setKeywordDocs] = useState([]);
-  const [answersByQuestion, setAnswersByQuestion] = useState({});
+  const [myAnswerEvents, setMyAnswerEvents] = useState([]);
   const [activeStatKey, setActiveStatKey] = useState(null); // 통계 카드 드릴다운
   const [studyBoards, setStudyBoards] = useState([]);
   const [myCards, setMyCards] = useState([]); // 내가 낸 공부방 카드(전체)
@@ -149,15 +152,24 @@ export default function StudentReportPage() {
   }, [isTeacher, router]);
 
   useEffect(() => {
-    const unsubQ = subscribeQuestions(setQuestions);
     const unsubK = subscribeKeywords(setKeywordDocs);
     const unsubB = subscribeStudyBoards(setStudyBoards);
     return () => {
-      unsubQ();
       unsubK();
       unsubB();
     };
   }, []);
+
+  // 내 질문 · 내 답변(+그 답변이 달린 질문) — 로그인해야 누구 것인지 정해집니다
+  useEffect(() => {
+    if (!user) { setMyQuestions([]); return; }
+    return subscribeMyQuestions(user.uid, setMyQuestions);
+  }, [user?.uid]);
+
+  useEffect(() => {
+    if (!user) { setMyAnswerEvents([]); return; }
+    return subscribeMyAnswerEvents(user.uid, setMyAnswerEvents);
+  }, [user?.uid]);
 
   // 내 공부방 카드만 구독 (반 격리 규칙에 맞게 — 남의/다른 반 카드는 읽지 않음)
   useEffect(() => {
@@ -183,48 +195,11 @@ export default function StudentReportPage() {
     return subscribeUserKwl(user.uid, setMyKwl);
   }, [user?.uid]);
 
-  // 답변 구독 — 질문 id 집합이 바뀔 때만 재연결 (좋아요/해결 등 잦은
-  // 업데이트로 questions 배열 참조가 바뀌어도 리스너를 재생성하지 않음)
-  const questionIdsKey = useMemo(
-    () => [...new Set(questions.map((q) => q.id))].sort().join(","),
-    [questions]
-  );
-  useEffect(() => {
-    if (!questionIdsKey) {
-      setAnswersByQuestion({});
-      return;
-    }
-    const ids = questionIdsKey.split(",");
-    const unsubs = ids.map((id) =>
-      subscribeAnswers(id, (answers) => {
-        setAnswersByQuestion((prev) => ({ ...prev, [id]: answers }));
-      })
-    );
-    return () => unsubs.forEach((unsubscribe) => unsubscribe());
-  }, [questionIdsKey]);
-
   const keywordNames = useMemo(
     () => keywordDocs.map((keyword) => keyword.name),
     [keywordDocs]
   );
 
-  const answerEvents = useMemo(
-    () =>
-      questions.flatMap((question) =>
-        (answersByQuestion[question.id] ?? []).map((answer) => ({
-          question,
-          answer,
-        }))
-      ),
-    [answersByQuestion, questions]
-  );
-
-  const myQuestions = user
-    ? questions.filter((question) => question.authorId === user.uid)
-    : [];
-  const myAnswerEvents = user
-    ? answerEvents.filter((event) => event.answer.authorId === user.uid)
-    : [];
   const resolvedQuestions = myQuestions.filter((question) => question.resolved).length;
   const totalMeToo = myQuestions.reduce(
     (sum, question) => sum + getMeTooCount(question),
@@ -234,8 +209,10 @@ export default function StudentReportPage() {
   const events = recentEvents(myQuestions, myAnswerEvents);
   const reflection = weeklyReflection(myQuestions, myAnswerEvents, keywordStats);
   // 내가 남긴 인사이트들 — 질문 문서의 reflection을 최신순으로 모읍니다.
+  // 회고(reflection)는 규칙상 질문 작성자만 달 수 있어(firestore.rules의
+  // questions update — authorId == uid 갈래), 내 질문 안에서 찾으면 됩니다.
   const myReflections = user
-    ? questions
+    ? myQuestions
         .filter((q) => q.reflection && q.reflection.authorId === user.uid)
         .sort(
           (a, b) =>

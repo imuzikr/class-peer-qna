@@ -28,6 +28,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   subscribeStudyCards,
   subscribeMyGroupCards,
+  subscribeQuestionsByKeywords,
   updateStudyBoard,
   updateStudyCard,
   setCardReaction,
@@ -75,7 +76,6 @@ export default function StudyProjectView({
   classRoster = [], // 교사: 반 학생 명단 [{uid, name, studentId, emoji, count}]
   onAward,
   baseGroupAssignment = null,
-  questions = [],
   classes = [],
   // 공부중 전광판의 학생 정보창에서 쓰는 반 단위 자료
   classBoards = [],
@@ -333,15 +333,24 @@ export default function StudyProjectView({
   }, [isNotice, activities, classRoster, cards, isGroup, attendanceRecords]);
 
   // 이전 단일 keyword 필드와 새 keywords 배열 모두 지원
-  const boardKeywords = Array.isArray(board.keywords)
-    ? board.keywords
-    : board.keyword
-    ? [board.keyword]
-    : [];
-  const relatedQuestions =
-    boardKeywords.length > 0
-      ? questions.filter((q) => boardKeywords.includes(q.keyword))
-      : [];
+  const boardKeywords = useMemo(
+    () =>
+      Array.isArray(board.keywords)
+        ? board.keywords
+        : board.keyword
+        ? [board.keyword]
+        : [],
+    [board.keywords, board.keyword]
+  );
+  // 관련 질문 — 예전에는 공부방 화면이 학교 전체 질문을 받아 두고 여기서
+  // 키워드로 걸렀습니다. 공부방은 가장 자주 여는 화면이라 질문이 쌓일수록
+  // 그 부담이 그대로 커집니다. 이제 이 프로젝트의 키워드에 걸린 질문만
+  // 서버에 요청합니다 — 거르는 조건이 같으니 보이는 목록도 같습니다.
+  const [relatedQuestions, setRelatedQuestions] = useState([]);
+  useEffect(() => {
+    if (boardKeywords.length === 0) { setRelatedQuestions([]); return; }
+    return subscribeQuestionsByKeywords(boardKeywords, setRelatedQuestions);
+  }, [boardKeywords]);
 
   // 교사는 예시·자료 카드를 여러 장 올릴 수 있습니다(학생 카드는 자리에서 시작).
   const canAddOwnCard = isTeacher && !locked;
@@ -957,7 +966,6 @@ export default function StudyProjectView({
           cards={cards}
           classBoards={classBoards}
           attendanceRecords={attendanceRecords}
-          questions={questions}
           groupAssignment={baseGroupAssignment}
           // 전광판에서 바로 그 학생 카드로 — 닫고 자리 상세를 엽니다
           onOpenStudent={(uid) => {
