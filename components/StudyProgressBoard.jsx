@@ -19,9 +19,13 @@
 // 화면에서 입력을 막는 수업 진행 도구이지, 서버가 강제하는 권한이
 // 아닙니다(보드 전체 잠금은 규칙으로도 막힙니다).
 // =============================================================
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { backdropClose } from "@/lib/modal";
-import { subscribeCardsForBoards, fetchAnswerCounts } from "@/lib/store";
+import {
+  subscribeCardsForBoards,
+  fetchAnswerCounts,
+  subscribeQuestionsByAuthors,
+} from "@/lib/store";
 import { stripHtml } from "@/lib/html";
 import {
   matchActivitySections,
@@ -79,11 +83,25 @@ export default function StudyProgressBoard({
   // 정보창의 학생 요약에 쓰는 반 단위 자료 — 안 넘기면 그 줄만 빠집니다.
   classBoards = [],        // 이 반의 프로젝트 전체(모든 활동 참여도)
   attendanceRecords = [],  // 이 반의 출석 기록 전체(출석률)
-  questions = [],          // 질문 게시판 전체(질문 수)
   groupAssignment = null,  // 반 기본 모둠(모둠 정보)
   onOpenStudent = null,    // 정보창의 '카드 열어 보기' — 안 넘기면 버튼이 없습니다
   onClose,
 }) {
+  // 학생별 '질문 수' — 이 반 학생들이 쓴 질문만 받습니다.
+  // 예전에는 공부방 화면이 학교 전체 질문을 늘 받아 두고 그걸 넘겨줬는데,
+  // 이 전광판은 교사가 열었을 때만 필요합니다. 세는 기준은 그대로
+  // '이 학생이 지금까지 쓴 질문 전체'입니다 — 프로젝트 키워드로 좁히면
+  // 숫자가 달라지므로 작성자 기준으로 따로 받습니다.
+  const rosterUids = useMemo(
+    () => roster.map((s) => s.uid).filter(Boolean),
+    [roster]
+  );
+  const [questions, setQuestions] = useState([]);
+  useEffect(() => {
+    if (rosterUids.length === 0) { setQuestions([]); return; }
+    return subscribeQuestionsByAuthors(rosterUids, setQuestions);
+  }, [rosterUids]);
+
   const activities = board?.activities ?? [];
   const isGroup = board?.activityType === "group";
 
@@ -117,10 +135,16 @@ export default function StudyProgressBoard({
     return subscribeCardsForBoards(boardIdsKey.split(","), setAllCards);
   }, [boardIdsKey]);
 
-  // 답변 수는 질문 목록을 함께 받은 화면에서만 셉니다 — 질문 수는 0인데
+  // 답변 수는 질문 수를 함께 셀 수 있을 때만 셉니다 — 질문 수는 0인데
   // 답변 수만 진짜 값이 뜨면 두 숫자가 어긋나 보입니다.
+  //
+  // 예전에는 이 조건이 'questions prop이 넘어왔는가'였습니다(안 넘어오면
+  // 빈 배열이라 길이 0). 이제 이 컴포넌트가 명단 기준으로 직접 받으므로,
+  // 셀 대상(명단)이 있으면 질문 수는 언제나 진짜 값입니다 — 반 학생이 아직
+  // 질문을 하나도 안 썼다는 이유로 칸을 숨길 이유는 없습니다(그 경우
+  // 0개가 사실입니다).
   const rosterKey = roster.map((s) => s.uid).join(",");
-  const wantQnaStats = questions.length > 0;
+  const wantQnaStats = rosterUids.length > 0;
   const [answerCounts, setAnswerCounts] = useState({});
   useEffect(() => {
     if (!rosterKey || !wantQnaStats) { setAnswerCounts({}); return; }

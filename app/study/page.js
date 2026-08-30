@@ -27,7 +27,6 @@ import dynamic from "next/dynamic";
 import {
   subscribeStudyBoards,
   fetchStudyCardsOnce,
-  subscribeQuestions,
   subscribeKeywords,
   subscribeClasses,
   subscribeUserDirectory,
@@ -131,7 +130,6 @@ function StudyPageInner() {
   const searchParams = useSearchParams();
   const [classes, setClasses] = useState([]);
   const [boards, setBoards] = useState([]);
-  const [questions, setQuestions] = useState([]);
   const [keywordDocs, setKeywordDocs] = useState([]);
   // 학생이 입장한 반(세션 선택 + 서버 소속)과 교사가 보고 있는 반(화면 상태)은 별개입니다.
   const [localSelectedId, setLocalSelectedId] = useState(null); // 세션에서 고른 반
@@ -221,12 +219,10 @@ function StudyPageInner() {
   useEffect(() => {
     const unsubC = subscribeClasses(setClasses);
     const unsubB = subscribeStudyBoards(setBoards);
-    const unsubQ = subscribeQuestions(setQuestions);
     const unsubK = subscribeKeywords(setKeywordDocs);
     return () => {
       unsubC();
       unsubB();
-      unsubQ();
       unsubK();
     };
   }, []);
@@ -882,7 +878,6 @@ function StudyPageInner() {
                   classRoster={admin ? roster : studentClassRoster}
                   onAward={admin && !currentClass?.archived ? awardReward : null}
                   baseGroupAssignment={baseGroupAssignment}
-                  questions={questions}
                   classes={myClasses}
                   classBoards={admin ? classBoards : []}
                   attendanceRecords={admin ? attendanceRecords : []}
