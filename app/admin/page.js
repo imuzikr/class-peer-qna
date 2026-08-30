@@ -257,6 +257,60 @@ function sortStudentList(list, key) {
   return sorted;
 }
 
+// 학생 목록 검색 — 이름·학번·이메일 중 아무거나 걸리면 남깁니다.
+// 학생이 132명까지 늘어나 목록을 눈으로 훑어 찾기 어려워졌습니다. 정렬만으로는
+// '이 학생 하나'를 집어내는 데 한계가 있어(학번을 외우고 있어야 함) 검색을 둡니다.
+//
+// 세 가지를 한 칸에서 받는 이유: 선생님이 기억하고 있는 단서가 그때그때
+// 다릅니다(이름이 떠오를 때도, 학번만 아는 때도 있음). 어느 쪽을 넣든
+// 걸리게 해 두면 무엇으로 찾을지 고르지 않아도 됩니다.
+//
+// 공백은 지우고 비교합니다 — '김 민지'로 쳐도 '김민지'가 걸리게.
+// 한글 초성 검색(ㄱㅁㅈ)은 넣지 않았습니다. 이름 앞 글자만 쳐도 충분히
+// 좁혀지고, 초성 조합까지 다루면 코드가 눈에 띄게 복잡해집니다.
+function matchesStudentQuery(student, query) {
+  const q = query.trim().toLowerCase().replace(/\s+/g, "");
+  if (!q) return true;
+  return [student.realName, student.name, student.studentId, student.email]
+    .filter(Boolean)
+    .some((field) => String(field).toLowerCase().replace(/\s+/g, "").includes(q));
+}
+
+// 학생 목록 위의 검색칸. 입력이 있을 때만 지우기(×) 버튼이 나옵니다.
+function StudentSearchBox({ value, onChange, matched, total }) {
+  return (
+    <div className="student-search">
+      <div className="student-search-field">
+        <span className="student-search-icon" aria-hidden="true">🔍</span>
+        <input
+          type="search"
+          className="student-search-input"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="이름 · 학번 · 이메일로 찾기"
+          aria-label="학생 검색"
+        />
+        {value && (
+          <button
+            type="button"
+            className="student-search-clear"
+            onClick={() => onChange("")}
+            aria-label="검색어 지우기"
+            title="검색어 지우기"
+          >
+            ×
+          </button>
+        )}
+      </div>
+      {value.trim() && (
+        <span className="student-search-count">
+          {matched}명 찾음 <small>/ 전체 {total}명</small>
+        </span>
+      )}
+    </div>
+  );
+}
+
 // 학생 목록 헤더 오른쪽의 정렬 선택 — 같은 버튼을 다시 누르면 기본 순서로 되돌립니다.
 function StudentSortToggle({ sortKey, onChange }) {
   return (
@@ -332,6 +386,9 @@ export default function AdminDashboardPage() {
   // (한쪽에서 반을 바꿔도 다른 쪽 화면이 같이 흔들리지 않도록)
   const [analysisClassId, setAnalysisClassId] = useState(null);
   const [classMemberIds, setClassMemberIds] = useState(null); // 그 반 소속 uid Set
+  // 학생 목록 검색어 — 정렬과 마찬가지로 양쪽 목록에 함께 적용됩니다.
+  const [studentQuery, setStudentQuery] = useState("");
+
   // 학생 목록 정렬 — null(기본: 활동량순) | 'name' | 'studentId'.
   // 학생별 분석·학급별 분석 양쪽의 학생 목록에 공통으로 적용됩니다.
   const [studentSortKey, setStudentSortKey] = useState(null);
@@ -608,13 +665,21 @@ export default function AdminDashboardPage() {
   const analysisClassName =
     myClasses.find((c) => c.id === analysisClassId)?.name ?? "";
 
+  // 정렬한 뒤에 거릅니다 — 거르고 정렬해도 결과는 같지만, 이 순서라야
+  // 검색어를 지웠을 때 목록이 원래 순서 그대로 돌아옵니다.
   const sortedStudents = useMemo(
-    () => sortStudentList(students, studentSortKey),
-    [students, studentSortKey]
+    () =>
+      sortStudentList(students, studentSortKey).filter((s) =>
+        matchesStudentQuery(s, studentQuery)
+      ),
+    [students, studentSortKey, studentQuery]
   );
   const sortedClassStudents = useMemo(
-    () => sortStudentList(classStudents, studentSortKey),
-    [classStudents, studentSortKey]
+    () =>
+      sortStudentList(classStudents, studentSortKey).filter((s) =>
+        matchesStudentQuery(s, studentQuery)
+      ),
+    [classStudents, studentSortKey, studentQuery]
   );
 
   const allPendingReflections = useMemo(
@@ -869,12 +934,22 @@ export default function AdminDashboardPage() {
                 <span>{classStudents.length}명</span>
               </div>
               {classStudents.length > 0 && (
-                <StudentSortToggle sortKey={studentSortKey} onChange={setStudentSortKey} />
+                <>
+                  <StudentSortToggle sortKey={studentSortKey} onChange={setStudentSortKey} />
+                  <StudentSearchBox
+                    value={studentQuery}
+                    onChange={setStudentQuery}
+                    matched={sortedClassStudents.length}
+                    total={classStudents.length}
+                  />
+                </>
               )}
               {!analysisClassId ? (
                 <EmptyPanel>반을 선택해 주세요.</EmptyPanel>
               ) : classStudents.length === 0 ? (
                 <EmptyPanel>이 반에 소속된 학생이 없습니다.</EmptyPanel>
+              ) : sortedClassStudents.length === 0 ? (
+                <EmptyPanel>‘{studentQuery.trim()}’와 맞는 학생이 없습니다.</EmptyPanel>
               ) : (
                 <div className="student-list">
                   {sortedClassStudents.map((student) => (
@@ -934,11 +1009,21 @@ export default function AdminDashboardPage() {
             <span>{students.length}명</span>
           </div>
           {students.length > 0 && (
-            <StudentSortToggle sortKey={studentSortKey} onChange={setStudentSortKey} />
+            <>
+              <StudentSortToggle sortKey={studentSortKey} onChange={setStudentSortKey} />
+              <StudentSearchBox
+                value={studentQuery}
+                onChange={setStudentQuery}
+                matched={sortedStudents.length}
+                total={students.length}
+              />
+            </>
           )}
 
           {students.length === 0 ? (
             <EmptyPanel>활동 데이터가 없습니다.</EmptyPanel>
+          ) : sortedStudents.length === 0 ? (
+            <EmptyPanel>‘{studentQuery.trim()}’와 맞는 학생이 없습니다.</EmptyPanel>
           ) : (
             <div className="student-list">
               {sortedStudents.map((student) => (

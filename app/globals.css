@@ -3802,6 +3802,78 @@ pre code {
   color: #fff;
 }
 
+/* 학생 검색 — 정렬 칩 바로 아래, 목록 위. 학생이 백 명을 넘으면서
+   눈으로 훑어 찾기 어려워져 추가했습니다. */
+.student-search {
+  margin: 0 0 10px;
+}
+.student-search-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  padding: 0 10px;
+  transition: border-color 0.12s;
+}
+.student-search-field:focus-within {
+  border-color: var(--primary);
+}
+.student-search-icon {
+  font-size: 12px;
+  line-height: 1;
+  opacity: 0.55;
+  flex-shrink: 0;
+}
+/* 전역 input 규칙(테두리·배경·폭)을 이 칸에서는 껍데기가 대신하므로 비웁니다 */
+.student-search-input {
+  flex: 1;
+  min-width: 0;
+  width: auto;
+  border: none;
+  background: none;
+  padding: 7px 0;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+}
+.student-search-input:focus {
+  outline: none;
+  border: none;
+  box-shadow: none;
+}
+/* 브라우저가 붙이는 검색칸 기본 ×(모양이 제각각) 대신 아래 버튼을 씁니다 */
+.student-search-input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+.student-search-clear {
+  flex-shrink: 0;
+  border: none;
+  background: none;
+  padding: 0 2px;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--text-sub);
+  cursor: pointer;
+}
+.student-search-clear:hover {
+  color: var(--text);
+}
+.student-search-count {
+  display: block;
+  margin-top: 5px;
+  padding-left: 12px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--primary-dark);
+}
+.student-search-count small {
+  font-weight: 600;
+  color: var(--text-sub);
+}
+
 .admin-main {
   min-width: 0;
   overflow-y: auto;
