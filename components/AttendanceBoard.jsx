@@ -19,6 +19,23 @@ import StudentToolsModal from "./StudentToolsModal";
 const DEFAULT_GROUP_COLORS = ["#2563eb", "#16a34a", "#f97316", "#9333ea", "#dc2626", "#0891b2"];
 
 // 학생 한 명의 상태를 'on' | 'away' | 'off'로 판정
+// 오늘 출석한 학생 uid 집합 — 기록이 하나도 없어도 '빈 집합'입니다(null이 아님).
+// 출석부는 '체크되지 않은 사람 = 결석'으로 읽는 자리라, 아무도 체크하지 않았으면
+// 반 전체가 결석입니다.
+//
+// 자리표 패널(LessonSeatPanel)이 같은 화면에 나란히 서 있어 이 함수를 함께
+// 씁니다 — 예전엔 각자 계산했고, 그쪽만 '기록이 없으면 null'로 두는 바람에
+// 전광판은 반 전체가 결석(주황)인데 옆의 자리표는 아무 색도 없었습니다.
+// 한 화면의 두 자리표가 서로 다른 말을 하면 어느 쪽을 믿어야 할지 알 수 없습니다.
+export function attendedTodaySet(attendanceRecords, dateKey = todayDateKey()) {
+  return new Set(
+    (attendanceRecords ?? [])
+      .filter((r) => r.date === dateKey)
+      .map((r) => r.uid)
+      .filter(Boolean)
+  );
+}
+
 export function deskState(presence, nowMs) {
   if (!presence) return "off";
   const t = presence.updatedAt ? toDate(presence.updatedAt).getTime() : 0;
@@ -175,7 +192,7 @@ export default function AttendanceBoard({
   const groupsByUid = useMemo(() => groupMapOf(groupAssignment), [groupAssignment]);
   const today = todayDateKey();
   const attendedToday = useMemo(
-    () => new Set(attendanceRecords.filter((r) => r.date === today).map((r) => r.uid)),
+    () => attendedTodaySet(attendanceRecords, today),
     [attendanceRecords, today]
   );
 

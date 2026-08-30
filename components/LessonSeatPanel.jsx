@@ -24,7 +24,7 @@ import { useEffect, useMemo, useState } from "react";
 import { subscribeQuestionSignals, todayDateKey } from "@/lib/store";
 import { normalizeSeats } from "@/lib/seats";
 import { getCurrentUser } from "@/lib/user";
-import { deskState } from "./AttendanceBoard";
+import { deskState, attendedTodaySet } from "./AttendanceBoard";
 import { SeatCell, SeatPickGrid, attStateOf } from "./QuestionSeatModal";
 import { useTodayRewardCounts } from "@/lib/useTodayRewards";
 import StudentToolsModal from "./StudentToolsModal";
@@ -72,11 +72,15 @@ export default function LessonSeatPanel({
   const presenceByUid = useMemo(() => new Map(presence.map((p) => [p.uid, p])), [presence]);
   const raisedCount = roster.filter((s) => raisedUids.has(s.uid)).length;
 
+  // 출석 색은 참여 전광판과 '같은 함수'로 냅니다(attendedTodaySet).
+  // 예전엔 여기서 따로 세면서 "오늘 기록이 하나도 없으면 null"로 두었는데,
+  // 그러면 attStateOf가 전부 unchecked(색 없음)로 읽어 — 옆에 띄운 전광판은
+  // 반 전체가 결석(주황)인데 이 자리표만 허옇게 남았습니다.
   const today = todayDateKey();
-  const presentUids = useMemo(() => {
-    const todays = attendanceRecords.filter((r) => r.date === today);
-    return todays.length ? new Set(todays.map((r) => r.uid)) : null;
-  }, [attendanceRecords, today]);
+  const presentUids = useMemo(
+    () => attendedTodaySet(attendanceRecords, today),
+    [attendanceRecords, today]
+  );
 
   const liveState = useMemo(() => {
     const map = new Map();
