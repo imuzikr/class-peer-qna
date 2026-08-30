@@ -38,8 +38,9 @@ import {
   todayDateKey,
   REWARD_MAX,
 } from "@/lib/store";
-import { stripHtml } from "@/lib/html";
+import { stripHtml, htmlHasImage } from "@/lib/html";
 import {
+  buildActivityTemplate,
   isActivityLocked,
   isTeacherAuthoredCard as isTeacherAuthored,
   cardActivitySummary,
@@ -99,13 +100,16 @@ export default function StudyProjectView({
   const [titleDraft, setTitleDraft] = useState(board.title);
   const [editingTitle, setEditingTitle] = useState(false);
   const [descDraft, setDescDraft] = useState(board.description ?? "");
-  const [editingDesc, setEditingDesc] = useState(false);
   const [composing, setComposing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   // 보드 설정·현황 패널 — 예전 '⚙ 설정'을 되살린 자리
   const [settingsOpen, setSettingsOpen] = useState(false);
   // 활동 모아보기 — 그 활동에 대한 반 전체의 답을 한 화면에 (활동 번호)
   const [wallIndex, setWallIndex] = useState(null);
+  // 활동 순서 바꾸기(끌어 놓기) — 집어 든 줄과 지금 올려 둔 줄
+  const [dragActIdx, setDragActIdx] = useState(null);
+  const [overActIdx, setOverActIdx] = useState(null);
+  const [actMoveError, setActMoveError] = useState("");
 
   const isNotice = board.type === "notice";
   const isGroup = board.activityType === "group";
@@ -125,6 +129,9 @@ export default function StudyProjectView({
 
   // 외부에서 제목·설명이 바뀌면 편집 초안도 동기화
   useEffect(() => { setTitleDraft(board.title); }, [board.title]);
+  // 활동 안내는 설정 패널에서 그 자리에 쓰고 포커스를 떼면 저장합니다.
+  // 다른 곳에서 값이 바뀌면(다른 기기·다른 교사) 초안도 따라 맞춥니다.
+  useEffect(() => { setDescDraft(board.description ?? ""); }, [board.description]);
 
   const myCard = user ? cards.find((c) => c.authorId === user.uid) : null;
 
@@ -389,12 +396,9 @@ export default function StudyProjectView({
 
   async function commitDesc() {
     const newDesc = descDraft.trim();
-    setEditingDesc(false);
     if (newDesc === (board.description ?? "")) return;
     await updateStudyBoard(board.id, { description: newDesc });
   }
-  function startEditDesc() { setDescDraft(board.description ?? ""); setEditingDesc(true); }
-  function cancelEditDesc() { setDescDraft(board.description ?? ""); setEditingDesc(false); }
 
   // 다른 반으로 복제 — 학생 카드는 복사하지 않고 활동·공개범위만 유지
   async function handleDuplicate(targetClass) {
@@ -411,6 +415,62 @@ export default function StudyProjectView({
       j === i ? lockedNext : board.activityLocks?.[j] === true
     );
     await updateStudyBoard(board.id, { activityLocks: next });
+  }
+
+  // 활동 순서 바꾸기 — from번째를 뽑아 to번째 자리에 끼워 넣습니다(수업 준비
+  // 화면과 같은 방식). 자리를 맞바꾸지 않는 이유: 목록에서 끌어 놓는 몸짓은
+  // '여기로 옮긴다'이지 '이 둘을 맞바꾼다'가 아니라, 맞바꾸면 사이에 있던
+  // 활동들이 엉뚱하게 튑니다.
+  async function moveActivity(from, to) {
+    setDragActIdx(null);
+    setOverActIdx(null);
+    if (from == null || to == null || from === to) return;
+    if (to < 0 || to >= activities.length) return;
+
+    // 학생이 이미 쓴 내용이 있으면 순서를 바꿀 수 없습니다 — 활동 칸이 학생
+    // 카드의 실제 입력 칸이라, 순서가 바뀌면 이미 쓴 답이 다른 활동 칸에
+    // 붙어 버립니다(활동 이름을 고칠 때와 같은 이유·같은 검사).
+    const studentCards = cards.filter((c) => !isTeacherAuthored(c));
+    const hasContent = studentCards.some((c) => {
+      const html = c.content ?? "";
+      return stripHtml(html).trim().length > 0 || htmlHasImage(html);
+    });
+    if (hasContent) {
+      setActMoveError(
+        "학생이 이미 작성한 내용이 있어 활동 순서를 바꿀 수 없어요. 카드 내용을 비운 뒤 다시 시도해 주세요."
+      );
+      return;
+    }
+
+    const next = [...activities];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+
+    // 잠금은 활동을 '따라' 움직입니다 — 열어 둔 활동이 자리를 옮겼다고
+    // 다시 잠기면, 쓰고 있던 학생의 입력칸이 갑자기 닫힙니다.
+    const locks = activities.map((_, j) => board.activityLocks?.[j] === true);
+    const [movedLock] = locks.splice(from, 1);
+    locks.splice(to, 0, movedLock);
+
+    setActMoveError("");
+    try {
+      await updateStudyBoard(board.id, { activities: next, activityLocks: locks });
+      // 학생 카드의 작성 틀도 새 순서로 맞춥니다(위에서 빈 카드만 남는 것을
+      // 확인했으므로 덮어써도 잃을 내용이 없습니다).
+      const html = buildActivityTemplate(next);
+      await Promise.all(
+        studentCards.map((c) =>
+          updateStudyCard(board.id, c.id, {
+            title: c.title ?? "",
+            content: html,
+            imageUrl: c.imageUrl ?? null,
+            attachments: c.attachments ?? [],
+          })
+        )
+      );
+    } catch (e) {
+      setActMoveError(`활동 순서를 바꾸지 못했어요: ${e?.message ?? "알 수 없는 오류"}`);
+    }
   }
 
   // 개별 ↔ 모둠 전환 버튼은 없앴습니다 — 활동 유형은 프로젝트를 만들 때
@@ -469,9 +529,18 @@ export default function StudyProjectView({
 
   return (
     <section className="study-project-view">
-      {/* ── 머리말 — 제목이 맨 위, 그 아래 줄에 뒤로 가기·배지 · 교사 도구 ── */}
+      {/* ── 머리말 — 한 줄에 모읍니다 ──
+          [← 프로젝트 목록] [제목] … [발표 · 전광판 · 설정]
+          예전에는 제목 / 뒤로 가기+도구 / 활동 안내가 세 줄로 쌓여, 학생
+          카드가 시작되기까지 화면 위쪽을 크게 차지했습니다. 안내 문구는
+          내용이 있을 때만 보여 주고(쓰는 곳은 설정 패널), 빈 자리를
+          카드에 돌려줍니다. */}
       <div className="study-project-head">
         <div className="study-project-head-main">
+          <button type="button" className="btn-ghost study-project-back" onClick={onBack}>
+            ← 프로젝트 목록
+          </button>
+
           {isTeacher && editingTitle ? (
             <div className="study-title-edit-wrap">
               <input
@@ -511,14 +580,9 @@ export default function StudyProjectView({
             </h2>
           )}
 
-          {/* 상태와 도구를 모두 이 한 줄에 — 접었다 펴는 설정 패널 없이,
-              지금 어떤 상태인지(색이 켜진 쪽)와 무엇을 할 수 있는지가
-              제목 바로 아래에서 한눈에 보이도록. */}
+          {/* 제목 옆 — 학생은 상태 배지, 교사는 도구. 둘 다 제목과 같은 줄에
+              놓이고, 남는 자리는 제목이 가져갑니다. */}
           <div className="study-project-head-badges">
-            <button type="button" className="btn-ghost study-project-back" onClick={onBack}>
-              ← 프로젝트 목록
-            </button>
-
             {/* 학생 — 바꿀 수 있는 게 없으니 지금 상태를 배지로 그대로 봅니다.
                 (교사는 이 배지들이 '프로젝트 설정' 안으로 들어갑니다) */}
             {!isTeacher && (
@@ -578,36 +642,15 @@ export default function StudyProjectView({
             )}
           </div>
 
-          {isTeacher && editingDesc ? (
-            <div className="study-desc-edit-wrap">
-              <textarea
-                className="study-desc-inline"
-                value={descDraft}
-                onChange={(e) => setDescDraft(e.target.value)}
-                onBlur={commitDesc}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); commitDesc(); }
-                  else if (e.key === "Escape") { e.preventDefault(); cancelEditDesc(); }
-                }}
-                maxLength={200}
-                placeholder="활동 안내"
-                aria-label="활동 안내 수정"
-                autoFocus
-              />
-            </div>
-          ) : (
-            (board.description || isTeacher) && (
-              <p
-                className={`study-project-view-desc${isTeacher ? " study-column-desc--editable" : ""}`}
-                onDoubleClick={isTeacher ? startEditDesc : undefined}
-                title={isTeacher ? "더블 클릭해 활동 안내 추가·수정" : undefined}
-              >
-                {board.description || "활동 안내를 적어 주세요."}
-              </p>
-            )
-          )}
         </div>
       </div>
+
+      {/* 활동 안내 — 적어 둔 내용이 있을 때만. 비어 있으면 아무것도 그리지
+          않아, 예전의 '활동 안내를 적어 주세요' 자리가 통째로 사라집니다
+          (교사는 설정(⚙) 패널의 '활동 안내'에서 씁니다). */}
+      {board.description && (
+        <p className="study-project-view-desc">{board.description}</p>
+      )}
 
       {/* ── 보드 설정 — 접었다 펴는 패널 ──
           예전엔 이 설정들이 머리말 한 줄에 모두 늘어서서 제목보다 길었습니다.
@@ -659,7 +702,53 @@ export default function StudyProjectView({
                   const pct = stats.total > 0 ? Math.round((n / stats.total) * 100) : 0;
                   const actLocked = isActivityLocked(board, i);
                   return (
-                    <li key={i} className="study-board-act">
+                    <li
+                      key={i}
+                      className={
+                        "study-board-act" +
+                        (dragActIdx === i ? " is-dragging" : "") +
+                        (overActIdx === i && dragActIdx !== i
+                          // 놓으면 그 줄의 번호를 가져갑니다 — 위로 끌면 그 줄
+                          // 앞, 아래로 끌면 그 줄 뒤에 들어가므로 선도 그쪽에.
+                          ? dragActIdx > i
+                            ? " is-over is-over--up"
+                            : " is-over is-over--down"
+                          : "")
+                      }
+                      onDragOver={
+                        dragActIdx == null
+                          ? undefined
+                          : (e) => { e.preventDefault(); setOverActIdx(i); }
+                      }
+                      onDrop={
+                        dragActIdx == null
+                          ? undefined
+                          : (e) => { e.preventDefault(); moveActivity(dragActIdx, i); }
+                      }
+                    >
+                      {/* 끌기 손잡이 — 줄 자체는 눌러서 열고 잠그는 버튼이라,
+                          끌기까지 겹치면 잠그려던 손이 줄을 옮겨 버립니다.
+                          마우스가 없어도 옮길 수 있게 ↑↓ 키도 받습니다. */}
+                      <button
+                        type="button"
+                        className="study-board-act-drag"
+                        draggable
+                        onDragStart={(e) => {
+                          setDragActIdx(i);
+                          e.dataTransfer.effectAllowed = "move";
+                          // 파이어폭스는 데이터가 없으면 끌기를 시작하지 않습니다
+                          e.dataTransfer.setData("text/plain", String(i));
+                        }}
+                        onDragEnd={() => { setDragActIdx(null); setOverActIdx(null); }}
+                        onKeyDown={(e) => {
+                          if (e.key === "ArrowUp") { e.preventDefault(); moveActivity(i, i - 1); }
+                          if (e.key === "ArrowDown") { e.preventDefault(); moveActivity(i, i + 1); }
+                        }}
+                        aria-label={`활동 ${i + 1} 순서 바꾸기`}
+                        title="끌어서 순서 바꾸기 (↑↓ 키로도 옮길 수 있어요)"
+                      >
+                        ⠿
+                      </button>
                       <button
                         type="button"
                         className="study-board-act-toggle"
@@ -703,6 +792,10 @@ export default function StudyProjectView({
                   );
                 })}
               </ul>
+
+              {actMoveError && (
+                <p className="form-error" role="alert">{actMoveError}</p>
+              )}
             </section>
           )}
 
@@ -728,6 +821,21 @@ export default function StudyProjectView({
                     </span>
                   )}
                 </span>
+              </div>
+
+              {/* 활동 안내 — 머리말에서 자리를 빼는 대신 쓰는 곳을 여기로
+                  옮겼습니다. 포커스를 떼면 저장됩니다(제목과 같은 방식). */}
+              <div className="study-board-row study-board-row--desc">
+                <span className="study-board-row-label">활동 안내</span>
+                <textarea
+                  className="study-board-desc-field"
+                  value={descDraft}
+                  onChange={(e) => setDescDraft(e.target.value)}
+                  onBlur={commitDesc}
+                  maxLength={200}
+                  placeholder="학생에게 보일 안내를 적어 주세요. (선택)"
+                  aria-label="활동 안내"
+                />
               </div>
 
               {!isNotice && (
