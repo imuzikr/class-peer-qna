@@ -8878,23 +8878,26 @@ pre code {
 
 /* 자리표 확대 보기 — 좁은 패널의 8.5px 글씨를 큰 폭에서 제 크기로 봅니다.
    내용은 같은 SeatPickGrid라 자리 이동·과일 주기가 그대로 동작합니다. */
-/* 손바닥 뱃지(.attend-seatmap-hands)와 같은 크기·모양 — 머리줄의 두 칩이
-   서로 짝처럼 보이게 맞춥니다. */
+/* 손바닥 뱃지(.attend-seatmap-hands)와 배경·테두리·크기를 똑같이 맞춥니다 —
+   머리줄에서 두 칩이 한 짝으로 보이게. margin-left:auto로 오른쪽 끝까지 밀어
+   손바닥 바로 왼쪽에 붙입니다(머리줄이 space-between이라 그냥 두면 반대편
+   끝으로 떨어집니다). */
 .reward-seat-zoom {
   flex-shrink: 0;
+  margin-left: auto;
   padding: 5px 12px;
-  border: 1px solid var(--border);
+  border: none;
   border-radius: 999px;
-  background: #fff;
+  background: #f1eee8;
   color: var(--text-sub);
   font-family: inherit;
   font-size: 12.5px;
   font-weight: 800;
   cursor: pointer;
-  transition: border-color 0.15s, color 0.15s;
+  transition: background 0.15s, color 0.15s;
 }
 .reward-seat-zoom:hover {
-  border-color: var(--primary);
+  background: var(--primary-light);
   color: var(--primary-dark);
 }
 .reward-zoom-modal {
@@ -16943,6 +16946,57 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   flex-direction: column;
   gap: 12px;
 }
+
+/* 접힌 상태 — 세로 슬림 바 (오른쪽 '멋진 순간' 패널과 같은 패턴).
+   왼쪽 패널이라 펼치기 화살표가 오른쪽(»)을 가리킵니다. */
+.study-activity-panel.study-activity-panel--collapsed {
+  width: 44px;
+  padding: 14px 0 16px;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  overflow: hidden;
+}
+.study-activity-panel.study-activity-panel--collapsed:hover {
+  background: #2f2f2d;
+}
+.activity-collapsed-expand {
+  font-size: 15px;
+  font-weight: 800;
+  color: #9a988e;
+}
+.activity-collapsed-icon { font-size: 16px; }
+/* 세로로 세운 제목 — 슬림 바가 44px뿐이라 가로로는 못 씁니다 */
+.activity-collapsed-title {
+  writing-mode: vertical-rl;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #c2c0b6;
+  white-space: nowrap;
+}
+.activity-head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.activity-collapse-btn {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  color: #c2c0b6;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.activity-collapse-btn:hover { background: rgba(255, 255, 255, 0.16); }
 
 .study-activity-panel-head {
   display: flex;

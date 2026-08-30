@@ -35,6 +35,9 @@ import StudyTodayFeed from "./StudyTodayFeed";
 import ConfirmModal from "./ConfirmModal";
 
 const MATERIAL_MAX_IMAGE = 5 * 1024 * 1024;
+// 접힘 상태는 화면마다 다른 개인 취향이라 localStorage에 둡니다
+// (오른쪽 "멋진 순간" 패널과 같은 방식·같은 이유).
+const COLLAPSE_KEY = "activity_panel_collapsed";
 
 function blankMaterial() {
   return { id: `m${Date.now()}`, actIndex: null, text: "", image: null };
@@ -76,6 +79,12 @@ export default function StudyActivityPanel({
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [collapsed, setCollapsed] = useState(false);
+
+  // 접힘 상태 복원 — 훅이므로 아래 isTeacher 조기 반환보다 반드시 앞에 둡니다
+  useEffect(() => {
+    try { setCollapsed(localStorage.getItem(COLLAPSE_KEY) === "1"); } catch { /* 무시 */ }
+  }, []);
 
   // 학생 카드 내용 검사(활동 변경 가능 여부)용 — 교사가 볼 때만 필요
   useEffect(() => {
@@ -117,6 +126,33 @@ export default function StudyActivityPanel({
   }, [classRoster, cards, activities, isGroup]);
 
   if (!isTeacher) return null;
+
+  function toggleCollapsed() {
+    setCollapsed((v) => {
+      try { localStorage.setItem(COLLAPSE_KEY, v ? "0" : "1"); } catch { /* 무시 */ }
+      return !v;
+    });
+  }
+
+  // 접힌 상태 — 세로 슬림 바. 모바일에서는 FAB로 여는 오버레이라 접을 일이
+  // 없으므로(열려 있으면 mobileOpen), 그때는 접힘을 무시하고 펼쳐 보여 줍니다.
+  if (collapsed && !mobileOpen) {
+    return (
+      <aside
+        className="study-activity-panel study-activity-panel--collapsed"
+        role="button"
+        tabIndex={0}
+        onClick={toggleCollapsed}
+        onKeyDown={(e) => e.key === "Enter" && toggleCollapsed()}
+        title="패널 펼치기"
+        aria-label="패널 펼치기"
+      >
+        <span className="activity-collapsed-expand" aria-hidden="true">»</span>
+        <span className="activity-collapsed-icon" aria-hidden="true">{board ? "🧩" : "📌"}</span>
+        <span className="activity-collapsed-title">{board ? "프로젝트 활동" : "오늘"}</span>
+      </aside>
+    );
+  }
 
   function setDraftAt(i, value) {
     setDraft((prev) => prev.map((a, j) => (j === i ? value : a)));
@@ -198,9 +234,21 @@ export default function StudyActivityPanel({
       {/* 제목도 지금 무엇을 다루는지에 맞춥니다 — 프로젝트를 안 열었는데
           '프로젝트 활동'이라고 붙어 있으면 아래 내용과 말이 어긋납니다. */}
       <div className="study-activity-panel-head">
-        <span className="study-activity-panel-title">
-          {board ? "🧩 프로젝트 활동" : "📌 오늘"}
-        </span>
+        {/* 머리줄은 세로 방향이라, 제목과 접기 버튼만 따로 한 줄로 묶습니다 */}
+        <div className="activity-head-row">
+          <span className="study-activity-panel-title">
+            {board ? "🧩 프로젝트 활동" : "📌 오늘"}
+          </span>
+          <button
+            type="button"
+            className="activity-collapse-btn"
+            onClick={toggleCollapsed}
+            title="패널 접기"
+            aria-label="패널 접기"
+          >
+            «
+          </button>
+        </div>
         {board && (
           <span className="study-activity-panel-project" title={board.title}>
             {board.title}
