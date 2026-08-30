@@ -8708,16 +8708,60 @@ pre code {
 /* 해설 카드 — 높이는 옆의 슬라이드 카드가 정합니다.
    내용을 절대 배치해 두어야 해설이 길어져도 카드가 늘어나지 않고
    안에서만 스크롤됩니다(두 카드 높이가 항상 같도록). */
+/* 해설 칸 — 제목 줄과 본문이 세로로 쌓입니다.
+   예전에는 자식 하나(입력칸 또는 본문)를 absolute로 채웠는데, 제목이
+   생기면서 자식이 둘이 되어 겹쳤습니다. 열(column) 플렉스로 바꾸고,
+   남는 높이는 본문이 가져가게 합니다(제목은 제 높이만). */
 .lesson-note-body {
   flex: 1;
   min-height: 0;
-  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 .lesson-note-body > * {
-  position: absolute;
-  inset: 0;
   margin: 0;
+}
+/* 본문·빈 안내는 남는 높이를 채우고, 넘치면 그 안에서 스크롤 */
+.lesson-note-body > .lesson-note-input,
+.lesson-note-body > .lesson-note-text,
+.lesson-note-body > .lesson-note-empty {
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
+}
+/* 제목은 한 줄이라 제 높이만 차지합니다 */
+.lesson-note-body > .lesson-note-title-input,
+.lesson-note-body > .lesson-note-title {
+  flex: none;
+}
+/* 편집 화면의 제목 칸 — 아래 본문 칸과 같은 테두리·같은 여백으로 맞추되,
+   글자를 키워 '여기가 제목'임이 입력할 때부터 보이게 합니다. */
+.lesson-note-title-input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--dark);
+  outline: none;
+}
+.lesson-note-title-input:focus {
+  border-color: var(--primary);
+}
+/* 수업 중 화면의 제목 — 본문(24px)보다 크고, 아래에 밑줄을 두어
+   제목이 어디서 끝나는지 멀리서도 갈립니다. */
+.lesson-note-title {
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1.35;
+  color: var(--primary-dark);
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--primary-light);
+  word-break: keep-all;
 }
 .lesson-saved {
   font-style: normal;
@@ -8739,10 +8783,12 @@ pre code {
 .lesson-note-input:focus {
   border-color: var(--primary);
 }
-/* 제목 없이 내용부터 보여 주는 자리라, 전자칠판에서도 잘 읽히게 크고 굵게 */
+/* 본문 — 전자칠판에서 함께 보는 글이라 크게 둡니다. 다만 제목(30px)보다는
+   작고 덜 굵게 해서 둘이 구분되게 합니다(예전에는 제목이 없어 본문이 가장
+   큰 글씨였습니다). */
 .lesson-note-text {
   font-size: 24px;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.6;
   color: var(--dark);
   white-space: pre-wrap;
