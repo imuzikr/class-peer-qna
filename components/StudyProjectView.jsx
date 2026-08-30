@@ -404,6 +404,15 @@ export default function StudyProjectView({
   }
   const otherClasses = classes.filter((c) => c.id !== board.classId);
 
+  // 활동 하나를 열고 잠급니다 — 왼쪽 활동 패널·수업 진행 화면과 같은 보드
+  // 문서(activityLocks)를 쓰므로, 어느 화면에서 눌러도 같은 상태를 봅니다.
+  async function toggleActivityLock(i, lockedNext) {
+    const next = activities.map((_, j) =>
+      j === i ? lockedNext : board.activityLocks?.[j] === true
+    );
+    await updateStudyBoard(board.id, { activityLocks: next });
+  }
+
   // 개별 ↔ 모둠 전환 버튼은 없앴습니다 — 활동 유형은 프로젝트를 만들 때
   // 고르며, 이미 쓴 카드가 있으면 되돌릴 수 없어 나중에 바꾸는 길을 열어
   // 두면 사고가 납니다.
@@ -640,7 +649,10 @@ export default function StudyProjectView({
                 </div>
               </div>
 
-              {/* 활동별 진척도 — 활동마다 몇 명이 냈는지 */}
+              {/* 활동별 진척도 — 활동마다 몇 명이 냈는지.
+                  활동 이름을 누르면 그 활동을 열고 잠급니다. 예전에는 수업
+                  진행(발표) 화면에서만 열 수 있어, 수업을 시작하지 않은 채
+                  공부방에서 활동을 열어 주려면 갈 곳이 없었습니다. */}
               <ul className="study-board-acts">
                 {activities.map((act, i) => {
                   const n = stats.perAct[i];
@@ -648,11 +660,23 @@ export default function StudyProjectView({
                   const actLocked = isActivityLocked(board, i);
                   return (
                     <li key={i} className="study-board-act">
-                      <span className="study-board-act-no">활동 {i + 1}</span>
-                      <span className="study-board-act-name" title={act}>{act}</span>
-                      <span className={`progress-act-state${actLocked ? " locked" : ""}`}>
-                        {actLocked ? "잠김" : "열림"}
-                      </span>
+                      <button
+                        type="button"
+                        className="study-board-act-toggle"
+                        onClick={() => toggleActivityLock(i, !actLocked)}
+                        aria-pressed={!actLocked}
+                        title={
+                          actLocked
+                            ? "잠김 — 눌러서 학생이 쓸 수 있게 엽니다"
+                            : "편집 — 눌러서 잠급니다(학생은 읽기만)"
+                        }
+                      >
+                        <span className="study-board-act-no">활동 {i + 1}</span>
+                        <span className="study-board-act-name" title={act}>{act}</span>
+                        <span className={`progress-act-state${actLocked ? " locked" : ""}`}>
+                          {actLocked ? "잠김" : "편집"}
+                        </span>
+                      </button>
                       <span className="study-board-act-bar">
                         <span
                           className="study-board-act-fill"

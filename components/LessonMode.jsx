@@ -38,11 +38,22 @@ import {
   toDate,
 } from "@/lib/store";
 import { stripHtml, htmlHasImage } from "@/lib/html";
-import { buildActivityTemplate, nextActivityLocks, isActivityLocked } from "@/lib/activities";
+import {
+  buildActivityTemplate,
+  nextActivityLocks,
+  isActivityLocked,
+  boardMaterials,
+  MATERIAL_ACCEPT,
+  isMaterialImage,
+  materialSizeLimit,
+} from "@/lib/activities";
+import { uploadImage, uploadFile } from "@/lib/storageUpload";
+import { formatFileSize } from "@/lib/image";
 import { getCurrentUser } from "@/lib/user";
 import AttendanceBoard from "./AttendanceBoard";
 import StudyProgressBoard, { cardProgress } from "./StudyProgressBoard";
 import LessonSeatPanel from "./LessonSeatPanel";
+import UploadProgress from "./UploadProgress";
 
 export default function LessonMode({
   lesson,
@@ -105,6 +116,10 @@ export default function LessonMode({
   // 보입니다(학생은 원래 프로젝트를 계속 쓰므로 그쪽엔 그대로 보임).
   const [dupBoard, setDupBoard] = useState(null);
   const boardActs = board?.activities ?? [];
+
+  // 학습 자료 — 연결한 프로젝트 전체에서 쓰는 파일(올리는 중 진행률·오류)
+  const [fileBusy, setFileBusy] = useState(null); // 업로드 진행률 0~1 | null
+  const [fileError, setFileError] = useState("");
 
   // ── 공부중 전광판 (수업 중) ──
   // 발표 중에는 학생 화면이 슬라이드로 덮여 활동을 쓸 수 없으므로, 이 도구는
@@ -261,6 +276,79 @@ export default function LessonMode({
     const ok = await saveBoardActs([...boardActs, name]);
     if (!ok) return; // 실패하면 쓴 글자를 지우지 않습니다
     setNewAct("");
+  }
+
+  // ── 학습 자료 ────────────────────────────────────────────────
+  // 연결한 프로젝트 전체에서 쓰는 파일입니다. 공부방 왼쪽 패널의 '자료 제공'과
+  // 같은 곳(보드 문서의 materials)에 담기므로, 학생 활동 화면 맨 위의 자료
+  // 상자에 그대로 나타납니다. 여기서 올리는 것은 활동을 가리지 않는 공통
+  // 자료라 actIndex를 null('전체 활동')로 둡니다.
+  const boardFiles = board
+    ? boardMaterials(board).filter((m) => m.actIndex == null && (m.file?.url || m.image))
+    : [];
+
+  async function saveMaterials(next) {
+    // 예전 단일 자료 필드는 목록으로 옮겨졌으니 함께 비웁니다(중복 표시 방지)
+    await updateStudyBoard(board.id, {
+      materials: next,
+      materialText: "",
+      materialImage: null,
+    });
+  }
+
+  async function handleUploadMaterial(e) {
+    const files = [...(e.target.files ?? [])];
+    e.target.value = "";
+    if (files.length === 0 || !board) return;
+
+    setFileError("");
+    const added = [];
+    try {
+      for (const file of files) {
+        const limit = materialSizeLimit(file);
+        if (file.size > limit) {
+          setFileError(
+            `‘${file.name}’은 ${formatFileSize(limit)}를 넘어요. (지금 ${formatFileSize(file.size)})`
+          );
+          continue;
+        }
+        setFileBusy(0);
+        // 사진은 화면에 그대로 펼쳐 보여 주려고 줄여서 올리고, PDF·PPTX 등은
+        // 원본이 그대로 가야 열립니다.
+        if (isMaterialImage(file)) {
+          const image = await uploadImage(file, { onProgress: setFileBusy });
+          added.push({ id: `m${Date.now()}_${added.length}`, actIndex: null, text: "", image, file: null });
+        } else {
+          const url = await uploadFile(file, { onProgress: setFileBusy });
+          added.push({
+            id: `m${Date.now()}_${added.length}`,
+            actIndex: null,
+            text: "",
+            image: null,
+            file: { url, name: file.name, type: file.type || "", size: file.size },
+          });
+        }
+      }
+      if (added.length > 0) await saveMaterials([...boardMaterials(board), ...added]);
+    } catch (err) {
+      setFileError(
+        err?.code === "storage/unauthorized"
+          ? "이 종류의 파일은 올릴 수 없어요. 사진·PDF·PPT·워드·엑셀·CSV·텍스트만 됩니다."
+          : "파일을 올리지 못했어요. 잠시 후 다시 시도해 주세요."
+      );
+    } finally {
+      setFileBusy(null);
+    }
+  }
+
+  async function handleRemoveMaterial(id) {
+    if (!board) return;
+    setFileError("");
+    try {
+      await saveMaterials(boardMaterials(board).filter((m) => m.id !== id));
+    } catch (err) {
+      setFileError(`자료를 지우지 못했어요: ${err?.message ?? "알 수 없는 오류"}`);
+    }
   }
 
   // 활동 순서 바꾸기 — from번째를 뽑아 to번째 자리에 끼워 넣습니다.
@@ -862,6 +950,74 @@ export default function LessonMode({
                 <p className="lesson-note-empty">
                   공부방에서 반을 먼저 선택하면 프로젝트를 연결할 수 있어요.
                 </p>
+              )}
+
+              {/* 학습 자료 — 활동 목록 위. 이 프로젝트 전체에서 쓰는 파일이라
+                  특정 활동에 매이지 않습니다(활동별 자료는 공부방 왼쪽 패널의
+                  '자료 제공'에서 활동을 골라 올립니다). */}
+              {board && (
+                <div className="lesson-board-files">
+                  <div className="lesson-board-files-head">
+                    <span className="lesson-board-files-title">학습 자료</span>
+                    <small>
+                      이 프로젝트 전체에서 쓰는 파일 — 학생 활동 화면 맨 위에 나타납니다
+                    </small>
+                  </div>
+
+                  {boardFiles.length > 0 && (
+                    <ul className="lesson-board-file-list">
+                      {boardFiles.map((m) => (
+                        <li key={m.id} className="lesson-board-file">
+                          {m.image ? (
+                            <>
+                              <img className="lesson-board-file-thumb" src={m.image} alt="" />
+                              <span className="lesson-board-file-name">이미지 자료</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="lesson-board-file-icon" aria-hidden="true">📎</span>
+                              <a
+                                className="lesson-board-file-name"
+                                href={m.file.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                title={m.file.name}
+                              >
+                                {m.file.name}
+                              </a>
+                              <span className="lesson-board-file-size">
+                                {formatFileSize(m.file.size)}
+                              </span>
+                            </>
+                          )}
+                          <button
+                            type="button"
+                            className="lesson-board-act-del"
+                            onClick={() => handleRemoveMaterial(m.id)}
+                            aria-label="자료 삭제"
+                          >
+                            ✕
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+
+                  <label className="lesson-board-file-add">
+                    + 자료 올리기
+                    <small>사진 · PDF · PPT · 워드 · 엑셀 · CSV · 텍스트</small>
+                    <input
+                      type="file"
+                      accept={MATERIAL_ACCEPT}
+                      multiple
+                      onChange={handleUploadMaterial}
+                      hidden
+                    />
+                  </label>
+
+                  <UploadProgress pct={fileBusy} />
+                  {fileError && <p className="form-error" role="alert">{fileError}</p>}
+                </div>
               )}
 
               {/* 활동 목록 — 연결한 프로젝트의 활동을 그대로 편집합니다.

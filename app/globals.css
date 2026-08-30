@@ -7986,18 +7986,23 @@ pre code {
 }
 /* 전광판은 결과만 보는 자리 — 잠금 조작은 수업 화면의 '활동 열기' 줄에서.
    여기서는 지금 열려 있는지만 글자로 알려 줍니다. */
+/* 활동의 두 상태 — '편집'(학생이 쓸 수 있음) / '잠김'(읽기만).
+   기본값을 '편집' 쪽 색으로 두어, 회색인 '잠김'과 한눈에 갈립니다. */
 .progress-act-state {
   display: inline-block;
-  border: 1px solid var(--border);
+  border: 1px solid #efc19a;
   border-radius: 999px;
   padding: 2px 10px;
   font-size: 11.5px;
   font-weight: 700;
-  color: var(--text-sub);
-  background: #fff;
+  color: var(--primary-dark);
+  background: var(--primary-light);
+  white-space: nowrap;
 }
 .progress-act-state.locked {
   background: var(--neutral);
+  border-color: var(--border);
+  color: var(--text-sub);
 }
 .progress-act-count {
   display: block;
@@ -8875,6 +8880,98 @@ pre code {
 .lesson-board-actadd button:disabled {
   opacity: 0.5;
   cursor: default;
+}
+
+/* ── 학습 자료 — 프로젝트 전체에서 쓰는 파일 (활동 목록 위) ── */
+.lesson-board-files {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  background: var(--bg-deep);
+}
+.lesson-board-files-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.lesson-board-files-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text);
+}
+.lesson-board-files-head small {
+  font-size: 12px;
+  color: var(--text-sub);
+}
+.lesson-board-file-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.lesson-board-file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 13.5px;
+}
+.lesson-board-file-thumb {
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.lesson-board-file-icon { flex-shrink: 0; }
+/* 파일 이름이 길어도 크기·삭제 버튼이 밀려나지 않게 잘라 둡니다 */
+.lesson-board-file-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+a.lesson-board-file-name { text-decoration: underline; }
+.lesson-board-file-size {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--text-sub);
+  font-variant-numeric: tabular-nums;
+}
+.lesson-board-file-add {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 12px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-btn);
+  background: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--primary);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.lesson-board-file-add:hover {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+.lesson-board-file-add small {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-sub);
 }
 
 @media (max-width: 768px) {
@@ -12550,6 +12647,31 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   align-items: center;
   gap: 8px;
   font-size: 12px;
+}
+/* 활동 번호·이름·상태를 묶은 이 줄 전체가 잠금 토글 버튼입니다 —
+   눌러서 그 활동을 열고 잠급니다(수업 진행 화면과 같은 값). */
+.study-board-act-toggle {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: -6px;
+  padding: 4px 6px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.study-board-act-toggle:hover {
+  background: var(--primary-light);
+}
+.study-board-act-toggle:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
 }
 .study-board-act-no {
   flex-shrink: 0;

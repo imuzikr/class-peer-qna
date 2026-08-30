@@ -304,7 +304,7 @@ export default function StudyProgressBoard({
                       <span className="grass-act-head">
                         <span className="grass-act-no">활동 {i + 1}</span>
                         <span className={`progress-act-state${locked ? " locked" : ""}`}>
-                          {locked ? "잠김" : "열림"}
+                          {locked ? "잠김" : "편집"}
                         </span>
                         <span className="grass-act-count">
                           {doneCounts[i]}/{roster.length}

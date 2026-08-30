@@ -25,6 +25,9 @@ import {
   isActivityLocked,
   isTeacherAuthoredCard,
   boardMaterials,
+  MATERIAL_ACCEPT,
+  isMaterialImage,
+  materialSizeLimit,
 } from "@/lib/activities";
 import { uploadImage, uploadFile } from "@/lib/storageUpload";
 import { formatFileSize } from "@/lib/image";
@@ -35,7 +38,6 @@ import { IconLock, IconPen } from "./StatusIcons";
 import StudyTodayFeed from "./StudyTodayFeed";
 import ConfirmModal from "./ConfirmModal";
 
-const MATERIAL_MAX_IMAGE = 5 * 1024 * 1024;
 // 접힘 상태는 화면마다 다른 개인 취향이라 localStorage에 둡니다
 // (오른쪽 "멋진 순간" 패널과 같은 방식·같은 이유).
 const COLLAPSE_KEY = "activity_panel_collapsed";
@@ -44,20 +46,10 @@ function blankMaterial() {
   return { id: `m${Date.now()}`, actIndex: null, text: "", image: null, file: null };
 }
 
-// 첨부로 받아 줄 종류. 브라우저가 확장자만 보고 고르게 하되, 실제 통과 여부는
-// Storage 규칙이 contentType으로 다시 판정합니다(확장자만 바꿔 올리는 것을
-// 막으려면 서버 쪽 판정이 필요합니다 — storage.rules 참고).
-const MATERIAL_ACCEPT = [
-  ".jpg", ".jpeg", ".png", ".gif", ".webp",
-  ".pdf", ".ppt", ".pptx", ".doc", ".docx",
-  ".xls", ".xlsx", ".csv", ".txt", ".md",
-].join(",");
-const IMAGE_EXT = /\.(jpe?g|png|gif|webp)$/i;
-// 문서는 20MB까지(storage.rules와 같은 기준). 이미지는 올리면서 줄이므로
-// 원본 기준 5MB로 따로 봅니다.
-const MATERIAL_MAX_FILE = 20 * 1024 * 1024;
-
-
+// 받아 줄 파일 종류·용량은 lib/activities.js에 모아 뒀습니다 — 수업 준비
+// 화면의 '학습 자료'와 같은 기준을 써야 한쪽에서 올라간 파일이 다른 쪽에서
+// 막히지 않습니다. 실제 통과 여부는 Storage 규칙이 contentType으로 다시
+// 판정합니다(확장자만 바꿔 올리는 것을 막으려면 서버 쪽 판정이 필요).
 
 // 자료 목록을 저장할 모양으로 다듬습니다 — 글도 이미지도 없는 줄은 버립니다.
 // 저장할 때와 '바뀌었는가'를 볼 때 같은 함수를 써야, 화면에만 있는 빈 줄이
@@ -418,8 +410,8 @@ function MaterialSection({ board, activities }) {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
-    const isImage = file.type.startsWith("image/") || IMAGE_EXT.test(file.name);
-    const limit = isImage ? MATERIAL_MAX_IMAGE : MATERIAL_MAX_FILE;
+    const isImage = isMaterialImage(file);
+    const limit = materialSizeLimit(file);
     if (file.size > limit) {
       setError(
         `${isImage ? "이미지" : "파일"}는 ${formatFileSize(limit)} 이하여야 해요. ` +
@@ -452,7 +444,17 @@ function MaterialSection({ board, activities }) {
     }
   }
 
-  async function handleSave() {
+  // 저장하면 그대로 닫습니다 — 자료를 넣는 일은 저장으로 끝나는데, 저장 뒤에도
+  // 모달이 남아 있으면 '닫기'를 한 번 더 눌러야 했습니다. 저장에 실패하면
+  // 열어 둔 채 이유를 보여 줍니다(내용을 잃지 않게).
+  //
+  // 바뀐 게 없을 때도 이 버튼은 닫기로 동작합니다. 예전에는 그 상태에서
+  // 버튼이 '저장됨'으로 잠겨 있어, 눌러도 아무 일이 없었습니다.
+  async function handleSaveAndClose() {
+    if (!dirty) {
+      discardAndClose();
+      return;
+    }
     setSaving(true);
     setError("");
     try {
@@ -462,6 +464,8 @@ function MaterialSection({ board, activities }) {
         materialText: "",
         materialImage: null,
       });
+      setOpen(false);
+      setCloseAsk(false);
     } catch (e) {
       setError(`자료를 저장하지 못했어요: ${e?.message ?? "알 수 없는 오류"}`);
     } finally {
@@ -644,8 +648,8 @@ function MaterialSection({ board, activities }) {
               <button
                 type="button"
                 className="study-material-save"
-                onClick={handleSave}
-                disabled={saving || !dirty}
+                onClick={handleSaveAndClose}
+                disabled={saving}
               >
                 {saving ? "저장 중..." : dirty ? "자료 저장" : "저장됨"}
               </button>
