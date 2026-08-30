@@ -79,6 +79,9 @@ export default function LessonMode({
   const [boardCards, setBoardCards] = useState([]);
   const [newAct, setNewAct] = useState("");
   const actInputRef = useRef(null); // 한글 조합 중 글자까지 읽기 위한 입력칸 참조
+  // 이름을 고치는 중인 활동 — { i, name } | null
+  const [editAct, setEditAct] = useState(null);
+  const editActInputRef = useRef(null);
   const [actBusy, setActBusy] = useState(false);
   const [actError, setActError] = useState("");
   const [makingBoard, setMakingBoard] = useState(false);
@@ -184,9 +187,19 @@ export default function LessonMode({
     return subscribeStudyCards(boardId, setBoardCards);
   }, [boardId]);
 
-  // 활동 목록을 보드에 저장하고, 학생 카드의 작성 틀도 함께 맞춥니다.
-  async function saveBoardActs(next) {
-    if (!board) return;
+  // 활동이 늘거나 줄면(또는 프로젝트를 바꾸면) 고치던 창을 닫습니다 —
+  // 자리 번호로 기억하고 있어, 앞의 활동이 지워지면 엉뚱한 줄을 고치게 됩니다.
+  const actsLen = boardActs.length;
+  useEffect(() => { setEditAct(null); }, [boardId, actsLen]);
+
+  // 활동 목록을 프로젝트에 저장하고, 학생 카드의 작성 틀도 함께 맞춥니다.
+  // locksOverride — 잠금 배열을 직접 지정합니다(이름만 고치는 경우).
+  // nextActivityLocks는 '이름이 같은 활동'을 찾아 잠금을 이어받는데, 이름을
+  // 고치면 짝을 못 찾아 새 활동으로 보고 다시 잠가 버립니다. 자리는 그대로고
+  // 이름만 바뀐 것이므로, 그때는 지금 잠금을 자리 그대로 넘깁니다.
+  // 저장에 성공하면 true — 부르는 쪽이 실패했을 때 입력을 지우지 않게 합니다.
+  async function saveBoardActs(next, locksOverride = null) {
+    if (!board) return false;
     setActError("");
     const studentCards = boardCards.filter((c) => !c.authorId?.startsWith("teacher_"));
     // 학생이 이미 쓴 내용을 활동 틀로 덮어쓰면 안 됩니다. 텍스트 없이
@@ -197,7 +210,7 @@ export default function LessonMode({
       return stripHtml(html).trim().length > 0 || htmlHasImage(html);
     })) {
       setActError("학생이 이미 작성한 내용이 있어 활동을 바꿀 수 없어요. 공부방에서 카드 내용을 비운 뒤 다시 시도해 주세요.");
-      return;
+      return false;
     }
     setActBusy(true);
     try {
@@ -205,7 +218,9 @@ export default function LessonMode({
       // 하나씩 열어 주는 흐름이라, 미리 만들어 둔 활동이 곧바로 열리면 안 됩니다.
       await updateStudyBoard(board.id, {
         activities: next,
-        activityLocks: nextActivityLocks(boardActs, board.activityLocks ?? [], next),
+        activityLocks:
+          locksOverride ??
+          nextActivityLocks(boardActs, board.activityLocks ?? [], next),
       });
       if (next.length > 0) {
         const html = buildActivityTemplate(next);
@@ -220,8 +235,10 @@ export default function LessonMode({
           )
         );
       }
+      return true;
     } catch (e) {
       setActError(`활동을 저장하지 못했어요: ${e?.message ?? "알 수 없는 오류"}`);
+      return false;
     } finally {
       setActBusy(false);
     }
@@ -235,8 +252,26 @@ export default function LessonMode({
     // 입력칸의 실제 값에는 조합 중 글자까지 들어 있으므로 그쪽을 씁니다.
     const name = (actInputRef.current?.value ?? newAct).trim();
     if (!name || !board || actBusy) return;
-    await saveBoardActs([...boardActs, name]);
+    const ok = await saveBoardActs([...boardActs, name]);
+    if (!ok) return; // 실패하면 쓴 글자를 지우지 않습니다
     setNewAct("");
+  }
+
+  // 활동 이름 고치기 — 자리는 그대로 두고 이름만 바꿉니다.
+  async function handleSaveEditAct(e) {
+    e.preventDefault();
+    if (!editAct || actBusy) return;
+    // 한글 마지막 글자는 조합 중일 수 있어 실제 입력값을 먼저 읽습니다.
+    const name = (editActInputRef.current?.value ?? editAct.name).trim();
+    const { i } = editAct;
+    if (!name) return;
+    if (name === boardActs[i]) { setEditAct(null); return; } // 바뀐 게 없으면 그냥 닫기
+    // 자리가 그대로이므로 잠금도 그대로 넘깁니다(위 saveBoardActs 설명 참고).
+    const ok = await saveBoardActs(
+      boardActs.map((a, j) => (j === i ? name : a)),
+      boardActs.map((_, j) => board.activityLocks?.[j] === true)
+    );
+    if (ok) setEditAct(null); // 실패하면 고치던 이름을 그대로 둡니다
   }
 
   // '+ 새 프로젝트' 클릭 — 바로 만들지 않고 이름 입력창을 엽니다.
@@ -776,7 +811,8 @@ export default function LessonMode({
                 </p>
               )}
 
-              {/* 활동 목록 — 연결한 보드의 활동을 그대로 편집합니다 */}
+              {/* 활동 목록 — 연결한 프로젝트의 활동을 그대로 편집합니다.
+                  이름을 누르면 그 자리에서 고칠 수 있습니다. */}
               {board && (
                 <>
                   {boardActs.length > 0 ? (
@@ -785,16 +821,67 @@ export default function LessonMode({
                         <li key={`${a}-${i}`}>
                           {/* 학생 카드에 붙는 번호와 같은 순서를 여기서도 보여 줍니다 */}
                           <span className="lesson-board-act-no">활동 {i + 1}</span>
-                          <span className="lesson-board-act-name">{a}</span>
-                          <button
-                            type="button"
-                            className="lesson-board-act-del"
-                            onClick={() => saveBoardActs(boardActs.filter((_, j) => j !== i))}
-                            disabled={actBusy}
-                            aria-label={`${a} 활동 삭제`}
-                          >
-                            ✕
-                          </button>
+                          {editAct?.i === i ? (
+                            // ── 이름 고치는 중 — 같은 자리에서 바로 고칩니다 ──
+                            <form
+                              className="lesson-board-act-edit"
+                              onSubmit={handleSaveEditAct}
+                            >
+                              <input
+                                ref={editActInputRef}
+                                type="text"
+                                value={editAct.name}
+                                onChange={(e) =>
+                                  setEditAct({ i, name: e.target.value })
+                                }
+                                onKeyDown={(e) => {
+                                  if (e.key === "Escape") {
+                                    e.preventDefault();
+                                    setEditAct(null);
+                                  }
+                                }}
+                                aria-label={`활동 ${i + 1} 이름`}
+                                autoFocus
+                              />
+                              {/* 조합 중인 한글은 state에 늦게 들어오므로
+                                  입력값으로 버튼을 잠그지 않습니다 */}
+                              <button type="submit" disabled={actBusy}>
+                                {actBusy ? "저장 중…" : "저장"}
+                              </button>
+                              <button
+                                type="button"
+                                className="lesson-board-act-editcancel"
+                                onClick={() => setEditAct(null)}
+                                disabled={actBusy}
+                              >
+                                취소
+                              </button>
+                            </form>
+                          ) : (
+                            <>
+                              {/* 이름을 눌러도 열립니다 — 고칠 곳이 곧 그
+                                  글자라, 옆의 작은 버튼을 겨누게 하는 것보다
+                                  손이 가는 대로 맞습니다. */}
+                              <button
+                                type="button"
+                                className="lesson-board-act-name"
+                                onClick={() => setEditAct({ i, name: a })}
+                                disabled={actBusy}
+                                title="눌러서 이름 고치기"
+                              >
+                                {a}
+                              </button>
+                              <button
+                                type="button"
+                                className="lesson-board-act-del"
+                                onClick={() => saveBoardActs(boardActs.filter((_, j) => j !== i))}
+                                disabled={actBusy}
+                                aria-label={`${a} 활동 삭제`}
+                              >
+                                ✕
+                              </button>
+                            </>
+                          )}
                         </li>
                       ))}
                     </ol>
@@ -811,7 +898,10 @@ export default function LessonMode({
                       value={newAct}
                       onChange={(e) => setNewAct(e.target.value)}
                       placeholder="예) 실험 결과 정리하기"
-                      maxLength={40}
+                      /* 글자 수를 막지 않습니다 — 활동 이름이 곧 학생 카드의
+                         질문이 되는 자리라, "…중 가장 중요하다고 생각되는 한
+                         가지를 선택해 보세요" 같은 한 문장이 흔합니다.
+                         (40자에서 잘려 문장을 끝맺지 못하는 일이 있었습니다) */
                       aria-label="추가할 활동 이름"
                     />
                     {/* 조합 중인 한글은 state에 늦게 들어오므로 입력값으로

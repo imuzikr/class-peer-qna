@@ -7520,22 +7520,87 @@ pre code {
   gap: 8px;
   font-size: 15px;
 }
+/* 활동 이름이 곧 학생 카드의 질문이라 한 문장이 통째로 들어옵니다.
+   글자 수를 막지 않는 대신 길면 줄바꿈해 흐르게 두므로, 줄이 여러 개일 때
+   번호가 첫 줄 옆에 오도록 위쪽으로 맞춥니다. */
 .lesson-board-acts li {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
 }
-/* '활동 1' 번호 — 폭을 고정해 이름이 세로로 가지런히 놓이게 */
+/* '활동 1' 번호 — 폭을 고정해 이름이 세로로 가지런히 놓이게.
+   글자가 작아 이름의 첫 줄과 눈높이가 맞도록 조금 내려 둡니다. */
 .lesson-board-act-no {
   flex-shrink: 0;
   min-width: 46px;
+  padding-top: 5px;
   font-size: 12px;
   font-weight: 800;
   color: var(--primary-dark, #c15a2a);
 }
+/* 이름 자체가 '고치기' 버튼입니다 — 겉모습은 글자 그대로 두고, 마우스를
+   올렸을 때만 눌러도 된다는 표시를 냅니다. */
 .lesson-board-act-name {
   flex: 1;
   min-width: 0;
+  margin: 0;
+  padding: 3px 6px;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.lesson-board-act-name:hover:not(:disabled) {
+  background: var(--neutral);
+}
+.lesson-board-act-name:disabled {
+  cursor: default;
+}
+/* 이름 고치는 중 — 목록 한 줄 안에서 입력칸이 자리를 차지합니다 */
+.lesson-board-act-edit {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.lesson-board-act-edit input {
+  flex: 1;
+  min-width: 160px;
+  padding: 6px 10px;
+  font-family: inherit;
+  font-size: 15px;
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-btn);
+  outline: none;
+}
+.lesson-board-act-edit button {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--primary);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-btn);
+  cursor: pointer;
+}
+.lesson-board-act-edit button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.lesson-board-act-edit .lesson-board-act-editcancel {
+  color: var(--text-sub);
+  background: #fff;
+  border-color: var(--border);
+}
+.lesson-board-act-edit .lesson-board-act-editcancel:hover:not(:disabled) {
+  background: var(--neutral);
 }
 
 /* ===================== 공부중 전광판 ===================== */
