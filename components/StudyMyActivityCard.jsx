@@ -293,7 +293,7 @@ export default function StudyMyActivityCard({
     <section className="study-mycard-page">
       <div className="study-mycard-head">
         {/* 제목이 맨 앞, 돌아가는 길은 그 뒤에 두 단계로 —
-            '프로젝트로'는 이 프로젝트의 카드 그리드, '프로젝트 목록'은
+            '프로젝트로'는 이 프로젝트의 카드 그리드, '프로젝트 목록으로'는
             공부방 첫 화면입니다. 한 단계씩 되짚지 않고 바로 목록으로
             나갈 수 있게 둘을 나란히 둡니다. */}
         <h2 className="study-mycard-title">{board.title}</h2>
@@ -302,7 +302,7 @@ export default function StudyMyActivityCard({
         </button>
         {onBackToList && (
           <button type="button" className="btn-ghost study-project-back" onClick={onBackToList}>
-            ← 프로젝트 목록
+            ← 프로젝트 목록으로
           </button>
         )}
         <span className="paratext-progress study-mycard-head-rest">

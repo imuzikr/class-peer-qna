@@ -522,7 +522,7 @@ export default function StudyProjectView({
         writerName={detailSeat.mine ? user?.displayName ?? "" : detailSeat.name}
         onBack={() => setDetailSeat(null)}
         // 카드에서 곧바로 공부방 첫 화면으로 — '프로젝트로'를 거쳐 다시
-        // '프로젝트 목록'을 누르는 두 단계를 한 번으로 줄입니다.
+        // '프로젝트 목록으로'를 누르는 두 단계를 한 번으로 줄입니다.
         onBackToList={onBack}
         onAsk={onAsk}
         relatedQuestions={relatedQuestions}
@@ -533,7 +533,7 @@ export default function StudyProjectView({
   return (
     <section className="study-project-view">
       {/* ── 머리말 — 한 줄에 모읍니다 ──
-          [제목] [← 프로젝트 목록] … [발표 · 전광판 · 설정]
+          [제목] [← 프로젝트 목록으로] … [발표 · 전광판 · 설정]
           예전에는 제목 / 뒤로 가기+도구 / 활동 안내가 세 줄로 쌓여, 학생
           카드가 시작되기까지 화면 위쪽을 크게 차지했습니다. 안내 문구는
           내용이 있을 때만 보여 주고(쓰는 곳은 설정 패널), 빈 자리를
@@ -581,7 +581,7 @@ export default function StudyProjectView({
 
           {/* 돌아가는 길은 제목 뒤에 — 활동 상세 화면과 같은 자리입니다 */}
           <button type="button" className="btn-ghost study-project-back" onClick={onBack}>
-            ← 프로젝트 목록
+            ← 프로젝트 목록으로
           </button>
 
           {/* 제목 옆 — 학생은 상태 배지, 교사는 도구. 둘 다 제목과 같은 줄에
