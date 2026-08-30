@@ -452,3 +452,92 @@ exports.deleteClass = onCall({ enforceAppCheck: true }, async (request) => {
   return { ok: warnings.length === 0, classId, warnings };
 });
 
+
+// =============================================================
+// 반 공지 보내기 — 그 반 학생들에게만 인앱 알림
+// -------------------------------------------------------------
+// 왜 서버 함수인가: 교사가 학생의 users/{uid}/notifications에 직접 쓰려면
+// 규칙을 열어야 하는데, '이 학생이 내 반 학생인지'를 문서마다 확인하려면
+// 규칙 안에서 get()을 여러 번 해야 합니다. 여기서 한 번에 확인하고
+// admin 권한으로 쓰는 편이 규칙도 단순하게 남고 검증도 확실합니다.
+//
+// 받는 사람은 memberships로 정합니다 — 그 반에 실제로 들어와 있는 학생만.
+// 보낸 교사 자신은 제외합니다(자기 공지가 자기 알림에 뜨면 성가십니다).
+//
+// 한 번에 최대 몇 명인가: 배치 쓰기는 500건 상한이라 400명씩 나눠 씁니다.
+// 한 반이 400명을 넘을 일은 없지만, 상한에 걸려 조용히 일부만 가는 것보다
+// 나눠 쓰는 편이 안전합니다.
+const NOTICE_MAX_LEN = 500;
+const NOTICE_BATCH = 400;
+
+exports.sendClassNotice = onCall({ enforceAppCheck: true }, async (request) => {
+  if (!request.auth) throw new HttpsError("unauthenticated", "로그인이 필요합니다.");
+  const callerRole = request.auth.token.role;
+  const callerIsAdmin =
+    callerRole === "admin" ||
+    (request.auth.token.email === INITIAL_ADMIN_EMAIL &&
+      request.auth.token.email_verified === true);
+  const callerIsTeacher = callerRole === "teacher" || callerIsAdmin;
+  if (!callerIsTeacher) {
+    throw new HttpsError("permission-denied", "공지를 보낼 권한이 없습니다.");
+  }
+
+  const { classId, text } = request.data || {};
+  if (typeof classId !== "string" || !classId) {
+    throw new HttpsError("invalid-argument", "반을 선택해 주세요.");
+  }
+  const body = typeof text === "string" ? text.trim() : "";
+  if (!body) throw new HttpsError("invalid-argument", "공지 내용을 입력해 주세요.");
+  if (body.length > NOTICE_MAX_LEN) {
+    throw new HttpsError("invalid-argument", `공지는 ${NOTICE_MAX_LEN}자까지 보낼 수 있습니다.`);
+  }
+
+  const classSnap = await db.doc(`classes/${classId}`).get();
+  if (!classSnap.exists) throw new HttpsError("not-found", "반을 찾을 수 없습니다.");
+  const cls = classSnap.data();
+  if (!callerIsAdmin && cls.createdBy !== request.auth.uid) {
+    throw new HttpsError("permission-denied", "본인이 개설한 반에만 공지를 보낼 수 있습니다.");
+  }
+  // 보관된 반은 수업이 끝난 반입니다 — 다른 쓰기와 같은 기준으로 막습니다.
+  if (cls.archived === true) {
+    throw new HttpsError("failed-precondition", "보관된 반에는 공지를 보낼 수 없습니다.");
+  }
+
+  const memberSnap = await db
+    .collection("memberships")
+    .where("classId", "==", classId)
+    .get();
+  const uids = [
+    ...new Set(
+      memberSnap.docs
+        .map((d) => d.data()?.uid)
+        .filter((uid) => typeof uid === "string" && uid && uid !== request.auth.uid)
+    ),
+  ];
+  if (uids.length === 0) return { ok: true, sent: 0 };
+
+  // 보낸 사람 이름은 교사 프로필에서 — 학생 화면에 '누가 보냈는지'를 띄웁니다.
+  const teacherSnap = await db.doc(`users/${request.auth.uid}`).get();
+  const senderName =
+    (teacherSnap.exists && (teacherSnap.data().realName || teacherSnap.data().displayName)) ||
+    "선생님";
+
+  for (let i = 0; i < uids.length; i += NOTICE_BATCH) {
+    const batch = db.batch();
+    uids.slice(i, i + NOTICE_BATCH).forEach((uid) => {
+      batch.set(db.collection(`users/${uid}/notifications`).doc(), {
+        type: "class_notice",
+        classId,
+        className: cls.name ?? "",
+        text: body,
+        senderName,
+        senderUid: request.auth.uid,
+        read: false,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    });
+    await batch.commit();
+  }
+
+  return { ok: true, sent: uids.length };
+});

@@ -18,6 +18,8 @@ import {
   subscribeMyMemberships,
   subscribeMyClassRewardCount,
   subscribeBroadcast,
+  subscribeClassMembers,
+  fetchClass,
   stopBroadcast,
   reportPresence,
   PRESENCE_BEAT_MS,
@@ -27,6 +29,7 @@ import { useCurrentUser } from "@/lib/useCurrentUser";
 import UserProfile from "./UserProfile";
 import NotificationBell from "./NotificationBell";
 import QuestionSignalButton from "./QuestionSignalButton";
+import ClassNoticeButton from "./ClassNoticeButton";
 import RoleSwitcher from "./RoleSwitcher";
 import RoleManagerModal from "./RoleManagerModal";
 import PresentationOverlay from "./PresentationOverlay";
@@ -91,6 +94,28 @@ export default function TopNav({ active, onPython, pyActive = false }) {
     if (!isFirebaseConfigured || !broadcastClassId) { setBroadcast(null); return; }
     return subscribeBroadcast(broadcastClassId, setBroadcast);
   }, [broadcastClassId]);
+
+  // 반 공지 대상 — 지금 보고 있는 반의 이름과 학생 수. 교사가 '몇 명에게
+  // 가는지'를 보고 보내도록 버튼에 함께 띄웁니다(잘못된 반에 보내는 실수를
+  // 줄이는 가장 값싼 방법입니다). 실제 받는 사람은 서버가 다시 정합니다.
+  const [noticeMemberUids, setNoticeMemberUids] = useState([]);
+  useEffect(() => {
+    if (!isFirebaseConfigured || !admin || !broadcastClassId) {
+      setNoticeMemberUids([]);
+      return;
+    }
+    return subscribeClassMembers(broadcastClassId, setNoticeMemberUids);
+  }, [admin, broadcastClassId]);
+  const [noticeClassName, setNoticeClassName] = useState("");
+  useEffect(() => {
+    if (!admin || !broadcastClassId) { setNoticeClassName(""); return; }
+    let alive = true;
+    fetchClass(broadcastClassId).then((c) => {
+      if (alive) setNoticeClassName(c?.name ?? "");
+    });
+    return () => { alive = false; };
+  }, [admin, broadcastClassId]);
+  const noticeMemberCount = noticeMemberUids.length;
 
   // 발표 중에는 학생 화면이 실제로 보이는지 교사에게 알립니다(전광판용).
   //
@@ -209,8 +234,18 @@ export default function TopNav({ active, onPython, pyActive = false }) {
           둘째 줄로 내려갑니다(.topbar의 flex-wrap + order로 처리). */}
       <div className="user-area">
         {!isFirebaseConfigured && <RoleSwitcher />}
+        {/* 손들기 → 반 공지(교사) → 알림 순. 손들기는 반 안의 일이라 확성기
+            왼쪽에 두고, 확성기는 그 반에만 보내는 것이라 개인 알림(종) 왼쪽에
+            둡니다 — 왼쪽으로 갈수록 범위가 좁습니다. */}
         {user && broadcastClassId && (
           <QuestionSignalButton classId={broadcastClassId} user={user} isTeacher={admin} />
+        )}
+        {admin && user && broadcastClassId && (
+          <ClassNoticeButton
+            classId={broadcastClassId}
+            className={noticeClassName}
+            memberCount={noticeMemberCount}
+          />
         )}
         {/* 눌러서 '언제 얼마나 받았는지'까지 — 숫자만으로는 요즘 어떤지가
             안 보입니다. 학생 리포트에 있는 것과 같은 흐름을 여기서도 바로

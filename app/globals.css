@@ -748,6 +748,108 @@ button.footer-link:hover {
   display: grid;
   place-items: center;
 }
+/* 반 공지(교사) — 상단바 확성기 버튼과 그 팝오버.
+   버튼 모양은 옆의 알림 종(.notif-btn)과 같게 맞춥니다 — 나란히 선 아이콘
+   둘이 크기·여백이 다르면 줄이 흐트러져 보입니다. */
+.notice-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+.notice-wrap .notice-btn {
+  position: relative;
+  font-size: 18px;
+  line-height: 1;
+  padding: 8px;
+  background: none;
+  border: none;
+}
+.notice-wrap .notice-btn:hover {
+  background: var(--neutral);
+}
+.notice-pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 300;
+  width: 320px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(46, 36, 26, 0.14);
+  padding: 12px;
+}
+.notice-pop-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.notice-pop-head strong {
+  font-size: 13.5px;
+  color: var(--text);
+}
+/* 어느 반에 몇 명에게 가는지 — 잘못된 반에 보내는 실수를 막는 자리라
+   흐리게 두지 않고 읽히는 색으로 둡니다. */
+.notice-pop-target {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--primary-dark);
+  white-space: nowrap;
+}
+.notice-pop-field {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  font-family: inherit;
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+.notice-pop-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 8px;
+}
+.notice-pop-left {
+  font-size: 11.5px;
+  color: var(--text-sub);
+}
+.notice-pop-left.warn {
+  color: var(--danger, #d64545);
+  font-weight: 700;
+}
+.notice-pop-send {
+  padding: 7px 16px;
+  font-size: 13px;
+}
+.notice-pop-result {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.notice-pop-result.ok {
+  color: var(--primary-dark);
+}
+.notice-pop-result.bad {
+  color: var(--danger, #d64545);
+}
+.notice-pop-hint {
+  margin: 8px 0 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--text-sub);
+}
+/* 알림 목록의 '반 · 보낸 사람' 줄 */
+.notif-item-from {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--primary-dark);
+}
+
 .notif-dropdown {
   position: absolute;
   top: calc(100% + 6px);
@@ -798,6 +900,84 @@ button.footer-link:hover {
 .notif-item.unread:hover {
   background: #fce8c8;
 }
+/* 반 공지처럼 눌러서 갈 곳이 없는 알림 — 손 모양 커서와 hover 반응을 뺍니다.
+   누를 수 있는 것처럼 보이는데 아무 일도 안 일어나는 게 제일 나쁩니다. */
+.notif-item--static {
+  cursor: default;
+}
+.notif-item--static:hover {
+  background: #fff4e0;
+}
+
+/* 알림 한 줄 = 본문 + 오른쪽 '읽음' 버튼.
+   '읽음'을 눌러야 목록에서 빠집니다 — 본문을 눌러 질문을 보러 가는 것과
+   치우는 것을 갈라 둔 이유는 NotificationBell의 주석 참고. */
+.notif-row {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+}
+.notif-row .notif-item {
+  flex: 1;
+  min-width: 0;
+}
+.notif-read-btn {
+  flex-shrink: 0;
+  align-self: center;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text-sub);
+  border-radius: 999px;
+  padding: 4px 9px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+.notif-read-btn:hover {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #fff;
+}
+
+/* 목록 맨 위 — 안 읽은 수와 '모두 읽음' */
+.notif-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 10px 8px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+.notif-tools-count {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.notif-readall {
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text-sub);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+.notif-readall:hover:not(:disabled) {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #fff;
+}
+.notif-readall:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
 .notif-item-head {
   display: flex;
   align-items: center;
@@ -819,6 +999,19 @@ button.footer-link:hover {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+/* 반 공지는 이 줄이 곧 공지 내용입니다 — 한 줄로 잘라 '…'로 끝내면 학생이
+   내용을 끝까지 못 읽습니다(질문 알림은 제목이라 잘려도 눌러서 볼 수
+   있지만, 공지는 눌러서 갈 곳이 없습니다). 그래서 여기만 줄바꿈을 허용하고
+   최대 6줄까지 보여 줍니다 — 그보다 길면 목록이 공지 하나로 가득 찹니다. */
+.notif-item-sub--full {
+  display: -webkit-box;
+  -webkit-line-clamp: 6;
+  -webkit-box-orient: vertical;
+  white-space: pre-wrap;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  line-height: 1.55;
 }
 
 /* 상단바 질문하기 손들기 */
@@ -3800,6 +3993,78 @@ pre code {
   background: var(--primary);
   border-color: var(--primary);
   color: #fff;
+}
+
+/* 학생 검색 — 정렬 칩 바로 아래, 목록 위. 학생이 백 명을 넘으면서
+   눈으로 훑어 찾기 어려워져 추가했습니다. */
+.student-search {
+  margin: 0 0 10px;
+}
+.student-search-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  padding: 0 10px;
+  transition: border-color 0.12s;
+}
+.student-search-field:focus-within {
+  border-color: var(--primary);
+}
+.student-search-icon {
+  font-size: 12px;
+  line-height: 1;
+  opacity: 0.55;
+  flex-shrink: 0;
+}
+/* 전역 input 규칙(테두리·배경·폭)을 이 칸에서는 껍데기가 대신하므로 비웁니다 */
+.student-search-input {
+  flex: 1;
+  min-width: 0;
+  width: auto;
+  border: none;
+  background: none;
+  padding: 7px 0;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+}
+.student-search-input:focus {
+  outline: none;
+  border: none;
+  box-shadow: none;
+}
+/* 브라우저가 붙이는 검색칸 기본 ×(모양이 제각각) 대신 아래 버튼을 씁니다 */
+.student-search-input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+.student-search-clear {
+  flex-shrink: 0;
+  border: none;
+  background: none;
+  padding: 0 2px;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--text-sub);
+  cursor: pointer;
+}
+.student-search-clear:hover {
+  color: var(--text);
+}
+.student-search-count {
+  display: block;
+  margin-top: 5px;
+  padding-left: 12px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--primary-dark);
+}
+.student-search-count small {
+  font-weight: 600;
+  color: var(--text-sub);
 }
 
 .admin-main {
