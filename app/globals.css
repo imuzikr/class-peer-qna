@@ -900,6 +900,84 @@ button.footer-link:hover {
 .notif-item.unread:hover {
   background: #fce8c8;
 }
+/* 반 공지처럼 눌러서 갈 곳이 없는 알림 — 손 모양 커서와 hover 반응을 뺍니다.
+   누를 수 있는 것처럼 보이는데 아무 일도 안 일어나는 게 제일 나쁩니다. */
+.notif-item--static {
+  cursor: default;
+}
+.notif-item--static:hover {
+  background: #fff4e0;
+}
+
+/* 알림 한 줄 = 본문 + 오른쪽 '읽음' 버튼.
+   '읽음'을 눌러야 목록에서 빠집니다 — 본문을 눌러 질문을 보러 가는 것과
+   치우는 것을 갈라 둔 이유는 NotificationBell의 주석 참고. */
+.notif-row {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+}
+.notif-row .notif-item {
+  flex: 1;
+  min-width: 0;
+}
+.notif-read-btn {
+  flex-shrink: 0;
+  align-self: center;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text-sub);
+  border-radius: 999px;
+  padding: 4px 9px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+.notif-read-btn:hover {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #fff;
+}
+
+/* 목록 맨 위 — 안 읽은 수와 '모두 읽음' */
+.notif-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 10px 8px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+.notif-tools-count {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.notif-readall {
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text-sub);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+.notif-readall:hover:not(:disabled) {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #fff;
+}
+.notif-readall:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
 .notif-item-head {
   display: flex;
   align-items: center;

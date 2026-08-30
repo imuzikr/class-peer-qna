@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import {
   subscribeMyNotifications,
   markNotificationRead,
+  markAllNotificationsRead,
   pruneOldNotifications,
   formatTime,
 } from "@/lib/store";
@@ -50,15 +51,36 @@ export default function NotificationBell({ uid }) {
     return () => document.removeEventListener("pointerdown", onDown);
   }, [open]);
 
-  const unreadCount = items.filter((n) => !n.read).length;
+  // 목록에는 안 읽은 것만 올라오므로(subscribeMyNotifications) 그 수가 곧 뱃지 수입니다.
+  const unreadCount = items.length;
+  const [markingAll, setMarkingAll] = useState(false);
 
-  function handleClick(n) {
-    if (!n.read) markNotificationRead(uid, n.id);
-    // 반 공지는 열어 볼 글이 없습니다 — 내용이 알림 자체에 다 들어 있어서
-    // 목록을 닫지 않고 읽음 처리만 합니다(누르자마자 사라지면 다 못 읽습니다).
+  // 알림 본문을 누르면 그 질문으로 갑니다. 여기서는 읽음 처리를 하지
+  // 않습니다 — 읽음은 '읽음' 버튼으로만. 질문을 보러 갔다 돌아왔을 때
+  // 알림이 사라져 있으면, 무엇을 보고 온 것인지 되짚을 자리가 없어집니다.
+  function handleOpen(n) {
+    // 반 공지는 열어 볼 글이 없습니다 — 내용이 알림 자체에 다 들어 있습니다.
     if (n.type === "class_notice" || !n.questionId) return;
     setOpen(false);
     router.push(`/board?open=${n.questionId}`);
+  }
+
+  // 한 건 읽음 — 읽으면 목록에서 빠집니다(안 읽은 것만 구독하므로).
+  function handleRead(e, n) {
+    e.stopPropagation();
+    markNotificationRead(uid, n.id).catch(() => {});
+  }
+
+  async function handleReadAll() {
+    if (markingAll || items.length === 0) return;
+    setMarkingAll(true);
+    try {
+      await markAllNotificationsRead(uid);
+    } catch {
+      /* 실패하면 목록이 그대로 남습니다 — 다시 누르면 됩니다 */
+    } finally {
+      setMarkingAll(false);
+    }
   }
 
   return (
@@ -79,39 +101,74 @@ export default function NotificationBell({ uid }) {
       {open && (
         <div className="notif-dropdown" role="menu">
           {items.length === 0 ? (
-            <p className="notif-empty">아직 알림이 없어요.</p>
+            <p className="notif-empty">읽지 않은 알림이 없어요.</p>
           ) : (
+            <>
+            <div className="notif-tools">
+              <span className="notif-tools-count">읽지 않음 {items.length}</span>
+              <button
+                type="button"
+                className="notif-readall"
+                onClick={handleReadAll}
+                disabled={markingAll}
+              >
+                {markingAll ? "처리 중…" : "모두 읽음"}
+              </button>
+            </div>
             <ul className="notif-list">
               {items.map((n) => {
                 const label = LABELS[n.type] ?? { icon: "🔔", text: "알림" };
+                const isNotice = n.type === "class_notice";
+                // 반 공지는 열어 볼 글이 없어 눌러도 갈 곳이 없습니다 —
+                // 누를 수 있는 것처럼 보이지 않도록 버튼이 아닌 칸으로 그립니다.
+                const canOpen = !isNotice && !!n.questionId;
+                const body = (
+                  <>
+                    <span className="notif-item-head">
+                      <span aria-hidden="true">{label.icon}</span> {label.text}
+                      <span className="notif-item-time">{formatTime(n.createdAt)}</span>
+                    </span>
+                    <span
+                      className={`notif-item-sub${isNotice ? " notif-item-sub--full" : ""}`}
+                    >
+                      {isNotice ? n.text : n.questionTitle}
+                    </span>
+                    {isNotice && (n.senderName || n.className) && (
+                      <span className="notif-item-from">
+                        {[n.className, n.senderName].filter(Boolean).join(" · ")}
+                      </span>
+                    )}
+                  </>
+                );
                 return (
-                  <li key={n.id}>
+                  <li key={n.id} className="notif-row">
+                    {canOpen ? (
+                      <button
+                        type="button"
+                        className="notif-item unread"
+                        onClick={() => handleOpen(n)}
+                      >
+                        {body}
+                      </button>
+                    ) : (
+                      <div className="notif-item unread notif-item--static">{body}</div>
+                    )}
+                    {/* 읽음은 본문과 따로입니다 — 질문을 보러 갔다고 해서
+                        알림이 사라지면, 돌아왔을 때 무엇을 보고 온 것인지
+                        되짚을 자리가 없어집니다. 치우는 것은 학생이 정합니다. */}
                     <button
                       type="button"
-                      className={`notif-item${n.read ? "" : " unread"}`}
-                      onClick={() => handleClick(n)}
+                      className="notif-read-btn"
+                      onClick={(e) => handleRead(e, n)}
+                      title="읽음으로 표시하고 목록에서 치우기"
                     >
-                      <span className="notif-item-head">
-                        <span aria-hidden="true">{label.icon}</span> {label.text}
-                        <span className="notif-item-time">{formatTime(n.createdAt)}</span>
-                      </span>
-                      <span
-                        className={`notif-item-sub${
-                          n.type === "class_notice" ? " notif-item-sub--full" : ""
-                        }`}
-                      >
-                        {n.type === "class_notice" ? n.text : n.questionTitle}
-                      </span>
-                      {n.type === "class_notice" && (n.senderName || n.className) && (
-                        <span className="notif-item-from">
-                          {[n.className, n.senderName].filter(Boolean).join(" · ")}
-                        </span>
-                      )}
+                      읽음
                     </button>
                   </li>
                 );
               })}
             </ul>
+            </>
           )}
         </div>
       )}

@@ -86,6 +86,21 @@
           "order": "ASCENDING"
         }
       ]
+    },
+    {
+      "//": "subscribeMyNotifications — 안 읽은 알림만 최신순: read==, createdAt desc",
+      "collectionGroup": "notifications",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "read",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
     }
   ],
   "fieldOverrides": [
