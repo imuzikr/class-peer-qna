@@ -352,6 +352,26 @@ export default function StudyMyActivityCard({
                   className="study-material-view-img"
                 />
               )}
+              {/* 사진이 아닌 첨부(PDF·PPTX·엑셀…)는 열어 봐야 아는 것들이라
+                  이름을 단 링크로 내놓습니다. 새 탭으로 여는 이유: 여기서
+                  바로 열면 쓰던 활동 카드를 벗어나게 됩니다. */}
+              {m.file?.url && (
+                <a
+                  className="study-material-view-file"
+                  href={m.file.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <span className="study-material-view-file-name">
+                    📎 {m.file.name || "첨부 파일"}
+                  </span>
+                  {m.file.size > 0 && (
+                    <span className="study-material-view-file-size">
+                      {formatFileSize(m.file.size)}
+                    </span>
+                  )}
+                </a>
+              )}
             </section>
           ))}
         </details>

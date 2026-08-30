@@ -70,6 +70,9 @@ export default function LessonMode({
   const [saved, setSaved] = useState(false);
   // 프레젠테이션 중일 때만 학생 화면이 전환됩니다(수업하기로 들어온 것만으론 안 바뀜)
   const [presenting, setPresenting] = useState(false);
+  // 해설을 학생 슬라이드 위에 잠깐 띄워 두었는지 — 이 장에서만 유효합니다.
+  // 해설은 그 장에 딸린 이야기라, 장을 넘기면 저절로 내려갑니다(아래 참조).
+  const [notePushed, setNotePushed] = useState(false);
   const [acts, setActs] = useState((lesson.activities ?? []).join("\n"));
   const editing = mode === "edit";
 
@@ -331,6 +334,9 @@ export default function LessonMode({
   useEffect(() => {
     setNote(slides[idx]?.note ?? "");
     setNoteTitle(slides[idx]?.noteTitle ?? "");
+    // 앞 장의 해설이 새 슬라이드 위에 남아 있으면 학생이 엉뚱한 설명을
+    // 보게 됩니다. 장을 넘기는 순간 내립니다.
+    setNotePushed(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idx, lesson.id]);
 
@@ -372,9 +378,15 @@ export default function LessonMode({
       imageUrl: cur.imageUrl,
       slideIndex: idx,
       slideCount: total,
+      // 해설 띄우기 — 교사가 누른 동안만 담깁니다. 방송 문서는 매번 통째로
+      // 덮어쓰므로(startBroadcast), 내릴 때는 빈 값으로 다시 쓰면 됩니다.
+      // 해설은 서식 없는 글이라(제목 input + textarea) 그대로 실어도
+      // 방송에 텍스트만 담는다는 원칙을 벗어나지 않습니다.
+      noteTitle: notePushed ? noteTitle : "",
+      noteText: notePushed ? note : "",
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editing, presenting, classId, cur?.imageUrl, idx, total]);
+  }, [editing, presenting, classId, cur?.imageUrl, idx, total, notePushed, noteTitle, note]);
 
   // 프레젠테이션을 끄거나 수업 화면을 벗어나면 방송도 반드시 종료
   useEffect(() => {
@@ -604,6 +616,19 @@ export default function LessonMode({
             <div className="lesson-card-head">
               {editing && saved && <em className="lesson-saved">✓ 저장됨</em>}
               {editing && <small>자동 저장</small>}
+              {/* 해설 띄우기 — 발표 중에만. 학생 기기에는 원래 슬라이드만
+                  가므로, 정리한 문장을 그대로 보여 주고 싶을 때가 있습니다.
+                  띄우는 동안 학생 화면은 슬라이드 위에 이 해설이 덮이고,
+                  다시 누르면 내려갑니다(장을 넘겨도 내려갑니다). */}
+              {!editing && presenting && (noteTitle.trim() || note.trim()) && (
+                <button
+                  type="button"
+                  className={`lesson-note-push${notePushed ? " is-on" : ""}`}
+                  onClick={() => setNotePushed((v) => !v)}
+                >
+                  {notePushed ? "해설 내리기" : "학생 화면에 띄우기"}
+                </button>
+              )}
             </div>
 
             <div className="lesson-note-body">

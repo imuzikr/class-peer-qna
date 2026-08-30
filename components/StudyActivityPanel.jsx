@@ -26,7 +26,8 @@ import {
   isTeacherAuthoredCard,
   boardMaterials,
 } from "@/lib/activities";
-import { uploadImage } from "@/lib/storageUpload";
+import { uploadImage, uploadFile } from "@/lib/storageUpload";
+import { formatFileSize } from "@/lib/image";
 import { backdropClose } from "@/lib/modal";
 import { cardProgress } from "./StudyProgressBoard";
 import UploadProgress from "./UploadProgress";
@@ -40,8 +41,23 @@ const MATERIAL_MAX_IMAGE = 5 * 1024 * 1024;
 const COLLAPSE_KEY = "activity_panel_collapsed";
 
 function blankMaterial() {
-  return { id: `m${Date.now()}`, actIndex: null, text: "", image: null };
+  return { id: `m${Date.now()}`, actIndex: null, text: "", image: null, file: null };
 }
+
+// 첨부로 받아 줄 종류. 브라우저가 확장자만 보고 고르게 하되, 실제 통과 여부는
+// Storage 규칙이 contentType으로 다시 판정합니다(확장자만 바꿔 올리는 것을
+// 막으려면 서버 쪽 판정이 필요합니다 — storage.rules 참고).
+const MATERIAL_ACCEPT = [
+  ".jpg", ".jpeg", ".png", ".gif", ".webp",
+  ".pdf", ".ppt", ".pptx", ".doc", ".docx",
+  ".xls", ".xlsx", ".csv", ".txt", ".md",
+].join(",");
+const IMAGE_EXT = /\.(jpe?g|png|gif|webp)$/i;
+// 문서는 20MB까지(storage.rules와 같은 기준). 이미지는 올리면서 줄이므로
+// 원본 기준 5MB로 따로 봅니다.
+const MATERIAL_MAX_FILE = 20 * 1024 * 1024;
+
+
 
 // 자료 목록을 저장할 모양으로 다듬습니다 — 글도 이미지도 없는 줄은 버립니다.
 // 저장할 때와 '바뀌었는가'를 볼 때 같은 함수를 써야, 화면에만 있는 빈 줄이
@@ -53,8 +69,9 @@ function cleanMaterials(list) {
       actIndex: typeof m.actIndex === "number" ? m.actIndex : null,
       text: (m.text ?? "").trim(),
       image: m.image ?? null,
+      file: m.file ?? null,
     }))
-    .filter((m) => m.text || m.image);
+    .filter((m) => m.text || m.image || m.file);
 }
 
 export default function StudyActivityPanel({
@@ -394,20 +411,42 @@ function MaterialSection({ board, activities }) {
     setItems((prev) => prev.filter((m) => m.id !== id));
   }
 
-  async function handleImage(e, id) {
+  // 첨부 하나 올리기 — 사진이면 줄여서 이미지로, 그 밖에는 파일 그대로.
+  // 사진은 화면에 펼쳐 보여 주려고 압축하지만, PDF·PPTX는 원본이 그대로
+  // 가야 열립니다(uploadFile). 그래서 여기서 갈라 둡니다.
+  async function handleAttach(e, id) {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
-    if (file.size > MATERIAL_MAX_IMAGE) {
-      setError(`이미지는 5MB 이하여야 해요. (지금 파일: ${(file.size / 1024 / 1024).toFixed(1)}MB)`);
+    const isImage = file.type.startsWith("image/") || IMAGE_EXT.test(file.name);
+    const limit = isImage ? MATERIAL_MAX_IMAGE : MATERIAL_MAX_FILE;
+    if (file.size > limit) {
+      setError(
+        `${isImage ? "이미지" : "파일"}는 ${formatFileSize(limit)} 이하여야 해요. ` +
+          `(지금 파일: ${formatFileSize(file.size)})`
+      );
       return;
     }
     setError("");
     setPct(0);
     try {
-      patch(id, { image: await uploadImage(file, { onProgress: setPct }) });
-    } catch {
-      setError("이미지 업로드에 실패했어요. 잠시 후 다시 시도해 주세요.");
+      if (isImage) {
+        patch(id, { image: await uploadImage(file, { onProgress: setPct }), file: null });
+      } else {
+        const url = await uploadFile(file, { onProgress: setPct });
+        patch(id, {
+          file: { url, name: file.name, type: file.type || "", size: file.size },
+          image: null,
+        });
+      }
+    } catch (err) {
+      // 규칙이 막은 경우(허용하지 않는 종류·용량)와 통신 문제를 구분해 줍니다 —
+      // "다시 시도"만 안내하면 몇 번을 눌러도 되지 않습니다.
+      setError(
+        err?.code === "storage/unauthorized"
+          ? "이 종류의 파일은 올릴 수 없어요. 사진·PDF·PPT·워드·엑셀·CSV·텍스트만 됩니다."
+          : "파일을 올리지 못했어요. 잠시 후 다시 시도해 주세요."
+      );
     } finally {
       setPct(null);
     }
@@ -555,13 +594,31 @@ function MaterialSection({ board, activities }) {
                         ✕
                       </button>
                     </div>
+                  ) : m.file ? (
+                    <div className="study-material-file">
+                      <span className="study-material-file-name">
+                        📎 {m.file.name}
+                      </span>
+                      <span className="study-material-file-size">
+                        {formatFileSize(m.file.size)}
+                      </span>
+                      <button
+                        type="button"
+                        className="attach-image-grid-del"
+                        onClick={() => patch(m.id, { file: null })}
+                        aria-label="첨부 삭제"
+                      >
+                        ✕
+                      </button>
+                    </div>
                   ) : (
                     <label className="study-material-image-add">
-                      + 이미지 올리기
+                      + 파일 첨부
+                      <small>사진 · PDF · PPT · 워드 · 엑셀 · CSV · 텍스트</small>
                       <input
                         type="file"
-                        accept=".jpg,.jpeg,.png,.gif,.webp"
-                        onChange={(e) => handleImage(e, m.id)}
+                        accept={MATERIAL_ACCEPT}
+                        onChange={(e) => handleAttach(e, m.id)}
                         hidden
                       />
                     </label>

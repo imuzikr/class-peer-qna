@@ -307,6 +307,20 @@ function PresentationOverlayBody({ broadcast }) {
         ) : (
           <p className="broadcast-lesson-wait">선생님이 수업을 준비하고 있어요.</p>
         )}
+
+        {/* 선생님이 해설을 띄운 동안만 — 슬라이드 위에 덮입니다.
+            내리는 것은 선생님 몫이라 학생 쪽에 닫기 버튼을 두지 않습니다
+            (닫아 버리면 함께 보라고 띄운 뜻이 사라집니다). */}
+        {(broadcast.noteTitle?.trim() || broadcast.noteText?.trim()) && (
+          <div className="broadcast-note" role="note">
+            {broadcast.noteTitle?.trim() && (
+              <h3 className="broadcast-note-title">{broadcast.noteTitle}</h3>
+            )}
+            {broadcast.noteText?.trim() && (
+              <p className="broadcast-note-text">{broadcast.noteText}</p>
+            )}
+          </div>
+        )}
       </div>
     );
   }

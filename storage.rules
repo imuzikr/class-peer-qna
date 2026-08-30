@@ -31,8 +31,10 @@ service firebase.storage {
       allow read: if request.auth != null;
 
       // 본인 폴더에만 업로드 + 용량/타입 제한.
-      //  · 이미지: 6MB
-      //  · 그 외: 1MB 이며 허용 타입만 (텍스트/코드·CSV·엑셀). 실행파일·영상·오디오 등 차단.
+      //  · 이미지  : 6MB
+      //  · 문서    : 20MB — PDF·프레젠테이션·문서·엑셀. 수업 자료로 나눠 주는
+      //              PDF와 PPTX는 1MB로는 어림도 없어 따로 칸을 뒀습니다.
+      //  · 그 밖의 작은 파일: 1MB (텍스트/코드·CSV). 실행파일·영상·오디오 등 차단.
       //    (.py 등은 브라우저가 octet-stream으로 올리기도 해서 함께 허용)
       allow write: if request.auth != null
                    && request.auth.uid == userId
@@ -40,12 +42,22 @@ service firebase.storage {
                         (request.resource.contentType.matches('image/.*')
                           && request.resource.size < 6 * 1024 * 1024)
                         || (
+                          request.resource.size < 20 * 1024 * 1024
+                          && (
+                            request.resource.contentType == 'application/pdf'
+                            || request.resource.contentType == 'application/vnd.ms-excel'
+                            || request.resource.contentType == 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                            || request.resource.contentType == 'application/vnd.ms-powerpoint'
+                            || request.resource.contentType == 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+                            || request.resource.contentType == 'application/msword'
+                            || request.resource.contentType == 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                          )
+                        )
+                        || (
                           request.resource.size < 1 * 1024 * 1024
                           && (
                             request.resource.contentType.matches('text/.*')
                             || request.resource.contentType == 'application/octet-stream'
-                            || request.resource.contentType == 'application/vnd.ms-excel'
-                            || request.resource.contentType == 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
                           )
                         )
                       );

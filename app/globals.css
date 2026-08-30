@@ -7019,6 +7019,76 @@ pre code {
   font-size: 17px;
 }
 
+/* 선생님이 띄운 해설 — 슬라이드를 가리고 그 위에 얹힙니다.
+   슬라이드를 완전히 덮지 않는 이유: 해설은 지금 보고 있는 장을 두고 하는
+   이야기라, 어느 장 이야기인지가 가장자리로 보여야 합니다. 그래서 가운데
+   폭 720px 카드로 두고 둘레는 어둡게만 깔았습니다.
+   교실 뒤에서도 읽혀야 해서 본문을 20px까지 키웠습니다. */
+.broadcast-note {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 14px;
+  padding: 32px max(24px, calc((100% - 720px) / 2));
+  overflow-y: auto;
+  background: rgba(20, 17, 15, 0.72);
+  animation: broadcast-note-in 0.18s ease-out;
+}
+.broadcast-note-title,
+.broadcast-note-text {
+  margin: 0;
+  color: #fff;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.broadcast-note-title {
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1.35;
+  color: var(--primary-light, #f3c9b4);
+}
+.broadcast-note-text {
+  font-size: 20px;
+  line-height: 1.75;
+}
+@keyframes broadcast-note-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .broadcast-note { animation: none; }
+}
+@media (max-width: 768px) {
+  .broadcast-note { padding: 20px; }
+  .broadcast-note-title { font-size: 21px; }
+  .broadcast-note-text { font-size: 16px; }
+}
+
+/* 교사 화면의 '학생 화면에 띄우기' 버튼 (해설 카드 머리) */
+.lesson-note-push {
+  margin-left: auto;
+  padding: 5px 12px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-sub);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+}
+.lesson-note-push:hover {
+  background: var(--neutral);
+}
+/* 띄워 둔 동안 — 학생이 지금 이걸 보고 있다는 표시라 눈에 띄어야 합니다 */
+.lesson-note-push.is-on {
+  color: #fff;
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
 /* ── 수업하기 — 교사 화면 (왼쪽 슬라이드 · 오른쪽 메모) ── */
 /* 수업 페이지 — 위아래로 스크롤됩니다(스크롤은 학생 화면과 무관) */
 .lesson-mode {
@@ -18045,6 +18115,75 @@ button.study-cal-cell.has-record:not(:disabled):hover {
 .study-material-image-add:hover {
   border-color: var(--primary);
   color: var(--primary-dark);
+}
+/* 받아 주는 종류를 버튼 안에 적어 둡니다 — 올린 뒤에 "이건 안 돼요"를
+   보는 것보다, 고르기 전에 아는 편이 낫습니다. */
+.study-material-image-add small {
+  display: block;
+  margin-top: 3px;
+  font-size: 11px;
+  color: var(--text-sub);
+  opacity: 0.75;
+}
+
+/* 사진이 아닌 첨부 — 미리보기가 없으니 이름·크기로 알아보게 합니다 */
+.study-material-file {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 40px 10px 12px;
+  font-size: 13px;
+  background: var(--neutral);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+}
+.study-material-file-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.study-material-file-size {
+  flex-shrink: 0;
+  color: var(--text-sub);
+  font-size: 12px;
+}
+.study-material-file .attach-image-grid-del {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+}
+
+/* 학생 화면의 첨부 — 눌러서 여는 링크 */
+.study-material-view-file {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--text);
+  text-decoration: none;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+}
+.study-material-view-file:hover {
+  border-color: var(--primary);
+  background: var(--neutral);
+}
+.study-material-view-file-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.study-material-view-file-size {
+  flex-shrink: 0;
+  color: var(--text-sub);
+  font-size: 12px;
 }
 .study-material-add {
   padding: 10px;
