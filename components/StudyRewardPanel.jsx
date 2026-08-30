@@ -27,6 +27,7 @@ import { useEffect, useState } from "react";
 import { subscribeQuestionSignals } from "@/lib/store";
 import { backdropClose } from "@/lib/modal";
 import { normalizeSeats } from "@/lib/seats";
+import { useTodayRewardCounts } from "@/lib/useTodayRewards";
 import { SeatPickGrid } from "./QuestionSeatModal";
 import StudentToolsModal from "./StudentToolsModal";
 import StudentNotesModal from "./StudentNotesModal";
@@ -58,6 +59,8 @@ export default function StudyRewardPanel({
   const [dragUid, setDragUid] = useState(null); // 드래그로 옮기는 중인 학생
   const [pickedUid, setPickedUid] = useState(null); // 짚어 둔 학생(탭으로 옮기기)
   const [zoom, setZoom] = useState(false); // 자리표 확대 보기
+  // 자리 칸의 🍎 뱃지는 오늘 받은 개수입니다(누적 총계는 과일 주기 모달에).
+  const todayCountByUid = useTodayRewardCounts(classId);
 
   // 접힘 상태 복원 — 개인 화면 설정이라 localStorage에 저장
   useEffect(() => {
@@ -189,12 +192,17 @@ export default function StudyRewardPanel({
   const groupedUids = new Set(groups.flatMap((g) => (g.members ?? []).map((m) => m.uid)));
   const ungrouped = roster.filter((s) => !groupedUids.has(s.uid));
 
-  // 지금 과일이 가장 많은 학생(들) — 보드의 반응 1등 카드와 같은 방식으로
-  // 자리표에서 테두리를 강조합니다. 아직 아무도 못 받았으면(0개) 강조하지
+  // 오늘 과일을 가장 많이 받은 학생(들) — 보드의 반응 1등 카드와 같은 방식으로
+  // 자리표에서 테두리를 강조합니다. 오늘 아직 아무도 못 받았으면(0개) 강조하지
   // 않고, 동점이면 모두 강조합니다.
-  const maxRewardCount = roster.reduce((max, s) => Math.max(max, s.count ?? 0), 0);
+  //
+  // 뱃지와 같은 기준(오늘)이어야 합니다. 뱃지는 오늘 것인데 강조가 누적
+  // 1등이면, 뱃지에 큰 숫자가 붙은 학생을 두고 엉뚱한 자리에 테두리가 가
+  // 화면이 서로 어긋나 보입니다.
+  const todayOf = (uid) => todayCountByUid.get(uid) ?? 0;
+  const maxRewardCount = roster.reduce((max, s) => Math.max(max, todayOf(s.uid)), 0);
   const topRewardUids = new Set(
-    maxRewardCount > 0 ? roster.filter((s) => (s.count ?? 0) === maxRewardCount).map((s) => s.uid) : []
+    maxRewardCount > 0 ? roster.filter((s) => todayOf(s.uid) === maxRewardCount).map((s) => s.uid) : []
   );
 
   function openNotes(student) {
@@ -252,6 +260,7 @@ export default function StudyRewardPanel({
           onDragEnd={() => setDragIndex(null)}
           onDropTo={(toIndex) => moveSeat(dragIndex, toIndex)}
           topUids={topRewardUids}
+          todayCountByUid={todayCountByUid}
           presentUids={presentUids}
         />
       )}
@@ -286,6 +295,7 @@ export default function StudyRewardPanel({
               onDragEnd={() => setDragIndex(null)}
               onDropTo={(toIndex) => moveSeat(dragIndex, toIndex)}
               topUids={topRewardUids}
+              todayCountByUid={todayCountByUid}
               presentUids={presentUids}
             />
           </div>

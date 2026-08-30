@@ -26,6 +26,7 @@ import { normalizeSeats } from "@/lib/seats";
 import { getCurrentUser } from "@/lib/user";
 import { deskState } from "./AttendanceBoard";
 import { SeatCell, SeatPickGrid, attStateOf } from "./QuestionSeatModal";
+import { useTodayRewardCounts } from "@/lib/useTodayRewards";
 import StudentToolsModal from "./StudentToolsModal";
 import StudentNotesModal from "./StudentNotesModal";
 
@@ -66,6 +67,8 @@ export default function LessonSeatPanel({
   }, [dailySeatLayout?.updatedAt, seatLayout?.updatedAt, roster]);
 
   const byUid = useMemo(() => new Map(roster.map((s) => [s.uid, s])), [roster]);
+  // 자리 칸의 🍎 뱃지는 오늘 받은 개수(누적 총계는 과일 주기 모달에).
+  const todayCountByUid = useTodayRewardCounts(classId);
   const presenceByUid = useMemo(() => new Map(presence.map((p) => [p.uid, p])), [presence]);
   const raisedCount = roster.filter((s) => raisedUids.has(s.uid)).length;
 
@@ -221,6 +224,7 @@ export default function LessonSeatPanel({
                         raised={raisedUids.has(s.uid)}
                         att={attStateOf(s.uid, presentUids)}
                         live={liveState.get(s.uid) ?? null}
+                        todayCount={todayCountByUid.get(s.uid) ?? 0}
                         onPick={onAward ? setToolsFor : undefined}
                       />
                     ))
@@ -244,6 +248,7 @@ export default function LessonSeatPanel({
           onDropTo={(toIndex) => moveSeat(dragIndex, toIndex)}
           presentUids={presentUids}
           liveState={liveState}
+          todayCountByUid={todayCountByUid}
         />
       )}
 

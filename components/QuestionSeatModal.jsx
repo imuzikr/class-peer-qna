@@ -24,6 +24,7 @@ import {
   todayDateKey,
 } from "@/lib/store";
 import { normalizeSeats } from "@/lib/seats";
+import { useTodayRewardCounts } from "@/lib/useTodayRewards";
 import StudentNotesThread from "./StudentNotesThread";
 import StudentToolsModal from "./StudentToolsModal";
 
@@ -35,8 +36,13 @@ import StudentToolsModal from "./StudentToolsModal";
 // onDragStart/onDragEnd/onDropTo: 셋 다 있을 때만 자리를 드래그로 옮길 수
 // 있습니다(참여 전광판의 자리표 보기와 같은 방식) — 손든 학생 자리 확인
 // 화면은 실수로 자리가 바뀌면 안 돼서 이 prop들을 넘기지 않고 그대로 둡니다.
-// topUids: 공부방 카드의 '반응 1등' 테두리 강조와 같은 방식으로, 지금 과일이
-// 가장 많은 학생의 자리를 눈에 띄게 표시합니다(안 넘기면 강조 없음).
+// topUids: 공부방 카드의 '반응 1등' 테두리 강조와 같은 방식으로, 오늘 과일을
+// 가장 많이 받은 학생의 자리를 눈에 띄게 표시합니다(안 넘기면 강조 없음).
+// todayCountByUid: uid → 오늘 받은 과일 수(lib/useTodayRewards). 자리 칸의
+// 🍎 뱃지는 이 값으로 그립니다 — 누적 총계(roster[].count)가 아닙니다.
+// 자리표는 수업 중에 보는 화면이라 학기 누적이 뜨면 그날의 움직임이 묻히고,
+// 숫자가 커지기만 해서 오늘 누가 받았는지 읽을 수 없기 때문입니다. 누적은
+// 자리를 눌러 여는 과일 주기 모달에 그대로 남아 있습니다(안 넘기면 뱃지 없음).
 // presentUids: 오늘 출석한 학생 uid 집합. null이면 아직 출석을 확인하기
 // 전이라 자리를 모두 연한 회색으로 둡니다(출석/결석을 섣불리 단정하지
 // 않으려고). 집합이 오면 그 안에 있으면 연한 초록(출석), 없으면 연한
@@ -54,6 +60,7 @@ import StudentToolsModal from "./StudentToolsModal";
 // DOM이 통째로 교체돼 진행 중이던 드래그가 끊깁니다.
 export function SeatCell({
   student, raised = false, top = false, att = "unchecked", live = null,
+  todayCount = 0,
   onPick, draggable = false, index = null, onDragStart, onDragEnd, onDropTo,
 }) {
   const s = student;
@@ -65,7 +72,7 @@ export function SeatCell({
       type="button"
       className={`attend-seat attend-seat--pick attend-seat--${att}${raised ? " attend-seat--raised" : ""}${top ? " attend-seat--top" : ""}`}
       onClick={() => onPick?.(s)}
-      title={`${s.name}${s.studentId ? ` · ${s.studentId}` : ""}${attLabel}${liveLabel}${raised ? " · 질문 있어요" : ""}${top ? " · 과일 1등" : ""} — 눌러서 과일 주기·누가기록${draggable ? ", 끌어서 자리 이동" : ""}`}
+      title={`${s.name}${s.studentId ? ` · ${s.studentId}` : ""}${attLabel}${liveLabel}${raised ? " · 질문 있어요" : ""}${todayCount > 0 ? ` · 오늘 과일 ${todayCount}개` : ""}${top ? " · 오늘 과일 1등" : ""} — 눌러서 과일 주기·누가기록${draggable ? ", 끌어서 자리 이동" : ""}`}
       draggable={draggable}
       onDragStart={draggable ? (e) => { onDragStart(index); e.dataTransfer.effectAllowed = "move"; } : undefined}
       onDragEnd={draggable ? onDragEnd : undefined}
@@ -80,9 +87,9 @@ export function SeatCell({
       )}
       <span className="attend-seat-no">{s.studentId || "-"}</span>
       <span className="attend-seat-name">{s.name}</span>
-      {s.count > 0 && (
-        <span className="attend-seat-fruit" aria-label={`과일 ${s.count}개`}>
-          🍎 {s.count}
+      {todayCount > 0 && (
+        <span className="attend-seat-fruit" aria-label={`오늘 받은 과일 ${todayCount}개`}>
+          🍎 {todayCount}
         </span>
       )}
     </button>
@@ -99,7 +106,7 @@ export function attStateOf(uid, presentUids) {
 export function SeatPickGrid({
   seats, byUid, raisedUids, raisedCount, onPick, compact = false,
   onDragStart, onDragEnd, onDropTo, topUids = null, presentUids = null,
-  liveState = null, headLead = null,
+  liveState = null, headLead = null, todayCountByUid = null,
 }) {
   const draggable = !!(onDragStart && onDragEnd && onDropTo);
   return (
@@ -134,6 +141,7 @@ export function SeatPickGrid({
               top={!!topUids?.has(s.uid)}
               att={attStateOf(s.uid, presentUids)}
               live={liveState?.get(s.uid) ?? null}
+              todayCount={todayCountByUid?.get(s.uid) ?? 0}
               onPick={onPick}
               draggable={draggable}
               index={i}
@@ -213,6 +221,7 @@ export default function QuestionSeatModal({ classId, onClose }) {
   );
   const byUid = useMemo(() => new Map(roster.map((s) => [s.uid, s])), [roster]);
   const raisedCount = roster.filter((s) => raisedUids.has(s.uid)).length;
+  const todayCountByUid = useTodayRewardCounts(classId);
 
   // 과일을 줄 때 실명을 함께 저장 — 공부방은 실명 공간이라 학생 화면에도
   // 실명 이름표가 보입니다(공부방 화면의 awardReward와 같은 규칙).
@@ -258,6 +267,7 @@ export default function QuestionSeatModal({ classId, onClose }) {
               byUid={byUid}
               raisedUids={raisedUids}
               raisedCount={raisedCount}
+              todayCountByUid={todayCountByUid}
               onPick={setToolsFor}
             />
           )}
