@@ -489,6 +489,34 @@ service cloud.firestore {
         allow create, update, delete: if false;
       }
 
+      // ── 수업 메모 ───────────────────────────────────────────
+      //  · 경로 = classes/{classId}/lessonMemos/{auto}
+      //  · 수업 중에 교사가 짧게 적어 두는 메모입니다. 학생 관찰 기록
+      //    (studentNotes)과 다릅니다 — 그쪽은 '학생 한 명에 대한 기록'이고
+      //    이쪽은 '그 수업 시간에 대한 메모'라 학생과 엮이지 않습니다.
+      //  · 담당 교사·관리자만. 학생은 읽지도 쓰지도 못합니다 — 수업 운영
+      //    메모라 학생에게 보일 것을 전제로 쓰지 않습니다.
+      //  · 지난 메모를 고치고 지울 수 있게 열어 둡니다. 누가기록·과일 이력과
+      //    달리 이건 '남겨야 하는 기록'이 아니라 교사의 수첩입니다.
+      match /lessonMemos/{mId} {
+        allow read: if signedIn() && (isAdmin() || ownsClass(cId));
+        allow create: if (isAdmin() || ownsClassEditable(cId))
+                      && request.resource.data.classId == cId
+                      && request.resource.data.authorId == uid()
+                      && request.resource.data.text is string
+                      && request.resource.data.text.size() > 0
+                      && request.resource.data.text.size() <= 2000
+                      && request.resource.data.createdAt == request.time;
+        allow update: if (isAdmin() || ownsClassEditable(cId))
+                      && request.resource.data.classId == resource.data.classId
+                      && request.resource.data.authorId == resource.data.authorId
+                      && request.resource.data.createdAt == resource.data.createdAt
+                      && request.resource.data.text is string
+                      && request.resource.data.text.size() > 0
+                      && request.resource.data.text.size() <= 2000;
+        allow delete: if isAdmin() || ownsClassEditable(cId);
+      }
+
       // ── 참여 전광판 자리표 ─────────────────────────────────
       //  · default: 수업 준비에서 만든 기본 자리표
       //  · daily_YYYY-MM-DD: 발표 중 임시 이동한 당일 자리표
