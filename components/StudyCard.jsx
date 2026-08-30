@@ -94,10 +94,16 @@ export default function StudyCard({
       {summary && (
         <div className="study-card-progress">
           <div className="study-card-progress-bar">
+            {/* 숫자만 — 활동 칸 수만큼 되풀이되는 자리라 '자'까지 붙이면
+                카드가 글자로 빽빽해집니다. 단위는 마우스를 올렸을 때. */}
             {summary.segments.map((on, i) => (
-              <div key={i} className="study-card-progress-col">
+              <div
+                key={i}
+                className="study-card-progress-col"
+                title={`활동 ${i + 1} — ${summary.lengths[i]}자${on ? " · 제출 인정" : ""}`}
+              >
                 <span className={`study-card-progress-seg${on ? " on" : ""}`} />
-                <span className="study-card-progress-chars">{summary.lengths[i]}자</span>
+                <span className="study-card-progress-chars">{summary.lengths[i]}</span>
               </div>
             ))}
           </div>

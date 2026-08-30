@@ -1205,10 +1205,15 @@ function SeatPlaceholder({ seat, activities, canStart, canPeek, onClick }) {
       {summary && (
         <div className="study-card-progress">
           <div className="study-card-progress-bar">
+            {/* 숫자만 — StudyCard와 같은 이유(활동 수만큼 되풀이되는 자리) */}
             {summary.segments.map((on, i) => (
-              <div key={i} className="study-card-progress-col">
+              <div
+                key={i}
+                className="study-card-progress-col"
+                title={`활동 ${i + 1} — ${summary.lengths[i]}자${on ? " · 제출 인정" : ""}`}
+              >
                 <span className={`study-card-progress-seg${on ? " on" : ""}`} />
-                <span className="study-card-progress-chars">{summary.lengths[i]}자</span>
+                <span className="study-card-progress-chars">{summary.lengths[i]}</span>
               </div>
             ))}
           </div>
