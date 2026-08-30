@@ -85,6 +85,9 @@ export default function LessonMode({
   // 이름을 고치는 중인 활동 — { i, name } | null
   const [editAct, setEditAct] = useState(null);
   const editActInputRef = useRef(null);
+  // 순서 바꾸기(끌어 놓기) — 집어 든 줄과 지금 올려 둔 줄
+  const [dragIdx, setDragIdx] = useState(null);
+  const [overIdx, setOverIdx] = useState(null);
   const [actBusy, setActBusy] = useState(false);
   const [actError, setActError] = useState("");
   const [makingBoard, setMakingBoard] = useState(false);
@@ -258,6 +261,31 @@ export default function LessonMode({
     const ok = await saveBoardActs([...boardActs, name]);
     if (!ok) return; // 실패하면 쓴 글자를 지우지 않습니다
     setNewAct("");
+  }
+
+  // 활동 순서 바꾸기 — from번째를 뽑아 to번째 자리에 끼워 넣습니다.
+  // (자리를 맞바꾸지 않는 이유: 목록에서 끌어 놓는 몸짓은 '여기로 옮긴다'이지
+  //  '이 둘을 맞바꾼다'가 아니라, 맞바꾸면 사이에 있던 활동들이 엉뚱하게 튑니다)
+  async function moveAct(from, to) {
+    setDragIdx(null);
+    setOverIdx(null);
+    if (from == null || to == null || from === to) return;
+    if (to < 0 || to >= boardActs.length) return;
+    // 고치던 창은 자리 번호로 기억하고 있어, 줄이 움직이면 엉뚱한 줄을
+    // 가리키게 됩니다.
+    setEditAct(null);
+
+    const next = [...boardActs];
+    const [movedName] = next.splice(from, 1);
+    next.splice(to, 0, movedName);
+
+    // 잠금은 활동을 '따라' 움직입니다 — 열어 둔 활동이 자리를 옮겼다고
+    // 다시 잠기면, 쓰고 있던 학생의 입력칸이 갑자기 닫힙니다.
+    const locks = boardActs.map((_, j) => board.activityLocks?.[j] === true);
+    const [movedLock] = locks.splice(from, 1);
+    locks.splice(to, 0, movedLock);
+
+    await saveBoardActs(next, locks);
   }
 
   // 활동 이름 고치기 — 자리는 그대로 두고 이름만 바꿉니다.
@@ -843,7 +871,55 @@ export default function LessonMode({
                   {boardActs.length > 0 ? (
                     <ol className="lesson-board-acts">
                       {boardActs.map((a, i) => (
-                        <li key={`${a}-${i}`}>
+                        <li
+                          key={`${a}-${i}`}
+                          className={
+                            (dragIdx === i ? " is-dragging" : "") +
+                            (overIdx === i && dragIdx !== i
+                              // 놓으면 그 줄의 번호를 가져갑니다 — 위로
+                              // 끌면 그 줄 앞, 아래로 끌면 그 줄 뒤에 들어가므로
+                              // 선도 그쪽에 긋습니다.
+                              ? dragIdx > i
+                                ? " is-over is-over--up"
+                                : " is-over is-over--down"
+                              : "")
+                          }
+                          onDragOver={
+                            dragIdx == null
+                              ? undefined
+                              : (e) => { e.preventDefault(); setOverIdx(i); }
+                          }
+                          onDrop={
+                            dragIdx == null
+                              ? undefined
+                              : (e) => { e.preventDefault(); moveAct(dragIdx, i); }
+                          }
+                        >
+                          {/* 끌기 손잡이 — 이름 자체는 눌러서 고치는 버튼이라,
+                              끌기까지 겹치면 고치려던 손이 줄을 옮겨 버립니다.
+                              그래서 끄는 자리를 따로 뒀습니다.
+                              마우스가 없어도 옮길 수 있게 ↑↓ 키도 받습니다. */}
+                          <button
+                            type="button"
+                            className="lesson-board-act-drag"
+                            draggable={!actBusy}
+                            onDragStart={(e) => {
+                              setDragIdx(i);
+                              e.dataTransfer.effectAllowed = "move";
+                              // 파이어폭스는 데이터가 없으면 끌기를 시작하지 않습니다
+                              e.dataTransfer.setData("text/plain", String(i));
+                            }}
+                            onDragEnd={() => { setDragIdx(null); setOverIdx(null); }}
+                            onKeyDown={(e) => {
+                              if (e.key === "ArrowUp") { e.preventDefault(); moveAct(i, i - 1); }
+                              if (e.key === "ArrowDown") { e.preventDefault(); moveAct(i, i + 1); }
+                            }}
+                            disabled={actBusy}
+                            aria-label={`활동 ${i + 1} 순서 바꾸기`}
+                            title="끌어서 순서 바꾸기 (↑↓ 키로도 옮길 수 있어요)"
+                          >
+                            ⠿
+                          </button>
                           {/* 학생 카드에 붙는 번호와 같은 순서를 여기서도 보여 줍니다 */}
                           <span className="lesson-board-act-no">활동 {i + 1}</span>
                           {editAct?.i === i ? (
