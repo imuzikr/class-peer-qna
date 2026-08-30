@@ -533,17 +533,13 @@ export default function StudyProjectView({
   return (
     <section className="study-project-view">
       {/* ── 머리말 — 한 줄에 모읍니다 ──
-          [← 프로젝트 목록] [제목] … [발표 · 전광판 · 설정]
+          [제목] [← 프로젝트 목록] … [발표 · 전광판 · 설정]
           예전에는 제목 / 뒤로 가기+도구 / 활동 안내가 세 줄로 쌓여, 학생
           카드가 시작되기까지 화면 위쪽을 크게 차지했습니다. 안내 문구는
           내용이 있을 때만 보여 주고(쓰는 곳은 설정 패널), 빈 자리를
           카드에 돌려줍니다. */}
       <div className="study-project-head">
         <div className="study-project-head-main">
-          <button type="button" className="btn-ghost study-project-back" onClick={onBack}>
-            ← 프로젝트 목록
-          </button>
-
           {isTeacher && editingTitle ? (
             <div className="study-title-edit-wrap">
               <input
@@ -582,6 +578,11 @@ export default function StudyProjectView({
               {board.title}
             </h2>
           )}
+
+          {/* 돌아가는 길은 제목 뒤에 — 활동 상세 화면과 같은 자리입니다 */}
+          <button type="button" className="btn-ghost study-project-back" onClick={onBack}>
+            ← 프로젝트 목록
+          </button>
 
           {/* 제목 옆 — 학생은 상태 배지, 교사는 도구. 둘 다 제목과 같은 줄에
               놓이고, 남는 자리는 제목이 가져갑니다. */}

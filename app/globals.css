@@ -12284,7 +12284,10 @@ button.study-cal-cell.has-record:not(:disabled):hover {
    없게 됩니다(실제로 390px에서 그랬습니다). 그래서 제목만 flex-grow를
    갖고, 뒤로 가기와 도구는 제 폭을 지킵니다. */
 .study-project-head-main h2 {
-  flex: 1 1 auto;
+  /* 늘어나지는 않고 줄어들기만 합니다 — 늘어나게 두면 제목 상자가 남는
+     자리를 다 차지해, 바로 뒤에 붙어야 할 '프로젝트 목록' 버튼이 글자와
+     한참 떨어진 오른쪽 끝으로 밀립니다. */
+  flex: 0 1 auto;
   min-width: 60px;
   font-family: var(--font-serif);
   font-size: 21px;
@@ -12293,7 +12296,7 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-/* 배지·도구 묶음 — 오른쪽 끝에 붙되 제 폭만 차지합니다.
+/* 배지·도구 묶음 — 남는 자리를 밀어내 오른쪽 끝에 붙습니다.
    학생 배지는 여러 개라 좁아지면 줄바꿈으로 접히게 두지만, 교사 도구는
    크기가 정해진 버튼 세 개라 줄어들 수 없습니다. 그때 이 상자가 내용보다
    작아지면 버튼이 상자 밖(제목 위)으로 삐져나오므로, 도구가 들어 있는
@@ -12301,6 +12304,7 @@ button.study-cal-cell.has-record:not(:disabled):hover {
 .study-project-head-badges {
   flex: 0 1 auto;
   min-width: 0;
+  margin-left: auto;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
