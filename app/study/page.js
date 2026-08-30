@@ -80,7 +80,6 @@ import Toast from "@/components/Toast";
 import KwlPanel from "@/components/KwlPanel";
 import TeacherKwlPanel from "@/components/TeacherKwlPanel";
 import LessonManagerModal from "@/components/LessonManagerModal";
-import LessonMode from "@/components/LessonMode";
 import StudyAttendanceModal from "@/components/StudyAttendanceModal";
 import SeatGroupSetupModal from "@/components/SeatGroupSetupModal";
 import { updateLesson } from "@/lib/store";
@@ -89,6 +88,26 @@ import { updateLesson } from "@/lib/store";
 const PythonRunner = dynamic(() => import("@/components/PythonRunner"), {
   ssr: false,
 });
+
+// 수업하기(수업 준비·수업 진행) 화면 — 공부방을 여는 사람 대부분은 오늘
+// 이걸 쓰지 않는데, 정적 import라 늘 함께 받고 있었습니다. 파이썬 실행기와
+// 같은 방식으로 실제로 열 때 받습니다.
+//
+// 대신 수업 자료 목록을 여는 순간 미리 받아 둡니다(preloadLessonMode).
+// 학생들 앞에서 '수업 시작'을 누른 뒤 화면이 늦게 뜨면 곤란한데, 목록을
+// 열어 자료를 고르는 사이에 이미 받아 두면 그 순간의 기다림이 없습니다.
+const loadLessonMode = () => import("@/components/LessonMode");
+const LessonMode = dynamic(loadLessonMode, { ssr: false });
+
+// 수업 자료 목록이 열려 있는 동안 수업하기 화면을 미리 받아 둡니다.
+// 그리는 것은 없고(null), 받아 두기만 합니다 — 실패해도 무시합니다.
+// 못 받아 두면 열 때 받게 될 뿐이라 동작에는 지장이 없습니다.
+function PreloadLessonMode() {
+  useEffect(() => {
+    loadLessonMode().catch(() => {});
+  }, []);
+  return null;
+}
 
 // 왼쪽 사이드 패널 — 현재는 프로젝트 활동 추가 패널(StudyActivityPanel)이
 // KWL 패널 자리를 대신합니다. KWL 패널은 삭제하지 않고 잠시 보관 중이며,
@@ -1149,6 +1168,7 @@ function StudyPageInner() {
           관리합니다. 그래야 브라우저 '뒤로 가기'를 눌렀을 때 이 화면들의
           상태가 아니라 그 전 페이지로 곧장 나가버리지 않고, 공부방으로 한
           단계씩 되돌아갑니다. */}
+      {lessonPicker && <PreloadLessonMode />}
       {lessonPicker && (
         <LessonManagerModal
           onClose={closeLessonNav}

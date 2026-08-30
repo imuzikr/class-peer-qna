@@ -30,7 +30,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   subscribeAllKwl,
-  subscribeClassRewardEvents,
+  subscribeTodayRewardEvents,
   subscribeStudyCards,
   toDate,
   todayDateKey,
@@ -68,10 +68,19 @@ export default function StudyTodayFeed({
     return subscribeAllKwl(classId, today, setKwl);
   }, [classId, today]);
 
+  // 과일은 오늘 것만 읽습니다. 예전에는 반 이력을 통째로 받아 아래에서
+  // 오늘 것만 걸렀는데, 한 학기가 쌓이면 이 패널을 열 때마다 수천 건을
+  // 받게 됩니다(이 화면은 공부방을 열면 늘 떠 있습니다).
+  //
+  // 거르는 조건은 그대로 둡니다(아래 events의 isToday). 질의가 'at이 오늘
+  // 0시 이후'라 사실상 같은 집합이지만, 걸러 내는 쪽을 남겨 두면 질의가
+  // 어떻든 화면에 오늘 것만 선다는 보장이 코드에 그대로 남습니다.
+  // today를 의존성에 두는 이유는 kwl 구독과 같습니다 — 자정을 넘겨 화면을
+  // 켜 둔 채로 있으면 다시 구독해 새 날짜로 시작해야 합니다.
   useEffect(() => {
     if (!classId) { setRewardEvents([]); return; }
-    return subscribeClassRewardEvents(classId, setRewardEvents);
-  }, [classId]);
+    return subscribeTodayRewardEvents(classId, setRewardEvents);
+  }, [classId, today]);
 
   useEffect(() => {
     setCardsByBoard({});
