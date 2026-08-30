@@ -199,7 +199,7 @@ export default function StudyActivityPanel({
           '프로젝트 활동'이라고 붙어 있으면 아래 내용과 말이 어긋납니다. */}
       <div className="study-activity-panel-head">
         <span className="study-activity-panel-title">
-          {board ? "🧩 프로젝트 활동" : "📌 오늘의 움직임"}
+          {board ? "🧩 프로젝트 활동" : "📌 오늘"}
         </span>
         {board && (
           <span className="study-activity-panel-project" title={board.title}>
