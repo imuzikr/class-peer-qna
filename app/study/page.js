@@ -57,7 +57,7 @@ import { isFirebaseConfigured } from "@/lib/firebase";
 import { isAdmin, isTeacher, getCurrentUser } from "@/lib/user";
 import { getSelectedClassId, setSelectedClassId } from "@/lib/classroom";
 import { useCurrentUser } from "@/lib/useCurrentUser";
-import { useRequireAuth } from "@/lib/useRequireAuth";
+import AuthGate from "@/components/AuthGate";
 import { codeBlockHtml } from "@/lib/html";
 import {
   buildStudyRows,
@@ -120,14 +120,15 @@ export default function StudyPage() {
   // 수업 준비 목록/편집/진행 화면을 브라우저 히스토리(뒤로 가기)와 맞추려고 씁니다.
   return (
     <Suspense fallback={null}>
-      <StudyPageInner />
+      <AuthGate>
+        <StudyPageInner />
+      </AuthGate>
     </Suspense>
   );
 }
 
 function StudyPageInner() {
   const user = useCurrentUser();
-  useRequireAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [classes, setClasses] = useState([]);

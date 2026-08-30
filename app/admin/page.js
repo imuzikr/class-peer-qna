@@ -27,7 +27,7 @@ import {
 import { isFirebaseConfigured } from "@/lib/firebase";
 import { isAdmin, isTeacher } from "@/lib/user";
 import { useCurrentUser } from "@/lib/useCurrentUser";
-import { useRequireAuth } from "@/lib/useRequireAuth";
+import AuthGate from "@/components/AuthGate";
 import TopNav from "@/components/TopNav";
 import { getMeTooCount } from "@/lib/questionRanking";
 import StudentEditModal from "@/components/StudentEditModal";
@@ -361,9 +361,16 @@ function PersonRow({ person, selectedId, onSelect, onEdit, teacher = false }) {
 }
 
 export default function AdminDashboardPage() {
+  return (
+    <AuthGate>
+      <AdminDashboardPageInner />
+    </AuthGate>
+  );
+}
+
+function AdminDashboardPageInner() {
   const router = useRouter();
   const user = useCurrentUser();
-  useRequireAuth();
   const [questions, setQuestions] = useState([]);
   const [keywordDocs, setKeywordDocs] = useState([]);
   const [answersByQuestion, setAnswersByQuestion] = useState({});

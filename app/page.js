@@ -14,12 +14,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { isFirebaseConfigured } from "@/lib/firebase";
+import { useAuth } from "@/lib/authContext";
 import { backdropClose } from "@/lib/modal";
 import {
   signUpWithEmail,
   signInWithEmail,
   signInWithGoogle,
-  onAuthChange,
   SCHOOL_EMAIL_DOMAIN,
 } from "@/lib/auth";
 import { isInAppBrowser } from "@/lib/browser";
@@ -128,16 +128,21 @@ export default function LandingPage() {
   // 있을 때만). 여기서 인증이 확정되면 그 표시를 지웁니다 — 로그인 상태면
   // 어차피 곧 넘어가고, 아니면 랜딩을 바로 보여 줘야 하기 때문입니다.
   // (세션이 만료됐거나 다른 기기에서 로그아웃한 경우가 후자입니다)
+  // 판정은 AuthProvider가 한 번만 합니다 — 여기서 따로 구독하면 같은
+  // 프로필 조회를 한 번 더 치릅니다(lib/authContext.jsx).
+  // status가 아직 "loading"이면 표시를 그대로 둡니다. 로그인 상태로
+  // 밝혀지면 어차피 넘어가고, 아니면 그때 지워 랜딩을 보여 줍니다.
+  const { status: authStatus } = useAuth();
   useEffect(() => {
     if (!isFirebaseConfigured) {
       document.documentElement.removeAttribute("data-auth-pending");
       return;
     }
-    return onAuthChange((u) => {
-      if (u) router.replace("/board");
-      else document.documentElement.removeAttribute("data-auth-pending");
-    });
-  }, [router]);
+    if (authStatus === "in") router.replace("/board");
+    else if (authStatus === "out") {
+      document.documentElement.removeAttribute("data-auth-pending");
+    }
+  }, [authStatus, router]);
 
   async function handleSubmit(e) {
     e.preventDefault();

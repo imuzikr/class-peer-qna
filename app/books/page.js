@@ -32,7 +32,7 @@ import { isFirebaseConfigured } from "@/lib/firebase";
 import { isAdmin, isTeacher } from "@/lib/user";
 import { getSelectedClassId, setSelectedClassId } from "@/lib/classroom";
 import { useCurrentUser } from "@/lib/useCurrentUser";
-import { useRequireAuth } from "@/lib/useRequireAuth";
+import AuthGate from "@/components/AuthGate";
 import TopNav from "@/components/TopNav";
 import ClassEntry from "@/components/ClassEntry";
 import Toast from "@/components/Toast";
@@ -112,14 +112,15 @@ export default function BooksPage() {
   // 활동 종류/활동 상세 화면을 브라우저 히스토리(뒤로 가기)와 맞추려고 씁니다.
   return (
     <Suspense fallback={null}>
-      <BooksPageInner />
+      <AuthGate>
+        <BooksPageInner />
+      </AuthGate>
     </Suspense>
   );
 }
 
 function BooksPageInner() {
   const user = useCurrentUser();
-  useRequireAuth();
   const admin = user ? isTeacher(user) : false;
   const superAdmin = user ? isAdmin(user) : false;
 

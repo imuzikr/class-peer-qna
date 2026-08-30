@@ -90,6 +90,36 @@ html[data-auth-pending] .site-footer {
   visibility: hidden;
 }
 
+/* 보호 페이지가 로그인 여부를 기다리는 동안 (components/AuthGate.jsx).
+   내용을 짐작하게 하는 뼈대 대신 조용한 표시 하나만 둡니다 — 로그인하지
+   않은 사람에게는 곧 랜딩으로 넘어갈 찰나라, 남의 화면을 흉내 내 보여 줄
+   이유가 없습니다. */
+.auth-gate {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--bg, #faf9f7);
+}
+.auth-gate-spinner {
+  width: 26px;
+  height: 26px;
+  border: 3px solid var(--border, #e6e1da);
+  border-top-color: var(--primary, #d97757);
+  border-radius: 50%;
+  animation: auth-gate-spin 0.8s linear infinite;
+}
+@keyframes auth-gate-spin {
+  to { transform: rotate(360deg); }
+}
+/* 움직임을 줄여 달라고 한 사람에게는 돌리지 않고 옅게만 둡니다 */
+@media (prefers-reduced-motion: reduce) {
+  .auth-gate-spinner {
+    animation: none;
+    opacity: 0.5;
+  }
+}
+
 .landing {
   min-height: 100vh;
   display: flex;

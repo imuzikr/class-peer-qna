@@ -1,4 +1,5 @@
 import "./globals.css";
+import { AuthProvider } from "@/lib/authContext";
 
 export const metadata = {
   title: "배움나눔 — 우리 반 질문/답변 게시판",
@@ -42,7 +43,12 @@ export default function RootLayout({ children }) {
       <head>
         <script dangerouslySetInnerHTML={{ __html: AUTH_PENDING_SCRIPT }} />
       </head>
-      <body suppressHydrationWarning>{children}</body>
+      {/* 인증은 앱 전체에서 한 번만 판정합니다 — 화면마다 따로 구독하면
+          같은 판정을 여러 번 치르고, 그중 하나만 실패해도 화면이 로그인
+          상태를 달리 보게 됩니다(lib/authContext.jsx). */}
+      <body suppressHydrationWarning>
+        <AuthProvider>{children}</AuthProvider>
+      </body>
     </html>
   );
 }

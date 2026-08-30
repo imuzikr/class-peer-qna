@@ -27,7 +27,7 @@ import InsightModal from "@/components/InsightModal";
 import { IconWrite, IconInsight } from "@/components/StatusIcons";
 import { sortPinnedQuestions } from "@/lib/questionRanking";
 import { useCurrentUser } from "@/lib/useCurrentUser";
-import { useRequireAuth } from "@/lib/useRequireAuth";
+import AuthGate from "@/components/AuthGate";
 import { isTeacher } from "@/lib/user";
 
 // 파이썬 실행기(CodeMirror 등)는 무거워 지연 로딩 → 초기 로드/전환 속도 개선
@@ -36,6 +36,14 @@ const PythonRunner = dynamic(() => import("@/components/PythonRunner"), {
 });
 
 export default function BoardPage() {
+  return (
+    <AuthGate>
+      <BoardPageInner />
+    </AuthGate>
+  );
+}
+
+function BoardPageInner() {
   const router = useRouter();
 
   const [questions, setQuestions] = useState([]);
@@ -51,7 +59,6 @@ export default function BoardPage() {
   const [pyOpen, setPyOpen] = useState(false); // 파이썬 실행 패널
   const [askCode, setAskCode] = useState(null); // 실행기에서 넘어온 코드
   const user = useCurrentUser();
-  useRequireAuth();
   const admin = user ? isTeacher(user) : false;
 
   // 실시간 구독 (컴포넌트가 사라지면 자동 해제)

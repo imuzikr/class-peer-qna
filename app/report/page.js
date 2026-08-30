@@ -17,7 +17,7 @@ import { isFirebaseConfigured } from "@/lib/firebase";
 import { stripHtml } from "@/lib/html";
 import { isTeacher as isTeacherRole } from "@/lib/user";
 import { useCurrentUser } from "@/lib/useCurrentUser";
-import { useRequireAuth } from "@/lib/useRequireAuth";
+import AuthGate from "@/components/AuthGate";
 import { getMeTooCount } from "@/lib/questionRanking";
 import { cardActivitySummary, DONE_MIN_CHARS } from "@/lib/activities";
 import dynamic from "next/dynamic";
@@ -130,9 +130,16 @@ function weeklyReflection(questions, answerEvents, keywordStats) {
 }
 
 export default function StudentReportPage() {
+  return (
+    <AuthGate>
+      <StudentReportPageInner />
+    </AuthGate>
+  );
+}
+
+function StudentReportPageInner() {
   const router = useRouter();
   const user = useCurrentUser();
-  useRequireAuth();
   // 내가 쓴 질문과 내가 쓴 답변만 받습니다. 예전에는 학교 전체 질문을 받아
   // authorId로 걸러 쓰고, 거기에 더해 질문마다 답변 리스너를 하나씩 걸었습니다
   // (질문 5,000개면 리스너 5,000개). 리포트에 필요한 건 내 것뿐입니다.
