@@ -748,6 +748,108 @@ button.footer-link:hover {
   display: grid;
   place-items: center;
 }
+/* 반 공지(교사) — 상단바 확성기 버튼과 그 팝오버.
+   버튼 모양은 옆의 알림 종(.notif-btn)과 같게 맞춥니다 — 나란히 선 아이콘
+   둘이 크기·여백이 다르면 줄이 흐트러져 보입니다. */
+.notice-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+.notice-wrap .notice-btn {
+  position: relative;
+  font-size: 18px;
+  line-height: 1;
+  padding: 8px;
+  background: none;
+  border: none;
+}
+.notice-wrap .notice-btn:hover {
+  background: var(--neutral);
+}
+.notice-pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 300;
+  width: 320px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(46, 36, 26, 0.14);
+  padding: 12px;
+}
+.notice-pop-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.notice-pop-head strong {
+  font-size: 13.5px;
+  color: var(--text);
+}
+/* 어느 반에 몇 명에게 가는지 — 잘못된 반에 보내는 실수를 막는 자리라
+   흐리게 두지 않고 읽히는 색으로 둡니다. */
+.notice-pop-target {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--primary-dark);
+  white-space: nowrap;
+}
+.notice-pop-field {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  font-family: inherit;
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+.notice-pop-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 8px;
+}
+.notice-pop-left {
+  font-size: 11.5px;
+  color: var(--text-sub);
+}
+.notice-pop-left.warn {
+  color: var(--danger, #d64545);
+  font-weight: 700;
+}
+.notice-pop-send {
+  padding: 7px 16px;
+  font-size: 13px;
+}
+.notice-pop-result {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.notice-pop-result.ok {
+  color: var(--primary-dark);
+}
+.notice-pop-result.bad {
+  color: var(--danger, #d64545);
+}
+.notice-pop-hint {
+  margin: 8px 0 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--text-sub);
+}
+/* 알림 목록의 '반 · 보낸 사람' 줄 */
+.notif-item-from {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--primary-dark);
+}
+
 .notif-dropdown {
   position: absolute;
   top: calc(100% + 6px);
@@ -819,6 +921,19 @@ button.footer-link:hover {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+/* 반 공지는 이 줄이 곧 공지 내용입니다 — 한 줄로 잘라 '…'로 끝내면 학생이
+   내용을 끝까지 못 읽습니다(질문 알림은 제목이라 잘려도 눌러서 볼 수
+   있지만, 공지는 눌러서 갈 곳이 없습니다). 그래서 여기만 줄바꿈을 허용하고
+   최대 6줄까지 보여 줍니다 — 그보다 길면 목록이 공지 하나로 가득 찹니다. */
+.notif-item-sub--full {
+  display: -webkit-box;
+  -webkit-line-clamp: 6;
+  -webkit-box-orient: vertical;
+  white-space: pre-wrap;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  line-height: 1.55;
 }
 
 /* 상단바 질문하기 손들기 */

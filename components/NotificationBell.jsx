@@ -8,11 +8,17 @@
 // =============================================================
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { subscribeMyNotifications, markNotificationRead, formatTime } from "@/lib/store";
+import {
+  subscribeMyNotifications,
+  markNotificationRead,
+  pruneOldNotifications,
+  formatTime,
+} from "@/lib/store";
 
 const LABELS = {
   new_answer: { icon: "💬", text: "새 답변이 달렸어요" },
   answer_understood: { icon: "💡", text: "내 답변이 채택됐어요" },
+  class_notice: { icon: "📢", text: "선생님 공지" },
 };
 
 export default function NotificationBell({ uid }) {
@@ -24,6 +30,15 @@ export default function NotificationBell({ uid }) {
   useEffect(() => {
     if (!uid) { setItems([]); return; }
     return subscribeMyNotifications(uid, setItems);
+  }, [uid]);
+
+  // 읽은 지 오래된 알림 정리 — 접속할 때 한 번, 자기 것만. 화면에는 최근
+  // 20개만 보여서 눈에 안 띌 뿐 문서는 계속 쌓입니다(반 공지가 생기면서
+  // 한 번에 학생 수만큼 늘어납니다). 실패해도 무시합니다 — 정리가 안 된다고
+  // 알림 표시를 막을 이유는 없습니다.
+  useEffect(() => {
+    if (!uid) return;
+    pruneOldNotifications(uid).catch(() => {});
   }, [uid]);
 
   useEffect(() => {
@@ -38,8 +53,11 @@ export default function NotificationBell({ uid }) {
   const unreadCount = items.filter((n) => !n.read).length;
 
   function handleClick(n) {
-    setOpen(false);
     if (!n.read) markNotificationRead(uid, n.id);
+    // 반 공지는 열어 볼 글이 없습니다 — 내용이 알림 자체에 다 들어 있어서
+    // 목록을 닫지 않고 읽음 처리만 합니다(누르자마자 사라지면 다 못 읽습니다).
+    if (n.type === "class_notice" || !n.questionId) return;
+    setOpen(false);
     router.push(`/board?open=${n.questionId}`);
   }
 
@@ -77,7 +95,18 @@ export default function NotificationBell({ uid }) {
                         <span aria-hidden="true">{label.icon}</span> {label.text}
                         <span className="notif-item-time">{formatTime(n.createdAt)}</span>
                       </span>
-                      <span className="notif-item-sub">{n.questionTitle}</span>
+                      <span
+                        className={`notif-item-sub${
+                          n.type === "class_notice" ? " notif-item-sub--full" : ""
+                        }`}
+                      >
+                        {n.type === "class_notice" ? n.text : n.questionTitle}
+                      </span>
+                      {n.type === "class_notice" && (n.senderName || n.className) && (
+                        <span className="notif-item-from">
+                          {[n.className, n.senderName].filter(Boolean).join(" · ")}
+                        </span>
+                      )}
                     </button>
                   </li>
                 );
