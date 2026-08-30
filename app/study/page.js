@@ -76,6 +76,7 @@ import StudyActivityPanel from "@/components/StudyActivityPanel";
 import NewQuestionForm from "@/components/NewQuestionForm";
 import ClassEntry from "@/components/ClassEntry";
 import ClassManagerModal from "@/components/ClassManagerModal";
+import ClassMailModal from "@/components/ClassMailModal";
 import Toast from "@/components/Toast";
 import KwlPanel from "@/components/KwlPanel";
 import TeacherKwlPanel from "@/components/TeacherKwlPanel";
@@ -122,6 +123,7 @@ function StudyPageInner() {
   const [regenerating, setRegenerating] = useState(false);
   const [creatingProject, setCreatingProject] = useState(false);
   const [classManagerOpen, setClassManagerOpen] = useState(false);
+  const [mailOpen, setMailOpen] = useState(false); // 반 전체에게 메일
   const [showCode, setShowCode] = useState(false); // 입장 코드 표시 토글
   const [attendanceOpen, setAttendanceOpen] = useState(false); // 출석부 모달
   const [attendanceRecords, setAttendanceRecords] = useState([]);
@@ -794,6 +796,15 @@ function StudyPageInner() {
                         출석 관리
                       </button>
                     )}
+                    {admin && currentClass && !currentClass.archived && (
+                      <button
+                        className="btn-ghost"
+                        onClick={() => setMailOpen(true)}
+                        title="반 학생 전체에게 보낼 메일을 선생님 메일 앱에서 열어 줍니다"
+                      >
+                        메일 보내기
+                      </button>
+                    )}
                     {admin && (
                       <button
                         className="btn-ghost"
@@ -1088,6 +1099,15 @@ function StudyPageInner() {
           onSaveSeats={(seats) => saveStudySeatLayout(classId, "default", seats, getCurrentUser())}
           onSaveGroups={(groups) => saveStudyGroupAssignment(classId, groups, getCurrentUser())}
           onClose={closeSeatSetup}
+        />
+      )}
+
+      {mailOpen && (
+        <ClassMailModal
+          roster={roster}
+          className={currentClass?.name ?? ""}
+          teacherEmail={user?.email ?? ""}
+          onClose={() => setMailOpen(false)}
         />
       )}
 
