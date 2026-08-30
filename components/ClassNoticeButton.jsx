@@ -15,7 +15,7 @@
 // 몇 명에게 가는지 보여 주고 한 번 더 확인합니다.
 // =============================================================
 import { useEffect, useRef, useState } from "react";
-import { sendClassNotice } from "@/lib/store";
+import { sendClassNotice, subscribeClassNotices, formatTime } from "@/lib/store";
 
 const MAX_LEN = 500; // 서버(NOTICE_MAX_LEN)와 같은 값
 
@@ -24,6 +24,7 @@ export default function ClassNoticeButton({ classId, className = "", memberCount
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState(null); // { ok, message }
+  const [history, setHistory] = useState([]); // 이 반에 보낸 공지(최신순)
   const wrapRef = useRef(null);
   const fieldRef = useRef(null);
 
@@ -48,6 +49,13 @@ export default function ClassNoticeButton({ classId, className = "", memberCount
     if (open) fieldRef.current?.focus();
     else setResult(null);
   }, [open]);
+
+  // 발송 이력은 팝오버가 열려 있는 동안만 구독합니다. 이 버튼은 상단바에
+  // 있어 어느 화면에나 떠 있는데, 닫힌 채로 계속 듣고 있을 이유가 없습니다.
+  useEffect(() => {
+    if (!open || !classId) { setHistory([]); return; }
+    return subscribeClassNotices(classId, setHistory);
+  }, [open, classId]);
 
   async function handleSend() {
     const body = text.trim();
@@ -127,6 +135,28 @@ export default function ClassNoticeButton({ classId, className = "", memberCount
           <p className="notice-pop-hint">
             보낸 공지는 되돌릴 수 없어요. Ctrl(⌘)+Enter로도 보낼 수 있어요.
           </p>
+
+          {/* 보낸 이력 — 학생은 '읽음'으로 치우면 그만이지만, 교사에게는
+              무엇을 언제 보냈는지 남아 있어야 같은 공지를 두 번 보내거나
+              보냈는지 헷갈리는 일이 없습니다. */}
+          <div className="notice-log">
+            <div className="notice-log-head">보낸 공지</div>
+            {history.length === 0 ? (
+              <p className="notice-log-empty">아직 이 반에 보낸 공지가 없어요.</p>
+            ) : (
+              <ul className="notice-log-list">
+                {history.map((n) => (
+                  <li key={n.id} className="notice-log-item">
+                    <div className="notice-log-meta">
+                      <span className="notice-log-time">{formatTime(n.sentAt)}</span>
+                      <span className="notice-log-count">{n.sentCount ?? 0}명</span>
+                    </div>
+                    <p className="notice-log-text">{n.text}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       )}
     </div>

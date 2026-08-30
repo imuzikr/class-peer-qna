@@ -18,6 +18,7 @@ const CLASS_SUBCOLLECTIONS = [
   "groupAssignments",  // 반 기본 모둠 — 실명·학번 포함
   "questionSignals",   // 손들기 — 실명·학번 포함
   "rewardEvents",      // 과일 지급 이력 — uid·지급 시각(참여 기록)
+  "classNotices",      // 반 공지 발송 이력 — 보낸 내용·시각
 ];
 
 // classId 필드로 묶여 있는 최상위 컬렉션들.
