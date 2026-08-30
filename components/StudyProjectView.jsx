@@ -511,7 +511,7 @@ export default function StudyProjectView({
             </button>
 
             {/* 학생 — 바꿀 수 있는 게 없으니 지금 상태를 배지로 그대로 봅니다.
-                (교사는 이 배지들이 '보드 설정' 안으로 들어갑니다) */}
+                (교사는 이 배지들이 '프로젝트 설정' 안으로 들어갑니다) */}
             {!isTeacher && (
               <>
                 {!isNotice && (
@@ -560,8 +560,8 @@ export default function StudyProjectView({
                   className={`study-panel-toggle${settingsOpen ? " open" : ""}`}
                   onClick={() => setSettingsOpen((v) => !v)}
                   aria-expanded={settingsOpen}
-                  title={settingsOpen ? "보드 설정 접기" : "보드 설정·현황 펼치기"}
-                  aria-label={settingsOpen ? "보드 설정 접기" : "보드 설정 펼치기"}
+                  title={settingsOpen ? "프로젝트 설정 접기" : "프로젝트 설정·현황 펼치기"}
+                  aria-label={settingsOpen ? "프로젝트 설정 접기" : "프로젝트 설정 펼치기"}
                 >
                   <IconSettings size={20} />
                 </button>

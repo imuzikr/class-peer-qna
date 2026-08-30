@@ -276,7 +276,7 @@ export default function StudyProgressBoard({
 
         {activities.length === 0 ? (
           <p className="lesson-note-empty">
-            이 보드에는 아직 활동이 없어요. ‘수업관리 → 공부방 연동’에서 활동을 추가해 주세요.
+            이 프로젝트에는 아직 활동이 없어요. ‘수업관리 → 공부방 프로젝트 연동’에서 활동을 추가해 주세요.
           </p>
         ) : roster.length === 0 ? (
           <p className="lesson-note-empty">

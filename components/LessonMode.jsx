@@ -89,6 +89,12 @@ export default function LessonMode({
   const [addingBoard, setAddingBoard] = useState(false);
   const [newBoardName, setNewBoardName] = useState("");
   const newBoardInputRef = useRef(null);
+  // 이름이 같은 프로젝트가 이미 있을 때의 확인 — { name, id, acts } | null.
+  // 이름 칸이 수업 자료 제목으로 미리 채워져 있어, 연결하려던 손이 '만들기'로
+  // 미끄러지면 같은 이름의 빈 프로젝트가 하나 더 생깁니다. 목록에서는 제목만
+  // 보이니 둘을 구분할 수 없고, 빈 쪽에 연결되면 '활동이 사라진' 것처럼
+  // 보입니다(학생은 원래 프로젝트를 계속 쓰므로 그쪽엔 그대로 보임).
+  const [dupBoard, setDupBoard] = useState(null);
   const boardActs = board?.activities ?? [];
 
   // ── 공부중 전광판 (수업 중) ──
@@ -233,23 +239,41 @@ export default function LessonMode({
     setNewAct("");
   }
 
-  // '+ 수업 보드 추가' 클릭 — 바로 만들지 않고 이름 입력창을 엽니다.
+  // '+ 새 프로젝트' 클릭 — 바로 만들지 않고 이름 입력창을 엽니다.
   function startAddBoard() {
     setNewBoardName(lesson.title || "");
     setActError("");
+    setDupBoard(null);
     setAddingBoard(true);
   }
   function cancelAddBoard() {
     setAddingBoard(false);
     setNewBoardName("");
+    setDupBoard(null);
   }
 
-  // 입력한 이름으로 새 보드를 만들고 바로 연결합니다(취소하면 아무것도 안 만듭니다).
+  // 이미 있는 프로젝트에 그냥 연결합니다(중복 안내에서 고른 경우).
+  async function useExistingBoard(id) {
+    await onSaveBoardId?.(id);
+    cancelAddBoard();
+  }
+
+  // 입력한 이름으로 새 프로젝트를 만들고 바로 연결합니다(취소하면 아무것도 안 만듭니다).
   async function handleAddBoard(e) {
     e.preventDefault();
     // 한글 마지막 글자는 조합 중일 수 있어 실제 입력값을 먼저 읽습니다.
     const name = (newBoardInputRef.current?.value ?? newBoardName).trim();
     if (!classId || !name || makingBoard) return;
+
+    // 같은 이름이 이미 있으면 한 번 되묻습니다 — 이 안내를 띄운 그 이름으로
+    // 다시 누르면 뜻이 분명하므로 그때는 만듭니다(같은 이름을 정말 원할
+    // 수도 있으니 막지는 않습니다).
+    const dup = boards.find((b) => (b.title ?? "").trim() === name);
+    if (dup && dupBoard?.name !== name) {
+      setDupBoard({ name, id: dup.id, acts: dup.activities?.length ?? 0 });
+      return;
+    }
+
     setMakingBoard(true);
     setActError("");
     try {
@@ -262,7 +286,7 @@ export default function LessonMode({
       if (id) await onSaveBoardId?.(id);
       cancelAddBoard();
     } catch (e2) {
-      setActError(`보드를 만들지 못했어요: ${e2?.message ?? "알 수 없는 오류"}`);
+      setActError(`프로젝트를 만들지 못했어요: ${e2?.message ?? "알 수 없는 오류"}`);
     } finally {
       setMakingBoard(false);
     }
@@ -417,7 +441,7 @@ export default function LessonMode({
               title={
                 board
                   ? "학생들이 활동을 채워 가는 상황을 확인하고, 활동을 하나씩 열어 줍니다"
-                  : "‘수업관리 → 공부방 연동’에서 보드를 연결하면 활동 현황을 볼 수 있어요"
+                  : "‘수업관리 → 공부방 프로젝트 연동’에서 프로젝트를 연결하면 활동 현황을 볼 수 있어요"
               }
             >
               ✍️ 공부중 {studyingCount}/{roster.length}
@@ -658,7 +682,7 @@ export default function LessonMode({
         {editing && (
           <section className="lesson-card lesson-board">
             <div className="lesson-card-head">
-              <h2>공부방 연동</h2>
+              <h2>공부방 프로젝트 연동</h2>
               <small>여기서 만든 활동이 학생 카드의 작성 항목이 됩니다</small>
             </div>
 
@@ -666,7 +690,7 @@ export default function LessonMode({
               {/* 보드 선택 + 새 보드 만들기 */}
               {addingBoard ? (
                 <form className="lesson-board-pick lesson-board-addform" onSubmit={handleAddBoard}>
-                  <label htmlFor="lesson-board-newname">새 보드 이름</label>
+                  <label htmlFor="lesson-board-newname">새 프로젝트 이름</label>
                   <input
                     id="lesson-board-newname"
                     ref={newBoardInputRef}
@@ -682,7 +706,7 @@ export default function LessonMode({
                   {/* 조합 중인 한글은 state에 늦게 들어오므로 입력값으로
                       버튼을 잠그지 않습니다(빈 값은 handleAddBoard가 거릅니다) */}
                   <button type="submit" className="lesson-board-add" disabled={makingBoard}>
-                    {makingBoard ? "만드는 중…" : "만들기"}
+                    {makingBoard ? "만드는 중…" : dupBoard ? "그래도 만들기" : "만들기"}
                   </button>
                   <button
                     type="button"
@@ -695,7 +719,7 @@ export default function LessonMode({
                 </form>
               ) : (
                 <div className="lesson-board-pick">
-                  <label htmlFor="lesson-board-select">수업 보드</label>
+                  <label htmlFor="lesson-board-select">수업 프로젝트</label>
                   <select
                     id="lesson-board-select"
                     className="lesson-board-select"
@@ -704,8 +728,18 @@ export default function LessonMode({
                     disabled={!classId}
                   >
                     <option value="">연결 안 함</option>
+                    {/* 제목만 적으면 이름이 같은 프로젝트를 고를 때 어느 쪽인지
+                        알 수 없습니다. 활동 개수를 함께 보여 주면 "활동이 든
+                        쪽"을 바로 집을 수 있습니다 — 실제로 같은 이름의 빈
+                        프로젝트에 연결해 놓고 활동이 사라진 줄 알았던 일이
+                        있었습니다. */}
                     {boards.map((b) => (
-                      <option key={b.id} value={b.id}>{b.title}</option>
+                      <option key={b.id} value={b.id}>
+                        {b.title}
+                        {b.activities?.length
+                          ? ` · 활동 ${b.activities.length}개`
+                          : " · 활동 없음"}
+                      </option>
                     ))}
                   </select>
                   <button
@@ -714,14 +748,31 @@ export default function LessonMode({
                     onClick={startAddBoard}
                     disabled={!classId}
                   >
-                    + 수업 보드 추가
+                    + 새 프로젝트
                   </button>
                 </div>
               )}
 
+              {/* 같은 이름이 이미 있을 때 — 새로 만들기 전에 한 번 되묻습니다 */}
+              {dupBoard && (
+                <p className="lesson-board-dup" role="alert">
+                  ‘{dupBoard.name}’ 프로젝트가 이미 있어요
+                  {dupBoard.acts > 0 ? ` (활동 ${dupBoard.acts}개).` : " (활동 없음)."}{" "}
+                  같은 이름을 하나 더 만들면 목록에서 구분하기 어려워요.
+                  <button
+                    type="button"
+                    className="lesson-board-dup-use"
+                    onClick={() => useExistingBoard(dupBoard.id)}
+                    disabled={makingBoard}
+                  >
+                    그 프로젝트에 연결하기
+                  </button>
+                </p>
+              )}
+
               {!classId && (
                 <p className="lesson-note-empty">
-                  공부방에서 반을 먼저 선택하면 보드를 연결할 수 있어요.
+                  공부방에서 반을 먼저 선택하면 프로젝트를 연결할 수 있어요.
                 </p>
               )}
 
@@ -749,7 +800,7 @@ export default function LessonMode({
                     </ol>
                   ) : (
                     <p className="lesson-note-empty">
-                      아직 활동이 없어요. 아래에서 추가하면 '{board.title}' 보드에 바로 반영됩니다.
+                      아직 활동이 없어요. 아래에서 추가하면 ‘{board.title}’ 프로젝트에 바로 반영됩니다.
                     </p>
                   )}
 

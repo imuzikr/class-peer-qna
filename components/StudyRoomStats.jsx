@@ -77,7 +77,7 @@ export default function StudyRoomStats({ classes = [], boards = [], cardsByBoard
           <thead>
             <tr>
               <th>반</th>
-              <th>보드</th>
+              <th>프로젝트</th>
               <th>참여 학생</th>
               <th>제출 카드</th>
               <th>카드 제출률</th>

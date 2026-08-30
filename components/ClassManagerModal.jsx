@@ -298,7 +298,7 @@ export default function ClassManagerModal({
       {confirmDelete && (
         <ConfirmModal
           title={`'${confirmDelete.name}' 반을 완전히 삭제할까요?`}
-          description="보드·카드·과일 등 이 반의 모든 데이터가 영구히 사라지고 되돌릴 수 없어요."
+          description="프로젝트·카드·과일 등 이 반의 모든 데이터가 영구히 사라지고 되돌릴 수 없어요."
           confirmLabel="삭제"
           danger
           onConfirm={handleDelete}

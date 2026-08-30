@@ -631,11 +631,11 @@ export default function StudentReportPage() {
             <span>
               {studentBoardCount > 0
                 ? `활동 ${studyProgress.filled} / ${studyProgress.total}칸 · 프로젝트 ${studentBoardCount}개`
-                : "활동 보드 없음"}
+                : "활동 프로젝트 없음"}
             </span>
           </div>
           {studentBoardCount === 0 ? (
-            <EmptyPanel>아직 열린 수업 보드가 없어요.</EmptyPanel>
+            <EmptyPanel>아직 열린 수업 프로젝트가 없어요.</EmptyPanel>
           ) : (
             <>
               {/* 전체 활동 칸 진행 */}

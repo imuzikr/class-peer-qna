@@ -7475,6 +7475,40 @@ pre code {
   opacity: 0.5;
   cursor: default;
 }
+/* 이름이 겹칠 때의 확인 — 막는 게 아니라 되묻는 자리라 오류(빨강)가 아닌
+   주의(노랑) 색을 씁니다. */
+.lesson-board-dup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 12px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #7a5b00;
+  background: #fff8e1;
+  border: 1px solid #f0d98a;
+  border-radius: var(--radius-btn);
+}
+.lesson-board-dup-use {
+  padding: 6px 12px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: #7a5b00;
+  background: #fff;
+  border: 1px solid #e0c46a;
+  border-radius: var(--radius-btn);
+  cursor: pointer;
+}
+.lesson-board-dup-use:hover:not(:disabled) {
+  background: #fdf1c9;
+}
+.lesson-board-dup-use:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
 /* 활동 목록 — 학생 카드에 그대로 들어갈 항목들.
    번호를 '활동 1'처럼 직접 그리므로 기본 목록 마커 자리는 비웁니다. */
 .lesson-board-acts {
