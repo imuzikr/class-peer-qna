@@ -61,7 +61,8 @@ export default function StudyMyActivityCard({
   canDelete = false,
   isTeacher = false,
   writerName = "",
-  onBack,
+  onBack,        // 이 프로젝트의 카드 그리드로
+  onBackToList,  // 공부방 첫 화면(프로젝트 목록)으로 — 없으면 버튼도 안 보임
   onAsk,
   relatedQuestions = [],
 }) {
@@ -291,9 +292,22 @@ export default function StudyMyActivityCard({
   return (
     <section className="study-mycard-page">
       <div className="study-mycard-head">
-        <button type="button" className="btn-ghost" onClick={onBack}>← 프로젝트로</button>
+        {/* 제목이 맨 앞, 돌아가는 길은 그 뒤에 두 단계로 —
+            '프로젝트로'는 이 프로젝트의 카드 그리드, '프로젝트 목록'은
+            공부방 첫 화면입니다. 한 단계씩 되짚지 않고 바로 목록으로
+            나갈 수 있게 둘을 나란히 둡니다. */}
         <h2 className="study-mycard-title">{board.title}</h2>
-        <span className="paratext-progress">{doneCount} / {activities.length}개</span>
+        <button type="button" className="btn-ghost study-project-back" onClick={onBack}>
+          ← 프로젝트로
+        </button>
+        {onBackToList && (
+          <button type="button" className="btn-ghost study-project-back" onClick={onBackToList}>
+            ← 프로젝트 목록
+          </button>
+        )}
+        <span className="paratext-progress study-mycard-head-rest">
+          {doneCount} / {activities.length}개
+        </span>
         {canEdit && autoStatus !== "idle" && (
           <span className={`study-autosave-pill study-autosave-pill--${autoStatus}`}>
             {autoStatus === "saving" && "저장 중…"}

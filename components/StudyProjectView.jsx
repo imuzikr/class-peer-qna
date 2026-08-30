@@ -521,6 +521,9 @@ export default function StudyProjectView({
         isTeacher={isTeacher}
         writerName={detailSeat.mine ? user?.displayName ?? "" : detailSeat.name}
         onBack={() => setDetailSeat(null)}
+        // 카드에서 곧바로 공부방 첫 화면으로 — '프로젝트로'를 거쳐 다시
+        // '프로젝트 목록'을 누르는 두 단계를 한 번으로 줄입니다.
+        onBackToList={onBack}
         onAsk={onAsk}
         relatedQuestions={relatedQuestions}
       />
