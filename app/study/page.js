@@ -1212,9 +1212,12 @@ function StudyPageInner() {
           // 학생이 카드를 쓰는 보드만 연결 대상 — '선생님 보드'(공지용)는 제외
           boards={classBoards.filter((b) => b.type !== "notice")}
           onSaveBoardId={(boardId) => updateLesson(editingLesson.id, { boardId })}
-          onSaveNote={(index, text) => {
+          // patch = { note, noteTitle } — 해설의 제목과 본문을 함께 받습니다.
+          // 예전 자료에는 noteTitle이 없는데, 없던 필드가 빈 문자열로 채워질
+          // 뿐이라 기존 note 내용은 그대로 남습니다.
+          onSaveNote={(index, patch) => {
             const slides = (editingLesson.slides ?? []).map((s, i) =>
-              i === index ? { ...s, note: text } : s
+              i === index ? { ...s, ...patch } : s
             );
             return updateLesson(editingLesson.id, { slides });
           }}

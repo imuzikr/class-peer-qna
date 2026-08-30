@@ -64,6 +64,9 @@ export default function LessonMode({
   const total = slides.length;
   const [idx, setIdx] = useState(0);
   const [note, setNote] = useState(slides[0]?.note ?? "");
+  // 해설 제목 — 예전 자료에는 이 필드가 없습니다. 그때는 note 하나에 다
+  // 적었으므로, 없으면 빈 제목으로 두고 본문은 그대로 둡니다(내용 손실 없음).
+  const [noteTitle, setNoteTitle] = useState(slides[0]?.noteTitle ?? "");
   const [saved, setSaved] = useState(false);
   // 프레젠테이션 중일 때만 학생 화면이 전환됩니다(수업하기로 들어온 것만으론 안 바뀜)
   const [presenting, setPresenting] = useState(false);
@@ -268,6 +271,7 @@ export default function LessonMode({
   // 장을 넘기면 그 장의 해설을 불러옵니다.
   useEffect(() => {
     setNote(slides[idx]?.note ?? "");
+    setNoteTitle(slides[idx]?.noteTitle ?? "");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idx, lesson.id]);
 
@@ -281,18 +285,22 @@ export default function LessonMode({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [acts, editing]);
 
-  // 메모 자동 저장 — 입력이 0.8초 멈추면 저장(편집 모드에서만)
+  // 메모 자동 저장 — 입력이 0.8초 멈추면 저장(편집 모드에서만).
+  // 제목과 본문을 한 번에 저장합니다 — 따로 저장하면 슬라이드 배열을 각각
+  // 다시 쓰게 되어, 두 저장이 겹칠 때 먼저 것이 덮여 사라질 수 있습니다.
   useEffect(() => {
     if (!editing) return;
-    if (note === (slides[idx]?.note ?? "")) return;
+    const sameNote = note === (slides[idx]?.note ?? "");
+    const sameTitle = noteTitle === (slides[idx]?.noteTitle ?? "");
+    if (sameNote && sameTitle) return;
     const t = setTimeout(async () => {
-      await onSaveNote?.(idx, note);
+      await onSaveNote?.(idx, { note, noteTitle });
       setSaved(true);
       setTimeout(() => setSaved(false), 1500);
     }, 800);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [note, idx, editing]);
+  }, [note, noteTitle, idx, editing]);
 
   // 프레젠테이션 중일 때만 현재 장을 방송해 학생 화면을 같은 장으로 맞춥니다.
   // (수업하기로 들어오기만 해서는 학생 화면이 바뀌지 않습니다 — 교사가 미리
@@ -541,14 +549,32 @@ export default function LessonMode({
 
             <div className="lesson-note-body">
               {editing ? (
-                <textarea
-                  className="lesson-note-input"
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  placeholder="이 장에서 할 이야기, 발문, 활동 안내를 적어 두세요."
-                />
-              ) : note.trim() ? (
-                <div className="lesson-note-text">{note}</div>
+                <>
+                  {/* 제목과 본문을 나눠 받습니다. 전자칠판에 이 화면을 띄워
+                      놓고 이야기하므로, 지금 무슨 이야기인지가 한눈에 보여야
+                      합니다 — 한 칸에 다 적으면 첫 줄이 제목인지 본문인지
+                      화면에서 구분되지 않습니다. */}
+                  <input
+                    type="text"
+                    className="lesson-note-title-input"
+                    value={noteTitle}
+                    onChange={(e) => setNoteTitle(e.target.value)}
+                    placeholder="제목 — 이 장에서 다룰 것 (예: 디지털의 본뜻)"
+                  />
+                  <textarea
+                    className="lesson-note-input"
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    placeholder="내용 — 할 이야기, 발문, 활동 안내를 적어 두세요."
+                  />
+                </>
+              ) : noteTitle.trim() || note.trim() ? (
+                <>
+                  {noteTitle.trim() && (
+                    <h4 className="lesson-note-title">{noteTitle}</h4>
+                  )}
+                  {note.trim() && <div className="lesson-note-text">{note}</div>}
+                </>
               ) : (
                 <p className="lesson-note-empty">이 장에는 해설이 없어요.</p>
               )}
