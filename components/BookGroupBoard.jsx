@@ -462,9 +462,28 @@ function GroupProgress({
 
   const absentCount = rows.filter((m) => absentUids.has(m.uid)).length;
 
+  // 14칸을 다 채운 사람 수 — '이제 다음으로 넘어가도 되나'에 바로 답합니다.
+  // 이 패널이 이미 세어 둔 rows에서 나오는 값이라 읽기가 1건도 안 늡니다.
+  //
+  // 세는 범위가 화면마다 다릅니다. 개별 활동은 반 전체 판을 다 받으므로 반
+  // 전체이고, 모둠 활동은 고른 모둠 하나만 받으므로 그 모둠원입니다 — 반
+  // 전체를 보려면 '전체 보기'로 갑니다(그 화면은 모든 판을 받습니다).
+  // 없는 자료를 여기서 더 읽어 채우면 이 화면이 활동 크기에 비례해 무거워집니다.
+  const doneCount = rows.filter((m) => m.filled >= CELL_COUNT).length;
+
   return (
     <aside className="dash-side book-group-progress">
-      <h3>{title}</h3>
+      <h3>
+        {title}
+        {rows.length > 0 && (
+          <b
+            className="book-progress-done"
+            title={`${CELL_COUNT}칸을 다 채운 ${colorByRow ? "학생" : "모둠원"} ${doneCount}명 / ${rows.length}명`}
+          >
+            다 채움 {doneCount} / {rows.length}
+          </b>
+        )}
+      </h3>
       {attendanceKnown && (
         <p className="book-progress-legend">
           {activityDate} 출석 기준 · 결석 {absentCount}명

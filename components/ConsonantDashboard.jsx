@@ -111,6 +111,41 @@ export default function ConsonantDashboard({
     [groups, wordsByGroup]
   );
 
+  // 14칸을 다 채운 학생 수 — '이제 다음으로 넘어가도 되나'에 바로 답하는 값.
+  //
+  // 세는 단위는 낱말이 아니라 **칸**입니다. 한 칸에 낱말을 셋 넣어도 그 칸은
+  // 하나로 셉니다(13칸에 낱말 14개면 13칸). 낱말 수로 세면 한 칸에 몰아 넣은
+  // 학생이 골고루 채운 학생보다 앞서 보입니다.
+  //
+  // 분모는 그 활동에 배정된 학생 전원 — 한 칸도 안 채운 학생도 들어갑니다.
+  // 그러지 않으면 둘만 참여한 반이 100%로 보입니다.
+  //
+  // 이 화면은 이미 모든 판의 낱말을 구독하고 있어(위 wordsByGroup) 이 값을
+  // 내는 데 **추가로 읽는 문서가 없습니다**. 활동 목록 카드에 두지 않고 여기에
+  // 둔 이유가 그것입니다 — 목록은 카드가 쌓이는 곳이라 카드마다 활동의 낱말을
+  // 전부 읽으면 활동 수에 정비례해 무거워집니다.
+  const doneCount = useMemo(() => {
+    const cells = new Map(); // uid → 채운 칸 집합
+    groups.forEach((g) => {
+      (g.members ?? []).forEach((m) => { if (m?.uid) cells.set(m.uid, new Set()); });
+      (g.memberUids ?? []).forEach((u) => { if (u && !cells.has(u)) cells.set(u, new Set()); });
+    });
+    groups.forEach((g) => {
+      (wordsByGroup[g.id] ?? []).forEach((w) => {
+        // 반에서 빠진 학생이 남긴 낱말은 세지 않습니다('학생별 진행'과 같은 기준)
+        if (w.authorId && w.cellKey && cells.has(w.authorId)) {
+          cells.get(w.authorId).add(w.cellKey);
+        }
+      });
+    });
+    const filled = [...cells.values()].map((c) => c.size);
+    return {
+      students: filled.length,
+      done: filled.filter((n) => n >= CELL_COUNT).length,
+      totalFilled: filled.reduce((a, b) => a + b, 0),
+    };
+  }, [groups, wordsByGroup]);
+
   // 반 전체가 지금까지 모은 낱말 수 (칸 수와 별개로 활동량을 보여 줍니다)
   const totalWords = useMemo(
     () => Object.values(wordsByGroup).reduce((n, list) => n + (list?.length ?? 0), 0),
@@ -195,6 +230,17 @@ export default function ConsonantDashboard({
           <strong>{embedded ? "집계 보기" : activity.topic}</strong>
           <span>
             모둠 {groups.length}개 · {totalFilled} / {CELL_COUNT}칸 · 낱말 {totalWords}개
+            {doneCount.students > 0 && (
+              <b
+                className="dash-done-count"
+                title={
+                  `${CELL_COUNT}칸을 다 채운 학생 ${doneCount.done}명 / ${doneCount.students}명\n` +
+                  `반 평균 ${(doneCount.totalFilled / doneCount.students).toFixed(1)}칸`
+                }
+              >
+                다 채운 학생 {doneCount.done} / {doneCount.students}
+              </b>
+            )}
           </span>
         </div>
         {/* 제목 바로 뒤 — 수업 중에 관찰한 것을 적으러 화면을 옮기지 않게 */}

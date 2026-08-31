@@ -29,8 +29,6 @@ import {
   subscribeStudyGroupAssignment,
   subscribeStudyBoards,
   subscribeClassStudyAttendance,
-  fetchConsonantProgress,
-  invalidateConsonantProgress,
 } from "@/lib/store";
 import { isFirebaseConfigured } from "@/lib/firebase";
 import { isAdmin, isTeacher } from "@/lib/user";
@@ -55,7 +53,6 @@ import KwlsBoard from "@/components/KwlsBoard";
 import KwlsForm from "@/components/KwlsForm";
 import MindmapBoard from "@/components/MindmapBoard";
 import MindmapForm from "@/components/MindmapForm";
-import { CELL_COUNT } from "@/lib/consonants";
 import { IconBook, IconTrash } from "@/components/StatusIcons";
 
 const ACTIVITY_KINDS = [
@@ -146,9 +143,6 @@ function BooksPageInner() {
     router.push(kindKey ? `/books?kind=${kindKey}` : "/books");
   }
   function goToActivity(activity) {
-    // 안에서 수업하고 목록으로 돌아왔을 때 묵은 진행률이 남지 않도록,
-    // 여는 순간 그 활동의 캐시만 버립니다(다시 그릴 때 새로 읽습니다).
-    invalidateConsonantProgress(activity.id);
     router.push(`/books?kind=${activity.type}&activity=${activity.id}`);
   }
 
@@ -669,30 +663,11 @@ function ActivityCard({ activity, isTeacher, onOpen, onDelete, onToggleLock }) {
     return subscribeBookGroups(activity.id, setGroups);
   }, [activity.id, soloLabel]);
 
-  // 반 평균 진행률 — 학생 한 명이 14칸 중 몇 칸을 채웠나(낱말 수가 아니라 칸 수).
-  // 교사만, 닿소리 채우기만. 낱말을 전부 읽어야 나오는 값이라 실시간 구독이
-  // 아니라 한 번 읽고 캐시합니다(lib/store.js의 fetchConsonantProgress 참고).
-  // 학생에게는 걸지 않습니다 — 규칙상 남의 판 낱말을 못 읽어 어차피 반쪽 값이
-  // 나오고, 반 평균은 학생에게 보여 줄 자리도 아닙니다.
-  const [progress, setProgress] = useState(null);
-  useEffect(() => {
-    if (!isTeacher || soloLabel) { setProgress(null); return; }
-    let alive = true;
-    fetchConsonantProgress(activity.id)
-      .then((p) => { if (alive) setProgress(p); })
-      .catch(() => { if (alive) setProgress(null); });
-    return () => { alive = false; };
-  }, [isTeacher, soloLabel, activity.id]);
-
-  // 카드에 내놓는 숫자는 '14칸을 다 채운 학생 수'입니다. 평균은 소수점이 붙어
-  // 한눈에 안 읽히는데, 교사가 실제로 알고 싶은 건 '다음으로 넘어가도 되나'라
-  // 다 끝낸 사람 수가 그 물음에 바로 답합니다. 평균은 말풍선으로 남깁니다 —
-  // 아무도 다 못 채운 초반에 0/25만 보이면 반이 멈춘 것처럼 읽히기 때문입니다.
-  const hasProgress = progress && progress.students > 0;
-  const donePercent = hasProgress
-    ? Math.round((progress.done / progress.students) * 100)
-    : 0;
-  const avgFilled = hasProgress ? progress.totalFilled / progress.students : 0;
+  // 진행률(14칸을 다 채운 학생 수)은 여기가 아니라 활동을 연 화면에 있습니다.
+  // 그 값을 내려면 활동의 낱말을 전부 읽어야 하는데, 목록은 카드가 계속
+  // 쌓이는 곳이라 카드마다 그 계산을 돌리면 활동 수에 정비례해 무거워집니다
+  // (활동 20개면 목록 한 번 여는 데 7천여 건). 반면 작업 화면과 전체 보기는
+  // 이미 그 활동의 낱말을 전부 읽고 있어, 거기서는 읽기가 1건도 안 늡니다.
 
   const modeLabel =
     { solo: "개별 활동", teacher: "교사 배정", random: "무작위 배정", free: "자유 구성" }[
@@ -720,22 +695,6 @@ function ActivityCard({ activity, isTeacher, onOpen, onDelete, onToggleLock }) {
               : `모둠 ${groups.length}개 · ${modeLabel}`)}
           {activity.locked && " · 잠김"}
         </span>
-        {hasProgress && (
-          <span
-            className="book-activity-progress"
-            title={
-              `${CELL_COUNT}칸을 다 채운 학생 ${progress.done}명 / ${progress.students}명\n` +
-              `반 평균 ${avgFilled.toFixed(1)}칸 · 가장 많이 채운 학생 ${progress.best}칸`
-            }
-          >
-            <span className="book-activity-progress-bar">
-              <i style={{ width: `${donePercent}%` }} />
-            </span>
-            <span className="book-activity-progress-text">
-              다 채운 학생 <b>{progress.done}</b> / {progress.students}
-            </span>
-          </span>
-        )}
       </button>
       {isTeacher && (
         <div className="book-activity-actions">
