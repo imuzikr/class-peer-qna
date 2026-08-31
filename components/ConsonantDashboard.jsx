@@ -17,6 +17,7 @@ import {
   subscribeGroupWords,
   startBroadcast,
   stopBroadcast,
+  toDate,
 } from "@/lib/store";
 import {
   CONSONANT_LABELS,
@@ -70,7 +71,12 @@ export default function ConsonantDashboard({
   }, [groups]);
 
   // 칸별 → 같은 단어끼리 묶되, 나온 횟수만큼 모둠 정보를 그대로 남깁니다.
-  //   [{ text, count, from: [모둠번호, 모둠번호, …] }]  ← 많이 나온 단어가 위로
+  //   [{ text, count, firstAt, from: [모둠번호, 모둠번호, …] }]
+  //
+  // 정렬은 ① 많이 나온 순 ② 같으면 먼저 채운 순입니다. 격자에는 위에서
+  // 다섯 개만 서는데, 동점이 여섯이면 무엇이 잘릴지 가나다순으로 정하면
+  // 수업의 흐름과 아무 상관 없는 기준이 됩니다. 먼저 적은 낱말이 남는 쪽이
+  // '누가 먼저 떠올렸나'와 맞아, 칠판에서 이야기를 이어가기 좋습니다.
   const merged = useMemo(() => {
     const cells = {};
     groups.forEach((g) => {
@@ -78,8 +84,11 @@ export default function ConsonantDashboard({
         const key = (w.text ?? "").trim();
         if (!key) return;
         const bucket = (cells[w.cellKey] ??= new Map());
-        const hit = bucket.get(key) ?? { text: key, from: [] };
+        const hit = bucket.get(key) ?? { text: key, from: [], firstAt: Infinity };
         hit.from.push(g.groupIndex);
+        // 방금 넣어 서버 시각이 아직 안 붙은 낱말은 맨 뒤로 둡니다(Infinity).
+        const at = w.createdAt ? toDate(w.createdAt).getTime() : Infinity;
+        if (Number.isFinite(at) && at < hit.firstAt) hit.firstAt = at;
         bucket.set(key, hit);
       });
     });
@@ -87,7 +96,12 @@ export default function ConsonantDashboard({
     Object.entries(cells).forEach(([k, bucket]) => {
       out[k] = [...bucket.values()]
         .map((w) => ({ ...w, count: w.from.length }))
-        .sort((a, b) => b.count - a.count || a.text.localeCompare(b.text, "ko"));
+        .sort(
+          (a, b) =>
+            b.count - a.count ||
+            a.firstAt - b.firstAt ||
+            a.text.localeCompare(b.text, "ko")
+        );
     });
     return out;
   }, [groups, wordsByGroup]);
@@ -283,8 +297,13 @@ export default function ConsonantDashboard({
                 className={`consonant-cell dash-cell${list.length ? " has-words" : ""}`}
                 onClick={() => setZoomSlot(slot)}
               >
-                <span className="consonant-label">{CONSONANT_LABELS[slot]}</span>
-                <WordRows list={list} colorOf={colorOf} nameOf={groupNameOf} />
+                <span className="consonant-cell-head">
+                  <span className="consonant-label">{CONSONANT_LABELS[slot]}</span>
+                  {list.length > 0 && (
+                    <span className="dash-cell-count">{list.length}개</span>
+                  )}
+                </span>
+                <TopWords list={list} />
               </button>
             );
           })}
@@ -369,6 +388,36 @@ export default function ConsonantDashboard({
 
 // 단어 한 줄 = 같은 단어. 나온 횟수만큼 카드를 반복해 늘어놓아
 // 줄 길이만으로 어떤 단어가 많이 나왔는지 바로 보이게 합니다.
+// 격자 칸 — 많이 나온 낱말 다섯 개만.
+//
+// 예전에는 칸마다 모든 낱말을, 그것도 나온 횟수만큼 반복해 늘어놓았습니다.
+// 낱말이 쉰 개일 때는 '줄 길이 = 언급 횟수'가 막대그래프처럼 읽혔지만,
+// 오백 개가 되자 글자가 잘리고(폭 62px 고정) 칸마다 안쪽 스크롤이 생겨
+// 대부분이 영영 안 보이는 화면이 됐습니다. 칠판에서는 굴릴 수도 없습니다.
+//
+// 그래서 격자는 '많이 나온 다섯 개'만 크게 보여 주는 자리로 바꿉니다.
+// 반복 대신 ×3 배지로 횟수를 적고, 폭 고정을 풀어 잘리지 않게 합니다.
+// 나머지는 '+29개'로 접고, 칸을 누르면 뜨는 크게 보기에 전부 있습니다
+// (거기는 한 칸만 쓰므로 예전처럼 모둠 색과 반복을 그대로 둡니다).
+const TOP_N = 5;
+
+function TopWords({ list }) {
+  if (!list?.length) return null;
+  const shown = list.slice(0, TOP_N);
+  const rest = list.length - shown.length;
+  return (
+    <div className="dash-top">
+      {shown.map((w) => (
+        <span key={w.text} className="dash-top-word">
+          {w.text}
+          {w.count > 1 && <em>×{w.count}</em>}
+        </span>
+      ))}
+      {rest > 0 && <span className="dash-top-more">+{rest}개 · 눌러서 보기</span>}
+    </div>
+  );
+}
+
 function WordRows({ list, colorOf, nameOf, big = false }) {
   return (
     <div className={`dash-rows${big ? " big" : ""}`}>

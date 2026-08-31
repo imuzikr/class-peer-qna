@@ -88,8 +88,13 @@ export default function PresentationOverlay({ broadcast }) {
                   key={pos}
                   className={`consonant-cell dash-cell${list.length ? " has-words" : ""}`}
                 >
-                  <span className="consonant-label">{CONSONANT_LABELS[slot]}</span>
-                  <CastRows list={list} />
+                  <span className="consonant-cell-head">
+                    <span className="consonant-label">{CONSONANT_LABELS[slot]}</span>
+                    {list.length > 0 && (
+                      <span className="dash-cell-count">{list.length}개</span>
+                    )}
+                  </span>
+                  <CastTopWords list={list} />
                 </div>
               );
             })}
@@ -264,7 +269,28 @@ export default function PresentationOverlay({ broadcast }) {
   return <PresentationOverlayBody broadcast={broadcast} />;
 }
 
-// 집계 낱말 줄 — 교사 화면(WordRows)과 같은 클래스를 써서 생김새를 맞춥니다.
+// 격자 칸 — 교사 화면(TopWords)과 같은 모습. 많이 나온 낱말 다섯 개만 크게.
+// 방송 꾸러미의 낱말은 이미 '많이 나온 순 → 먼저 채운 순'으로 정렬돼 옵니다.
+const CAST_TOP_N = 5;
+
+function CastTopWords({ list }) {
+  if (!list?.length) return null;
+  const shown = list.slice(0, CAST_TOP_N);
+  const rest = list.length - shown.length;
+  return (
+    <div className="dash-top">
+      {shown.map((w) => (
+        <span key={w.text} className="dash-top-word">
+          {w.text}
+          {w.count > 1 && <em>×{w.count}</em>}
+        </span>
+      ))}
+      {rest > 0 && <span className="dash-top-more">+{rest}개</span>}
+    </div>
+  );
+}
+
+// 크게 보기 모달 안의 낱말 줄 — 교사 화면(WordRows)과 같은 클래스입니다.
 function CastRows({ list, big = false }) {
   if (!list?.length) return null;
   return (
