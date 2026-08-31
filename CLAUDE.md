@@ -111,6 +111,14 @@ Firebase 미설정 시 자동으로 **데모 모드**로 동작 (새로고침 �
     적습니다 — 관찰 화면(히트맵·리포트·교사 패널)이 전부 이 컬렉션을 보므로
     이것만으로 두 곳의 KWLS가 한 흐름이 됩니다. 과거분은
     `npm run kwls:backfill` 로 옮깁니다(기본은 미리보기, `--apply` 로 실제 쓰기)
+- `bookActivities/{id}/groups/{gId}/words` — 책방 닿소리 낱말
+  - `groupMode: 'solo'`(개별 활동)는 **구성원이 한 명뿐인 판**을 학생마다 하나씩
+    둡니다. 새 컬렉션을 만들지 않아 학생 화면·교사 전체 보기·낱말 권한
+    (`isMyBookGroup`)이 그대로 쓰입니다.
+  - 이미 모둠으로 진행한 활동을 개별로 바꾸려면 `npm run books:to-solo`
+    (인자 없이 실행하면 활동 목록, `<활동id>`로 미리보기, `--apply`로 실제).
+    낱말 생성 규칙이 `authorId == 본인`이라 교사가 남의 낱말을 옮겨 적을 수
+    없어서, 앱이 아니라 admin SDK 스크립트로 처리합니다.
 - `classes/{classId}/rewardEvents` — **과일 지급 이력** (uid, delta, count, byUid, at)
   - `rewards`는 누적 총계뿐이라 '언제 몇 개 받았나'가 없습니다. 참여의 변화를
     보려면 시계열이 필요해 지급할 때마다 한 건 적습니다(`setStudentReward`가
