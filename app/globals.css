@@ -11306,6 +11306,28 @@ a.lesson-board-file-name { text-decoration: underline; }
   flex-shrink: 0;
 }
 
+/* 활동 머리말 둘째 줄(활동 모둠 · 주제어 · 반)만 예외로 작게.
+   -------------------------------------------------------------
+   위 첫 줄은 화면을 옮기는 버튼들이라 어느 화면에서나 같은 크기여야 하지만,
+   이 줄은 '무엇을 읽는 활동이고 어느 반인가'를 알려 주는 딸림 정보입니다.
+   38px로 키우면 제목 줄과 무게가 같아져 어느 쪽을 먼저 봐야 할지 흐려집니다.
+   '활동 모둠'도 그 곁에 붙는 자리라 함께 작게 둡니다.
+   ('전체 보기'는 이 화면에서 가장 앞서는 행동이라 38px 그대로입니다) */
+.books-head-row .books-head-main .btn-ghost,
+.books-head-row .books-head-main .book-group-topic,
+.books-head-row .books-head-main .book-group-class {
+  height: auto;
+  padding: 6px 12px;
+  font-size: 13px;
+  line-height: 1;
+}
+/* 배지에도 '보이지 않는 테두리'를 둡니다 — 버튼만 1px 테두리를 갖고 있어
+   나란히 서면 배지가 2px 낮았습니다. 자리만 차지하고 보이지는 않습니다. */
+.books-head-row .books-head-main .book-group-topic,
+.books-head-row .books-head-main .book-group-class {
+  border: 1px solid transparent;
+}
+
 /* 활동 자료 다운로드 모달 — 범위(이 반/전체)·형식(CSV/Excel/PDF) 선택 */
 .modal.modal-export {
   max-width: 560px;
