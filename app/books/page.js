@@ -684,11 +684,15 @@ function ActivityCard({ activity, isTeacher, onOpen, onDelete, onToggleLock }) {
     return () => { alive = false; };
   }, [isTeacher, soloLabel, activity.id]);
 
-  // 평균은 소수 한 자리까지 — 26명 반에서 한 사람이 한 칸을 더 채우면
-  // 0.04칸이 움직입니다. 정수로 자르면 오전 내내 숫자가 안 바뀝니다.
-  const avgFilled =
-    progress && progress.students > 0 ? progress.totalFilled / progress.students : null;
-  const avgPercent = avgFilled == null ? 0 : Math.round((avgFilled / CELL_COUNT) * 100);
+  // 카드에 내놓는 숫자는 '14칸을 다 채운 학생 수'입니다. 평균은 소수점이 붙어
+  // 한눈에 안 읽히는데, 교사가 실제로 알고 싶은 건 '다음으로 넘어가도 되나'라
+  // 다 끝낸 사람 수가 그 물음에 바로 답합니다. 평균은 말풍선으로 남깁니다 —
+  // 아무도 다 못 채운 초반에 0/25만 보이면 반이 멈춘 것처럼 읽히기 때문입니다.
+  const hasProgress = progress && progress.students > 0;
+  const donePercent = hasProgress
+    ? Math.round((progress.done / progress.students) * 100)
+    : 0;
+  const avgFilled = hasProgress ? progress.totalFilled / progress.students : 0;
 
   const modeLabel =
     { solo: "개별 활동", teacher: "교사 배정", random: "무작위 배정", free: "자유 구성" }[
@@ -716,16 +720,19 @@ function ActivityCard({ activity, isTeacher, onOpen, onDelete, onToggleLock }) {
               : `모둠 ${groups.length}개 · ${modeLabel}`)}
           {activity.locked && " · 잠김"}
         </span>
-        {avgFilled != null && (
+        {hasProgress && (
           <span
             className="book-activity-progress"
-            title={`학생 ${progress.students}명 평균 · 가장 많이 채운 학생 ${progress.best}칸`}
+            title={
+              `${CELL_COUNT}칸을 다 채운 학생 ${progress.done}명 / ${progress.students}명\n` +
+              `반 평균 ${avgFilled.toFixed(1)}칸 · 가장 많이 채운 학생 ${progress.best}칸`
+            }
           >
             <span className="book-activity-progress-bar">
-              <i style={{ width: `${avgPercent}%` }} />
+              <i style={{ width: `${donePercent}%` }} />
             </span>
             <span className="book-activity-progress-text">
-              평균 <b>{avgFilled.toFixed(1)}</b> / {CELL_COUNT}칸 · {avgPercent}%
+              다 채운 학생 <b>{progress.done}</b> / {progress.students}
             </span>
           </span>
         )}
