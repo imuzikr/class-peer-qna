@@ -13,9 +13,21 @@
 //
 // 낱말은 예전과 같은 곳(모둠의 words)에 저장됩니다. 문서마다 authorId가
 // 있어서, 걸러 보여 주는 기준만 달라질 뿐 자료 구조는 그대로입니다.
+//
+// [개별 활동(groupMode: 'solo')]
+//   판 하나가 곧 학생 한 명입니다. 읽는 책이 저마다 다를 수 있어 교사는 주제어를
+//   비워 둘 수 있고, 학생이 한가운데 칸을 두 번 눌러 직접 적습니다(판에 저장).
+//   또 '누가 넣었는지'를 색으로 나눌 이유가 없으므로(한 판에 한 사람) 낱말에
+//   사람 색을 입히지 않고 범례도 두지 않습니다.
 // =============================================================
 import { useEffect, useMemo, useRef, useState } from "react";
-import { subscribeBookGroups, subscribeGroupWords, addConsonantWord, deleteConsonantWord } from "@/lib/store";
+import {
+  subscribeBookGroups,
+  subscribeGroupWords,
+  addConsonantWord,
+  deleteConsonantWord,
+  setBookGroupTopic,
+} from "@/lib/store";
 import { CONSONANT_LABELS, GRID_SLOTS, CELL_COUNT, cellKey } from "@/lib/consonants";
 import { memberColor, memberLegend } from "@/lib/bookColors";
 import { IconLock } from "./StatusIcons";
@@ -35,6 +47,9 @@ export default function ConsonantCanvas({
   const [activeIndex, setActiveIndex] = useState(null); // 입력창이 열린 자음 칸
   const [draft, setDraft] = useState("");
   const inputRef = useRef(null);
+  const [topicEditing, setTopicEditing] = useState(false); // 개별 활동 — 주제어 고치는 중
+  const [topicDraft, setTopicDraft] = useState("");
+  const topicRef = useRef(null);
 
   useEffect(() => subscribeGroupWords(activity.id, groupId, setWords), [activity.id, groupId]);
   useEffect(() => subscribeBookGroups(activity.id, setGroups), [activity.id]);
@@ -45,16 +60,23 @@ export default function ConsonantCanvas({
   // 교사는 확인만 하고, 입력은 그 모둠 학생이 합니다. 잠긴 활동도 입력 불가.
   const canWrite = mineOnly && isMember && !activity.locked;
 
+  // 개별 활동 — 판 하나가 한 사람. 사람 색 구분(범례·낱말 색)이 필요 없습니다.
+  const perStudent = activity.groupMode === "solo";
+  // 판에 적은 주제어가 있으면 그것이 우선, 없으면 교사가 활동에 적어 둔 것.
+  const boardTopic = ((perStudent ? group?.topic : "") || activity.topic || "").trim();
+  // 주제어를 고칠 수 있는 사람 — 개별 활동에서 자기 판을 보는 학생, 그리고 교사.
+  const canEditTopic = perStudent && !activity.locked && (mineOnly ? isMember : !!isTeacher);
+
   // '내 판'은 내가 넣은 낱말만 담습니다.
   const shown = useMemo(
     () => (mineOnly ? words.filter((w) => w.authorId === user?.uid) : words),
     [words, mineOnly, user?.uid]
   );
 
-  // 모둠 판 범례 — 누가 어떤 색인지
+  // 모둠 판 범례 — 누가 어떤 색인지 (개별 활동은 한 판에 한 사람이라 없음)
   const legend = useMemo(
-    () => (mineOnly ? [] : memberLegend(group)),
-    [mineOnly, group]
+    () => (mineOnly || perStudent ? [] : memberLegend(group)),
+    [mineOnly, perStudent, group]
   );
 
   // 자음 칸별로 단어를 모아 둡니다 (오래된 순)
@@ -91,6 +113,24 @@ export default function ConsonantCanvas({
     if (!canWrite) return;
     setActiveIndex(index);
     setDraft("");
+  }
+
+  // ── 한가운데 주제어 (개별 활동) ──
+  useEffect(() => {
+    if (topicEditing) topicRef.current?.select();
+  }, [topicEditing]);
+
+  function startTopicEdit() {
+    if (!canEditTopic) return;
+    setTopicDraft(((perStudent ? group?.topic : "") || "").trim());
+    setTopicEditing(true);
+  }
+
+  async function saveTopic() {
+    const text = topicDraft.trim();
+    setTopicEditing(false);
+    if (text === ((group?.topic ?? "").trim())) return;
+    await setBookGroupTopic(activity.id, groupId, text);
   }
 
   const Root = embedded ? "div" : "main";
@@ -153,9 +193,34 @@ export default function ConsonantCanvas({
           // 한가운데 — 주제어 칸
           if (slot === null) {
             return (
-              <div key={pos} className="consonant-cell consonant-center">
+              <div
+                key={pos}
+                className={`consonant-cell consonant-center${canEditTopic ? " editable" : ""}`}
+                onDoubleClick={startTopicEdit}
+                title={canEditTopic ? "두 번 눌러 주제를 적을 수 있어요" : undefined}
+              >
                 <span className="consonant-center-label">학습주제 · 도서명</span>
-                <strong className="consonant-center-topic">{activity.topic}</strong>
+                {topicEditing ? (
+                  <input
+                    ref={topicRef}
+                    className="consonant-center-input"
+                    value={topicDraft}
+                    onChange={(e) => setTopicDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") { e.preventDefault(); saveTopic(); }
+                      else if (e.key === "Escape") setTopicEditing(false);
+                    }}
+                    onBlur={saveTopic}
+                    placeholder="주제어 · 도서명"
+                    maxLength={40}
+                  />
+                ) : boardTopic ? (
+                  <strong className="consonant-center-topic">{boardTopic}</strong>
+                ) : (
+                  <strong className="consonant-center-topic is-empty">
+                    {canEditTopic ? "두 번 눌러 적기" : "주제 미정"}
+                  </strong>
+                )}
               </div>
             );
           }
@@ -185,7 +250,8 @@ export default function ConsonantCanvas({
               <div className="consonant-words">
                 {list.map((w) => {
                   // 모둠 판에서는 낱말 색으로 누가 넣었는지 구분합니다.
-                  const c = mineOnly ? null : memberColor(group, w.authorId);
+                  // (개별 활동은 한 판에 한 사람뿐이라 색을 나눌 게 없습니다)
+                  const c = mineOnly || perStudent ? null : memberColor(group, w.authorId);
                   return (
                   <span
                     key={w.id}
@@ -242,6 +308,7 @@ export default function ConsonantCanvas({
       {canWrite && (
         <p className="canvas-hint">
           칸의 ＋를 누르고 단어를 적은 뒤 Enter를 누르세요. 내가 넣은 단어는 ×로 지울 수 있어요.
+          {canEditTopic && " 한가운데 칸을 두 번 누르면 주제어를 적을 수 있어요."}
         </p>
       )}
     </Root>

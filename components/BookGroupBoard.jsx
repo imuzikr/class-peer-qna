@@ -29,7 +29,7 @@ import {
   toDate,
 } from "@/lib/store";
 import { CELL_COUNT, CONSONANT_LABELS, heatOpacity, cellKey } from "@/lib/consonants";
-import { memberLegend } from "@/lib/bookColors";
+import { memberLegend, rowColor } from "@/lib/bookColors";
 import GroupComposer from "./GroupComposer";
 import ConsonantCanvas from "./ConsonantCanvas";
 import { IconPeople, IconLock } from "./StatusIcons";
@@ -138,7 +138,10 @@ export default function BookGroupBoard({
               <IconPeople size={15} /> 활동 모둠
             </button>
           )}
-          <span className="book-group-topic">{activity.topic}</span>
+          {/* 개별 활동은 주제어를 비워 둘 수 있습니다(학생이 자기 판에 적음) */}
+          {(activity.topic ?? "").trim() && (
+            <span className="book-group-topic">{activity.topic}</span>
+          )}
           {/* 이 활동이 어느 반 것인지 — 학생에게 안 보이면 반이 다른 경우가 많아 표시 */}
           {className && <span className="book-group-class">{className}</span>}
         </div>
@@ -356,6 +359,7 @@ export default function BookGroupBoard({
               attendanceKnown={attendanceKnown}
               activityDate={activityDate}
               pickedUid={perStudent ? (picked?.members ?? [])[0]?.uid ?? null : null}
+              colorByRow={perStudent}
             />
           )}
         </div>
@@ -377,6 +381,11 @@ export default function BookGroupBoard({
 // 0칸은 '아직 안 썼다'와 '그날 못 왔다' 둘 다일 수 있는데, 교사가 볼 때
 // 이 둘은 완전히 다른 이야기입니다. 출석 기록이 있는 날에만 결석을
 // 구분해 붙입니다(출석을 안 받은 날은 아무 표시도 하지 않습니다).
+//
+// [colorByRow — 개별 활동의 줄 색]
+// 모둠 활동의 색은 '모둠 안에서 몇 번째 자리인가'로 정합니다. 그런데 개별
+// 활동은 판마다 사람이 한 명뿐이라 모두가 첫 번째 색 하나로만 칠해집니다.
+// 그래서 이때는 모둠 자리가 아니라 목록의 줄 번호로 색을 정합니다(10색 되풀이).
 function GroupProgress({
   activity,
   groups = [],
@@ -385,6 +394,7 @@ function GroupProgress({
   attendanceKnown = false,
   activityDate = "",
   pickedUid = null,
+  colorByRow = false,
 }) {
   const [wordsByGroup, setWordsByGroup] = useState({});
 
@@ -424,8 +434,8 @@ function GroupProgress({
         });
       });
     });
-    return out;
-  }, [groups, wordsByGroup]);
+    return colorByRow ? out.map((m, i) => ({ ...m, color: rowColor(i) })) : out;
+  }, [groups, wordsByGroup, colorByRow]);
 
   const absentCount = rows.filter((m) => absentUids.has(m.uid)).length;
 

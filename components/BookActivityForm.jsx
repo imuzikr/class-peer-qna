@@ -69,9 +69,14 @@ export default function BookActivityForm({ onSave, onClose, initialType = "conso
     }
   }
 
+  // 주제어는 원래 반드시 적어야 하지만, '개별 활동'만은 비워 둘 수 있습니다 —
+  // 판 하나가 곧 학생 한 명이라 읽는 책이 저마다 다를 수 있어서, 학생이 자기 판
+  // 한가운데를 두 번 눌러 직접 적습니다.
+  const topicRequired = !perStudent;
+
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!topic.trim() || saving || urlBad) return;
+    if ((topicRequired && !topic.trim()) || saving || urlBad) return;
 
     // 이름을 적었는데 모둠 수와 개수가 다르면 만들지 않고 알려 줍니다.
     // (개별 활동은 모둠 이름을 쓰지 않으므로 이 검사를 건너뜁니다)
@@ -139,12 +144,15 @@ export default function BookActivityForm({ onSave, onClose, initialType = "conso
             />
           </label>
           <label className="book-field">
-            <span>주제어 · 도서명</span>
+            <span>
+              주제어 · 도서명
+              {!topicRequired && <em className="book-optional">선택</em>}
+            </span>
             <input
               type="text"
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
-              placeholder="예: 어린 왕자"
+              placeholder={topicRequired ? "예: 어린 왕자" : "비워 두면 학생이 직접 적어요"}
               maxLength={30}
               autoFocus
             />
@@ -195,6 +203,9 @@ export default function BookActivityForm({ onSave, onClose, initialType = "conso
               <p className="book-help book-solo-note">
                 모둠을 만들지 않고 <strong>학생마다 판을 하나씩</strong> 만듭니다.
                 낱말은 본인과 선생님에게만 보이고, ‘전체 보기’에서 반 전체를 한 번에 볼 수 있어요.
+                <br />
+                주제어를 비워 두면 학생이 자기 판 한가운데를 두 번 눌러 직접 적습니다
+                (읽는 책이 저마다 다를 때).
               </p>
             ) : (
             <>
@@ -252,7 +263,7 @@ export default function BookActivityForm({ onSave, onClose, initialType = "conso
           <button
             type="submit"
             className="btn-primary"
-            disabled={!topic.trim() || saving || urlBad}
+            disabled={(topicRequired && !topic.trim()) || saving || urlBad}
           >
             {saving
               ? "만드는 중…"

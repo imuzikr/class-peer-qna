@@ -766,6 +766,9 @@ service cloud.firestore {
     function isBookActivityFree(aId) {
       return get(/databases/$(database)/documents/bookActivities/$(aId)).data.get('groupMode', 'teacher') == 'free';
     }
+    function isBookActivitySolo(aId) {
+      return get(/databases/$(database)/documents/bookActivities/$(aId)).data.get('groupMode', 'teacher') == 'solo';
+    }
     function isBookActivityLocked(aId) {
       return get(/databases/$(database)/documents/bookActivities/$(aId)).data.get('locked', false) == true;
     }
@@ -790,8 +793,13 @@ service cloud.firestore {
         // 모둠 카드는 반 구성원 모두에게 공개 (누가 어느 모둠인지 확인)
         allow read: if signedIn() && (isAdmin() || ownsBookActivity(aId) || isBookActivityMember(aId));
         allow create, delete: if isAdmin() || ownsBookActivityEditable(aId);
-        // 수정 — 교사는 자유롭게(보관 중엔 불가). 학생은 '자유 구성' 모드에서
-        //   자기 자신만 명단에 넣고 뺄 수 있습니다(다른 필드 변경 불가).
+        // 수정 — 교사는 자유롭게(보관 중엔 불가). 학생은 두 가지만:
+        //   ① '자유 구성' 모드에서 자기 자신만 명단에 넣고 빼기(다른 필드 불가)
+        //   ② '개별 활동'에서 자기 판의 주제어(topic) 적기 — 판 하나가 곧 한
+        //      사람이라, 읽는 책이 저마다 다를 수 있어 학생이 직접 적습니다.
+        //      구성원 판정은 이 문서의 memberUids로 바로 합니다(get 추가 없음).
+        //      낱말과 달리 '남의 글로 둔갑'할 수 있는 값이 아니고, 고칠 수 있는
+        //      범위가 자기 판 하나로 끝납니다.
         allow update: if isAdmin()
                       || ownsBookActivityEditable(aId)
                       || (signedIn()
@@ -801,7 +809,14 @@ service cloud.firestore {
                           && request.resource.data.memberUids.toSet()
                                .difference(resource.data.memberUids.toSet()).hasOnly([uid()])
                           && resource.data.memberUids.toSet()
-                               .difference(request.resource.data.memberUids.toSet()).hasOnly([uid()]));
+                               .difference(request.resource.data.memberUids.toSet()).hasOnly([uid()]))
+                      || (signedIn()
+                          && changedOnly(['topic'])
+                          && resource.data.get('memberUids', []).hasAny([uid()])
+                          && isBookActivitySolo(aId)
+                          && !isBookActivityLocked(aId)
+                          && request.resource.data.topic is string
+                          && request.resource.data.topic.size() <= 40);
 
         match /words/{wId} {
           // 단어는 그 모둠원과 담당 교사만 — 다른 모둠에는 보이지 않습니다.
