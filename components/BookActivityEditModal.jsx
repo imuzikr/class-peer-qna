@@ -1,7 +1,7 @@
 "use client";
 
 // =============================================================
-// 독서 활동 고치기 (교사 전용) — 이름·주제어·도서 정보 주소
+// 독서 활동 편집 (교사 전용) — 이름·주제어·도서 정보 주소
 // -------------------------------------------------------------
 // 만들 때 쓰는 화면(BookActivityForm)과 나눠 두었습니다. 그쪽은 종류를
 // 고르고 모둠을 몇 개로 나눌지까지 정하는 자리인데, 여기서 그걸 함께
@@ -12,7 +12,7 @@
 // 이름을 바꿔도 학생이 넣은 것이 떨어져 나가지 않습니다.
 //
 // [바꿀 수 없는 것] 종류·모둠 방식·모둠 수. 이미 만들어 둔 판과 그 아래
-// 낱말을 어디에 둘지가 달라지는 일이라, 고치는 게 아니라 새로 만드는
+// 낱말을 어디에 둘지가 달라지는 일이라, 편집이 아니라 새로 만드는
 // 쪽이 맞습니다. 그래서 아예 내놓지 않고, 무엇이 그대로인지만 적어 둡니다.
 // =============================================================
 import { useEffect, useRef, useState } from "react";
@@ -49,7 +49,7 @@ export default function BookActivityEditModal({ activity, onClose, onDone }) {
       onDone?.();
       onClose();
     } catch (err) {
-      setError(`고치지 못했어요: ${err?.message ?? "알 수 없는 오류"}`);
+      setError(`저장하지 못했어요: ${err?.message ?? "알 수 없는 오류"}`);
       setSaving(false);
     }
   }
@@ -62,7 +62,7 @@ export default function BookActivityEditModal({ activity, onClose, onDone }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-head">
-          <h3>활동 고치기</h3>
+          <h3>활동 편집</h3>
           <button type="button" className="btn-close" onClick={onClose} aria-label="닫기">×</button>
         </div>
 

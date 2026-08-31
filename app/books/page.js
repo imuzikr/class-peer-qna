@@ -161,7 +161,7 @@ function BooksPageInner() {
   const [allView, setAllView] = useState(false);          // 교사: 반 전체 집계 화면
   const [creatingType, setCreatingType] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
-  // 이름·주제어를 고치는 중인 활동 (교사)
+  // 편집 중인 활동 (교사)
   const [editingActivity, setEditingActivity] = useState(null);
   const [toast, setToast] = useState("");
   // 왼쪽 '오늘' 패널용 — 공부방과 같은 자료를 봅니다(출석·카드·성찰·과일)
@@ -564,7 +564,7 @@ function BooksPageInner() {
         />
       )}
 
-      {/* 활동 이름·주제어 고치기 — 진행 중인 활동도 됩니다 */}
+      {/* 활동 편집 (이름·주제어·도서 정보) — 진행 중인 활동도 됩니다 */}
       {editingActivity && (
         <BookActivityEditModal
           /* 목록이 갱신되면 최신 문서로 다시 찾습니다 — 열어 둔 채 다른
@@ -573,7 +573,7 @@ function BooksPageInner() {
             activities.find((a) => a.id === editingActivity.id) ?? editingActivity
           }
           onClose={() => setEditingActivity(null)}
-          onDone={() => setToast("활동을 고쳤어요.")}
+          onDone={() => setToast("활동을 저장했어요.")}
         />
       )}
 
@@ -739,10 +739,10 @@ function ActivityCard({ activity, isTeacher, uid, onOpen, onEdit, onDelete, onTo
       </button>
       {isTeacher && (
         <div className="book-activity-actions">
-          {/* 이름·주제어 고치기 — 학생이 이미 낱말을 넣은 뒤에도 됩니다.
+          {/* 편집 — 학생이 이미 낱말을 넣은 뒤에도 됩니다.
               낱말은 활동 id로 이어져 있어 이름과 무관합니다. */}
-          <button type="button" className="btn-ghost" onClick={onEdit} title="이름·주제어 고치기">
-            고치기
+          <button type="button" className="btn-ghost" onClick={onEdit} title="이름·주제어 편집">
+            편집
           </button>
           <button type="button" className="btn-ghost" onClick={onToggleLock}>
             {activity.locked ? "잠금 해제" : "잠그기"}
