@@ -116,10 +116,18 @@ export default function ParatextForm({ activity, user, onBack }) {
   return (
     <main className="books-main paratext-main">
       <div className="books-head">
-        <h1 className="book-group-title">{activity.title}</h1>
+        {/* 교사 화면(ParatextBoard)과 같은 짜임 — 제목 줄에 돌아가는 길,
+            둘째 줄에 딸림 정보(도서명·주제) */}
+        <div className="books-head-title">
+          <h1 className="book-group-title">{activity.title}</h1>
+          <button type="button" className="btn-ghost" onClick={onBack}>← 활동 목록</button>
+        </div>
+        {/* 둘째 줄에 아무것도 없을 수 있습니다 — 주제어를 안 정한 채 잠긴
+            활동에서 학생이 제 책을 적기 전이면 배지도 적기 버튼도 없습니다.
+            빈 줄이 남으면 제목 아래가 괜히 벌어져, 내용이 있을 때만 그립니다. */}
+        {(shownTopic || canEditTopic || bookUrl) && (
         <div className="books-head-row">
           <div className="books-head-main">
-            <button type="button" className="btn-ghost" onClick={onBack}>← 활동 목록</button>
             {shownTopic ? (
               canEditTopic ? (
                 <button
@@ -156,6 +164,7 @@ export default function ParatextForm({ activity, user, onBack }) {
             </a>
           )}
         </div>
+        )}
         <div className="paratext-status">
           <span className="paratext-progress">
             {done} / {PARATEXT_SECTION_COUNT}칸

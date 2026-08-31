@@ -131,13 +131,16 @@ export default function MindmapBoard({
   return (
     <main className="books-main mindmap-board-main">
       <div className="books-head">
-        <h1 className="book-group-title">
-          {activity.title}
+        {/* 제목 · 돌아가는 길 · 도구 순서 — 닿소리 머리말(BookGroupBoard)과
+            같은 차례입니다. 아래 둘째 줄은 딸림 정보(주제어·반)만 두는 자리라
+            화면을 옮기는 버튼은 여기 첫 줄에 둡니다. */}
+        <div className="books-head-title">
+          <h1 className="book-group-title">{activity.title}</h1>
+          <button type="button" className="btn-ghost" onClick={onBack}>← 활동 목록</button>
           {classTools}
-        </h1>
+        </div>
         <div className="books-head-row">
           <div className="books-head-main">
-            <button type="button" className="btn-ghost" onClick={onBack}>← 활동 목록</button>
             <span className="book-group-topic">{activity.topic}</span>
             {className && <span className="book-group-class">{className}</span>}
           </div>

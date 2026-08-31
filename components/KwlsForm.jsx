@@ -77,10 +77,14 @@ export default function KwlsForm({ activity, user, onBack }) {
   return (
     <main className="books-main kwls-main">
       <div className="books-head">
-        <h1 className="book-group-title">{activity.title}</h1>
+        {/* 교사 화면(KwlsBoard)과 같은 짜임 — 제목 줄에 돌아가는 길,
+            둘째 줄에 딸림 정보(주제어) */}
+        <div className="books-head-title">
+          <h1 className="book-group-title">{activity.title}</h1>
+          <button type="button" className="btn-ghost" onClick={onBack}>← 활동 목록</button>
+        </div>
         <div className="books-head-row">
           <div className="books-head-main">
-            <button type="button" className="btn-ghost" onClick={onBack}>← 활동 목록</button>
             <span className="book-group-topic">{activity.topic}</span>
           </div>
           {bookUrl && (

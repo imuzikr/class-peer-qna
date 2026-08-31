@@ -105,19 +105,23 @@ export default function ParatextBoard({
   return (
     <main className="books-main">
       <div className="books-head">
-        <h1 className="book-group-title">
-          {open ? open.name : activity.title}
+        {/* 제목 · 돌아가는 길 · 도구 순서 — 닿소리 머리말(BookGroupBoard)과
+            같은 차례입니다. 화면을 한 단계 되돌리는 버튼은 '무엇을 읽는
+            활동인가'를 알려 주는 배지와 성격이 달라, 도구들과 함께 첫 줄에
+            둡니다(둘째 줄에 두면 그 줄에서만 작게 그려집니다). */}
+        <div className="books-head-title">
+          <h1 className="book-group-title">{open ? open.name : activity.title}</h1>
+          {open ? (
+            <button type="button" className="btn-ghost" onClick={() => setOpenUid(null)}>
+              ← 학생 목록
+            </button>
+          ) : (
+            <button type="button" className="btn-ghost" onClick={onBack}>← 활동 목록</button>
+          )}
           {classTools}
-        </h1>
+        </div>
         <div className="books-head-row">
           <div className="books-head-main">
-            {open ? (
-              <button type="button" className="btn-ghost" onClick={() => setOpenUid(null)}>
-                ← 학생 목록
-              </button>
-            ) : (
-              <button type="button" className="btn-ghost" onClick={onBack}>← 활동 목록</button>
-            )}
             {open ? (
               <>
                 {open.studentId && (
