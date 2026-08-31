@@ -1369,13 +1369,15 @@ button.footer-link:hover {
 }
 .question-signal-btn {
   position: relative;
-  width: 38px;
-  height: 38px;
+  width: 34px;
+  height: 34px;
   display: inline-grid;
   place-items: center;
   padding: 0;
   border-radius: 999px;
-  font-size: 23px;
+  /* 옆의 종(18px 글자 + 8px 여백 = 34px 상자)과 같은 크기로. 예전에는 이
+     상자만 38px에 글자 23px이라 나란히 두면 손바닥만 커 보였습니다. */
+  font-size: 19px;
   line-height: 1;
   border: none;
   background: none;
@@ -1611,6 +1613,11 @@ button.footer-link:hover {
   font-size: 13px;
   color: var(--text-sub);
 }
+
+/* 아이콘 사이 — 손바닥·확성기·종·과일은 저마다 안쪽 여백을 갖고 있어,
+   여기에 12px을 더 주면 실제로 벌어지는 거리가 25px을 넘습니다. 한 묶음으로
+   읽혀야 할 것들이라 좁힙니다(상자끼리는 6px, 글자끼리는 20px 안팎). */
+.topbar .user-area { gap: 6px; }
 
 /* 상단바 프로필 왼쪽 — 학생이 받은 과일 총 개수 */
 .fruit-total-chip {

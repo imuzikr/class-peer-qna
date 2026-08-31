@@ -51,12 +51,15 @@ export default function QuestionSignalButton({
   const count = isTeacher ? signals.length : mine ? 1 : 0;
   const active = count > 0;
 
-  // [교사 화면에 손바닥을 늘 두는 이유]
-  // 예전에는 손든 학생이 있을 때만 아이콘이 나타났습니다. 자리를 아끼는
-  // 방법이지만, 아이콘이 없을 때 그것이 '아무도 안 들었다'인지 '보고 있는
-  // 반이 다르다·읽기에 실패했다'인지 알 길이 없었습니다. 옆의 확성기·종은
-  // 늘 있는데 손바닥만 사라지니 더 그렇습니다.
-  // 그래서 늘 두되, 아무도 안 들었으면 흐리게 두고 숫자도 붙이지 않습니다.
+  // [교사 화면에는 손든 학생이 있을 때만]
+  // 한동안 흐린 채로 늘 두어 봤습니다. 아이콘이 없을 때 '아무도 안 들었다'인지
+  // '보고 있는 반이 다르다'인지 알 수 있게 하려던 것인데, 손든 학생이 없는
+  // 시간이 수업의 대부분이라 상단바에 늘 흐린 아이콘 하나가 앉아 있게 됐습니다.
+  // 손바닥은 '지금 봐 달라'는 신호라, 아무 일 없을 때 자리를 차지하면 정작
+  // 누가 들었을 때의 눈에 띔이 줄어듭니다. 그래서 있을 때만 나타납니다.
+  //
+  // 학생 쪽은 그대로 늘 있습니다 — 손을 드는 버튼 자체라 사라지면 들 수가
+  // 없습니다.
 
   async function handleClick() {
     if (!classId || !user?.uid || busy) return;
@@ -87,6 +90,9 @@ export default function QuestionSignalButton({
       });
     }
   }
+
+  // 훅을 모두 지나온 자리입니다(구독은 계속 돌아야 손들면 바로 나타납니다).
+  if (isTeacher && !active) return null;
 
   return (
     <div className="question-signal-wrap" ref={wrapRef}>
