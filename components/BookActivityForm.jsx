@@ -69,10 +69,14 @@ export default function BookActivityForm({ onSave, onClose, initialType = "conso
     }
   }
 
-  // 주제어는 원래 반드시 적어야 하지만, '개별 활동'만은 비워 둘 수 있습니다 —
-  // 판 하나가 곧 학생 한 명이라 읽는 책이 저마다 다를 수 있어서, 학생이 자기 판
-  // 한가운데를 두 번 눌러 직접 적습니다.
-  const topicRequired = !perStudent;
+  // 주제어를 비워 둘 수 있는 활동 — '학생이 자기 자리에서 직접 적을 길'이
+  // 있는 것들입니다. 읽는 책이 저마다 다를 수 있는 활동이라 교사가 하나로
+  // 정하지 못하는 경우가 있습니다.
+  //  · 닿소리 '개별 활동' — 판 한가운데를 두 번 눌러 적습니다
+  //  · 곁텍스트 읽기      — 활동을 열면 한 번 물어보고, 머리말 배지로 고칩니다
+  // 그 길이 없는 종류(RAFT·KWLS·마인드맵)는 비워 두면 무엇을 하는 활동인지
+  // 아무도 알 수 없으므로 그대로 필수입니다.
+  const topicRequired = !perStudent && type !== "paratext";
 
   async function handleSubmit(e) {
     e.preventDefault();
