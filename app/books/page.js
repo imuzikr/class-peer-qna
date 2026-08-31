@@ -514,7 +514,11 @@ function BooksPageInner() {
                   아래 제목 줄에 있으면 제목·설명과 뒤섞여 눈이 한 번 더
                   더듬게 됩니다. 화면을 옮기는 버튼은 위쪽 한 줄에 모읍니다. */}
               {openKindInfo && (
-                <button type="button" className="btn-ghost" onClick={goToGrid}>
+                <button
+                  type="button"
+                  className="btn-ghost books-head-btn"
+                  onClick={goToGrid}
+                >
                   ← 활동 종류
                 </button>
               )}

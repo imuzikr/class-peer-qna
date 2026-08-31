@@ -19163,8 +19163,13 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   line-height: 1.3;
   flex-shrink: 0;
 }
-/* 목록 머리말(반 고르는 줄)에서는 옆의 select·＋버튼과 높이를 맞춥니다 */
-.books-head-main > .class-notes-btn {
+/* 목록 머리말(반 고르는 줄)에서는 옆의 select·＋버튼과 높이를 맞춥니다.
+   '← 활동 종류'(.books-head-btn)도 같은 줄에 서므로 함께 맞춥니다 — 이 줄의
+   단추들은 크기가 조금만 달라도 줄이 들쭉날쭉해 보입니다. 다른 화면의
+   .books-head-main 안 버튼(← 활동 목록·활동 모둠 등)은 배지와 나란히 서는
+   자리라 원래 크기 그대로 두려고, 클래스로 딱 이 둘만 집습니다. */
+.books-head-main > .class-notes-btn,
+.books-head-main > .books-head-btn {
   height: 38px;
   padding: 0 14px;
   font-size: 14px;
