@@ -98,10 +98,7 @@ export default function QuestionSignalButton({
     <div className="question-signal-wrap" ref={wrapRef}>
       <button
         type="button"
-        className={
-          `question-signal-btn${active ? " on" : ""}` +
-          (isTeacher && !active ? " idle" : "")
-        }
+        className={`question-signal-btn${active ? " on" : ""}`}
         onClick={handleClick}
         disabled={!classId || busy}
         aria-haspopup={isTeacher ? "menu" : undefined}
@@ -122,11 +119,12 @@ export default function QuestionSignalButton({
         }
       >
         <span className="question-signal-hand" aria-hidden="true">🖐️</span>
-        {!isTeacher && active && <span className="question-signal-dot" aria-hidden="true" />}
-        {/* 교사는 몇 명인지가 곧 봐야 할 정보라 숫자로 답니다(종 뱃지와 같은 모양) */}
-        {isTeacher && active && (
-          <span className="question-signal-count" aria-hidden="true">{signals.length}</span>
-        )}
+        {/* 학생·교사 모두 숫자 없는 점 하나입니다. 교사 쪽에 인원수를 숫자로
+            달아 봤더니 16px짜리 뱃지가 34px 손바닥의 한 귀퉁이를 덮어, 정작
+            '손이 올라왔다'가 잘 안 읽혔습니다. 몇 명인지는 눌러서 여는 목록에
+            이름까지 함께 있고, 툴팁(title)·스크린리더(aria-label)에도 그대로
+            남겨 두었습니다. */}
+        {active && <span className="question-signal-dot" aria-hidden="true" />}
       </button>
 
       {isTeacher && open && (

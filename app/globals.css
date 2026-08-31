@@ -756,7 +756,8 @@ button.footer-link:hover {
   position: relative;
   font-size: 18px;
   line-height: 1;
-  padding: 8px;
+  /* 5px → 28px 상자. 손바닥·확성기와 같은 값입니다(아래 .notice-btn 참고) */
+  padding: 5px;
   background: none;
   border: none;
 }
@@ -789,7 +790,9 @@ button.footer-link:hover {
   position: relative;
   font-size: 18px;
   line-height: 1;
-  padding: 8px;
+  /* 종·손바닥과 같은 5px — 세 아이콘의 상자를 8px에서 줄여 사이를 좁혔습니다.
+     여백은 곧 아이콘 사이 거리라, 여기만 남겨 두면 한 개만 떨어져 보입니다. */
+  padding: 5px;
   background: none;
   border: none;
 }
@@ -1369,15 +1372,16 @@ button.footer-link:hover {
 }
 .question-signal-btn {
   position: relative;
-  width: 34px;
-  height: 34px;
+  width: 28px;
+  height: 28px;
   display: inline-grid;
   place-items: center;
   padding: 0;
   border-radius: 999px;
-  /* 옆의 종(18px 글자 + 8px 여백 = 34px 상자)과 같은 크기로. 예전에는 이
-     상자만 38px에 글자 23px이라 나란히 두면 손바닥만 커 보였습니다. */
-  font-size: 19px;
+  /* 옆의 종·확성기(18px 글자 + 5px 여백 = 28px 상자)와 같은 크기·같은 글자.
+     예전에는 이 상자만 38px에 글자 23px이라 나란히 두면 손바닥만 커
+     보였습니다. 세 상자를 28px로 함께 줄여 아이콘 사이를 좁혔습니다. */
+  font-size: 18px;
   line-height: 1;
   border: none;
   background: none;
@@ -1616,15 +1620,22 @@ button.footer-link:hover {
 
 /* 아이콘 사이 — 손바닥·확성기·종·과일은 저마다 안쪽 여백을 갖고 있어,
    여기에 12px을 더 주면 실제로 벌어지는 거리가 25px을 넘습니다. 한 묶음으로
-   읽혀야 할 것들이라 좁힙니다(상자끼리는 6px, 글자끼리는 20px 안팎). */
-.topbar .user-area { gap: 6px; }
+   읽혀야 할 것들이라 좁힙니다.
+   실제로 눈에 보이는 거리는 '여백 + gap + 여백'입니다. 여백을 8px→5px로
+   줄이고 gap을 4px로 두어 그림끼리 14px — 예전 22px의 3분의 2입니다. */
+.topbar .user-area { gap: 4px; }
+/* 다만 글자 요소(이름·로그아웃)까지 4px로 붙으면 답답합니다. 아이콘 묶음이
+   끝나는 자리에서만 다시 벌립니다. */
+.topbar .user-area .profile-wrap,
+.topbar .user-area .btn-logout { margin-left: 6px; }
 
 /* 상단바 프로필 왼쪽 — 학생이 받은 과일 총 개수 */
 .fruit-total-chip {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 8px 6px;
+  /* 세로 5px — 옆의 손바닥·종과 같은 높이(28px)로 맞춥니다 */
+  padding: 5px 6px;
   background: none;
   border: none;
   color: #a06a00;
@@ -19459,27 +19470,14 @@ button.study-cal-cell.has-record:not(:disabled):hover {
 }
 
 /* ── 상단바 손들기 — 교사 쪽 ──
-   손든 학생이 없어도 자리를 지킵니다. 아이콘이 사라지면 '아무도 안 들었다'와
-   '엉뚱한 반을 보고 있다·읽기에 실패했다'가 구분되지 않기 때문입니다.
-   아무도 없을 때는 흐리게(옆의 확성기·종보다 조용하게) 둡니다. */
-.question-signal-btn.idle { opacity: 0.4; }
-.question-signal-btn.idle:hover { opacity: 0.75; }
-/* 몇 명이 기다리는지 — 종 뱃지(.notif-badge)와 같은 모양·같은 자리 */
-.question-signal-count {
-  position: absolute;
-  top: 1px;
-  right: 0;
-  min-width: 16px;
-  height: 16px;
-  padding: 0 4px;
-  border-radius: 999px;
-  background: var(--danger, #d64545);
-  color: #fff;
-  font-size: 10px;
-  font-weight: 800;
-  display: grid;
-  place-items: center;
-}
+   손든 학생이 있을 때만 나타납니다(QuestionSignalButton의 early return).
+   손이 없는 시간이 수업의 대부분이라 늘 자리를 지키면 정작 올라왔을 때의
+   눈에 띔이 줄어듭니다.
+   표시는 학생 쪽과 같은 '숫자 없는 붉은 점'(.question-signal-dot) 하나입니다.
+   한때 인원수를 종 뱃지 모양으로 달았는데, 16px 뱃지가 28px 손바닥의 한
+   귀퉁이를 덮어 손 모양 자체가 잘 안 읽혔습니다. 몇 명인지는 눌러서 여는
+   목록에 이름까지 함께 있고 툴팁에도 남아 있어, 상단바에서는 '있다/없다'만
+   알리면 충분합니다. */
 /* 지금 지켜보는 반 — 제목 옆에 작게 */
 .question-signal-scope {
   margin-left: 6px;
