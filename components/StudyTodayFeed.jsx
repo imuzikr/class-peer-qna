@@ -51,6 +51,9 @@ export default function StudyTodayFeed({
   boards = [],
   roster = [],
   attendanceRecords = [],
+  // 첫 줄 안내 — 화면마다 다릅니다. 공부방에서는 프로젝트를 열면 이 자리가
+  // 활동 관리로 바뀌지만, 책방에서는 계속 '오늘'로 남습니다.
+  note = "오늘 이 반에서 일어난 일이에요. 프로젝트를 열면 이 자리가 활동 관리로 바뀝니다.",
 }) {
   const today = todayDateKey();
   const [kwl, setKwl] = useState([]);
@@ -198,9 +201,7 @@ export default function StudyTodayFeed({
 
   return (
     <div className="today-feed">
-      <p className="study-activity-panel-hint">
-        오늘 이 반에서 일어난 일이에요. 프로젝트를 열면 이 자리가 활동 관리로 바뀝니다.
-      </p>
+      <p className="study-activity-panel-hint">{note}</p>
 
       {/* 칸을 누르면 그 갈래의 명단이 아래에 펼쳐집니다. 같은 칸을 다시
           누르면 접힙니다(다른 칸을 누르면 그쪽으로 바뀝니다). */}

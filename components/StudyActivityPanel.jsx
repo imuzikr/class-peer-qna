@@ -74,6 +74,8 @@ export default function StudyActivityPanel({
   classId = null,
   boards = [],
   attendanceRecords = [],
+  // '오늘' 패널 첫 줄 안내 — 책방에서는 이 자리가 바뀌지 않으므로 문구가 다릅니다
+  todayNote,
   mobileOpen,
   onMobileClose,
 }) {
@@ -301,6 +303,7 @@ export default function StudyActivityPanel({
           boards={boards}
           roster={classRoster}
           attendanceRecords={attendanceRecords}
+          {...(todayNote ? { note: todayNote } : {})}
         />
       ) : isNotice ? (
         <p className="study-activity-panel-empty">

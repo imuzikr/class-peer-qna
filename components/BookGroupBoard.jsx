@@ -365,6 +365,7 @@ export default function BookGroupBoard({
               activityDate={activityDate}
               pickedUid={perStudent ? (picked?.members ?? [])[0]?.uid ?? null : null}
               colorByRow={perStudent}
+              roster={roster}
             />
           )}
         </div>
@@ -387,10 +388,19 @@ export default function BookGroupBoard({
 // 이 둘은 완전히 다른 이야기입니다. 출석 기록이 있는 날에만 결석을
 // 구분해 붙입니다(출석을 안 받은 날은 아무 표시도 하지 않습니다).
 //
+// [이름 앞의 학번, 이름 뒤의 *]
+// 같은 성씨·비슷한 이름이 흔해 이름만으로는 명단에서 짚기 어렵습니다. 학번을
+// 앞에 붙이면 자리표·출석부와 같은 순서·같은 표기로 읽힙니다(판에 저장된
+// members에는 학번이 없을 수 있어 반 명단에서 찾습니다).
+// 낱말을 STAR_FROM개 이상 넣은 학생에게는 이름 끝에 *를 답니다 — 칸을 다 채운
+// 사람이 여럿일 때 '많이 한 사람'이 숫자를 읽지 않아도 눈에 띕니다.
+//
 // [colorByRow — 개별 활동의 줄 색]
 // 모둠 활동의 색은 '모둠 안에서 몇 번째 자리인가'로 정합니다. 그런데 개별
 // 활동은 판마다 사람이 한 명뿐이라 모두가 첫 번째 색 하나로만 칠해집니다.
 // 그래서 이때는 모둠 자리가 아니라 목록의 줄 번호로 색을 정합니다(10색 되풀이).
+const STAR_FROM = 20;
+
 function GroupProgress({
   activity,
   groups = [],
@@ -400,6 +410,7 @@ function GroupProgress({
   activityDate = "",
   pickedUid = null,
   colorByRow = false,
+  roster = [],
 }) {
   const [wordsByGroup, setWordsByGroup] = useState({});
 
@@ -442,6 +453,13 @@ function GroupProgress({
     return colorByRow ? out.map((m, i) => ({ ...m, color: rowColor(i) })) : out;
   }, [groups, wordsByGroup, colorByRow]);
 
+  // 학번은 판에 저장된 members가 아니라 반 명단에서 찾습니다 — 예전에 만든
+  // 판에는 학번이 없고, 명단 쪽이 늘 최신입니다.
+  const sidOf = useMemo(() => {
+    const m = new Map(roster.map((s) => [s.uid, s.studentId]));
+    return (uid) => m.get(uid) || "";
+  }, [roster]);
+
   const absentCount = rows.filter((m) => absentUids.has(m.uid)).length;
 
   return (
@@ -467,7 +485,19 @@ function GroupProgress({
               >
                 <span className="dash-progress-name">
                   <i className="dash-dot" style={{ background: m.color.border }} />
-                  {m.name}
+                  {sidOf(m.uid) && (
+                    <em className="dash-progress-sid">{sidOf(m.uid)}</em>
+                  )}
+                  {/* 이름과 *는 한 덩어리 — 부모가 flex라 따로 두면 *가
+                      이름에서 떨어져 나갑니다(칸 사이 간격이 붙습니다) */}
+                  <span className="dash-progress-who">
+                    {m.name}
+                    {m.total >= STAR_FROM && (
+                      <sup className="dash-progress-star" title={`낱말 ${STAR_FROM}개 이상`}>
+                        *
+                      </sup>
+                    )}
+                  </span>
                   {absent && <span className="book-absent-chip">결석</span>}
                 </span>
                 <span className="dash-progress-num">

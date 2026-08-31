@@ -27,6 +27,8 @@ import {
   subscribeClassMembers,
   subscribeUserDirectory,
   subscribeStudyGroupAssignment,
+  subscribeStudyBoards,
+  subscribeClassStudyAttendance,
 } from "@/lib/store";
 import { isFirebaseConfigured } from "@/lib/firebase";
 import { isAdmin, isTeacher } from "@/lib/user";
@@ -39,6 +41,7 @@ import Toast from "@/components/Toast";
 import ConfirmModal from "@/components/ConfirmModal";
 import BookActivityForm from "@/components/BookActivityForm";
 import ClassNotesTools from "@/components/ClassNotesTools";
+import StudyActivityPanel from "@/components/StudyActivityPanel";
 import BookGroupBoard from "@/components/BookGroupBoard";
 import ConsonantCanvas from "@/components/ConsonantCanvas";
 import ConsonantDashboard from "@/components/ConsonantDashboard";
@@ -157,6 +160,9 @@ function BooksPageInner() {
   const [creatingType, setCreatingType] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [toast, setToast] = useState("");
+  // 왼쪽 '오늘' 패널용 — 공부방과 같은 자료를 봅니다(출석·카드·성찰·과일)
+  const [studyBoards, setStudyBoards] = useState([]);
+  const [attendanceRecords, setAttendanceRecords] = useState([]);
 
   // 세션에 기억된 반 (공부방과 같은 키를 공유 — 같은 수업 맥락)
   useEffect(() => {
@@ -220,6 +226,25 @@ function BooksPageInner() {
     if (!admin || !classId) { setMemberUids([]); return; }
     return subscribeClassMembers(classId, setMemberUids);
   }, [admin, classId]);
+
+  // 왼쪽 '오늘' 패널 — 공부방의 그 패널을 그대로 씁니다. 오늘 이 반이 어떻게
+  // 움직였는지(출석·카드·성찰·과일)는 책방에서 활동을 하는 동안에도 똑같이
+  // 궁금한 것이라, 화면을 옮겨 다니지 않게 여기에도 놓습니다.
+  // 프로젝트(studyBoards)와 출석은 공부방 쪽 자료라 여기서 따로 구독합니다.
+  useEffect(() => {
+    if (!admin) { setStudyBoards([]); return; }
+    return subscribeStudyBoards(setStudyBoards);
+  }, [admin]);
+
+  useEffect(() => {
+    if (!admin || !classId) { setAttendanceRecords([]); return; }
+    return subscribeClassStudyAttendance(classId, setAttendanceRecords);
+  }, [admin, classId]);
+
+  const classBoards = useMemo(
+    () => studyBoards.filter((b) => b.classId === classId),
+    [studyBoards, classId]
+  );
 
   const roster = useMemo(() => {
     const dir = new Map(directory.map((d) => [d.uid, d]));
@@ -323,6 +348,21 @@ function BooksPageInner() {
   return (
     <div className="board-shell">
       <TopNav active="books" />
+
+      {/* 왼쪽 '오늘' 패널 + 본문. 공부방과 같은 배치라 패널도 같은 컴포넌트를
+          그대로 씁니다(프로젝트를 넘기지 않으면 '오늘' 모습이 됩니다). */}
+      <div className="books-body">
+        {admin && classId && (
+          <StudyActivityPanel
+            board={null}
+            isTeacher={admin}
+            classRoster={roster}
+            classId={classId}
+            boards={classBoards}
+            attendanceRecords={attendanceRecords}
+            todayNote="오늘 이 반에서 일어난 일이에요. 공부방·책방 어디서든 같은 내용입니다."
+          />
+        )}
 
       {/* 마인드맵(개인 활동) — 교사는 왼쪽 학생 목록+오른쪽 마인드맵, 학생은 자기 판 */}
       {isMindmap && admin ? (
@@ -500,6 +540,7 @@ function BooksPageInner() {
           )}
         </main>
       )}
+      </div>
 
       {creatingType && (
         <BookActivityForm

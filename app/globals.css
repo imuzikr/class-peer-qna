@@ -19166,3 +19166,37 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   box-sizing: border-box;
   flex-shrink: 0;
 }
+
+/* ── 진행 패널의 이름 줄 — '학번 이름*' ──
+   부모(.dash-progress-name)가 flex라 학번과 이름 사이는 그 gap이 곧 공백이
+   됩니다. 별표는 이름에 붙어야 하므로 .dash-progress-who로 한 덩어리. */
+.dash-progress-sid {
+  font-style: normal;
+  font-weight: 700;
+  color: var(--text-sub);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+.dash-progress-who { white-space: nowrap; }
+/* 낱말을 많이 넣은 학생 표시 — 이름 마지막 글자 오른쪽 위 */
+.dash-progress-star {
+  font-size: 11px;
+  font-weight: 900;
+  color: var(--primary);
+  margin-left: 1px;
+}
+
+/* ── 책방 본문 — 왼쪽 '오늘' 패널 + 화면 ──
+   공부방의 .study-body와 같은 배치입니다(패널도 같은 컴포넌트).
+   본문 쪽 main들은 저마다 flex:1을 갖고 있는데, 가로 flex 안에서는
+   min-width:0이 없으면 안의 넓은 격자가 패널을 밀어냅니다. */
+.books-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
+.books-body > .books-main,
+.books-body > .canvas-main {
+  min-width: 0;
+}
