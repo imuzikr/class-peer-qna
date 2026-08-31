@@ -16025,7 +16025,10 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-bottom: 6px;
+  /* 아래 본문(활동 종류 그리드·목록)과의 사이. 예전에는 이 밑에 안내 문구가
+     한 줄 있어 6px면 됐는데, 그 문구를 없앤 뒤로는 제목과 본문이 붙어
+     보여 한 칸 띄웁니다. */
+  margin-bottom: 14px;
 }
 /* 제목 아래 줄 — 활동목록·도서명·반이름 배지와 우측 버튼(전체 보기 등)이
    한 행에 나열됩니다. 제목(h1)은 이 행 밖에 따로 두어 항상 먼저 줄바꿈됩니다. */
@@ -16076,11 +16079,6 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   background: var(--primary-light);
   border-radius: 999px;
   padding: 4px 12px;
-}
-.books-intro {
-  font-size: 13.5px;
-  color: var(--text-sub);
-  margin-bottom: 20px;
 }
 /* ── 활동 목록 ── */
 .book-kind-grid {

@@ -510,13 +510,17 @@ function BooksPageInner() {
                   ＋ 독서 활동 만들기
                 </button>
               )}
+              {/* 종류를 열어 둔 동안에는 그 자리에 '돌아가기'를 둡니다 —
+                  아래 제목 줄에 있으면 제목·설명과 뒤섞여 눈이 한 번 더
+                  더듬게 됩니다. 화면을 옮기는 버튼은 위쪽 한 줄에 모읍니다. */}
+              {openKindInfo && (
+                <button type="button" className="btn-ghost" onClick={goToGrid}>
+                  ← 활동 종류
+                </button>
+              )}
               {classTools}
             </div>
           </div>
-
-          <p className="books-intro">
-            활동 종류를 고르면 지금까지 만든 활동을 날짜 순서대로 보고, 같은 종류의 활동을 계속 추가할 수 있어요.
-          </p>
 
           {admin && myClasses.length === 0 ? (
             <p className="empty-note">
@@ -527,7 +531,6 @@ function BooksPageInner() {
               kind={openKindInfo}
               activities={openKindActivities}
               isTeacher={admin}
-              onBack={goToGrid}
               onAdd={() => setCreatingType(openKindInfo.key)}
               onOpen={goToActivity}
               onDelete={setConfirmDelete}
@@ -601,7 +604,6 @@ function ActivityKindDashboard({
   kind,
   activities,
   isTeacher,
-  onBack,
   onAdd,
   onOpen,
   onDelete,
@@ -609,15 +611,12 @@ function ActivityKindDashboard({
 }) {
   return (
     <section className="book-kind-dashboard">
-      {/* 한 줄: 제목 · 설명 · 돌아가기 · (교사) 만들기.
-          제목 아래에 설명을 두 줄로 두면 그만큼 활동 카드가 밀려 내려갑니다 —
-          설명은 한 번 읽으면 되는 문장이라 제목 옆에 붙여 한 줄로 눕힙니다. */}
+      {/* 한 줄: 제목 · 설명 · (교사) 만들기. 설명을 제목 아래 두 줄로 두면
+          그만큼 활동 카드가 밀려 내려갑니다 — 한 번 읽으면 되는 문장이라
+          제목 옆에 눕힙니다. '← 활동 종류'는 위쪽 머리말 줄에 있습니다. */}
       <div className="book-kind-head">
         <h2>{kind.label}</h2>
         <p>{kind.desc}</p>
-        <button type="button" className="btn-ghost" onClick={onBack}>
-          ← 활동 종류
-        </button>
         {isTeacher && (
           <button type="button" className="btn-primary book-kind-add" onClick={onAdd}>
             ＋ {kind.addLabel}
