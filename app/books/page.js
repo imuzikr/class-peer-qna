@@ -29,6 +29,8 @@ import {
   subscribeStudyGroupAssignment,
   subscribeStudyBoards,
   subscribeClassStudyAttendance,
+  fetchConsonantProgress,
+  invalidateConsonantProgress,
 } from "@/lib/store";
 import { isFirebaseConfigured } from "@/lib/firebase";
 import { isAdmin, isTeacher } from "@/lib/user";
@@ -53,6 +55,7 @@ import KwlsBoard from "@/components/KwlsBoard";
 import KwlsForm from "@/components/KwlsForm";
 import MindmapBoard from "@/components/MindmapBoard";
 import MindmapForm from "@/components/MindmapForm";
+import { CELL_COUNT } from "@/lib/consonants";
 import { IconBook, IconTrash } from "@/components/StatusIcons";
 
 const ACTIVITY_KINDS = [
@@ -143,6 +146,9 @@ function BooksPageInner() {
     router.push(kindKey ? `/books?kind=${kindKey}` : "/books");
   }
   function goToActivity(activity) {
+    // 안에서 수업하고 목록으로 돌아왔을 때 묵은 진행률이 남지 않도록,
+    // 여는 순간 그 활동의 캐시만 버립니다(다시 그릴 때 새로 읽습니다).
+    invalidateConsonantProgress(activity.id);
     router.push(`/books?kind=${activity.type}&activity=${activity.id}`);
   }
 
@@ -663,6 +669,27 @@ function ActivityCard({ activity, isTeacher, onOpen, onDelete, onToggleLock }) {
     return subscribeBookGroups(activity.id, setGroups);
   }, [activity.id, soloLabel]);
 
+  // 반 평균 진행률 — 학생 한 명이 14칸 중 몇 칸을 채웠나(낱말 수가 아니라 칸 수).
+  // 교사만, 닿소리 채우기만. 낱말을 전부 읽어야 나오는 값이라 실시간 구독이
+  // 아니라 한 번 읽고 캐시합니다(lib/store.js의 fetchConsonantProgress 참고).
+  // 학생에게는 걸지 않습니다 — 규칙상 남의 판 낱말을 못 읽어 어차피 반쪽 값이
+  // 나오고, 반 평균은 학생에게 보여 줄 자리도 아닙니다.
+  const [progress, setProgress] = useState(null);
+  useEffect(() => {
+    if (!isTeacher || soloLabel) { setProgress(null); return; }
+    let alive = true;
+    fetchConsonantProgress(activity.id)
+      .then((p) => { if (alive) setProgress(p); })
+      .catch(() => { if (alive) setProgress(null); });
+    return () => { alive = false; };
+  }, [isTeacher, soloLabel, activity.id]);
+
+  // 평균은 소수 한 자리까지 — 26명 반에서 한 사람이 한 칸을 더 채우면
+  // 0.04칸이 움직입니다. 정수로 자르면 오전 내내 숫자가 안 바뀝니다.
+  const avgFilled =
+    progress && progress.students > 0 ? progress.totalFilled / progress.students : null;
+  const avgPercent = avgFilled == null ? 0 : Math.round((avgFilled / CELL_COUNT) * 100);
+
   const modeLabel =
     { solo: "개별 활동", teacher: "교사 배정", random: "무작위 배정", free: "자유 구성" }[
       activity.groupMode
@@ -689,6 +716,19 @@ function ActivityCard({ activity, isTeacher, onOpen, onDelete, onToggleLock }) {
               : `모둠 ${groups.length}개 · ${modeLabel}`)}
           {activity.locked && " · 잠김"}
         </span>
+        {avgFilled != null && (
+          <span
+            className="book-activity-progress"
+            title={`학생 ${progress.students}명 평균 · 가장 많이 채운 학생 ${progress.best}칸`}
+          >
+            <span className="book-activity-progress-bar">
+              <i style={{ width: `${avgPercent}%` }} />
+            </span>
+            <span className="book-activity-progress-text">
+              평균 <b>{avgFilled.toFixed(1)}</b> / {CELL_COUNT}칸 · {avgPercent}%
+            </span>
+          </span>
+        )}
       </button>
       {isTeacher && (
         <div className="book-activity-actions">
