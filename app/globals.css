@@ -19308,57 +19308,64 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
   width: 100%;
 }
-/* 낱말 한 줄 — 크기가 곧 '얼마나 많이 나왔나'입니다.
+/* 낱말 한 줄 — 이름 아래 가로 막대로 빈도를 봅니다.
    -------------------------------------------------------------
-   예전에는 다섯 개가 모두 같은 크기·같은 굵기라, 그 칸에서 무엇이 도드라진
-   말인지 숫자를 하나하나 읽어야 알 수 있었습니다(그래서 밋밋했습니다).
-   지금은 --t(0~1)가 그 칸 안에서의 비율을 담아 크기·굵기·짙기를 함께
-   움직입니다. 칸끼리가 아니라 '그 칸 안에서'의 비율이라, 낱말이 35개인 칸과
-   10개인 칸이 같은 리듬으로 읽힙니다.
-   횟수가 같으면 크기도 같습니다 — 순위로 매기면 12번과 3번이 나란한 칸에서
-   3번짜리 둘의 크기가 갈려 없는 차이를 만들어 냅니다.
-   숫자 배지는 그대로 둡니다. 크기는 '어느 쪽이 큰가'만 알려 주고, 정확한
-   횟수는 교사에게 여전히 필요한 값이라서입니다. */
+   글자 크기는 다섯 개가 모두 같습니다. 크기로 빈도를 나타내 봤더니 낱말마다
+   글꼴이 들쭉날쭉해 목록으로 읽히지 않았습니다. 길이는 눈이 나란히 놓고
+   견주기에 크기보다 정확하고, 글자는 글자대로 가지런합니다.
+
+   막대는 0에서 시작해 '그 칸의 최다'를 가득 참으로 봅니다(--t = 횟수/최다).
+   칸끼리가 아니라 칸 안의 비율이라, 낱말이 35개인 칸과 10개인 칸이 같은
+   리듬으로 읽힙니다. 이름 아래 폭을 통째로 쓰므로 다섯 막대가 모두 같은
+   자리에서 출발해 길이를 바로 견줄 수 있습니다 — 이름 옆에 붙이면 글자
+   길이만큼 출발선이 어긋납니다.
+
+   횟수는 막대 오른쪽 끝이 아니라 이름 줄 오른쪽에 답니다(세로로 줄이 섭니다).
+   숫자는 본문 색을 씁니다 — 색은 막대가 지고 있으므로 글자까지 물들이면
+   같은 것을 두 번 말하는 셈입니다. */
 .dash-top-word {
   --t: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.dash-top-label {
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: baseline;
   gap: 6px;
-  font-size: calc(13.5px + var(--t) * 7.5px);
-  font-weight: 700; /* calc를 못 읽는 브라우저에서도 굵기는 남도록 */
-  font-weight: calc(650 + var(--t) * 200);
+  font-size: 14px;
+  font-weight: 700;
   color: var(--text);
-  line-height: 1.3;
+  line-height: 1.25;
   word-break: keep-all;
 }
-/* 옅기는 글자에만 겁니다 — 줄 전체에 걸면 숫자 배지까지 흐려지고,
-   자식 opacity로는 부모 값을 되돌릴 수 없습니다(서로 곱해집니다). */
-.dash-top-text {
-  min-width: 0;
-  opacity: calc(0.76 + var(--t) * 0.24);
-}
-/* 몇 번 나왔는지 — 반복해 늘어놓는 대신 배지로.
-   오른쪽 끝에 맞춰 세로로 줄을 세웁니다. 낱말 바로 뒤에 붙이면 글자 길이에
-   따라 들쭉날쭉해 목록이 어수선해 보였습니다. */
-.dash-top-word em {
+.dash-top-text { min-width: 0; }
+.dash-top-label em {
   justify-self: end;
   font-style: normal;
-  font-size: 10.5px;
-  font-weight: 800;
-  line-height: 1.5;
-  color: var(--primary-dark, #c15a2a);
-  background: var(--primary-light);
-  border-radius: 999px;
-  padding: 0 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-sub);
   font-variant-numeric: tabular-nums;
 }
-/* 그 칸의 으뜸 낱말 — 배지도 채워 한눈에 잡히게 */
-.dash-top-word.is-top em {
-  color: #fff;
+/* 남은 자리(트랙)는 아주 옅게 — '최다 대비 얼마쯤'을 가늠하게 해 주되,
+   한 화면에 막대가 70개라 조금만 진해도 격자가 어수선해집니다. */
+.dash-top-bar {
+  height: 5px;
+  border-radius: 999px;
+  background: #efece6;
+  overflow: hidden;
+}
+.dash-top-bar i {
+  display: block;
+  height: 100%;
+  width: calc(var(--t) * 100%);
+  min-width: 3px;
+  border-radius: 999px;
   background: var(--primary);
 }
 .dash-top-more {
@@ -19377,9 +19384,11 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   color: var(--text-sub);
   font-variant-numeric: tabular-nums;
 }
-/* 중계 화면은 교실 뒤에서 보므로 한 단계 크게 — 크기 차이도 함께 키웁니다 */
-.cast-grid .dash-top-word { font-size: calc(17px + var(--t) * 10px); }
-.cast-grid .dash-top-word em { font-size: 13px; padding: 0 8px; }
+/* 중계 화면은 교실 뒤에서 보므로 한 단계 크게 */
+.cast-grid .dash-top { gap: 11px; }
+.cast-grid .dash-top-label { font-size: 19px; }
+.cast-grid .dash-top-label em { font-size: 14px; }
+.cast-grid .dash-top-bar { height: 7px; }
 .cast-grid .dash-top-more { font-size: 13px; }
 
 /* 모둠원 범례에서 '나' — 내 판에도 범례를 두면서, 여럿 중 내 색을 바로
