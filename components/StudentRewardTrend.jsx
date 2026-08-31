@@ -79,6 +79,10 @@ export default function StudentRewardTrend({
   // 제목 없이 버튼만 — 과일 주기 모달처럼 바로 위에 이미 '🍎 과일 n'이 적혀
   // 있는 자리에서는 제목이 같은 말을 두 번 하는 셈이라 뺍니다.
   bare = false,
+  // 이력 보기 줄 오른쪽에 함께 놓을 것(과일 주기 모달의 누적 개수).
+  // 버튼만 덩그러니 있으면 그 줄이 비어 보이고, 누적 개수는 버튼을 누른
+  // 결과가 바로 보여야 하는 값이라 같은 줄에 마주 놓는 편이 낫습니다.
+  headRight = null,
   // 흐름을 보려고 연 화면(과일 뱃지 모달)에서는 접는 버튼이 할 일이 없습니다.
   showToggle = true,
 }) {
@@ -144,6 +148,7 @@ export default function StudentRewardTrend({
         >
           {open ? "이력 접기" : "이력 보기"}
         </button>
+        {headRight}
       </div>
       )}
 

@@ -50,7 +50,21 @@ export default function StudentToolsModal({
                 이미 적혀 있고, 주기 직전에 알고 싶은 건 '요즘 어떤가'라
                 여기서 펼쳐 볼 수 있게 둡니다.
                 기본은 접힘 — 이 화면이 전자칠판에 비칩니다. */}
-            <StudentRewardTrend studentUid={student.uid} classId={classId} bare />
+            <StudentRewardTrend
+              studentUid={student.uid}
+              classId={classId}
+              bare
+              headRight={
+                // 지금 누적 몇 개인지 — 버튼만 있으면 눌렸는지 알 수 없어
+                // 누른 결과를 이 자리에서 바로 보여 줍니다.
+                // key={count}로 값이 바뀔 때마다 다시 그려져 애니메이션이
+                // 새로 돕니다(눌렀다는 신호). aria-live로 소리로도 알립니다.
+                <span className="attend-tools-total" aria-live="polite">
+                  <span className="attend-tools-total-label">누적</span>
+                  <span className="attend-tools-total-n" key={count}>🍎 {count}</span>
+                </span>
+              }
+            />
 
             <div className="attend-tools-award">
               <button
