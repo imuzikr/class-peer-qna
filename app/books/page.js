@@ -19,6 +19,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   subscribeBookActivities,
   subscribeBookGroups,
+  subscribeMyParatextEntry,
   addBookActivity,
   deleteBookActivity,
   updateBookActivity,
@@ -535,6 +536,7 @@ function BooksPageInner() {
               kind={openKindInfo}
               activities={openKindActivities}
               isTeacher={admin}
+              uid={user?.uid ?? null}
               onAdd={() => setCreatingType(openKindInfo.key)}
               onOpen={goToActivity}
               onDelete={setConfirmDelete}
@@ -608,6 +610,7 @@ function ActivityKindDashboard({
   kind,
   activities,
   isTeacher,
+  uid,
   onAdd,
   onOpen,
   onDelete,
@@ -640,6 +643,7 @@ function ActivityKindDashboard({
               key={a.id}
               activity={a}
               isTeacher={isTeacher}
+              uid={uid}
               onOpen={() => onOpen(a)}
               onDelete={() => onDelete(a)}
               onToggleLock={() => onToggleLock(a)}
@@ -652,7 +656,7 @@ function ActivityKindDashboard({
 }
 
 // 활동 카드 — 목록에 한 줄씩
-function ActivityCard({ activity, isTeacher, onOpen, onDelete, onToggleLock }) {
+function ActivityCard({ activity, isTeacher, uid, onOpen, onDelete, onToggleLock }) {
   // 개인 활동(곁텍스트 읽기·RAFT·KWLS·마인드맵)은 모둠이 없습니다.
   const soloLabel = {
     paratext: "곁텍스트 읽기 · 개인 활동",
@@ -666,6 +670,20 @@ function ActivityCard({ activity, isTeacher, onOpen, onDelete, onToggleLock }) {
     if (soloLabel) return;
     return subscribeBookGroups(activity.id, setGroups);
   }, [activity.id, soloLabel]);
+
+  // 곁텍스트 읽기에서 교사가 주제어를 비워 둔 경우에만 — 학생이 제 카드에
+  // 적은 책이름을 카드 제목으로 씁니다(읽는 책이 저마다 달라서).
+  //
+  // 조건을 이렇게 좁게 건 이유: 이건 내 기록 한 건(문서 1개)을 더 읽는 일인데,
+  // 목록은 카드가 쌓이는 곳이라 조건 없이 걸면 활동 수만큼 늘어납니다.
+  // 주제어가 있는 활동·교사 화면에서는 필요 없는 값이라 아예 걸지 않습니다.
+  const needMyTopic =
+    !isTeacher && activity.type === "paratext" && !(activity.topic ?? "").trim();
+  const [myTopic, setMyTopic] = useState("");
+  useEffect(() => {
+    if (!needMyTopic || !uid) { setMyTopic(""); return; }
+    return subscribeMyParatextEntry(activity.id, uid, (e) => setMyTopic(e?.topic ?? ""));
+  }, [needMyTopic, activity.id, uid]);
 
   // 진행률(14칸을 다 채운 학생 수)은 여기가 아니라 활동을 연 화면에 있습니다.
   // 그 값을 내려면 활동의 낱말을 전부 읽어야 하는데, 목록은 카드가 계속
@@ -689,7 +707,7 @@ function ActivityCard({ activity, isTeacher, onOpen, onDelete, onToggleLock }) {
             하나로 밀려납니다. 주제어를 비워 둔 개별 활동에서만 활동 이름을
             대신 씁니다(그때는 학생이 각자 자기 판에 주제를 적습니다). */}
         <strong className="book-activity-title">
-          {activity.topic?.trim() || activity.title}
+          {activity.topic?.trim() || myTopic.trim() || activity.title}
         </strong>
         <span className="book-activity-date">{activityDateLabel(activity)}</span>
         <span className="book-activity-meta">

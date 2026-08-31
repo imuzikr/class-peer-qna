@@ -18665,6 +18665,99 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   color: var(--primary-dark);
 }
 /* 저장 줄 — 자료가 많아 본문이 길어져도 버튼이 늘 보이게 아래에 고정 */
+/* 모달 아래 단추 줄 (독서 활동 만들기 · 도서명 묻기)
+   -------------------------------------------------------------
+   예전에는 .modal-actions에 규칙이 아예 없어, 안의 두 단추가 각자 기본값을
+   썼습니다 — 취소는 .btn-ghost(6px 12px · 13px), 실행은 .btn-primary(12px ·
+   15px). 높이가 15px 넘게 벌어져 한쪽은 알약, 한쪽은 사각형으로 보였습니다.
+   자료 제공 모달(.study-material-modal-foot)과 같은 짜임으로 맞춥니다:
+   높이·모서리는 같게, 실행 단추만 채워 앞세우고 줄을 채웁니다. */
+.modal-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 18px;
+}
+.modal-actions > .btn-ghost,
+.modal-actions > .btn-primary {
+  height: 44px;
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  border-radius: var(--radius-btn);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+/* 실행 단추가 남은 줄을 채웁니다 — 이 모달에서 할 일이 그것 하나입니다 */
+.modal-actions > .btn-primary { flex: 1; }
+.modal-actions > .btn-ghost {
+  flex-shrink: 0;
+  color: var(--text);
+  background: var(--neutral);
+  border-color: transparent;
+}
+.modal-actions > .btn-ghost:hover { background: var(--border); }
+
+/* 도서명·주제 묻는 모달 — 한 가지만 묻는 자리라 좁게 */
+.modal-topic-ask { max-width: 420px; }
+.modal-topic-note {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--text-sub);
+  line-height: 1.6;
+}
+.modal-topic-input {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: inherit;
+  font-size: 15px;
+}
+
+/* 학생이 스스로 적는 주제어 배지 — 눌러서 고칠 수 있음을 보여 줍니다 */
+.book-topic-edit {
+  font-family: inherit;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+.book-topic-edit:hover { border-color: var(--primary); }
+/* 아직 안 적었을 때 — 점선으로 '여기 채워야 한다'를 보여 줍니다.
+   머리말 둘째 줄의 배지는 테두리를 투명으로 두는 규칙(.books-head-row …)이
+   있어, 그보다 좁게 집어야 점선이 살아납니다. */
+.books-head .book-topic-edit.is-empty,
+.books-head-row .books-head-main .book-topic-edit.is-empty {
+  color: var(--text-sub);
+  background: none;
+  border: 1px dashed var(--border);
+  font-weight: 700;
+}
+.books-head .book-topic-edit.is-empty:hover,
+.books-head-row .books-head-main .book-topic-edit.is-empty:hover {
+  color: var(--primary-dark);
+  border-color: var(--primary);
+}
+/* 활동에 주제어가 없을 때의 머리말 배지 — 값이 아니라 안내라 옅게 */
+.book-group-topic.soft {
+  color: var(--text-sub);
+  background: var(--neutral);
+  font-weight: 700;
+}
+/* 교사 화면의 학생 카드 — 그 학생이 읽는 책 */
+.paratext-student-topic {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary-dark);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .study-material-modal-foot {
   position: sticky;
   bottom: -28px; /* .modal의 아래 padding만큼 당겨 바닥에 붙입니다 */

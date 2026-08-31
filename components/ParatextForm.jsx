@@ -16,7 +16,7 @@
 // 글이 날아가는 일이 없도록 한 선택입니다.
 // =============================================================
 import { useEffect, useMemo, useRef, useState } from "react";
-import { subscribeMyParatextEntry, saveParatextEntry } from "@/lib/store";
+import { subscribeMyParatextEntry, saveParatextEntry, saveParatextTopic } from "@/lib/store";
 import { backdropClose } from "@/lib/modal";
 import {
   PARATEXT_SECTIONS,
@@ -45,6 +45,10 @@ export default function ParatextForm({ activity, user, onBack }) {
   const [loaded, setLoaded] = useState(false);
   const [status, setStatus] = useState("idle"); // idle | saving | saved
   const [openIndex, setOpenIndex] = useState(null); // 모달로 연 항목 (PARATEXT_SECTIONS 인덱스)
+  // 내가 적은 주제어(도서명) — 교사가 활동에 주제어를 넣지 않았을 때 씁니다.
+  // 읽는 책이 학생마다 다를 수 있어, 그때는 각자 적습니다.
+  const [myTopic, setMyTopic] = useState("");
+  const [topicAsk, setTopicAsk] = useState(false); // 물어보는 창이 떠 있는지
   // 내가 고친 뒤로는 서버 값이 와도 덮어쓰지 않습니다(입력 중 글자가 튀는 것 방지)
   const dirtyRef = useRef(false);
   const timerRef = useRef(null);
@@ -57,9 +61,33 @@ export default function ParatextForm({ activity, user, onBack }) {
       if (!dirtyRef.current) {
         setAnswers({ ...emptyParatextAnswers(), ...(entry?.answers ?? {}) });
       }
+      setMyTopic(entry?.topic ?? "");
       setLoaded(true);
     });
   }, [activity.id, user?.uid]);
+
+  // 활동에도 없고 내가 적은 것도 없으면 한 번 물어봅니다 — 무엇을 읽고 쓰는
+  // 건지 모른 채 여덟 칸을 채우기 시작하지 않도록. 닫으면 다시 뜨지 않고,
+  // 배지를 눌러 언제든 적을 수 있습니다(닫을 길을 막지 않습니다).
+  const askedRef = useRef(false);
+  useEffect(() => {
+    if (!loaded || locked || askedRef.current) return;
+    if ((activity.topic ?? "").trim() || myTopic.trim()) return;
+    askedRef.current = true;
+    setTopicAsk(true);
+  }, [loaded, locked, activity.topic, myTopic]);
+
+  // 화면에 쓸 주제어 — 교사가 정해 둔 것이 있으면 그것이 먼저입니다.
+  // (반 전체가 같은 책을 읽는 활동에서 학생이 제 것으로 바꿔 부르면 안 됩니다)
+  const shownTopic = (activity.topic ?? "").trim() || myTopic.trim();
+  const canEditTopic = !(activity.topic ?? "").trim() && !locked;
+
+  async function saveTopic(next) {
+    const text = String(next ?? "").trim();
+    setMyTopic(text);
+    setTopicAsk(false);
+    if (text) await saveParatextTopic(activity.id, user, text);
+  }
 
   // 입력이 멈추면 저장 — 타자 한 글자마다 쓰지 않도록 잠깐 모았다 보냅니다.
   useEffect(() => {
@@ -92,7 +120,30 @@ export default function ParatextForm({ activity, user, onBack }) {
         <div className="books-head-row">
           <div className="books-head-main">
             <button type="button" className="btn-ghost" onClick={onBack}>← 활동 목록</button>
-            <span className="book-group-topic">{activity.topic}</span>
+            {shownTopic ? (
+              canEditTopic ? (
+                <button
+                  type="button"
+                  className="book-group-topic book-topic-edit"
+                  onClick={() => setTopicAsk(true)}
+                  title="눌러서 도서명·주제 고치기"
+                >
+                  {shownTopic}
+                </button>
+              ) : (
+                <span className="book-group-topic">{shownTopic}</span>
+              )
+            ) : (
+              canEditTopic && (
+                <button
+                  type="button"
+                  className="book-group-topic book-topic-edit is-empty"
+                  onClick={() => setTopicAsk(true)}
+                >
+                  ＋ 도서명·주제 적기
+                </button>
+              )
+            )}
           </div>
           {bookUrl && (
             <a
@@ -183,7 +234,62 @@ export default function ParatextForm({ activity, user, onBack }) {
           onClose={() => setOpenIndex(null)}
         />
       )}
+
+      {topicAsk && (
+        <TopicAskModal
+          initial={myTopic}
+          onSave={saveTopic}
+          onClose={() => setTopicAsk(false)}
+        />
+      )}
     </main>
+  );
+}
+
+// 무엇을 읽고 있나 — 교사가 활동에 주제어를 넣지 않았을 때 학생이 적습니다.
+// 닫을 수 있게 둡니다: 아직 책을 못 정했을 수도 있고, 막아 두면 여덟 칸을
+// 아예 열지 못하게 됩니다. 나중에 배지를 눌러 적으면 됩니다.
+function TopicAskModal({ initial, onSave, onClose }) {
+  const [text, setText] = useState(initial ?? "");
+  const inputRef = useRef(null);
+  useEffect(() => { inputRef.current?.focus(); }, []);
+
+  function submit(e) {
+    e.preventDefault();
+    // 조합 중인 한글은 state에 늦게 들어오므로 입력칸의 실제 값을 씁니다
+    onSave(inputRef.current?.value ?? text);
+  }
+
+  return (
+    <div className="modal-backdrop" {...backdropClose(onClose)}>
+      <form
+        className="modal modal-topic-ask"
+        onSubmit={submit}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="modal-head">
+          <h3>무슨 책을 읽고 있나요?</h3>
+          <button type="button" className="btn-close" onClick={onClose} aria-label="닫기">×</button>
+        </div>
+        <p className="modal-topic-note">
+          도서명이나 오늘의 주제를 적어 주세요. 내 카드에 표시됩니다.
+        </p>
+        <input
+          ref={inputRef}
+          type="text"
+          className="modal-topic-input"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="예) 어린 왕자"
+          maxLength={40}
+          aria-label="도서명 또는 주제"
+        />
+        <div className="modal-actions">
+          <button type="button" className="btn-ghost" onClick={onClose}>나중에</button>
+          <button type="submit" className="btn-primary">저장</button>
+        </div>
+      </form>
+    </div>
   );
 }
 
