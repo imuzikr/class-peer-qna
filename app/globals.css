@@ -19200,3 +19200,35 @@ button.study-cal-cell.has-record:not(:disabled):hover {
 .books-body > .canvas-main {
   min-width: 0;
 }
+
+/* ── 상단바 손들기 — 교사 쪽 ──
+   손든 학생이 없어도 자리를 지킵니다. 아이콘이 사라지면 '아무도 안 들었다'와
+   '엉뚱한 반을 보고 있다·읽기에 실패했다'가 구분되지 않기 때문입니다.
+   아무도 없을 때는 흐리게(옆의 확성기·종보다 조용하게) 둡니다. */
+.question-signal-btn.idle { opacity: 0.4; }
+.question-signal-btn.idle:hover { opacity: 0.75; }
+/* 몇 명이 기다리는지 — 종 뱃지(.notif-badge)와 같은 모양·같은 자리 */
+.question-signal-count {
+  position: absolute;
+  top: 1px;
+  right: 0;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--danger, #d64545);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+}
+/* 지금 지켜보는 반 — 제목 옆에 작게 */
+.question-signal-scope {
+  margin-left: 6px;
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--primary-dark);
+}
+.question-signal-error { color: var(--danger, #d64545); line-height: 1.6; }

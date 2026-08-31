@@ -238,7 +238,12 @@ export default function TopNav({ active, onPython, pyActive = false }) {
             왼쪽에 두고, 확성기는 그 반에만 보내는 것이라 개인 알림(종) 왼쪽에
             둡니다 — 왼쪽으로 갈수록 범위가 좁습니다. */}
         {user && broadcastClassId && (
-          <QuestionSignalButton classId={broadcastClassId} user={user} isTeacher={admin} />
+          <QuestionSignalButton
+            classId={broadcastClassId}
+            user={user}
+            isTeacher={admin}
+            className={noticeClassName}
+          />
         )}
         {admin && user && broadcastClassId && (
           <ClassNoticeButton
