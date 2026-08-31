@@ -16705,6 +16705,50 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   gap: 8px;
   flex-shrink: 0;
 }
+
+/* 전체 보기 머리말 — 한 줄 (공부방 머리말 .study-title-row와 같은 짜임)
+   -------------------------------------------------------------
+   제목 아래 두 번째 줄에 숫자를 깔던 것을 한 줄로 폈습니다. 두 줄이면 그
+   아래 격자가 그만큼 내려앉는데, 이 화면은 14칸을 한눈에 담는 것이 전부라
+   세로 한 줄이 아깝습니다.
+   접지 않고(flex-wrap: nowrap) 자리가 모자라면 가로로 밉니다 — 접히면
+   격자가 통째로 내려가 화면이 출렁입니다. 막대는 숨깁니다(버튼 줄에
+   스크롤 막대가 보이면 지저분합니다). 공부방에서 같은 이유로 쓰는 방식입니다.
+   작업 화면(ConsonantCanvas)은 그대로 두 줄이라 .dash-root 아래로 한정합니다. */
+.dash-root > .canvas-head {
+  gap: 10px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.dash-root > .canvas-head::-webkit-scrollbar { display: none; }
+.dash-root > .canvas-head > * { flex-shrink: 0; }
+/* 버튼 크기도 공부방과 같은 값 — 두 화면을 오가도 줄 높이가 흔들리지 않게 */
+.dash-root > .canvas-head .btn-ghost {
+  padding: 5px 11px;
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+.canvas-head-name {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--text);
+  white-space: nowrap;
+}
+/* 숫자는 오른쪽 끝으로. 버튼 사이에 끼우면 무엇이 누를 것이고 무엇이 읽을
+   것인지 흐려집니다. */
+.canvas-head-stats {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--text-sub);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+/* 간격은 위의 gap이 냅니다 — 배지가 갖고 있던 margin까지 더하면 두 번 벌어집니다 */
+.canvas-head-stats .dash-done-count { margin-left: 0; }
 .dash-cast-btn.on {
   background: var(--primary-light);
   border-color: var(--primary);

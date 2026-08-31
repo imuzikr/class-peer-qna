@@ -236,27 +236,17 @@ export default function ConsonantDashboard({
   const Root = embedded ? "section" : "main";
   return (
     <Root className={`${embedded ? "dash-embed" : "canvas-main"} dash-root`}>
+      {/* 머리말은 한 줄입니다 — 제목 · 돌아가는 길 · 도구 · 수업 시작이 왼쪽에
+          붙고, 숫자는 오른쪽 끝에 섭니다. 공부방 머리말(.study-title-row)과
+          같은 짜임·같은 버튼 크기라, 두 화면을 오가도 줄의 높이가 흔들리지
+          않습니다. 자리가 모자라면 접히지 않고 가로로 밀립니다. */}
       <div className="canvas-head">
+        <strong className="canvas-head-name">
+          {embedded ? "집계 보기" : activity.topic}
+        </strong>
         {!embedded && (
           <button type="button" className="btn-ghost" onClick={onClose}>← 모둠</button>
         )}
-        <div className="canvas-head-title">
-          <strong>{embedded ? "집계 보기" : activity.topic}</strong>
-          <span>
-            모둠 {groups.length}개 · {totalFilled} / {CELL_COUNT}칸 · 낱말 {totalWords}개
-            {doneCount.students > 0 && (
-              <b
-                className="dash-done-count"
-                title={
-                  `${CELL_COUNT}칸을 다 채운 학생 ${doneCount.done}명 / ${doneCount.students}명\n` +
-                  `반 평균 ${(doneCount.totalFilled / doneCount.students).toFixed(1)}칸`
-                }
-              >
-                다 채운 학생 {doneCount.done} / {doneCount.students}
-              </b>
-            )}
-          </span>
-        </div>
         {/* 제목 바로 뒤 — 수업 중에 관찰한 것을 적으러 화면을 옮기지 않게 */}
         {classTools}
         <div className="dash-head-actions">
@@ -276,6 +266,21 @@ export default function ConsonantDashboard({
             </button>
           )}
         </div>
+        {/* 숫자는 오른쪽 끝 — 버튼과 섞이면 무엇이 누를 것인지 흐려집니다 */}
+        <span className="canvas-head-stats">
+          모둠 {groups.length}개 · {totalFilled} / {CELL_COUNT}칸 · 낱말 {totalWords}개
+          {doneCount.students > 0 && (
+            <b
+              className="dash-done-count"
+              title={
+                `${CELL_COUNT}칸을 다 채운 학생 ${doneCount.done}명 / ${doneCount.students}명\n` +
+                `반 평균 ${(doneCount.totalFilled / doneCount.students).toFixed(1)}칸`
+              }
+            >
+              다 채운 학생 {doneCount.done} / {doneCount.students}
+            </b>
+          )}
+        </span>
       </div>
 
       <div className="dash-body">
