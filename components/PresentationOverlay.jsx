@@ -277,12 +277,21 @@ function CastTopWords({ list }) {
   if (!list?.length) return null;
   const shown = list.slice(0, CAST_TOP_N);
   const rest = list.length - shown.length;
+  // 칸 안에서 가장 많이 나온 수 — 글자 크기를 이 값에 견주어 정합니다.
+  // 칸끼리가 아니라 '그 칸 안에서'의 비율이라, 낱말이 35개인 칸과 10개인
+  // 칸이 같은 리듬으로 읽힙니다.
+  const peak = Math.max(...shown.map((w) => w.count));
   return (
     <div className="dash-top">
-      {shown.map((w) => (
-        <span key={w.text} className="dash-top-word">
-          {w.text}
-          {w.count > 1 && <em>×{w.count}</em>}
+      {shown.map((w, i) => (
+        <span
+          key={w.text}
+          className={`dash-top-word${i === 0 ? " is-top" : ""}`}
+          // --t : 0(한 번) ~ 1(그 칸 최다). 크기·진하기를 이 값으로 잇습니다.
+          style={{ "--t": peak > 1 ? (w.count - 1) / (peak - 1) : 0 }}
+        >
+          <span className="dash-top-text">{w.text}</span>
+          {w.count > 1 && <em>&times;{w.count}</em>}
         </span>
       ))}
       {rest > 0 && <span className="dash-top-more">+{rest}개</span>}
