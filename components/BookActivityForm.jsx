@@ -22,7 +22,10 @@ const TYPES = [
   { key: "kwls", label: "KWLS로 성찰하기", desc: "읽기 전 아는 것·궁금한 것, 읽은 뒤 알게 된 것을 적습니다", defaultTitle: "KWLS로 성찰하기" },
   { key: "mindmap", label: "마인드맵", desc: "주제에서 가지를 뻗어 생각을 방사형·계층형으로 펼칩니다", defaultTitle: "마인드맵" },
 ];
+// 닿소리 채우기의 진행 방식. '개별 활동'은 모둠을 만들지 않고 학생마다
+// 판을 하나씩 주는 방식이라, 모둠 수·모둠 이름 설정이 필요 없습니다.
 const MODES = [
+  { key: "solo", label: "개별 활동" },
   { key: "teacher", label: "교사 배정" },
   { key: "random", label: "무작위" },
   { key: "free", label: "자유 구성" },
@@ -51,6 +54,9 @@ export default function BookActivityForm({ onSave, onClose, initialType = "conso
   // 곁텍스트 읽기·RAFT·KWLS·마인드맵은 개인 활동이라 모둠 설정이 없고,
   // 대신 학생이 눌러볼 도서 정보 주소를 받습니다.
   const isSolo = ["paratext", "raft", "kwls", "mindmap"].includes(type);
+  // 닿소리 채우기를 '개별 활동'으로 여는 경우 — 활동 종류로는 모둠 활동이지만
+  // 모둠을 만들지 않으므로, 모둠 수·이름 설정을 감춥니다.
+  const perStudent = !isSolo && groupMode === "solo";
   // 주소를 적었는데 열 수 없는 형태면 만들기 전에 알려 줍니다.
   const urlBad = bookUrl.trim().length > 0 && !safeBookUrl(bookUrl);
 
@@ -68,7 +74,8 @@ export default function BookActivityForm({ onSave, onClose, initialType = "conso
     if (!topic.trim() || saving || urlBad) return;
 
     // 이름을 적었는데 모둠 수와 개수가 다르면 만들지 않고 알려 줍니다.
-    if (!isSolo && names.length > 0 && names.length !== groupCount) {
+    // (개별 활동은 모둠 이름을 쓰지 않으므로 이 검사를 건너뜁니다)
+    if (!isSolo && !perStudent && names.length > 0 && names.length !== groupCount) {
       setWarning(
         `모둠은 ${groupCount}개인데 이름은 ${names.length}개를 적으셨어요.\n` +
           `개수를 맞추거나, 이름을 비우면 '1모둠·2모둠…'으로 자동으로 붙습니다.`
@@ -86,7 +93,7 @@ export default function BookActivityForm({ onSave, onClose, initialType = "conso
         groupMode,
         groupCount,
         maxPerGroup,
-        groupNames: names,
+        groupNames: perStudent ? [] : names,
       });
     } finally {
       setSaving(false);
@@ -184,6 +191,13 @@ export default function BookActivityForm({ onSave, onClose, initialType = "conso
               </div>
             </div>
 
+            {perStudent ? (
+              <p className="book-help book-solo-note">
+                모둠을 만들지 않고 <strong>학생마다 판을 하나씩</strong> 만듭니다.
+                낱말은 본인과 선생님에게만 보이고, ‘전체 보기’에서 반 전체를 한 번에 볼 수 있어요.
+              </p>
+            ) : (
+            <>
             <div className="book-field-row">
               <div className="book-field">
                 <span>모둠 수</span>
@@ -228,6 +242,8 @@ export default function BookActivityForm({ onSave, onClose, initialType = "conso
                 placeholder="쉼표로 구분 — 예: 햇살, 바람, 나무, 별빛"
               />
             </label>
+            </>
+            )}
           </>
         )}
 
@@ -240,7 +256,7 @@ export default function BookActivityForm({ onSave, onClose, initialType = "conso
           >
             {saving
               ? "만드는 중…"
-              : isSolo
+              : isSolo || perStudent
                 ? "학생별 활동으로 만들기"
                 : `모둠 ${groupCount}개와 함께 만들기`}
           </button>

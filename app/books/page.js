@@ -276,7 +276,14 @@ function BooksPageInner() {
   const studentCanvasGroupId = !admin && activeActivity ? myGroupId : null;
 
   async function handleCreate(form) {
-    await addBookActivity(user, { classId, ...form, baseGroups: baseGroupAssignment?.groups ?? [] });
+    // soloMembers — '개별 활동'으로 만들 때 학생마다 판을 하나씩 깔기 위한
+    // 반 명단입니다(다른 방식에서는 쓰이지 않습니다).
+    await addBookActivity(user, {
+      classId,
+      ...form,
+      baseGroups: baseGroupAssignment?.groups ?? [],
+      soloMembers: roster,
+    });
     setCreatingType(null);
     setToast("활동을 만들었어요.");
   }
@@ -595,8 +602,11 @@ function ActivityCard({ activity, isTeacher, onOpen, onDelete, onToggleLock }) {
   }, [activity.id, soloLabel]);
 
   const modeLabel =
-    { teacher: "교사 배정", random: "무작위 배정", free: "자유 구성" }[activity.groupMode] ??
-    "교사 배정";
+    { solo: "개별 활동", teacher: "교사 배정", random: "무작위 배정", free: "자유 구성" }[
+      activity.groupMode
+    ] ?? "교사 배정";
+  // 개별 활동은 '모둠 n개'가 아니라 '학생 n명'으로 읽는 게 맞습니다
+  const perStudent = activity.groupMode === "solo";
 
   return (
     <div className="book-activity-card">
@@ -605,7 +615,10 @@ function ActivityCard({ activity, isTeacher, onOpen, onDelete, onToggleLock }) {
         <strong className="book-activity-title">{activity.title}</strong>
         <span className="book-activity-date">{activityDateLabel(activity)}</span>
         <span className="book-activity-meta">
-          {soloLabel ?? `모둠 ${groups.length}개 · ${modeLabel}`}
+          {soloLabel ??
+            (perStudent
+              ? `학생 ${groups.length}명 · ${modeLabel}`
+              : `모둠 ${groups.length}개 · ${modeLabel}`)}
           {activity.locked && " · 잠김"}
         </span>
       </button>

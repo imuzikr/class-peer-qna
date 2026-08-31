@@ -16257,6 +16257,17 @@ button.study-cal-cell.has-record:not(:disabled):hover {
 }
 .book-field--narrow { flex: 0 0 108px; }
 .book-help { font-size: 11.5px; color: var(--text-sub); font-style: normal; line-height: 1.5; }
+/* 개별 활동 안내 — 모둠 수·이름 설정이 사라진 자리를 대신 채웁니다 */
+.book-solo-note {
+  margin: 0 0 13px;
+  padding: 11px 13px;
+  border: 1px solid #efc19a;
+  border-radius: 10px;
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  font-size: 12.5px;
+}
+.book-solo-note strong { font-weight: 800; }
 /* 활동 종류 고르기 — 설명이 함께 붙어 세로로 쌓는 넓은 버튼.
    종류가 넷이라 한 줄에 넷을 늘어놓으면 설명이 읽히지 않아 2×2로 놓습니다 */
 .book-type-seg {

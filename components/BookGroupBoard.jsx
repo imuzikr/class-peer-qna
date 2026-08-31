@@ -49,6 +49,10 @@ export default function BookGroupBoard({
   const rosterUids = useMemo(() => new Set(roster.map((s) => s.uid)), [roster]);
 
   const freeMode = activity.groupMode === "free";
+  // 개별 활동 — 판 하나가 곧 학생 한 명입니다. '활동 모둠'(GroupComposer)은
+  // 최대 6개까지만 다루도록 만들어져 있어, 학생 수만큼 있는 이 판들에 쓰면
+  // 나머지가 사라집니다. 그래서 이 모드에서는 아예 열지 않습니다.
+  const perStudent = activity.groupMode === "solo";
   const maxPerGroup = activity.maxPerGroup ?? 6;
 
   // 내가 속한 모둠 (자유 구성에서 '이미 참여했는지' 판단에도 씁니다)
@@ -93,7 +97,7 @@ export default function BookGroupBoard({
       <div className="books-head-row">
         <div className="books-head-main">
           <button type="button" className="btn-ghost" onClick={onBack}>← 활동 목록</button>
-          {isTeacher && !freeMode && (
+          {isTeacher && !freeMode && !perStudent && (
             <button type="button" className="btn-ghost" onClick={() => setComposing(true)}>
               <IconPeople size={15} /> 활동 모둠
             </button>
@@ -144,7 +148,11 @@ export default function BookGroupBoard({
           </p>
         )}
         {groups.length === 0 ? (
-          <p className="empty-note">아직 모둠이 만들어지지 않았어요. 잠시 기다려 주세요.</p>
+          <p className="empty-note">
+            {perStudent
+              ? "아직 내 판이 만들어지지 않았어요. 선생님께 말해 주세요."
+              : "아직 모둠이 만들어지지 않았어요. 잠시 기다려 주세요."}
+          </p>
         ) : (
           <>
             {freeMode && !myGroup && (
@@ -217,7 +225,9 @@ export default function BookGroupBoard({
 
       {groups.length === 0 ? (
         <p className="empty-note">
-          아직 모둠이 없어요. ‘모둠 구성’으로 모둠을 만들어 주세요.
+          {perStudent
+            ? "학생 판이 아직 없어요. 반에 학생이 있는지 확인해 주세요."
+            : "아직 모둠이 없어요. ‘모둠 구성’으로 모둠을 만들어 주세요."}
         </p>
       ) : (
         <div className="book-workspace">
