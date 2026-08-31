@@ -14,13 +14,18 @@
 // 위쪽 방송 막대에서 이전/다음 영역으로 넘기거나 방송을 끝낼 수 있습니다.
 // =============================================================
 import { useEffect, useMemo, useState } from "react";
-import { subscribeParatextEntries } from "@/lib/store";
+import { subscribeParatextEntries, updateBookActivity } from "@/lib/store";
 import { useEntryCast } from "@/lib/useEntryCast";
 import {
   PARATEXT_SECTIONS,
   PARATEXT_SECTION_COUNT,
   isSectionDone,
   isSectionStarted,
+  isSectionLocked,
+  openSectionCount,
+  sectionLocksWith,
+  sectionLocksUpTo,
+  firstLockedIndex,
   paratextDoneCount,
   paratextCharCount,
   safeBookUrl,
@@ -185,6 +190,10 @@ export default function ParatextBoard({
             시작 {startedCount}명 · 완성 {doneCount}명 / 전체 {cards.length}명
           </span>
         )}
+        {/* 단계 열기 — 공부방 프로젝트의 활동 잠금과 같은 생각입니다.
+            여덟 칩이 학생이 보는 여덟 카드와 1:1이라, '지금 어디까지 열렸나'가
+            한눈에 들어옵니다. 수업 중 실제로 하는 동작(다음 열기)은 버튼 하나로. */}
+        {!open && <SectionGate activity={activity} />}
       </div>
 
       {open ? (
@@ -281,6 +290,65 @@ function buildPayload(activity, card, index) {
 }
 
 // 학생 한 명의 카드 — 이름 + 항목별 네모 + 채운 칸 수
+// 단계 열기 (교사) — 여덟 칩 + '다음 단계 열기'
+// -------------------------------------------------------------
+// 활동 문서 하나(sectionLocks)만 고칩니다. 이 화면도 학생 화면도 그 문서를
+// 이미 구독하고 있어서 읽기가 1건도 늘지 않고, 어느 화면에서 눌러도 같은
+// 상태를 봅니다(공부방의 activityLocks와 같은 방식).
+function SectionGate({ activity }) {
+  const openCount = openSectionCount(activity);
+  const nextLocked = firstLockedIndex(activity);
+  const allOpen = openCount === PARATEXT_SECTION_COUNT;
+
+  function setLocks(locks) {
+    return updateBookActivity(activity.id, { sectionLocks: locks });
+  }
+
+  return (
+    <div className="section-gate">
+      <span className="section-gate-label">
+        단계 열기 <b>{openCount} / {PARATEXT_SECTION_COUNT}</b>
+      </span>
+      <div className="section-gate-chips">
+        {PARATEXT_SECTIONS.map((s, i) => {
+          const locked = isSectionLocked(activity, s.key);
+          return (
+            <button
+              key={s.key}
+              type="button"
+              className={`section-gate-chip${locked ? "" : " open"}`}
+              onClick={() => setLocks(sectionLocksWith(activity, s.key, !locked))}
+              title={`${i + 1}. ${s.ko} — ${locked ? "눌러서 열기" : "눌러서 닫기"}`}
+              aria-pressed={!locked}
+            >
+              <span className="section-gate-letter">{s.letter}</span>
+              <span className="section-gate-ko">{s.ko}</span>
+            </button>
+          );
+        })}
+      </div>
+      {/* 수업 중 가장 잦은 동작 — 앞에서부터 아직 안 연 첫 단계를 엽니다.
+          교사가 건너뛰며 열었어도 빠진 자리를 먼저 채웁니다. */}
+      <button
+        type="button"
+        className="btn-primary section-gate-next"
+        onClick={() => setLocks(sectionLocksUpTo(nextLocked + 1))}
+        disabled={allOpen}
+      >
+        {allOpen ? "모두 열림" : `다음 단계 열기 (${PARATEXT_SECTIONS[nextLocked].ko})`}
+      </button>
+      <button
+        type="button"
+        className="btn-ghost section-gate-all"
+        onClick={() => setLocks(sectionLocksUpTo(allOpen ? 1 : PARATEXT_SECTION_COUNT))}
+      >
+        {allOpen ? "1단계만 남기기" : "모두 열기"}
+      </button>
+    </div>
+  );
+}
+
+
 function StudentCard({ card, casting, onOpen }) {
   const answers = card.entry?.answers ?? {};
   const done = paratextDoneCount(answers);

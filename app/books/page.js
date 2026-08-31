@@ -21,6 +21,7 @@ import {
   subscribeBookGroups,
   subscribeMyParatextEntry,
   BOOK_STUDENT_TOPIC_TYPES,
+  BOOK_SOLO_TYPES,
   addBookActivity,
   deleteBookActivity,
   updateBookActivity,
@@ -64,37 +65,16 @@ import MindmapBoard from "@/components/MindmapBoard";
 import MindmapForm from "@/components/MindmapForm";
 import { IconBook, IconTrash } from "@/components/StatusIcons";
 
+// 활동 종류의 이름 — 목록 카드에 '무엇을 하는 활동인가'를 적는 데 씁니다.
+// 설명과 '추가하기' 문구는 종류 그리드를 없애면서 함께 뺐습니다. 종류를
+// 고르는 자리가 만들기 창 하나로 모였고, 거기에 같은 설명이 이미 있습니다
+// (components/BookActivityForm.jsx의 TYPES).
 const ACTIVITY_KINDS = [
-  {
-    key: "consonant",
-    label: "닿소리 채우기",
-    desc: "모둠이 함께 자음 칸을 낱말로 채웁니다",
-    addLabel: "닿소리 활동 추가하기",
-  },
-  {
-    key: "paratext",
-    label: "곁텍스트 읽기",
-    desc: "표지·제목·목차를 보고 내용을 짐작합니다",
-    addLabel: "곁텍스트 활동 추가하기",
-  },
-  {
-    key: "raft",
-    label: "RAFT 글쓰기",
-    desc: "역할·청중·형식·주제를 정해 글을 씁니다",
-    addLabel: "RAFT 활동 추가하기",
-  },
-  {
-    key: "kwls",
-    label: "KWLS로 성찰하기",
-    desc: "읽기 전후 생각을 K-W-L-S로 정리합니다",
-    addLabel: "KWLS 활동 추가하기",
-  },
-  {
-    key: "mindmap",
-    label: "마인드맵",
-    desc: "주제에서 가지를 뻗어 생각을 펼칩니다",
-    addLabel: "마인드맵 추가하기",
-  },
+  { key: "consonant", label: "닿소리 채우기" },
+  { key: "paratext", label: "곁텍스트 읽기" },
+  { key: "raft", label: "RAFT 글쓰기" },
+  { key: "kwls", label: "KWLS로 성찰하기" },
+  { key: "mindmap", label: "마인드맵" },
 ];
 
 const ACTIVITY_KIND_BY_KEY = new Map(ACTIVITY_KINDS.map((k) => [k.key, k]));
@@ -137,22 +117,27 @@ function BooksPageInner() {
   const admin = user ? isTeacher(user) : false;
   const superAdmin = user ? isAdmin(user) : false;
 
-  // 활동 종류 그리드 → 종류별 목록 → 활동 상세, 이 세 단계를 URL(?kind=&activity=)
-  // 로 관리합니다. 그래야 브라우저의 '뒤로 가기'를 눌렀을 때 이 앱의 상태가
-  // 아니라 그 전 최상위 페이지로 곧장 나가버리지 않고, 한 단계씩 되돌아갑니다.
+  // 활동 목록 → 활동 상세, 두 단계를 URL(?activity=)로 관리합니다. 그래야
+  // 브라우저의 '뒤로 가기'가 이 앱의 상태를 한 단계 되돌립니다(최상위
+  // 페이지로 곧장 나가버리지 않습니다).
+  //
+  // 예전에는 '활동 종류 그리드 → 그 종류의 목록 → 활동' 세 단계였습니다.
+  // 가운데 단계가 하는 일이 종류를 고르는 것뿐인데, 종류는 활동을 만들 때
+  // 어차피 한 번 더 고르므로 같은 선택을 두 번 하는 셈이었습니다. 지금은
+  // 반의 활동을 종류 섞어 한 목록에 최신순으로 늘어놓고(카드마다 종류가
+  // 적혀 있습니다), 만들기 창에서 종류를 고릅니다.
+  //
+  // 예전 주소(?kind=…)로 들어와도 그 값은 그냥 무시됩니다 — 목록이 하나뿐이라
+  // 갈 곳이 달라지지 않습니다.
   const router = useRouter();
   const searchParams = useSearchParams();
-  const openKind = searchParams.get("kind");
   const openActivityId = searchParams.get("activity");
 
-  function goToGrid() {
+  function goToList() {
     router.push("/books");
   }
-  function goToKind(kindKey) {
-    router.push(kindKey ? `/books?kind=${kindKey}` : "/books");
-  }
   function goToActivity(activity) {
-    router.push(`/books?kind=${activity.type}&activity=${activity.id}`);
+    router.push(`/books?activity=${activity.id}`);
   }
 
   const [classes, setClasses] = useState([]);
@@ -313,17 +298,14 @@ function BooksPageInner() {
     : null;
   const activeClassId = activeActivity?.classId ?? classId;
   const activeClassName = classes.find((c) => c.id === activeClassId)?.name ?? "";
-  const openKindInfo = openKind ? ACTIVITY_KIND_BY_KEY.get(openKind) ?? null : null;
-  const activitiesByKind = useMemo(() => {
-    return ACTIVITY_KINDS.map((kind) => {
-      const items = activities
-        .filter((a) => a.type === kind.key)
-        .sort((a, b) => activityTime(a) - activityTime(b));
-      return { ...kind, items };
-    });
-  }, [activities]);
-  const openKindActivities =
-    activitiesByKind.find((kind) => kind.key === openKind)?.items ?? [];
+  // 목록에 늘어놓을 활동 — 종류를 섞어 최신 것이 앞에 옵니다. 수업에서 다음에
+  // 찾는 것은 대개 방금 만든 활동이라, 종류보다 시간이 앞선 기준입니다.
+  // (구독이 이미 최신순으로 넘겨주지만, 데모 모드와 옛 문서까지 확실히 하려고
+  //  여기서 한 번 더 세웁니다 — 목록의 순서가 이 값에 달려 있습니다.)
+  const sortedActivities = useMemo(
+    () => activities.slice().sort((a, b) => activityTime(b) - activityTime(a)),
+    [activities]
+  );
 
   // 개인 활동(곁텍스트 읽기·RAFT·KWLS·마인드맵)은 모둠이 없어 화면 흐름이 따로입니다.
   const isParatext = activeActivity?.type === "paratext";
@@ -364,7 +346,7 @@ function BooksPageInner() {
     const target = confirmDelete;
     setConfirmDelete(null);
     await deleteBookActivity(target.id);
-    if (openActivityId === target.id) goToKind(target.type);
+    if (openActivityId === target.id) goToList();
     setToast("활동을 삭제했어요.");
   }
 
@@ -418,14 +400,14 @@ function BooksPageInner() {
           classId={activeClassId}
           user={user}
           roster={roster}
-          onBack={() => goToKind(activeActivity.type)}
+          onBack={goToList}
           classTools={classTools}
         />
       ) : isMindmap ? (
         <MindmapForm
           activity={activeActivity}
           user={user}
-          onBack={() => goToKind(activeActivity.type)}
+          onBack={goToList}
         />
       ) : /* KWLS로 성찰하기(개인 활동) — 교사는 학생별 카드+칸별 방송, 학생은 4칸 화면 */
       isKwls && admin ? (
@@ -435,14 +417,14 @@ function BooksPageInner() {
           classId={activeClassId}
           user={user}
           roster={roster}
-          onBack={() => goToKind(activeActivity.type)}
+          onBack={goToList}
           classTools={classTools}
         />
       ) : isKwls ? (
         <KwlsForm
           activity={activeActivity}
           user={user}
-          onBack={() => goToKind(activeActivity.type)}
+          onBack={goToList}
         />
       ) : /* RAFT 글쓰기(개인 활동) — 교사는 학생별 카드+방송, 학생은 4열 화면 */
       isRaft && admin ? (
@@ -452,14 +434,14 @@ function BooksPageInner() {
           classId={activeClassId}
           user={user}
           roster={roster}
-          onBack={() => goToKind(activeActivity.type)}
+          onBack={goToList}
           classTools={classTools}
         />
       ) : isRaft ? (
         <RaftForm
           activity={activeActivity}
           user={user}
-          onBack={() => goToKind(activeActivity.type)}
+          onBack={goToList}
         />
       ) : /* 곁텍스트 읽기(개인 활동) — 교사는 학생별 카드, 학생은 자기 입력 화면 */
       isParatext && admin ? (
@@ -469,14 +451,14 @@ function BooksPageInner() {
           classId={activeClassId}
           user={user}
           roster={roster}
-          onBack={() => goToKind(activeActivity.type)}
+          onBack={goToList}
           classTools={classTools}
         />
       ) : isParatext ? (
         <ParatextForm
           activity={activeActivity}
           user={user}
-          onBack={() => goToKind(activeActivity.type)}
+          onBack={goToList}
         />
       ) : /* 교사: '전체 보기' — 반 전체 집계. 여기서 학생 화면에 중계할 수 있습니다 */
       admin && allView && activeActivity ? (
@@ -495,7 +477,7 @@ function BooksPageInner() {
           user={user}
           isTeacher={false}
           viewMode="mine"
-          onBack={() => goToKind(activeActivity.type)}
+          onBack={goToList}
         />
       ) : activeActivity ? (
         <BookGroupBoard
@@ -508,7 +490,7 @@ function BooksPageInner() {
           roster={roster}
           baseGroupAssignment={baseGroupAssignment}
           onOpenAll={() => setAllView(true)}
-          onBack={() => goToKind(activeActivity.type)}
+          onBack={goToList}
           onToast={setToast}
           classTools={classTools}
         />
@@ -519,18 +501,6 @@ function BooksPageInner() {
               <h1>
                 <IconBook size={26} /> 책방
               </h1>
-              {/* 돌아가기는 제목 바로 뒤 — 화면을 한 단계 되돌리는 것이라
-                  '어느 반이냐'(반 고르기)보다 앞섭니다. 제목 줄에 두면
-                  제목·설명과 뒤섞여 눈이 한 번 더 더듬습니다. */}
-              {openKindInfo && (
-                <button
-                  type="button"
-                  className="btn-ghost books-head-btn"
-                  onClick={goToGrid}
-                >
-                  ← 활동 종류
-                </button>
-              )}
               {admin && myClasses.length > 0 && (
                 <select
                   className="study-class-select"
@@ -563,7 +533,9 @@ function BooksPageInner() {
                   <span className="books-class-name">{currentClass.name}</span>
                 )
               )}
-              {admin && classId && !openKindInfo && (
+              {/* 종류는 이 창에서 고릅니다 — 목록을 종류별로 나누지 않게 되면서
+                  종류를 고르는 자리가 여기 하나로 모였습니다. */}
+              {admin && classId && (
                 <button className="btn-primary" onClick={() => setCreatingType("consonant")}>
                   ＋ 독서 활동 만들기
                 </button>
@@ -576,13 +548,11 @@ function BooksPageInner() {
             <p className="empty-note">
               아직 만든 반이 없어요. 공부방에서 반을 먼저 만들어 주세요.
             </p>
-          ) : openKindInfo ? (
-            <ActivityKindDashboard
-              kind={openKindInfo}
-              activities={openKindActivities}
+          ) : (
+            <ActivityList
+              activities={sortedActivities}
               isTeacher={admin}
               uid={user?.uid ?? null}
-              onAdd={() => setCreatingType(openKindInfo.key)}
               onOpen={goToActivity}
               onEdit={setEditingActivity}
               onDelete={setConfirmDelete}
@@ -590,8 +560,6 @@ function BooksPageInner() {
                 updateBookActivity(activity.id, { locked: !activity.locked })
               }
             />
-          ) : (
-            <ActivityKindGrid kinds={activitiesByKind} onOpen={goToKind} />
           )}
         </main>
       )}
@@ -622,7 +590,6 @@ function BooksPageInner() {
       {creatingType && (
         <BookActivityForm
           initialType={creatingType}
-          fixedType={!!openKindInfo}
           onSave={handleCreate}
           onClose={() => setCreatingType(null)}
         />
@@ -662,97 +629,51 @@ function BooksPageInner() {
   );
 }
 
-function ActivityKindGrid({ kinds, onOpen }) {
+// 활동 목록 — 반의 활동을 종류 섞어 최신순으로 늘어놓습니다.
+// 예전에는 '종류 그리드 → 그 종류의 목록' 두 화면이었는데, 가운데 화면이
+// 하는 일이 종류를 고르는 것뿐이라 만들기 창의 종류 고르기와 겹쳤습니다.
+// 종류는 카드마다 적혀 있으니 목록을 나눌 이유가 없습니다.
+function ActivityList({ activities, isTeacher, uid, onOpen, onEdit, onDelete, onToggleLock }) {
+  if (activities.length === 0) {
+    return (
+      <p className="empty-note">
+        {isTeacher
+          ? "아직 만든 활동이 없어요. ‘＋ 독서 활동 만들기’로 첫 활동을 열어 보세요."
+          : "아직 열린 활동이 없어요. 선생님이 활동을 열면 여기에 나타납니다."}
+      </p>
+    );
+  }
   return (
-    <div className="book-kind-grid">
-      {kinds.map((kind) => {
-        const latest = kind.items[kind.items.length - 1] ?? null;
-        return (
-          <button
-            key={kind.key}
-            type="button"
-            className="book-kind-card"
-            onClick={() => onOpen(kind.key)}
-          >
-            <span className="book-kind-count">{kind.items.length}개</span>
-            <strong>{kind.label}</strong>
-            <em>{kind.desc}</em>
-            <span className="book-kind-meta">
-              {latest ? `최근 활동 ${activityDateLabel(latest)}` : "아직 만든 활동 없음"}
-            </span>
-          </button>
-        );
-      })}
+    <div className="book-activity-grid">
+      {activities.map((a) => (
+        <ActivityCard
+          key={a.id}
+          activity={a}
+          isTeacher={isTeacher}
+          uid={uid}
+          onOpen={() => onOpen(a)}
+          onEdit={() => onEdit(a)}
+          onDelete={() => onDelete(a)}
+          onToggleLock={() => onToggleLock(a)}
+        />
+      ))}
     </div>
-  );
-}
-
-function ActivityKindDashboard({
-  kind,
-  activities,
-  isTeacher,
-  uid,
-  onAdd,
-  onOpen,
-  onEdit,
-  onDelete,
-  onToggleLock,
-}) {
-  return (
-    <section className="book-kind-dashboard">
-      {/* 한 줄: 제목 · 설명 · (교사) 만들기. 설명을 제목 아래 두 줄로 두면
-          그만큼 활동 카드가 밀려 내려갑니다 — 한 번 읽으면 되는 문장이라
-          제목 옆에 눕힙니다. '← 활동 종류'는 위쪽 머리말 줄에 있습니다. */}
-      <div className="book-kind-head">
-        <h2>{kind.label}</h2>
-        <p>{kind.desc}</p>
-        {isTeacher && (
-          <button type="button" className="btn-primary book-kind-add" onClick={onAdd}>
-            ＋ {kind.addLabel}
-          </button>
-        )}
-      </div>
-
-      {activities.length === 0 ? (
-        <p className="empty-note">
-          아직 만든 {kind.label} 활동이 없어요.
-          {isTeacher ? ` ‘${kind.addLabel}’로 첫 활동을 열어 보세요.` : " 선생님이 활동을 열면 여기에 나타납니다."}
-        </p>
-      ) : (
-        <div className="book-activity-grid">
-          {activities.map((a) => (
-            <ActivityCard
-              key={a.id}
-              activity={a}
-              isTeacher={isTeacher}
-              uid={uid}
-              onOpen={() => onOpen(a)}
-              onEdit={() => onEdit(a)}
-              onDelete={() => onDelete(a)}
-              onToggleLock={() => onToggleLock(a)}
-            />
-          ))}
-        </div>
-      )}
-    </section>
   );
 }
 
 // 활동 카드 — 목록에 한 줄씩
 function ActivityCard({ activity, isTeacher, uid, onOpen, onEdit, onDelete, onToggleLock }) {
+  // 종류 이름 — 목록에 종류가 섞여 있으므로 카드마다 밝혀야 합니다.
+  // (예전에는 종류별 목록이라 화면 머리말에 한 번 적혀 있었습니다)
+  const kindLabel = ACTIVITY_KIND_BY_KEY.get(activity.type)?.label ?? "독서 활동";
   // 개인 활동(곁텍스트 읽기·RAFT·KWLS·마인드맵)은 모둠이 없습니다.
-  const soloLabel = {
-    paratext: "곁텍스트 읽기 · 개인 활동",
-    raft: "RAFT 글쓰기 · 개인 활동",
-    kwls: "KWLS로 성찰하기 · 개인 활동",
-    mindmap: "마인드맵 · 개인 활동",
-  }[activity.type];
+  const solo = BOOK_SOLO_TYPES.includes(activity.type);
   const [groups, setGroups] = useState([]);
   // 개인 활동은 모둠이 없으므로 모둠 구독 자체를 걸지 않습니다.
   useEffect(() => {
-    if (soloLabel) return;
+    if (solo) return;
     return subscribeBookGroups(activity.id, setGroups);
-  }, [activity.id, soloLabel]);
+  }, [activity.id, solo]);
 
   // 학생이 제 주제어를 적는 활동(곁텍스트 읽기·RAFT)에서 교사가 주제어를
   // 비워 둔 경우에만 — 학생이 제 카드에 적은 책이름을 카드 제목으로 씁니다
@@ -781,26 +702,28 @@ function ActivityCard({ activity, isTeacher, uid, onOpen, onEdit, onDelete, onTo
     { solo: "개별 활동", teacher: "교사 배정", random: "무작위 배정", free: "자유 구성" }[
       activity.groupMode
     ] ?? "교사 배정";
-  // 개별 활동은 '모둠 n개'가 아니라 '학생 n명'으로 읽는 게 맞습니다
-  const perStudent = activity.groupMode === "solo";
+  // 닿소리 '개별 활동'은 '모둠 n개'가 아니라 '학생 n명'으로 읽는 게 맞습니다
+  const perStudent = !solo && activity.groupMode === "solo";
 
   return (
     <div className="book-activity-card">
       <button type="button" className="book-activity-open" onClick={onOpen}>
-        {/* 제목에 주제어(도서명)를 씁니다 — 활동 이름은 이 화면에 오기까지
-            거친 종류 카드·머리말('닿소리 채우기')에 이미 두 번 적혀 있어,
-            카드마다 또 적으면 정작 구분해야 할 '어느 책인가'가 작은 알약
-            하나로 밀려납니다. 주제어를 비워 둔 개별 활동에서만 활동 이름을
+        {/* 제목에 주제어(도서명)를 씁니다 — 무엇을 하는 활동인지는 아래 줄에
+            종류로 적히므로, 큰 글자 자리는 카드끼리 갈라 주는 값, 곧 '어느
+            책인가'가 맡습니다. 주제어를 비워 둔 개별 활동에서만 활동 이름을
             대신 씁니다(그때는 학생이 각자 자기 판에 주제를 적습니다). */}
         <strong className="book-activity-title">
           {activity.topic?.trim() || myTopic.trim() || activity.title}
         </strong>
         <span className="book-activity-date">{activityDateLabel(activity)}</span>
         <span className="book-activity-meta">
-          {soloLabel ??
-            (perStudent
+          {kindLabel}
+          {" · "}
+          {solo
+            ? "개인 활동"
+            : perStudent
               ? `학생 ${groups.length}명 · ${modeLabel}`
-              : `모둠 ${groups.length}개 · ${modeLabel}`)}
+              : `모둠 ${groups.length}개 · ${modeLabel}`}
           {activity.locked && " · 잠김"}
         </span>
       </button>

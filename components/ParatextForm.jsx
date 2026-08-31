@@ -25,6 +25,7 @@ import {
   emptyParatextAnswers,
   isSectionDone,
   isSectionStarted,
+  isSectionLocked,
   paratextDoneCount,
   safeBookUrl,
 } from "@/lib/paratext";
@@ -203,12 +204,18 @@ export default function ParatextForm({ activity, user, onBack }) {
             const doneFlag = isSectionDone(s, answers);
             const state = doneFlag ? "done" : isSectionStarted(s, answers) ? "doing" : "empty";
             const preview = sectionPreview(s, answers);
+            // 아직 안 열린 단계 — 숨기지 않고 잠급니다. CATAPULT는 순서 자체가
+            // 배우는 내용이라 앞으로 뭐가 오는지 보이는 편이 낫습니다.
+            // 이미 쓴 답이 있으면 그대로 보여 줍니다(교사가 다시 닫았을 때
+            // 지워진 것처럼 보이면 안 됩니다).
+            const stepLocked = isSectionLocked(activity, s.key);
             return (
               <button
                 key={s.key}
                 type="button"
-                className={`paratext-card ${state}`}
+                className={`paratext-card ${state}${stepLocked ? " step-locked" : ""}`}
                 onClick={() => setOpenIndex(i)}
+                title={stepLocked ? "선생님이 아직 열지 않은 단계예요" : undefined}
               >
                 <span className="paratext-card-head">
                   <span className="paratext-letter" aria-hidden="true">{s.letter}</span>
@@ -221,6 +228,10 @@ export default function ParatextForm({ activity, user, onBack }) {
                 <span className="paratext-prompt">{s.prompt}</span>
                 {preview ? (
                   <span className="paratext-preview">{preview}</span>
+                ) : stepLocked ? (
+                  <span className="paratext-preview empty">
+                    <IconLock size={13} /> 선생님이 열어 주면 쓸 수 있어요
+                  </span>
                 ) : (
                   <span className="paratext-preview empty">아직 쓰지 않았어요 — 눌러서 써 보세요</span>
                 )}
@@ -236,7 +247,9 @@ export default function ParatextForm({ activity, user, onBack }) {
           index={openIndex}
           total={PARATEXT_SECTION_COUNT}
           answers={answers}
-          locked={locked}
+          /* 활동 전체가 잠겼거나, 아직 안 열린 단계면 읽기 전용입니다 */
+          locked={locked || isSectionLocked(activity, openSection.key)}
+          stepLocked={!locked && isSectionLocked(activity, openSection.key)}
           status={status}
           onChange={edit}
           onPrev={openIndex > 0 ? () => setOpenIndex(openIndex - 1) : null}
@@ -257,7 +270,7 @@ export default function ParatextForm({ activity, user, onBack }) {
 }
 
 // 항목 하나를 크게 써 넣는 모달 — 이전/다음으로 닫지 않고 옮겨 다닙니다.
-function SectionModal({ section, index, total, answers, locked, status, onChange, onPrev, onNext, onClose }) {
+function SectionModal({ section, index, total, answers, locked, stepLocked = false, status, onChange, onPrev, onNext, onClose }) {
   return (
     <div className="modal-backdrop" {...backdropClose(onClose)}>
       <div
@@ -279,7 +292,13 @@ function SectionModal({ section, index, total, answers, locked, status, onChange
 
         <div className="paratext-write-meta">
           <span className="paratext-step">{index + 1}/{total}</span>
-          {locked ? (
+          {/* '아직 안 연 단계'와 '활동 전체 잠김'은 학생이 할 일이 다릅니다 —
+              앞은 기다리면 되고, 뒤는 이 활동이 끝난 것입니다. */}
+          {stepLocked ? (
+            <span className="paratext-saved locked">
+              <IconLock size={14} /> 선생님이 열어 주면 쓸 수 있어요
+            </span>
+          ) : locked ? (
             <span className="paratext-saved locked">
               <IconLock size={14} /> 잠김
             </span>

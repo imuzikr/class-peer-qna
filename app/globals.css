@@ -17224,6 +17224,79 @@ button.study-cal-cell.has-record:not(:disabled):hover {
 .paratext-card.done { border-color: #8cc79f; }
 /* 아직 시작조차 안 한 항목 — 배경으로만 구분(테두리는 hover와 겹쳐 혼동될 수 있어) */
 .paratext-card.empty { background: var(--bg-deep); }
+/* 선생님이 아직 열지 않은 단계 — 숨기지 않고 흐리게. 눌러서 열어 볼 수는
+   있습니다(읽기 전용). 무엇이 남았는지 보이는 편이 CATAPULT처럼 순서 자체가
+   내용인 활동에서는 낫습니다. 이미 쓴 답이 있으면 그건 또렷하게 둡니다. */
+.paratext-card.step-locked {
+  background: var(--bg-deep);
+  border-style: dashed;
+}
+.paratext-card.step-locked .paratext-letter,
+.paratext-card.step-locked .paratext-card-title,
+.paratext-card.step-locked .paratext-prompt { opacity: 0.5; }
+.paratext-card.step-locked .paratext-preview.empty {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-sub);
+  font-weight: 700;
+}
+
+/* ── 단계 열기 (교사) ── 머리말 아래 한 줄 */
+.section-gate {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+.section-gate-label { font-size: 12.5px; color: var(--text-sub); font-weight: 700; }
+.section-gate-label b { color: var(--primary-dark); }
+.section-gate-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+/* 칩 하나가 학생이 보는 카드 하나 — 눌러서 열고 닫습니다 */
+.section-gate-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 27px;
+  padding: 0 9px;
+  border: 1px dashed var(--border);
+  border-radius: 999px;
+  background: none;
+  color: var(--text-sub);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.14s, border-color 0.14s, color 0.14s;
+}
+.section-gate-chip:hover { border-color: var(--primary); color: var(--primary-dark); }
+.section-gate-chip.open {
+  border-style: solid;
+  border-color: transparent;
+  background: var(--primary-light);
+  color: var(--primary-dark);
+}
+.section-gate-letter {
+  display: inline-grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 4px;
+  background: var(--neutral);
+  font-size: 10px;
+}
+.section-gate-chip.open .section-gate-letter { background: #fff; }
+/* 수업 중 가장 잦은 동작이라 색으로 앞세웁니다.
+   .books-head 안의 버튼을 38px로 키우는 규칙(위쪽 '머리말 줄의 컨트롤')이
+   여기까지 닿습니다 — 이 둘은 머리말 컨트롤이 아니라 칩 줄에 딸린 것이라,
+   칩과 같은 27px로 되돌립니다(방송 막대와 같은 이유·같은 방식). */
+.books-head .section-gate .section-gate-next,
+.section-gate-next { height: 27px; padding: 0 12px; font-size: 12.5px; }
+.section-gate-next:disabled { opacity: 0.5; cursor: not-allowed; }
+.books-head .section-gate .section-gate-all,
+.section-gate-all { height: 27px; padding: 0 10px; font-size: 12px; }
 .paratext-card-head {
   display: flex;
   align-items: center;
