@@ -144,6 +144,19 @@ export default function RaftBoard({
               </>
             )}
           </div>
+          {/* 방송 막대는 배지와 같은 줄에 — 배지 몇 개뿐인 줄 아래에 또 한 줄을
+              깔면 본문이 그만큼 밀립니다(ParatextBoard와 같은 짜임) */}
+          {cast.target && castCard && castIndex >= 0 && (
+            <CastBar
+              who={castCard.name}
+              label={REGIONS[castIndex].ko}
+              index={castIndex}
+              total={REGION_COUNT}
+              onPrev={castIndex > 0 ? () => step(-1) : null}
+              onNext={castIndex < REGION_COUNT - 1 ? () => step(1) : null}
+              onStop={cast.stop}
+            />
+          )}
           {bookUrl && !open && (
             <a
               className="btn-primary book-info-btn"
@@ -161,18 +174,6 @@ export default function RaftBoard({
           </span>
         )}
       </div>
-
-      {cast.target && castCard && castIndex >= 0 && (
-        <CastBar
-          who={castCard.name}
-          label={REGIONS[castIndex].ko}
-          index={castIndex}
-          total={REGION_COUNT}
-          onPrev={castIndex > 0 ? () => step(-1) : null}
-          onNext={castIndex < REGION_COUNT - 1 ? () => step(1) : null}
-          onStop={cast.stop}
-        />
-      )}
 
       {activity.locked && !open && (
         <p className="book-locked-note">

@@ -144,6 +144,19 @@ export default function MindmapBoard({
             <span className="book-group-topic">{activity.topic}</span>
             {className && <span className="book-group-class">{className}</span>}
           </div>
+          {/* 방송 막대는 배지와 같은 줄에 — 배지 몇 개뿐인 줄 아래에 또 한 줄을
+              깔면 본문이 그만큼 밀립니다(ParatextBoard와 같은 짜임) */}
+          {cast.target && castCard && (
+            <CastBar
+              who={castCard.name}
+              label="마인드맵"
+              index={0}
+              total={1}
+              onPrev={null}
+              onNext={null}
+              onStop={cast.stop}
+            />
+          )}
           {bookUrl && (
             <a
               className="btn-primary book-info-btn"
@@ -159,18 +172,6 @@ export default function MindmapBoard({
           시작 {startedCount}명 / 전체 {cards.length}명
         </span>
       </div>
-
-      {cast.target && castCard && (
-        <CastBar
-          who={castCard.name}
-          label="마인드맵"
-          index={0}
-          total={1}
-          onPrev={null}
-          onNext={null}
-          onStop={cast.stop}
-        />
-      )}
 
       {activity.locked && (
         <p className="book-locked-note">

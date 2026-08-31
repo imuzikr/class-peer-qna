@@ -18180,6 +18180,28 @@ button.study-cal-cell.has-record:not(:disabled):hover {
 .cast-bar-actions .btn-ghost { background: #fff; }
 .cast-bar-stop { padding: 6px 14px; font-size: 13px; line-height: 1; }
 
+/* 머리말 둘째 줄로 들어간 방송 막대
+   -------------------------------------------------------------
+   예전엔 머리말 아래 제 줄을 하나 차지했습니다. 그런데 그 위 줄은 배지
+   두어 개(학번 · 0/8칸)뿐이라 오른쪽이 통째로 비어 있어, 같은 내용에
+   두 줄을 쓰고 본문이 그만큼 밀렸습니다. 배지 옆 남는 폭을 채우게 합니다.
+   좁아지면 books-head-row의 flex-wrap이 알아서 아랫줄로 내려 줍니다. */
+.books-head-row > .cast-bar {
+  flex: 1 1 320px;
+  margin-top: 0;
+  /* 배지 줄에 어울리게 조금 낮춥니다 — 제 줄일 때보다 위아래를 좁게 */
+  padding: 7px 12px;
+}
+/* .books-head 안의 버튼을 38px로 키우는 규칙(위쪽 '머리말 줄의 컨트롤')이
+   여기까지 닿습니다. 이 막대의 버튼은 머리말 컨트롤이 아니라 막대에 딸린
+   것이라, 제 크기를 지키게 되돌립니다. */
+.books-head .cast-bar .btn-ghost,
+.books-head .cast-bar .btn-primary {
+  height: auto;
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
 /* ── 학생 화면 중계 — 고른 영역 하나만 크게 ── */
 .broadcast-overlay--entry .broadcast-body { overflow-y: auto; }
 .entry-cast {
