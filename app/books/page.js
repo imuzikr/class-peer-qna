@@ -41,6 +41,7 @@ import ClassEntry from "@/components/ClassEntry";
 import Toast from "@/components/Toast";
 import ConfirmModal from "@/components/ConfirmModal";
 import BookActivityForm from "@/components/BookActivityForm";
+import BookActivityEditModal from "@/components/BookActivityEditModal";
 import ClassNotesTools from "@/components/ClassNotesTools";
 import StudyActivityPanel from "@/components/StudyActivityPanel";
 import BookGroupBoard from "@/components/BookGroupBoard";
@@ -160,6 +161,8 @@ function BooksPageInner() {
   const [allView, setAllView] = useState(false);          // 교사: 반 전체 집계 화면
   const [creatingType, setCreatingType] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  // 이름·주제어를 고치는 중인 활동 (교사)
+  const [editingActivity, setEditingActivity] = useState(null);
   const [toast, setToast] = useState("");
   // 왼쪽 '오늘' 패널용 — 공부방과 같은 자료를 봅니다(출석·카드·성찰·과일)
   const [studyBoards, setStudyBoards] = useState([]);
@@ -539,6 +542,7 @@ function BooksPageInner() {
               uid={user?.uid ?? null}
               onAdd={() => setCreatingType(openKindInfo.key)}
               onOpen={goToActivity}
+              onEdit={setEditingActivity}
               onDelete={setConfirmDelete}
               onToggleLock={(activity) =>
                 updateBookActivity(activity.id, { locked: !activity.locked })
@@ -557,6 +561,19 @@ function BooksPageInner() {
           fixedType={!!openKindInfo}
           onSave={handleCreate}
           onClose={() => setCreatingType(null)}
+        />
+      )}
+
+      {/* 활동 이름·주제어 고치기 — 진행 중인 활동도 됩니다 */}
+      {editingActivity && (
+        <BookActivityEditModal
+          /* 목록이 갱신되면 최신 문서로 다시 찾습니다 — 열어 둔 채 다른
+             곳에서 값이 바뀌어도 옛 값을 붙들고 있지 않게 */
+          activity={
+            activities.find((a) => a.id === editingActivity.id) ?? editingActivity
+          }
+          onClose={() => setEditingActivity(null)}
+          onDone={() => setToast("활동을 고쳤어요.")}
         />
       )}
 
@@ -613,6 +630,7 @@ function ActivityKindDashboard({
   uid,
   onAdd,
   onOpen,
+  onEdit,
   onDelete,
   onToggleLock,
 }) {
@@ -645,6 +663,7 @@ function ActivityKindDashboard({
               isTeacher={isTeacher}
               uid={uid}
               onOpen={() => onOpen(a)}
+              onEdit={() => onEdit(a)}
               onDelete={() => onDelete(a)}
               onToggleLock={() => onToggleLock(a)}
             />
@@ -656,7 +675,7 @@ function ActivityKindDashboard({
 }
 
 // 활동 카드 — 목록에 한 줄씩
-function ActivityCard({ activity, isTeacher, uid, onOpen, onDelete, onToggleLock }) {
+function ActivityCard({ activity, isTeacher, uid, onOpen, onEdit, onDelete, onToggleLock }) {
   // 개인 활동(곁텍스트 읽기·RAFT·KWLS·마인드맵)은 모둠이 없습니다.
   const soloLabel = {
     paratext: "곁텍스트 읽기 · 개인 활동",
@@ -720,6 +739,11 @@ function ActivityCard({ activity, isTeacher, uid, onOpen, onDelete, onToggleLock
       </button>
       {isTeacher && (
         <div className="book-activity-actions">
+          {/* 이름·주제어 고치기 — 학생이 이미 낱말을 넣은 뒤에도 됩니다.
+              낱말은 활동 id로 이어져 있어 이름과 무관합니다. */}
+          <button type="button" className="btn-ghost" onClick={onEdit} title="이름·주제어 고치기">
+            고치기
+          </button>
           <button type="button" className="btn-ghost" onClick={onToggleLock}>
             {activity.locked ? "잠금 해제" : "잠그기"}
           </button>

@@ -16339,6 +16339,18 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   background: #fff;
   color: var(--text);
 }
+/* 활동 고치기 모달 — 만들기 화면과 같은 입력 모양을 쓰되 좁게.
+   바꿀 수 있는 것이 세 가지뿐이라 넓힐 값어치가 없습니다. */
+.modal-book-edit { max-width: 560px; }
+.modal-book-edit-note {
+  margin: 14px 0 0;
+  padding: 11px 14px;
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--text-sub);
+  background: var(--bg-deep);
+  border-radius: var(--radius-btn);
+}
 .book-field-row { display: flex; gap: 12px; }
 .book-field-row .book-field { flex: 1; }
 /* 가로 세그먼트 버튼 — 구성 방식·모둠 수 (모달에 스크롤이 안 생기게) */
