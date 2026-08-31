@@ -29,7 +29,7 @@ import {
   toDate,
 } from "@/lib/store";
 import { CELL_COUNT, CONSONANT_LABELS, heatOpacity, cellKey } from "@/lib/consonants";
-import { memberLegend, rowColor } from "@/lib/bookColors";
+import { barTint, memberLegend, rowColor } from "@/lib/bookColors";
 import GroupComposer from "./GroupComposer";
 import ConsonantCanvas from "./ConsonantCanvas";
 import { IconPeople, IconLock } from "./StatusIcons";
@@ -151,6 +151,14 @@ export default function BookGroupBoard({
           )}
           {/* 이 활동이 어느 반 것인지 — 학생에게 안 보이면 반이 다른 경우가 많아 표시 */}
           {className && <span className="book-group-class">{className}</span>}
+          {/* 잠김 안내도 이 줄에 — 예전엔 머리말 아래 제 줄을 하나 차지했는데,
+              이 줄은 배지 한두 개뿐이라 오른쪽이 통째로 비어 있었습니다.
+              '지금 잠겨 있다'는 활동에 붙는 상태라 배지들과 같은 성격입니다. */}
+          {activity.locked && (
+            <span className="book-locked-note book-locked-chip">
+              <IconLock size={14} /> 지금은 잠겨 있어 새 단어를 넣을 수 없어요.
+            </span>
+          )}
         </div>
         {isTeacher && (
           <button type="button" className="btn-primary book-allview-btn" onClick={onOpenAll}>
@@ -187,12 +195,8 @@ export default function BookGroupBoard({
   if (!isTeacher) {
     return (
       <main className="books-main">
+        {/* 잠김 안내는 head의 머리말 둘째 줄에 들어 있습니다 */}
         {head}
-        {activity.locked && (
-          <p className="book-locked-note">
-            <IconLock size={15} /> 지금은 잠겨 있어 새 단어를 넣을 수 없어요.
-          </p>
-        )}
         {groups.length === 0 ? (
           <p className="empty-note">
             {perStudent
@@ -261,13 +265,8 @@ export default function BookGroupBoard({
   // ── 교사 — 왼쪽 모둠 목록 · 가운데 모둠 판 · 오른쪽 진행 ──
   return (
     <main className="books-main book-workspace-main">
+      {/* 잠김 안내는 head의 머리말 둘째 줄에 들어 있습니다 */}
       {head}
-
-      {activity.locked && (
-        <p className="book-locked-note">
-          <IconLock size={15} /> 지금은 잠겨 있어 새 단어를 넣을 수 없어요.
-        </p>
-      )}
 
       {groups.length === 0 ? (
         <p className="empty-note">
@@ -524,6 +523,18 @@ function GroupProgress({
                 <span className="dash-progress-num">
                   {m.filled}/{CELL_COUNT}칸
                   <span className="dash-progress-words"> · 낱말 {m.total}개</span>
+                </span>
+                {/* '모둠별 진행'(전체 보기)과 같은 막대 — 두 패널은 같은
+                    활동을 다른 자리에서 보는 것이라 생김새가 같아야 합니다.
+                    칸 수는 숫자로도 적혀 있지만, 줄이 스무 개 넘게 이어지면
+                    숫자만으로는 누가 뒤처지는지 한눈에 안 들어옵니다. */}
+                <span className="dash-progress-bar">
+                  <b
+                    style={{
+                      width: `${(m.filled / CELL_COUNT) * 100}%`,
+                      background: barTint(m.color.border),
+                    }}
+                  />
                 </span>
                 <span className="dash-heat">
                   {m.cellCounts.map((n, i) => (

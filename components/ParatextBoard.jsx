@@ -145,6 +145,14 @@ export default function ParatextBoard({
                 {className && <span className="book-group-class">{className}</span>}
               </>
             )}
+            {/* 잠김 안내도 이 줄에 — 예전엔 머리말 아래 제 줄을 차지했는데,
+                이 줄은 배지 두어 개뿐이라 오른쪽이 비어 있었습니다.
+                '지금 잠겨 있다'는 활동에 붙는 상태라 배지와 같은 성격입니다. */}
+            {activity.locked && !open && (
+              <span className="book-locked-note book-locked-chip">
+                <IconLock size={14} /> 지금은 잠겨 있어 학생이 고칠 수 없어요.
+              </span>
+            )}
           </div>
           {/* 방송 막대는 배지와 같은 줄에 — 무엇을 방송 중인지 늘 보이게
               하되(학생 목록으로 나가도 남습니다), 배지 몇 개뿐인 줄 아래에
@@ -178,12 +186,6 @@ export default function ParatextBoard({
           </span>
         )}
       </div>
-
-      {activity.locked && !open && (
-        <p className="book-locked-note">
-          <IconLock size={15} /> 지금은 잠겨 있어 학생이 고칠 수 없어요.
-        </p>
-      )}
 
       {open ? (
         /* ── 학생 상세 — 여덟 영역을 한 화면에 ── */

@@ -11371,6 +11371,14 @@ a.lesson-board-file-name { text-decoration: underline; }
 .books-head-row .books-head-main .book-group-class {
   border: 1px solid transparent;
 }
+/* 잠김 안내를 이 줄의 배지로 — 제 줄을 차지하던 띠였을 때의 아래 여백과
+   큰 안쪽 여백을 빼고, 옆의 배지들과 같은 높이로 맞춥니다. */
+.books-head-row .books-head-main .book-locked-chip {
+  margin-bottom: 0;
+  padding: 6px 12px;
+  font-size: 13px;
+  line-height: 1;
+}
 
 /* 활동 자료 다운로드 모달 — 범위(이 반/전체)·형식(CSV/Excel/PDF) 선택 */
 .modal.modal-export {
