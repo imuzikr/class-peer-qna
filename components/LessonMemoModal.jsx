@@ -14,10 +14,11 @@
 //
 // 학생은 이 메모를 읽지 못합니다(firestore.rules).
 // =============================================================
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { backdropClose } from "@/lib/modal";
 import {
   subscribeLessonMemos,
+  subscribeClasses,
   addLessonMemo,
   updateLessonMemo,
   deleteLessonMemo,
@@ -35,7 +36,13 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
   const [date, setDate] = useState(() => todayDateKey());
   const [memos, setMemos] = useState([]);
   const [busy, setBusy] = useState(false);
-  const [historyOpen, setHistoryOpen] = useState(false);
+  // 지난 메모를 보는 방식 — null(접힘) | "list" | "calendar"
+  const [historyView, setHistoryView] = useState(null);
+  // 캘린더에서 고른 날짜
+  const [pickedDate, setPickedDate] = useState("");
+  // 캘린더용 — 내가 맡은 반 전체와 그 반들의 메모
+  const [myClasses, setMyClasses] = useState([]);
+  const [otherMemos, setOtherMemos] = useState({});
   const [editing, setEditing] = useState(null); // { id, text, date }
   const [confirmDelete, setConfirmDelete] = useState(null); // memoId
   const fieldRef = useRef(null);
@@ -44,6 +51,73 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
     if (!classId) { setMemos([]); return; }
     return subscribeLessonMemos(classId, setMemos);
   }, [classId]);
+
+  // [캘린더 보기를 켤 때만 다른 반까지 읽습니다]
+  // 이 모달은 '지금 이 반'의 맥락에서 열리지만, 달력은 성격이 다릅니다 —
+  // 하루에 여러 반 수업이 들어 있어, 9월 1일을 눌렀는데 한 반 것만 나오면
+  // 그날을 되짚는 데 쓸 수가 없습니다. 그래서 달력에서는 내가 맡은 반을
+  // 모두 모아 보여 주고 메모마다 어느 반인지 붙입니다.
+  //
+  // 쓰기 화면(기본)에서는 지금처럼 이 반 하나만 구독합니다. 반이 서너 개인
+  // 교사가 달력을 열 때만 그만큼 리스너가 늘고, 규칙상 내가 맡은 반만
+  // 읽히므로(ownsClass) 남의 반은 애초에 걸리지 않습니다.
+  const calendarOn = historyView === "calendar";
+  useEffect(() => {
+    if (!calendarOn) { setMyClasses([]); return; }
+    return subscribeClasses((list) =>
+      setMyClasses(list.filter((c) => c.createdBy === user?.uid))
+    );
+  }, [calendarOn, user?.uid]);
+
+  // 반 목록은 구독이 갱신될 때마다 새 배열로 오므로, 실제로 반이 바뀐
+  // 때만 다시 걸도록 id 문자열을 열쇠로 씁니다(ConsonantDashboard와 같은 방식).
+  const otherClassIds = myClasses.map((c) => c.id).filter((id) => id !== classId);
+  const otherKey = otherClassIds.join(",");
+  useEffect(() => {
+    if (!calendarOn || !otherKey) { setOtherMemos({}); return; }
+    const unsubs = otherKey.split(",").map((cid) =>
+      subscribeLessonMemos(cid, (list) =>
+        setOtherMemos((prev) => ({ ...prev, [cid]: list }))
+      )
+    );
+    return () => unsubs.forEach((u) => u());
+  }, [calendarOn, otherKey]);
+
+  // 달력에 깔 메모 — 이 반 + 내 다른 반. 반 이름을 미리 붙여 둡니다.
+  const nameOfClass = useMemo(() => {
+    const map = new Map(myClasses.map((c) => [c.id, c.name]));
+    if (classId) map.set(classId, className || map.get(classId) || "이 반");
+    return (cid) => map.get(cid) ?? "";
+  }, [myClasses, classId, className]);
+
+  const calendarMemos = useMemo(() => {
+    const rows = memos.map((m) => ({ ...m, classId }));
+    for (const [cid, list] of Object.entries(otherMemos)) {
+      for (const m of list) rows.push({ ...m, classId: cid });
+    }
+    return rows;
+  }, [memos, otherMemos, classId]);
+
+  // 날짜 → 그날 메모들. 같은 날이면 이 반 것이 먼저, 그다음 반 이름순.
+  const byDate = useMemo(() => {
+    const map = new Map();
+    for (const m of calendarMemos) {
+      const key = lessonMemoDate(m);
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(m);
+    }
+    for (const list of map.values()) {
+      list.sort((a, b) => {
+        if (a.classId !== b.classId) {
+          if (a.classId === classId) return -1;
+          if (b.classId === classId) return 1;
+          return nameOfClass(a.classId).localeCompare(nameOfClass(b.classId));
+        }
+        return 0;
+      });
+    }
+    return map;
+  }, [calendarMemos, classId, nameOfClass]);
 
   // 열면 바로 쓸 수 있게 — 수업 중에 여는 화면입니다
   useEffect(() => {
@@ -61,8 +135,9 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
       // 그 날짜에 눌러앉아 있으면 알아채기 어렵습니다.
       setDate(todayDateKey());
       // 방금 적은 것이 목록에 들어가는 것을 보여 줍니다 — 저장됐는지
-      // 따로 확인하러 가지 않아도 되게.
-      setHistoryOpen(true);
+      // 따로 확인하러 가지 않아도 되게. 달력을 보던 중이면 그대로 둡니다
+      // (그 날짜의 건수가 바로 늘어 저장된 것이 거기서도 보입니다).
+      setHistoryView((v) => (v === "calendar" ? v : "list"));
     } finally {
       setBusy(false);
     }
@@ -140,17 +215,40 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
 
         {/* 지난 메모 — 접어 둡니다. 수업 중에는 쓰는 일이 먼저입니다. */}
         <div className="memo-history">
-          <button
-            type="button"
-            className="memo-history-toggle"
-            onClick={() => setHistoryOpen((v) => !v)}
-            aria-expanded={historyOpen}
-          >
-            <span className={`memo-caret${historyOpen ? " open" : ""}`} aria-hidden="true">›</span>
-            지난 메모 {memos.length > 0 && <em>{memos.length}</em>}
-          </button>
+          <div className="memo-history-head">
+            <button
+              type="button"
+              className="memo-history-toggle"
+              onClick={() => setHistoryView((v) => (v === "list" ? null : "list"))}
+              aria-expanded={historyView === "list"}
+            >
+              <span className={`memo-caret${historyView === "list" ? " open" : ""}`} aria-hidden="true">›</span>
+              지난 메모 {memos.length > 0 && <em>{memos.length}</em>}
+            </button>
+            {/* 달력은 '언제 무슨 일이 있었나'를 되짚는 자리라 목록과 나란히
+                둡니다. 켤 때만 다른 반까지 읽습니다(위 구독 참고). */}
+            <button
+              type="button"
+              className={`memo-cal-btn${calendarOn ? " on" : ""}`}
+              onClick={() => setHistoryView((v) => (v === "calendar" ? null : "calendar"))}
+              aria-pressed={calendarOn}
+              title="메모가 있는 날짜를 달력에서 봅니다 — 내가 맡은 반을 모두 모아서"
+            >
+              📅 캘린더 보기
+            </button>
+          </div>
 
-          {historyOpen && (
+          {calendarOn && (
+            <MemoCalendar
+              byDate={byDate}
+              nameOfClass={nameOfClass}
+              currentClassId={classId}
+              picked={pickedDate}
+              onPick={setPickedDate}
+            />
+          )}
+
+          {historyView === "list" && (
             memos.length === 0 ? (
               <p className="memo-empty">아직 적어 둔 메모가 없어요.</p>
             ) : (
@@ -248,6 +346,124 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ── 메모 달력 ──────────────────────────────────────────
+// 출석부 달력(StudyAttendanceModal)과 같은 짜임·같은 CSS를 씁니다. 교사가
+// 이미 그 모양에 익숙하고, 격자·요일 머리·달 넘기기를 다시 만들 이유가
+// 없습니다. 다른 점은 칸에 채우는 값뿐입니다 — 출석은 '몇 명 왔나',
+// 여기는 '메모 몇 건'.
+const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
+
+function toDateKey(year, month, day) {
+  return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+function shiftMonth(cursor, delta) {
+  const m = cursor.month + delta;
+  if (m < 0) return { year: cursor.year - 1, month: 11 };
+  if (m > 11) return { year: cursor.year + 1, month: 0 };
+  return { year: cursor.year, month: m };
+}
+
+function formatDateLabel(dateKey) {
+  if (!dateKey) return "";
+  const [y, m, d] = String(dateKey).split("-");
+  return `${y}.${m}.${d}`;
+}
+
+function MemoCalendar({ byDate, nameOfClass, currentClassId, picked, onPick }) {
+  // 처음 여는 달 — 고른 날짜가 있으면 그 달, 없으면 가장 최근 메모가 있는 달.
+  // 오늘로 열면 방학이나 주말에 열었을 때 빈 달이 나옵니다.
+  const [cursor, setCursor] = useState(() => {
+    const anchor = picked || [...byDate.keys()].sort().at(-1) || todayDateKey();
+    const [y, m] = anchor.split("-").map(Number);
+    return { year: y, month: m - 1 };
+  });
+
+  const today = todayDateKey();
+  const daysInMonth = new Date(cursor.year, cursor.month + 1, 0).getDate();
+  const startWeekday = new Date(cursor.year, cursor.month, 1).getDay();
+  const cells = Array.from({ length: startWeekday }, () => null).concat(
+    Array.from({ length: daysInMonth }, (_, i) => i + 1)
+  );
+
+  const pickedMemos = picked ? byDate.get(picked) ?? [] : [];
+
+  return (
+    <div className="memo-calendar">
+      <div className="study-attendance-calendar">
+        <div className="study-cal-head">
+          <button type="button" onClick={() => setCursor((c) => shiftMonth(c, -1))} aria-label="이전 달">‹</button>
+          <span>{cursor.year}년 {cursor.month + 1}월</span>
+          <button type="button" onClick={() => setCursor((c) => shiftMonth(c, 1))} aria-label="다음 달">›</button>
+        </div>
+        <div className="study-cal-weekdays" aria-hidden="true">
+          {WEEKDAYS.map((w) => <span key={w}>{w}</span>)}
+        </div>
+        <div className="study-cal-grid">
+          {cells.map((d, i) => {
+            if (d === null) {
+              return <span key={`blank${i}`} className="study-cal-cell study-cal-cell--blank" />;
+            }
+            const key = toDateKey(cursor.year, cursor.month, d);
+            const dayMemos = byDate.get(key) ?? [];
+            const has = dayMemos.length > 0;
+            // 이 반 메모가 있는 날은 좀 더 또렷하게 — 모달을 연 맥락이 이 반이라,
+            // 다른 반 메모만 있는 날과 같아 보이면 헷갈립니다.
+            const mine = dayMemos.some((m) => m.classId === currentClassId);
+            const cls = [
+              "study-cal-cell",
+              has && "has-record",
+              has && !mine && "memo-cal-other",
+              key === picked && "selected",
+              key === today && "today",
+            ].filter(Boolean).join(" ");
+            return (
+              <button
+                key={key}
+                type="button"
+                className={cls}
+                onClick={() => onPick(has ? (picked === key ? "" : key) : "")}
+                disabled={!has}
+                title={has ? `메모 ${dayMemos.length}건` : undefined}
+              >
+                <span className="study-cal-day">{d}</span>
+                {has && <span className="study-cal-count">{dayMemos.length}건</span>}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {picked ? (
+        <div className="memo-cal-day">
+          <p className="memo-cal-day-head">{formatDateLabel(picked)}</p>
+          <ul className="memo-cal-list">
+            {pickedMemos.map((m) => (
+              <li key={`${m.classId}_${m.id}`} className="memo-cal-item">
+                <span className="memo-cal-item-head">
+                  {/* 어느 반 수업이었나 — 하루에 여러 반이 들어 있어
+                      반 이름 없이는 어느 시간 이야기인지 알 수 없습니다 */}
+                  <b className={`memo-cal-class${m.classId === currentClassId ? " mine" : ""}`}>
+                    {nameOfClass(m.classId) || "반 이름 없음"}
+                  </b>
+                  <span className="memo-item-clock">{formatTime(m.createdAt)}</span>
+                </span>
+                <p className="memo-item-text">{m.text}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : (
+        <p className="memo-cal-hint">
+          {byDate.size === 0
+            ? "아직 적어 둔 메모가 없어요."
+            : "메모가 있는 날짜를 눌러 보세요."}
+        </p>
+      )}
     </div>
   );
 }
