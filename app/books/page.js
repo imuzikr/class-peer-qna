@@ -20,6 +20,7 @@ import {
   subscribeBookActivities,
   subscribeBookGroups,
   subscribeMyParatextEntry,
+  BOOK_STUDENT_TOPIC_TYPES,
   addBookActivity,
   deleteBookActivity,
   updateBookActivity,
@@ -753,14 +754,17 @@ function ActivityCard({ activity, isTeacher, uid, onOpen, onEdit, onDelete, onTo
     return subscribeBookGroups(activity.id, setGroups);
   }, [activity.id, soloLabel]);
 
-  // 곁텍스트 읽기에서 교사가 주제어를 비워 둔 경우에만 — 학생이 제 카드에
-  // 적은 책이름을 카드 제목으로 씁니다(읽는 책이 저마다 달라서).
+  // 학생이 제 주제어를 적는 활동(곁텍스트 읽기·RAFT)에서 교사가 주제어를
+  // 비워 둔 경우에만 — 학생이 제 카드에 적은 책이름을 카드 제목으로 씁니다
+  // (읽고 쓰는 책이 저마다 달라서).
   //
   // 조건을 이렇게 좁게 건 이유: 이건 내 기록 한 건(문서 1개)을 더 읽는 일인데,
   // 목록은 카드가 쌓이는 곳이라 조건 없이 걸면 활동 수만큼 늘어납니다.
   // 주제어가 있는 활동·교사 화면에서는 필요 없는 값이라 아예 걸지 않습니다.
   const needMyTopic =
-    !isTeacher && activity.type === "paratext" && !(activity.topic ?? "").trim();
+    !isTeacher &&
+    BOOK_STUDENT_TOPIC_TYPES.includes(activity.type) &&
+    !(activity.topic ?? "").trim();
   const [myTopic, setMyTopic] = useState("");
   useEffect(() => {
     if (!needMyTopic || !uid) { setMyTopic(""); return; }

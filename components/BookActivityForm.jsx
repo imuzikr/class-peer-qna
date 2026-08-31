@@ -14,6 +14,7 @@
 import { backdropClose } from "@/lib/modal";
 import { useState } from "react";
 import { safeBookUrl } from "@/lib/paratext";
+import { BOOK_STUDENT_TOPIC_TYPES } from "@/lib/store";
 
 const TYPES = [
   { key: "consonant", label: "닿소리 채우기", desc: "모둠이 함께 자음 칸을 낱말로 채웁니다", defaultTitle: "닿소리 채우기" },
@@ -73,10 +74,11 @@ export default function BookActivityForm({ onSave, onClose, initialType = "conso
   // 있는 것들입니다. 읽는 책이 저마다 다를 수 있는 활동이라 교사가 하나로
   // 정하지 못하는 경우가 있습니다.
   //  · 닿소리 '개별 활동' — 판 한가운데를 두 번 눌러 적습니다
-  //  · 곁텍스트 읽기      — 활동을 열면 한 번 물어보고, 머리말 배지로 고칩니다
-  // 그 길이 없는 종류(RAFT·KWLS·마인드맵)는 비워 두면 무엇을 하는 활동인지
-  // 아무도 알 수 없으므로 그대로 필수입니다.
-  const topicRequired = !perStudent && type !== "paratext";
+  //  · 곁텍스트 읽기·RAFT — 활동을 열면 한 번 물어보고, 머리말 배지로 고칩니다
+  // 그 길이 없는 종류(KWLS·마인드맵)는 비워 두면 무엇을 하는 활동인지 아무도
+  // 알 수 없으므로 그대로 필수입니다(어느 종류가 여기 드는지와 그 이유는
+  // lib/store.js의 BOOK_STUDENT_TOPIC_TYPES에 적어 두었습니다).
+  const topicRequired = !perStudent && !BOOK_STUDENT_TOPIC_TYPES.includes(type);
 
   async function handleSubmit(e) {
     e.preventDefault();

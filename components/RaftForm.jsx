@@ -12,7 +12,8 @@
 // 저장은 자동입니다(입력을 멈추면 조용히 저장).
 // =============================================================
 import { useEffect, useMemo, useRef, useState } from "react";
-import { subscribeMyParatextEntry, saveParatextEntry } from "@/lib/store";
+import { subscribeMyParatextEntry, saveParatextEntry, saveParatextTopic } from "@/lib/store";
+import TopicAskModal from "./TopicAskModal";
 import {
   RAFT_COLUMNS,
   RAFT_COLUMN_COUNT,
@@ -33,6 +34,11 @@ export default function RaftForm({ activity, user, onBack }) {
   const [answers, setAnswers] = useState(emptyRaftAnswers);
   const [loaded, setLoaded] = useState(false);
   const [status, setStatus] = useState("idle"); // idle | saving | saved
+  // 내가 적은 주제어(도서명) — 교사가 활동에 주제어를 넣지 않았을 때 씁니다.
+  // 읽고 쓰는 책이 학생마다 다를 수 있어, 그때는 각자 적습니다
+  // (곁텍스트 읽기와 같은 방식 — 같은 entries/{uid}.topic 자리를 씁니다).
+  const [myTopic, setMyTopic] = useState("");
+  const [topicAsk, setTopicAsk] = useState(false); // 물어보는 창이 떠 있는지
   // 내가 고친 뒤로는 서버 값이 와도 덮어쓰지 않습니다(입력 중 글자가 튀는 것 방지)
   const dirtyRef = useRef(false);
   const timerRef = useRef(null);
@@ -45,9 +51,33 @@ export default function RaftForm({ activity, user, onBack }) {
       if (!dirtyRef.current) {
         setAnswers({ ...emptyRaftAnswers(), ...(entry?.answers ?? {}) });
       }
+      setMyTopic(entry?.topic ?? "");
       setLoaded(true);
     });
   }, [activity.id, user?.uid]);
+
+  // 활동에도 없고 내가 적은 것도 없으면 한 번 물어봅니다 — 무엇을 읽고 쓰는
+  // 건지 모른 채 역할·청중을 정하기 시작하지 않도록. 닫으면 다시 뜨지 않고,
+  // 배지를 눌러 언제든 적을 수 있습니다(닫을 길을 막지 않습니다).
+  const askedRef = useRef(false);
+  useEffect(() => {
+    if (!loaded || locked || askedRef.current) return;
+    if ((activity.topic ?? "").trim() || myTopic.trim()) return;
+    askedRef.current = true;
+    setTopicAsk(true);
+  }, [loaded, locked, activity.topic, myTopic]);
+
+  // 화면에 쓸 주제어 — 교사가 정해 둔 것이 있으면 그것이 먼저입니다.
+  // (반 전체가 같은 책을 읽는 활동에서 학생이 제 것으로 바꿔 부르면 안 됩니다)
+  const shownTopic = (activity.topic ?? "").trim() || myTopic.trim();
+  const canEditTopic = !(activity.topic ?? "").trim() && !locked;
+
+  async function saveTopic(next) {
+    const text = String(next ?? "").trim();
+    setMyTopic(text);
+    setTopicAsk(false);
+    if (text) await saveParatextTopic(activity.id, user, text);
+  }
 
   useEffect(() => {
     if (!dirtyRef.current || locked) return;
@@ -82,9 +112,37 @@ export default function RaftForm({ activity, user, onBack }) {
           <h1 className="book-group-title">{activity.title}</h1>
           <button type="button" className="btn-ghost" onClick={onBack}>← 활동 목록</button>
         </div>
+        {/* 둘째 줄에 아무것도 없을 수 있습니다 — 주제어를 안 정한 채 잠긴
+            활동에서 학생이 제 책을 적기 전이면 배지도 적기 버튼도 없습니다. */}
+        {(shownTopic || canEditTopic || bookUrl) && (
         <div className="books-head-row">
           <div className="books-head-main">
-            <span className="book-group-topic">{activity.topic}</span>
+            {/* 곁텍스트 읽기와 같은 배지 — 교사가 정해 둔 것이 없으면 눌러서
+                내가 적고, 적어 둔 뒤에도 눌러 고칠 수 있습니다. */}
+            {shownTopic ? (
+              canEditTopic ? (
+                <button
+                  type="button"
+                  className="book-group-topic book-topic-edit"
+                  onClick={() => setTopicAsk(true)}
+                  title="눌러서 도서명·주제 고치기"
+                >
+                  {shownTopic}
+                </button>
+              ) : (
+                <span className="book-group-topic">{shownTopic}</span>
+              )
+            ) : (
+              canEditTopic && (
+                <button
+                  type="button"
+                  className="book-group-topic book-topic-edit is-empty"
+                  onClick={() => setTopicAsk(true)}
+                >
+                  ＋ 도서명·주제 적기
+                </button>
+              )
+            )}
           </div>
           {bookUrl && (
             <a
@@ -97,6 +155,7 @@ export default function RaftForm({ activity, user, onBack }) {
             </a>
           )}
         </div>
+        )}
         <div className="paratext-status">
           <span className="paratext-progress">
             {planCount} / {RAFT_COLUMN_COUNT}칸 · {chars}자
@@ -192,6 +251,14 @@ export default function RaftForm({ activity, user, onBack }) {
             />
           </section>
         </>
+      )}
+
+      {topicAsk && (
+        <TopicAskModal
+          initial={myTopic}
+          onSave={saveTopic}
+          onClose={() => setTopicAsk(false)}
+        />
       )}
     </main>
   );

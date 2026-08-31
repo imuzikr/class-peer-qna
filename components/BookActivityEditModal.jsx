@@ -17,7 +17,7 @@
 // =============================================================
 import { useEffect, useRef, useState } from "react";
 import { backdropClose } from "@/lib/modal";
-import { renameBookActivity, BOOK_SOLO_TYPES } from "@/lib/store";
+import { renameBookActivity, BOOK_SOLO_TYPES, BOOK_STUDENT_TOPIC_TYPES } from "@/lib/store";
 import { safeBookUrl } from "@/lib/paratext";
 
 export default function BookActivityEditModal({ activity, onClose, onDone }) {
@@ -34,7 +34,8 @@ export default function BookActivityEditModal({ activity, onClose, onDone }) {
   const perStudent = !isSolo && activity.groupMode === "solo";
   // 만들 때와 같은 기준 — 학생이 자기 자리에서 직접 적을 길이 있는 활동만
   // 주제어를 비워 둘 수 있습니다(BookActivityForm의 topicRequired 참고).
-  const topicRequired = !perStudent && activity.type !== "paratext";
+  const topicRequired =
+    !perStudent && !BOOK_STUDENT_TOPIC_TYPES.includes(activity.type);
   const urlBad = bookUrl.trim().length > 0 && !safeBookUrl(bookUrl);
 
   async function handleSubmit(e) {

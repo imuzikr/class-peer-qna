@@ -18197,18 +18197,23 @@ button.study-cal-cell.has-record:not(:disabled):hover {
 .books-head-row > .cast-bar {
   flex: 1 1 320px;
   margin-top: 0;
-  /* 배지 줄에 어울리게 조금 낮춥니다 — 제 줄일 때보다 위아래를 좁게 */
-  padding: 7px 12px;
+  /* 옆의 학번·칸수 배지와 같은 높이(27px). min-height라 좁은 화면에서 막대
+     안쪽이 접히면 그만큼 자랍니다 — 못 박아 두면 글자가 잘립니다.
+     오른쪽 여백은 버튼이 제 것을 갖고 있어 4px만 둡니다. */
+  min-height: 27px;
+  padding: 0 4px 0 10px;
+  gap: 8px;
 }
 /* .books-head 안의 버튼을 38px로 키우는 규칙(위쪽 '머리말 줄의 컨트롤')이
    여기까지 닿습니다. 이 막대의 버튼은 머리말 컨트롤이 아니라 막대에 딸린
-   것이라, 제 크기를 지키게 되돌립니다. */
+   것이라, 27px 안에 들어가는 크기로 되돌립니다. */
 .books-head .cast-bar .btn-ghost,
 .books-head .cast-bar .btn-primary {
-  height: auto;
-  padding: 6px 12px;
-  font-size: 13px;
+  height: 21px;
+  padding: 0 9px;
+  font-size: 12px;
 }
+.books-head-row > .cast-bar .cast-bar-step { padding: 1px 7px; font-size: 11px; }
 
 /* ── 학생 화면 중계 — 고른 영역 하나만 크게 ── */
 .broadcast-overlay--entry .broadcast-body { overflow-y: auto; }
