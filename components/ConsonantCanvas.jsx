@@ -73,10 +73,16 @@ export default function ConsonantCanvas({
     [words, mineOnly, user?.uid]
   );
 
-  // 모둠 판 범례 — 누가 어떤 색인지 (개별 활동은 한 판에 한 사람이라 없음)
+  // 모둠원 이름·색 (개별 활동은 한 판에 한 사람이라 없음)
+  //
+  // '내 판'에도 띄웁니다. 예전에는 모둠 판에만 있었는데, 학생 화면에는
+  // '2모둠'이라는 이름만 있어 누구와 같은 모둠인지 알 길이 없었습니다.
+  // 색까지 함께 두면 선생님이 모둠 판이나 전체 보기를 띄웠을 때 '내 색'으로
+  // 자기 낱말을 짚을 수 있습니다 — 내 판에는 내 낱말만 보이므로 여기서는
+  // 색이 낱말과 이어지지 않지만, 그 색을 미리 익히는 자리로는 맞습니다.
   const legend = useMemo(
-    () => (mineOnly || perStudent ? [] : memberLegend(group)),
-    [mineOnly, perStudent, group]
+    () => (perStudent ? [] : memberLegend(group)),
+    [perStudent, group]
   );
 
   // 자음 칸별로 단어를 모아 둡니다 (오래된 순)
@@ -173,16 +179,20 @@ export default function ConsonantCanvas({
         <p className="book-locked-note">이 모둠의 구성원만 단어를 넣을 수 있어요.</p>
       ) : null}
 
-      {/* 모둠 판 범례 — 이름과 색을 짝지어 보여 줍니다 */}
-      {!mineOnly && legend.length > 0 && (
+      {/* 모둠원 — 이름과 색을 짝지어. 내 판에서는 나를 굵게 표시합니다 */}
+      {legend.length > 0 && (
         <div className="canvas-legend">
           {legend.map((m) => (
-            <span key={m.uid} className="canvas-legend-item">
+            <span
+              key={m.uid}
+              className={`canvas-legend-item${m.uid === user?.uid ? " me" : ""}`}
+            >
               <i
                 className="canvas-legend-swatch"
                 style={{ background: m.color.bg, borderColor: m.color.border }}
               />
               {m.name}
+              {m.uid === user?.uid && <em className="canvas-legend-me">나</em>}
             </span>
           ))}
         </div>

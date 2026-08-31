@@ -19309,3 +19309,17 @@ button.study-cal-cell.has-record:not(:disabled):hover {
 .cast-grid .dash-top-word { font-size: 19px; }
 .cast-grid .dash-top-word em { font-size: 14px; }
 .cast-grid .dash-top-more { font-size: 13px; }
+
+/* 모둠원 범례에서 '나' — 내 판에도 범례를 두면서, 여럿 중 내 색을 바로
+   짚을 수 있게 이름만 진하게 하고 뒤에 작은 '나'를 답니다. */
+.canvas-legend-item.me { color: var(--text); font-weight: 800; }
+.canvas-legend-me {
+  font-style: normal;
+  font-size: 10.5px;
+  font-weight: 800;
+  color: var(--primary-dark);
+  background: var(--primary-light);
+  border-radius: 999px;
+  padding: 1px 6px;
+  margin-left: 4px;
+}
