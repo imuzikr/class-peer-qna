@@ -25,6 +25,7 @@ import {
   CELL_COUNT,
   cellKey,
   groupColorOf,
+  groupBarColorOf,
   heatOpacity,
 } from "@/lib/consonants";
 
@@ -330,8 +331,17 @@ export default function ConsonantDashboard({
                     {g.cellsFilled}/{CELL_COUNT}칸
                     <span className="dash-progress-words"> · 낱말 {g.total}개</span>
                   </span>
+                  {/* 막대만 옅은 색(groupBarColorOf) — 누가 몇 줄인지는 왼쪽
+                      점이 원래 색으로 알려 주고, 막대가 하는 일은 '얼마나
+                      채웠나'뿐입니다. 스무 줄 넘게 이어지는 자리라 원래 색이면
+                      패널이 색띠 더미처럼 보입니다. */}
                   <span className="dash-progress-bar">
-                    <b style={{ width: `${(g.cellsFilled / CELL_COUNT) * 100}%`, background: colorOf(g.groupIndex) }} />
+                    <b
+                      style={{
+                        width: `${(g.cellsFilled / CELL_COUNT) * 100}%`,
+                        background: groupBarColorOf(g.groupIndex),
+                      }}
+                    />
                   </span>
                   {/* 낱말 분포 — 자음 14칸을 그대로 늘어놓고, 낱말이 많을수록 진하게.
                       막대(몇 칸을 건드렸나)와 달리 '어디에 얼마나 모였나'가 보입니다. */}
