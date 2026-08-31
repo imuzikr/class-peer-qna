@@ -609,16 +609,17 @@ function ActivityKindDashboard({
 }) {
   return (
     <section className="book-kind-dashboard">
+      {/* 한 줄: 제목 · 설명 · 돌아가기 · (교사) 만들기.
+          제목 아래에 설명을 두 줄로 두면 그만큼 활동 카드가 밀려 내려갑니다 —
+          설명은 한 번 읽으면 되는 문장이라 제목 옆에 붙여 한 줄로 눕힙니다. */}
       <div className="book-kind-head">
+        <h2>{kind.label}</h2>
+        <p>{kind.desc}</p>
         <button type="button" className="btn-ghost" onClick={onBack}>
           ← 활동 종류
         </button>
-        <div>
-          <h2>{kind.label}</h2>
-          <p>{kind.desc}</p>
-        </div>
         {isTeacher && (
-          <button type="button" className="btn-primary" onClick={onAdd}>
+          <button type="button" className="btn-primary book-kind-add" onClick={onAdd}>
             ＋ {kind.addLabel}
           </button>
         )}

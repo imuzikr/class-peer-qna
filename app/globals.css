@@ -16141,27 +16141,32 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   flex-direction: column;
   gap: 16px;
 }
+/* 제목 · 설명 · 돌아가기 · 만들기를 한 줄로. 설명은 제목 옆에 눕혀 두어
+   제목 아래를 차지하지 않게 합니다(그만큼 활동 카드가 위로 올라옵니다).
+   좁은 화면에서는 flex-wrap으로 자연스럽게 접힙니다. */
 .book-kind-head {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   flex-wrap: wrap;
 }
-.book-kind-head > div {
-  min-width: 0;
-  flex: 1;
-}
 .book-kind-head h2 {
-  margin: 0 0 3px;
+  margin: 0;
   font-size: 22px;
   font-weight: 800;
   color: var(--text);
+  flex-shrink: 0;
 }
+/* 설명이 줄어드는 쪽 — 버튼은 늘 온전히 보여야 하므로 여기만 줄입니다 */
 .book-kind-head p {
   margin: 0;
   font-size: 13px;
   color: var(--text-sub);
+  flex: 0 1 auto;
+  min-width: 0;
 }
+/* '만들기'는 오른쪽 끝으로 */
+.book-kind-head .book-kind-add { margin-left: auto; }
 .book-activity-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
