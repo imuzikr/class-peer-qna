@@ -28,9 +28,15 @@ import { makeEnv, asStudent, asTeacher, asAdmin, seed } from "./helpers.mjs";
 const memoCol = (db, cId) => collection(db, "classes", cId, "lessonMemos");
 
 // 클라이언트(lib/store.js addLessonMemo)가 실제로 보내는 형태
+// date — 이 메모가 '어느 수업의 일'인가(교사가 고를 수 있음).
+// 규칙은 이 필드를 따로 검사하지 않습니다. 교사만 읽고 쓰는 수첩이고,
+// 값이 틀려도 목록에 서는 자리만 달라질 뿐이라서입니다. 다만 '규칙이
+// 막지는 않는다'는 것을 여기서 못 박아 둡니다 — 필드를 늘렸다가 create가
+// 통째로 거부되면 저장 자체가 안 되니까요.
 const payload = (cId, authorId = "teacherA", text = "3번 활동 설명이 길었다") => ({
   classId: cId,
   text,
+  date: "2026-08-31",
   authorId,
   authorName: "강현수",
   createdAt: serverTimestamp(),
@@ -69,6 +75,20 @@ describe("수업 메모 규칙", () => {
   });
 
   // ── 쓰기 ──
+  it("담당 교사는 날짜를 붙여 메모를 남길 수 있다", async () => {
+    const db = asTeacher(env, "teacherA").firestore();
+    await assertSucceeds(addDoc(memoCol(db, "cA"), payload("cA")));
+  });
+
+  it("지난 메모의 날짜를 고칠 수 있다 — 뒤늦게 적은 것을 제 날짜로 옮기는 자리", async () => {
+    const db = asTeacher(env, "teacherA").firestore();
+    await assertSucceeds(
+      updateDoc(doc(db, "classes", "cA", "lessonMemos", id), {
+        text: "예전 메모", date: "2026-08-20",
+      })
+    );
+  });
+
   it("담당 교사는 자기 반에 메모를 남길 수 있다", async () => {
     const db = asTeacher(env, "teacherA").firestore();
     await assertSucceeds(addDoc(memoCol(db, "cA"), payload("cA")));

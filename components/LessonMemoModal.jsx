@@ -21,6 +21,8 @@ import {
   addLessonMemo,
   updateLessonMemo,
   deleteLessonMemo,
+  lessonMemoDate,
+  todayDateKey,
   formatTime,
 } from "@/lib/store";
 
@@ -28,10 +30,13 @@ const MAX_LEN = 2000; // 규칙(firestore.rules)과 같은 값
 
 export default function LessonMemoModal({ classId, className = "", user, onClose }) {
   const [text, setText] = useState("");
+  // 이 메모가 '어느 수업의 일'인가 — 수업이 끝난 뒤 떠올라 적는 일이 잦아
+  // 쓴 시각만으로는 언제 일인지 알 수 없습니다(누가기록과 같은 방식).
+  const [date, setDate] = useState(() => todayDateKey());
   const [memos, setMemos] = useState([]);
   const [busy, setBusy] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [editing, setEditing] = useState(null); // { id, text }
+  const [editing, setEditing] = useState(null); // { id, text, date }
   const [confirmDelete, setConfirmDelete] = useState(null); // memoId
   const fieldRef = useRef(null);
 
@@ -50,8 +55,11 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
     if (!body || busy) return;
     setBusy(true);
     try {
-      await addLessonMemo(classId, user, body);
+      await addLessonMemo(classId, user, body, date);
       setText("");
+      // 날짜는 오늘로 되돌립니다 — 지난 수업 것을 하나 적고 나서 다음 메모가
+      // 그 날짜에 눌러앉아 있으면 알아채기 어렵습니다.
+      setDate(todayDateKey());
       // 방금 적은 것이 목록에 들어가는 것을 보여 줍니다 — 저장됐는지
       // 따로 확인하러 가지 않아도 되게.
       setHistoryOpen(true);
@@ -71,7 +79,7 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
   async function handleEditSave() {
     const body = editing?.text.trim();
     if (!body) return;
-    await updateLessonMemo(classId, editing.id, body);
+    await updateLessonMemo(classId, editing.id, body, editing.date);
     setEditing(null);
   }
 
@@ -96,6 +104,17 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
           </h3>
           <button className="btn-close" onClick={onClose} aria-label="닫기">×</button>
         </div>
+
+        <label className="notes-date-row">
+          <span>날짜</span>
+          <input
+            type="date"
+            className="notes-date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            max={todayDateKey()}
+          />
+        </label>
 
         <textarea
           ref={fieldRef}
@@ -140,6 +159,16 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
                   <li key={m.id} className="memo-item">
                     {editing?.id === m.id ? (
                       <>
+                        <label className="notes-date-row">
+                          <span>날짜</span>
+                          <input
+                            type="date"
+                            className="notes-date"
+                            value={editing.date}
+                            onChange={(e) => setEditing({ ...editing, date: e.target.value })}
+                            max={todayDateKey()}
+                          />
+                        </label>
                         <textarea
                           className="memo-field memo-field--edit"
                           value={editing.text}
@@ -165,12 +194,19 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
                     ) : (
                       <>
                         <div className="memo-item-head">
-                          <span className="memo-item-time">{formatTime(m.createdAt)}</span>
+                          <span className="memo-item-time">
+                            <b className="memo-item-date">{lessonMemoDate(m)}</b>
+                            {/* 쓴 시각도 남깁니다 — 같은 날 여러 번 적을 때
+                                순서를 알아볼 수 있어야 합니다 */}
+                            <span className="memo-item-clock">{formatTime(m.createdAt)}</span>
+                          </span>
                           <span className="memo-item-actions">
                             <button
                               type="button"
                               className="memo-mini-btn"
-                              onClick={() => setEditing({ id: m.id, text: m.text })}
+                              onClick={() =>
+                                setEditing({ id: m.id, text: m.text, date: lessonMemoDate(m) })
+                              }
                             >
                               수정
                             </button>
