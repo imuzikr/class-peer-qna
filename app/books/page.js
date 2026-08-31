@@ -473,6 +473,18 @@ function BooksPageInner() {
               <h1>
                 <IconBook size={26} /> 책방
               </h1>
+              {/* 돌아가기는 제목 바로 뒤 — 화면을 한 단계 되돌리는 것이라
+                  '어느 반이냐'(반 고르기)보다 앞섭니다. 제목 줄에 두면
+                  제목·설명과 뒤섞여 눈이 한 번 더 더듬습니다. */}
+              {openKindInfo && (
+                <button
+                  type="button"
+                  className="btn-ghost books-head-btn"
+                  onClick={goToGrid}
+                >
+                  ← 활동 종류
+                </button>
+              )}
               {admin && myClasses.length > 0 && (
                 <select
                   className="study-class-select"
@@ -508,18 +520,6 @@ function BooksPageInner() {
               {admin && classId && !openKindInfo && (
                 <button className="btn-primary" onClick={() => setCreatingType("consonant")}>
                   ＋ 독서 활동 만들기
-                </button>
-              )}
-              {/* 종류를 열어 둔 동안에는 그 자리에 '돌아가기'를 둡니다 —
-                  아래 제목 줄에 있으면 제목·설명과 뒤섞여 눈이 한 번 더
-                  더듬게 됩니다. 화면을 옮기는 버튼은 위쪽 한 줄에 모읍니다. */}
-              {openKindInfo && (
-                <button
-                  type="button"
-                  className="btn-ghost books-head-btn"
-                  onClick={goToGrid}
-                >
-                  ← 활동 종류
                 </button>
               )}
               {classTools}
