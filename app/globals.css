@@ -10418,27 +10418,39 @@ a.lesson-board-file-name { text-decoration: underline; }
 .tkwl-cell.picked { box-shadow: 0 0 0 2px var(--primary); }
 
 /* 어두운 사이드 패널의 스크롤 막대 — 기본 막대는 밝고 두꺼워 칸 위에
-   덧댄 것처럼 보입니다. 얇고 반투명하게 낮춰 배경에 묻히게 합니다. */
+   덧댄 것처럼 보입니다. 얇고 반투명하게 낮춰 배경에 묻히게 합니다.
+   KWLS 차트에서 쓰던 것을 왼쪽 '오늘'/활동 패널에도 같이 겁니다 —
+   같은 어두운 바탕에 나란히 서는 패널이라 막대만 다르면 튑니다. */
 .teacher-kwl,
-.tkwl-pop-text {
+.tkwl-pop-text,
+.study-activity-panel,
+.today-feed-list {
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
 }
 .teacher-kwl::-webkit-scrollbar,
-.tkwl-pop-text::-webkit-scrollbar {
+.tkwl-pop-text::-webkit-scrollbar,
+.study-activity-panel::-webkit-scrollbar,
+.today-feed-list::-webkit-scrollbar {
   width: 8px;
 }
 .teacher-kwl::-webkit-scrollbar-track,
-.tkwl-pop-text::-webkit-scrollbar-track {
+.tkwl-pop-text::-webkit-scrollbar-track,
+.study-activity-panel::-webkit-scrollbar-track,
+.today-feed-list::-webkit-scrollbar-track {
   background: transparent;
 }
 .teacher-kwl::-webkit-scrollbar-thumb,
-.tkwl-pop-text::-webkit-scrollbar-thumb {
+.tkwl-pop-text::-webkit-scrollbar-thumb,
+.study-activity-panel::-webkit-scrollbar-thumb,
+.today-feed-list::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.2);
   border-radius: 999px;
 }
 .teacher-kwl::-webkit-scrollbar-thumb:hover,
-.tkwl-pop-text::-webkit-scrollbar-thumb:hover {
+.tkwl-pop-text::-webkit-scrollbar-thumb:hover,
+.study-activity-panel::-webkit-scrollbar-thumb:hover,
+.today-feed-list::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.32);
 }
 
@@ -16178,14 +16190,6 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   transition: background 0.15s;
 }
 .book-activity-open:hover { background: var(--primary-light); }
-.book-activity-topic {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--primary-dark);
-  background: var(--primary-light);
-  border-radius: 999px;
-  padding: 3px 10px;
-}
 .book-activity-title {
   font-size: 15.5px;
   font-weight: 800;

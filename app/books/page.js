@@ -673,8 +673,14 @@ function ActivityCard({ activity, isTeacher, onOpen, onDelete, onToggleLock }) {
   return (
     <div className="book-activity-card">
       <button type="button" className="book-activity-open" onClick={onOpen}>
-        <span className="book-activity-topic">{activity.topic || "주제 미정"}</span>
-        <strong className="book-activity-title">{activity.title}</strong>
+        {/* 제목에 주제어(도서명)를 씁니다 — 활동 이름은 이 화면에 오기까지
+            거친 종류 카드·머리말('닿소리 채우기')에 이미 두 번 적혀 있어,
+            카드마다 또 적으면 정작 구분해야 할 '어느 책인가'가 작은 알약
+            하나로 밀려납니다. 주제어를 비워 둔 개별 활동에서만 활동 이름을
+            대신 씁니다(그때는 학생이 각자 자기 판에 주제를 적습니다). */}
+        <strong className="book-activity-title">
+          {activity.topic?.trim() || activity.title}
+        </strong>
         <span className="book-activity-date">{activityDateLabel(activity)}</span>
         <span className="book-activity-meta">
           {soloLabel ??
