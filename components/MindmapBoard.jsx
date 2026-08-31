@@ -44,6 +44,8 @@ export default function MindmapBoard({
   user = null,
   roster = [],
   onBack,
+  // 누가기록 관리·수업 메모 버튼 묶음 (교사 전용, 없으면 null)
+  classTools = null,
 }) {
   const [entries, setEntries] = useState([]);
   const [openUid, setOpenUid] = useState(null);
@@ -129,7 +131,10 @@ export default function MindmapBoard({
   return (
     <main className="books-main mindmap-board-main">
       <div className="books-head">
-        <h1 className="book-group-title">{activity.title}</h1>
+        <h1 className="book-group-title">
+          {activity.title}
+          {classTools}
+        </h1>
         <div className="books-head-row">
           <div className="books-head-main">
             <button type="button" className="btn-ghost" onClick={onBack}>← 활동 목록</button>

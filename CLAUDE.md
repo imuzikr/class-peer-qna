@@ -65,6 +65,12 @@ Firebase 미설정 시 자동으로 **데모 모드**로 동작 (새로고침 �
 | `components/StudyProjectDashboard.jsx` | 공부방 첫 화면 — 프로젝트 카드 그리드 (교사·학생 공통) |
 | `components/StudyProjectView.jsx` | 프로젝트 상세 — 개인 카드 그리드 + 교사 도구 |
 | `components/StudyProjectForm.jsx` | 프로젝트 만들기 모달 (제목·안내·활동 목록) |
+| `components/ClassNotesTools.jsx` | 누가기록 관리·수업 메모 버튼 + 모달 묶음 (교사 전용) |
+
+`ClassNotesTools`는 공부방 제목 줄, 책방 목록 머리말(반 고르는 줄 오른쪽),
+책방 모아보기 화면들의 제목 끝에 같은 것을 끼워 씁니다. 책방 쪽은
+`app/books/page.js`에서 **한 번 만들어** `classTools` prop으로 각 보드에
+내려 줍니다 — 보드마다 명단·반 정보를 따로 구독하지 않으려고요.
 
 ## 모바일 레이아웃 핵심 패턴
 
@@ -128,10 +134,12 @@ Firebase 미설정 시 자동으로 **데모 모드**로 동작 (새로고침 �
     하나가 됩니다. 그래서 낱말에는 사람 색을 입히지 않고(범례도 없음),
     '학생별 진행' 패널만 줄 번호로 색을 줍니다(`lib/bookColors.js`의
     `ROW_COLORS` 10색 되풀이 — 붙어 있는 줄끼리만 다르면 충분).
-  - 학생이 채우는 판(`.canvas-main` / `.canvas-embed` 안의 `.consonant-*`)은
-    연한 초록. 같은 클래스를 쓰는 전체 보기·중계 화면(`.dash-grid`,
-    `.cast-grid`)은 원래 색 그대로라, 초록 규칙은 **반드시 저 두 뿌리 아래로
-    한정**해서 적을 것.
+  - 학생이 채우는 판(`.canvas-main:not(.dash-root)` / `.canvas-embed` 안의
+    `.consonant-*`)은 연한 초록. 전체 보기 집계(ConsonantDashboard)도 뿌리가
+    `.canvas-main`이라 `:not(.dash-root)`로 빼 둡니다 — 거기는 낱말마다 '넣은
+    사람 색'이 붙는 화면이고, 끼워 넣은 형태(`.dash-embed`)와 색이 갈리면 같은
+    화면이 두 얼굴이 됩니다. 중계 화면(`.cast-grid`)도 그대로. 판 색을 건드릴
+    땐 **반드시 이 두 뿌리 아래로 한정**할 것.
 - `classes/{classId}/rewardEvents` — **과일 지급 이력** (uid, delta, count, byUid, at)
   - `rewards`는 누적 총계뿐이라 '언제 몇 개 받았나'가 없습니다. 참여의 변화를
     보려면 시계열이 필요해 지급할 때마다 한 건 적습니다(`setStudentReward`가

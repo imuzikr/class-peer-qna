@@ -38,6 +38,7 @@ import ClassEntry from "@/components/ClassEntry";
 import Toast from "@/components/Toast";
 import ConfirmModal from "@/components/ConfirmModal";
 import BookActivityForm from "@/components/BookActivityForm";
+import ClassNotesTools from "@/components/ClassNotesTools";
 import BookGroupBoard from "@/components/BookGroupBoard";
 import ConsonantCanvas from "@/components/ConsonantCanvas";
 import ConsonantDashboard from "@/components/ConsonantDashboard";
@@ -296,6 +297,19 @@ function BooksPageInner() {
     setToast("활동을 삭제했어요.");
   }
 
+  // 누가기록 관리·수업 메모 — 화면마다 다시 만들지 않고 이 한 덩어리를
+  // 목록 머리말과 모아보기 화면들의 제목 끝에 나눠 끼웁니다(교사 전용).
+  // 활동은 지금 고른 반의 것만 목록에 오르므로 명단(roster)도 그대로 맞습니다.
+  const classTools =
+    admin && classId ? (
+      <ClassNotesTools
+        classId={classId}
+        className={currentClass?.name ?? ""}
+        roster={roster}
+        user={user}
+      />
+    ) : null;
+
   // ── 학생인데 아직 반에 안 들어왔으면 입장 코드부터 ──
   if (isFirebaseConfigured && !admin && user && membershipIds.length === 0) {
     return (
@@ -319,6 +333,7 @@ function BooksPageInner() {
           user={user}
           roster={roster}
           onBack={() => goToKind(activeActivity.type)}
+          classTools={classTools}
         />
       ) : isMindmap ? (
         <MindmapForm
@@ -335,6 +350,7 @@ function BooksPageInner() {
           user={user}
           roster={roster}
           onBack={() => goToKind(activeActivity.type)}
+          classTools={classTools}
         />
       ) : isKwls ? (
         <KwlsForm
@@ -351,6 +367,7 @@ function BooksPageInner() {
           user={user}
           roster={roster}
           onBack={() => goToKind(activeActivity.type)}
+          classTools={classTools}
         />
       ) : isRaft ? (
         <RaftForm
@@ -367,6 +384,7 @@ function BooksPageInner() {
           user={user}
           roster={roster}
           onBack={() => goToKind(activeActivity.type)}
+          classTools={classTools}
         />
       ) : isParatext ? (
         <ParatextForm
@@ -381,6 +399,7 @@ function BooksPageInner() {
           classId={activeClassId}
           user={user}
           onClose={() => setAllView(false)}
+          classTools={classTools}
         />
       ) : /* 학생: 활동을 열면 자기 판으로 바로 */
       studentCanvasGroupId && activeActivity ? (
@@ -405,6 +424,7 @@ function BooksPageInner() {
           onOpenAll={() => setAllView(true)}
           onBack={() => goToKind(activeActivity.type)}
           onToast={setToast}
+          classTools={classTools}
         />
       ) : (
         <main className="books-main">
@@ -450,6 +470,7 @@ function BooksPageInner() {
                   ＋ 독서 활동 만들기
                 </button>
               )}
+              {classTools}
             </div>
           </div>
 

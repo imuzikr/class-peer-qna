@@ -40,6 +40,8 @@ export default function KwlsBoard({
   user = null,
   roster = [],
   onBack,
+  // 누가기록 관리·수업 메모 버튼 묶음 (교사 전용, 없으면 null)
+  classTools = null,
 }) {
   const [entries, setEntries] = useState([]);
   const [openUid, setOpenUid] = useState(null);
@@ -107,7 +109,10 @@ export default function KwlsBoard({
   return (
     <main className="books-main">
       <div className="books-head">
-        <h1 className="book-group-title">{open ? open.name : activity.title}</h1>
+        <h1 className="book-group-title">
+          {open ? open.name : activity.title}
+          {classTools}
+        </h1>
         <div className="books-head-row">
           <div className="books-head-main">
             {open ? (
