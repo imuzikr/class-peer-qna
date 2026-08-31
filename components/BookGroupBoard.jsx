@@ -131,13 +131,15 @@ export default function BookGroupBoard({
 
   const head = (
     <div className="books-head">
-      <h1 className="book-group-title">
-        {activity.title}
+      {/* 제목 · 돌아가는 길 · 도구 순서 — 공부방 머리말과 같은 차례입니다.
+          화면을 한 단계 되돌리는 버튼이 도구보다 앞섭니다. */}
+      <div className="books-head-title">
+        <h1 className="book-group-title">{activity.title}</h1>
+        <button type="button" className="btn-ghost" onClick={onBack}>← 활동 목록</button>
         {classTools}
-      </h1>
+      </div>
       <div className="books-head-row">
         <div className="books-head-main">
-          <button type="button" className="btn-ghost" onClick={onBack}>← 활동 목록</button>
           {isTeacher && !freeMode && !perStudent && (
             <button type="button" className="btn-ghost" onClick={() => setComposing(true)}>
               <IconPeople size={15} /> 활동 모둠

@@ -16338,6 +16338,35 @@ button.study-cal-cell.has-record:not(:disabled):hover {
 }
 
 /* ── 모둠 대시보드 ── */
+/* 활동 머리말 첫 줄 — 제목 · ← 활동 목록 · 누가기록 관리 · 수업 메모.
+   공부방 머리말(.study-title-row)과 같은 짜임입니다: 접지 않고, 자리가
+   모자라면 가로로 밀며, 스크롤 막대는 숨깁니다(버튼 줄에 막대가 보이면
+   지저분합니다). */
+.books-head-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.books-head-title::-webkit-scrollbar { display: none; }
+.books-head-title > * { flex-shrink: 0; }
+
+/* 책방 머리말의 버튼·배지를 공부방과 같은 크기로 맞춥니다 — 두 화면을
+   오가도 줄 높이가 흔들리지 않게. 배경색만 역할별로 다릅니다. */
+.books-head .btn-ghost,
+.books-head .btn-primary,
+.books-head .book-group-topic,
+.books-head .book-group-class {
+  padding: 5px 11px;
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+/* '전체 보기'는 크기를 같이 맞추되 채운 채로 둡니다 — 이 화면에서 가장
+   앞서는 행동이라, 크기가 아니라 색으로 앞세우는 편이 줄을 흐트러뜨리지
+   않습니다. */
+
 .book-group-title {
   display: flex;
   /* baseline 정렬은 제목의 순수 텍스트 노드와 배지(span) 사이에서
