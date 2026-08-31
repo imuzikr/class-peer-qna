@@ -28,11 +28,16 @@ import {
   subscribeClassMembers,
   subscribeUserDirectory,
   subscribeStudyGroupAssignment,
+  subscribeStudySeatLayout,
+  saveStudySeatLayout,
+  saveStudyGroupAssignment,
+  setStudentReward,
+  todayDateKey,
   subscribeStudyBoards,
   subscribeClassStudyAttendance,
 } from "@/lib/store";
 import { isFirebaseConfigured } from "@/lib/firebase";
-import { isAdmin, isTeacher } from "@/lib/user";
+import { isAdmin, isTeacher, getCurrentUser } from "@/lib/user";
 import { getSelectedClassId, setSelectedClassId } from "@/lib/classroom";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import AuthGate from "@/components/AuthGate";
@@ -44,6 +49,7 @@ import BookActivityForm from "@/components/BookActivityForm";
 import BookActivityEditModal from "@/components/BookActivityEditModal";
 import ClassNotesTools from "@/components/ClassNotesTools";
 import StudyActivityPanel from "@/components/StudyActivityPanel";
+import StudyRewardPanel from "@/components/StudyRewardPanel";
 import BookGroupBoard from "@/components/BookGroupBoard";
 import ConsonantCanvas from "@/components/ConsonantCanvas";
 import ConsonantDashboard from "@/components/ConsonantDashboard";
@@ -155,6 +161,9 @@ function BooksPageInner() {
   const [directory, setDirectory] = useState([]);
   const [memberUids, setMemberUids] = useState([]);
   const [baseGroupAssignment, setBaseGroupAssignment] = useState(null);
+  // '멋진 순간' 패널의 자리표 — 공부방과 같은 문서(seatLayouts/default)를 봅니다.
+  // 두 화면 중 어디서 자리를 옮기든 서로 어긋나지 않습니다.
+  const [seatLayout, setSeatLayout] = useState(null);
 
   const [activities, setActivities] = useState([]);
   const [openGroups, setOpenGroups] = useState([]);       // 연 활동의 모둠 목록
@@ -223,6 +232,11 @@ function BooksPageInner() {
       return;
     }
     return subscribeStudyGroupAssignment(classId, setBaseGroupAssignment);
+  }, [classId]);
+
+  useEffect(() => {
+    if (!admin || !classId) { setSeatLayout(null); return; }
+    return subscribeStudySeatLayout(classId, "default", setSeatLayout);
   }, [admin, classId]);
 
   // 교사: 모둠 구성용 반 학생 명단
@@ -264,6 +278,33 @@ function BooksPageInner() {
       })
       .sort((a, b) => (a.studentId || a.name).localeCompare(b.studentId || b.name, "ko"));
   }, [memberUids, directory]);
+
+  // 오늘 출석한 학생 — 공부방과 같은 기준입니다(app/study/page.js).
+  // 출석을 아직 시작하지도, 기록이 하나도 남지도 않았으면 null을 주어 자리를
+  // 모두 '확인 전(회색)'으로 둡니다. 출석을 열자마자 반 전체가 결석으로
+  // 물드는 일이 없도록, 출석 중이면 기록이 없어도 색을 나눠 줍니다.
+  const todayKey = todayDateKey();
+  const attendanceOpenToday =
+    !!currentClass?.attendanceOpen && currentClass?.attendanceOpenDate === todayKey;
+  const todayPresentUids = useMemo(() => {
+    if (!admin) return null;
+    const todays = attendanceRecords.filter((r) => r.date === todayKey);
+    if (!attendanceOpenToday && todays.length === 0) return null;
+    return new Set(todays.map((r) => r.uid).filter(Boolean));
+  }, [admin, attendanceRecords, todayKey, attendanceOpenToday]);
+
+  // 과일 주기 — 이름표를 함께 넘겨 자리표·이력에 누구인지 남게 합니다.
+  function awardReward(uid, count) {
+    const d = directory.find((x) => x.uid === uid);
+    setStudentReward(
+      classId,
+      uid,
+      count,
+      d
+        ? { name: d.realName || d.studentId || d.displayName || "", emoji: d.emoji || "🙂" }
+        : null
+    );
+  }
 
   // 활동을 열어둔 채 목록이 갱신되면 최신 문서로 맞춰줍니다(주제 수정·잠금 반영).
   const activeActivity = openActivityId
@@ -553,6 +594,28 @@ function BooksPageInner() {
           )}
         </main>
       )}
+
+        {/* 오른쪽 '멋진 순간' 패널 — 교사 전용. 공부방의 그것을 그대로 씁니다.
+            책방에서 활동을 보다가도 과일을 주고 누가기록을 남기려면 화면을
+            옮겨야 했는데, 그 사이에 '지금 이 순간'이 지나갑니다. 자리표·모둠은
+            공부방과 같은 문서(seatLayouts/default)라 어디서 옮기든 같습니다.
+            보관된 반은 보기 전용이라 내놓지 않습니다(과일 부여는 쓰기). */}
+        {admin && classId && currentClass && !currentClass.archived && (
+          <StudyRewardPanel
+            roster={roster}
+            classId={classId}
+            seatLayout={seatLayout}
+            groupAssignment={baseGroupAssignment}
+            presentUids={todayPresentUids}
+            onAward={awardReward}
+            onSaveSeats={(seats) =>
+              saveStudySeatLayout(classId, "default", seats, getCurrentUser())
+            }
+            onSaveGroups={(groups) =>
+              saveStudyGroupAssignment(classId, groups, getCurrentUser())
+            }
+          />
+        )}
       </div>
 
       {creatingType && (
