@@ -27,7 +27,7 @@
 // 카드는 프로젝트마다 따로 있는 하위 컬렉션이라 보드 수만큼 구독합니다
 // (프로젝트 대시보드가 카드 한 장마다 하는 것과 같은 방식).
 // =============================================================
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   subscribeAllKwl,
   subscribeTodayRewardEvents,
@@ -35,6 +35,7 @@ import {
   toDate,
   todayDateKey,
 } from "@/lib/store";
+import { netRewardsByUid } from "@/lib/useTodayRewards";
 import { stripHtml } from "@/lib/html";
 import { isTeacherAuthoredCard } from "@/lib/activities";
 
@@ -107,10 +108,15 @@ export default function StudyTodayFeed({
     return (id) => m.get(id) ?? "프로젝트";
   }, [projects]);
 
+  // 오늘 것인가 — 흐름 목록과 과일 합계가 같은 잣대를 쓰도록 밖에 둡니다.
+  const isToday = useCallback(
+    (d) => !!d && !Number.isNaN(d.getTime()) && todayDateKey(d) === today,
+    [today]
+  );
+
   // 네 갈래를 한 줄기로 합쳐 시간순(최근 먼저)으로 세웁니다.
   const events = useMemo(() => {
     const out = [];
-    const isToday = (d) => d && !Number.isNaN(d.getTime()) && todayDateKey(d) === today;
 
     attendanceRecords
       .filter((r) => r.date === today)
@@ -150,13 +156,24 @@ export default function StudyTodayFeed({
     });
 
     return out.sort((a, b) => b.at - a.at);
-  }, [attendanceRecords, cardsByBoard, kwl, rewardEvents, today, titleOf]);
+  }, [attendanceRecords, cardsByBoard, kwl, rewardEvents, today, titleOf, isToday]);
+
+  // 오늘 과일 — uid별 순증(회수 뺀 값). 자리표 뱃지와 '같은 함수'를 씁니다.
+  // 아래 흐름 목록에는 회수 줄을 띄우지 않지만(격려의 자리라서), 합계에서까지
+  // 빼지 않으면 같은 화면에서 자리표는 2개, 여기는 3개가 됩니다.
+  const fruitNet = useMemo(
+    () => netRewardsByUid(rewardEvents.filter((e) => isToday(toDate(e.at)))),
+    [rewardEvents, isToday]
+  );
 
   const counts = useMemo(() => {
     const c = { attend: 0, card: 0, kwl: 0, fruit: 0 };
-    events.forEach((e) => { c[e.kind] += 1; });
+    events.forEach((e) => { if (e.kind !== "fruit") c[e.kind] += 1; });
+    // 과일만 '건수'가 아니라 '개수'입니다 — 한 번 눌러 여러 개를 줄 수 있어
+    // (delta가 2 이상일 수 있어) 건수를 세면 준 개수보다 적게 나옵니다.
+    c.fruit = [...fruitNet.values()].reduce((sum, n) => sum + Math.max(0, n), 0);
     return c;
-  }, [events]);
+  }, [events, fruitNet]);
 
   // 칸을 누르면 펼쳐지는 상세 명단.
   // -------------------------------------------------------------
@@ -172,11 +189,11 @@ export default function StudyTodayFeed({
     const doneBy = { attend: new Set(), card: new Set(), kwl: new Set(), fruit: new Set() };
     events.forEach((e) => doneBy[e.kind].add(e.uid));
     const notYet = (kind) => roster.filter((s) => !doneBy[kind].has(s.uid));
-    // 과일은 몇 개 받았는지까지 — 한 사람이 여러 번 받을 수 있어 합칩니다.
-    const fruitBy = new Map();
-    events
-      .filter((e) => e.kind === "fruit")
-      .forEach((e) => fruitBy.set(e.uid, (fruitBy.get(e.uid) ?? 0) + (e.amount ?? 0)));
+    // 과일은 몇 개 받았는지까지 — 자리표 뱃지와 같은 순증 값을 씁니다.
+    // 오늘 주고 오늘 도로 거둬 0이 된 학생은 명단에 올리지 않습니다.
+    const fruitBy = new Map(
+      [...fruitNet.entries()].filter(([, n]) => n > 0)
+    );
     return {
       attend: { label: "오늘 출석 안 한 학생", rows: notYet("attend").map((s) => ({ uid: s.uid, name: s.name })) },
       card: { label: "오늘 카드를 안 낸 학생", rows: notYet("card").map((s) => ({ uid: s.uid, name: s.name })) },
@@ -186,7 +203,7 @@ export default function StudyTodayFeed({
         rows: [...fruitBy.entries()].map(([uid, n]) => ({ uid, name: nameOf(uid), suffix: `${n}` })),
       },
     };
-  }, [events, roster, nameOf]);
+  }, [events, roster, nameOf, fruitNet]);
 
   const open = openKind ? details[openKind] : null;
   const EMPTY = {
