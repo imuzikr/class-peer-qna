@@ -1201,7 +1201,20 @@ function StudyPageInner() {
           roster={admin ? roster : []}
           // 학생이 카드를 쓰는 보드만 연결 대상 — '선생님 보드'(공지용)는 제외
           boards={classBoards.filter((b) => b.type !== "notice")}
-          onSaveBoardId={(boardId) => updateLesson(editingLesson.id, { boardId })}
+          // 연결은 **반마다 따로** 기억합니다 — 한 자료를 여러 반에서 쓰기
+          // 때문입니다(LessonMode의 boardIds 주석 참고). 점 표기 경로
+          // ({ "boardIds.xxx": … })는 Mock의 Object.assign에서 문자열 키가
+          // 그대로 박히므로, 두 구현이 같게 동작하도록 지도 전체를 다시 씁니다.
+          onSaveBoardId={(boardId) =>
+            classId
+              ? updateLesson(editingLesson.id, {
+                  boardIds: {
+                    ...(editingLesson.boardIds ?? {}),
+                    [classId]: boardId ?? null,
+                  },
+                })
+              : Promise.resolve()
+          }
           // patch = { note, noteTitle } — 해설의 제목과 본문을 함께 받습니다.
           // 예전 자료에는 noteTitle이 없는데, 없던 필드가 빈 문자열로 채워질
           // 뿐이라 기존 note 내용은 그대로 남습니다.

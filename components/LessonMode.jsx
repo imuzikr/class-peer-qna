@@ -88,8 +88,30 @@ export default function LessonMode({
   const editing = mode === "edit";
 
   // ── 공부방 보드 연동 (수업 준비에서만) ──
-  const boardId = lesson.boardId ?? null;
+  // 수업 자료는 반이 아니라 '만든 선생님'에게 딸려 있어(lessons.ownerId) 같은
+  // 자료 한 장을 여러 반에서 씁니다. 그래서 연결한 프로젝트도 **반마다 따로**
+  // 기억합니다 — boardIds = { 반id: 프로젝트id }.
+  //   예전에는 boardId 한 칸뿐이었습니다. B반 프로젝트에 연결해 두면 C반에서는
+  //   그 id가 이 반 목록(boards는 이미 반으로 걸러져 옵니다)에 없어 board가
+  //   null이 되고 '활동 열기'가 통째로 사라졌습니다. 게다가 boardId 자체는
+  //   값이 있어 카드 구독은 그대로 돌아, '공부중'이 남의 반 카드를 이 반
+  //   명단으로 세느라 0명이 됐습니다.
+  const boardIdMap = lesson.boardIds ?? null;
+  // 옛 자료 호환 — boardIds가 생기기 전의 boardId에는 어느 반 것인지 적혀 있지
+  // 않으므로 '이 반의 프로젝트일 때만' 씁니다. 그리고 이 반에서 한 번이라도
+  // 골랐으면('연결 안 함'으로 비운 것 포함) 그 선택이 이기도록, 값이 아니라
+  // **키가 있는지**로 판정합니다(비운 것을 옛 값으로 되살리면 안 되므로).
+  const boardId =
+    classId && boardIdMap && Object.prototype.hasOwnProperty.call(boardIdMap, classId)
+      ? boardIdMap[classId] || null
+      : boards.some((b) => b.id === lesson.boardId)
+        ? lesson.boardId
+        : null;
   const board = boards.find((b) => b.id === boardId) ?? null;
+  // 다른 반에는 연결해 두었는데 이 반만 비어 있는가 — 수업 중 안내에 씁니다.
+  const linkedElsewhere =
+    !board &&
+    (!!lesson.boardId || Object.values(boardIdMap ?? {}).some(Boolean));
   const [boardCards, setBoardCards] = useState([]);
   const [newAct, setNewAct] = useState("");
   const actInputRef = useRef(null); // 한글 조합 중 글자까지 읽기 위한 입력칸 참조
@@ -826,6 +848,21 @@ export default function LessonMode({
                   </div>
                   {actError && <p className="form-error" role="alert">{actError}</p>}
                 </section>
+              )}
+
+              {/* 다른 반에는 프로젝트를 연결해 두었는데 이 반만 비어 있는 경우 —
+                  화면에서는 '활동 열기'가 그냥 없어 보여 왜 반마다 다른지 알 수
+                  없습니다. 한 번도 연결한 적 없는 자료에는 띄우지 않습니다. */}
+              {linkedElsewhere && (
+                <p className="lesson-link-hint">
+                  이 반에는 연결된 공부방 프로젝트가 없어요 — 수업 자료는 반마다
+                  따로 연결합니다.
+                  {onEdit && (
+                    <button type="button" className="lesson-link-hint-btn" onClick={onEdit}>
+                      수업 자료 편집에서 연결하기
+                    </button>
+                  )}
+                </p>
               )}
 
               {activityGoalsSection}
