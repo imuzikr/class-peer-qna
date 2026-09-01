@@ -20154,7 +20154,7 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   position: absolute;
   inset: 0;
   background: rgba(24, 22, 20, 0.7);
-  animation: reward-cheer-sky 2.6s ease-out forwards;
+  animation: reward-cheer-sky 3.2s ease-out forwards;
 }
 @keyframes reward-cheer-sky {
   0%   { opacity: 0; }
@@ -20175,7 +20175,7 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   border: 2px solid var(--primary);
   border-radius: 999px;
   box-shadow: 0 10px 30px rgba(46, 36, 26, 0.18);
-  animation: reward-cheer-pop 2.6s ease-out forwards;
+  animation: reward-cheer-pop 3.2s ease-out forwards;
 }
 .reward-cheer-emoji { font-size: 34px; line-height: 1; }
 .reward-cheer-plus {
@@ -20202,7 +20202,7 @@ button.study-cal-cell.has-record:not(:disabled):hover {
      없습니다 — 덮기만 하면 그냥 화면이 어두워졌다 밝아질 뿐입니다. */
   .reward-cheer-sky { display: none; }
   .reward-cheer-badge {
-    animation: reward-cheer-fade 2.6s ease-out forwards;
+    animation: reward-cheer-fade 3.2s ease-out forwards;
   }
   @keyframes reward-cheer-fade {
     0%, 80% { opacity: 1; }
