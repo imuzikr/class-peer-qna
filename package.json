@@ -12,7 +12,8 @@
     "deploy": "bash scripts/deploy.sh",
     "kwls:backfill": "node functions/scripts/kwls-backfill.mjs",
     "books:to-solo": "node functions/scripts/consonant-to-solo.mjs",
-    "books:rescue": "node functions/scripts/rescue-activity.mjs"
+    "books:rescue": "node functions/scripts/rescue-activity.mjs",
+    "books:purge-orphans": "node functions/scripts/purge-orphan-notifications.mjs"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.18.0",

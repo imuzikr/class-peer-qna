@@ -250,7 +250,23 @@ async function purgeStudentData(uid, warnings) {
     warnings.push(`첨부 파일: ${e && e.message}`);
   }
 
-  // 6) 소속 → 프로필 순서로 마지막에. 소속을 먼저 지우면 재시도할 때
+  // 6) 알림함 (users/{uid}/notifications)
+  //    프로필 문서를 지우기 전에 먼저 비웁니다. Firestore는 문서를 지워도
+  //    하위 컬렉션을 함께 지우지 않아서, 순서를 바꾸면 '존재하지 않는 문서'
+  //    아래 알림만 남습니다(콘솔에 기울임꼴로 뜨는 그것). 실제로 그렇게 남은
+  //    계정이 있었고, 반 공지 알림에는 교사 실명과 공지 본문이 들어 있습니다.
+  //
+  //    여기서만 지울 수 있습니다 — 규칙은 알림을 본인에게만 열어 두어
+  //    (users/{userId}/notifications: userId == uid()) 교사가 브라우저에서
+  //    남의 알림을 지우지 못합니다. 규칙을 넓히면 교사가 학생 알림을 읽을 수
+  //    있게 되므로, 규칙은 그대로 두고 admin SDK인 이 함수가 맡습니다.
+  try {
+    await db.recursiveDelete(db.collection(`users/${uid}/notifications`));
+  } catch (e) {
+    warnings.push(`알림함: ${e && e.message}`);
+  }
+
+  // 7) 소속 → 프로필 순서로 마지막에. 소속을 먼저 지우면 재시도할 때
   //    담당 교사 판정이 불가능해지므로 이 순서를 지킵니다.
   await deleteByQuery(db.collection("memberships").where("uid", "==", uid), warnings, "반 소속");
   try {

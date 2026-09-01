@@ -199,6 +199,18 @@ Firebase 미설정 시 자동으로 **데모 모드**로 동작 (새로고침 �
 - `users` — 사용자 프로필 (uid, email, displayName(익명), realName, studentId, role)
   - **식별 정보(실명·이메일·학번)는 여기에만** 저장. 게시물·카드엔 익명 정보만 넣음.
   - 읽기 규칙: 본인+교사. 교사 화면은 `subscribeUserDirectory`로 uid→실명/학번 조회.
+- `users/{uid}/notifications` — 개인 알림함 (답변 알림 · 반 공지)
+  - 규칙은 **본인에게만** 열려 있습니다(`userId == uid()`). 교사도 못 읽고 못
+    지웁니다 — 반 공지 알림에 교사 실명과 공지 본문이 들어 있어서, 여기를
+    넓히면 교사가 학생 알림을 들여다볼 수 있게 됩니다.
+  - 그래서 **탈퇴 처리 때 이 알림함은 서버 함수만 지울 수 있습니다**
+    (`purgeStudentData`의 `recursiveDelete`, admin SDK라 규칙 우회).
+    `lib/store.js`의 폴백 경로는 규칙에 막혀 지우지 못합니다.
+  - Firestore는 문서를 지워도 하위 컬렉션을 함께 지우지 않습니다. 한때
+    `purgeStudentData`에 알림함이 빠져 있어, 프로필만 사라지고 알림이 남은
+    계정이 생겼습니다(콘솔에 기울임꼴 '존재하지 않는 문서'로 보입니다).
+    원인은 막았고, 남은 것은 `npm run books:purge-orphans`로 훑어 지웁니다
+    (`--apply` 없이는 찾아만 봅니다).
 
 ## 시각화 컴포넌트 구조 (admin/report 공통)
 
