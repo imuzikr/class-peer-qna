@@ -24,6 +24,8 @@ import {
   BOOK_SOLO_TYPES,
   addBookActivity,
   deleteBookActivity,
+  restoreBookActivity,
+  purgeBookActivity,
   updateBookActivity,
   subscribeClasses,
   subscribeMyMemberships,
@@ -156,6 +158,8 @@ function BooksPageInner() {
   const [allView, setAllView] = useState(false);          // 교사: 반 전체 집계 화면
   const [creatingType, setCreatingType] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [confirmPurge, setConfirmPurge] = useState(null);  // 휴지통에서 완전 삭제
+  const [trashOpen, setTrashOpen] = useState(false);
   // 편집 중인 활동 (교사)
   const [editingActivity, setEditingActivity] = useState(null);
   const [toast, setToast] = useState("");
@@ -293,8 +297,10 @@ function BooksPageInner() {
   }
 
   // 활동을 열어둔 채 목록이 갱신되면 최신 문서로 맞춰줍니다(주제 수정·잠금 반영).
+  // 지운 활동은 열려 있어도 더 보여 주지 않습니다 — 다른 기기에서 지웠거나
+  // 휴지통에 있는 것을 주소로 바로 열었을 때도 마찬가지입니다.
   const activeActivity = openActivityId
-    ? activities.find((a) => a.id === openActivityId) ?? null
+    ? activities.find((a) => a.id === openActivityId && !a.deleted) ?? null
     : null;
   const activeClassId = activeActivity?.classId ?? classId;
   const activeClassName = classes.find((c) => c.id === activeClassId)?.name ?? "";
@@ -305,6 +311,16 @@ function BooksPageInner() {
   const sortedActivities = useMemo(
     () => activities.slice().sort((a, b) => activityTime(b) - activityTime(a)),
     [activities]
+  );
+  // 지운 활동은 목록에서 빠지고 휴지통으로 갑니다. 같은 구독을 나누기만
+  // 하므로 읽기가 늘지 않습니다(조건을 붙여 따로 질의하면 복합 색인 필요).
+  const liveActivities = useMemo(
+    () => sortedActivities.filter((a) => !a.deleted),
+    [sortedActivities]
+  );
+  const trashedActivities = useMemo(
+    () => sortedActivities.filter((a) => a.deleted),
+    [sortedActivities]
   );
 
   // 개인 활동(곁텍스트 읽기·RAFT·KWLS·마인드맵)은 모둠이 없어 화면 흐름이 따로입니다.
@@ -347,7 +363,20 @@ function BooksPageInner() {
     setConfirmDelete(null);
     await deleteBookActivity(target.id);
     if (openActivityId === target.id) goToList();
-    setToast("활동을 삭제했어요.");
+    setToast("휴지통으로 옮겼어요. 휴지통에서 되돌릴 수 있어요.");
+  }
+
+  async function handleRestore(activity) {
+    await restoreBookActivity(activity.id);
+    setToast("활동을 되돌렸어요.");
+  }
+
+  // 완전 삭제 — 여기부터는 되돌릴 수 없습니다.
+  async function handlePurge() {
+    const target = confirmPurge;
+    setConfirmPurge(null);
+    await purgeBookActivity(target.id);
+    setToast("완전히 삭제했어요.");
   }
 
   // 누가기록 관리·수업 메모 — 화면마다 다시 만들지 않고 이 한 덩어리를
@@ -550,7 +579,12 @@ function BooksPageInner() {
             </p>
           ) : (
             <ActivityList
-              activities={sortedActivities}
+              activities={liveActivities}
+              trashed={admin ? trashedActivities : []}
+              trashOpen={trashOpen}
+              onToggleTrash={() => setTrashOpen((v) => !v)}
+              onRestore={handleRestore}
+              onPurge={setConfirmPurge}
               isTeacher={admin}
               uid={user?.uid ?? null}
               onOpen={goToActivity}
@@ -613,14 +647,30 @@ function BooksPageInner() {
           title="활동 삭제"
           preview={confirmDelete.title}
           description={
-            confirmDelete.type === "consonant"
-              ? "이 활동의 모둠과 모아둔 단어가\n모두 삭제됩니다. 되돌릴 수 없습니다."
-              : "학생들이 쓴 내용이 모두 삭제됩니다.\n되돌릴 수 없습니다."
+            "목록에서 감추고 휴지통으로 옮깁니다.\n" +
+            "학생 화면에서도 사라지지만 내용은 그대로 남아 있어,\n" +
+            "목록 아래 휴지통에서 되돌릴 수 있어요."
           }
-          confirmLabel="삭제"
-          danger
+          confirmLabel="휴지통으로"
           onConfirm={handleDelete}
           onClose={() => setConfirmDelete(null)}
+        />
+      )}
+
+      {/* 완전 삭제 — 휴지통 안에서만. 여기부터는 되돌릴 수 없습니다. */}
+      {confirmPurge && (
+        <ConfirmModal
+          title="완전 삭제"
+          preview={confirmPurge.title}
+          description={
+            confirmPurge.type === "consonant"
+              ? "이 활동의 모둠과 모아둔 단어가 모두 지워집니다.\n되돌릴 수 없습니다."
+              : "학생들이 쓴 내용이 모두 지워집니다.\n되돌릴 수 없습니다."
+          }
+          confirmLabel="완전 삭제"
+          danger
+          onConfirm={handlePurge}
+          onClose={() => setConfirmPurge(null)}
         />
       )}
 
@@ -633,31 +683,85 @@ function BooksPageInner() {
 // 예전에는 '종류 그리드 → 그 종류의 목록' 두 화면이었는데, 가운데 화면이
 // 하는 일이 종류를 고르는 것뿐이라 만들기 창의 종류 고르기와 겹쳤습니다.
 // 종류는 카드마다 적혀 있으니 목록을 나눌 이유가 없습니다.
-function ActivityList({ activities, isTeacher, uid, onOpen, onEdit, onDelete, onToggleLock }) {
-  if (activities.length === 0) {
-    return (
-      <p className="empty-note">
-        {isTeacher
-          ? "아직 만든 활동이 없어요. ‘＋ 독서 활동 만들기’로 첫 활동을 열어 보세요."
-          : "아직 열린 활동이 없어요. 선생님이 활동을 열면 여기에 나타납니다."}
-      </p>
-    );
-  }
+function ActivityList({
+  activities,
+  isTeacher,
+  uid,
+  onOpen,
+  onEdit,
+  onDelete,
+  onToggleLock,
+  trashed = [],
+  trashOpen = false,
+  onToggleTrash,
+  onRestore,
+  onPurge,
+}) {
   return (
-    <div className="book-activity-grid">
-      {activities.map((a) => (
-        <ActivityCard
-          key={a.id}
-          activity={a}
-          isTeacher={isTeacher}
-          uid={uid}
-          onOpen={() => onOpen(a)}
-          onEdit={() => onEdit(a)}
-          onDelete={() => onDelete(a)}
-          onToggleLock={() => onToggleLock(a)}
-        />
-      ))}
-    </div>
+    <>
+      {activities.length === 0 ? (
+        <p className="empty-note">
+          {isTeacher
+            ? "아직 만든 활동이 없어요. ‘＋ 독서 활동 만들기’로 첫 활동을 열어 보세요."
+            : "아직 열린 활동이 없어요. 선생님이 활동을 열면 여기에 나타납니다."}
+        </p>
+      ) : (
+        <div className="book-activity-grid">
+          {activities.map((a) => (
+            <ActivityCard
+              key={a.id}
+              activity={a}
+              isTeacher={isTeacher}
+              uid={uid}
+              onOpen={() => onOpen(a)}
+              onEdit={() => onEdit(a)}
+              onDelete={() => onDelete(a)}
+              onToggleLock={() => onToggleLock(a)}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* 휴지통 — 지운 활동이 있을 때만 나타납니다. 접어 두는 이유는
+          평소에 볼 것이 아니어서이고, 건수를 겉에 적어 두는 이유는
+          '지운 게 어디 갔지' 하고 찾아 헤매지 않게 하기 위함입니다. */}
+      {isTeacher && trashed.length > 0 && (
+        <section className="book-trash">
+          <button
+            type="button"
+            className="book-trash-toggle"
+            onClick={onToggleTrash}
+            aria-expanded={trashOpen}
+          >
+            <span className={`memo-caret${trashOpen ? " open" : ""}`} aria-hidden="true">›</span>
+            <IconTrash size={14} /> 휴지통 <em>{trashed.length}</em>
+          </button>
+
+          {trashOpen && (
+            <ul className="book-trash-list">
+              {trashed.map((a) => (
+                <li key={a.id} className="book-trash-item">
+                  <span className="book-trash-name">
+                    <strong>{a.topic?.trim() || a.title}</strong>
+                    <span className="book-trash-meta">
+                      {ACTIVITY_KIND_BY_KEY.get(a.type)?.label ?? "독서 활동"}
+                      {" · 만든 날 "}
+                      {activityDateLabel(a)}
+                    </span>
+                  </span>
+                  <button type="button" className="btn-ghost" onClick={() => onRestore(a)}>
+                    되돌리기
+                  </button>
+                  <button type="button" className="btn-ghost qa-delete" onClick={() => onPurge(a)}>
+                    완전 삭제
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
+    </>
   );
 }
 

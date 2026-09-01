@@ -64,8 +64,10 @@ export default function BookActivityStats({ classId }) {
   }, [classId]);
 
   // 모둠이 있는 활동만 — 지금은 닿소리 채우기 하나입니다.
+  // 휴지통에 있는 것(deleted)은 뺍니다 — 목록에서 사라진 활동이 통계에만
+  // 남아 있으면 어디서 온 숫자인지 알 수 없습니다.
   const activities = useMemo(
-    () => allActivities.filter((a) => !BOOK_SOLO_TYPES.includes(a.type)),
+    () => allActivities.filter((a) => !a.deleted && !BOOK_SOLO_TYPES.includes(a.type)),
     [allActivities]
   );
 

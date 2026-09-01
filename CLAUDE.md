@@ -144,6 +144,21 @@ Firebase 미설정 시 자동으로 **데모 모드**로 동작 (새로고침 �
     '수업 끝, 이제 아무도 못 고침'은 여전히 규칙이 보장합니다.
   - 헬퍼는 전부 `lib/paratext.js`에 있습니다(`isSectionLocked` ·
     `sectionLocksWith` · `sectionLocksUpTo` · `firstLockedIndex`).
+- `bookActivities/{id}.deleted` · `.deletedAt` · `.deletedBy` — **휴지통**
+  활동 삭제는 곧바로 지우지 않고 이 표시만 찍습니다(`deleteBookActivity`).
+  목록·학생 화면·통계에서 사라지지만 자료는 그대로라 `restoreBookActivity`로
+  돌아옵니다. 진짜로 없애는 것은 `purgeBookActivity` — 휴지통 안에서 한 번 더
+  확인하고 부릅니다.
+  - 예전에는 여기서 낱말·모둠·기록을 곧바로 지웠는데, 손이 미끄러져 한 반의
+    활동이 통째로 날아간 일이 있었습니다. 앱 안에 되돌릴 길이 없어 Firestore
+    시점 복구까지 갔지만 PITR이 꺼져 있어 보존 창이 1시간뿐이었고, 그 사이에
+    지난 뒤라 못 살렸습니다. (그 뒤 PITR을 켜 두어 지금은 7일입니다.
+    급할 때 쓰는 도구: `npm run books:rescue` — `functions/scripts/rescue-activity.mjs`)
+  - **판정은 `deleted`(참·거짓)로 하세요.** `deletedAt`은 '언제'만 적어 둔
+    것입니다 — `serverTimestamp()`는 서버가 답하기 전까지 화면에 null로 와서,
+    그것만 보고 거르면 지운 활동이 한 박자 되살아났다가 사라집니다.
+  - 거르는 자리는 화면입니다(질의에 조건을 붙이면 복합 색인이 필요).
+    `app/books/page.js`와 `components/BookActivityStats.jsx` 두 곳.
 - `bookActivities/{id}/groups/{gId}/words` — 책방 닿소리 낱말
   - `groupMode: 'solo'`(개별 활동)는 **구성원이 한 명뿐인 판**을 학생마다 하나씩
     둡니다. 새 컬렉션을 만들지 않아 학생 화면·교사 전체 보기·낱말 권한
