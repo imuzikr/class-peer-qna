@@ -5252,8 +5252,10 @@ pre code {
 }
 
 /* 학급 전체 통계 — 표 + 차트 2열 */
+/* 예전에는 '학생별 활동' 표와 나란히 두 칸이었습니다(1.7fr 1fr). 표를
+   빼면서 남은 키워드 분포가 폭을 다 쓰도록 한 칸으로 둡니다. */
 .overview-charts {
-  grid-template-columns: 1.7fr 1fr;
+  grid-template-columns: 1fr;
 }
 
 .overview-table {
@@ -20221,7 +20223,26 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   position: absolute;
   inset: 0;
 }
+/* 잠깐의 밤하늘 — 0.7이라는 값은 눈대중이 아닙니다. 이 값에서 불티 여섯 색이
+   모두 3:1을 넘습니다(가장 낮은 색 3.66:1). 0.62에서는 두 색이 3 아래로
+   떨어집니다. */
+.reward-cheer-sky {
+  position: absolute;
+  inset: 0;
+  background: rgba(24, 22, 20, 0.7);
+  animation: reward-cheer-sky 2.6s ease-out forwards;
+}
+@keyframes reward-cheer-sky {
+  0%   { opacity: 0; }
+  8%   { opacity: 1; }
+  70%  { opacity: 1; }
+  100% { opacity: 0; }
+}
 .reward-cheer-badge {
+  /* 하늘·캔버스가 absolute라, 위치를 주지 않으면 뱃지가 그 아래로 깔려
+     같이 어두워집니다(실제로 그랬습니다). */
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -20230,7 +20251,7 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   border: 2px solid var(--primary);
   border-radius: 999px;
   box-shadow: 0 10px 30px rgba(46, 36, 26, 0.18);
-  animation: reward-cheer-pop 2.4s ease-out forwards;
+  animation: reward-cheer-pop 2.6s ease-out forwards;
 }
 .reward-cheer-emoji { font-size: 34px; line-height: 1; }
 .reward-cheer-plus {
@@ -20253,8 +20274,11 @@ button.study-cal-cell.has-record:not(:disabled):hover {
 /* 움직임을 줄인 설정 — 커졌다 작아지는 것 없이 그대로 떠 있다 사라집니다
    (조각은 컴포넌트가 아예 그리지 않습니다). */
 @media (prefers-reduced-motion: reduce) {
+  /* 움직임을 줄인 설정에서는 불티를 아예 안 쏘므로 하늘을 덮을 이유도
+     없습니다 — 덮기만 하면 그냥 화면이 어두워졌다 밝아질 뿐입니다. */
+  .reward-cheer-sky { display: none; }
   .reward-cheer-badge {
-    animation: reward-cheer-fade 2.4s ease-out forwards;
+    animation: reward-cheer-fade 2.6s ease-out forwards;
   }
   @keyframes reward-cheer-fade {
     0%, 80% { opacity: 1; }

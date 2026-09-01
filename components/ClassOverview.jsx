@@ -76,42 +76,11 @@ export default function ClassOverview({
         <div className="admin-stat tone-done"><span>참여 학생</span><strong>{participants}</strong></div>
       </section>
 
+      {/* 예전에는 여기에 '학생별 활동' 표가 있었습니다 — 반 인원을 한 줄씩
+          모두 늘어놓아(135명) 화면이 그 표 하나로 덮였고, 정작 훑어야 할
+          키워드 분포와 궁금해요 순위가 한참 아래로 밀렸습니다. 학생 한 명의
+          활동은 히트맵에서 학생을 고르면 그대로 볼 수 있습니다. */}
       <section className="admin-charts overview-charts">
-        {/* 학생별 활동 표 */}
-        <div className="admin-chart-panel overview-table-panel">
-          <div className="admin-panel-head">
-            <h2>학생별 활동</h2>
-            <span>{students.length}명</span>
-          </div>
-          {students.length === 0 ? (
-            <EmptyPanel>학생 활동이 없습니다.</EmptyPanel>
-          ) : (
-            <table className="overview-table">
-              <thead>
-                <tr>
-                  <th>학생</th>
-                  <th>질문</th>
-                  <th>답변</th>
-                  <th>궁금해요</th>
-                </tr>
-              </thead>
-              <tbody>
-                {students.map((s) => (
-                  <tr key={s.id}>
-                    <td className="ov-name">
-                      <span className="avatar avatar-sm">{s.emoji}</span>
-                      {s.realName || s.name}
-                    </td>
-                    <td>{s.asked}</td>
-                    <td>{s.answered}</td>
-                    <td>{s.meTooReceived}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-
         {/* 키워드별 질문 분포 */}
         <div className="admin-chart-panel">
           <div className="admin-panel-head">
