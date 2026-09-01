@@ -474,6 +474,30 @@ service cloud.firestore {
         allow update, delete: if false;
       }
 
+      // ── 손들기 이력 ─────────────────────────────────────────
+      //  · 경로 = classes/{classId}/signalEvents/{auto}
+      //  · questionSignals는 '지금 손든 사람'만 담고, 손이 내려가면 문서가
+      //    지워집니다. 그래서 '누가 언제 손을 들었나'가 전혀 남지 않아
+      //    참여의 변화를 볼 수 없었습니다. 여기에 한 건 남깁니다.
+      //  · 교사가 '확인'을 눌러 받아 준 손만 적습니다. '닫기'로 내린 손은
+      //    잘못 눌린 것이라 세지 않습니다(그래서 create만 있고 종류가 없음).
+      //  · 읽기는 본인·담당 교사·관리자 — rewardEvents와 같은 기준입니다.
+      //  · 이력은 고치거나 지울 수 없습니다. 반을 지울 때는 서버 함수
+      //    (purgeClass)가 규칙을 우회해 정리합니다.
+      match /signalEvents/{eId} {
+        allow read: if signedIn() && (
+          isAdmin()
+          || ownsClass(cId)
+          || resource.data.uid == uid()
+        );
+        allow create: if (isAdmin() || ownsClassEditable(cId))
+                      && request.resource.data.classId == cId
+                      && request.resource.data.uid is string
+                      && request.resource.data.byUid == uid()
+                      && request.resource.data.at == request.time;
+        allow update, delete: if false;
+      }
+
       // ── 반 공지 발송 이력 ───────────────────────────────────
       //  · 경로 = classes/{classId}/classNotices/{auto}
       //  · 공지는 학생 알림으로만 갔고 보낸 쪽에는 아무것도 안 남았습니다.

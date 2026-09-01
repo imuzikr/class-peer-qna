@@ -38,6 +38,7 @@ import StudentKwlPanel from "@/components/StudentKwlPanel";
 import BookActivityStats from "@/components/BookActivityStats";
 import ClassOverview from "@/components/ClassOverview";
 import ClassRewardTrend from "@/components/ClassRewardTrend";
+import ClassSignalTrend from "@/components/ClassSignalTrend";
 import StudyRoomStats from "@/components/StudyRoomStats";
 import { IconSchool, IconBlackboard } from "@/components/StatusIcons";
 
@@ -1123,6 +1124,11 @@ function AdminDashboardPageInner() {
                   컬렉션이고, 규칙상 담당 교사만 나열할 수 있습니다 */}
               {selectedClassId && (
                 <ClassRewardTrend classId={selectedClassId} roster={overviewStudents} />
+              )}
+              {/* 손들기도 같은 이유로 반 단위입니다. 과일 흐름 바로 아래에
+                  두어 '내가 준 것'과 '학생이 물은 것'을 나란히 읽습니다. */}
+              {selectedClassId && (
+                <ClassSignalTrend classId={selectedClassId} roster={overviewStudents} />
               )}
               {/* 책방도 반 단위 — 게다가 활동 하나씩만 집계할 수 있습니다
                   (words·entries에 collectionGroup 규칙이 없음) */}

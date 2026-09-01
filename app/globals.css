@@ -20422,3 +20422,74 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   width: auto;
   max-width: 170px;
 }
+
+/* ── 손들기 흐름 (교사 대시보드) ──
+   줄기가 '손든 횟수' 하나뿐이라 막대는 모두 같은 색입니다. 사람마다 색을
+   주면 색이 곧 순위가 되어, 한 명이 앞지를 때마다 판이 다시 칠해집니다. */
+.signal-trend-sum {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: var(--text-sub);
+}
+.signal-trend-sum strong { color: var(--dark); }
+/* 한 달째 손을 안 든 학생 — 이 패널에서 가장 먼저 읽혀야 할 값입니다 */
+.signal-trend-silent {
+  font-style: normal;
+  font-weight: 700;
+  color: var(--danger);
+}
+.signal-trend-list {
+  display: flex;
+  flex-direction: column;
+  /* 막대끼리 2px 바탕이 비쳐야 한 덩어리로 뭉쳐 보이지 않습니다 */
+  gap: 2px;
+  max-height: 340px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.signal-trend-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 20px;
+}
+.signal-trend-name {
+  flex: 0 0 68px;
+  font-size: 12.5px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.signal-trend-track {
+  flex: 1;
+  min-width: 0;
+  height: 11px;
+  background: var(--neutral);
+  border-radius: 3px;
+  overflow: hidden;
+}
+/* 왼쪽(기준선)은 각지게, 값이 끝나는 오른쪽만 둥글게 */
+.signal-trend-fill {
+  display: block;
+  height: 100%;
+  background: var(--primary-dark);
+  border-radius: 0 4px 4px 0;
+}
+.signal-trend-val {
+  flex: 0 0 24px;
+  text-align: right;
+  font-size: 12.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  /* 숫자는 잉크 색으로 — 막대 색을 글자에까지 쓰면 어느 것이 자료인지 흐려집니다 */
+  color: var(--text);
+}
+.signal-trend-val.zero { color: var(--text-sub); font-weight: 400; }
+.signal-trend .admin-empty small {
+  display: block;
+  margin-top: 8px;
+  line-height: 1.7;
+}

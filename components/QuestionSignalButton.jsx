@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   addStudentReward,
+  confirmQuestionSignal,
   dismissQuestionSignal,
   formatTime,
   setQuestionSignal,
@@ -85,13 +86,17 @@ export default function QuestionSignalButton({
     if (!classId || dismissing.has(uid)) return;
     setDismissing((prev) => new Set(prev).add(uid));
     try {
+      const s = signals.find((x) => x.uid === uid);
       if (award) {
-        const s = signals.find((x) => x.uid === uid);
         // 손든 기록에 이미 실명·이모지가 담겨 있어(signalIdentity) 이름표를
         // 알아내려고 사용자 디렉터리를 따로 구독하지 않아도 됩니다.
         await addStudentReward(classId, uid, 1, s ? { name: s.name, emoji: s.emoji } : null);
+        // 받아 준 손만 이력에 남깁니다(손 내리기까지 함께 합니다).
+        await confirmQuestionSignal(classId, s ?? { uid });
+      } else {
+        // '닫기'는 잘못 눌린 손이라 아무것도 남기지 않고 내리기만 합니다.
+        await dismissQuestionSignal(classId, uid);
       }
-      await dismissQuestionSignal(classId, uid);
     } finally {
       // signals 구독이 곧 목록을 갱신해 이 항목 자체가 사라지므로, 실패했을
       // 때만 다시 누를 수 있게 풀어 주면 됩니다.

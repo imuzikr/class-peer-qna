@@ -18,6 +18,7 @@ const CLASS_SUBCOLLECTIONS = [
   "groupAssignments",  // 반 기본 모둠 — 실명·학번 포함
   "questionSignals",   // 손들기 — 실명·학번 포함
   "rewardEvents",      // 과일 지급 이력 — uid·지급 시각(참여 기록)
+  "signalEvents",      // 손들기 이력 — 실명·학번·손든 시각(참여 기록)
   "classNotices",      // 반 공지 발송 이력 — 보낸 내용·시각
   "lessonMemos",       // 수업 메모 — 교사가 수업 중 적어 둔 것
 ];
