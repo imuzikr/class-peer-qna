@@ -21,8 +21,16 @@
 // [구독하지 않습니다] 과일 이력은 옆의 '반 전체 과일 흐름'이 이미 받아
 // 두고 있어, 그 배열을 그대로 받아 씁니다. 같은 컬렉션에 리스너를 하나 더
 // 걸면 읽기가 두 배가 됩니다.
+//
+// [기간을 반드시 밝힙니다] 이 칸이 보는 것은 **이력(rewardEvents)** 이지
+// 총계(rewards)가 아닙니다. 이력은 2026-08-29에 기록을 시작했고, 그 전에
+// 준 과일은 총계에만 남아 있어 여기 한 건도 없습니다. 기간을 안 적으면
+// "아직 한 개도 못 받은 학생 24명"이 '한 학기 내내 못 받았다'로 읽혀,
+// 사실은 그동안 잘 주고 있던 교사가 자기를 오해하게 됩니다. 그래서 첫
+// 기록일을 문장 안에 넣습니다.
 // =============================================================
 import { useMemo } from "react";
+import { toDate } from "@/lib/store";
 
 // 상위 몇 명을 한 덩어리로 볼 것인가 — 한 모둠 크기입니다.
 const TOP = 5;
@@ -38,7 +46,6 @@ export default function RewardSkew({ events = [], roster = [], loaded = false })
     const byUid = new Map();
     given.forEach((e) => byUid.set(e.uid, (byUid.get(e.uid) ?? 0) + (e.delta ?? 0)));
 
-    const total = [...byUid.values()].reduce((a, b) => a + b, 0);
     const people = roster.map((s) => {
       const uid = s.uid ?? s.id;
       return {
@@ -48,6 +55,22 @@ export default function RewardSkew({ events = [], roster = [], loaded = false })
         n: byUid.get(uid) ?? 0,
       };
     });
+
+    // 총량은 **명단 안에서만** 셉니다. 예전에는 이력 전체를 더해 놓고 비율은
+    // 명단으로만 냈는데, 전학 간 학생처럼 명단 밖 uid의 과일이 분모에만
+    // 들어가 띠의 합이 100%에 못 미쳤습니다. 명단 밖 몫은 따로 적습니다.
+    const rosterUids = new Set(people.map((p) => p.uid));
+    const total = people.reduce((sum, p) => sum + p.n, 0);
+    let outside = 0;
+    byUid.forEach((v, k) => {
+      if (!rosterUids.has(k)) outside += v;
+    });
+
+    // 이력이 시작된 날 — 이 칸의 모든 문장이 이 날부터의 이야기입니다.
+    const times = given
+      .map((e) => toDate(e.at)?.getTime())
+      .filter((t) => t != null && !Number.isNaN(t));
+    const firstAt = times.length > 0 ? new Date(Math.min(...times)) : null;
 
     const sorted = [...people].sort((a, b) => b.n - a.n);
     const bandOf = (from, to) =>
@@ -65,6 +88,14 @@ export default function RewardSkew({ events = [], roster = [], loaded = false })
 
     return {
       total,
+      outside,
+      firstAt,
+      days: new Set(
+        times.map((t) => {
+          const d = new Date(t);
+          return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+        })
+      ).size,
       reached: people.filter((p) => p.n > 0).length,
       size: people.length,
       none,
@@ -81,6 +112,9 @@ export default function RewardSkew({ events = [], roster = [], loaded = false })
 
   const pct = (v) => Math.round((v / stat.total) * 100);
   const topShare = stat.total > 0 ? pct(stat.bands[0]?.v ?? 0) : 0;
+  const since = stat.firstAt
+    ? `${stat.firstAt.getMonth() + 1}월 ${stat.firstAt.getDate()}일`
+    : null;
 
   return (
     <div className="skew">
@@ -89,10 +123,16 @@ export default function RewardSkew({ events = [], roster = [], loaded = false })
           <>아직 준 과일이 없어요.</>
         ) : (
           <>
+            {/* 기간이 문장 맨 앞에 옵니다 — 뒤에 붙이면 숫자를 먼저 읽고
+                넘어가서, 이 칸이 언제부터의 이야기인지 못 보고 지나갑니다. */}
+            {since && <span className="skew-since">{since}부터</span>}
             준 과일 <strong>{stat.total}개</strong>가{" "}
             <strong>{stat.reached}명</strong>에게 갔어요
             <span className="skew-of"> / {stat.size}명 중</span>
-            {stat.bands.length > 0 && (
+            {/* 받은 사람이 다섯 명 이하면 '상위 5명이 100%'는 아무것도 말해
+                주지 않습니다(다섯 칸에 다섯 명이 다 들어가니 늘 100%).
+                그 구간에서는 쏠림이 아니라 인원 자체가 요점입니다. */}
+            {stat.bands.length > 0 && stat.reached > TOP && (
               <>
                 {" · "}상위 {TOP}명이 <strong>{topShare}%</strong>
               </>
@@ -100,6 +140,14 @@ export default function RewardSkew({ events = [], roster = [], loaded = false })
           </>
         )}
       </p>
+
+      {/* 명단 밖 uid(전학·탈퇴)의 과일 — 위 비율에는 안 들어갑니다.
+          숨기면 격자 합계와 이 칸의 총량이 달라 보여 혼란스럽습니다. */}
+      {stat.outside > 0 && (
+        <p className="skew-outside">
+          명단에 없는 학생에게 간 {stat.outside}개는 위 비율에서 뺐어요.
+        </p>
+      )}
 
       {stat.total > 0 && (
         <>
@@ -124,11 +172,25 @@ export default function RewardSkew({ events = [], roster = [], loaded = false })
           한 번도 못 받은 학생은 어느 화면에도 나타나지 않습니다. */}
       {stat.none.length > 0 && (
         <p className="skew-none">
-          <strong>아직 한 개도 못 받은 학생 {stat.none.length}명</strong>
+          <strong>
+            {/* '아직'이라고만 쓰면 학기 전체로 읽힙니다. 이력에 없을 뿐
+                그 전에 받은 과일은 총계에 그대로 있습니다. */}
+            {since ? `${since} 이후 ` : ""}한 개도 못 받은 학생 {stat.none.length}명
+          </strong>
           <span className="skew-none-names">
             {stat.none.slice(0, 12).map((p) => p.name).join(" · ")}
             {stat.none.length > 12 && ` 외 ${stat.none.length - 12}명`}
           </span>
+          {/* 기록이 며칠 안 됐을 때는 이 목록이 '소외된 학생 명단'이 아니라
+              '아직 표본이 얕다'는 뜻입니다. 수업 두어 번이면 반 전체를 한
+              바퀴 돌 수 없으니, 그 말을 대신 해 둡니다. */}
+          {stat.days > 0 && stat.days < 5 && (
+            <em className="skew-thin">
+              지급 이력은 {since}에 기록을 시작했어요 — 아직 수업 {stat.days}일치라
+              이 명단은 ‘소외된 학생’이 아니라 표본이 얕다는 뜻에 가깝습니다.
+              그 전에 준 과일은 학생별 총계에 그대로 있습니다.
+            </em>
+          )}
         </p>
       )}
     </div>
