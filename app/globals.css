@@ -7466,7 +7466,9 @@ pre code {
   flex-direction: column;
   justify-content: center;
   gap: 14px;
-  padding: 32px max(24px, calc((100% - 720px) / 2));
+  /* 글자가 커진 만큼 글 상자도 넓힙니다 — 720px에 68px 제목을 넣으면
+     두세 단어마다 줄이 끊깁니다. */
+  padding: clamp(24px, 4vh, 48px) max(24px, calc((100% - 1180px) / 2));
   overflow-y: auto;
   background: rgba(20, 17, 15, 0.72);
   animation: broadcast-note-in 0.18s ease-out;
@@ -7478,15 +7480,19 @@ pre code {
   overflow-wrap: anywhere;
   white-space: pre-wrap;
 }
+/* 멀리서도 읽히게 — 크기를 픽셀로 못박지 않고 화면 폭에 매답니다.
+   교실 뒤쪽 학생과 전자칠판까지 감안하면 30/20px은 작았습니다.
+   clamp의 아래 끝은 좁은 휴대폰에서도 줄이 지나치게 자주 끊기지 않는 값,
+   위 끝은 큰 화면에서 한 줄이 너무 길어지지 않는 값입니다. */
 .broadcast-note-title {
-  font-size: 30px;
+  font-size: clamp(30px, 4.6vw, 68px);
   font-weight: 800;
-  line-height: 1.35;
+  line-height: 1.28;
   color: var(--primary-light, #f3c9b4);
 }
 .broadcast-note-text {
-  font-size: 20px;
-  line-height: 1.75;
+  font-size: clamp(21px, 3.1vw, 46px);
+  line-height: 1.6;
 }
 @keyframes broadcast-note-in {
   from { opacity: 0; }
@@ -7495,10 +7501,14 @@ pre code {
 @media (prefers-reduced-motion: reduce) {
   .broadcast-note { animation: none; }
 }
+/* 좁은 화면에서도 작게 줄이지 않습니다 — 해설은 '멀리서도 읽히는 글'이라
+   휴대폰이라고 21/16px로 내리면 만든 뜻이 사라집니다(예전 값이 그랬습니다).
+   여백만 줄여 글자가 쓸 자리를 넓혀 줍니다. 글이 길면 세로로 넘겨 읽습니다
+   (.broadcast-note가 overflow-y: auto). */
 @media (max-width: 768px) {
-  .broadcast-note { padding: 20px; }
-  .broadcast-note-title { font-size: 21px; }
-  .broadcast-note-text { font-size: 16px; }
+  .broadcast-note { padding: 20px 18px; }
+  .broadcast-note-title { font-size: clamp(26px, 7.4vw, 40px); }
+  .broadcast-note-text { font-size: clamp(19px, 5.4vw, 30px); }
 }
 
 /* 교사 화면의 '학생 화면에 띄우기' 버튼 (해설 카드 머리) */
@@ -9627,18 +9637,20 @@ a.lesson-board-file-name { text-decoration: underline; }
   color: var(--text-sub);
   font-size: 14px;
 }
-/* 이전 · 다음 · 시작/종료 — 셋 다 같은 모양·크기.
-   width(고정)를 써서 글자 길이가 달라도 버튼 크기가 늘어나지 않게 합니다
-   (min-width는 내용이 넘치면 커져서 셋의 폭이 달라짐). */
+/* 넘기기·발표 조작 — 슬라이드 아래 한 줄. 버튼이 넷이 되면서(이전·다음·
+   일시정지·시작) 크기를 한 단계 줄였습니다.
+   예전에는 width를 못박아 셋의 폭을 같게 맞췄는데, '❙❙ 일시정지'가 '‹ 이전'
+   보다 길어 그대로 두면 글자가 잘립니다. 지금은 min-width로 아래만 잡고
+   긴 글자는 버튼이 늘어나 받습니다. */
 .lesson-ctrl-btn {
-  width: 104px;
-  padding: 11px 4px;
+  min-width: 76px;
+  padding: 8px 14px;
   border: none;
   border-radius: var(--radius-btn);
   background: var(--primary);
   color: #fff;
   font-family: inherit;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   text-align: center;
   white-space: nowrap;
@@ -20800,4 +20812,17 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   border-radius: var(--radius-btn);
   background: var(--neutral);
   line-height: 1.65;
+}
+
+/* 방송 일시정지 안내 — 멈춰 있다는 사실이 없으면 교사가 슬라이드를 넘기며
+   학생도 따라오는 줄 압니다. 멈춘 동안에만 나옵니다. */
+.lesson-paused-note {
+  margin: 0 0 10px;
+  padding: 9px 14px;
+  border-radius: var(--radius-btn);
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.6;
 }

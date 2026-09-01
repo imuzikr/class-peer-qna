@@ -84,6 +84,11 @@ export default function LessonMode({
   const [saved, setSaved] = useState(false);
   // 프레젠테이션 중일 때만 학생 화면이 전환됩니다(수업하기로 들어온 것만으론 안 바뀜)
   const [presenting, setPresenting] = useState(false);
+  // 일시정지 — 방송만 잠깐 끄고 발표 모드 자체는 유지합니다.
+  // '종료'와 다른 점이 요점입니다: 종료하면 이 화면을 나갔다 들어오는 흐름이
+  // 되어 몇 번째 장을 보던 중이었는지 매번 처음부터 찾아야 했습니다.
+  // 일시정지는 idx를 그대로 둔 채 학생 화면만 풀어 줍니다.
+  const [paused, setPaused] = useState(false);
   // 해설을 학생 슬라이드 위에 잠깐 띄워 두었는지 — 이 장에서만 유효합니다.
   // 해설은 그 장에 딸린 이야기라, 장을 넘기면 저절로 내려갑니다(아래 참조).
   const [notePushed, setNotePushed] = useState(false);
@@ -193,19 +198,22 @@ export default function LessonMode({
 
   // ── 참여 전광판 (수업 중, 발표하는 동안만) ──
   const [attendOpen, setAttendOpen] = useState(false);
+  // 실제로 방송이 나가는 상태 — 발표 중이면서 일시정지가 아닐 때뿐입니다.
+  // 방송·학생 상태를 보는 자리는 모두 이 값을 씁니다(presenting이 아니라).
+  const live = presenting && !paused;
   const [presence, setPresence] = useState([]);
   const [presenceNow, setPresenceNow] = useState(() => Date.now());
   useEffect(() => {
-    if (editing || !presenting || !classId) { setPresence([]); return; }
+    if (editing || !live || !classId) { setPresence([]); return; }
     return subscribePresence(classId, setPresence);
-  }, [editing, presenting, classId]);
+  }, [editing, live, classId]);
   // 학생 신호가 끊기면 스냅샷이 더 오지 않으므로, 시간만 흘러도 숫자가
   // 갱신되도록 주기적으로 다시 셉니다.
   useEffect(() => {
-    if (editing || !presenting) return;
+    if (editing || !live) return;
     const t = setInterval(() => setPresenceNow(Date.now()), 5000);
     return () => clearInterval(t);
-  }, [editing, presenting]);
+  }, [editing, live]);
 
   // 헤더 버튼에 보여 줄 '보는 중' 인원
   const watchingCount = roster.reduce((n, s) => {
@@ -561,7 +569,7 @@ export default function LessonMode({
   // (수업하기로 들어오기만 해서는 학생 화면이 바뀌지 않습니다 — 교사가 미리
   //  자료를 훑어보며 준비할 수 있게)
   useEffect(() => {
-    if (editing || !presenting || !classId || !cur) return;
+    if (editing || !live || !classId || !cur) return;
     startBroadcast(getCurrentUser(), classId, {
       mode: "lesson",
       lessonTitle: lesson.title ?? "",
@@ -576,13 +584,14 @@ export default function LessonMode({
       noteText: notePushed ? note : "",
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editing, presenting, classId, cur?.imageUrl, idx, total, notePushed, noteTitle, note]);
+  }, [editing, live, classId, cur?.imageUrl, idx, total, notePushed, noteTitle, note]);
 
-  // 프레젠테이션을 끄거나 수업 화면을 벗어나면 방송도 반드시 종료
+  // 방송이 멈추는 모든 경우에 문서를 지웁니다 — 종료, 일시정지, 화면을
+  // 벗어남. 학생 화면은 문서가 사라지는 순간 곧바로 풀립니다.
   useEffect(() => {
-    if (editing || !presenting || !classId) return;
+    if (editing || !live || !classId) return;
     return () => { stopBroadcast(classId); };
-  }, [editing, presenting, classId]);
+  }, [editing, live, classId]);
 
   // 키보드 ← → 로 넘기기 (메모를 쓰는 중에는 방해하지 않음)
   useEffect(() => {
@@ -756,6 +765,14 @@ export default function LessonMode({
 
             {/* 넘기기 버튼은 슬라이드와 한 카드에 둡니다 — 아래에 다른 수업
                 기능이 붙어도 슬라이드와 조작이 떨어지지 않게. */}
+            {/* 멈춰 있다는 사실이 이 줄에 없으면, 교사가 슬라이드를 넘기며
+                학생도 따라오는 줄 압니다. 켜져 있을 때만 나옵니다. */}
+            {!editing && paused && (
+              <p className="lesson-paused-note">
+                방송을 멈췄어요 — 학생 화면은 자유롭게 활동 중입니다. 슬라이드
+                위치({idx + 1}/{total})는 그대로예요.
+              </p>
+            )}
             <div className="lesson-card-foot">
               <button
                 type="button"
@@ -781,12 +798,37 @@ export default function LessonMode({
                 다음 ›
               </button>
 
-              {/* 이걸 눌러야 학생 화면이 이 슬라이드로 바뀝니다 */}
+              {/* 이걸 눌러야 학생 화면이 이 슬라이드로 바뀝니다.
+                  발표 중에는 '일시정지'가 함께 나옵니다 — 학생에게 잠깐
+                  활동할 틈을 줄 때 종료까지 갈 필요가 없습니다. */}
+              {!editing && presenting && (
+                <button
+                  type="button"
+                  // 빨강(.on)은 '멈추는 동작'이라는 신호로 써 왔습니다.
+                  // '이어서'는 시작하는 버튼이라 빨강이 아닙니다.
+                  className="lesson-ctrl-btn"
+                  onClick={() => setPaused((v) => !v)}
+                  title={
+                    paused
+                      ? "이 슬라이드부터 방송을 다시 시작합니다"
+                      : "방송만 잠깐 멈춥니다 — 슬라이드 위치는 그대로 두고 학생은 자유롭게 활동합니다"
+                  }
+                >
+                  {paused ? "▶ 이어서" : "❙❙ 일시정지"}
+                </button>
+              )}
               {!editing && (
                 <button
                   type="button"
+                  // 발표 중이면 멈춘 상태여도 이 버튼은 '나가는 동작'이라
+                  // 빨강을 유지합니다.
                   className={`lesson-ctrl-btn${presenting ? " on" : ""}`}
-                  onClick={() => setPresenting((v) => !v)}
+                  onClick={() => {
+                    // 종료할 때 일시정지도 함께 풉니다 — 다음에 '시작'을
+                    // 누르면 멈춘 상태로 켜지는 일이 없게.
+                    if (presenting) { setPresenting(false); setPaused(false); }
+                    else setPresenting(true);
+                  }}
                   disabled={total === 0}
                   title={
                     presenting
@@ -813,7 +855,7 @@ export default function LessonMode({
                   가므로, 정리한 문장을 그대로 보여 주고 싶을 때가 있습니다.
                   띄우는 동안 학생 화면은 슬라이드 위에 이 해설이 덮이고,
                   다시 누르면 내려갑니다(장을 넘겨도 내려갑니다). */}
-              {!editing && presenting && (noteTitle.trim() || note.trim()) && (
+              {!editing && live && (noteTitle.trim() || note.trim()) && (
                 <button
                   type="button"
                   className={`lesson-note-push${notePushed ? " is-on" : ""}`}
