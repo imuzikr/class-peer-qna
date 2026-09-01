@@ -24,6 +24,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { subscribeClassRewardEvents, toDate, todayDateKey } from "@/lib/store";
 import RewardSkew from "./RewardSkew";
+import RewardDelta from "./RewardDelta";
 
 // 격자에 세우는 최대 수업일 — 넘으면 최근 것부터 남깁니다.
 const MAX_DAYS = 20;
@@ -145,6 +146,9 @@ export default function ClassRewardTrend({ classId, roster = [] }) {
       {/* 쏠림 — 같은 이력을 다르게 읽습니다. 격자는 '언제 누가', 이쪽은
           '몇 명에게'. 리스너를 하나 더 걸지 않으려고 배열을 그대로 넘깁니다. */}
       <RewardSkew events={events} roster={roster} loaded={loaded} />
+      {/* 변화 — 쏠림이 '지금 고른가'라면 이쪽은 '움직이고 있나'입니다.
+          과일 이력은 여기서 받은 것을 그대로 넘기고, 출석만 따로 구독합니다. */}
+      <RewardDelta classId={classId} events={events} roster={roster} loaded={loaded} />
 
       {!loaded ? (
         <div className="admin-empty">불러오는 중…</div>

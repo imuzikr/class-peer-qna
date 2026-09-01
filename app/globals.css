@@ -20570,3 +20570,137 @@ button.study-cal-cell.has-record:not(:disabled):hover {
 }
 .skew-none strong { color: var(--primary-dark); }
 .skew-none-names { color: var(--text); line-height: 1.7; }
+
+/* ── 변화 — 앞 4주 → 최근 4주 (반 전체 과일 흐름 패널) ── */
+.rdelta {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 0 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.rdelta-lead {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-sub);
+}
+.rdelta-lead strong { color: var(--dark); }
+.rdelta-head-title {
+  font-weight: 800;
+  color: var(--dark);
+  margin-right: 4px;
+}
+.rdelta-diff {
+  font-style: normal;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.rdelta-diff.up { color: var(--primary-dark); }
+.rdelta-diff.down { color: var(--danger); }
+/* 계열이 둘이라 범례가 필요합니다 */
+.rdelta-legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  font-size: 11.5px;
+}
+.rdelta-key {
+  display: inline-block;
+  width: 14px;
+  height: 9px;
+  border-radius: 2px;
+  margin-left: 8px;
+}
+/* 두 계열을 밝기로만 가르면 색을 못 가리는 눈에서 겹칩니다(측정 1.30:1).
+   앞 4주는 테두리만, 최근 4주는 채움 — 모양으로 갈립니다. */
+.rdelta-key.before { border: 1.5px solid var(--text-sub); }
+.rdelta-key.after { background: var(--primary-dark); }
+
+.rdelta-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 8px 24px;
+}
+.rdelta-group { display: flex; flex-direction: column; gap: 4px; }
+.rdelta-group-title {
+  margin: 0;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  color: var(--text-sub);
+}
+.rdelta-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rdelta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+}
+.rdelta-name {
+  flex: 0 0 58px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* 두 막대를 위아래로 겹쳐 놓습니다 — 나란히 두면 한 줄이 두 배로 길어져
+   좁은 칸에서 이름이 밀립니다. */
+.rdelta-bars {
+  flex: 1;
+  min-width: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.rdelta-before,
+.rdelta-after {
+  display: block;
+  height: 6px;
+  border-radius: 0 3px 3px 0;
+}
+/* 값이 있는데 너무 짧아 안 보이는 것만 막습니다. 0인 막대는 아예 그리지
+   않으므로(RewardDelta) 이 규칙에 걸릴 일이 없습니다. */
+.rdelta-before,
+.rdelta-after { min-width: 3px; }
+/* 두 막대의 높이를 같게 — 앞 4주는 테두리가 안쪽을 먹어 채움보다 얇아
+   보입니다. box-sizing으로 바깥 높이를 맞춥니다. */
+.rdelta-before { box-sizing: border-box; }
+.rdelta-before { border: 1.5px solid var(--text-sub); }
+.rdelta-after { background: var(--primary-dark); }
+/* 결석이 잦아 견주기 어려운 학생 — 숫자를 그대로 읽지 말라는 표시입니다 */
+.rdelta-thin {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+  background: var(--neutral);
+}
+.rdelta-val {
+  flex: 0 0 26px;
+  text-align: right;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.rdelta-val.up { color: var(--primary-dark); }
+.rdelta-val.down { color: var(--danger); }
+.rdelta-more,
+.rdelta-same {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--text-sub);
+}
