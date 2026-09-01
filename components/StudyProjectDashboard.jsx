@@ -14,8 +14,15 @@
 // 성격이 다른 카드가 목록 맨 앞에 하나 더 놓일 이유가 없어졌습니다.
 // (보드 문서 자체는 그대로 두어 예전 자료가 사라지지 않게 합니다.)
 // =============================================================
-import { useEffect, useState } from "react";
-import { subscribeStudyCards, subscribeMyGroupCards, toDate } from "@/lib/store";
+import { useCallback, useEffect, useState } from "react";
+import {
+  subscribeStudyCards,
+  subscribeMyGroupCards,
+  fetchTrashedStudyBoards,
+  restoreStudyBoard,
+  purgeStudyBoard,
+  toDate,
+} from "@/lib/store";
 import { cardActivitySummary } from "@/lib/activities";
 
 function dateLabel(value) {
@@ -31,17 +38,63 @@ function dateLabel(value) {
 export default function StudyProjectDashboard({
   boards = [],
   user,
+  classId = null,   // 휴지통을 가져올 반
   isTeacher = false,
   readOnly = false, // 보관된 반 — 보기 전용(만들기·순서 변경 없음)
   roster = [],      // 교사: 반 학생 명단(제출 현황의 분모)
   onOpen,
   onCreate,
   onReorder,        // (draggedId, targetId) => void
+  onToast,
 }) {
   const [draggingId, setDraggingId] = useState(null);
+  const [trashOpen, setTrashOpen] = useState(false);
+  const [trashed, setTrashed] = useState([]);
+  const [trashBusy, setTrashBusy] = useState(false);
+  // 완전 삭제는 되돌릴 수 없어 그 카드에서 한 번 더 묻습니다.
+  const [confirmPurge, setConfirmPurge] = useState(null);
 
   const projects = boards.filter((b) => b.type !== "notice");
   const canManage = isTeacher && !readOnly;
+
+  // 휴지통은 열었을 때만 읽습니다 — 평소엔 볼 일이 없는 목록이라 늘 구독하면
+  // studyBoards를 한 벌 더 읽게 됩니다.
+  const loadTrash = useCallback(async () => {
+    if (!classId) { setTrashed([]); return; }
+    setTrashed(await fetchTrashedStudyBoards(classId));
+  }, [classId]);
+
+  useEffect(() => {
+    if (!trashOpen) return;
+    loadTrash();
+  }, [trashOpen, loadTrash]);
+  // 반을 바꾸면 접어 둡니다 — 다른 반의 휴지통이 펼쳐진 채로 남지 않게.
+  useEffect(() => { setTrashOpen(false); setConfirmPurge(null); }, [classId]);
+
+  async function handleRestore(board) {
+    if (trashBusy) return;
+    setTrashBusy(true);
+    try {
+      await restoreStudyBoard(board.id);
+      await loadTrash();
+      onToast?.(`‘${board.title}’ 프로젝트를 되돌렸어요.`);
+    } finally {
+      setTrashBusy(false);
+    }
+  }
+
+  async function handlePurge(board) {
+    if (trashBusy) return;
+    setTrashBusy(true);
+    try {
+      await purgeStudyBoard(board.id);
+      setConfirmPurge(null);
+      await loadTrash();
+      onToast?.(`‘${board.title}’ 프로젝트를 완전히 지웠어요.`);
+    } finally {
+      setTrashBusy(false);
+    }
+  }
 
   return (
     <div className="study-project-dash">
@@ -85,6 +138,86 @@ export default function StudyProjectDashboard({
               }}
             />
           ))}
+        </div>
+      )}
+
+      {/* 휴지통 — 교사만. 지운 프로젝트에는 반 학생 전원의 카드가 달려 있어
+          되돌릴 자리가 필요합니다. 평소엔 접혀 있고, 열 때만 읽습니다. */}
+      {canManage && (
+        <div className="study-trash">
+          <button
+            type="button"
+            className={`study-trash-toggle${trashOpen ? " on" : ""}`}
+            onClick={() => setTrashOpen((v) => !v)}
+            aria-expanded={trashOpen}
+          >
+            🗑 휴지통
+            <span className="study-trash-caret" aria-hidden="true">
+              {trashOpen ? "▲" : "▼"}
+            </span>
+          </button>
+
+          {trashOpen && (
+            trashed.length === 0 ? (
+              <p className="study-trash-empty">휴지통이 비어 있어요.</p>
+            ) : (
+              <ul className="study-trash-list">
+                {trashed.map((b) => (
+                  <li key={b.id} className="study-trash-row">
+                    <span className="study-trash-name">
+                      <strong>{b.title}</strong>
+                      <small>
+                        활동 {b.activities?.length ?? 0}개
+                        {dateLabel(b.deletedAt) ? ` · ${dateLabel(b.deletedAt)} 삭제` : ""}
+                      </small>
+                    </span>
+                    {confirmPurge === b.id ? (
+                      <>
+                        <span className="study-trash-warn">
+                          학생 카드까지 되돌릴 수 없이 지웁니다.
+                        </span>
+                        <button
+                          type="button"
+                          className="study-trash-btn danger"
+                          onClick={() => handlePurge(b)}
+                          disabled={trashBusy}
+                        >
+                          정말 삭제
+                        </button>
+                        <button
+                          type="button"
+                          className="study-trash-btn"
+                          onClick={() => setConfirmPurge(null)}
+                          disabled={trashBusy}
+                        >
+                          취소
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          className="study-trash-btn"
+                          onClick={() => handleRestore(b)}
+                          disabled={trashBusy}
+                        >
+                          되돌리기
+                        </button>
+                        <button
+                          type="button"
+                          className="study-trash-btn danger"
+                          onClick={() => setConfirmPurge(b.id)}
+                          disabled={trashBusy}
+                        >
+                          완전 삭제
+                        </button>
+                      </>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )
+          )}
         </div>
       )}
     </div>

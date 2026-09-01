@@ -391,6 +391,7 @@ function StudyPageInner() {
     return new Set(todays.map((r) => r.uid).filter(Boolean));
   }, [admin, attendanceRecords, todayAttendanceKey, attendanceOpenToday]);
 
+
   useEffect(() => {
     if (!classId || !user?.uid) {
       setAttendanceRecords([]);
@@ -571,6 +572,20 @@ function StudyPageInner() {
         (a.studentId || a.name).localeCompare(b.studentId || b.name, "ko")
       );
   }, [admin, memberUids, directory, rewards]);
+
+  // 개인 카드 그리드에서 결석생의 빈 자리를 회색으로 눕히는 데 씁니다.
+  // 위의 todayPresentUids와 조건이 한 가지 다릅니다 — **출석을 끝냈을 때만**
+  // 셉니다(attendanceOpenToday가 false). 출석을 받는 중에는 아직 오는 중일 수
+  // 있어, 그때 회색으로 눕히면 지각한 학생이 결석으로 보입니다. 자리표는
+  // '지금 누가 눌렀나'를 실시간으로 보는 화면이라 진행 중에도 색을 나누지만,
+  // 카드 그리드의 회색은 '오늘 결석으로 확정'이라는 뜻입니다.
+  const todayAbsentUids = useMemo(() => {
+    if (!admin || attendanceOpenToday) return null;
+    const todays = attendanceRecords.filter((r) => r.date === todayAttendanceKey);
+    if (todays.length === 0) return null; // 오늘 출석을 아예 안 한 날
+    const present = new Set(todays.map((r) => r.uid).filter(Boolean));
+    return new Set(roster.filter((s) => !present.has(s.uid)).map((s) => s.uid));
+  }, [admin, attendanceRecords, todayAttendanceKey, attendanceOpenToday, roster]);
 
   // 과일 부여 시 실명을 문서에 함께 저장 — 공부방은 실명 참여 공간이라
   // 학생(읽기 전용) 화면에도 실명 이름표를 보여줍니다.
@@ -915,6 +930,7 @@ function StudyPageInner() {
                   onAward={admin && !currentClass?.archived ? awardReward : null}
                   baseGroupAssignment={baseGroupAssignment}
                   classes={myClasses}
+                  absentUids={todayAbsentUids}
                   classBoards={admin ? classBoards : []}
                   attendanceRecords={admin ? attendanceRecords : []}
                   onBack={closeProject}
@@ -922,7 +938,9 @@ function StudyPageInner() {
                   onModalChange={setCardModalOpen}
                   onDeleted={() => {
                     closeProject();
-                    setToast(`'${activeProject.title}' 프로젝트를 삭제했어요.`);
+                    // 곧바로 지우지 않고 휴지통으로 보냅니다 — 되돌릴 곳이
+                    // 어디인지 함께 알려 줍니다.
+                    setToast(`'${activeProject.title}' 프로젝트를 휴지통으로 보냈어요. 프로젝트 목록 아래 '🗑 휴지통'에서 되돌릴 수 있어요.`);
                   }}
                   onDuplicated={(className) =>
                     setToast(`'${activeProject.title}' 프로젝트를 '${className}' 반으로 복제했어요.`)
@@ -932,12 +950,14 @@ function StudyPageInner() {
                 <StudyProjectDashboard
                   boards={classBoards}
                   user={user}
+                  classId={classId}
                   isTeacher={admin}
                   readOnly={!!currentClass?.archived}
                   roster={admin ? roster : []}
                   onOpen={openProject}
                   onCreate={() => setCreatingProject(true)}
                   onReorder={handleReorderProjects}
+                  onToast={setToast}
                 />
               )}
             </div>

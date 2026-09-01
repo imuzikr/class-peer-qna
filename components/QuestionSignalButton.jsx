@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
+  addStudentReward,
   dismissQuestionSignal,
   formatTime,
   setQuestionSignal,
@@ -75,10 +76,21 @@ export default function QuestionSignalButton({
     }
   }
 
-  async function handleDismiss(uid) {
+  // 손든 학생을 목록에서 내립니다.
+  //   award=true  '확인' — 용기 내어 손든 것 자체를 격려하려고 과일도 한 개 줍니다.
+  //   award=false '닫기' — 실수로 눌렀거나 이미 해결된 손. 과일 없이 내리기만.
+  // 과일을 먼저 주고 그다음에 내립니다. 순서를 뒤집으면 목록 항목이 먼저
+  // 사라져, 과일 주기가 실패해도 아무도 모르게 됩니다.
+  async function handleDismiss(uid, award = false) {
     if (!classId || dismissing.has(uid)) return;
     setDismissing((prev) => new Set(prev).add(uid));
     try {
+      if (award) {
+        const s = signals.find((x) => x.uid === uid);
+        // 손든 기록에 이미 실명·이모지가 담겨 있어(signalIdentity) 이름표를
+        // 알아내려고 사용자 디렉터리를 따로 구독하지 않아도 됩니다.
+        await addStudentReward(classId, uid, 1, s ? { name: s.name, emoji: s.emoji } : null);
+      }
       await dismissQuestionSignal(classId, uid);
     } finally {
       // signals 구독이 곧 목록을 갱신해 이 항목 자체가 사라지므로, 실패했을
@@ -171,14 +183,26 @@ export default function QuestionSignalButton({
                         {formatTime(s.createdAt)}
                       </small>
                     </span>
+                    {/* 두 갈래로 나눠 둡니다 — 손든 것을 격려하는 '확인'과,
+                        잘못 눌린 손을 조용히 내리는 '닫기'. 과일이 붙는 쪽에만
+                        🍎를 달아 어느 버튼이 주는 버튼인지 눈으로 갈립니다. */}
                     <button
                       type="button"
                       className="question-signal-confirm"
-                      onClick={() => handleDismiss(s.uid)}
+                      onClick={() => handleDismiss(s.uid, true)}
                       disabled={dismissing.has(s.uid)}
-                      title={`${s.name || "이 학생"}의 질문 확인 — 목록에서 지웁니다`}
+                      title={`${s.name || "이 학생"}의 질문 확인 — 과일 1개를 주고 목록에서 지웁니다`}
                     >
-                      확인
+                      🍎 확인
+                    </button>
+                    <button
+                      type="button"
+                      className="question-signal-close"
+                      onClick={() => handleDismiss(s.uid, false)}
+                      disabled={dismissing.has(s.uid)}
+                      title={`${s.name || "이 학생"}의 손 내리기 — 과일은 주지 않습니다`}
+                    >
+                      닫기
                     </button>
                   </span>
                 </li>

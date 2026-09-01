@@ -1653,7 +1653,9 @@ button.footer-link:hover {
   top: calc(100% + 6px);
   right: 0;
   z-index: 300;
-  width: 280px;
+  /* 280px일 때는 버튼이 하나였습니다. '확인'과 '닫기' 둘이 되면서 이름 칸이
+     71px로 눌려 '20223 · 방금 전'이 두 줄로 접혔습니다(실측). */
+  width: 330px;
   max-height: 360px;
   overflow-y: auto;
   background: #fff;
@@ -1741,6 +1743,30 @@ button.footer-link:hover {
   opacity: 0.5;
   cursor: default;
 }
+/* 닫기 — 과일 없이 손만 내립니다. 격려('확인')가 주된 길이라 이쪽은 한
+   단계 물러난 모습으로 두어, 눌러야 할 버튼이 눈에 먼저 들어오게 합니다. */
+.question-signal-close {
+  flex-shrink: 0;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: none;
+  color: var(--text-sub);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.question-signal-close:hover:not(:disabled) {
+  background: var(--neutral);
+  border-color: var(--border);
+}
+.question-signal-close:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
 .question-signal-avatar {
   width: 30px;
   height: 30px;
@@ -1759,10 +1785,18 @@ button.footer-link:hover {
 .question-signal-name strong {
   font-size: 13.5px;
   color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
+/* 학번과 시각은 한 줄로 — 접히면 항목 높이가 들쭉날쭉해집니다. 이름이 아주
+   길면 줄이 늘어나는 대신 말줄임으로 끊습니다. */
 .question-signal-name small {
   font-size: 11.5px;
   color: var(--text-sub);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .avatar {
@@ -13488,6 +13522,18 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   background: var(--bg-deep);
   border-style: solid;
 }
+/* 오늘 결석으로 확정된 학생의 빈 자리 — '안 쓴 것'과 '못 쓴 것'을 가릅니다.
+   출석을 끝냈을 때만 붙습니다(app/study/page.js의 todayAbsentUids). 점선
+   테두리를 실선으로 바꿔, 색을 못 가리는 눈에도 다르게 보이게 합니다. */
+.study-seat-empty.absent {
+  background: #f0efec;
+  border-style: solid;
+  border-color: #dedcd6;
+}
+.study-seat-empty.absent .study-card-author strong,
+.study-seat-empty.absent .study-seat-empty-note {
+  color: var(--text-sub);
+}
 .study-seat-empty.clickable { cursor: pointer; }
 .study-seat-empty.clickable:hover {
   border-color: var(--primary);
@@ -20215,3 +20261,92 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   .reward-cheer-plus { font-size: 24px; }
   .reward-cheer-text { font-size: 14px; }
 }
+
+/* ── 공부방 프로젝트 휴지통 (교사) ──
+   프로젝트 하나에 반 학생 전원의 카드가 달려 있어, 잘못 지웠을 때 되돌릴
+   자리가 필요합니다. 목록 맨 아래에 접어 두고 열 때만 읽습니다. */
+.study-trash {
+  margin-top: 28px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+.study-trash-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-sub);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.study-trash-toggle:hover,
+.study-trash-toggle.on {
+  border-color: var(--primary);
+  color: var(--text);
+}
+.study-trash-caret { font-size: 9px; }
+.study-trash-empty {
+  margin: 12px 0 0;
+  font-size: 13px;
+  color: var(--text-sub);
+}
+.study-trash-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.study-trash-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+}
+.study-trash-name {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.study-trash-name strong {
+  font-size: 14px;
+  color: var(--dark);
+}
+.study-trash-name small {
+  font-size: 12px;
+  color: var(--text-sub);
+}
+.study-trash-warn {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--danger);
+}
+.study-trash-btn {
+  flex-shrink: 0;
+  padding: 7px 12px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+}
+.study-trash-btn:hover:not(:disabled) { border-color: var(--primary); }
+.study-trash-btn.danger { color: var(--danger); }
+.study-trash-btn.danger:hover:not(:disabled) { border-color: var(--danger); }
+.study-trash-btn:disabled { opacity: 0.5; cursor: default; }

@@ -94,6 +94,9 @@ export default function StudyProjectView({
   onAward,
   baseGroupAssignment = null,
   classes = [],
+  // 오늘 출석을 끝낸 결과 결석으로 확인된 학생 uid 집합.
+  // null이면 아직 판단할 근거가 없습니다(출석을 안 했거나 진행 중).
+  absentUids = null,
   // 공부중 전광판의 학생 정보창에서 쓰는 반 단위 자료
   classBoards = [],
   attendanceRecords = [],
@@ -183,6 +186,7 @@ export default function StudyProjectView({
         mine: false,
         locked: false,
         isTeacherCard: false,
+        absent: !!absentUids?.has(s.uid),
       }));
       const extras = cards
         .filter((c) => !rosterUids.has(c.authorId))
@@ -264,7 +268,7 @@ export default function StudyProjectView({
       ...rosterSeats,
       ...extras.filter((e) => !e.isTeacherCard),
     ];
-  }, [isNotice, isGroup, isTeacher, cards, classRoster, myCard, shared, user?.uid, user?.emoji]);
+  }, [isNotice, isGroup, isTeacher, cards, classRoster, myCard, shared, user?.uid, user?.emoji, absentUids]);
 
   // 자리 정렬 (교사만) — 선생님 안내 카드가 맨 앞, 테스트 계정(test01~test05)은
   // 맨 뒤, 나머지는 학번순 고정
@@ -968,7 +972,9 @@ export default function StudyProjectView({
                   {!isNotice && (
                     confirmDelete ? (
                       <span className="study-project-delete-confirm">
-                        <span>카드까지 모두 삭제됩니다.</span>
+                        {/* 곧바로 지우지 않고 휴지통으로 갑니다 — 되묻는 자리에서
+                            그 사실을 알려야 '되돌릴 수 없다'고 오해하지 않습니다. */}
+                        <span>휴지통으로 보냅니다(되돌릴 수 있어요).</span>
                         <button className="study-chip danger" onClick={handleDeleteBoard}>
                           정말 삭제
                         </button>
@@ -1220,13 +1226,15 @@ function SeatPlaceholder({ seat, activities, canStart, canPeek, onClick }) {
     <article
       className={`study-seat-empty${seat.locked ? " locked" : ""}${
         seat.mine ? " mine" : ""
-      }${clickable ? " clickable" : ""}`}
+      }${seat.absent ? " absent" : ""}${clickable ? " clickable" : ""}`}
       role={clickable ? "button" : undefined}
       tabIndex={clickable ? 0 : undefined}
       onClick={clickable ? onClick : undefined}
       onKeyDown={clickable ? (e) => e.key === "Enter" && onClick() : undefined}
       title={
-        seat.locked
+        seat.absent
+          ? `${seat.name} — 오늘 결석이라 아직 작성 전이에요`
+          : seat.locked
           ? "이 카드는 본인과 선생님만 볼 수 있어요"
           : canStart
           ? "눌러서 활동을 시작하세요"
@@ -1262,7 +1270,13 @@ function SeatPlaceholder({ seat, activities, canStart, canPeek, onClick }) {
       )}
 
       <p className="study-seat-empty-note">
-        {seat.locked ? "🔒 본인과 선생님만 볼 수 있어요" : canStart ? "＋ 활동 시작하기" : "아직 작성 전"}
+        {seat.locked
+          ? "🔒 본인과 선생님만 볼 수 있어요"
+          : canStart
+          ? "＋ 활동 시작하기"
+          : seat.absent
+          ? "오늘 결석"
+          : "아직 작성 전"}
       </p>
     </article>
   );
