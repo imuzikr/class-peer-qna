@@ -42,6 +42,10 @@ export default function RewardSkew({ events = [], roster = [], loaded = false })
   const stat = useMemo(() => {
     // 회수(delta 음수)는 빼고 '준 것'만 셉니다 — 쏠림은 눈길이 어디로
     // 갔는지의 이야기라, 도로 거둔 건이 상쇄하면 안 됩니다.
+    // 다만 **감추지는 않습니다**(아래 taken). 자리 카드에는 지금 보유량이
+    // 찍히는데 여기 숫자는 누적 지급량이라, 회수가 크면 두 수가 크게 벌어져
+    // '계산이 안 맞는다'로 보입니다. 실제로 그렇게 보고를 받았습니다
+    // (카드 4개 / 이 칸 56개 — 테스트로 준 것을 도로 뺀 경우).
     const given = events.filter((e) => (e.delta ?? 0) > 0);
     const byUid = new Map();
     given.forEach((e) => byUid.set(e.uid, (byUid.get(e.uid) ?? 0) + (e.delta ?? 0)));
@@ -66,6 +70,14 @@ export default function RewardSkew({ events = [], roster = [], loaded = false })
       if (!rosterUids.has(k)) outside += v;
     });
 
+    // 도로 거둔 양 — 비율 계산에는 안 쓰고 문장에만 적습니다. 명단 안 학생
+    // 것만 세어 위 total과 같은 범위를 유지합니다.
+    const taken = events.reduce(
+      (sum, e) =>
+        (e.delta ?? 0) < 0 && rosterUids.has(e.uid) ? sum + -(e.delta ?? 0) : sum,
+      0
+    );
+
     // 이력이 시작된 날 — 이 칸의 모든 문장이 이 날부터의 이야기입니다.
     const times = given
       .map((e) => toDate(e.at)?.getTime())
@@ -89,6 +101,7 @@ export default function RewardSkew({ events = [], roster = [], loaded = false })
     return {
       total,
       outside,
+      taken,
       firstAt,
       days: new Set(
         times.map((t) => {
@@ -146,6 +159,19 @@ export default function RewardSkew({ events = [], roster = [], loaded = false })
       {stat.outside > 0 && (
         <p className="skew-outside">
           명단에 없는 학생에게 간 {stat.outside}개는 위 비율에서 뺐어요.
+        </p>
+      )}
+
+      {/* 회수 — 이 칸은 '준 것'만 세는데 자리 카드에는 지금 보유량이 찍혀,
+          도로 거둔 양이 크면 두 수가 벌어져 '반영이 안 됐다'로 읽힙니다.
+          비율은 그대로 두고(눈길이 어디로 갔는지가 회수로 지워지진 않으므로)
+          어긋나는 이유만 밝혀 둡니다. */}
+      {stat.taken > 0 && (
+        <p className="skew-outside">
+          이 중 <strong>{stat.taken}개</strong>는 나중에 도로 거뒀어요 (순증{" "}
+          {stat.total - stat.taken}개). 위 <strong>{stat.total}개</strong>는
+          <strong> 지금까지 준 양</strong>이라 회수를 빼지 않습니다 — 자리 카드에
+          찍히는 <strong>지금 보유량</strong>과는 다른 숫자예요.
         </p>
       )}
 
