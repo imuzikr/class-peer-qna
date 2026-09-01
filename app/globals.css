@@ -946,19 +946,19 @@ button.footer-link:hover {
   background: var(--primary-light);
   border-color: var(--primary-light);
 }
-.notes-mgr-emoji {
-  font-size: 22px;
-  line-height: 1.2;
+/* 학번이 위, 이름이 아래. 학번순으로 늘어선 격자라 눈이 좇는 것은 숫자라
+   그쪽을 먼저 놓고, 이름을 크게 둡니다. */
+.notes-mgr-no {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+  font-variant-numeric: tabular-nums;
 }
 .notes-mgr-name {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--text);
   word-break: keep-all;
-}
-.notes-mgr-no {
-  font-size: 11px;
-  color: var(--text-sub);
 }
 /* 있음/없음을 색만으로 나누지 않습니다 — 색 구분이 어려운 사람에게는
    글자가 유일한 단서입니다. */
@@ -20412,4 +20412,13 @@ button.study-cal-cell.has-record:not(:disabled):hover {
 .books-head-title:hover::-webkit-scrollbar-thumb,
 .dash-root > .canvas-head:hover::-webkit-scrollbar-thumb {
   background: #d6d2c6;
+}
+
+/* 누가기록 모달 — 날짜 칸을 '이력 보기' 줄 오른쪽에 나란히.
+   예전에는 아래에 제 줄로 두고 '날짜' 이름표까지 붙였는데, 입력칸 모양만으로
+   날짜인 줄 알 수 있어 그 줄을 통째로 아꼈습니다. */
+.notes-date--head {
+  flex: 0 0 auto;
+  width: auto;
+  max-width: 170px;
 }

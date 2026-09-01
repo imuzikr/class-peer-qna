@@ -104,11 +104,12 @@ export default function ClassNotesManagerModal({
                             : `${s.name} — 아직 기록이 없어요. 눌러서 남기기`
                         }
                       >
-                        <span className="notes-mgr-emoji" aria-hidden="true">
-                          {s.emoji ?? "🙂"}
-                        </span>
-                        <span className="notes-mgr-name">{s.name}</span>
+                        {/* 학번을 위, 이름을 아래로. 동물 아이콘은 뺐습니다 —
+                            서른 장을 학번순으로 훑는 화면이라 눈이 따라가는
+                            것은 숫자인데, 그 위에 아이콘이 한 줄 더 있으면
+                            숫자가 카드 가운데로 밀려 줄이 안 맞습니다. */}
                         <span className="notes-mgr-no">{s.studentId || "-"}</span>
+                        <span className="notes-mgr-name">{s.name}</span>
                         {/* 있음/없음이 한눈에 갈리도록 색과 글자를 함께 씁니다 —
                             색만으로 나누면 색 구분이 어려운 사람에게 안 보입니다. */}
                         <span className={`notes-mgr-badge${n > 0 ? " has" : ""}`}>

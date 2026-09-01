@@ -85,22 +85,35 @@ export default function StudentNotesThread({
       {/* 과일 받은 흐름 — 기록을 쓰면서 그 학생의 변화를 함께 보게 합니다.
           제목 없이 '이력 보기' 버튼만 둡니다(bare) — 모달 제목에 이미 누구의
           무엇인지가 적혀 있어 한 줄을 더 쓸 값어치가 없습니다.
-          기본은 접힘이고, 접힌 모습은 누구나 똑같습니다. */}
-      <StudentRewardTrend studentUid={studentUid} classId={classId} bare />
+          기본은 접힘이고, 접힌 모습은 누구나 똑같습니다.
+
+          날짜 칸을 그 줄 오른쪽에 함께 놓습니다. 아래에 제 줄로 두면 '날짜'
+          라는 이름표까지 한 줄을 통째로 쓰는데, 입력칸 모양만으로 날짜인 줄
+          알 수 있어 이름표는 화면에서 뺐습니다(스크린리더에는 남깁니다).
+          이 칸은 아래 form 밖에 있지만 값은 state(date)라 저장에 지장이
+          없습니다 — handleAdd가 DOM이 아니라 state를 읽습니다. */}
+      <StudentRewardTrend
+        studentUid={studentUid}
+        classId={classId}
+        bare
+        headRight={
+          readOnly ? null : (
+            <input
+              type="date"
+              className="notes-date notes-date--head"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              max={todayDateKey()}
+              aria-label="기록할 날짜"
+              title="이 기록이 있었던 날"
+            />
+          )
+        }
+      />
 
       {/* 읽기 전용(대시보드)에서는 입력창을 숨기고 기록만 보여 줍니다 */}
       {!readOnly && (
         <form className="notes-compose" onSubmit={handleAdd}>
-          <label className="notes-date-row">
-            <span>날짜</span>
-            <input
-              type="date"
-              className="notes-date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              max={todayDateKey()}
-            />
-          </label>
           <textarea
             className="notes-input"
             value={text}
@@ -130,16 +143,14 @@ export default function StudentNotesThread({
               // ── 편집 중 — 같은 자리에서 날짜·내용을 고칩니다 ──
               <li key={n.id} className="notes-item notes-item--editing">
                 <form className="notes-compose" onSubmit={handleSaveEdit}>
-                  <label className="notes-date-row">
-                    <span>날짜</span>
-                    <input
-                      type="date"
-                      className="notes-date"
-                      value={editing.date}
-                      onChange={(e) => setEditing({ ...editing, date: e.target.value })}
-                      max={todayDateKey()}
-                    />
-                  </label>
+                  <input
+                    type="date"
+                    className="notes-date"
+                    value={editing.date}
+                    onChange={(e) => setEditing({ ...editing, date: e.target.value })}
+                    max={todayDateKey()}
+                    aria-label="기록한 날짜"
+                  />
                   <textarea
                     className="notes-input"
                     value={editing.text}
