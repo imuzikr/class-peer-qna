@@ -70,6 +70,22 @@ function isTestAccountEmail(email) {
   return /test0[1-5]/i.test(email ?? "");
 }
 
+// 아직 안 쓴 학생의 자리를 발표에서도 한 장으로 세웁니다.
+// 모달이 필요로 하는 것만 채웁니다 — 이름·이모지는 머리말에, authorId는
+// 그 자리에서 과일을 주는 데 씁니다(setStudentReward). 내용은 비워 두면
+// 모달이 '아직 작성한 내용이 없어요'를 보여 줍니다.
+// id는 실제 카드와 겹치지 않게 접두사를 붙입니다(카드 id는 작성자 uid).
+function emptyPresentCard(seat) {
+  return {
+    id: `empty_${seat.uid}`,
+    authorId: seat.uid,
+    authorName: seat.name,
+    authorEmoji: seat.emoji ?? "🙂",
+    title: "",
+    content: "",
+  };
+}
+
 export default function StudyProjectView({
   board,
   user,
@@ -276,10 +292,30 @@ export default function StudyProjectView({
     return [];
   }, [cards, isGroup, isNotice, isTeacher]);
 
-  // 발표 모드 대상 — 모둠은 모둠 카드, 개별은 학생 카드만(교사 예시 제외)
-  const presentCards = isGroup
-    ? listCards.filter((c) => c.groupId && !c.retired)
-    : cards.filter((c) => !isTeacherAuthored(c));
+  // 발표 모드 대상 — 모둠은 모둠 카드, 개별은 화면 격자와 같은 차례로.
+  // -------------------------------------------------------------
+  // 예전에는 cards를 그대로 썼습니다. 그 배열은 구독이 준 순서, 곧 카드를
+  // 저장한 차례(orderBy createdAt)라 명단과 어긋났습니다 — 20104보다 20107이
+  // 먼저 저장했으면 발표도 20107부터 시작했습니다. 화면 격자는 학번 순인데
+  // 발표만 다른 순서로 도니 교실에서 번호대로 넘길 수가 없었습니다.
+  // 그래서 격자와 같은 sortedSeats를 그대로 따릅니다(교사 전용 화면이라
+  // 이 값이 늘 있습니다).
+  //
+  // 아직 안 쓴 학생도 빈 카드로 함께 넘깁니다. 건너뛰면 순서가 명단과
+  // 어긋나고, 넘기다 보면 누가 아직 안 썼는지가 그 자리에서 보입니다.
+  // 모달은 내용이 없으면 '아직 작성한 내용이 없어요'를 보여 줍니다.
+  const presentCards = useMemo(() => {
+    if (isGroup) return listCards.filter((c) => c.groupId && !c.retired);
+    return (sortedSeats ?? [])
+      .filter((s) => !s.isTeacherCard)
+      .map((s) => s.card ?? emptyPresentCard(s));
+  }, [isGroup, listCards, sortedSeats]);
+
+  // 버튼을 열지 말지는 '실제로 쓴 카드'로 판정합니다 — 빈 카드까지 세면
+  // 아무도 안 썼는데도 발표가 열려, 넘길 것 없는 화면만 스물여덟 장입니다.
+  const hasWrittenCard = isGroup
+    ? presentCards.length > 0
+    : cards.some((c) => !isTeacherAuthored(c));
 
   // 교사 요약 — 몇 개 활동이 열려 있는지 (활동 개수·잠금 관리는 왼쪽 활동 패널이 담당)
   const summaryOpenCount = activities.filter((_, i) => !isActivityLocked(board, i)).length;
@@ -614,9 +650,9 @@ export default function StudyProjectView({
                 {!isNotice && (
                   <button
                     className="study-present-btn"
-                    onClick={() => presentCards.length > 0 && setPresenting(true)}
-                    disabled={presentCards.length === 0}
-                    title={presentCards.length > 0 ? "발표 모드 — 학생 카드를 크게 넘겨보기" : "아직 제출한 카드가 없어요"}
+                    onClick={() => hasWrittenCard && setPresenting(true)}
+                    disabled={!hasWrittenCard}
+                    title={hasWrittenCard ? "발표 모드 — 학번 순으로 넘겨보기" : "아직 제출한 카드가 없어요"}
                     aria-label="발표 모드"
                   >
                     ▶
@@ -1087,7 +1123,7 @@ export default function StudyProjectView({
         />
       )}
 
-      {presenting && presentCards.length > 0 && (
+      {presenting && hasWrittenCard && presentCards.length > 0 && (
         <StudyPresentModal
           board={board}
           cards={presentCards}
