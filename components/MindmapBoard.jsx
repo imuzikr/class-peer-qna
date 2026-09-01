@@ -76,7 +76,12 @@ export default function MindmapBoard({
       uid: s.uid,
       name: s.name,
       studentId: s.studentId,
-      map: normalizeMindmap(byUid.get(s.uid)?.answers, activity.topic),
+      // 한가운데 낱말의 기본값 — 교사가 정한 주제어, 없으면 그 학생이 적은 것
+      map: normalizeMindmap(
+        byUid.get(s.uid)?.answers,
+        (activity.topic ?? "").trim() || (byUid.get(s.uid)?.topic ?? "")
+      ),
+      topic: byUid.get(s.uid)?.topic ?? "",
       hasEntry: byUid.has(s.uid),
     }));
     const seen = new Set(roster.map((s) => s.uid));
@@ -86,7 +91,8 @@ export default function MindmapBoard({
         uid: e.authorId,
         name: e.authorName || "이름 미설정",
         studentId: null,
-        map: normalizeMindmap(e.answers, activity.topic),
+        map: normalizeMindmap(e.answers, (activity.topic ?? "").trim() || (e.topic ?? "")),
+        topic: e.topic ?? "",
         hasEntry: true,
       }));
     return [...fromRoster, ...strays];
@@ -141,7 +147,11 @@ export default function MindmapBoard({
         </div>
         <div className="books-head-row">
           <div className="books-head-main">
-            <span className="book-group-topic">{activity.topic}</span>
+            {/* 주제어를 비워 두면 학생마다 제 주제로 합니다 —
+                빈 배지를 두는 대신 그 사실을 적어 둡니다 */}
+            <span className={`book-group-topic${(activity.topic ?? "").trim() ? "" : " soft"}`}>
+              {(activity.topic ?? "").trim() || "학생마다 다른 주제"}
+            </span>
             {className && <span className="book-group-class">{className}</span>}
             {/* 잠김 안내도 이 줄에 — 예전엔 머리말 아래 제 줄을 차지했는데,
                 이 줄은 배지 두어 개뿐이라 오른쪽이 비어 있었습니다.
@@ -210,6 +220,10 @@ export default function MindmapBoard({
                         )}
                         {casting && <span className="broadcast-live-dot" aria-hidden="true" />}
                       </span>
+                      {/* 학생이 스스로 적은 주제 — 활동에 주제어가 없을 때만 */}
+                      {c.topic && (
+                        <span className="paratext-student-topic">{c.topic}</span>
+                      )}
                       <span className="paratext-student-meta">
                         {branches === 0
                           ? "아직 시작 전"

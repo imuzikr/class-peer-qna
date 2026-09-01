@@ -130,6 +130,10 @@ export default function KwlsBoard({
                 {open.studentId && (
                   <span className="book-group-class">{open.studentId}</span>
                 )}
+                {/* 활동에 주제어가 없으면 학생이 적은 것을 씁니다 */}
+                {!(activity.topic ?? "").trim() && open.entry?.topic && (
+                  <span className="book-group-topic">{open.entry.topic}</span>
+                )}
                 <span className="book-group-topic">
                   {kwlsFilledCount(openAnswers)} / {KWLS_COLUMN_COUNT}칸 ·
                   {" "}글 {kwlsChars(openAnswers)}자
@@ -137,7 +141,11 @@ export default function KwlsBoard({
               </>
             ) : (
               <>
-                <span className="book-group-topic">{activity.topic}</span>
+                {/* 주제어를 비워 두면 학생마다 제 주제로 합니다 —
+                    빈 배지를 두는 대신 그 사실을 적어 둡니다 */}
+                <span className={`book-group-topic${(activity.topic ?? "").trim() ? "" : " soft"}`}>
+                  {(activity.topic ?? "").trim() || "학생마다 다른 주제"}
+                </span>
                 {className && <span className="book-group-class">{className}</span>}
               </>
             )}
@@ -285,6 +293,12 @@ function StudentCard({ card, casting, onOpen }) {
         {card.studentId && <span className="paratext-student-no">{card.studentId}</span>}
         {casting && <span className="broadcast-live-dot" aria-hidden="true" />}
       </span>
+      {/* 학생이 스스로 적은 주제 — 활동에 주제어가 없을 때만 생깁니다.
+          저마다 다른 주제로 하는 활동이라 누가 무엇을 다루는지가 여기서
+          보여야 합니다. 이미 받아 온 기록에 들어 있어 읽기가 늘지 않습니다. */}
+      {card.entry?.topic && (
+        <span className="paratext-student-topic">{card.entry.topic}</span>
+      )}
 
       <span className="kwls-marks">
         {KWLS_COLUMNS.map((c) => (

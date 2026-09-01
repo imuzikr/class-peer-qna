@@ -10,7 +10,8 @@
 // 저장은 자동입니다(입력을 멈추면 조용히 저장).
 // =============================================================
 import { useEffect, useMemo, useRef, useState } from "react";
-import { subscribeMyParatextEntry, saveParatextEntry } from "@/lib/store";
+import { subscribeMyParatextEntry, saveParatextEntry, saveParatextTopic } from "@/lib/store";
+import TopicAskModal from "./TopicAskModal";
 import {
   MINDMAP_LAYOUTS,
   ROOT_ID,
@@ -32,6 +33,11 @@ export default function MindmapForm({ activity, user, onBack }) {
   const [open, setOpen] = useState(false); // 내 카드를 눌러 판으로 들어왔는지
   const [selectedId, setSelectedId] = useState(ROOT_ID);
   const [status, setStatus] = useState("idle"); // idle | saving | saved
+  // 내가 적은 주제어 — 교사가 활동에 주제어를 넣지 않았을 때 씁니다.
+  // 다루는 주제가 학생마다 다를 수 있어, 그때는 각자 적습니다
+  // (곁텍스트 읽기와 같은 방식 — 같은 entries/{uid}.topic 자리를 씁니다).
+  const [myTopic, setMyTopic] = useState("");
+  const [topicAsk, setTopicAsk] = useState(false); // 물어보는 창이 떠 있는지
   // 내가 고친 뒤로는 서버 값이 와도 덮어쓰지 않습니다(편집 중 그림이 튀는 것 방지)
   const dirtyRef = useRef(false);
   const timerRef = useRef(null);
@@ -42,11 +48,50 @@ export default function MindmapForm({ activity, user, onBack }) {
   useEffect(() => {
     return subscribeMyParatextEntry(activity.id, user?.uid, (entry) => {
       if (!dirtyRef.current) {
-        setMap(normalizeMindmap(entry?.answers, activity.topic));
+        // 한가운데 낱말은 교사가 정한 주제어, 없으면 내가 적은 것으로 시작합니다
+        setMap(normalizeMindmap(entry?.answers, (activity.topic ?? "").trim() || (entry?.topic ?? "")));
       }
+      setMyTopic(entry?.topic ?? "");
       setLoaded(true);
     });
   }, [activity.id, user?.uid, activity.topic]);
+
+  // 활동에도 없고 내가 적은 것도 없으면 한 번 물어봅니다 — 무엇에 대한
+  // 마인드맵인지 정하지 않은 채 가지를 뻗기 시작하지 않도록. 닫으면 다시
+  // 뜨지 않고, 배지를 눌러 언제든 적을 수 있습니다.
+  const askedRef = useRef(false);
+  useEffect(() => {
+    if (!loaded || locked || askedRef.current) return;
+    if ((activity.topic ?? "").trim() || myTopic.trim()) return;
+    askedRef.current = true;
+    setTopicAsk(true);
+  }, [loaded, locked, activity.topic, myTopic]);
+
+  // 화면에 쓸 주제어 — 교사가 정해 둔 것이 있으면 그것이 먼저입니다.
+  const shownTopic = (activity.topic ?? "").trim() || myTopic.trim();
+  const canEditTopic = !(activity.topic ?? "").trim() && !locked;
+
+  async function saveTopic(next) {
+    const text = String(next ?? "").trim();
+    setMyTopic(text);
+    setTopicAsk(false);
+    if (!text) return;
+    await saveParatextTopic(activity.id, user, text);
+    // 아직 한가운데를 손대지 않았으면 방금 적은 주제어로 채워 줍니다 —
+    // 마인드맵은 그 낱말에서 가지가 뻗어 나가는 그림이라, 비어 있으면
+    // 무엇에 대한 것인지 없는 채로 시작하게 됩니다.
+    //
+    // '손대지 않았다'의 기준에 "주제"도 넣습니다. 주제어 없이 시작하면
+    // emptyMindmap이 한가운데를 그 글자로 채워 두거든요(lib/mindmap.js) —
+    // 빈 칸만 보고 판정하면 이 자리가 영영 안 채워집니다.
+    setMap((prev) => {
+      const root = prev?.nodes?.[0];
+      const untouched = !root?.text?.trim() || root.text.trim() === "주제";
+      if (!root || !untouched) return prev;
+      dirtyRef.current = true;
+      return { ...prev, nodes: prev.nodes.map((n, i) => (i === 0 ? { ...n, text } : n)) };
+    });
+  }
 
   useEffect(() => {
     if (!dirtyRef.current || locked) return;
@@ -96,7 +141,32 @@ export default function MindmapForm({ activity, user, onBack }) {
         </div>
         <div className="books-head-row">
           <div className="books-head-main">
-            <span className="book-group-topic">{activity.topic}</span>
+            {/* 곁텍스트 읽기와 같은 배지 — 교사가 정해 둔 것이 없으면 눌러서
+                내가 적고, 적어 둔 뒤에도 눌러 고칠 수 있습니다. */}
+            {shownTopic ? (
+              canEditTopic ? (
+                <button
+                  type="button"
+                  className="book-group-topic book-topic-edit"
+                  onClick={() => setTopicAsk(true)}
+                  title="눌러서 주제 고치기"
+                >
+                  {shownTopic}
+                </button>
+              ) : (
+                <span className="book-group-topic">{shownTopic}</span>
+              )
+            ) : (
+              canEditTopic && (
+                <button
+                  type="button"
+                  className="book-group-topic book-topic-edit is-empty"
+                  onClick={() => setTopicAsk(true)}
+                >
+                  ＋ 주제 적기
+                </button>
+              )
+            )}
           </div>
           {bookUrl && !open && (
             <a
@@ -133,6 +203,14 @@ export default function MindmapForm({ activity, user, onBack }) {
         </p>
       )}
 
+      {topicAsk && (
+        <TopicAskModal
+          initial={myTopic}
+          onSave={saveTopic}
+          onClose={() => setTopicAsk(false)}
+        />
+      )}
+
       {!loaded ? (
         <p className="empty-note">불러오는 중이에요…</p>
       ) : !open ? (
@@ -147,7 +225,7 @@ export default function MindmapForm({ activity, user, onBack }) {
               <strong>내 마인드맵</strong>
               <span className="mindmap-layout-tag">{layoutKo}</span>
             </span>
-            <span className="mindmap-own-topic">{map.nodes[0]?.text || activity.topic}</span>
+            <span className="mindmap-own-topic">{map.nodes[0]?.text || shownTopic}</span>
             <span className="paratext-student-meta">
               {branches === 0
                 ? "아직 가지가 없어요 — 눌러서 시작하기"
