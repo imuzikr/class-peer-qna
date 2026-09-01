@@ -6772,49 +6772,42 @@ pre code {
   gap: 12px;
 }
 /* ── 궁금한 순간 — 반 전체 과일 집계(자리표와 모둠 현황 사이) ──
-   평소엔 버튼 한 줄이고, 누르면 아래로 펼쳐집니다. */
+   '멋진 순간'과 같은 패널의 두 칸이라, 흰 카드에 담긴 버튼이 아니라 같은
+   제목 줄 모양으로 둡니다(제목은 .reward-title을 그대로 씁니다). 칸을 가르는
+   선은 아래 '모둠 현황'과 같은 방식입니다. */
 .reward-tally {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
 }
 .reward-tally-toggle {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
   width: 100%;
-  padding: 10px 12px;
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--dark);
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-btn);
+  /* .reward-head와 같은 좌우 여백 — 제목끼리 세로로 나란해집니다 */
+  padding: 0 4px;
+  background: none;
+  border: 0;
+  text-align: left;
   cursor: pointer;
-  transition: border-color 0.15s;
 }
-.reward-tally-toggle:hover,
-.reward-tally-toggle.on {
-  border-color: var(--primary);
-}
-.reward-tally-toggle-label { flex: 1; text-align: left; }
-.reward-tally-toggle-sub {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-sub);
-}
+.reward-tally-toggle:hover .reward-title { color: var(--primary-dark); }
 .reward-tally-caret {
-  font-size: 9px;
+  flex-shrink: 0;
+  font-size: 11px;
   color: var(--text-sub);
 }
-/* 막대 색(--primary)이 3:1 대비를 넘으려면 바탕이 흰색이어야 합니다
-   (패널 바탕 --bg-deep 위에서는 2.8:1로 모자랍니다). */
+/* 카드로 감싸지 않습니다 — 패널 바탕 위에 그대로 얹혀 '배경 같은' 결을
+   유지합니다. 대신 막대 색을 --primary에서 --primary-dark로 내렸습니다:
+   흰 바탕에서는 --primary가 3.12:1이지만 패널 바탕(--bg-deep) 위에서는
+   2.84:1로 기준(3:1)에 못 미칩니다. --primary-dark는 3.88:1입니다. */
 .reward-tally-body {
-  padding: 12px;
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-btn);
+  padding: 0 4px;
 }
 .reward-tally-empty,
 .reward-tally-sum {
@@ -6852,7 +6845,8 @@ pre code {
   flex: 1;
   min-width: 0;
   height: 10px;
-  background: var(--neutral);
+  /* 패널 바탕(--bg-deep)보다 한 톤 어두워야 빈 자리가 자리로 읽힙니다 */
+  background: #e6e3da;
   border-radius: 3px;
   overflow: hidden;
 }
@@ -6860,7 +6854,7 @@ pre code {
 .reward-tally-fill {
   display: block;
   height: 100%;
-  background: var(--primary);
+  background: var(--primary-dark);
   border-radius: 0 4px 4px 0;
 }
 .reward-tally-val {
@@ -11718,9 +11712,7 @@ a.lesson-board-file-name { text-decoration: underline; }
   gap: 10px;
   flex-wrap: nowrap;
   overflow-x: auto;
-  scrollbar-width: none;
 }
-.study-title-row::-webkit-scrollbar { display: none; }
 .study-title-row > * { flex-shrink: 0; }
 
 
@@ -16821,17 +16813,15 @@ button.study-cal-cell.has-record:not(:disabled):hover {
 /* ── 모둠 대시보드 ── */
 /* 활동 머리말 첫 줄 — 제목 · ← 활동 목록 · 누가기록 관리 · 수업 메모.
    공부방 머리말(.study-title-row)과 같은 짜임입니다: 접지 않고, 자리가
-   모자라면 가로로 밀며, 스크롤 막대는 숨깁니다(버튼 줄에 막대가 보이면
-   지저분합니다). */
+   모자라면 가로로 밉니다. 막대는 옅게 보여 줍니다(아래 '머리말 줄 스크롤
+   막대' 참고) — 감춰 두면 밀 수 있다는 것 자체를 모릅니다. */
 .books-head-title {
   display: flex;
   align-items: center;
   gap: 10px;
   flex-wrap: nowrap;
   overflow-x: auto;
-  scrollbar-width: none;
 }
-.books-head-title::-webkit-scrollbar { display: none; }
 .books-head-title > * { flex-shrink: 0; }
 
 /* '전체 보기'는 크기를 같이 맞추되 채운 채로 둡니다 — 이 화면에서 가장
@@ -17221,16 +17211,14 @@ button.study-cal-cell.has-record:not(:disabled):hover {
    아래 격자가 그만큼 내려앉는데, 이 화면은 14칸을 한눈에 담는 것이 전부라
    세로 한 줄이 아깝습니다.
    접지 않고(flex-wrap: nowrap) 자리가 모자라면 가로로 밉니다 — 접히면
-   격자가 통째로 내려가 화면이 출렁입니다. 막대는 숨깁니다(버튼 줄에
-   스크롤 막대가 보이면 지저분합니다). 공부방에서 같은 이유로 쓰는 방식입니다.
+   격자가 통째로 내려가 화면이 출렁입니다. 막대는 옅게 보여 줍니다.
+   공부방에서 같은 이유로 쓰는 방식입니다.
    작업 화면(ConsonantCanvas)은 그대로 두 줄이라 .dash-root 아래로 한정합니다. */
 .dash-root > .canvas-head {
   gap: 10px;
   flex-wrap: nowrap;
   overflow-x: auto;
-  scrollbar-width: none;
 }
-.dash-root > .canvas-head::-webkit-scrollbar { display: none; }
 .dash-root > .canvas-head > * { flex-shrink: 0; }
 .canvas-head-name {
   font-size: 17px;
@@ -20350,3 +20338,50 @@ button.study-cal-cell.has-record:not(:disabled):hover {
 .study-trash-btn.danger { color: var(--danger); }
 .study-trash-btn.danger:hover:not(:disabled) { border-color: var(--danger); }
 .study-trash-btn:disabled { opacity: 0.5; cursor: default; }
+
+/* ===== 머리말 줄 스크롤 막대 ==========================================
+   양쪽 패널이 열려 가운데가 좁아지면 이 줄들은 접히지 않고 가로로 밀립니다
+   (접히면 아래 격자가 통째로 내려가 화면이 출렁입니다). 예전에는 막대를
+   아예 감췄는데, 그러면 밀 수 있다는 것 자체를 알 수 없고 버튼을 끝까지
+   보려면 손으로 문질러야 했습니다.
+
+   그래서 얇게 보여 주되 주변에 묻히게 둡니다 — 트랙은 투명, 손잡이는
+   테두리와 같은 색(--border)이고 손을 올리면 한 톤 짙어집니다. 내용이
+   넘칠 때만 나타납니다(overflow-x: auto).
+
+   표준 속성(scrollbar-width·scrollbar-color)과 webkit 의사요소를 함께
+   적어 둡니다. 브라우저마다 어느 쪽을 보는지 다르고 둘이 서로를 끄기도
+   하는데, 어느 쪽이 이기든 같은 모습이 나오도록 색과 두께를 맞춰 두면
+   따질 일이 없습니다.
+   (헤드리스 크로미움은 겹치는 스크롤바를 강제해 이 그림을 확인할 수
+   없었습니다 — 실제 브라우저에서 눈으로 봐 주세요.) */
+.study-title-row,
+.books-head-title,
+.dash-root > .canvas-head {
+  /* 파이어폭스 — 손잡이 색만 지정하고 트랙은 투명하게 */
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+  /* 막대가 버튼 바로 밑에 붙지 않도록 한 줄 띄웁니다 */
+  padding-bottom: 3px;
+}
+.study-title-row::-webkit-scrollbar,
+.books-head-title::-webkit-scrollbar,
+.dash-root > .canvas-head::-webkit-scrollbar {
+  height: 6px;
+}
+.study-title-row::-webkit-scrollbar-track,
+.books-head-title::-webkit-scrollbar-track,
+.dash-root > .canvas-head::-webkit-scrollbar-track {
+  background: transparent;
+}
+.study-title-row::-webkit-scrollbar-thumb,
+.books-head-title::-webkit-scrollbar-thumb,
+.dash-root > .canvas-head::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 999px;
+}
+.study-title-row:hover::-webkit-scrollbar-thumb,
+.books-head-title:hover::-webkit-scrollbar-thumb,
+.dash-root > .canvas-head:hover::-webkit-scrollbar-thumb {
+  background: #d6d2c6;
+}

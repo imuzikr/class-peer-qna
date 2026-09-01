@@ -68,19 +68,19 @@ export default function RewardTally({ classId = null, roster = [] }) {
 
   return (
     <div className="reward-tally">
+      {/* 제목은 '멋진 순간'과 같은 .reward-title을 그대로 씁니다 — 같은 패널의
+          두 칸이라 글꼴·크기가 갈리면 하나만 덧붙인 것처럼 보입니다. 값을
+          그대로 베끼지 않고 클래스를 함께 쓰므로 한쪽만 바뀔 일이 없습니다. */}
       <button
         type="button"
-        className={`reward-tally-toggle${open ? " on" : ""}`}
+        className="reward-tally-toggle"
         onClick={toggle}
         aria-expanded={open}
-        title={open ? "과일 집계 접기" : "반 전체가 받은 과일 집계 보기"}
+        title={open ? "접기" : "반 전체가 받은 과일 보기"}
       >
-        <span className="reward-tally-toggle-label">🍎 궁금한 순간</span>
-        <span className="reward-tally-toggle-sub">
-          {open ? "접기" : "과일 집계"}
-        </span>
+        <span className="reward-title">🍎 궁금한 순간</span>
         <span className="reward-tally-caret" aria-hidden="true">
-          {open ? "▲" : "▼"}
+          {open ? "▴" : "▾"}
         </span>
       </button>
 
