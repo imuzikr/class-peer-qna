@@ -219,6 +219,11 @@ export default function StudyRewardPanel({
 
   return (
     <aside className="reward-panel" aria-label="멋진 순간">
+      {/* 폭은 이 안쪽 상자가 정합니다 — 패널에 직접 걸면 세로 스크롤바가
+          생길 때 그만큼 내용이 눌립니다(자리표 칸과 모둠 이름표가 한꺼번에
+          좁아지고 줄이 다시 접혔습니다). 겹쳐 뜨는 것들(확대 보기·과일
+          주기·누가기록)은 position: fixed라 이 폭에 매이지 않습니다. */}
+      <div className="reward-panel-inner">
       <div className="reward-head">
         <div className="reward-head-row">
           <span className="reward-title">🍎 멋진 순간</span>
@@ -439,6 +444,7 @@ export default function StudyRewardPanel({
           onClose={() => setNotesFor(null)}
         />
       )}
+      </div>
     </aside>
   );
 }

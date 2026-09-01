@@ -6760,13 +6760,33 @@ pre code {
 }
 
 /* ── 오른쪽: 참여 보상 패널 (교사 전용) ── */
+/* 폭을 패널이 아니라 **안쪽 내용에** 줍니다.
+   -------------------------------------------------------------
+   예전에는 패널에 width: 288px를 걸었습니다. box-sizing이 border-box라
+   세로 스크롤바가 생기면 그 15px가 288 안에서 빠져나가, 자리표 칸과 모둠
+   이름표가 한꺼번에 눌리고 줄이 다시 접혔습니다('궁금한 순간'을 펼쳤을 때
+   실제로 그랬습니다).
+   지금은 내용 폭을 260px로 못박고, 패널은 거기에 여백과 스크롤바 자리를
+   더한 만큼 저절로 넓어집니다. scrollbar-gutter: stable로 그 자리를 늘
+   비워 두어, 스크롤바가 생기고 사라져도 내용은 한 픽셀도 움직이지 않습니다.
+   (scrollbar-gutter를 모르는 옛 브라우저에서는 예전처럼 동작합니다 —
+   그때도 내용 폭 260px 자체는 지켜집니다) */
 .reward-panel {
-  width: 288px;
   flex-shrink: 0;
   border-left: 1px solid var(--border);
   background: var(--bg-deep);
   overflow-y: auto;
+  scrollbar-gutter: stable;
   padding: 18px 14px 24px;
+}
+/* 폭을 이 안쪽 상자가 정합니다. 패널에 걸면 안 되는 이유가 둘입니다.
+   · scrollbar-gutter는 어느 box-sizing에서든 내용 폭에서 빠져나갑니다
+     (재 봤습니다: border-box 288px → 244px, content-box 260px → 245px).
+   · 겹쳐 뜨는 것들(확대 보기·과일 주기·누가기록)이 패널의 직계 자식이라
+     '> *'로 폭을 주면 전체 화면 배경이 260px로 쪼그라듭니다.
+   이 상자 안에 두면 그것들은 position: fixed라 폭에 매이지 않습니다. */
+.reward-panel-inner {
+  width: 260px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -6906,6 +6926,14 @@ pre code {
   gap: 10px;
   cursor: pointer;
   overflow: hidden;
+  /* 접힌 상태는 스크롤하지 않으므로 비워 둘 자리도 없습니다 */
+  scrollbar-gutter: auto;
+}
+/* 접힌 띠는 안쪽 상자를 쓰지 않는 별도 갈래라(컴포넌트가 일찍 return),
+   여기서 제 flex를 직접 세웁니다. */
+.reward-panel.reward-panel--collapsed {
+  display: flex;
+  flex-direction: column;
 }
 .reward-panel.reward-panel--collapsed:hover {
   background: var(--neutral);
