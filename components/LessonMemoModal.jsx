@@ -38,9 +38,9 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
   const [busy, setBusy] = useState(false);
   // 지난 메모를 보는 방식 — null(접힘) | "list" | "calendar"
   const [historyView, setHistoryView] = useState(null);
-  // 캘린더에서 고른 날짜
-  const [pickedDate, setPickedDate] = useState("");
   // 캘린더용 — 내가 맡은 반 전체와 그 반들의 메모
+  // (달력에서 고른 날짜·반·메모는 패널이 스스로 들고 있습니다 — 패널을
+  //  닫으면 함께 사라져야 하는 값이라 여기 둘 이유가 없습니다)
   const [myClasses, setMyClasses] = useState([]);
   const [otherMemos, setOtherMemos] = useState({});
   const [editing, setEditing] = useState(null); // { id, text, date }
@@ -165,6 +165,11 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
 
   return (
     <div className="modal-backdrop" {...backdropClose(onClose)}>
+      {/* 모달과 달력 패널을 한 줄로 묶습니다 — 달력을 모달 안에 쌓으니
+          세로로 너무 길어져(달력 하나가 250px), 쓰는 칸이 화면 위로
+          밀려났습니다. 파이썬 실행 패널(.py-panel)과 같은 방식으로
+          옆에서 미끄러져 나옵니다. */}
+      <div className="memo-modal-row">
       <div
         className="modal modal-lesson-memo"
         role="dialog"
@@ -225,28 +230,19 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
               <span className={`memo-caret${historyView === "list" ? " open" : ""}`} aria-hidden="true">›</span>
               지난 메모 {memos.length > 0 && <em>{memos.length}</em>}
             </button>
-            {/* 달력은 '언제 무슨 일이 있었나'를 되짚는 자리라 목록과 나란히
-                둡니다. 켤 때만 다른 반까지 읽습니다(위 구독 참고). */}
+            {/* 달력은 옆 패널로 엽니다(아래 memo-cal-panel).
+                켤 때만 다른 반까지 읽습니다(위 구독 참고). */}
             <button
               type="button"
               className={`memo-cal-btn${calendarOn ? " on" : ""}`}
               onClick={() => setHistoryView((v) => (v === "calendar" ? null : "calendar"))}
               aria-pressed={calendarOn}
+              aria-expanded={calendarOn}
               title="메모가 있는 날짜를 달력에서 봅니다 — 내가 맡은 반을 모두 모아서"
             >
-              📅 캘린더 보기
+              캘린더 보기
             </button>
           </div>
-
-          {calendarOn && (
-            <MemoCalendar
-              byDate={byDate}
-              nameOfClass={nameOfClass}
-              currentClassId={classId}
-              picked={pickedDate}
-              onPick={setPickedDate}
-            />
-          )}
 
           {historyView === "list" && (
             memos.length === 0 ? (
@@ -346,6 +342,17 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
           )}
         </div>
       </div>
+
+      {/* 달력 패널 — 모달 오른쪽에서 미끄러져 나옵니다 */}
+      {calendarOn && (
+        <MemoCalendarPanel
+          byDate={byDate}
+          nameOfClass={nameOfClass}
+          currentClassId={classId}
+          onClose={() => setHistoryView(null)}
+        />
+      )}
+      </div>
     </div>
   );
 }
@@ -374,14 +381,25 @@ function formatDateLabel(dateKey) {
   return `${y}.${m}.${d}`;
 }
 
-function MemoCalendar({ byDate, nameOfClass, currentClassId, picked, onPick }) {
-  // 처음 여는 달 — 고른 날짜가 있으면 그 달, 없으면 가장 최근 메모가 있는 달.
-  // 오늘로 열면 방학이나 주말에 열었을 때 빈 달이 나옵니다.
+function MemoCalendarPanel({ byDate, nameOfClass, currentClassId, onClose }) {
+  // 처음 여는 달 — 가장 최근 메모가 있는 달. 오늘로 열면 방학이나 주말에
+  // 열었을 때 빈 달이 나옵니다.
   const [cursor, setCursor] = useState(() => {
-    const anchor = picked || [...byDate.keys()].sort().at(-1) || todayDateKey();
+    const anchor = [...byDate.keys()].sort().at(-1) || todayDateKey();
     const [y, m] = anchor.split("-").map(Number);
     return { year: y, month: m - 1 };
   });
+  // 날짜 → 반 → 메모, 세 걸음입니다. 하루에 여러 반 수업이 들어 있어
+  // 날짜만으로는 어느 시간 이야기인지 갈리지 않습니다.
+  const [picked, setPicked] = useState("");        // 고른 날짜
+  const [pickedClass, setPickedClass] = useState(""); // 고른 반
+  const [pickedMemo, setPickedMemo] = useState("");   // 펼친 메모
+
+  function pickDate(key) {
+    setPicked((prev) => (prev === key ? "" : key));
+    setPickedClass("");
+    setPickedMemo("");
+  }
 
   const today = todayDateKey();
   const daysInMonth = new Date(cursor.year, cursor.month + 1, 0).getDate();
@@ -390,80 +408,129 @@ function MemoCalendar({ byDate, nameOfClass, currentClassId, picked, onPick }) {
     Array.from({ length: daysInMonth }, (_, i) => i + 1)
   );
 
-  const pickedMemos = picked ? byDate.get(picked) ?? [] : [];
+  const dayMemos = picked ? byDate.get(picked) ?? [] : [];
+
+  // 그날 수업이 있던 반들 — 순서는 byDate에서 이미 이 반이 먼저로 정렬돼 있습니다.
+  const dayClasses = [];
+  for (const m of dayMemos) {
+    const found = dayClasses.find((c) => c.id === m.classId);
+    if (found) found.count += 1;
+    else dayClasses.push({ id: m.classId, count: 1 });
+  }
+
+  const classMemos = pickedClass ? dayMemos.filter((m) => m.classId === pickedClass) : [];
 
   return (
-    <div className="memo-calendar">
-      <div className="study-attendance-calendar">
-        <div className="study-cal-head">
-          <button type="button" onClick={() => setCursor((c) => shiftMonth(c, -1))} aria-label="이전 달">‹</button>
-          <span>{cursor.year}년 {cursor.month + 1}월</span>
-          <button type="button" onClick={() => setCursor((c) => shiftMonth(c, 1))} aria-label="다음 달">›</button>
-        </div>
-        <div className="study-cal-weekdays" aria-hidden="true">
-          {WEEKDAYS.map((w) => <span key={w}>{w}</span>)}
-        </div>
-        <div className="study-cal-grid">
-          {cells.map((d, i) => {
-            if (d === null) {
-              return <span key={`blank${i}`} className="study-cal-cell study-cal-cell--blank" />;
-            }
-            const key = toDateKey(cursor.year, cursor.month, d);
-            const dayMemos = byDate.get(key) ?? [];
-            const has = dayMemos.length > 0;
-            // 이 반 메모가 있는 날은 좀 더 또렷하게 — 모달을 연 맥락이 이 반이라,
-            // 다른 반 메모만 있는 날과 같아 보이면 헷갈립니다.
-            const mine = dayMemos.some((m) => m.classId === currentClassId);
-            const cls = [
-              "study-cal-cell",
-              has && "has-record",
-              has && !mine && "memo-cal-other",
-              key === picked && "selected",
-              key === today && "today",
-            ].filter(Boolean).join(" ");
-            return (
-              <button
-                key={key}
-                type="button"
-                className={cls}
-                onClick={() => onPick(has ? (picked === key ? "" : key) : "")}
-                disabled={!has}
-                title={has ? `메모 ${dayMemos.length}건` : undefined}
-              >
-                <span className="study-cal-day">{d}</span>
-                {has && <span className="study-cal-count">{dayMemos.length}건</span>}
-              </button>
-            );
-          })}
-        </div>
+    <aside className="memo-cal-panel" onClick={(e) => e.stopPropagation()} aria-label="수업 메모 캘린더">
+      <div className="memo-cal-panel-head">
+        <h4>캘린더</h4>
+        <button type="button" className="btn-close" onClick={onClose} aria-label="캘린더 닫기">×</button>
       </div>
 
-      {picked ? (
-        <div className="memo-cal-day">
-          <p className="memo-cal-day-head">{formatDateLabel(picked)}</p>
-          <ul className="memo-cal-list">
-            {pickedMemos.map((m) => (
-              <li key={`${m.classId}_${m.id}`} className="memo-cal-item">
-                <span className="memo-cal-item-head">
-                  {/* 어느 반 수업이었나 — 하루에 여러 반이 들어 있어
-                      반 이름 없이는 어느 시간 이야기인지 알 수 없습니다 */}
-                  <b className={`memo-cal-class${m.classId === currentClassId ? " mine" : ""}`}>
-                    {nameOfClass(m.classId) || "반 이름 없음"}
-                  </b>
-                  <span className="memo-item-clock">{formatTime(m.createdAt)}</span>
-                </span>
-                <p className="memo-item-text">{m.text}</p>
-              </li>
-            ))}
-          </ul>
+      <div className="memo-cal-panel-body">
+        <div className="study-attendance-calendar">
+          <div className="study-cal-head">
+            <button type="button" onClick={() => setCursor((c) => shiftMonth(c, -1))} aria-label="이전 달">‹</button>
+            <span>{cursor.year}년 {cursor.month + 1}월</span>
+            <button type="button" onClick={() => setCursor((c) => shiftMonth(c, 1))} aria-label="다음 달">›</button>
+          </div>
+          <div className="study-cal-weekdays" aria-hidden="true">
+            {WEEKDAYS.map((w) => <span key={w}>{w}</span>)}
+          </div>
+          <div className="study-cal-grid">
+            {cells.map((d, i) => {
+              if (d === null) {
+                return <span key={`blank${i}`} className="study-cal-cell study-cal-cell--blank" />;
+              }
+              const key = toDateKey(cursor.year, cursor.month, d);
+              const list = byDate.get(key) ?? [];
+              const has = list.length > 0;
+              // 이 반 메모가 있는 날은 또렷하게 — 모달을 연 맥락이 이 반이라,
+              // 다른 반 메모만 있는 날과 같아 보이면 헷갈립니다.
+              const mine = list.some((m) => m.classId === currentClassId);
+              const cls = [
+                "study-cal-cell",
+                has && "has-record",
+                has && !mine && "memo-cal-other",
+                key === picked && "selected",
+                key === today && "today",
+              ].filter(Boolean).join(" ");
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  className={cls}
+                  onClick={() => pickDate(key)}
+                  disabled={!has}
+                  title={has ? `메모 ${list.length}건` : undefined}
+                >
+                  <span className="study-cal-day">{d}</span>
+                  {has && <span className="study-cal-count">{list.length}</span>}
+                </button>
+              );
+            })}
+          </div>
         </div>
-      ) : (
-        <p className="memo-cal-hint">
-          {byDate.size === 0
-            ? "아직 적어 둔 메모가 없어요."
-            : "메모가 있는 날짜를 눌러 보세요."}
-        </p>
-      )}
-    </div>
+
+        {!picked ? (
+          <p className="memo-cal-hint">
+            {byDate.size === 0
+              ? "아직 적어 둔 메모가 없어요."
+              : "메모가 있는 날짜를 눌러 보세요."}
+          </p>
+        ) : !pickedClass ? (
+          /* 두 번째 걸음 — 그날 수업이 있던 반 */
+          <div className="memo-cal-step">
+            <p className="memo-cal-step-head">{formatDateLabel(picked)}</p>
+            <ul className="memo-cal-picks">
+              {dayClasses.map((c) => (
+                <li key={c.id}>
+                  <button
+                    type="button"
+                    className={`memo-cal-pick${c.id === currentClassId ? " mine" : ""}`}
+                    onClick={() => setPickedClass(c.id)}
+                  >
+                    <span className="memo-cal-pick-name">{nameOfClass(c.id) || "반 이름 없음"}</span>
+                    <span className="memo-cal-pick-count">{c.count}건</span>
+                    <span className="memo-cal-pick-caret" aria-hidden="true">›</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : (
+          /* 세 번째 걸음 — 그 반의 그날 메모. 눌러서 펼칩니다.
+             접힌 채로는 첫 줄만 — 메모가 길면 목록이 아니라 글 뭉치가 됩니다. */
+          <div className="memo-cal-step">
+            <div className="memo-cal-step-head memo-cal-step-back">
+              <button type="button" className="memo-cal-back" onClick={() => setPickedClass("")}>
+                ‹ 반 목록
+              </button>
+              <span className="memo-cal-step-where">
+                {formatDateLabel(picked)} · {nameOfClass(pickedClass)}
+              </span>
+            </div>
+            <ul className="memo-cal-picks">
+              {classMemos.map((m) => {
+                const open = pickedMemo === m.id;
+                return (
+                  <li key={m.id}>
+                    <button
+                      type="button"
+                      className={`memo-cal-pick memo-cal-memo${open ? " open" : ""}`}
+                      onClick={() => setPickedMemo(open ? "" : m.id)}
+                      aria-expanded={open}
+                    >
+                      <span className="memo-item-clock">{formatTime(m.createdAt)}</span>
+                      <span className={`memo-cal-memo-text${open ? "" : " clamp"}`}>{m.text}</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+      </div>
+    </aside>
   );
 }
