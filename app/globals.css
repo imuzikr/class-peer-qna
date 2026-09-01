@@ -20493,3 +20493,80 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   margin-top: 8px;
   line-height: 1.7;
 }
+
+/* 발표 모드 자리표 안의 '궁금한 순간' — 공부방 패널의 제목(17px 세리프)을
+   그대로 두면 이웃한 '🪑 자리표'(13px)보다 커져, 곁딸린 칸이 본 제목을
+   누릅니다. 이 화면에서는 이웃에 맞춥니다. */
+.lesson-seat-panel .reward-tally {
+  margin-top: 14px;
+  padding-top: 12px;
+}
+.lesson-seat-panel .reward-tally .reward-title {
+  /* 이웃한 '🪑 자리표'도 세리프입니다(h2 전역 규칙) — inherit로 두면 혼자
+     본문 글꼴이 되어 나란히 놓았을 때 어긋납니다. 재 보고 맞췄습니다. */
+  font-family: var(--font-serif);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+.lesson-seat-panel .reward-tally-toggle { padding: 0; }
+.lesson-seat-panel .reward-tally-body { padding: 0; }
+
+/* ── 쏠림 — 과일이 누구에게 갔나 (반 전체 과일 흐름 패널의 머리) ──
+   학생이 아니라 교사의 관찰을 재는 칸입니다. 격자 위에 두어, 판을 읽기
+   전에 '몇 명에게 갔나'를 먼저 보게 합니다. */
+.skew {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.skew-lead {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-sub);
+}
+.skew-lead strong { color: var(--dark); }
+.skew-of { color: var(--text-sub); }
+/* 띠 사이에 2px 바탕이 비쳐야 네 덩이가 한 막대로 뭉쳐 보이지 않습니다 */
+.skew-bar {
+  display: flex;
+  gap: 2px;
+  height: 20px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.skew-bar span { display: block; }
+.skew-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  font-size: 12px;
+  /* 글자는 잉크 색으로 — 띠 색을 글자에까지 쓰면 어느 것이 자료인지
+     흐려집니다. 색은 옆의 네모가 나릅니다. */
+  color: var(--text-sub);
+}
+.skew-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  margin-right: 5px;
+  vertical-align: -1px;
+}
+/* 이 패널의 요점 — 많이 받은 학생은 어차피 눈에 띄고, 한 개도 못 받은
+   학생은 어느 화면에도 나타나지 않습니다. */
+.skew-none {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 2px 0 0;
+  padding: 9px 12px;
+  font-size: 12.5px;
+  background: var(--primary-light);
+  border-radius: var(--radius-btn);
+}
+.skew-none strong { color: var(--primary-dark); }
+.skew-none-names { color: var(--text); line-height: 1.7; }

@@ -27,6 +27,7 @@ import { getCurrentUser } from "@/lib/user";
 import { deskState, attendedTodaySet } from "./AttendanceBoard";
 import { SeatCell, SeatPickGrid, attStateOf } from "./QuestionSeatModal";
 import { useTodayRewardCounts } from "@/lib/useTodayRewards";
+import RewardTally from "./RewardTally";
 import StudentToolsModal from "./StudentToolsModal";
 import StudentNotesModal from "./StudentNotesModal";
 
@@ -255,6 +256,12 @@ export default function LessonSeatPanel({
           todayCountByUid={todayCountByUid}
         />
       )}
+
+      {/* 궁금한 순간 — 자리표 아래. 자리 칸의 🍎 뱃지는 '오늘' 받은 개수라
+          누가 학기 내내 못 받았는지는 안 보입니다. 공부방 '멋진 순간' 패널과
+          같은 것을 여기에도 둡니다(수업 중 실제로 보는 화면이 여기라서).
+          펼침 상태는 두 화면이 같은 localStorage 키를 함께 씁니다. */}
+      {onAward && <RewardTally classId={classId} roster={roster} />}
 
       {toolsStudent && onAward && (
         <StudentToolsModal
