@@ -380,7 +380,13 @@ export default function StudyRewardPanel({
             </div>
           ))}
 
-          {/* 미배정 — 아직 어느 모둠에도 없는 학생. 여기로 끌어 놓으면 모둠에서 빠집니다. */}
+          {/* 미배정 — 아직 어느 모둠에도 없는 학생.
+              모두 배정되면 '모두 배정됨'만 적힌 빈 칸이 남아 자리만 차지하므로
+              감춥니다. 다만 이 칸은 **끌어다 놓아 모둠에서 빼는 자리**이기도
+              해서, 학생을 끌고 있는 동안에는 비어 있어도 내놓습니다 —
+              아예 없애면 끌던 손이 놓을 곳을 잃습니다.
+              (모둠 안의 이름을 눌러서 빼는 길은 그대로입니다) */}
+          {(ungrouped.length > 0 || dragUid) && (
           <div
             className="reward-group-row reward-group-row--unassigned"
             onDragOver={(e) => e.preventDefault()}
@@ -389,7 +395,7 @@ export default function StudyRewardPanel({
             <span className="reward-group-name">미배정</span>
             <span className="reward-group-members">
               {ungrouped.length === 0 ? (
-                <em className="reward-group-empty">모두 배정됨</em>
+                <em className="reward-group-empty">여기로 끌어 놓으면 모둠에서 빠져요</em>
               ) : (
                 ungrouped.map((s) => (
                   <button
@@ -411,6 +417,7 @@ export default function StudyRewardPanel({
               )}
             </span>
           </div>
+          )}
         </div>
       )}
 
