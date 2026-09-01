@@ -16902,6 +16902,15 @@ button.study-cal-cell.has-record:not(:disabled):hover {
      두 줄로 접혀 버렸습니다. nowrap으로 항상 한 줄을 유지합니다. */
   white-space: nowrap;
 }
+/* 활동 화면 위쪽의 안내 한 줄 (곁텍스트 읽기의 '아직 본문은 읽지 마세요…').
+   원래는 책방 목록 머리말 아래 문구와 함께 쓰던 클래스인데, 그 문구를
+   없애면서 규칙까지 지워 이 문단만 본문 크기의 검은 글씨로 남았습니다.
+   쓰는 곳이 여기 하나뿐이라 규칙도 여기 둡니다. */
+.books-intro {
+  font-size: 13.5px;
+  color: var(--text-sub);
+  margin-bottom: 20px;
+}
 .book-locked-note,
 .book-free-hint {
   display: inline-flex;
