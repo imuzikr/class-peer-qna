@@ -90,6 +90,13 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
     return (cid) => map.get(cid) ?? "";
   }, [myClasses, classId, className]);
 
+  // 보관된 반은 규칙(ownsClassEditable)이 쓰기를 막습니다. 달력에서 그 반을
+  // 골랐을 때 입력칸을 내주면 저장을 눌러야 실패를 알게 되므로 미리 가립니다.
+  const archivedClassIds = useMemo(
+    () => new Set(myClasses.filter((c) => c.archived).map((c) => c.id)),
+    [myClasses]
+  );
+
   const calendarMemos = useMemo(() => {
     const rows = memos.map((m) => ({ ...m, classId }));
     for (const [cid, list] of Object.entries(otherMemos)) {
@@ -348,7 +355,9 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
         <MemoCalendarPanel
           byDate={byDate}
           nameOfClass={nameOfClass}
+          archivedClassIds={archivedClassIds}
           currentClassId={classId}
+          user={user}
           onClose={() => setHistoryView(null)}
         />
       )}
@@ -381,7 +390,7 @@ function formatDateLabel(dateKey) {
   return `${y}.${m}.${d}`;
 }
 
-function MemoCalendarPanel({ byDate, nameOfClass, currentClassId, onClose }) {
+function MemoCalendarPanel({ byDate, nameOfClass, archivedClassIds, currentClassId, user, onClose }) {
   // 처음 여는 달 — 가장 최근 메모가 있는 달. 오늘로 열면 방학이나 주말에
   // 열었을 때 빈 달이 나옵니다.
   const [cursor, setCursor] = useState(() => {
@@ -394,11 +403,71 @@ function MemoCalendarPanel({ byDate, nameOfClass, currentClassId, onClose }) {
   const [picked, setPicked] = useState("");        // 고른 날짜
   const [pickedClass, setPickedClass] = useState(""); // 고른 반
   const [pickedMemo, setPickedMemo] = useState("");   // 펼친 메모
+  // 고른 반의 그날 메모를 여기서 바로 적고 고칩니다 — 달력에서 지난 수업을
+  // 되짚다가 "아, 이것도 적어 둘걸" 하는 자리가 여기입니다. 그때 모달로
+  // 돌아가 날짜와 반을 다시 맞추게 하면 하던 일이 끊깁니다.
+  const [draft, setDraft] = useState("");
+  const [editingId, setEditingId] = useState("");
+  const [editText, setEditText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  // 반을 고르면 달력을 접습니다 — 그 반의 메모를 읽고 적는 자리가 되므로,
+  // 좁은 패널에서 달력이 250px을 차지하고 있을 이유가 없습니다.
+  const calendarOpen = !pickedClass;
 
   function pickDate(key) {
     setPicked((prev) => (prev === key ? "" : key));
     setPickedClass("");
+    resetWrite();
+  }
+
+  function pickClass(cid) {
+    setPickedClass(cid);
+    resetWrite();
+  }
+
+  function resetWrite() {
     setPickedMemo("");
+    setDraft("");
+    setEditingId("");
+    setEditText("");
+    setError("");
+  }
+
+  const readOnly = archivedClassIds?.has(pickedClass) ?? false;
+
+  async function saveNew() {
+    const body = draft.trim();
+    if (!body || busy || !picked || !pickedClass) return;
+    setBusy(true);
+    setError("");
+    try {
+      await addLessonMemo(pickedClass, user, body, picked);
+      setDraft("");
+    } catch (e) {
+      setError(`저장하지 못했어요: ${e?.message ?? "알 수 없는 오류"}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function saveEdit() {
+    const body = editText.trim();
+    if (!body || busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      // 날짜는 그대로 둡니다 — 달력에서 고른 그 날짜의 메모라, 여기서
+      // 날짜를 바꾸면 방금 보던 목록에서 사라져 어디로 갔는지 알 수 없습니다.
+      await updateLessonMemo(pickedClass, editingId, body, picked);
+      setEditingId("");
+      setEditText("");
+    } catch (e) {
+      setError(`저장하지 못했어요: ${e?.message ?? "알 수 없는 오류"}`);
+    } finally {
+      setBusy(false);
+    }
   }
 
   const today = todayDateKey();
@@ -428,6 +497,7 @@ function MemoCalendarPanel({ byDate, nameOfClass, currentClassId, onClose }) {
       </div>
 
       <div className="memo-cal-panel-body">
+        {calendarOpen && (
         <div className="study-attendance-calendar">
           <div className="study-cal-head">
             <button type="button" onClick={() => setCursor((c) => shiftMonth(c, -1))} aria-label="이전 달">‹</button>
@@ -471,6 +541,7 @@ function MemoCalendarPanel({ byDate, nameOfClass, currentClassId, onClose }) {
             })}
           </div>
         </div>
+        )}
 
         {!picked ? (
           <p className="memo-cal-hint">
@@ -499,22 +570,77 @@ function MemoCalendarPanel({ byDate, nameOfClass, currentClassId, onClose }) {
             </ul>
           </div>
         ) : (
-          /* 세 번째 걸음 — 그 반의 그날 메모. 눌러서 펼칩니다.
-             접힌 채로는 첫 줄만 — 메모가 길면 목록이 아니라 글 뭉치가 됩니다. */
-          <div className="memo-cal-step">
+          /* 세 번째 걸음 — 그 반의 그날 메모. 달력은 접혔습니다.
+             읽기만 하는 자리가 아니라 여기서 바로 적고 고칩니다. */
+          <div className="memo-cal-step memo-cal-step--open">
             <div className="memo-cal-step-head memo-cal-step-back">
-              <button type="button" className="memo-cal-back" onClick={() => setPickedClass("")}>
+              <button type="button" className="memo-cal-back" onClick={() => pickClass("")}>
                 ‹ 반 목록
               </button>
               <span className="memo-cal-step-where">
                 {formatDateLabel(picked)} · {nameOfClass(pickedClass)}
               </span>
             </div>
+
+            {/* 이 날짜·이 반으로 한 건 더 — 달력에서 지난 수업을 되짚다가
+                떠오른 것을 그 자리에서 적습니다. 날짜와 반은 지금 보고 있는
+                그것이라 따로 고를 것이 없습니다. */}
+            {readOnly ? (
+              <p className="memo-cal-readonly">보관된 반이라 메모를 더할 수 없어요.</p>
+            ) : (
+              <div className="memo-cal-write">
+                <textarea
+                  className="memo-field memo-field--edit"
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value.slice(0, MAX_LEN))}
+                  rows={3}
+                  placeholder={`${formatDateLabel(picked)} 수업에 적어 둘 것`}
+                />
+                <div className="memo-cal-write-foot">
+                  <button
+                    type="button"
+                    className="btn-primary memo-save"
+                    onClick={saveNew}
+                    disabled={busy || !draft.trim()}
+                  >
+                    {busy ? "저장 중…" : "저장"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {error && <p className="form-error" role="alert">{error}</p>}
+
             <ul className="memo-cal-picks">
               {classMemos.map((m) => {
+                if (editingId === m.id) {
+                  return (
+                    <li key={m.id} className="memo-cal-editing">
+                      <textarea
+                        className="memo-field memo-field--edit"
+                        value={editText}
+                        onChange={(e) => setEditText(e.target.value.slice(0, MAX_LEN))}
+                        rows={3}
+                      />
+                      <div className="memo-item-actions">
+                        <button type="button" className="btn-ghost" onClick={() => setEditingId("")}>
+                          취소
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-primary memo-save"
+                          onClick={saveEdit}
+                          disabled={busy || !editText.trim()}
+                        >
+                          저장
+                        </button>
+                      </div>
+                    </li>
+                  );
+                }
                 const open = pickedMemo === m.id;
                 return (
-                  <li key={m.id}>
+                  <li key={m.id} className="memo-cal-row">
                     <button
                       type="button"
                       className={`memo-cal-pick memo-cal-memo${open ? " open" : ""}`}
@@ -524,6 +650,15 @@ function MemoCalendarPanel({ byDate, nameOfClass, currentClassId, onClose }) {
                       <span className="memo-item-clock">{formatTime(m.createdAt)}</span>
                       <span className={`memo-cal-memo-text${open ? "" : " clamp"}`}>{m.text}</span>
                     </button>
+                    {!readOnly && (
+                      <button
+                        type="button"
+                        className="memo-mini-btn memo-cal-edit"
+                        onClick={() => { setEditingId(m.id); setEditText(m.text); setPickedMemo(""); }}
+                      >
+                        수정
+                      </button>
+                    )}
                   </li>
                 );
               })}

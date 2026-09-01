@@ -1231,6 +1231,42 @@ button.footer-link:hover {
   overflow: hidden;
 }
 .memo-cal-memo.open { background: #fff; border-color: var(--primary); }
+
+/* 반을 고르면 달력이 접히고 이 자리가 그 반의 메모가 됩니다 — 읽기만 하는
+   자리가 아니라 여기서 바로 적고 고칩니다. 달력이 없으니 위 구분선도
+   필요 없습니다(바로 위가 패널 머리입니다). */
+.memo-cal-step--open { margin-top: 0; border-top: none; padding-top: 0; }
+.memo-cal-write { margin-bottom: 12px; }
+.memo-cal-write .memo-field {
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 13px;
+}
+.memo-cal-write-foot {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+.memo-cal-readonly {
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  font-size: 12px;
+  color: var(--text-sub);
+}
+/* 메모 한 줄 = 펼치는 버튼 + 수정. 수정은 늘 보이되 조용하게 둡니다 —
+   이 목록에서 앞서는 동작은 '읽기'입니다. */
+.memo-cal-row { display: flex; align-items: flex-start; gap: 6px; }
+.memo-cal-row > .memo-cal-pick { flex: 1; min-width: 0; }
+.memo-cal-edit { flex-shrink: 0; align-self: center; }
+.memo-cal-editing { display: flex; flex-direction: column; gap: 6px; }
+.memo-cal-editing .memo-field { width: 100%; box-sizing: border-box; font-size: 13px; }
+.memo-cal-editing .memo-item-actions { display: flex; justify-content: flex-end; gap: 6px; }
+/* 패널 안에서는 버튼을 한 단계 작게 — 폭이 320px입니다 */
+.memo-cal-panel .memo-save,
+.memo-cal-panel .btn-ghost { padding: 6px 12px; font-size: 12.5px; }
 .memo-empty {
   margin: 10px 0 0;
   font-size: 13px;
