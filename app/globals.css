@@ -6735,6 +6735,109 @@ pre code {
   flex-direction: column;
   gap: 12px;
 }
+/* ── 궁금한 순간 — 반 전체 과일 집계(자리표와 모둠 현황 사이) ──
+   평소엔 버튼 한 줄이고, 누르면 아래로 펼쳐집니다. */
+.reward-tally {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.reward-tally-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--dark);
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.reward-tally-toggle:hover,
+.reward-tally-toggle.on {
+  border-color: var(--primary);
+}
+.reward-tally-toggle-label { flex: 1; text-align: left; }
+.reward-tally-toggle-sub {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-sub);
+}
+.reward-tally-caret {
+  font-size: 9px;
+  color: var(--text-sub);
+}
+/* 막대 색(--primary)이 3:1 대비를 넘으려면 바탕이 흰색이어야 합니다
+   (패널 바탕 --bg-deep 위에서는 2.8:1로 모자랍니다). */
+.reward-tally-body {
+  padding: 12px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+}
+.reward-tally-empty,
+.reward-tally-sum {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-sub);
+}
+.reward-tally-sum { margin-bottom: 8px; }
+.reward-tally-list {
+  display: flex;
+  flex-direction: column;
+  /* 막대끼리 2px 바탕이 비쳐야 서로 붙어 한 덩어리로 읽히지 않습니다 */
+  gap: 2px;
+  max-height: 320px;
+  overflow-y: auto;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.reward-tally-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 18px;
+}
+.reward-tally-name {
+  flex: 0 0 52px;
+  font-size: 12px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.reward-tally-track {
+  flex: 1;
+  min-width: 0;
+  height: 10px;
+  background: var(--neutral);
+  border-radius: 3px;
+  overflow: hidden;
+}
+/* 왼쪽(기준선)은 각지게, 값이 끝나는 오른쪽만 둥글게 */
+.reward-tally-fill {
+  display: block;
+  height: 100%;
+  background: var(--primary);
+  border-radius: 0 4px 4px 0;
+}
+.reward-tally-val {
+  flex: 0 0 20px;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: right;
+  /* 숫자는 잉크 색으로 — 막대 색을 글자에까지 쓰면 어느 것이 자료인지
+     흐려집니다. */
+  color: var(--text);
+}
+.reward-tally-val.zero { color: var(--text-sub); font-weight: 400; }
+
 .reward-head {
   display: flex;
   flex-direction: column;
@@ -20100,4 +20203,67 @@ button.study-cal-cell.has-record:not(:disabled):hover {
      활동 이름이 두어 글자만 남습니다. */
   .book-trash-item { flex-wrap: wrap; }
   .book-trash-name { flex-basis: 100%; }
+}
+
+/* ===================== 과일 축포 (학생 화면) ===================== */
+/* 화면 한가운데에서 터지고 2.4초 뒤 사라집니다. 캔버스도 뱃지도 클릭을
+   가로채지 않아, 터지는 동안에도 아래 화면을 그대로 쓸 수 있습니다. */
+.reward-cheer {
+  position: fixed;
+  inset: 0;
+  z-index: 3200; /* 모달(3100)보다 위 — 모달을 보고 있어도 보입니다 */
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.reward-cheer-canvas {
+  position: absolute;
+  inset: 0;
+}
+.reward-cheer-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 28px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 2px solid var(--primary);
+  border-radius: 999px;
+  box-shadow: 0 10px 30px rgba(46, 36, 26, 0.18);
+  animation: reward-cheer-pop 2.4s ease-out forwards;
+}
+.reward-cheer-emoji { font-size: 34px; line-height: 1; }
+.reward-cheer-plus {
+  font-size: 30px;
+  font-weight: 800;
+  color: var(--primary-dark);
+}
+.reward-cheer-text {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--dark);
+}
+@keyframes reward-cheer-pop {
+  0%   { transform: scale(0.5); opacity: 0; }
+  12%  { transform: scale(1.12); opacity: 1; }
+  22%  { transform: scale(1); opacity: 1; }
+  75%  { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1); opacity: 0; }
+}
+/* 움직임을 줄인 설정 — 커졌다 작아지는 것 없이 그대로 떠 있다 사라집니다
+   (조각은 컴포넌트가 아예 그리지 않습니다). */
+@media (prefers-reduced-motion: reduce) {
+  .reward-cheer-badge {
+    animation: reward-cheer-fade 2.4s ease-out forwards;
+  }
+  @keyframes reward-cheer-fade {
+    0%, 80% { opacity: 1; }
+    100%    { opacity: 0; }
+  }
+}
+@media (max-width: 768px) {
+  .reward-cheer-badge { padding: 14px 20px; gap: 8px; }
+  .reward-cheer-emoji { font-size: 26px; }
+  .reward-cheer-plus { font-size: 24px; }
+  .reward-cheer-text { font-size: 14px; }
 }

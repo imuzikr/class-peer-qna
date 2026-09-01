@@ -29,6 +29,7 @@ import { backdropClose } from "@/lib/modal";
 import { normalizeSeats } from "@/lib/seats";
 import { useTodayRewardCounts } from "@/lib/useTodayRewards";
 import { SeatPickGrid } from "./QuestionSeatModal";
+import RewardTally from "./RewardTally";
 import StudentToolsModal from "./StudentToolsModal";
 import StudentNotesModal from "./StudentNotesModal";
 
@@ -301,6 +302,11 @@ export default function StudyRewardPanel({
           </div>
         </div>
       )}
+
+      {/* 궁금한 순간 — 반 전체 과일 집계. 자리표(오늘)와 모둠 현황(구성)
+          사이에 둡니다. 셋 다 '이 반을 어떻게 보고 있나'의 다른 면이고,
+          이것만 누적을 다루므로 평소엔 접어 둡니다. */}
+      <RewardTally classId={classId} roster={roster} />
 
       {/* 모둠 현황 — 학생을 카드(칩)로 드래그하거나, 짚은 뒤 모둠을 눌러서
           바로 옮길 수 있습니다. 모둠을 새로 만들거나 이름·색 수정은 여전히
