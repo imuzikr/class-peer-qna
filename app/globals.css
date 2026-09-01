@@ -16618,91 +16618,6 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   border-radius: 999px;
   padding: 4px 12px;
 }
-/* ── 활동 목록 ── */
-.book-kind-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 14px;
-}
-.book-kind-card {
-  position: relative;
-  min-height: 164px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 18px;
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-soft);
-  text-align: left;
-  font-family: inherit;
-  cursor: pointer;
-  transition: border-color 0.15s, background 0.15s, transform 0.15s;
-}
-.book-kind-card:hover {
-  border-color: var(--primary);
-  background: var(--primary-light);
-  transform: translateY(-1px);
-}
-.book-kind-card strong {
-  font-size: 18px;
-  font-weight: 800;
-  color: var(--text);
-}
-.book-kind-card em {
-  min-height: 39px;
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--text-sub);
-  font-style: normal;
-}
-.book-kind-count {
-  font-size: 12px;
-  font-weight: 800;
-  color: var(--primary-dark);
-  background: var(--primary-light);
-  border-radius: 999px;
-  padding: 3px 10px;
-}
-.book-kind-meta {
-  margin-top: auto;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text-sub);
-}
-.book-kind-dashboard {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-/* 제목 · 설명 · 돌아가기 · 만들기를 한 줄로. 설명은 제목 옆에 눕혀 두어
-   제목 아래를 차지하지 않게 합니다(그만큼 활동 카드가 위로 올라옵니다).
-   좁은 화면에서는 flex-wrap으로 자연스럽게 접힙니다. */
-.book-kind-head {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-.book-kind-head h2 {
-  margin: 0;
-  font-size: 22px;
-  font-weight: 800;
-  color: var(--text);
-  flex-shrink: 0;
-}
-/* 설명이 줄어드는 쪽 — 버튼은 늘 온전히 보여야 하므로 여기만 줄입니다 */
-.book-kind-head p {
-  margin: 0;
-  font-size: 13px;
-  color: var(--text-sub);
-  flex: 0 1 auto;
-  min-width: 0;
-}
-/* '만들기'는 오른쪽 끝으로 */
-.book-kind-head .book-kind-add { margin-left: auto; }
 .book-activity-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -16903,6 +16818,15 @@ button.study-cal-cell.has-record:not(:disabled):hover {
      줄어들고, 대신 배지 안의 글자("4/4칸 · 글 24자")가 알약 모양 안에서
      두 줄로 접혀 버렸습니다. nowrap으로 항상 한 줄을 유지합니다. */
   white-space: nowrap;
+}
+/* 활동 화면 위쪽의 안내 한 줄 (곁텍스트 읽기의 '아직 본문은 읽지 마세요…').
+   원래는 책방 목록 머리말 아래 문구와 함께 쓰던 클래스인데, 그 문구를
+   없애면서 규칙까지 지워 이 문단만 본문 크기의 검은 글씨로 남았습니다.
+   쓰는 곳이 여기 하나뿐이라 규칙도 여기 둡니다. */
+.books-intro {
+  font-size: 13.5px;
+  color: var(--text-sub);
+  margin-bottom: 20px;
 }
 .book-locked-note,
 .book-free-hint {
