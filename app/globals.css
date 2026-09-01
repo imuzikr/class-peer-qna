@@ -7871,6 +7871,34 @@ pre code {
   opacity: 0.5;
   cursor: default;
 }
+/* 다른 반에서 가져오기 — '+ 새 프로젝트' 옆. 둘 다 프로젝트를 만들지만
+   이쪽은 남의 반 것을 베끼는 길이라, 주된 길(주황)보다 한 단계 낮춥니다. */
+.lesson-board-copy-btn {
+  padding: 9px 14px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--dark);
+  background: var(--neutral);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  cursor: pointer;
+}
+.lesson-board-copy-btn:hover:not(:disabled) {
+  border-color: var(--primary);
+}
+.lesson-board-copy-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+/* 무엇이 따라오고 무엇이 안 따라오는지 — 고르는 자리에서 바로 읽혀야 하므로
+   줄 전체를 차지해 아래로 내려갑니다(.lesson-board-pick은 wrap flex). */
+.lesson-board-copy-note {
+  flex-basis: 100%;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-sub);
+}
 /* 이름이 겹칠 때의 확인 — 막는 게 아니라 되묻는 자리라 오류(빨강)가 아닌
    주의(노랑) 색을 씁니다. */
 .lesson-board-dup {

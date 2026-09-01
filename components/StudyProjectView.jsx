@@ -1174,7 +1174,8 @@ export default function StudyProjectView({
             <p className="study-link-hint">
               <strong>{board.title}</strong> 프로젝트를 복제할 반을 선택하세요.
               학생이 작성한 카드는 복제되지 않고, 교사가 제시한 활동과 공개 범위만
-              그대로 옮겨집니다.
+              그대로 옮겨집니다. 활동은 <strong>모두 잠긴 채로</strong> 도착하니
+              수업 중에 하나씩 열어 주세요.
             </p>
             {otherClasses.length === 0 ? (
               <p className="study-column-empty">복제할 다른 반이 없어요. 먼저 반을 만들어 주세요.</p>

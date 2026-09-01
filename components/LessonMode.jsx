@@ -25,6 +25,7 @@ import {
   startBroadcast,
   stopBroadcast,
   addStudyBoard,
+  duplicateStudyBoard,
   updateStudyBoard,
   updateStudyCard,
   subscribeStudyCards,
@@ -134,6 +135,9 @@ export default function LessonMode({
   // 열어도 이미 만들어진 보드라 계속 보였습니다)
   const [addingBoard, setAddingBoard] = useState(false);
   const [newBoardName, setNewBoardName] = useState("");
+  // 다른 반 프로젝트를 통째로 가져오는 중 — 고른 원본은 누를 때까지 안 씁니다
+  const [copyingBoard, setCopyingBoard] = useState(false);
+  const [copyFrom, setCopyFrom] = useState("");
   const newBoardInputRef = useRef(null);
   // 이름이 같은 프로젝트가 이미 있을 때의 확인 — { name, id, acts } | null.
   // 이름 칸이 수업 자료 제목으로 미리 채워져 있어, 연결하려던 손이 '만들기'로
@@ -470,6 +474,40 @@ export default function LessonMode({
   async function useExistingBoard(id) {
     await onSaveBoardId?.(id);
     cancelAddBoard();
+  }
+
+  // ── 다른 반에서 프로젝트 통째로 가져오기 ─────────────────────
+  // 공부방의 '다른 반으로 복제'와 같은 일을 받는 쪽에서 합니다. 보내는 쪽은
+  // 복사만 하고 끝나 받는 반 수업 자료에 연결하는 일이 남는데, 그 연결이
+  // 필요하다는 것을 깨닫는 자리가 바로 여기(그 반 수업 준비)입니다.
+  // 그래서 여기서는 복사와 연결을 한 번에 합니다.
+  function startCopyBoard() {
+    setCopyFrom("");
+    setActError("");
+    setDupBoard(null);
+    setCopyingBoard(true);
+  }
+  function cancelCopyBoard() {
+    setCopyingBoard(false);
+    setCopyFrom("");
+  }
+  async function handleCopyBoard(e) {
+    e.preventDefault();
+    const src = otherBoards.find((b) => b.id === copyFrom);
+    if (!classId || !src || makingBoard) return;
+    setMakingBoard(true);
+    setActError("");
+    try {
+      // 학생 카드는 따라오지 않고, 활동은 전부 잠긴 채로 도착합니다
+      // (duplicateStudyBoard 참고 — 받는 반은 진도가 0이므로).
+      const id = await duplicateStudyBoard(src, classId, getCurrentUser());
+      if (id) await onSaveBoardId?.(id);
+      cancelCopyBoard();
+    } catch (e2) {
+      setActError(`프로젝트를 가져오지 못했어요: ${e2?.message ?? "알 수 없는 오류"}`);
+    } finally {
+      setMakingBoard(false);
+    }
   }
 
   // 입력한 이름으로 새 프로젝트를 만들고 바로 연결합니다(취소하면 아무것도 안 만듭니다).
@@ -938,8 +976,50 @@ export default function LessonMode({
             </div>
 
             <div className="lesson-board-body">
-              {/* 보드 선택 + 새 보드 만들기 */}
-              {addingBoard ? (
+              {/* 보드 선택 + 새 보드 만들기 + 다른 반에서 가져오기 */}
+              {copyingBoard ? (
+                <form className="lesson-board-pick lesson-board-addform" onSubmit={handleCopyBoard}>
+                  <label htmlFor="lesson-board-copy">가져올 프로젝트</label>
+                  <select
+                    id="lesson-board-copy"
+                    className="lesson-board-select"
+                    value={copyFrom}
+                    onChange={(e) => setCopyFrom(e.target.value)}
+                    disabled={makingBoard}
+                    autoFocus
+                  >
+                    <option value="">반과 프로젝트를 고르세요</option>
+                    {importGroups.map(([cls, list]) => (
+                      <optgroup key={cls} label={cls}>
+                        {list.map((b) => (
+                          <option key={b.id} value={b.id}>
+                            {b.title} · 활동 {b.activities?.length ?? 0}개
+                          </option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
+                  <button
+                    type="submit"
+                    className="lesson-board-add"
+                    disabled={!copyFrom || makingBoard}
+                  >
+                    {makingBoard ? "가져오는 중…" : "가져오기"}
+                  </button>
+                  <button
+                    type="button"
+                    className="lesson-board-cancel"
+                    onClick={cancelCopyBoard}
+                    disabled={makingBoard}
+                  >
+                    취소
+                  </button>
+                  <small className="lesson-board-copy-note">
+                    이 반에 같은 프로젝트를 새로 만들어 이 수업에 연결합니다.
+                    학생 카드는 따라오지 않고, 활동은 모두 잠긴 채로 들어옵니다.
+                  </small>
+                </form>
+              ) : addingBoard ? (
                 <form className="lesson-board-pick lesson-board-addform" onSubmit={handleAddBoard}>
                   <label htmlFor="lesson-board-newname">새 프로젝트 이름</label>
                   <input
@@ -1001,6 +1081,17 @@ export default function LessonMode({
                   >
                     + 새 프로젝트
                   </button>
+                  {importGroups.length > 0 && (
+                    <button
+                      type="button"
+                      className="lesson-board-copy-btn"
+                      onClick={startCopyBoard}
+                      disabled={!classId}
+                      title="다른 반에 만들어 둔 프로젝트를 이 반으로 복사하고 이 수업에 연결합니다"
+                    >
+                      다른 반에서 가져오기
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -1234,7 +1325,7 @@ export default function LessonMode({
                         disabled={actBusy}
                         aria-label="활동을 가져올 다른 반 프로젝트"
                       >
-                        <option value="">다른 반 프로젝트에서 활동 가져오기…</option>
+                        <option value="">다른 반 프로젝트에서 활동만 가져오기…</option>
                         {importGroups.map(([cls, list]) => (
                           <optgroup key={cls} label={cls}>
                             {list.map((b) => (
@@ -1253,8 +1344,8 @@ export default function LessonMode({
                         {actBusy ? "가져오는 중…" : "가져오기"}
                       </button>
                       <small>
-                        활동 이름만 이 목록 뒤에 이어 붙입니다 — 학생 카드와
-                        진도(활동 열기)는 반마다 그대로입니다.
+                        활동 이름만 이 목록 뒤에 이어 붙입니다. 프로젝트를
+                        통째로 가져오려면 위의 ‘다른 반에서 가져오기’를 쓰세요.
                       </small>
                     </div>
                   )}
