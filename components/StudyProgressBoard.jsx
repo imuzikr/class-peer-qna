@@ -25,6 +25,7 @@ import {
   subscribeCardsForBoards,
   fetchAnswerCounts,
   subscribeQuestionsByAuthors,
+  todayDateKey,
 } from "@/lib/store";
 import { stripHtml } from "@/lib/html";
 import {
@@ -70,10 +71,16 @@ function cardCharCounts(card, activities) {
 // 칸 하나의 상태 — 색으로 구분합니다.
 //   done   연한 초록 : 10자 이상 썼음 (잠겼더라도 쓴 건 쓴 것)
 //   open   연한 주황 : 열려 있는데 아직 덜 씀
-//   locked 회색     : 아직 열어 주지 않음
-function cellState(done, locked) {
+//   absent 연한 회색 : 오늘 결석이라 못 쓴 것 — '안 한' 것과 다릅니다
+//   locked 빗금 회색 : 아직 열어 주지 않음
+//
+// 순서에 뜻이 있습니다. 쓴 것이 가장 셉니다(결석해도 집에서 썼으면 쓴 것),
+// 그다음이 잠김입니다 — 잠긴 칸은 아무도 못 쓰는 칸이라 '결석해서 못 냈다'는
+// 설명이 성립하지 않습니다.
+function cellState(done, locked, absent) {
   if (done) return "done";
-  return locked ? "locked" : "open";
+  if (locked) return "locked";
+  return absent ? "absent" : "open";
 }
 
 export default function StudyProgressBoard({
@@ -105,6 +112,24 @@ export default function StudyProgressBoard({
   const activities = board?.activities ?? [];
   const isGroup = board?.activityType === "group";
 
+  // ── 오늘 결석한 학생 ──
+  // 출석 기록은 '왔다'는 것만 남습니다(문서 ID = 날짜_uid). 그래서 오늘
+  // 기록이 없으면 결석입니다.
+  //
+  // 다만 교사가 오늘 출석을 아예 시작하지 않았으면 모두가 기록이 없어 반
+  // 전체가 결석으로 보입니다. 그러면 전광판이 통째로 회색이 되어 '아무도 안
+  // 썼다'와 구분이 안 됩니다. 그래서 **오늘 출석 기록이 하나라도 있을 때만**
+  // 이 구분을 씁니다(= 오늘 출석을 실시한 날).
+  const todayKey = todayDateKey();
+  const presentToday = useMemo(
+    () =>
+      new Set(
+        attendanceRecords.filter((r) => r.date === todayKey).map((r) => r.uid)
+      ),
+    [attendanceRecords, todayKey]
+  );
+  const markAbsent = presentToday.size > 0;
+
   // 학생별 진행 상황 (카드가 아직 없으면 전부 미작성)
   // 모둠 보드는 카드 한 장을 모둠원 여럿이 공유하므로 memberUids로 찾음
   const rows = roster.map((s) => {
@@ -117,8 +142,10 @@ export default function StudyProgressBoard({
       chars: cardCharCounts(card, activities),
       hasCard: !!card,
       card: card ?? null,
+      absent: markAbsent && !presentToday.has(s.uid),
     };
   });
+  const absentCount = rows.filter((r) => r.absent).length;
 
   // 활동별 작성 인원
   const doneCounts = activities.map(
@@ -238,6 +265,7 @@ export default function StudyProgressBoard({
     if (row.done[i]) return `${who} — 활동 ${i + 1} 제출함 (${n}자)`;
     if (locked) return `${who} — 활동 ${i + 1} 잠김 (아직 열지 않음)`;
     if (n > 0) return `${who} — 활동 ${i + 1} 작성 중 (${n}자, ${DONE_MIN_CHARS}자 필요)`;
+    if (row.absent) return `${who} — 활동 ${i + 1} 미제출 (오늘 결석)`;
     return `${who} — 활동 ${i + 1} 아직 시작 전`;
   }
 
@@ -268,6 +296,13 @@ export default function StudyProgressBoard({
             <span className="progress-legend-item">
               <i className="progress-mark progress-mark--open" /> 작성 전
             </span>
+            {/* 결석 칸이 실제로 있을 때만 — 다 출석한 날에 쓰지 않는 색을
+                범례에 남겨 두면 없는 상태를 찾게 됩니다. */}
+            {absentCount > 0 && (
+              <span className="progress-legend-item">
+                <i className="progress-mark progress-mark--absent" /> 결석({absentCount}명)
+              </span>
+            )}
             <span className="progress-legend-item">
               <i className="progress-mark progress-mark--locked" /> 잠김
             </span>
@@ -313,7 +348,7 @@ export default function StudyProgressBoard({
                       <span className="grass-act-name" title={act}>{act}</span>
                     </span>
                     {rows.map((r) => {
-                      const st = cellState(r.done[i], locked);
+                      const st = cellState(r.done[i], locked, r.absent);
                       const text = cellSummary(r, i);
                       return (
                         <button

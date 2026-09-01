@@ -8160,6 +8160,10 @@ pre code {
 }
 .grass-cell--done { background: #7fb98a; border-color: #6aa877; }
 .grass-cell--open { background: #f6dfd0; border-color: #eccdb7; }
+/* 오늘 결석 — '안 낸' 것이 아니라 '낼 수 없었던' 칸이라 주황에서 빼 둡니다.
+   잠김(빗금)과 같은 회색 계열이되 빗금은 없습니다. 두 상태가 겹칠 일은
+   없습니다(cellState에서 잠김이 이깁니다). */
+.grass-cell--absent { background: #dfdedb; border-color: #cbcac5; }
 .grass-cell--locked {
   background: var(--neutral);
   border-color: var(--border);
@@ -8364,6 +8368,11 @@ pre code {
 .progress-mark--open {
   background: #fbe3d0;
   border: 1px solid #efc19a;
+}
+/* 오늘 결석이라 못 씀 */
+.progress-mark--absent {
+  background: #dfdedb;
+  border: 1px solid #cbcac5;
 }
 /* 아직 열어 주지 않음 — 색만으로는 '주황(작성 전)'과 헷갈릴 수 있어
    대각선을 넣어 모양으로도 구분되게 합니다(색맹·흑백 인쇄에도 안전) */

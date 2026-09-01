@@ -750,6 +750,9 @@ export default function LessonMode({
           board={board}
           roster={roster}
           cards={boardCards}
+          // 오늘 결석한 학생의 빈 칸을 '안 씀'(주황)이 아니라 회색으로
+          // 구분하는 데 씁니다 — 여기서 안 넘기면 그 구분이 통째로 꺼집니다.
+          attendanceRecords={attendanceRecords}
           onClose={() => setProgressOpen(false)}
         />
       )}
