@@ -21,25 +21,15 @@
 // [기간] 최근 4주. 한 반이 주 두세 시간이라 주별 값은 크게 출렁이는데,
 // 4주로 묶어야 한두 건 차이가 신호처럼 보이지 않습니다.
 // =============================================================
-import { useEffect, useMemo, useState } from "react";
-import { subscribeClassSignalEvents, toDate } from "@/lib/store";
+import { useMemo } from "react";
+import { toDate } from "@/lib/store";
 
 const WEEKS = 4;
 const DAY = 24 * 60 * 60 * 1000;
 
-export default function ClassSignalTrend({ classId = null, roster = [] }) {
-  const [events, setEvents] = useState([]);
-  const [loaded, setLoaded] = useState(false);
-
-  useEffect(() => {
-    setLoaded(false);
-    setEvents([]);
-    if (!classId) return;
-    return subscribeClassSignalEvents(classId, (list) => {
-      setEvents(list);
-      setLoaded(true);
-    });
-  }, [classId]);
+// 손들기 이력은 대시보드가 한 번만 받아, 이 패널과 '참여의 폭'이 나눠 씁니다
+// — 같은 컬렉션에 리스너를 둘 걸면 읽기가 두 배가 됩니다.
+export default function ClassSignalTrend({ classId = null, roster = [], events = [], loaded = false }) {
 
   const { rows, total, silent, since } = useMemo(() => {
     const from = Date.now() - WEEKS * 7 * DAY;

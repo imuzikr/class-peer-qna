@@ -20704,3 +20704,100 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   font-size: 11.5px;
   color: var(--text-sub);
 }
+
+/* ── 참여의 폭 — 다섯 갈래 중 몇 갈래로 참여했나 ── */
+.breadth-channels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 14px;
+  padding: 0;
+  list-style: none;
+}
+.breadth-channels li {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: var(--neutral);
+  font-size: 12px;
+  color: var(--text-sub);
+}
+/* 반 전체가 한 번도 안 쓴 갈래 — 학생이 아니라 수업 설계를 볼 자리라
+   눈에 띄게 둡니다. */
+.breadth-channels li.empty {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+}
+.breadth-ch-name { font-weight: 700; }
+.breadth-ch-n {
+  color: var(--dark);
+  font-variant-numeric: tabular-nums;
+}
+.breadth-channels li.empty .breadth-ch-n { color: var(--primary-dark); }
+.breadth-ch-of { font-size: 11px; }
+
+.breadth-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.breadth-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+}
+.breadth-name {
+  flex: 0 0 64px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.breadth-dots {
+  flex-shrink: 0;
+  display: flex;
+  gap: 4px;
+}
+/* 켜짐/꺼짐을 색만으로 나누지 않습니다 — 꺼진 점은 테두리만 남겨,
+   색을 못 가리는 눈에도 채움과 빈 것이 모양으로 갈립니다. */
+.breadth-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  box-sizing: border-box;
+}
+.breadth-dot.on {
+  background: var(--primary-dark);
+  border-color: var(--primary-dark);
+}
+.breadth-tags {
+  min-width: 0;
+  color: var(--text-sub);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.breadth-tags.none { color: var(--danger); font-weight: 700; }
+.breadth-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: var(--text-sub);
+}
+/* 손들기가 아직 비어 있다는 안내 — 꺼진 점을 '참여 안 함'으로 읽지 않도록 */
+.breadth-note {
+  font-style: normal;
+  padding: 7px 11px;
+  border-radius: var(--radius-btn);
+  background: var(--neutral);
+  line-height: 1.65;
+}
