@@ -347,6 +347,29 @@ function StudyPageInner() {
     () => boards.filter((b) => b.classId === classId),
     [boards, classId]
   );
+  // 다른 반에 만들어 둔 프로젝트 — 수업 자료 편집에서 '활동만' 베껴 오는 데
+  // 씁니다. boards는 이미 전체를 구독하고 있어 읽기가 늘지 않습니다.
+  // 남의 반이 섞이지 않도록 내 반(보관된 반 포함 — 지난 학기 활동을 그대로
+  // 쓰는 일이 흔합니다)으로 한 번 거릅니다.
+  const otherClassBoards = useMemo(() => {
+    if (!admin) return [];
+    const names = new Map(myClassesAll.map((c) => [c.id, c.name]));
+    return boards
+      .filter(
+        (b) =>
+          b.classId &&
+          b.classId !== classId &&
+          b.type !== "notice" &&
+          names.has(b.classId) &&
+          (b.activities?.length ?? 0) > 0
+      )
+      .map((b) => ({
+        id: b.id,
+        title: b.title ?? "이름 없는 프로젝트",
+        className: names.get(b.classId) ?? "",
+        activities: b.activities ?? [],
+      }));
+  }, [admin, boards, classId, myClassesAll]);
   const todayAttendanceKey = todayDateKey();
   const attendedToday = !admin && attendanceRecords.some((r) => r.date === todayAttendanceKey);
   // 교사가 '출석 시작'을 오늘 눌렀을 때만 유효 — attendanceOpenDate가 오늘과
@@ -1201,6 +1224,7 @@ function StudyPageInner() {
           roster={admin ? roster : []}
           // 학생이 카드를 쓰는 보드만 연결 대상 — '선생님 보드'(공지용)는 제외
           boards={classBoards.filter((b) => b.type !== "notice")}
+          otherBoards={otherClassBoards}
           // 연결은 **반마다 따로** 기억합니다 — 한 자료를 여러 반에서 쓰기
           // 때문입니다(LessonMode의 boardIds 주석 참고). 점 표기 경로
           // ({ "boardIds.xxx": … })는 Mock의 Object.assign에서 문자열 키가

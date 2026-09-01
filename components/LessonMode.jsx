@@ -20,7 +20,7 @@
 //
 // 이전 / 다음 / 종료 — 종료하면 방송이 꺼져 학생 화면도 원래대로 돌아갑니다.
 // =============================================================
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   startBroadcast,
   stopBroadcast,
@@ -61,6 +61,8 @@ export default function LessonMode({
   classId = null,
   className = "",
   boards = [],          // 수업 준비: 이 반의 공부방 보드 목록(연결 대상)
+  otherBoards = [],     // 수업 준비: 다른 반에 만들어 둔 프로젝트(활동만 베껴 옴)
+                        //   [{ id, title, className, activities[] }]
   roster = [],          // 수업 중: 이 반 학생 명단(참여 전광판 자리 배치용)
   attendanceRecords = [],
   onAward,              // 수업 중: 참여 전광판 카드에서 과일 주기(교사만)
@@ -123,6 +125,8 @@ export default function LessonMode({
   const [overIdx, setOverIdx] = useState(null);
   const [actBusy, setActBusy] = useState(false);
   const [actError, setActError] = useState("");
+  // 활동을 베껴 올 다른 반 프로젝트 — 고르기만 한 상태(누를 때까지 안 씁니다)
+  const [importFrom, setImportFrom] = useState("");
   const [makingBoard, setMakingBoard] = useState(false);
   // '+ 수업 보드 추가'는 누르자마자 만들지 않고 이름 입력창을 먼저 엽니다.
   // (예전엔 클릭 즉시 수업 자료 제목으로 빈 보드를 만들어 버려서, 원치
@@ -298,6 +302,40 @@ export default function LessonMode({
     const ok = await saveBoardActs([...boardActs, name]);
     if (!ok) return; // 실패하면 쓴 글자를 지우지 않습니다
     setNewAct("");
+  }
+
+  // ── 다른 반 프로젝트에서 활동 가져오기 ───────────────────────
+  // 같은 수업을 여러 반에서 할 때, 한 반에 적어 둔 활동을 다른 반 프로젝트에
+  // 다시 타이핑하지 않으려는 것입니다. 베끼는 것은 **활동 이름 목록뿐**이고
+  // 학생 카드·자료·잠금은 각 반 것이 그대로 남습니다(두 반이 한 프로젝트를
+  // 같이 쓰면 카드가 한곳에 섞이고 진도까지 함께 움직여 못 씁니다).
+  const importGroups = useMemo(() => {
+    const byClass = new Map();
+    for (const b of otherBoards) {
+      const key = b.className || "반 이름 없음";
+      if (!byClass.has(key)) byClass.set(key, []);
+      byClass.get(key).push(b);
+    }
+    return [...byClass];
+  }, [otherBoards]);
+
+  async function handleImportActs() {
+    const src = otherBoards.find((b) => b.id === importFrom);
+    if (!src || !board || actBusy) return;
+    // 덮어쓰지 않고 **뒤에 이어 붙입니다**. 덮어쓰면 이미 적어 둔 활동이
+    // 사라지는데 되돌릴 길이 없고, 여기서 지우는 것은 ✕ 한 번이면 됩니다.
+    // 이름이 같은 활동은 건너뜁니다 — 잠금은 이름으로 짝을 찾으므로
+    // (nextActivityLocks) 같은 이름이 둘이면 어느 쪽 잠금인지 갈립니다.
+    const names = (src.activities ?? [])
+      .map((a) => String(a).trim())
+      .filter(Boolean)
+      .filter((n) => !boardActs.includes(n));
+    if (names.length === 0) {
+      setActError(`‘${src.title}’의 활동은 이미 이 목록에 다 있어요.`);
+      return;
+    }
+    const ok = await saveBoardActs([...boardActs, ...names]);
+    if (ok) setImportFrom("");
   }
 
   // ── 학습 자료 ────────────────────────────────────────────────
@@ -1183,6 +1221,42 @@ export default function LessonMode({
                     <p className="lesson-note-empty">
                       아직 활동이 없어요. 아래에서 추가하면 ‘{board.title}’ 프로젝트에 바로 반영됩니다.
                     </p>
+                  )}
+
+                  {/* 다른 반에 같은 활동을 이미 적어 두었을 때 — 다시
+                      타이핑하지 않게 이름만 베껴 옵니다(원본은 그대로). */}
+                  {importGroups.length > 0 && (
+                    <div className="lesson-board-import">
+                      <select
+                        className="lesson-board-import-pick"
+                        value={importFrom}
+                        onChange={(e) => setImportFrom(e.target.value)}
+                        disabled={actBusy}
+                        aria-label="활동을 가져올 다른 반 프로젝트"
+                      >
+                        <option value="">다른 반 프로젝트에서 활동 가져오기…</option>
+                        {importGroups.map(([cls, list]) => (
+                          <optgroup key={cls} label={cls}>
+                            {list.map((b) => (
+                              <option key={b.id} value={b.id}>
+                                {b.title} · 활동 {b.activities.length}개
+                              </option>
+                            ))}
+                          </optgroup>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={handleImportActs}
+                        disabled={!importFrom || actBusy}
+                      >
+                        {actBusy ? "가져오는 중…" : "가져오기"}
+                      </button>
+                      <small>
+                        활동 이름만 이 목록 뒤에 이어 붙입니다 — 학생 카드와
+                        진도(활동 열기)는 반마다 그대로입니다.
+                      </small>
+                    </div>
                   )}
 
                   <form className="lesson-board-actadd" onSubmit={handleAddAct}>
