@@ -347,12 +347,12 @@ function StudyPageInner() {
     () => boards.filter((b) => b.classId === classId),
     [boards, classId]
   );
-  // 다른 반에 만들어 둔 프로젝트 — 수업 자료 편집에서 통째로 가져오거나
-  // 활동만 베껴 오는 데 씁니다. boards는 이미 전체를 구독하고 있어 읽기가
+  // 다른 반에 만들어 둔 프로젝트 — 수업 자료 편집의 '다른 반에서 가져오기'가
+  // 통째로 복사해 오는 대상입니다. boards는 이미 전체를 구독하고 있어 읽기가
   // 늘지 않습니다. 남의 반이 섞이지 않도록 내 반(보관된 반 포함 — 지난 학기
   // 활동을 그대로 쓰는 일이 흔합니다)으로 한 번 거릅니다.
-  // 통째로 가져오기(duplicateStudyBoard)는 공개 범위·활동 유형까지 읽으므로
-  // 보드 문서를 통째로 넘기고 반 이름만 덧붙입니다.
+  // duplicateStudyBoard가 공개 범위·활동 유형까지 읽으므로 보드 문서를 통째로
+  // 넘기고 반 이름만 덧붙입니다.
   const otherClassBoards = useMemo(() => {
     if (!admin) return [];
     const names = new Map(myClassesAll.map((c) => [c.id, c.name]));
