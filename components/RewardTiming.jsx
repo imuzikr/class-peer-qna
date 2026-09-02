@@ -31,7 +31,12 @@ import {
 
 // 한 가지 색의 진하기만 — 앞·가운데·뒤는 순서가 있는 값이라 다른 색을
 // 섞으면 순서가 안 읽힙니다(쏠림 띠와 같은 생각).
-const BANDS = ["#b85c3f", "#d98a63", "#eeba9e"];
+//
+// 색은 초록입니다. 바로 위 '쏠림' 띠가 과일색(주황)이라, 같은 색으로 두면
+// 두 띠가 한 덩어리로 보여 서로 다른 것을 재고 있다는 게 안 읽힙니다.
+// 밝기가 단조롭게 옅어지고(앞이 진함) 이웃끼리 2.05·1.61로 갈립니다 —
+// 재서 고른 값입니다.
+const BANDS = ["#276b49", "#5ba077", "#8ec7a0"];
 
 export default function RewardTiming({ events = [], attendance = [], loaded = false }) {
   const stat = useMemo(() => {
@@ -63,6 +68,22 @@ export default function RewardTiming({ events = [], attendance = [], loaded = fa
   // 가장 많이 몰린 토막 — 한 줄 요약에 씁니다.
   const topIdx = stat.counts.indexOf(Math.max(...stat.counts));
 
+  // 띠와 범례에 붙는 설명 — 숫자를 되풀이하는 대신 '몇 분대인가'와 '무엇을
+  // 세는가'를 밝힙니다. 화면에는 '앞 15분'이라고만 적혀 있어, 그것이 수업
+  // 시작으로부터 0~15분이라는 것이 눌러 보기 전에는 안 보입니다.
+  const hint = (i) => {
+    const b = TIME_BANDS[i];
+    const range = b.to === Infinity ? `${b.from}분 이후` : `${b.from}~${b.to}분`;
+    const n = stat.counts[i];
+    return (
+      `${b.ko} — 수업 시작 ${range}\n` +
+      (n > 0
+        ? `과일 ${n}개 (수업 안에 준 ${stat.total}개 중 ${pct(n)}%)`
+        : "이 대목에는 준 과일이 없어요") +
+      `\n수업 시작은 그날 첫 출석 시각으로 봅니다`
+    );
+  };
+
   return (
     <div className="rtime">
       <p className="rtime-lead">
@@ -88,14 +109,20 @@ export default function RewardTiming({ events = [], attendance = [], loaded = fa
               stat.counts[i] > 0 ? (
                 <span
                   key={b.key}
+                  className="rtime-seg"
                   style={{ flex: stat.counts[i], background: BANDS[i] }}
+                  title={hint(i)}
                 />
               ) : null
             )}
           </div>
           <div className="skew-legend">
             {TIME_BANDS.map((b, i) => (
-              <span key={b.key} className={stat.counts[i] === 0 ? "rtime-zero" : ""}>
+              <span
+                key={b.key}
+                className={`rtime-key${stat.counts[i] === 0 ? " rtime-zero" : ""}`}
+                title={hint(i)}
+              >
                 <i className="skew-swatch" style={{ background: BANDS[i] }} />
                 {b.ko} {pct(stat.counts[i])}%
                 <em className="rtime-n">{stat.counts[i]}개</em>
