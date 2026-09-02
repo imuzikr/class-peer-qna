@@ -138,7 +138,7 @@ export default function LandingPage() {
       document.documentElement.removeAttribute("data-auth-pending");
       return;
     }
-    if (authStatus === "in") router.replace("/board");
+    if (authStatus === "in") router.replace("/study");
     else if (authStatus === "out") {
       document.documentElement.removeAttribute("data-auth-pending");
     }
@@ -148,7 +148,7 @@ export default function LandingPage() {
     e.preventDefault();
     if (!isFirebaseConfigured) {
       // 데모 모드 — 바로 입장
-      router.push("/board");
+      router.push("/study");
       return;
     }
     setError("");
@@ -159,7 +159,7 @@ export default function LandingPage() {
       } else {
         await signInWithEmail(email.trim(), password);
       }
-      router.push("/board");
+      router.push("/study");
     } catch (err) {
       setError(authErrorMessage(err?.code));
     } finally {
@@ -182,7 +182,7 @@ export default function LandingPage() {
         authMode === "signup" ? signupRole : null,
         authMode === "signup" ? regCode : ""
       );
-      router.push("/board");
+      router.push("/study");
     } catch (err) {
       setError(authErrorMessage(err?.code));
     } finally {

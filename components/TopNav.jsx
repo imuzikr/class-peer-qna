@@ -187,7 +187,9 @@ export default function TopNav({ active, onPython, pyActive = false }) {
     <header className="topbar">
       {/* 로고 — 좁은 화면에서도 항상 첫 줄에 남습니다 */}
       <div className="topbar-left">
-        <button className="logo logo-button" onClick={() => go("/board")}>
+        {/* 로고 = '처음으로'. 첫 화면이 공부방이 되었으므로 여기도 공부방으로
+            갑니다 — 로고만 질문방으로 가면 '처음'이 두 곳이 됩니다. */}
+        <button className="logo logo-button" onClick={() => go("/study")}>
           <IconLogo size={30} /> 배움나눔
         </button>
         <span className="topbar-divider" aria-hidden="true" />
