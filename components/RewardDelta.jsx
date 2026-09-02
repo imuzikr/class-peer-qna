@@ -19,12 +19,11 @@
 // 보이기만 하고 교사가 할 일이 없습니다. 그보다 '이 학생은 절반도 못 나와
 // 견주기 어렵다'가 훨씬 정직하고 쓸모 있습니다.
 //
-// [구독] 과일 이력은 부모(ClassRewardTrend)가 이미 받아 둔 것을 그대로
-// 받습니다. 출석만 여기서 따로 구독합니다 — 대시보드는 교사가 가끔 여는
-// 화면이고, 한 반의 출석 기록이라 크지 않습니다.
+// [구독하지 않습니다] 과일 이력도 출석도 부모(ClassRewardTrend)가 받아 둔
+// 것을 그대로 받습니다.
 // =============================================================
-import { useEffect, useMemo, useState } from "react";
-import { subscribeClassStudyAttendance, toDate } from "@/lib/store";
+import { useMemo } from "react";
+import { toDate } from "@/lib/store";
 
 const WEEKS = 4;
 const DAY = 24 * 60 * 60 * 1000;
@@ -33,15 +32,15 @@ const SHOW = 6;
 // 이 창에서 반 수업일의 이만큼도 못 나왔으면 견주지 않습니다.
 const THIN = 0.5;
 
-export default function RewardDelta({ classId = null, events = [], roster = [], loaded = false }) {
-  const [attendance, setAttendance] = useState([]);
-
-  useEffect(() => {
-    setAttendance([]);
-    if (!classId) return;
-    return subscribeClassStudyAttendance(classId, setAttendance);
-  }, [classId]);
-
+// attendance — 부모(ClassRewardTrend)가 받아 둔 출석 기록. 예전에는 여기서
+// 직접 구독했는데, 옆의 '언제 주나' 칸도 같은 자료를 봐야 해서 둘이 각자
+// 구독하면 같은 컬렉션에 리스너가 둘이 됩니다. 위로 올렸습니다.
+export default function RewardDelta({
+  events = [],
+  roster = [],
+  attendance = [],
+  loaded = false,
+}) {
   const stat = useMemo(() => {
     const now = Date.now();
     const midAt = now - WEEKS * 7 * DAY;      // 최근 창의 시작

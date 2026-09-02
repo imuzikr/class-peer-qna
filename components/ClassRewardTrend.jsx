@@ -22,9 +22,15 @@
 // 읽기는 담당 교사·관리자만 됩니다(규칙: classes/{id}/rewardEvents).
 // =============================================================
 import { useEffect, useMemo, useState } from "react";
-import { subscribeClassRewardEvents, toDate, todayDateKey } from "@/lib/store";
+import {
+  subscribeClassRewardEvents,
+  subscribeClassStudyAttendance,
+  toDate,
+  todayDateKey,
+} from "@/lib/store";
 import RewardSkew from "./RewardSkew";
 import RewardDelta from "./RewardDelta";
+import RewardTiming from "./RewardTiming";
 
 // 격자에 세우는 최대 수업일 — 넘으면 최근 것부터 남깁니다.
 const MAX_DAYS = 20;
@@ -112,6 +118,16 @@ export default function ClassRewardTrend({ classId, roster = [], rewards = [] })
     });
   }, [classId]);
 
+  // 출석 — '변화'(결석 잦은 학생 가리기)와 '언제 주나'(수업 시작 시각)가
+  // 함께 씁니다. 둘이 각자 구독하면 같은 컬렉션에 리스너가 둘이 되므로
+  // 여기서 한 번만 받아 내려 줍니다.
+  const [attendance, setAttendance] = useState([]);
+  useEffect(() => {
+    setAttendance([]);
+    if (!classId) return;
+    return subscribeClassStudyAttendance(classId, setAttendance);
+  }, [classId]);
+
   const { dates, rows, totalDates } = useMemo(
     () => buildRewardGrid(events, roster),
     [events, roster]
@@ -149,9 +165,16 @@ export default function ClassRewardTrend({ classId, roster = [], rewards = [] })
           않습니다. 이력은 '주고 거둔 양' 한 줄에만 씁니다.
           둘 다 부모가 받아 둔 배열이라 리스너가 늘지 않습니다. */}
       <RewardSkew rewards={rewards} events={events} roster={roster} loaded={loaded} />
-      {/* 변화 — 쏠림이 '지금 고른가'라면 이쪽은 '움직이고 있나'입니다.
-          과일 이력은 여기서 받은 것을 그대로 넘기고, 출석만 따로 구독합니다. */}
-      <RewardDelta classId={classId} events={events} roster={roster} loaded={loaded} />
+      {/* 언제 주나 — 쏠림이 '누구에게'라면 이쪽은 '수업 어느 대목에'입니다.
+          둘 다 재는 것은 학생이 아니라 교사의 눈길입니다. */}
+      <RewardTiming events={events} attendance={attendance} loaded={loaded} />
+      {/* 변화 — 쏠림이 '지금 고른가'라면 이쪽은 '움직이고 있나'입니다. */}
+      <RewardDelta
+        events={events}
+        roster={roster}
+        attendance={attendance}
+        loaded={loaded}
+      />
 
       {!loaded ? (
         <div className="admin-empty">불러오는 중…</div>
