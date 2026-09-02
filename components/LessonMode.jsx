@@ -30,6 +30,7 @@ import {
   updateStudyCard,
   subscribeStudyCards,
   subscribePresence,
+  subscribeQuestionSignals,
   subscribeStudySeatLayout,
   saveStudySeatLayout,
   subscribeStudyGroupAssignment,
@@ -54,6 +55,10 @@ import { getCurrentUser } from "@/lib/user";
 import AttendanceBoard from "./AttendanceBoard";
 import StudyProgressBoard, { cardProgress } from "./StudyProgressBoard";
 import LessonSeatPanel from "./LessonSeatPanel";
+// 수업 화면이 상단바를 덮으므로, 상단바의 공지·알림을 여기에도 둡니다.
+import ClassNoticeButton from "./ClassNoticeButton";
+import NotificationBell from "./NotificationBell";
+import { isFirebaseConfigured } from "@/lib/firebase";
 import UploadProgress from "./UploadProgress";
 
 export default function LessonMode({
@@ -195,6 +200,29 @@ export default function LessonMode({
       setLockBusy(false);
     }
   }
+
+  // ── 손들기 ──
+  // 자리표(LessonSeatPanel)가 갖고 있던 구독을 여기로 올렸습니다. 머리말의
+  // 손들기 표시와 자리표가 같은 값을 봐야 하는데, 각자 구독하면 같은
+  // 컬렉션에 리스너가 둘이 됩니다. 자리표는 이 화면에서만 쓰므로 위로
+  // 올려도 다른 데 영향이 없습니다.
+  const [raisedUids, setRaisedUids] = useState(() => new Set());
+  useEffect(() => {
+    if (!classId) { setRaisedUids(new Set()); return; }
+    return subscribeQuestionSignals(classId, (list) =>
+      setRaisedUids(new Set(list.map((s) => s.uid).filter(Boolean)))
+    );
+  }, [classId]);
+  const raisedCount = roster.filter((s) => raisedUids.has(s.uid)).length;
+  // 자리표 펼침도 여기서 쥡니다 — 머리말의 손들기를 누르면 자리표가 열려야
+  // 누가 들었는지 바로 보입니다.
+  const [seatOpen, setSeatOpen] = useState(false);
+
+  // 알림함은 내 uid로 구독합니다. 로그인 캐시는 인증이 풀린 뒤에 채워지므로
+  // 그릴 때 바로 읽지 않고 마운트 뒤에 한 번 읽습니다(서버에서 그릴 때와
+  // 처음 그릴 때가 어긋나지 않게).
+  const [me, setMe] = useState(null);
+  useEffect(() => { setMe(getCurrentUser()); }, []);
 
   // ── 참여 전광판 (수업 중, 발표하는 동안만) ──
   const [attendOpen, setAttendOpen] = useState(false);
@@ -695,6 +723,28 @@ export default function LessonMode({
           </div>
         )}
         <span className="lesson-count">{total === 0 ? 0 : idx + 1} / {total}</span>
+        {/* 수업 화면은 화면 전체를 덮어(position: fixed) 위쪽 상단바를
+            가립니다. 그래서 수업 중에는 반 공지도 알림도 손이 닿지 않았고,
+            손든 학생은 자리표를 펼쳐야만 보였습니다. 상단바의 그 자리를
+            여기에 똑같이 둡니다 — 손들기 · 반 공지 · 알림 차례로. */}
+        {!editing && classId && (
+          <span className="lesson-nav-tools">
+            <button
+              type="button"
+              className={`lesson-hand-chip${raisedCount > 0 ? " on" : ""}`}
+              onClick={() => setSeatOpen(true)}
+              title={
+                raisedCount > 0
+                  ? `${raisedCount}명이 손을 들었어요 — 눌러서 자리표에서 확인`
+                  : "손든 학생이 없어요 — 눌러서 자리표 열기"
+              }
+            >
+              🖐️ {raisedCount}
+            </button>
+            <ClassNoticeButton classId={classId} memberCount={roster.length} />
+            {me?.uid && isFirebaseConfigured && <NotificationBell uid={me.uid} />}
+          </span>
+        )}
         {/* 수업 준비를 마치고 곧바로 수업 화면으로 — 목록으로 돌아가 다시
             '수업 시작'을 누르는 한 단계를 줄입니다. */}
         {editing && onStart && (
@@ -977,6 +1027,10 @@ export default function LessonMode({
                   classId={classId}
                   now={presenceNow}
                   onAward={onAward}
+                  // 손들기 구독과 펼침은 머리말과 나눠 쓰므로 위에서 내려 줍니다.
+                  raisedUids={raisedUids}
+                  open={seatOpen}
+                  onOpenChange={setSeatOpen}
                   onSaveSeats={(seats, user) =>
                     saveStudySeatLayout(classId, todayLayoutId, seats, user, { date: todayDateKey() })
                   }

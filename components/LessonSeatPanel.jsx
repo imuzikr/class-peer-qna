@@ -44,13 +44,22 @@ export default function LessonSeatPanel({
   now = Date.now(),
   onAward = null, // 없으면(학생 화면 등) 자리를 눌러도 아무 일도 안 일어남
   onSaveSeats,    // (seats) => Promise — 참여 전광판과 같은 daily 자리표에 저장
+  // 손든 학생 — 수업 화면 머리말의 손들기 표시와 같은 값을 봐야 해서
+  // 구독을 부모(LessonMode)로 올렸습니다. 안 주면 여기서 직접 구독합니다.
+  raisedUids: raisedUidsProp = null,
+  // 펼침도 부모가 쥘 수 있게 — 머리말의 손들기를 누르면 열려야 합니다.
+  open: openProp = null,
+  onOpenChange = null,
 }) {
-  const [open, setOpen] = useState(false);
+  const [openState, setOpenState] = useState(false);
+  const open = openProp ?? openState;
+  const setOpen = onOpenChange ?? setOpenState;
   // 'seat' 개별 보기 | 'group' 모둠 보기 | 'tally' 궁금한 순간
   // 셋을 위아래로 쌓지 않고 한 자리에서 갈아 끼웁니다 — 수업 중에 보는
   // 화면이라 세로로 길어지면 아래쪽은 스크롤해야 보입니다.
   const [view, setView] = useState("seat");
-  const [raisedUids, setRaisedUids] = useState(() => new Set());
+  const [ownRaised, setOwnRaised] = useState(() => new Set());
+  const raisedUids = raisedUidsProp ?? ownRaised;
   const [dragIndex, setDragIndex] = useState(null);
   const [toolsFor, setToolsFor] = useState(null);
   const [notesFor, setNotesFor] = useState(null);
@@ -59,11 +68,12 @@ export default function LessonSeatPanel({
   );
 
   useEffect(() => {
-    if (!classId) { setRaisedUids(new Set()); return; }
+    if (raisedUidsProp) return;            // 부모가 주면 여기서 또 구독하지 않습니다
+    if (!classId) { setOwnRaised(new Set()); return; }
     return subscribeQuestionSignals(classId, (list) =>
-      setRaisedUids(new Set(list.map((s) => s.uid).filter(Boolean)))
+      setOwnRaised(new Set(list.map((s) => s.uid).filter(Boolean)))
     );
-  }, [classId]);
+  }, [classId, raisedUidsProp]);
 
   useEffect(() => {
     setSeats(normalizeSeats(dailySeatLayout?.seats ?? seatLayout?.seats ?? [], roster));
