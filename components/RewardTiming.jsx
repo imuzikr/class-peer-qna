@@ -72,25 +72,36 @@ export default function RewardTiming({ events = [], attendance = [], loaded = fa
 
       {stat.total > 0 ? (
         <>
-          <ul className="rtime-rows">
+          {/* 바로 위 '쏠림'과 같은 띠·같은 클래스입니다 — 한 패널 안의 두
+              칸이라 모양이 다르면 서로 다른 자료처럼 보입니다.
+              색은 한 가지 색의 진하기만: 앞이 진하고 뒤로 갈수록 옅어져
+              시간의 흐름이 색에서도 읽힙니다. */}
+          <div
+            className="skew-bar"
+            role="img"
+            aria-label={TIME_BANDS.map((b, i) => `${b.ko} ${pct(stat.counts[i])}%`).join(", ")}
+          >
+            {TIME_BANDS.map((b, i) =>
+              // 0인 토막은 띠에 그리지 않습니다(폭 0은 그릴 수 없습니다).
+              // 대신 아래 범례에는 0%로 남겨 둡니다 — '뒤 15분 0%'는 빠뜨릴
+              // 값이 아니라 이 칸에서 가장 할 말이 많은 자리입니다.
+              stat.counts[i] > 0 ? (
+                <span
+                  key={b.key}
+                  style={{ flex: stat.counts[i], background: BANDS[i] }}
+                />
+              ) : null
+            )}
+          </div>
+          <div className="skew-legend">
             {TIME_BANDS.map((b, i) => (
-              <li key={b.key} className="rtime-row">
-                <span className="rtime-name">{b.ko}</span>
-                <span className="rtime-track">
-                  {stat.counts[i] > 0 && (
-                    <span
-                      className="rtime-fill"
-                      style={{ width: `${pct(stat.counts[i])}%`, background: BANDS[i] }}
-                    />
-                  )}
-                </span>
-                <span className="rtime-val">
-                  {stat.counts[i]}
-                  <em>{pct(stat.counts[i])}%</em>
-                </span>
-              </li>
+              <span key={b.key} className={stat.counts[i] === 0 ? "rtime-zero" : ""}>
+                <i className="skew-swatch" style={{ background: BANDS[i] }} />
+                {b.ko} {pct(stat.counts[i])}%
+                <em className="rtime-n">{stat.counts[i]}개</em>
+              </span>
             ))}
-          </ul>
+          </div>
 
           {/* 한 토막에 몰려 있을 때만 말합니다 — 고르면 굳이 문장을 더하지
               않습니다(고른 것은 그림이 이미 보여 줍니다). */}

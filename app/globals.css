@@ -20960,41 +20960,19 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   color: var(--text-sub);
 }
 .rtime-title { font-size: 13px; font-weight: 800; color: var(--text); }
-.rtime-rows {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-.rtime-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-}
-.rtime-name { flex: 0 0 74px; color: var(--text-sub); }
-.rtime-track {
-  flex: 1;
-  min-width: 0;
-  height: 12px;
-  border-radius: 999px;
-  /* 패널 바탕보다 한 톤 어두워야 '빈 자리'가 자리로 읽힙니다 */
-  background: #e6e3da;
-  overflow: hidden;
-}
-.rtime-fill { display: block; height: 100%; border-radius: 999px; }
-.rtime-val {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: baseline;
-  gap: 5px;
-  font-weight: 800;
-  color: var(--text);
+/* 띠와 범례는 바로 위 '쏠림'의 .skew-bar / .skew-legend를 그대로 씁니다.
+   여기서는 그 위에 얹는 것만 정합니다. */
+.rtime .skew-bar { margin-bottom: 7px; }
+/* 개수는 비율 옆에 작게 — 비율이 먼저 읽히고 개수가 뒤를 받칩니다 */
+.rtime-n {
+  margin-left: 4px;
+  font-style: normal;
+  color: var(--text-sub);
   font-variant-numeric: tabular-nums;
 }
-.rtime-val em { font-style: normal; font-weight: 400; color: var(--text-sub); }
+/* 0인 토막은 띠에 안 그려지므로 범례에만 남습니다 — 잉크를 낮춰 '없음'이
+   눈에 띄되 앞의 두 토막을 가리지 않게 합니다. */
+.rtime-zero { opacity: 0.55; }
 .rtime-note {
   margin: 8px 0 0;
   font-size: 12px;
