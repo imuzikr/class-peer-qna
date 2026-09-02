@@ -20664,6 +20664,107 @@ button.study-cal-cell.has-record:not(:disabled):hover {
 }
 .rwtrend--flush .rwtrend-head { justify-content: flex-end; }
 
+/* ── 배움의 끝자리 — KWLS의 L·S (교사 대시보드) ──
+   막대도 도넛도 없습니다. 여기서 읽는 것은 수치가 아니라 학생이 쓴 문장이라,
+   글이 주인공이고 나머지는 전부 뒤로 물러납니다. */
+.kout-lead {
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: var(--text-sub);
+}
+.kout-lead strong { color: var(--dark); }
+.kout-of, .kout-src { color: var(--text-sub); }
+.kout-block { margin: 0 0 14px; }
+.kout-block-title {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin: 0 0 8px;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--text);
+}
+.kout-block-title b { color: var(--primary-dark); }
+/* 왜 보는지 한 줄 — 제목보다 한 톤 낮춰, 읽되 앞서지 않게 */
+.kout-block-title em {
+  font-style: normal;
+  font-weight: 400;
+  font-size: 11.5px;
+  color: var(--text-sub);
+}
+/* S 모음 — 문장이 주인공이라 왼쪽에 색 띠만 두고 상자는 만들지 않습니다
+   (줄마다 카드를 씌우면 열두 줄이 열두 덩어리로 흩어져 훑기 어렵습니다). */
+.kout-still-list, .kout-thin-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.kout-still {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 7px 0 7px 11px;
+  border-left: 3px solid var(--primary-light);
+}
+.kout-still-text {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text);
+}
+.kout-still-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--text-sub);
+}
+.kout-date { font-variant-numeric: tabular-nums; }
+/* 책방에서 온 기록만 붙는 배지 — 공부방 하루 성찰이 기본이라 그쪽에는
+   달지 않습니다(줄마다 배지가 붙으면 배지가 아니라 배경이 됩니다). */
+.kout-badge {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--neutral);
+  color: var(--text-sub);
+  font-weight: 700;
+}
+.kout-thin-list li {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  font-size: 12.5px;
+}
+.kout-thin-text { color: var(--text); }
+.kout-more { padding: 5px 12px; font-size: 12px; margin-top: 8px; }
+/* 사람 목록이 붙는 줄 — 이름까지 보여야 다음 수업에서 누구를 볼지 정합니다 */
+.kout-note {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0 0 12px;
+  padding: 9px 12px;
+  border-radius: var(--radius-btn);
+  background: var(--primary-light);
+  font-size: 12.5px;
+}
+.kout-note strong { color: var(--primary-dark); }
+.kout-note-names { color: var(--text); line-height: 1.7; }
+.kout-note-why {
+  font-style: normal;
+  font-size: 11.5px;
+  color: var(--text-sub);
+  line-height: 1.65;
+}
+/* 아무것도 안 쓴 학생은 경고가 아니라 사실 — 눈길을 덜 끄는 바탕에 둡니다 */
+.kout-note--silent { background: var(--neutral); }
+.kout-note--silent strong { color: var(--text); }
+
 /* ── 손들기 흐름 (교사 대시보드) ──
    줄기가 '손든 횟수' 하나뿐이라 막대는 모두 같은 색입니다. 사람마다 색을
    주면 색이 곧 순위가 되어, 한 명이 앞지를 때마다 판이 다시 칠해집니다. */

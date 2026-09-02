@@ -36,6 +36,7 @@ import ConfirmModal from "@/components/ConfirmModal";
 import StudentNotesThread from "@/components/StudentNotesThread";
 import RewardFruits, { rewardStars } from "@/components/RewardFruits";
 import StudentKwlPanel from "@/components/StudentKwlPanel";
+import KwlOutcome from "@/components/KwlOutcome";
 import BookActivityStats from "@/components/BookActivityStats";
 import ClassOverview from "@/components/ClassOverview";
 import ClassRewardTrend from "@/components/ClassRewardTrend";
@@ -1174,6 +1175,12 @@ function AdminDashboardPageInner() {
                   events={signalEvents}
                   loaded={signalsLoaded}
                 />
+              )}
+              {/* 배움의 끝자리 — KWLS의 L·S만. classKwl은 이미 받아 둔
+                  배열이라 읽기가 늘지 않습니다. 손들기 흐름 아래에 두어
+                  '학생이 물은 것' 다음에 '학생이 알게 된 것'을 읽습니다. */}
+              {selectedClassId && (
+                <KwlOutcome kwl={classKwl} roster={overviewStudents} loaded />
               )}
               {/* 참여의 폭 — 다섯 갈래를 모으는 칸이라 이미 받아 둔 자료를
                   전부 끌어다 씁니다(새 구독은 손들기 하나뿐). */}
