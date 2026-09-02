@@ -24,15 +24,19 @@ import { subscribeClassRewards } from "@/lib/store";
 
 const OPEN_KEY = "rewardTallyOpen";
 
-export default function RewardTally({ classId = null, roster = [] }) {
-  const [open, setOpen] = useState(false);
+// embedded — 탭 안에 끼워 넣는 모습. 제목 줄과 접기를 두지 않고 늘 펼쳐
+// 있습니다(탭 자체가 여닫는 구실을 하므로 접기 단추가 겹칩니다). 이 모드에서는
+// 탭을 떠나면 컴포넌트가 통째로 사라져 구독도 함께 끊깁니다.
+export default function RewardTally({ classId = null, roster = [], embedded = false }) {
+  const [open, setOpen] = useState(embedded);
   const [rewards, setRewards] = useState([]);
 
   // 펼침 상태 복원 — 개인 화면 설정이라 localStorage에 둡니다('멋진 순간'
-  // 패널의 접힘과 같은 방식).
+  // 패널의 접힘과 같은 방식). 끼워 넣은 모습에서는 접는 개념이 없어 건너뜁니다.
   useEffect(() => {
+    if (embedded) return;
     try { setOpen(localStorage.getItem(OPEN_KEY) === "1"); } catch { /* 무시 */ }
-  }, []);
+  }, [embedded]);
   function toggle() {
     setOpen((v) => {
       try { localStorage.setItem(OPEN_KEY, v ? "0" : "1"); } catch { /* 무시 */ }
@@ -67,22 +71,24 @@ export default function RewardTally({ classId = null, roster = [] }) {
   const total = rows.reduce((s, r) => s + r.count, 0);
 
   return (
-    <div className="reward-tally">
+    <div className={`reward-tally${embedded ? " reward-tally--embedded" : ""}`}>
       {/* 제목은 '멋진 순간'과 같은 .reward-title을 그대로 씁니다 — 같은 패널의
           두 칸이라 글꼴·크기가 갈리면 하나만 덧붙인 것처럼 보입니다. 값을
           그대로 베끼지 않고 클래스를 함께 쓰므로 한쪽만 바뀔 일이 없습니다. */}
-      <button
-        type="button"
-        className="reward-tally-toggle"
-        onClick={toggle}
-        aria-expanded={open}
-        title={open ? "접기" : "반 전체가 받은 과일 보기"}
-      >
-        <span className="reward-title">🍎 궁금한 순간</span>
-        <span className="reward-tally-caret" aria-hidden="true">
-          {open ? "▴" : "▾"}
-        </span>
-      </button>
+      {!embedded && (
+        <button
+          type="button"
+          className="reward-tally-toggle"
+          onClick={toggle}
+          aria-expanded={open}
+          title={open ? "접기" : "반 전체가 받은 과일 보기"}
+        >
+          <span className="reward-title">🍎 궁금한 순간</span>
+          <span className="reward-tally-caret" aria-hidden="true">
+            {open ? "▴" : "▾"}
+          </span>
+        </button>
+      )}
 
       {open && (
         <div className="reward-tally-body">

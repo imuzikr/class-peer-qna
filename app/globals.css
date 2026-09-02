@@ -7882,8 +7882,28 @@ pre code {
   margin: 0;
 }
 
-/* 개별/모둠 보기 전환 — 자리표 머리줄에서 '칠판' 자리를 대신합니다.
+/* 개별/모둠/궁금한 순간 전환 — 패널 머리에 한 줄. 예전에는 자리표
+   머리줄('칠판' 자리)에 끼워 넣었는데, 세 번째 보기는 자리표가 없어
+   그 안에 둘 수 없습니다. 손든 인원은 오른쪽 끝에 붙여, 어느 보기에서든
+   보이게 합니다.
    참여 전광판의 보기 탭(.attend-mode-tabs)과 같은 모양으로 맞췄습니다. */
+.lesson-seat-tabrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  /* 아주 좁은 화면(320px 기기 → 패널 268px)에서는 탭 셋과 손든 인원이 한
+     줄에 못 들어갑니다. 글자를 잘라 먹는 대신 손든 인원을 아랫줄로
+     내립니다 — 재 보니 300px부터는 한 줄에 들어갑니다. */
+  flex-wrap: wrap;
+}
+.lesson-seat-tabrow .lesson-seat-tabs { flex: 1 1 210px; }
+.lesson-seat-tabrow .attend-seatmap-hands { margin-left: auto; }
+/* 자리표 안쪽의 손든 인원은 감춥니다 — 위 탭 줄에 이미 있어, 두 개가
+   나란히 있으면 어느 쪽이 지금 값인지 헷갈립니다. SeatPickGrid는 손들기
+   자리 확인 모달과 함께 쓰는 컴포넌트라 그쪽 것은 건드리지 않으려고
+   이 패널 안으로만 좁혀 감춥니다. */
+.lesson-seat-panel .attend-seatmap-head .attend-seatmap-hands { display: none; }
 .lesson-seat-tabs {
   flex: 1;
   display: flex;
@@ -7892,16 +7912,22 @@ pre code {
   border-radius: 999px;
   background: var(--neutral);
 }
+/* flex:1(균등 분할)이 아니라 글자 폭 기준으로 나눕니다 — 탭이 셋이 되면서
+   '궁금한 순간'이 '개별 보기'보다 길어졌는데, 균등 분할이면 좁은 화면에서
+   긴 쪽이 두 줄로 접혀 탭 줄 높이가 25 → 40px로 뜁니다(재 봤습니다).
+   nowrap으로 못 박고 남는 자리만 고르게 나눠 가집니다. */
 .lesson-seat-tabs button {
-  flex: 1;
-  padding: 5px 0;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 5px 6px;
   border: none;
   border-radius: 999px;
   background: transparent;
   color: var(--text-sub);
   font-family: inherit;
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 800;
+  white-space: nowrap;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
@@ -20523,6 +20549,13 @@ button.study-cal-cell.has-record:not(:disabled):hover {
 }
 .lesson-seat-panel .reward-tally-toggle { padding: 0; }
 .lesson-seat-panel .reward-tally-body { padding: 0; }
+/* 탭 안에 끼워 넣은 모습 — 제목 줄과 접기가 없으므로 위쪽 여백·구분선도
+   필요 없습니다(탭 줄이 이미 경계 노릇을 합니다). */
+.lesson-seat-panel .reward-tally--embedded {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
 
 /* ── 쏠림 — 과일이 누구에게 갔나 (반 전체 과일 흐름 패널의 머리) ──
    학생이 아니라 교사의 관찰을 재는 칸입니다. 격자 위에 두어, 판을 읽기

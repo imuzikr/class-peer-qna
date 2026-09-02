@@ -46,7 +46,10 @@ export default function LessonSeatPanel({
   onSaveSeats,    // (seats) => Promise — 참여 전광판과 같은 daily 자리표에 저장
 }) {
   const [open, setOpen] = useState(false);
-  const [view, setView] = useState("seat"); // 'seat' 개별 보기 | 'group' 모둠 보기
+  // 'seat' 개별 보기 | 'group' 모둠 보기 | 'tally' 궁금한 순간
+  // 셋을 위아래로 쌓지 않고 한 자리에서 갈아 끼웁니다 — 수업 중에 보는
+  // 화면이라 세로로 길어지면 아래쪽은 스크롤해야 보입니다.
+  const [view, setView] = useState("seat");
   const [raisedUids, setRaisedUids] = useState(() => new Set());
   const [dragIndex, setDragIndex] = useState(null);
   const [toolsFor, setToolsFor] = useState(null);
@@ -113,34 +116,49 @@ export default function LessonSeatPanel({
   const hasGroups = (groupAssignment?.groups ?? []).length > 0;
   // 모둠 보기를 켜 둔 채 모둠이 지워지면(반 관리에서 다시 배정하는 중 등)
   // 빈 화면이 남지 않도록 개별 보기로 돌려 둡니다.
-  const activeView = view === "group" && hasGroups ? "group" : "seat";
+  // '궁금한 순간'은 예전에도 교사(onAward가 있을 때)에게만 보였습니다 —
+  // 탭으로 옮기면서 범위가 넓어지지 않도록 같은 조건을 답니다.
+  const canTally = !!onAward;
+  const activeView =
+    (view === "group" && !hasGroups) || (view === "tally" && !canTally) ? "seat" : view;
 
-  // 머리줄의 '칠판' 자리를 보기 전환 탭이 대신합니다 — 자리표는 늘 교실
-  // 앞쪽이 위이므로 칠판 표시가 없어도 방향을 헷갈리지 않고, 그 자리가
-  // 패널에서 가장 눈에 띄어 전환 버튼을 두기 좋습니다.
+  // 세 보기를 가르는 탭 — 패널 머리에 한 줄로 둡니다. 예전에는 자리표
+  // 머리줄('칠판' 자리)에 끼워 넣었는데, '궁금한 순간'은 자리표가 없는
+  // 보기라 그 안에 둘 수 없습니다. 밖으로 꺼내니 자리표는 원래의 칠판
+  // 표시를 되찾아 위아래 방향도 다시 분명해집니다.
+  const TABS = [
+    { key: "seat", label: "개별 보기" },
+    { key: "group", label: "모둠 보기" },
+    ...(canTally ? [{ key: "tally", label: "궁금한 순간" }] : []),
+  ];
   const viewTabs = (
-    <span className="lesson-seat-tabs" role="tablist" aria-label="자리표 보기 방식">
-      <button
-        type="button"
-        role="tab"
-        aria-selected={activeView === "seat"}
-        className={activeView === "seat" ? "active" : ""}
-        onClick={() => setView("seat")}
-      >
-        개별 보기
-      </button>
-      <button
-        type="button"
-        role="tab"
-        aria-selected={activeView === "group"}
-        className={activeView === "group" ? "active" : ""}
-        onClick={() => setView("group")}
-        disabled={!hasGroups}
-        title={hasGroups ? undefined : "'반 관리하기 → 자리 배정하기'에서 모둠을 먼저 만들어 주세요"}
-      >
-        모둠 보기
-      </button>
-    </span>
+    <div className="lesson-seat-tabrow">
+      <span className="lesson-seat-tabs" role="tablist" aria-label="자리표 보기 방식">
+        {TABS.map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            role="tab"
+            aria-selected={activeView === t.key}
+            className={activeView === t.key ? "active" : ""}
+            onClick={() => setView(t.key)}
+            disabled={t.key === "group" && !hasGroups}
+            title={
+              t.key === "group" && !hasGroups
+                ? "'반 관리하기 → 자리 배정하기'에서 모둠을 먼저 만들어 주세요"
+                : undefined
+            }
+          >
+            {t.label}
+          </button>
+        ))}
+      </span>
+      {/* 손든 인원은 어느 보기에서든 보여야 합니다 — 궁금한 순간을 보는
+          동안 손을 든 학생이 있어도 놓치지 않게. */}
+      <span className={`attend-seatmap-hands${raisedCount > 0 ? " on" : ""}`}>
+        🖐️ {raisedCount}
+      </span>
+    </div>
   );
 
   async function moveSeat(from, to) {
@@ -195,21 +213,23 @@ export default function LessonSeatPanel({
       <p className="lesson-seat-hint">
         {activeView === "seat"
           ? "자리를 눌러 과일·누가기록 · 끌어서 자리 이동"
-          : "학생을 눌러 과일·누가기록 (자리 이동은 개별 보기에서)"}
+          : activeView === "group"
+            ? "학생을 눌러 과일·누가기록 (자리 이동은 개별 보기에서)"
+            : "반 전체가 지금까지 받은 과일 — 많이 받은 순"}
       </p>
+      {viewTabs}
       {roster.length === 0 ? (
         <p className="lesson-note-empty">이 반에 입장한 학생이 없어요.</p>
+      ) : activeView === "tally" ? (
+        // 궁금한 순간 — 탭이 열려 있는 동안만 붙어 있으므로, 이 컴포넌트의
+        // 구독도 탭을 떠나면 저절로 끊깁니다(embedded는 늘 펼친 상태).
+        <RewardTally classId={classId} roster={roster} embedded />
       ) : activeView === "group" ? (
         // 모둠 보기 — 모둠끼리 묶어 봅니다. 자리 이동(드래그)은 자리 배치를
         // 바꾸는 일이라 개별 보기에서만 합니다(모둠 보기에는 '자리'가 없어
         // 어디로 옮기는 건지가 성립하지 않습니다).
         <div className="attend-seatmap attend-seatmap--compact">
-          <div className="attend-seatmap-head">
-            {viewTabs}
-            <span className={`attend-seatmap-hands${raisedCount > 0 ? " on" : ""}`}>
-              🖐️ {raisedCount}
-            </span>
-          </div>
+          {/* 머리줄이 없습니다 — 탭도 손든 인원도 패널 머리로 올라갔습니다. */}
           <div className="lesson-seat-groups">
             {groupSections.map((g) => (
               <section
@@ -242,7 +262,6 @@ export default function LessonSeatPanel({
       ) : (
         <SeatPickGrid
           compact
-          headLead={viewTabs}
           seats={seats}
           byUid={byUid}
           raisedUids={raisedUids}
@@ -256,12 +275,6 @@ export default function LessonSeatPanel({
           todayCountByUid={todayCountByUid}
         />
       )}
-
-      {/* 궁금한 순간 — 자리표 아래. 자리 칸의 🍎 뱃지는 '오늘' 받은 개수라
-          누가 학기 내내 못 받았는지는 안 보입니다. 공부방 '멋진 순간' 패널과
-          같은 것을 여기에도 둡니다(수업 중 실제로 보는 화면이 여기라서).
-          펼침 상태는 두 화면이 같은 localStorage 키를 함께 씁니다. */}
-      {onAward && <RewardTally classId={classId} roster={roster} />}
 
       {toolsStudent && onAward && (
         <StudentToolsModal
