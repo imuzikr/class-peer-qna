@@ -112,13 +112,28 @@ export default function KwlsForm({ activity, user, onBack }) {
         <div className="books-head-title">
           <h1 className="book-group-title">{activity.title}</h1>
           <button type="button" className="btn-ghost" onClick={onBack}>← 활동 목록</button>
+          {/* 아직 제 책을 안 적었을 때만 — 곁텍스트 읽기와 같은 자리·같은
+              모양입니다(네 활동의 학생 화면이 여기서 갈리면 안 됩니다).
+              적고 나면 그 값은 둘째 줄 배지가 보여 주므로 사라집니다. */}
+          {!shownTopic && canEditTopic && (
+            <button
+              type="button"
+              className="btn-ghost"
+              onClick={() => setTopicAsk(true)}
+              title="무엇을 읽고 있는지 적어 주세요 — 내 카드에 표시됩니다"
+            >
+              도서명/주제 적기
+            </button>
+          )}
         </div>
+        {/* 둘째 줄은 적어 둔 주제어나 도서 링크가 있을 때만 — 빈 줄이 남으면
+            제목 아래가 괜히 벌어집니다. */}
+        {(shownTopic || bookUrl) && (
         <div className="books-head-row">
           <div className="books-head-main">
-            {/* 곁텍스트 읽기와 같은 배지 — 교사가 정해 둔 것이 없으면 눌러서
-                내가 적고, 적어 둔 뒤에도 눌러 고칠 수 있습니다. */}
-            {shownTopic ? (
-              canEditTopic ? (
+            {/* 적어 둔 주제어 — 눌러서 고칠 수 있습니다. */}
+            {shownTopic &&
+              (canEditTopic ? (
                 <button
                   type="button"
                   className="book-group-topic book-topic-edit"
@@ -129,18 +144,7 @@ export default function KwlsForm({ activity, user, onBack }) {
                 </button>
               ) : (
                 <span className="book-group-topic">{shownTopic}</span>
-              )
-            ) : (
-              canEditTopic && (
-                <button
-                  type="button"
-                  className="book-group-topic book-topic-edit is-empty"
-                  onClick={() => setTopicAsk(true)}
-                >
-                  ＋ 도서명·주제 적기
-                </button>
-              )
-            )}
+              ))}
           </div>
           {bookUrl && (
             <a
@@ -153,6 +157,7 @@ export default function KwlsForm({ activity, user, onBack }) {
             </a>
           )}
         </div>
+        )}
         <div className="paratext-status">
           <span className="paratext-progress">
             {filled} / {KWLS_COLUMN_COUNT}칸 · {chars}자

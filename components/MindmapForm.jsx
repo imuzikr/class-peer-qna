@@ -138,13 +138,29 @@ export default function MindmapForm({ activity, user, onBack }) {
           ) : (
             <button type="button" className="btn-ghost" onClick={onBack}>← 활동 목록</button>
           )}
+          {/* 아직 제 주제를 안 적었을 때만 — 곁텍스트 읽기와 같은 자리·같은
+              모양입니다(네 활동의 학생 화면이 여기서 갈리면 안 됩니다).
+              카드를 펼쳐 본 상태(open)에서는 감춥니다 — 그때 이 줄의 버튼은
+              '← 내 카드'라 돌아가는 길이 먼저입니다. */}
+          {!open && !shownTopic && canEditTopic && (
+            <button
+              type="button"
+              className="btn-ghost"
+              onClick={() => setTopicAsk(true)}
+              title="무엇을 다루고 있는지 적어 주세요 — 내 카드에 표시됩니다"
+            >
+              도서명/주제 적기
+            </button>
+          )}
         </div>
+        {/* 둘째 줄은 적어 둔 주제어나 도서 링크가 있을 때만 — 빈 줄이 남으면
+            제목 아래가 괜히 벌어집니다. */}
+        {(shownTopic || (bookUrl && !open)) && (
         <div className="books-head-row">
           <div className="books-head-main">
-            {/* 곁텍스트 읽기와 같은 배지 — 교사가 정해 둔 것이 없으면 눌러서
-                내가 적고, 적어 둔 뒤에도 눌러 고칠 수 있습니다. */}
-            {shownTopic ? (
-              canEditTopic ? (
+            {/* 적어 둔 주제어 — 눌러서 고칠 수 있습니다. */}
+            {shownTopic &&
+              (canEditTopic ? (
                 <button
                   type="button"
                   className="book-group-topic book-topic-edit"
@@ -155,18 +171,7 @@ export default function MindmapForm({ activity, user, onBack }) {
                 </button>
               ) : (
                 <span className="book-group-topic">{shownTopic}</span>
-              )
-            ) : (
-              canEditTopic && (
-                <button
-                  type="button"
-                  className="book-group-topic book-topic-edit is-empty"
-                  onClick={() => setTopicAsk(true)}
-                >
-                  ＋ 주제 적기
-                </button>
-              )
-            )}
+              ))}
           </div>
           {bookUrl && !open && (
             <a
@@ -179,6 +184,7 @@ export default function MindmapForm({ activity, user, onBack }) {
             </a>
           )}
         </div>
+        )}
         <div className="paratext-status">
           <span className="paratext-progress">
             {layoutKo} · 가지 {branches}개 · {depth}단계

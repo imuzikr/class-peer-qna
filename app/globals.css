@@ -19460,21 +19460,9 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   cursor: pointer;
 }
 .book-topic-edit:hover { border-color: var(--primary); }
-/* 아직 안 적었을 때 — 점선으로 '여기 채워야 한다'를 보여 줍니다.
-   머리말 둘째 줄의 배지는 테두리를 투명으로 두는 규칙(.books-head-row …)이
-   있어, 그보다 좁게 집어야 점선이 살아납니다. */
-.books-head .book-topic-edit.is-empty,
-.books-head-row .books-head-main .book-topic-edit.is-empty {
-  color: var(--text-sub);
-  background: none;
-  border: 1px dashed var(--border);
-  font-weight: 700;
-}
-.books-head .book-topic-edit.is-empty:hover,
-.books-head-row .books-head-main .book-topic-edit.is-empty:hover {
-  color: var(--primary-dark);
-  border-color: var(--primary);
-}
+/* (아직 안 적었을 때의 점선 배지 .book-topic-edit.is-empty는 없앴습니다 —
+   네 학생 화면 모두 '도서명/주제 적기'를 제목 줄의 btn-ghost로 올렸습니다.
+   배지 자리에 두면 눌러야 하는 것인지 알기 어려웠습니다.) */
 /* 활동에 주제어가 없을 때의 머리말 배지 — 값이 아니라 안내라 옅게 */
 .book-group-topic.soft {
   color: var(--text-sub);
