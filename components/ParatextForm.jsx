@@ -123,15 +123,30 @@ export default function ParatextForm({ activity, user, onBack }) {
         <div className="books-head-title">
           <h1 className="book-group-title">{activity.title}</h1>
           <button type="button" className="btn-ghost" onClick={onBack}>← 활동 목록</button>
+          {/* 아직 제 책을 안 적었을 때만 — 제목 줄에 '활동 목록'과 나란히
+              둡니다. 둘째 줄에 있을 때는 배지처럼 생겨서 눌러야 하는 것인지
+              알기 어려웠고, 학생이 활동에 들어와 가장 먼저 할 일이라
+              제목 줄이 제자리입니다. 적고 나면 그 값은 둘째 줄 배지가
+              보여 주므로 이 버튼은 사라집니다. */}
+          {!shownTopic && canEditTopic && (
+            <button
+              type="button"
+              className="btn-ghost"
+              onClick={() => setTopicAsk(true)}
+              title="무엇을 읽고 있는지 적어 주세요 — 내 카드에 표시됩니다"
+            >
+              도서명/주제 적기
+            </button>
+          )}
         </div>
         {/* 둘째 줄에 아무것도 없을 수 있습니다 — 주제어를 안 정한 채 잠긴
-            활동에서 학생이 제 책을 적기 전이면 배지도 적기 버튼도 없습니다.
+            활동에서 학생이 제 책을 적기 전이면 배지도 없습니다.
             빈 줄이 남으면 제목 아래가 괜히 벌어져, 내용이 있을 때만 그립니다. */}
-        {(shownTopic || canEditTopic || bookUrl) && (
+        {(shownTopic || bookUrl) && (
         <div className="books-head-row">
           <div className="books-head-main">
-            {shownTopic ? (
-              canEditTopic ? (
+            {shownTopic &&
+              (canEditTopic ? (
                 <button
                   type="button"
                   className="book-group-topic book-topic-edit"
@@ -142,18 +157,7 @@ export default function ParatextForm({ activity, user, onBack }) {
                 </button>
               ) : (
                 <span className="book-group-topic">{shownTopic}</span>
-              )
-            ) : (
-              canEditTopic && (
-                <button
-                  type="button"
-                  className="book-group-topic book-topic-edit is-empty"
-                  onClick={() => setTopicAsk(true)}
-                >
-                  ＋ 도서명·주제 적기
-                </button>
-              )
-            )}
+              ))}
           </div>
           {bookUrl && (
             <a
