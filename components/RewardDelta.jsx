@@ -47,11 +47,12 @@ export default function RewardDelta({ classId = null, events = [], roster = [], 
     const midAt = now - WEEKS * 7 * DAY;      // 최근 창의 시작
     const fromAt = now - WEEKS * 2 * 7 * DAY; // 앞 창의 시작
 
-    // 회수(음수)는 빼고 '준 것'만 셉니다 — 쏠림과 같은 기준입니다.
-    const given = events.filter((e) => (e.delta ?? 0) > 0);
+    // 회수(음수)도 그대로 더합니다 — 창마다 **순증**을 봅니다.
+    // 실수로 준 것을 도로 뺐다면 그 학생은 그만큼 받지 않은 것이므로,
+    // 더한 것만 세면 '늘어난 학생'에 잘못 올라갑니다.
     const sum = (from, to) => {
       const m = new Map();
-      given.forEach((e) => {
+      events.forEach((e) => {
         const t = toDate(e.at).getTime();
         if (t >= from && t < to) m.set(e.uid, (m.get(e.uid) ?? 0) + (e.delta ?? 0));
       });
@@ -108,8 +109,13 @@ export default function RewardDelta({ classId = null, events = [], roster = [], 
       down: moved.filter((r) => r.delta < 0).sort((x, y) => x.delta - y.delta),
       up: moved.filter((r) => r.delta > 0).sort((x, y) => y.delta - x.delta),
       same: rows.length - moved.length,
-      peak: Math.max(1, ...rows.map((r) => Math.max(r.before, r.after))),
-      hasWindow: totalBefore + totalAfter > 0,
+      // 순증이라 창 값이 음수일 수 있습니다(그 창에 준 것보다 거둔 것이 많은
+      // 경우). 막대 길이의 기준은 크기라 절댓값으로 잡습니다 — 안 그러면
+      // 음수만 있는 창에서 peak가 1로 눌려 막대가 전부 꽉 찹니다.
+      peak: Math.max(1, ...rows.map((r) => Math.max(Math.abs(r.before), Math.abs(r.after)))),
+      // 합이 0이어도(준 만큼 도로 거둔 경우) 그 기간에 오간 일은 있었으므로,
+      // 합이 아니라 '이 두 창에 기록이 있었나'로 판정합니다.
+      hasWindow: before.size > 0 || after.size > 0,
     };
   }, [events, roster, attendance]);
 

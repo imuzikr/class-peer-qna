@@ -757,6 +757,13 @@ function AdminDashboardPageInner() {
     ? answerEvents.filter((e) => classParticipantIds.has(e.answer.authorId))
     : answerEvents;
 
+  // 고른 반의 과일 총계 — '쏠림' 칸이 지금 보유량을 세는 데 씁니다.
+  // allRewards는 이미 구독해 둔 것이라 읽기가 늘지 않습니다.
+  const classRewards = useMemo(
+    () => (selectedClassId ? allRewards.filter((r) => r.classId === selectedClassId) : []),
+    [allRewards, selectedClassId]
+  );
+
   // 멋진 순간(과일) — 선택 반 합계 + (전체 학급일 때) 반별 비교
   const overviewFruitTotal = useMemo(() => {
     const rel = selectedClassId
@@ -1152,7 +1159,11 @@ function AdminDashboardPageInner() {
               {/* 과일 흐름도 반 단위 — 이력이 반마다 따로 있는 하위
                   컬렉션이고, 규칙상 담당 교사만 나열할 수 있습니다 */}
               {selectedClassId && (
-                <ClassRewardTrend classId={selectedClassId} roster={overviewStudents} />
+                <ClassRewardTrend
+                  classId={selectedClassId}
+                  roster={overviewStudents}
+                  rewards={classRewards}
+                />
               )}
               {/* 손들기도 같은 이유로 반 단위입니다. 과일 흐름 바로 아래에
                   두어 '내가 준 것'과 '학생이 물은 것'을 나란히 읽습니다. */}

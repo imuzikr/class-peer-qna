@@ -18,19 +18,23 @@
 // 무엇보다 교사가 그 값을 보고 할 일이 없습니다. '상위 5명 34%'와
 // '아직 0명인 학생 6명'은 바로 다음 수업에서 할 일이 됩니다.
 //
-// [구독하지 않습니다] 과일 이력은 옆의 '반 전체 과일 흐름'이 이미 받아
-// 두고 있어, 그 배열을 그대로 받아 씁니다. 같은 컬렉션에 리스너를 하나 더
-// 걸면 읽기가 두 배가 됩니다.
+// [무엇을 세나 — 이력이 아니라 총계]
+// 한때 이 칸은 지급 이력(rewardEvents)에서 **더한 것만** 합쳤습니다. 두 가지가
+// 어긋났습니다.
+//  · 실수로 주고 도로 뺀 것이 그대로 남았습니다. 자리 카드에는 4개가 찍히는데
+//    여기에는 56개로 나와, 같은 화면의 두 숫자가 서로를 반박했습니다.
+//  · 이력은 2026-08-29에 기록을 시작해서, 그 전에 준 과일이 통째로 빠졌습니다.
+//    "한 개도 못 받은 학생 24명"이 사실이 아닌데도 그렇게 보였습니다.
+// 지금은 총계(rewards)를 봅니다 — 더하고 뺀 것이 이미 반영된, 그 학생이 지금
+// 실제로 갖고 있는 수입니다. 기록 시작일 이전 것도 들어 있어 기간 단서도
+// 필요 없습니다. 자리 카드·'궁금한 순간'과 같은 값을 보므로 어긋날 수 없습니다.
 //
-// [기간을 반드시 밝힙니다] 이 칸이 보는 것은 **이력(rewardEvents)** 이지
-// 총계(rewards)가 아닙니다. 이력은 2026-08-29에 기록을 시작했고, 그 전에
-// 준 과일은 총계에만 남아 있어 여기 한 건도 없습니다. 기간을 안 적으면
-// "아직 한 개도 못 받은 학생 24명"이 '한 학기 내내 못 받았다'로 읽혀,
-// 사실은 그동안 잘 주고 있던 교사가 자기를 오해하게 됩니다. 그래서 첫
-// 기록일을 문장 안에 넣습니다.
+// 이력(events)은 '그동안 주고 거둔 양'을 한 줄로 덧붙이는 데만 씁니다.
+//
+// [구독하지 않습니다] 총계도 이력도 부모가 이미 받아 둔 것을 그대로 받습니다.
+// 같은 컬렉션에 리스너를 하나 더 걸면 읽기가 두 배가 됩니다.
 // =============================================================
 import { useMemo } from "react";
-import { toDate } from "@/lib/store";
 
 // 상위 몇 명을 한 덩어리로 볼 것인가 — 한 모둠 크기입니다.
 const TOP = 5;
@@ -38,17 +42,18 @@ const TOP = 5;
 // 여러 색을 섞으면 오히려 못 읽습니다.
 const BANDS = ["#b85c3f", "#d98a63", "#eeba9e", "#f7e3d8"];
 
-export default function RewardSkew({ events = [], roster = [], loaded = false }) {
+export default function RewardSkew({
+  rewards = [],   // [{ uid, count }] — 지금 갖고 있는 수(더하고 뺀 결과)
+  events = [],    // 지급 이력 — '그동안 주고 거둔 양' 한 줄에만 씁니다
+  roster = [],
+  loaded = false,
+}) {
   const stat = useMemo(() => {
-    // 회수(delta 음수)는 빼고 '준 것'만 셉니다 — 쏠림은 눈길이 어디로
-    // 갔는지의 이야기라, 도로 거둔 건이 상쇄하면 안 됩니다.
-    // 다만 **감추지는 않습니다**(아래 taken). 자리 카드에는 지금 보유량이
-    // 찍히는데 여기 숫자는 누적 지급량이라, 회수가 크면 두 수가 크게 벌어져
-    // '계산이 안 맞는다'로 보입니다. 실제로 그렇게 보고를 받았습니다
-    // (카드 4개 / 이 칸 56개 — 테스트로 준 것을 도로 뺀 경우).
-    const given = events.filter((e) => (e.delta ?? 0) > 0);
+    // 총계를 봅니다 — 회수가 이미 반영된 값이라 따로 뺄 것이 없습니다.
     const byUid = new Map();
-    given.forEach((e) => byUid.set(e.uid, (byUid.get(e.uid) ?? 0) + (e.delta ?? 0)));
+    rewards.forEach((r) => {
+      if (r?.uid) byUid.set(r.uid, (byUid.get(r.uid) ?? 0) + (r.count ?? 0));
+    });
 
     const people = roster.map((s) => {
       const uid = s.uid ?? s.id;
@@ -60,7 +65,7 @@ export default function RewardSkew({ events = [], roster = [], loaded = false })
       };
     });
 
-    // 총량은 **명단 안에서만** 셉니다. 예전에는 이력 전체를 더해 놓고 비율은
+    // 총량은 **명단 안에서만** 셉니다. 예전에는 전체를 더해 놓고 비율은
     // 명단으로만 냈는데, 전학 간 학생처럼 명단 밖 uid의 과일이 분모에만
     // 들어가 띠의 합이 100%에 못 미쳤습니다. 명단 밖 몫은 따로 적습니다.
     const rosterUids = new Set(people.map((p) => p.uid));
@@ -70,19 +75,16 @@ export default function RewardSkew({ events = [], roster = [], loaded = false })
       if (!rosterUids.has(k)) outside += v;
     });
 
-    // 도로 거둔 양 — 비율 계산에는 안 쓰고 문장에만 적습니다. 명단 안 학생
-    // 것만 세어 위 total과 같은 범위를 유지합니다.
-    const taken = events.reduce(
-      (sum, e) =>
-        (e.delta ?? 0) < 0 && rosterUids.has(e.uid) ? sum + -(e.delta ?? 0) : sum,
-      0
-    );
-
-    // 이력이 시작된 날 — 이 칸의 모든 문장이 이 날부터의 이야기입니다.
-    const times = given
-      .map((e) => toDate(e.at)?.getTime())
-      .filter((t) => t != null && !Number.isNaN(t));
-    const firstAt = times.length > 0 ? new Date(Math.min(...times)) : null;
+    // 그동안 주고 거둔 양 — 총계와 달리 '얼마나 손이 오갔나'입니다. 위
+    // 숫자를 만들지는 않고, 회수가 있었다는 사실만 한 줄로 알립니다.
+    let gave = 0;
+    let took = 0;
+    events.forEach((e) => {
+      const d = e.delta ?? 0;
+      if (!rosterUids.has(e.uid)) return;
+      if (d > 0) gave += d;
+      else if (d < 0) took += -d;
+    });
 
     const sorted = [...people].sort((a, b) => b.n - a.n);
     const bandOf = (from, to) =>
@@ -101,14 +103,8 @@ export default function RewardSkew({ events = [], roster = [], loaded = false })
     return {
       total,
       outside,
-      taken,
-      firstAt,
-      days: new Set(
-        times.map((t) => {
-          const d = new Date(t);
-          return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-        })
-      ).size,
+      gave,
+      took,
       reached: people.filter((p) => p.n > 0).length,
       size: people.length,
       none,
@@ -119,28 +115,22 @@ export default function RewardSkew({ events = [], roster = [], loaded = false })
         { label: "나머지", v: bandOf(TOP * 2 + 10, sorted.length) },
       ].filter((b) => b.v > 0),
     };
-  }, [events, roster]);
+  }, [rewards, events, roster]);
 
   if (!loaded || stat.size === 0) return null;
 
   const pct = (v) => Math.round((v / stat.total) * 100);
   const topShare = stat.total > 0 ? pct(stat.bands[0]?.v ?? 0) : 0;
-  const since = stat.firstAt
-    ? `${stat.firstAt.getMonth() + 1}월 ${stat.firstAt.getDate()}일`
-    : null;
 
   return (
     <div className="skew">
       <p className="skew-lead">
         {stat.total === 0 ? (
-          <>아직 준 과일이 없어요.</>
+          <>아직 과일을 가진 학생이 없어요.</>
         ) : (
           <>
-            {/* 기간이 문장 맨 앞에 옵니다 — 뒤에 붙이면 숫자를 먼저 읽고
-                넘어가서, 이 칸이 언제부터의 이야기인지 못 보고 지나갑니다. */}
-            {since && <span className="skew-since">{since}부터</span>}
-            준 과일 <strong>{stat.total}개</strong>가{" "}
-            <strong>{stat.reached}명</strong>에게 갔어요
+            지금 반이 가진 과일 <strong>{stat.total}개</strong>가{" "}
+            <strong>{stat.reached}명</strong>에게 있어요
             <span className="skew-of"> / {stat.size}명 중</span>
             {/* 받은 사람이 다섯 명 이하면 '상위 5명이 100%'는 아무것도 말해
                 주지 않습니다(다섯 칸에 다섯 명이 다 들어가니 늘 100%).
@@ -162,16 +152,12 @@ export default function RewardSkew({ events = [], roster = [], loaded = false })
         </p>
       )}
 
-      {/* 회수 — 이 칸은 '준 것'만 세는데 자리 카드에는 지금 보유량이 찍혀,
-          도로 거둔 양이 크면 두 수가 벌어져 '반영이 안 됐다'로 읽힙니다.
-          비율은 그대로 두고(눈길이 어디로 갔는지가 회수로 지워지진 않으므로)
-          어긋나는 이유만 밝혀 둡니다. */}
-      {stat.taken > 0 && (
+      {/* 손이 오간 양 — 위 숫자를 만들지는 않습니다. 회수가 있었다는 사실만
+          알려, 이력 격자의 음수 칸이 왜 있는지 읽히게 합니다. */}
+      {stat.took > 0 && (
         <p className="skew-outside">
-          이 중 <strong>{stat.taken}개</strong>는 나중에 도로 거뒀어요 (순증{" "}
-          {stat.total - stat.taken}개). 위 <strong>{stat.total}개</strong>는
-          <strong> 지금까지 준 양</strong>이라 회수를 빼지 않습니다 — 자리 카드에
-          찍히는 <strong>지금 보유량</strong>과는 다른 숫자예요.
+          기록이 남은 기간에 준 것 {stat.gave}개 · 도로 거둔 것 {stat.took}개.
+          위 숫자는 회수까지 반영한 <strong>지금 보유량</strong>이에요.
         </p>
       )}
 
@@ -198,25 +184,13 @@ export default function RewardSkew({ events = [], roster = [], loaded = false })
           한 번도 못 받은 학생은 어느 화면에도 나타나지 않습니다. */}
       {stat.none.length > 0 && (
         <p className="skew-none">
-          <strong>
-            {/* '아직'이라고만 쓰면 학기 전체로 읽힙니다. 이력에 없을 뿐
-                그 전에 받은 과일은 총계에 그대로 있습니다. */}
-            {since ? `${since} 이후 ` : ""}한 개도 못 받은 학생 {stat.none.length}명
-          </strong>
+          {/* 기간 단서가 필요 없습니다 — 총계는 학기 처음부터의 값이라
+              '한 개도 없다'가 곧이곧대로 맞습니다. */}
+          <strong>과일이 한 개도 없는 학생 {stat.none.length}명</strong>
           <span className="skew-none-names">
             {stat.none.slice(0, 12).map((p) => p.name).join(" · ")}
             {stat.none.length > 12 && ` 외 ${stat.none.length - 12}명`}
           </span>
-          {/* 기록이 며칠 안 됐을 때는 이 목록이 '소외된 학생 명단'이 아니라
-              '아직 표본이 얕다'는 뜻입니다. 수업 두어 번이면 반 전체를 한
-              바퀴 돌 수 없으니, 그 말을 대신 해 둡니다. */}
-          {stat.days > 0 && stat.days < 5 && (
-            <em className="skew-thin">
-              지급 이력은 {since}에 기록을 시작했어요 — 아직 수업 {stat.days}일치라
-              이 명단은 ‘소외된 학생’이 아니라 표본이 얕다는 뜻에 가깝습니다.
-              그 전에 준 과일은 학생별 총계에 그대로 있습니다.
-            </em>
-          )}
         </p>
       )}
     </div>

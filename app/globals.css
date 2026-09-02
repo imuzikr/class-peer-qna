@@ -20582,29 +20582,9 @@ button.study-cal-cell.has-record:not(:disabled):hover {
 }
 .skew-none strong { color: var(--primary-dark); }
 .skew-none-names { color: var(--text); line-height: 1.7; }
-/* 기록이 얕을 때의 단서 — 명단을 '소외된 학생'으로 읽지 않게 붙입니다.
-   목록보다 한 톤 죽여, 읽되 앞서지 않게. */
-.skew-thin {
-  margin-top: 4px;
-  padding-top: 6px;
-  border-top: 1px solid var(--border);
-  color: var(--text-sub);
-  font-size: 11.5px;
-  font-style: normal;
-  line-height: 1.65;
-}
-/* 기간 — 이 칸의 모든 숫자가 이 날부터의 이야기라는 표시.
-   문장 맨 앞이라 배경을 얇게 깔아 눈이 먼저 걸리게 합니다. */
-.skew-since {
-  display: inline-block;
-  margin-right: 5px;
-  padding: 1px 7px;
-  border-radius: 999px;
-  background: var(--primary-light);
-  color: var(--primary-dark);
-  font-size: 11.5px;
-  font-weight: 700;
-}
+/* 기간 단서(.skew-since)와 '표본이 얕음' 주석(.skew-thin)은 이 칸이 이력
+   대신 총계를 보게 되면서 없앴습니다 — 총계는 학기 처음부터의 값이라
+   기간을 밝힐 것이 없습니다. */
 .skew-outside {
   margin: 6px 0 0;
   font-size: 11.5px;

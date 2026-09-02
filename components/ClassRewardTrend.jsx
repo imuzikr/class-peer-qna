@@ -98,7 +98,7 @@ export function buildRewardGrid(events, roster) {
   return { dates: shownDates, rows, totalDates: dates.length };
 }
 
-export default function ClassRewardTrend({ classId, roster = [] }) {
+export default function ClassRewardTrend({ classId, roster = [], rewards = [] }) {
   const [events, setEvents] = useState([]);
   const [loaded, setLoaded] = useState(false);
 
@@ -143,9 +143,12 @@ export default function ClassRewardTrend({ classId, roster = [] }) {
         </span>
       </div>
 
-      {/* 쏠림 — 같은 이력을 다르게 읽습니다. 격자는 '언제 누가', 이쪽은
-          '몇 명에게'. 리스너를 하나 더 걸지 않으려고 배열을 그대로 넘깁니다. */}
-      <RewardSkew events={events} roster={roster} loaded={loaded} />
+      {/* 쏠림 — 격자가 '언제 누가'라면 이쪽은 '지금 누가 갖고 있나'입니다.
+          그래서 이력이 아니라 총계(rewards)를 봅니다 — 회수가 이미 반영돼
+          있고 기록 시작일 이전 것도 들어 있어, 자리 카드의 숫자와 어긋나지
+          않습니다. 이력은 '주고 거둔 양' 한 줄에만 씁니다.
+          둘 다 부모가 받아 둔 배열이라 리스너가 늘지 않습니다. */}
+      <RewardSkew rewards={rewards} events={events} roster={roster} loaded={loaded} />
       {/* 변화 — 쏠림이 '지금 고른가'라면 이쪽은 '움직이고 있나'입니다.
           과일 이력은 여기서 받은 것을 그대로 넘기고, 출석만 따로 구독합니다. */}
       <RewardDelta classId={classId} events={events} roster={roster} loaded={loaded} />
