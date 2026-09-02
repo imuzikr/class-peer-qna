@@ -72,6 +72,15 @@ export default function KwlOutcome({ kwl = [], roster = [], loaded = false }) {
       ])
     );
 
+    // 창 밖(4주보다 오래된) 기록이 몇 건인가 — 이 패널은 매일 움직이는 4주
+    // 창이라, 학기가 쌓이면 지난 S가 조용히 사라집니다. 자료가 지워진 게
+    // 아니라 이 창에 없을 뿐이라는 것을 숫자로 알려 둡니다.
+    const olderCount = kwl.filter((e) => {
+      if (!who.has(e.userId) || entryTime(e) >= from) return false;
+      const a = kwlsAnswersFromEntry(e);
+      return String(a.learned ?? "").trim() || String(a.still ?? "").trim();
+    }).length;
+
     // 최근 4주 + 명단 안 학생 것만. 명단 밖(전학 등)은 이름을 붙일 수 없어
     // 목록에 세워도 교사가 누구인지 알 수 없습니다.
     const rows = kwl
@@ -133,6 +142,7 @@ export default function KwlOutcome({ kwl = [], roster = [], loaded = false }) {
       silent,
       stills,
       thinL,
+      olderCount,
       booksCount: rows.filter((r) => r.fromBooks).length,
     };
   }, [kwl, roster]);
@@ -157,7 +167,10 @@ export default function KwlOutcome({ kwl = [], roster = [], loaded = false }) {
           <>최근 {WEEKS}주에 쓴 KWLS 기록이 없어요.</>
         ) : (
           <>
-            수업 <strong>{stat.days}일</strong> · 알게 된 것(L){" "}
+            {/* '수업 n일'이라고 쓰면 수업 횟수로 읽힙니다 — 실제로는 KWLS
+                기록이 하루라도 있는 날의 수라, 수업을 여섯 번 해도 학생이
+                이틀만 썼으면 2로 나옵니다. */}
+            기록 <strong>{stat.days}일</strong> · 알게 된 것(L){" "}
             <strong>{stat.lCount}명</strong> · 더 알고 싶은 것(S){" "}
             <strong>{stat.sCount}명</strong>
             <span className="kout-of"> / {stat.size}명 중</span>
@@ -168,6 +181,16 @@ export default function KwlOutcome({ kwl = [], roster = [], loaded = false }) {
           </>
         )}
       </p>
+
+      {/* 창 밖 기록 — 이 칸은 매일 움직이는 4주 창이라, 학기가 쌓이면 지난
+          S가 조용히 사라집니다. 지워진 게 아니라는 것을 밝혀 두고 어디서
+          볼 수 있는지도 함께 적습니다. */}
+      {stat.olderCount > 0 && (
+        <p className="kout-older">
+          4주보다 오래된 기록 {stat.olderCount}건은 이 칸에서 빠져 있어요 —
+          자료는 그대로 있고, 학생별 이력은 ‘학생별’ 탭에서 볼 수 있습니다.
+        </p>
+      )}
 
       {/* ③ S 모음 — 다음 수업의 W가 될 재료. 이 패널의 요점이라 맨 위입니다. */}
       {stat.stills.length > 0 && (
