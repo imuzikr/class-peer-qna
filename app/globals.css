@@ -7940,12 +7940,14 @@ pre code {
    그 안에 둘 수 없습니다. 손든 인원은 오른쪽 끝에 붙여, 어느 보기에서든
    보이게 합니다.
    참여 전광판의 보기 탭(.attend-mode-tabs)과 같은 모양으로 맞췄습니다. */
-/* 탭 내용이 들어가는 자리 — 키를 여기서 잡아 둡니다(min-height는 JS가
-   가장 큰 보기의 키로 채웁니다). 세 보기의 키 차이가 200px을 넘어, 이게
-   없으면 탭을 누를 때마다 패널이 접혔다 펴지듯 흔들립니다. */
+/* 탭 내용이 들어가는 자리 — 키는 JS가 자리표(개별 보기) 기준으로 못 박습니다.
+   세 보기의 키가 100px 넘게 달라, 이게 없으면 탭을 누를 때마다 페이지가
+   늘었다 줄었다 하며 화면이 밀립니다. 자리표보다 긴 보기는 이 안에서
+   구릅니다 — 페이지는 한 치도 움직이지 않습니다. */
 .lesson-seat-body {
   display: flex;
   flex-direction: column;
+  overflow-y: auto;
 }
 .lesson-seat-body > * { flex: 1 1 auto; min-height: 0; }
 .lesson-seat-tabrow {
@@ -20669,20 +20671,17 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   border-top: none;
   height: 100%;
 }
-/* 탭 자리는 이미 가장 큰 보기만큼 잡혀 있으므로, 목록이 그 자리를 채우게
-   두고 320px 상자 안에서 따로 구르지 않게 합니다 — 패널 속 스크롤이
-   또 생기면 바깥 스크롤과 헷갈립니다. 명단이 아주 많아 자리를 넘길 때만
-   그때부터 구릅니다. */
+/* 목록은 스스로 구르지 않습니다 — 구르는 것은 탭 자리(.lesson-seat-body)
+   하나뿐입니다. 상자 안에 상자가 구르면 어느 쪽을 굴리는지 헷갈리고,
+   320px 상자에 갇히면 명단 절반이 가려집니다. */
 .lesson-seat-panel .reward-tally--embedded .reward-tally-body {
   display: flex;
   flex-direction: column;
-  height: 100%;
   min-height: 0;
 }
 .lesson-seat-panel .reward-tally--embedded .reward-tally-list {
-  flex: 1;
   max-height: none;
-  min-height: 0;
+  overflow: visible;
 }
 
 /* ── 쏠림 — 과일이 누구에게 갔나 (반 전체 과일 흐름 패널의 머리) ──

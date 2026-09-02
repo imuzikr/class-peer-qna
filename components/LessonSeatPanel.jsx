@@ -67,25 +67,22 @@ export default function LessonSeatPanel({
     normalizeSeats(dailySeatLayout?.seats ?? seatLayout?.seats ?? [], roster)
   );
 
-  // 탭을 갈아 끼울 때 패널이 줄었다 늘었다 하지 않도록, 지금까지 본 가장 큰
-  // 보기의 키를 바닥으로 깔아 둡니다. min-height라 더 큰 보기가 나오면 그냥
-  // 넘어서 자라고(자리표가 그렇습니다), 작은 보기는 빈자리로 남습니다.
+  // 탭 자리의 키 — **자리표(개별 보기) 하나만** 기준으로 잡습니다.
+  //
+  // 처음에는 '지금까지 본 가장 큰 보기'를 바닥으로 깔았는데, 그러면 더 큰
+  // 보기를 **처음 여는 그 순간에는** 여전히 페이지가 늘어납니다. 28명 기준으로
+  // 재 보니 자리표 474 → 궁금한 순간 583px이라, 첫 전환에서 페이지가 109px
+  // 자라 화면이 그만큼 밀렸습니다(두 번째부터는 조용했고요 — 그래서 '가끔
+  // 흔들린다'로 보였습니다).
+  //
+  // 기준을 자리표로 못 박으면 첫 전환부터 키가 한 치도 안 변합니다. 자리표는
+  // 기본 보기라 패널을 열면 늘 먼저 그려지고, 명단 수로 키가 정해져 탭과
+  // 무관하게 일정합니다. 남는 보기가 더 길면 그 자리 안에서 구릅니다.
   const bodyRef = useRef(null);
-  const [floorH, setFloorH] = useState(0);
-  // 명단이 바뀌면 기준을 다시 잡습니다 — 학생이 빠져 자리표가 짧아졌는데
-  // 옛 키가 그대로 남아 빈자리만 넓어지는 일이 없게.
-  // (activeView는 아래에서 만들어지므로 여기서 참조하지 않습니다 —
-  //  const는 선언 전에 읽으면 ReferenceError입니다.)
-  useEffect(() => { setFloorH(0); }, [roster.length]);
-  useEffect(() => {
-    const el = bodyRef.current;
-    if (!el) return;
-    // scrollHeight는 min-height에 눌리지 않는 '내용만의 키'라, 깔아 둔 값
-    // 때문에 기준이 스스로 부풀지 않습니다(부풀면 매번 다시 그려집니다).
-    const h = el.scrollHeight;
-    if (h > floorH) setFloorH(h);
-  });
-  const bodyStyle = floorH > 0 ? { minHeight: floorH } : undefined;
+  const [bodyH, setBodyH] = useState(0);
+  // 명단이 바뀌면 다시 잽니다 — 학생이 빠져 자리표가 짧아졌는데 옛 키가
+  // 그대로 남아 빈자리만 넓어지는 일이 없게.
+  useEffect(() => { setBodyH(0); }, [roster.length]);
 
   useEffect(() => {
     if (raisedUidsProp) return;            // 부모가 주면 여기서 또 구독하지 않습니다
@@ -151,6 +148,23 @@ export default function LessonSeatPanel({
   const canTally = !!onAward;
   const activeView =
     (view === "group" && !hasGroups) || (view === "tally" && !canTally) ? "seat" : view;
+
+  // 자리표를 보고 있을 때만 잽니다(위 주석 참고). 이 자리에 두는 이유는
+  // activeView가 여기서 만들어지기 때문입니다 — const를 선언 전에 읽으면
+  // ReferenceError입니다.
+  useEffect(() => {
+    if (activeView !== "seat") return;
+    const el = bodyRef.current;
+    if (!el) return;
+    // 키를 이미 못 박아 둔 상태에서는 scrollHeight가 그 값 아래로 안 내려가므로,
+    // 잴 때만 잠깐 풀었다가 되돌립니다. 같은 프레임 안이라 화면에는 안 보입니다.
+    const fixed = el.style.height;
+    el.style.height = "auto";
+    const h = el.scrollHeight;
+    el.style.height = fixed;
+    if (h > 0 && h !== bodyH) setBodyH(h);
+  });
+  const bodyStyle = bodyH > 0 ? { height: bodyH } : undefined;
 
   // 세 보기를 가르는 탭 — 패널 머리에 한 줄로 둡니다. 예전에는 자리표
   // 머리줄('칠판' 자리)에 끼워 넣었는데, '궁금한 순간'은 자리표가 없는
