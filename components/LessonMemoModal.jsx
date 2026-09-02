@@ -13,9 +13,19 @@
 // 펼쳐야 보입니다 — 수업 중에 여는 화면이라 쓰기까지 한 번에 닿아야 합니다.
 //
 // 학생은 이 메모를 읽지 못합니다(firestore.rules).
+//
+// [서식]
+// 메모는 대개 여러 갈래를 늘어놓게 됩니다("설명이 길었다 / 다음엔 예시부터").
+// 그래서 굵게·밑줄·글머리 기호·번호 목록만 붙여 두었습니다(RichTextEditor의
+// tools). 나머지(기울임·코드 블록)는 수업 메모에서 쓸 일이 없어 뺐습니다.
+//
+// 저장되는 값은 HTML 문자열입니다. 서식이 붙기 전에 적은 메모는 순수
+// 텍스트로 남아 있어, 읽을 때 richHtml()이 둘을 함께 다룹니다.
 // =============================================================
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { backdropClose } from "@/lib/modal";
+import RichTextEditor from "./RichTextEditor";
+import { looksLikeHtml, richHtml, stripHtml } from "@/lib/html";
 import {
   subscribeLessonMemos,
   subscribeClasses,
@@ -27,10 +37,30 @@ import {
   formatTime,
 } from "@/lib/store";
 
-const MAX_LEN = 2000; // 규칙(firestore.rules)과 같은 값
+// 규칙(firestore.rules)과 같은 값. 서식이 붙은 뒤로는 태그까지 이 길이에
+// 들어가므로, 예전처럼 잘라 내지 않고 넘으면 저장을 막고 알려 줍니다 —
+// HTML을 가운데서 자르면 태그가 끊겨 글이 망가집니다.
+const MAX_LEN = 2000;
+
+// 서식만 있고 글자는 없는 상태('<div><br></div>')를 빈 메모로 봅니다.
+function memoEmpty(html) {
+  return !stripHtml(html).trim();
+}
+
+// 한 줄 미리보기 — 태그를 뺀 글자만. 옛 메모는 그대로가 이미 글자입니다.
+function memoPreview(value) {
+  const s = String(value ?? "");
+  return looksLikeHtml(s) ? stripHtml(s) : s;
+}
+
+// 수업 메모에 붙이는 서식 — 글머리 기호·번호 목록·굵게·밑줄까지만
+const MEMO_TOOLS = ["bold", "underline", "insertUnorderedList", "insertOrderedList"];
 
 export default function LessonMemoModal({ classId, className = "", user, onClose }) {
-  const [text, setText] = useState("");
+  const [text, setText] = useState(""); // HTML 문자열
+  // 에디터는 비제어 컴포넌트라 값을 비우려면 다시 마운트해야 합니다
+  // (RichTextEditor는 initialHtml을 마운트 때 한 번만 봅니다).
+  const [writeKey, setWriteKey] = useState(0);
   // 이 메모가 '어느 수업의 일'인가 — 수업이 끝난 뒤 떠올라 적는 일이 잦아
   // 쓴 시각만으로는 언제 일인지 알 수 없습니다(누가기록과 같은 방식).
   const [date, setDate] = useState(() => todayDateKey());
@@ -45,7 +75,6 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
   const [otherMemos, setOtherMemos] = useState({});
   const [editing, setEditing] = useState(null); // { id, text, date }
   const [confirmDelete, setConfirmDelete] = useState(null); // memoId
-  const fieldRef = useRef(null);
 
   useEffect(() => {
     if (!classId) { setMemos([]); return; }
@@ -126,18 +155,16 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
     return map;
   }, [calendarMemos, classId, nameOfClass]);
 
-  // 열면 바로 쓸 수 있게 — 수업 중에 여는 화면입니다
-  useEffect(() => {
-    fieldRef.current?.focus();
-  }, []);
+  const tooLong = text.length > MAX_LEN;
 
   async function handleSave() {
     const body = text.trim();
-    if (!body || busy) return;
+    if (memoEmpty(body) || tooLong || busy) return;
     setBusy(true);
     try {
       await addLessonMemo(classId, user, body, date);
       setText("");
+      setWriteKey((k) => k + 1); // 쓴 것을 지우려면 에디터를 다시 세웁니다
       // 날짜는 오늘로 되돌립니다 — 지난 수업 것을 하나 적고 나서 다음 메모가
       // 그 날짜에 눌러앉아 있으면 알아채기 어렵습니다.
       setDate(todayDateKey());
@@ -150,17 +177,12 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
     }
   }
 
-  // Ctrl/⌘+Enter로 저장 — 앱의 다른 입력칸과 같은 약속입니다
-  function handleKeyDown(e) {
-    if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-      e.preventDefault();
-      handleSave();
-    }
-  }
+  // Ctrl/⌘+Enter로 저장은 에디터가 처리합니다(onSend) — 앱의 다른
+  // 입력칸과 같은 약속입니다.
 
   async function handleEditSave() {
-    const body = editing?.text.trim();
-    if (!body) return;
+    const body = editing?.text.trim() ?? "";
+    if (memoEmpty(body) || body.length > MAX_LEN) return;
     await updateLessonMemo(classId, editing.id, body, editing.date);
     setEditing(null);
   }
@@ -203,23 +225,28 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
           />
         </label>
 
-        <textarea
-          ref={fieldRef}
-          className="memo-field"
-          value={text}
-          onChange={(e) => setText(e.target.value.slice(0, MAX_LEN))}
-          onKeyDown={handleKeyDown}
-          rows={5}
+        <RichTextEditor
+          key={writeKey}
+          className="memo-rte"
+          tools={MEMO_TOOLS}
+          autoFocus
+          onChange={setText}
+          onSend={handleSave}
+          sendDisabled={busy || memoEmpty(text) || tooLong}
           placeholder="수업 중 기억해 둘 것을 적어 주세요. 학생에게는 보이지 않아요."
         />
 
         <div className="memo-foot">
-          <span className="memo-hint">Ctrl(⌘)+Enter로도 저장돼요</span>
+          <span className={`memo-hint${tooLong ? " over" : ""}`}>
+            {tooLong
+              ? `서식을 포함해 ${text.length}자 — ${MAX_LEN}자까지 저장돼요`
+              : "Ctrl(⌘)+Enter로도 저장돼요"}
+          </span>
           <button
             type="button"
             className="btn-primary memo-save"
             onClick={handleSave}
-            disabled={busy || !text.trim()}
+            disabled={busy || memoEmpty(text) || tooLong}
           >
             {busy ? "저장 중…" : "저장"}
           </button>
@@ -270,13 +297,15 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
                             max={todayDateKey()}
                           />
                         </label>
-                        <textarea
-                          className="memo-field memo-field--edit"
-                          value={editing.text}
-                          onChange={(e) =>
-                            setEditing({ ...editing, text: e.target.value.slice(0, MAX_LEN) })
-                          }
-                          rows={3}
+                        <RichTextEditor
+                          key={m.id}
+                          className="memo-rte memo-rte--sm"
+                          tools={MEMO_TOOLS}
+                          small
+                          initialHtml={richHtml(m.text)}
+                          onChange={(html) => setEditing((prev) => (prev ? { ...prev, text: html } : prev))}
+                          onSend={handleEditSave}
+                          sendDisabled={memoEmpty(editing.text) || editing.text.length > MAX_LEN}
                         />
                         <div className="memo-item-actions">
                           <button type="button" className="btn-ghost" onClick={() => setEditing(null)}>
@@ -286,7 +315,7 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
                             type="button"
                             className="btn-primary memo-save"
                             onClick={handleEditSave}
-                            disabled={!editing.text.trim()}
+                            disabled={memoEmpty(editing.text) || editing.text.length > MAX_LEN}
                           >
                             저장
                           </button>
@@ -339,7 +368,12 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
                             )}
                           </span>
                         </div>
-                        <p className="memo-item-text">{m.text}</p>
+                        {/* 서식이 붙기 전 메모는 순수 텍스트라 richHtml이
+                            줄바꿈만 살려 내보냅니다(lib/html.js) */}
+                        <div
+                          className="memo-item-text"
+                          dangerouslySetInnerHTML={{ __html: richHtml(m.text) }}
+                        />
                       </>
                     )}
                   </li>
@@ -407,6 +441,7 @@ function MemoCalendarPanel({ byDate, nameOfClass, archivedClassIds, currentClass
   // 되짚다가 "아, 이것도 적어 둘걸" 하는 자리가 여기입니다. 그때 모달로
   // 돌아가 날짜와 반을 다시 맞추게 하면 하던 일이 끊깁니다.
   const [draft, setDraft] = useState("");
+  const [draftKey, setDraftKey] = useState(0); // 저장 뒤 에디터를 비우려고
   const [editingId, setEditingId] = useState("");
   const [editText, setEditText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -439,12 +474,13 @@ function MemoCalendarPanel({ byDate, nameOfClass, archivedClassIds, currentClass
 
   async function saveNew() {
     const body = draft.trim();
-    if (!body || busy || !picked || !pickedClass) return;
+    if (memoEmpty(body) || body.length > MAX_LEN || busy || !picked || !pickedClass) return;
     setBusy(true);
     setError("");
     try {
       await addLessonMemo(pickedClass, user, body, picked);
       setDraft("");
+      setDraftKey((k) => k + 1);
     } catch (e) {
       setError(`저장하지 못했어요: ${e?.message ?? "알 수 없는 오류"}`);
     } finally {
@@ -454,7 +490,7 @@ function MemoCalendarPanel({ byDate, nameOfClass, archivedClassIds, currentClass
 
   async function saveEdit() {
     const body = editText.trim();
-    if (!body || busy) return;
+    if (memoEmpty(body) || body.length > MAX_LEN || busy) return;
     setBusy(true);
     setError("");
     try {
@@ -589,11 +625,14 @@ function MemoCalendarPanel({ byDate, nameOfClass, archivedClassIds, currentClass
               <p className="memo-cal-readonly">보관된 반이라 메모를 더할 수 없어요.</p>
             ) : (
               <div className="memo-cal-write">
-                <textarea
-                  className="memo-field memo-field--edit"
-                  value={draft}
-                  onChange={(e) => setDraft(e.target.value.slice(0, MAX_LEN))}
-                  rows={3}
+                <RichTextEditor
+                  key={`draft${draftKey}`}
+                  className="memo-rte memo-rte--sm"
+                  tools={MEMO_TOOLS}
+                  small
+                  onChange={setDraft}
+                  onSend={saveNew}
+                  sendDisabled={busy || memoEmpty(draft) || draft.length > MAX_LEN}
                   placeholder={`${formatDateLabel(picked)} 수업에 적어 둘 것`}
                 />
                 <div className="memo-cal-write-foot">
@@ -601,7 +640,7 @@ function MemoCalendarPanel({ byDate, nameOfClass, archivedClassIds, currentClass
                     type="button"
                     className="btn-primary memo-save"
                     onClick={saveNew}
-                    disabled={busy || !draft.trim()}
+                    disabled={busy || memoEmpty(draft) || draft.length > MAX_LEN}
                   >
                     {busy ? "저장 중…" : "저장"}
                   </button>
@@ -616,11 +655,15 @@ function MemoCalendarPanel({ byDate, nameOfClass, archivedClassIds, currentClass
                 if (editingId === m.id) {
                   return (
                     <li key={m.id} className="memo-cal-editing">
-                      <textarea
-                        className="memo-field memo-field--edit"
-                        value={editText}
-                        onChange={(e) => setEditText(e.target.value.slice(0, MAX_LEN))}
-                        rows={3}
+                      <RichTextEditor
+                        key={m.id}
+                        className="memo-rte memo-rte--sm"
+                        tools={MEMO_TOOLS}
+                        small
+                        initialHtml={richHtml(m.text)}
+                        onChange={setEditText}
+                        onSend={saveEdit}
+                        sendDisabled={busy || memoEmpty(editText) || editText.length > MAX_LEN}
                       />
                       <div className="memo-item-actions">
                         <button type="button" className="btn-ghost" onClick={() => setEditingId("")}>
@@ -630,7 +673,7 @@ function MemoCalendarPanel({ byDate, nameOfClass, archivedClassIds, currentClass
                           type="button"
                           className="btn-primary memo-save"
                           onClick={saveEdit}
-                          disabled={busy || !editText.trim()}
+                          disabled={busy || memoEmpty(editText) || editText.length > MAX_LEN}
                         >
                           저장
                         </button>
@@ -640,7 +683,11 @@ function MemoCalendarPanel({ byDate, nameOfClass, archivedClassIds, currentClass
                 }
                 const open = pickedMemo === m.id;
                 return (
-                  <li key={m.id} className="memo-cal-row">
+                  /* 펼친 본문은 버튼 밖에 둡니다 — 서식이 붙은 뒤로는 여기에
+                     목록(ul/ol)이 들어오는데, 버튼 안에는 넣을 수 없는
+                     것들입니다. 접혀 있을 때의 한 줄 미리보기는 태그를 뺀
+                     글자만 씁니다. */
+                  <li key={m.id} className={`memo-cal-row${open ? " open" : ""}`}>
                     <button
                       type="button"
                       className={`memo-cal-pick memo-cal-memo${open ? " open" : ""}`}
@@ -648,7 +695,9 @@ function MemoCalendarPanel({ byDate, nameOfClass, archivedClassIds, currentClass
                       aria-expanded={open}
                     >
                       <span className="memo-item-clock">{formatTime(m.createdAt)}</span>
-                      <span className={`memo-cal-memo-text${open ? "" : " clamp"}`}>{m.text}</span>
+                      {!open && (
+                        <span className="memo-cal-memo-text clamp">{memoPreview(m.text)}</span>
+                      )}
                     </button>
                     {!readOnly && (
                       <button
@@ -658,6 +707,12 @@ function MemoCalendarPanel({ byDate, nameOfClass, archivedClassIds, currentClass
                       >
                         수정
                       </button>
+                    )}
+                    {open && (
+                      <div
+                        className="memo-cal-memo-body"
+                        dangerouslySetInnerHTML={{ __html: richHtml(m.text) }}
+                      />
                     )}
                   </li>
                 );

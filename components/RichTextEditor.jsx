@@ -8,12 +8,15 @@
 //   variant="full" : 박스 상단에 툴바 (질문·공지 작성용)
 //   variant="chat" : 박스 하단에 툴바 + 종이비행기 전송 버튼 (채팅용)
 //
+// tools로 툴바에 보일 것만 고를 수 있습니다(수업 메모처럼 서식이 몇 개면
+// 충분한 자리용). 안 주면 전부 보입니다.
+//
 // children으로 추가 도구(이미지 첨부, 그리기 등)를 툴바에 끼워
 // 넣을 수 있습니다. 내용은 HTML 문자열로 onChange에 전달되며,
 // 저장·표시 전에 lib/html.js의 sanitizeHtml()로 정화합니다.
 // 입력 내용을 비우려면 부모에서 key 값을 바꿔 다시 마운트하세요.
 // =============================================================
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { uploadImage } from "@/lib/storageUpload";
 import { escapeHtml } from "@/lib/html";
 
@@ -112,18 +115,43 @@ const COMMANDS = [
   { cmd: "codeBlock", title: "코드 블록 (</>)", icon: <code className="rte-glyph rte-code-glyph">&lt;/&gt;</code>, custom: true },
 ];
 
+// tools에 적힌 것만 남깁니다. 걸러 내면 구분선만 덩그러니 남는 자리가
+// 생기므로(양 끝·잇달아 붙은 것), 그것도 함께 정리합니다.
+function pickCommands(tools) {
+  if (!tools) return COMMANDS;
+  const out = [];
+  for (const c of COMMANDS) {
+    if (c) {
+      if (tools.includes(c.cmd)) out.push(c);
+    } else if (out.length && out[out.length - 1] !== null) {
+      out.push(null);
+    }
+  }
+  while (out.length && out[out.length - 1] === null) out.pop();
+  return out;
+}
+
 export default function RichTextEditor({
   variant = "full", // "full" | "chat"
   small = false, // true면 낮은 입력 높이 (공지 등 좁은 영역용)
+  className = "", // 쓰는 자리에서 크기·글자를 조정할 때
   initialHtml = "", // 처음부터 채워 둘 내용 (예: 실행기에서 넘어온 코드)
   onChange,
   placeholder = "",
-  onSend, // chat 전용: 전송 실행 (Ctrl/⌘+Enter로도 전송)
+  autoFocus = false, // 열자마자 쓰는 화면(수업 메모 등)에서
+  tools = null, // 보일 서식 목록 (예: ["bold", "underline"]) — 없으면 전부
+  onSend, // 전송 실행 (Ctrl/⌘+Enter로도 전송). chat이면 버튼도 함께
   sendDisabled = false,
   children, // 툴바에 끼워 넣을 추가 도구 (첨부, 그리기 등)
 }) {
   const ref = useRef(null);
   const [active, setActive] = useState({}); // 현재 커서 위치의 서식 상태
+
+  // 배열을 그대로 deps에 두면 부모가 다시 그릴 때마다 새 배열이라 매번
+  // 다시 계산됩니다 — 내용으로 열쇠를 만들어 붙듭니다.
+  const toolKey = tools ? tools.join(",") : "";
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const commands = useMemo(() => pickCommands(tools), [toolKey]);
 
   // 초기 내용 채우기 (마운트 시 한 번만)
   useEffect(() => {
@@ -131,6 +159,7 @@ export default function RichTextEditor({
       ref.current.innerHTML = initialHtml;
       onChange(initialHtml);
     }
+    if (autoFocus) ref.current?.focus();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -142,14 +171,14 @@ export default function RichTextEditor({
         return;
       }
       const next = {};
-      COMMANDS.forEach((c) => {
+      commands.forEach((c) => {
         if (c) next[c.cmd] = document.queryCommandState(c.cmd);
       });
       setActive(next);
     }
     document.addEventListener("selectionchange", update);
     return () => document.removeEventListener("selectionchange", update);
-  }, []);
+  }, [commands]);
 
   function exec(command) {
     ref.current?.focus();
@@ -236,12 +265,8 @@ export default function RichTextEditor({
   function handleKeyDown(e) {
     if (e.nativeEvent.isComposing) return;
 
-    // Ctrl/⌘ + Enter: 채팅 전송 (Enter 단독은 줄바꿈 유지)
-    if (
-      variant === "chat" &&
-      e.key === "Enter" &&
-      (e.ctrlKey || e.metaKey)
-    ) {
+    // Ctrl/⌘ + Enter: 전송·저장 (Enter 단독은 줄바꿈 유지)
+    if (onSend && e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       if (!sendDisabled) onSend?.();
       return;
@@ -264,7 +289,7 @@ export default function RichTextEditor({
       {variant === "chat" && children}
       {variant === "chat" && children && <span className="rte-divider" />}
 
-      {COMMANDS.map((c, i) =>
+      {commands.map((c, i) =>
         c === null ? (
           <span key={`d${i}`} className="rte-divider" />
         ) : (
@@ -313,7 +338,7 @@ export default function RichTextEditor({
 
   return (
     <div
-      className={`rte rte-${variant} ${small ? "rte-sm" : ""}`}
+      className={`rte rte-${variant} ${small ? "rte-sm" : ""} ${className}`.trim()}
     >
       {variant === "full" ? (
         <>
