@@ -241,8 +241,9 @@ function EmptyPanel({ children }) {
 }
 
 // 좌측 패널의 사용자 행 (학생·선생님 공용)
-// 학생 목록 정렬 — null(기본: 활동량순)이면 그대로 두고, 'name'/'studentId'면
+// 학생 목록 정렬 — null이면 받은 그대로(활동량순), 'name'/'studentId'면
 // 오름차순으로 다시 정렬합니다. 학번이 없는 학생(가입 직후 등)은 뒤로 보냅니다.
+// 화면의 기본값은 'studentId'입니다(아래 studentSortKey 참고).
 function sortStudentList(list, key) {
   if (!key) return list;
   const sorted = [...list];
@@ -315,7 +316,9 @@ function StudentSearchBox({ value, onChange, matched, total }) {
   );
 }
 
-// 학생 목록 헤더 오른쪽의 정렬 선택 — 같은 버튼을 다시 누르면 기본 순서로 되돌립니다.
+// 학생 목록 헤더 오른쪽의 정렬 선택 — 켜진 버튼을 다시 누르면 정렬을 풀어
+// 활동량순(많이 묻고 답한 순)이 됩니다. 기본은 학번순이라 처음에는 학번순
+// 버튼이 켜져 있습니다.
 function StudentSortToggle({ sortKey, onChange }) {
   return (
     <div className="student-sort-toggle">
@@ -400,9 +403,14 @@ function AdminDashboardPageInner() {
   // 학생 목록 검색어 — 정렬과 마찬가지로 양쪽 목록에 함께 적용됩니다.
   const [studentQuery, setStudentQuery] = useState("");
 
-  // 학생 목록 정렬 — null(기본: 활동량순) | 'name' | 'studentId'.
+  // 학생 목록 정렬 — 'studentId'(기본) | 'name' | null(활동량순).
   // 학생별 분석·학급별 분석 양쪽의 학생 목록에 공통으로 적용됩니다.
-  const [studentSortKey, setStudentSortKey] = useState(null);
+  //
+  // 기본을 학번순으로 둡니다. 예전 기본은 활동량순이었는데, 그러면 학생을
+  // 찾을 때마다 순서가 달라져 눈으로 훑을 수가 없었습니다(질문 하나에도
+  // 자리가 바뀝니다). 반 명부와 같은 순서여야 '몇 번 아무개'를 바로 짚습니다.
+  // 활동량순은 학번순 버튼을 한 번 더 눌러 끄면 나옵니다.
+  const [studentSortKey, setStudentSortKey] = useState("studentId");
   const [classes, setClasses] = useState([]);
   const [studyBoards, setStudyBoards] = useState([]);
   const [cardsByBoard, setCardsByBoard] = useState({});
