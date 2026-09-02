@@ -58,7 +58,6 @@ import {
   IconCheck,
   IconLock,
   IconDuplicate,
-  IconPen,
   IconPeople,
   IconSettings,
 } from "./StatusIcons";
@@ -145,6 +144,21 @@ export default function StudyProjectView({
     }
     return subscribeStudyCards(board.id, setCards);
   }, [board.id, isGroup, isTeacher, shared, user?.uid]);
+
+  // 남아 있던 보드 전체 잠금(editMode: 'locked')을 풉니다.
+  // -------------------------------------------------------------
+  // '편집 상태' 스위치를 없애면서, 그 전에 잠가 둔 프로젝트는 화면에서 풀
+  // 길이 사라집니다. 게다가 이 값은 Firestore 규칙이 직접 보고 학생 쓰기를
+  // 막으므로, 그냥 두면 활동을 열어 줘도 학생 쪽에서 조용히 실패합니다.
+  // 그래서 담당 교사가 프로젝트를 열면 그 자리에서 한 번 풀어 줍니다.
+  // 규칙상 쓰기가 되는 사람(소유 교사)만 부르고, 이미 열려 있으면 아무 일도
+  // 하지 않으므로 몇 번을 다시 그려도 쓰기가 거듭되지 않습니다.
+  useEffect(() => {
+    if (!isTeacher || !locked) return;
+    updateStudyBoard(board.id, { editMode: "open" }).catch(() => {
+      /* 권한·네트워크 오류는 조용히 넘어갑니다 — 다음에 열 때 다시 시도합니다 */
+    });
+  }, [isTeacher, locked, board.id]);
 
   // 외부에서 제목·설명이 바뀌면 편집 초안도 동기화
   useEffect(() => { setTitleDraft(board.title); }, [board.title]);
@@ -879,14 +893,14 @@ export default function StudyProjectView({
             </section>
           )}
 
-          {/* 설정 — 공개 범위 · 편집 상태 · 관리 */}
+          {/* 설정 — 공개 범위 · 관리 */}
           <section className="study-board-section">
             <h3 className="study-board-section-title">설정</h3>
 
             <div className="study-board-rows">
               {/* 유형 — 바꾸는 값이 아니라 '지금 이런 프로젝트'라는 표시.
-                  공개 범위·편집 상태는 바로 아래 버튼이 색으로 보여 주므로
-                  여기서 배지로 되풀이하지 않습니다. */}
+                  공개 범위는 바로 아래 버튼이 색으로 보여 주므로 여기서
+                  배지로 되풀이하지 않습니다. */}
               <div className="study-board-row">
                 <span className="study-board-row-label">유형</span>
                 <span className="study-board-row-actions">
@@ -952,29 +966,12 @@ export default function StudyProjectView({
                 </div>
               )}
 
-              <div className="study-board-row">
-                <span className="study-board-row-label">편집 상태</span>
-                <span className="study-seg" role="group" aria-label="편집 상태">
-                  <button
-                    type="button"
-                    className={`study-seg-btn${!locked ? " on" : ""}`}
-                    aria-pressed={!locked}
-                    onClick={() => locked && updateStudyBoard(board.id, { editMode: "open" })}
-                    title="학생이 카드를 쓰고 고칠 수 있습니다"
-                  >
-                    <IconPen size={14} /> 편집 가능
-                  </button>
-                  <button
-                    type="button"
-                    className={`study-seg-btn${locked ? " on lock" : ""}`}
-                    aria-pressed={locked}
-                    onClick={() => !locked && updateStudyBoard(board.id, { editMode: "locked" })}
-                    title="학생은 읽기만 할 수 있습니다"
-                  >
-                    <IconLock size={14} /> 보기 전용
-                  </button>
-                </span>
-              </div>
+              {/* '편집 상태'(편집 가능 / 보기 전용) 줄은 뺐습니다 — 학생이
+                  무엇을 쓸 수 있나는 위 '활동 열기' 칩이 활동 단위로 더 곱게
+                  정합니다. 보드 전체를 한 번에 잠그는 스위치는 그 위에 겹쳐
+                  놓인 두 번째 관문이라, 활동을 열어 뒀는데도 학생이 못 쓰는
+                  까닭을 찾기 어려웠습니다. 남아 있던 잠금은 아래 효과가
+                  자동으로 풉니다. */}
 
               <div className="study-board-row">
                 <span className="study-board-row-label">관리</span>

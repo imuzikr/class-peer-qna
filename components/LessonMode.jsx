@@ -675,8 +675,8 @@ export default function LessonMode({
           // 위 안내문을 뺐으므로(아래 참고) 멈췄다는 말은 여기서 합니다 —
           // 배지는 늘 같은 자리에 있어 글자가 바뀌어도 판이 안 밀립니다.
           <span className="lesson-badge lesson-badge--edit">
-            <span className="lesson-badge-long">방송 멈춤 · 학생 자유 활동</span>
-            <span className="lesson-badge-short">멈춤</span>
+            <span className="lesson-badge-long">발표 대기 · 학생 자유 활동</span>
+            <span className="lesson-badge-short">발표 대기</span>
             {className && <span className="lesson-badge-class">{className}</span>}
           </span>
         ) : presenting ? (
