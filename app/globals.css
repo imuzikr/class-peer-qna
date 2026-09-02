@@ -17831,9 +17831,35 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   grid-template-columns: 1fr auto;
   align-items: center;
   gap: 8px 10px;
-  margin: 2px 0 14px;
+  /* 카드 그리드 바로 위 — 위쪽 머리말과는 떨어뜨리고 카드와는 붙여 두어,
+     이 줄이 '카드에 딸린 조작'으로 읽히게 합니다. */
+  margin: 4px 0 12px;
 }
 .study-act-gate .section-gate-chips { grid-column: 1 / -1; }
+.study-act-gate-tools { display: flex; gap: 6px; }
+/* 순서 바꾸는 중 안내 — 지금 무엇을 눌러야 하는지 한 줄로 알려 줍니다.
+   자리는 라벨 안이라 켜고 꺼도 줄 수가 늘지 않습니다. */
+.study-act-gate-hint {
+  font-style: normal;
+  font-weight: 700;
+  color: var(--primary-dark);
+}
+/* 순서 바꾸기 켜짐 — 이 동안 칩 누르기는 여닫기가 아니라 옮기기입니다.
+   모양을 바꿔 두지 않으면 열려 있던 칩을 눌렀다가 순서가 바뀌어 놀랍니다. */
+.section-gate-all.on {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  color: var(--primary-dark);
+}
+.section-gate-chip.ordering { cursor: grab; }
+.section-gate-chip.picked {
+  cursor: grabbing;
+  border-style: solid;
+  border-color: var(--primary);
+  background: #fff;
+  color: var(--primary-dark);
+  box-shadow: 0 0 0 2px var(--primary-light);
+}
 /* 이름은 칩 안에서 자릅니다. 전체 이름은 바로 아래 진척도 목록에 그대로
    있고 칩에도 툴팁으로 붙어 있어, 여기서는 어느 활동인지 알아볼 만큼만
    보이면 됩니다(숫자 뱃지가 이미 순서를 말해 줍니다). */

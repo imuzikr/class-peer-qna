@@ -478,6 +478,37 @@ export default function StudyProjectView({
     await updateStudyBoard(board.id, { activityLocks: next });
   }
 
+  // 칩으로 순서 바꾸기 — 두 번 눌러 옮깁니다(집었다 → 놓기).
+  // -------------------------------------------------------------
+  // 칩의 평소 누르기는 '열고 잠그기'라 순서까지 같은 몸짓에 얹을 수 없습니다.
+  // 그래서 '순서 바꾸기'를 켠 동안에만 누르기가 옮기기로 바뀝니다. 끌기가
+  // 아니라 누르기인 이유는 전자칠판·태블릿에서 끌기가 잘 안 되기 때문입니다
+  // (아래 진척도 목록의 끌기는 그대로 두어, 마우스 쓰는 사람은 그쪽이 빠릅니다).
+  const [chipOrdering, setChipOrdering] = useState(false);
+  const [chipPicked, setChipPicked] = useState(null);
+  // 순서를 바꾸면 잠금도 같이 따라가야 합니다 — 활동 3을 1번 자리로 옮겼는데
+  // 잠금이 자리에 남아 있으면, 열어 둔 활동이 갑자기 잠깁니다.
+  async function moveActivityByChip(from, to) {
+    if (from == null || to == null || from === to) return;
+    const names = [...activities];
+    const locks = activities.map((_, j) => board.activityLocks?.[j] === true);
+    const [name] = names.splice(from, 1);
+    const [lock] = locks.splice(from, 1);
+    names.splice(to, 0, name);
+    locks.splice(to, 0, lock);
+    await updateStudyBoard(board.id, { activities: names, activityLocks: locks });
+  }
+  function onChipClick(i) {
+    if (!chipOrdering) {
+      toggleActivityLock(i, !isActivityLocked(board, i));
+      return;
+    }
+    if (chipPicked === null) { setChipPicked(i); return; }
+    if (chipPicked === i) { setChipPicked(null); return; }  // 같은 칩 → 집기 취소
+    moveActivityByChip(chipPicked, i);
+    setChipPicked(null);
+  }
+
   // 활동 순서 바꾸기 — from번째를 뽑아 to번째 자리에 끼워 넣습니다(수업 준비
   // 화면과 같은 방식). 자리를 맞바꾸지 않는 이유: 목록에서 끌어 놓는 몸짓은
   // '여기로 옮긴다'이지 '이 둘을 맞바꾼다'가 아니라, 맞바꾸면 사이에 있던
@@ -905,47 +936,10 @@ export default function StudyProjectView({
           {activities.length > 0 && stats && (
             <section className="study-board-section study-board-acts-col">
               <h3 className="study-board-section-title">활동</h3>
-              {/* 활동 열기 — 곁텍스트 읽기의 '단계 열기'와 같은 모양·같은
-                  생각입니다. 칩 하나가 학생이 보는 활동 하나라 '지금 어디까지
-                  열렸나'가 한 줄에 들어옵니다. 예전에는 아래 목록의 줄마다
-                  '편집/잠김' 알약을 눌러 여닫았는데, 여덟 줄을 훑어야 전체
-                  상태가 보였습니다. 여닫는 일은 이 줄이 도맡고 아래 목록은
-                  진척도만 보여 줍니다 — 같은 일을 두 자리에서 하면 어느 쪽이
-                  진짜인지 헷갈립니다. */}
-              <div className="section-gate study-act-gate">
-                  <span className="section-gate-label">
-                    활동 열기 <b>{summaryOpenCount} / {activities.length}</b>
-                  </span>
-                  <div className="section-gate-chips">
-                    {activities.map((act, i) => {
-                      const chipLocked = isActivityLocked(board, i);
-                      return (
-                        <button
-                          key={`gate-${i}`}
-                          type="button"
-                          className={`section-gate-chip${chipLocked ? "" : " open"}`}
-                          onClick={() => toggleActivityLock(i, !chipLocked)}
-                          title={`${i + 1}. ${act} — ${chipLocked ? "눌러서 열기" : "눌러서 잠그기"}`}
-                          aria-pressed={!chipLocked}
-                        >
-                          <span className="section-gate-letter">{i + 1}</span>
-                          <span className="section-gate-ko">{act}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <button
-                    type="button"
-                    className="btn-ghost section-gate-all"
-                    onClick={() =>
-                      setActivityLocksUpTo(
-                        summaryOpenCount === activities.length ? 1 : activities.length
-                      )
-                    }
-                  >
-                    {summaryOpenCount === activities.length ? "1번만 남기기" : "모두 열기"}
-                  </button>
-              </div>
+              {/* 여닫는 칩 줄은 이 패널이 아니라 카드 그리드 바로 위에
+                  있습니다(곁텍스트 읽기와 같은 자리) — 수업 중에 가장 자주
+                  쓰는 조작이라 설정을 펼쳐야 닿는 자리에 두면 안 됩니다.
+                  여기에는 진척도만 남깁니다. */}
 
               {/* 활동별 진척도 — 활동마다 몇 명이 냈는지 */}
               <ul className="study-board-acts">
@@ -1038,6 +1032,85 @@ export default function StudyProjectView({
               )}
             </section>
           )}
+        </div>
+      )}
+
+      {/* ── 활동 열기 — 카드 그리드 바로 위 ──
+          곁텍스트 읽기의 '단계 열기'와 같은 자리·같은 칩입니다. 수업 중
+          가장 자주 쓰는 조작이라, 설정 패널을 펼쳐야 닿는 자리에 두면 매번
+          두 번 눌러야 했습니다. 칩 하나가 학생이 보는 활동 하나라 '지금
+          어디까지 열렸나'가 카드를 보기 직전에 눈에 들어옵니다. */}
+      {isTeacher && activities.length > 0 && (
+        <div className="section-gate study-act-gate">
+          <span className="section-gate-label">
+            활동 열기 <b>{summaryOpenCount} / {activities.length}</b>
+            {chipOrdering && (
+              <em className="study-act-gate-hint">
+                {chipPicked === null
+                  ? " — 옮길 활동을 누르세요"
+                  : ` — ‘${activities[chipPicked]}’을(를) 놓을 자리를 누르세요`}
+              </em>
+            )}
+          </span>
+          <span className="study-act-gate-tools">
+            <button
+              type="button"
+              className={`btn-ghost section-gate-all${chipOrdering ? " on" : ""}`}
+              onClick={() => { setChipOrdering((v) => !v); setChipPicked(null); }}
+              aria-pressed={chipOrdering}
+              title={
+                chipOrdering
+                  ? "순서 바꾸기를 끄고 다시 여닫기로 돌아갑니다"
+                  : "칩을 두 번 눌러 활동 순서를 바꿉니다(집었다 → 놓기)"
+              }
+            >
+              {chipOrdering ? "순서 바꾸기 끝" : "순서 바꾸기"}
+            </button>
+            {!chipOrdering && (
+              <button
+                type="button"
+                className="btn-ghost section-gate-all"
+                onClick={() =>
+                  setActivityLocksUpTo(
+                    summaryOpenCount === activities.length ? 1 : activities.length
+                  )
+                }
+              >
+                {summaryOpenCount === activities.length ? "1번만 남기기" : "모두 열기"}
+              </button>
+            )}
+          </span>
+          <div className="section-gate-chips">
+            {activities.map((act, i) => {
+              const chipLocked = isActivityLocked(board, i);
+              const picked = chipPicked === i;
+              return (
+                <button
+                  key={`gate-${i}`}
+                  type="button"
+                  className={
+                    `section-gate-chip${chipLocked ? "" : " open"}` +
+                    (chipOrdering ? " ordering" : "") +
+                    (picked ? " picked" : "")
+                  }
+                  onClick={() => onChipClick(i)}
+                  title={
+                    chipOrdering
+                      ? picked
+                        ? `${act} — 다시 눌러 집기 취소`
+                        : chipPicked === null
+                          ? `${act} — 눌러서 집기`
+                          : `${act} 자리에 놓기`
+                      : `${i + 1}. ${act} — ${chipLocked ? "눌러서 열기" : "눌러서 잠그기"}`
+                  }
+                  aria-pressed={chipOrdering ? picked : !chipLocked}
+                >
+                  <span className="section-gate-letter">{i + 1}</span>
+                  <span className="section-gate-ko">{act}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
 
