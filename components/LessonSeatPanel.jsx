@@ -20,7 +20,7 @@
 // 길어져 화면이 한쪽으로 쏠립니다. 눌러야 펼쳐지게 해 평소엔 균형을 맞추고,
 // 필요할 때만 크게 봅니다.
 // =============================================================
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { subscribeQuestionSignals, todayDateKey } from "@/lib/store";
 import { normalizeSeats } from "@/lib/seats";
 import { getCurrentUser } from "@/lib/user";
@@ -66,6 +66,26 @@ export default function LessonSeatPanel({
   const [seats, setSeats] = useState(() =>
     normalizeSeats(dailySeatLayout?.seats ?? seatLayout?.seats ?? [], roster)
   );
+
+  // 탭을 갈아 끼울 때 패널이 줄었다 늘었다 하지 않도록, 지금까지 본 가장 큰
+  // 보기의 키를 바닥으로 깔아 둡니다. min-height라 더 큰 보기가 나오면 그냥
+  // 넘어서 자라고(자리표가 그렇습니다), 작은 보기는 빈자리로 남습니다.
+  const bodyRef = useRef(null);
+  const [floorH, setFloorH] = useState(0);
+  // 명단이 바뀌면 기준을 다시 잡습니다 — 학생이 빠져 자리표가 짧아졌는데
+  // 옛 키가 그대로 남아 빈자리만 넓어지는 일이 없게.
+  // (activeView는 아래에서 만들어지므로 여기서 참조하지 않습니다 —
+  //  const는 선언 전에 읽으면 ReferenceError입니다.)
+  useEffect(() => { setFloorH(0); }, [roster.length]);
+  useEffect(() => {
+    const el = bodyRef.current;
+    if (!el) return;
+    // scrollHeight는 min-height에 눌리지 않는 '내용만의 키'라, 깔아 둔 값
+    // 때문에 기준이 스스로 부풀지 않습니다(부풀면 매번 다시 그려집니다).
+    const h = el.scrollHeight;
+    if (h > floorH) setFloorH(h);
+  });
+  const bodyStyle = floorH > 0 ? { minHeight: floorH } : undefined;
 
   useEffect(() => {
     if (raisedUidsProp) return;            // 부모가 주면 여기서 또 구독하지 않습니다
@@ -228,6 +248,12 @@ export default function LessonSeatPanel({
             : "반 전체가 지금까지 받은 과일 — 많이 받은 순"}
       </p>
       {viewTabs}
+      {/* 세 보기의 키가 제각각입니다(25명 기준 자리표 726 · 모둠 535 ·
+          궁금한 순간 480px — 재 본 값). 그대로 두면 탭을 누를 때마다 패널이
+          200px 넘게 줄었다 늘었다 하고, 그만큼 아래 내용과 스크롤이 튑니다.
+          가장 큰 보기의 키를 기억해 바닥으로 깔아 두면 탭만 갈릴 뿐 판은
+          그대로 있습니다. */}
+      <div className="lesson-seat-body" ref={bodyRef} style={bodyStyle}>
       {roster.length === 0 ? (
         <p className="lesson-note-empty">이 반에 입장한 학생이 없어요.</p>
       ) : activeView === "tally" ? (
@@ -285,6 +311,7 @@ export default function LessonSeatPanel({
           todayCountByUid={todayCountByUid}
         />
       )}
+      </div>
 
       {toolsStudent && onAward && (
         <StudentToolsModal
