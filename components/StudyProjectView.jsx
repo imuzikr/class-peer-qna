@@ -1064,7 +1064,7 @@ export default function StudyProjectView({
                   : "칩을 두 번 눌러 활동 순서를 바꿉니다(집었다 → 놓기)"
               }
             >
-              {chipOrdering ? "순서 바꾸기 끝" : "순서 바꾸기"}
+              순서 바꾸기
             </button>
             {!chipOrdering && (
               <button
