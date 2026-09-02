@@ -731,7 +731,7 @@ export default function LessonMode({
           <span className="lesson-nav-tools">
             <button
               type="button"
-              className={`lesson-hand-chip${raisedCount > 0 ? " on" : ""}`}
+              className="lesson-hand-chip"
               onClick={() => setSeatOpen(true)}
               title={
                 raisedCount > 0
@@ -739,7 +739,15 @@ export default function LessonMode({
                   : "손든 학생이 없어요 — 눌러서 자리표 열기"
               }
             >
-              🖐️ {raisedCount}
+              <span aria-hidden="true">🖐️</span>
+              {/* 0명이면 뱃지를 안 답니다 — 늘 붙어 있으면 신호가 아닙니다.
+                  소리로 읽는 쪽에는 아래 sr-only 글로 늘 알려 줍니다. */}
+              {raisedCount > 0 && (
+                <span className="lesson-hand-badge" aria-hidden="true">{raisedCount}</span>
+              )}
+              <span className="sr-only">
+                손든 학생 {raisedCount}명 — 자리표 열기
+              </span>
             </button>
             <ClassNoticeButton classId={classId} memberCount={roster.length} />
             {me?.uid && isFirebaseConfigured && <NotificationBell uid={me.uid} />}
