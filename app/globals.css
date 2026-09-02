@@ -12920,23 +12920,17 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   gap: 3px;
   min-width: 0;
 }
+/* 칸 하나가 활동 하나 — 켜짐/꺼짐 둘뿐입니다. 예전에는 칸 안을 제출 비율만큼
+   부분적으로 채웠는데(seg-fill), 목록에서는 그 정밀함이 읽히지 않아 없앴습니다.
+   지금은 열어 준 활동 수만큼 칸이 켜집니다. */
 .study-project-seg {
   flex: 1;
   height: 6px;
   border-radius: 999px;
   background: var(--neutral);
-  /* 학급 평균 막대는 칸 안을 비율만큼만 채웁니다(아래 seg-fill) */
-  position: relative;
-  overflow: hidden;
 }
 /* 학생 카드 막대(.study-card-progress-seg.on)와 같은 연한 초록 */
 .study-project-seg.on { background: #a6d8b6; }
-.study-project-seg-fill {
-  display: block;
-  height: 100%;
-  border-radius: 999px;
-  background: #a6d8b6;
-}
 .study-project-progress-label {
   flex-shrink: 0;
   font-size: 11.5px;

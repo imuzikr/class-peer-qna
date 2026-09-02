@@ -23,7 +23,7 @@ import {
   purgeStudyBoard,
   toDate,
 } from "@/lib/store";
-import { cardActivitySummary } from "@/lib/activities";
+import { cardActivitySummary, isActivityLocked } from "@/lib/activities";
 
 function dateLabel(value) {
   const d = value ? toDate(value) : null;
@@ -276,10 +276,16 @@ function ProjectCard({
           : true
       ).length;
 
-  // 교사: 학급 전체의 제출 상태를 평균해 막대로 — 활동 칸마다 '그 활동을
-  // 낸 학생 비율'만큼 채웁니다(한 명이라도 안 냈으면 칸이 덜 찹니다).
-  // 분모는 반 명단 인원이라, 아직 카드를 만들지 않은 학생도 0으로 셉니다
-  // (모둠 프로젝트는 명단 대신 살아 있는 모둠 카드 수가 분모).
+  // 교사: 막대는 **어디까지 열어 줬는가**를 그립니다.
+  // -------------------------------------------------------------
+  // 예전에는 칸마다 '그 활동을 낸 학생 비율'만큼 채웠습니다. 목록 화면에서는
+  // 그 정밀함이 쓸모가 없었습니다 — 카드가 여럿 늘어선 자리에서 교사가 알고
+  // 싶은 건 '이 프로젝트가 몇 번째 활동까지 진행됐나'이지, 칸마다 몇 %인가가
+  // 아니기 때문입니다(그 세부는 프로젝트를 열면 '활동 열기' 칩 줄과 진척도
+  // 목록에 그대로 있습니다). 지금은 열린 활동 수만큼 칸을 채웁니다.
+  //
+  // 제출 정도는 숫자 하나(학급 평균)로 충분합니다 — 막대와 숫자가 서로 다른
+  // 것을 말하므로, 한 눈에 '어디까지 열렸나 · 얼마나 냈나'가 함께 읽힙니다.
   const classSummary = (() => {
     if (!isTeacher || activities.length === 0) return null;
     const targets = isGroup
@@ -295,8 +301,10 @@ function ProjectCard({
     });
     const ratios = counts.map((n) => n / denom);
     return {
-      ratios,
       total: activities.length,
+      // 열린 활동 — 잠기지 않은 칸입니다. 활동 열기 칩 줄과 같은 판정을
+      // 쓰므로(isActivityLocked) 두 화면이 어긋날 수 없습니다.
+      openCount: activities.filter((_, i) => !isActivityLocked(board, i)).length,
       // 학생 한 명이 평균 몇 개 칸을 냈는가 (칸 비율의 합과 같습니다)
       avgFilled: ratios.reduce((sum, r) => sum + r, 0),
     };
@@ -344,21 +352,23 @@ function ProjectCard({
           </span>
         )}
 
-        {/* 교사: 학급 전체 평균 — 칸마다 제출한 학생 비율만큼 채워집니다 */}
+        {/* 교사: 막대 = 열어 준 활동, 숫자 = 학급 평균 제출 */}
         {classSummary && (
-          <span className="study-project-progress">
+          <span
+            className="study-project-progress"
+            title={`활동 ${classSummary.total}개 중 ${classSummary.openCount}개를 열어 뒀어요 · 학생 한 명이 평균 ${classSummary.avgFilled.toFixed(1)}칸 제출`}
+          >
             <span className="study-project-progress-bar">
-              {classSummary.ratios.map((r, i) => (
-                <span key={i} className="study-project-seg">
-                  <span
-                    className="study-project-seg-fill"
-                    style={{ width: `${Math.round(r * 100)}%` }}
-                  />
-                </span>
+              {Array.from({ length: classSummary.total }, (_, i) => (
+                <span
+                  key={i}
+                  className={`study-project-seg${i < classSummary.openCount ? " on" : ""}`}
+                />
               ))}
             </span>
             <span className="study-project-progress-label">
-              학급 평균 {classSummary.avgFilled.toFixed(1)}/{classSummary.total}
+              {classSummary.openCount}/{classSummary.total} 열림 · 평균{" "}
+              {classSummary.avgFilled.toFixed(1)}
             </span>
           </span>
         )}
