@@ -723,6 +723,10 @@ export default function StudyProjectView({
           펼쳐 보고 관리합니다. */}
       {isTeacher && settingsOpen && (
         <div className="study-board-panel">
+          {/* 왼쪽 — 현황과 설정. 오른쪽 칸(활동)과 나란히 섭니다.
+              활동은 칩과 목록이 세로로 길어, 현황 아래에 두면 설정이
+              한참 밀려 내려가 같은 패널 안에서도 스크롤이 필요했습니다. */}
+          <div className="study-board-col">
           {/* 현황 — 활동 진척도 · 학생 진행률 · 출석 */}
           {stats && (
             <section className="study-board-section">
@@ -757,139 +761,6 @@ export default function StudyProjectView({
                 </div>
               </div>
 
-              {/* 활동 열기 — 곁텍스트 읽기의 '단계 열기'와 같은 모양·같은
-                  생각입니다. 칩 하나가 학생이 보는 활동 하나라 '지금 어디까지
-                  열렸나'가 한 줄에 들어옵니다. 예전에는 아래 목록의 줄마다
-                  '편집/잠김' 알약을 눌러 여닫았는데, 여덟 줄을 훑어야 전체
-                  상태가 보였습니다. 여닫는 일은 이 줄이 도맡고 아래 목록은
-                  진척도만 보여 줍니다 — 같은 일을 두 자리에서 하면 어느 쪽이
-                  진짜인지 헷갈립니다. */}
-              {activities.length > 0 && (
-                <div className="section-gate study-act-gate">
-                  <span className="section-gate-label">
-                    활동 열기 <b>{summaryOpenCount} / {activities.length}</b>
-                  </span>
-                  <div className="section-gate-chips">
-                    {activities.map((act, i) => {
-                      const chipLocked = isActivityLocked(board, i);
-                      return (
-                        <button
-                          key={`gate-${i}`}
-                          type="button"
-                          className={`section-gate-chip${chipLocked ? "" : " open"}`}
-                          onClick={() => toggleActivityLock(i, !chipLocked)}
-                          title={`${i + 1}. ${act} — ${chipLocked ? "눌러서 열기" : "눌러서 잠그기"}`}
-                          aria-pressed={!chipLocked}
-                        >
-                          <span className="section-gate-letter">{i + 1}</span>
-                          <span className="section-gate-ko">{act}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <button
-                    type="button"
-                    className="btn-ghost section-gate-all"
-                    onClick={() =>
-                      setActivityLocksUpTo(
-                        summaryOpenCount === activities.length ? 1 : activities.length
-                      )
-                    }
-                  >
-                    {summaryOpenCount === activities.length ? "1번만 남기기" : "모두 열기"}
-                  </button>
-                </div>
-              )}
-
-              {/* 활동별 진척도 — 활동마다 몇 명이 냈는지 */}
-              <ul className="study-board-acts">
-                {activities.map((act, i) => {
-                  const n = stats.perAct[i];
-                  const pct = stats.total > 0 ? Math.round((n / stats.total) * 100) : 0;
-                  return (
-                    <li
-                      key={i}
-                      className={
-                        "study-board-act" +
-                        (dragActIdx === i ? " is-dragging" : "") +
-                        (overActIdx === i && dragActIdx !== i
-                          // 놓으면 그 줄의 번호를 가져갑니다 — 위로 끌면 그 줄
-                          // 앞, 아래로 끌면 그 줄 뒤에 들어가므로 선도 그쪽에.
-                          ? dragActIdx > i
-                            ? " is-over is-over--up"
-                            : " is-over is-over--down"
-                          : "")
-                      }
-                      onDragOver={
-                        dragActIdx == null
-                          ? undefined
-                          : (e) => { e.preventDefault(); setOverActIdx(i); }
-                      }
-                      onDrop={
-                        dragActIdx == null
-                          ? undefined
-                          : (e) => { e.preventDefault(); moveActivity(dragActIdx, i); }
-                      }
-                    >
-                      {/* 끌기 손잡이 — 줄 자체는 눌러서 열고 잠그는 버튼이라,
-                          끌기까지 겹치면 잠그려던 손이 줄을 옮겨 버립니다.
-                          마우스가 없어도 옮길 수 있게 ↑↓ 키도 받습니다. */}
-                      <button
-                        type="button"
-                        className="study-board-act-drag"
-                        draggable
-                        onDragStart={(e) => {
-                          setDragActIdx(i);
-                          e.dataTransfer.effectAllowed = "move";
-                          // 파이어폭스는 데이터가 없으면 끌기를 시작하지 않습니다
-                          e.dataTransfer.setData("text/plain", String(i));
-                        }}
-                        onDragEnd={() => { setDragActIdx(null); setOverActIdx(null); }}
-                        onKeyDown={(e) => {
-                          if (e.key === "ArrowUp") { e.preventDefault(); moveActivity(i, i - 1); }
-                          if (e.key === "ArrowDown") { e.preventDefault(); moveActivity(i, i + 1); }
-                        }}
-                        aria-label={`활동 ${i + 1} 순서 바꾸기`}
-                        title="끌어서 순서 바꾸기 (↑↓ 키로도 옮길 수 있어요)"
-                      >
-                        ⠿
-                      </button>
-                      {/* 여닫기는 위 '활동 열기' 줄이 도맡습니다 — 여기서는
-                          이름과 진척도만 읽습니다(단추가 아니라 글입니다). */}
-                      <span className="study-board-act-toggle">
-                        <span className="study-board-act-no">활동 {i + 1}</span>
-                        <span className="study-board-act-name" title={act}>{act}</span>
-                      </span>
-                      <span className="study-board-act-bar">
-                        <span
-                          className="study-board-act-fill"
-                          style={{ width: `${pct}%` }}
-                        />
-                      </span>
-                      <span className="study-board-act-count">
-                        {n}/{stats.total}
-                      </span>
-                      <button
-                        type="button"
-                        className="study-board-act-wall"
-                        onClick={() => setWallIndex(i)}
-                        disabled={n === 0}
-                        title={
-                          n === 0
-                            ? "아직 이 활동을 쓴 학생이 없어요"
-                            : "이 활동의 답을 모두 한 화면에 모아 봅니다"
-                        }
-                      >
-                        모아보기
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-
-              {actMoveError && (
-                <p className="form-error" role="alert">{actMoveError}</p>
-              )}
             </section>
           )}
 
@@ -1025,6 +896,148 @@ export default function StudyProjectView({
               </div>
             </div>
           </section>
+          </div>
+
+          {/* 오른쪽 — 활동. 여닫는 칩 줄과 진척도 목록이 한 칸에 모입니다.
+              stats를 함께 봅니다 — 아래 진척도 목록이 stats.perAct를 읽으므로,
+              아직 안 불러온 동안 그리면 그 자리에서 터집니다(옮기기 전에는
+              '현황' 안에 있어 저절로 막혀 있었습니다). */}
+          {activities.length > 0 && stats && (
+            <section className="study-board-section study-board-acts-col">
+              <h3 className="study-board-section-title">활동</h3>
+              {/* 활동 열기 — 곁텍스트 읽기의 '단계 열기'와 같은 모양·같은
+                  생각입니다. 칩 하나가 학생이 보는 활동 하나라 '지금 어디까지
+                  열렸나'가 한 줄에 들어옵니다. 예전에는 아래 목록의 줄마다
+                  '편집/잠김' 알약을 눌러 여닫았는데, 여덟 줄을 훑어야 전체
+                  상태가 보였습니다. 여닫는 일은 이 줄이 도맡고 아래 목록은
+                  진척도만 보여 줍니다 — 같은 일을 두 자리에서 하면 어느 쪽이
+                  진짜인지 헷갈립니다. */}
+              <div className="section-gate study-act-gate">
+                  <span className="section-gate-label">
+                    활동 열기 <b>{summaryOpenCount} / {activities.length}</b>
+                  </span>
+                  <div className="section-gate-chips">
+                    {activities.map((act, i) => {
+                      const chipLocked = isActivityLocked(board, i);
+                      return (
+                        <button
+                          key={`gate-${i}`}
+                          type="button"
+                          className={`section-gate-chip${chipLocked ? "" : " open"}`}
+                          onClick={() => toggleActivityLock(i, !chipLocked)}
+                          title={`${i + 1}. ${act} — ${chipLocked ? "눌러서 열기" : "눌러서 잠그기"}`}
+                          aria-pressed={!chipLocked}
+                        >
+                          <span className="section-gate-letter">{i + 1}</span>
+                          <span className="section-gate-ko">{act}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <button
+                    type="button"
+                    className="btn-ghost section-gate-all"
+                    onClick={() =>
+                      setActivityLocksUpTo(
+                        summaryOpenCount === activities.length ? 1 : activities.length
+                      )
+                    }
+                  >
+                    {summaryOpenCount === activities.length ? "1번만 남기기" : "모두 열기"}
+                  </button>
+              </div>
+
+              {/* 활동별 진척도 — 활동마다 몇 명이 냈는지 */}
+              <ul className="study-board-acts">
+                {activities.map((act, i) => {
+                  const n = stats.perAct[i];
+                  const pct = stats.total > 0 ? Math.round((n / stats.total) * 100) : 0;
+                  return (
+                    <li
+                      key={i}
+                      className={
+                        "study-board-act" +
+                        (dragActIdx === i ? " is-dragging" : "") +
+                        (overActIdx === i && dragActIdx !== i
+                          // 놓으면 그 줄의 번호를 가져갑니다 — 위로 끌면 그 줄
+                          // 앞, 아래로 끌면 그 줄 뒤에 들어가므로 선도 그쪽에.
+                          ? dragActIdx > i
+                            ? " is-over is-over--up"
+                            : " is-over is-over--down"
+                          : "")
+                      }
+                      onDragOver={
+                        dragActIdx == null
+                          ? undefined
+                          : (e) => { e.preventDefault(); setOverActIdx(i); }
+                      }
+                      onDrop={
+                        dragActIdx == null
+                          ? undefined
+                          : (e) => { e.preventDefault(); moveActivity(dragActIdx, i); }
+                      }
+                    >
+                      {/* 끌기 손잡이 — 줄 자체는 눌러서 열고 잠그는 버튼이라,
+                          끌기까지 겹치면 잠그려던 손이 줄을 옮겨 버립니다.
+                          마우스가 없어도 옮길 수 있게 ↑↓ 키도 받습니다. */}
+                      <button
+                        type="button"
+                        className="study-board-act-drag"
+                        draggable
+                        onDragStart={(e) => {
+                          setDragActIdx(i);
+                          e.dataTransfer.effectAllowed = "move";
+                          // 파이어폭스는 데이터가 없으면 끌기를 시작하지 않습니다
+                          e.dataTransfer.setData("text/plain", String(i));
+                        }}
+                        onDragEnd={() => { setDragActIdx(null); setOverActIdx(null); }}
+                        onKeyDown={(e) => {
+                          if (e.key === "ArrowUp") { e.preventDefault(); moveActivity(i, i - 1); }
+                          if (e.key === "ArrowDown") { e.preventDefault(); moveActivity(i, i + 1); }
+                        }}
+                        aria-label={`활동 ${i + 1} 순서 바꾸기`}
+                        title="끌어서 순서 바꾸기 (↑↓ 키로도 옮길 수 있어요)"
+                      >
+                        ⠿
+                      </button>
+                      {/* 여닫기는 위 '활동 열기' 줄이 도맡습니다 — 여기서는
+                          이름과 진척도만 읽습니다(단추가 아니라 글입니다). */}
+                      <span className="study-board-act-toggle">
+                        <span className="study-board-act-no">활동 {i + 1}</span>
+                        <span className="study-board-act-name" title={act}>{act}</span>
+                      </span>
+                      <span className="study-board-act-bar">
+                        <span
+                          className="study-board-act-fill"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </span>
+                      <span className="study-board-act-count">
+                        {n}/{stats.total}
+                      </span>
+                      <button
+                        type="button"
+                        className="study-board-act-wall"
+                        onClick={() => setWallIndex(i)}
+                        disabled={n === 0}
+                        title={
+                          n === 0
+                            ? "아직 이 활동을 쓴 학생이 없어요"
+                            : "이 활동의 답을 모두 한 화면에 모아 봅니다"
+                        }
+                      >
+                        모아보기
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+
+              {actMoveError && (
+                <p className="form-error" role="alert">{actMoveError}</p>
+              )}
+            </section>
+          )}
         </div>
       )}
 

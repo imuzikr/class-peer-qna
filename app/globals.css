@@ -13345,6 +13345,21 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   flex-direction: column;
   gap: 10px;
 }
+/* 왼쪽 칸 — 현황과 설정을 세로로 쌓습니다. 활동(오른쪽)은 칩 줄과 목록이
+   세로로 길어, 예전처럼 현황 아래에 두면 설정이 한참 밀려 내려가 같은
+   패널 안에서 또 스크롤해야 했습니다. */
+.study-board-col {
+  flex: 1 1 340px;
+  min-width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+/* 오른쪽 칸 — 활동. 칩 이름이 길어 왼쪽보다 조금 더 넓게 잡습니다. */
+.study-board-acts-col {
+  flex: 1 1 380px;
+  min-width: 300px;
+}
 .study-board-section-title {
   font-size: 12px;
   font-weight: 800;
@@ -17804,12 +17819,26 @@ button.study-cal-cell.has-record:not(:disabled):hover {
    칩과 같은 27px로 되돌립니다(방송 막대와 같은 이유·같은 방식). */
 .books-head .section-gate .section-gate-all,
 .section-gate-all { height: 27px; padding: 0 10px; font-size: 12px; }
-/* 공부방 프로젝트 설정 안의 같은 줄 — 곁텍스트 읽기와 같은 칩을 그대로
-   쓰되, 머리말이 아니라 패널 속이라 위아래 숨만 조금 줍니다. 활동 이름은
-   길 수 있어 칩 안에서 잘라 둡니다(줄이 두 줄로 접히면 목록과 뒤섞입니다). */
-.study-act-gate { margin: 2px 0 14px; }
+/* 공부방 프로젝트의 활동 칸 — 곁텍스트 읽기와 같은 칩을 그대로 씁니다.
+   다른 점은 이름 길이뿐입니다: 곁텍스트는 '표지·지은이'처럼 두세 글자라
+   여덟 개가 한 줄에 들어가지만, 활동 이름은 문장이라 칩이 줄줄이 접힙니다.
+   그대로 두면 '모두 열기'까지 밀려 내려가 줄이 넷이 되고 목록과 뒤섞였습니다.
+   그래서 자리를 격자로 잡습니다 — 첫 줄에 '활동 열기 n/N'과 '모두 열기'가
+   양끝으로 서고, 칩은 그 아래 한 덩어리로 깔립니다. 몇 개가 접히든 이
+   두 줄 구조는 흔들리지 않습니다. */
+.study-act-gate {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 8px 10px;
+  margin: 2px 0 14px;
+}
+.study-act-gate .section-gate-chips { grid-column: 1 / -1; }
+/* 이름은 칩 안에서 자릅니다. 전체 이름은 바로 아래 진척도 목록에 그대로
+   있고 칩에도 툴팁으로 붙어 있어, 여기서는 어느 활동인지 알아볼 만큼만
+   보이면 됩니다(숫자 뱃지가 이미 순서를 말해 줍니다). */
 .study-act-gate .section-gate-ko {
-  max-width: 140px;
+  max-width: 112px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
