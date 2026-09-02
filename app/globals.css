@@ -17856,15 +17856,22 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   color: #a8512f;
   font-weight: 800;
 }
-.section-gate-chip.ordering { cursor: grab; }
-.section-gate-chip.picked {
-  cursor: grabbing;
-  border-style: solid;
-  border-color: var(--primary);
-  background: #fff;
-  color: var(--primary-dark);
-  box-shadow: 0 0 0 2px var(--primary-light);
+/* 순서 바꾸기 중인 칩 — 끌 수 있다는 손 모양으로 바꿉니다. */
+.section-gate-chip.ordering { cursor: grab; position: relative; }
+.section-gate-chip.dragging { opacity: 0.45; cursor: grabbing; }
+/* 놓일 자리 표시 — 칩 옆에 선 하나. 칩 자체의 색을 바꾸면 '열림/잠김'
+   색과 뒤섞여 지금 상태를 못 읽습니다. */
+.section-gate-chip.over::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--primary);
 }
+.section-gate-chip.over--left::after { left: -3px; }
+.section-gate-chip.over--right::after { right: -3px; }
 /* 칩은 **언제나 한 줄**입니다. 접히게 두면 활동 수·화면 폭에 따라 줄이
    하나에서 셋까지 오락가락하고, 그때마다 아래 카드가 밀렸습니다.
    대신 칩끼리 남는 폭을 고르게 나눠 갖고, 이름은 제 칸 안에서 말줄임으로

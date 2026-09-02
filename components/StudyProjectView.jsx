@@ -478,36 +478,19 @@ export default function StudyProjectView({
     await updateStudyBoard(board.id, { activityLocks: next });
   }
 
-  // 칩으로 순서 바꾸기 — 두 번 눌러 옮깁니다(집었다 → 놓기).
+  // 칩으로 순서 바꾸기 — '순서 바꾸기'를 켠 동안에는 끌어서 옮깁니다.
   // -------------------------------------------------------------
   // 칩의 평소 누르기는 '열고 잠그기'라 순서까지 같은 몸짓에 얹을 수 없습니다.
-  // 그래서 '순서 바꾸기'를 켠 동안에만 누르기가 옮기기로 바뀝니다. 끌기가
-  // 아니라 누르기인 이유는 전자칠판·태블릿에서 끌기가 잘 안 되기 때문입니다
-  // (아래 진척도 목록의 끌기는 그대로 두어, 마우스 쓰는 사람은 그쪽이 빠릅니다).
+  // 그래서 켜 둔 동안에는 여닫기를 아예 막고 끌기만 받습니다.
+  //
+  // 옮기는 일은 아래 목록과 **같은 moveActivity**를 부릅니다. 따로 짜면 그
+  // 함수가 지고 있는 두 가지를 빠뜨리게 됩니다 — 학생이 이미 쓴 카드가 있으면
+  // 순서를 못 바꾸게 막는 것(활동 칸이 카드의 실제 입력 칸이라 순서가 바뀌면
+  // 답이 다른 칸에 붙습니다), 그리고 빈 카드들의 작성 틀을 새 순서로 다시
+  // 깔아 주는 것.
   const [chipOrdering, setChipOrdering] = useState(false);
-  const [chipPicked, setChipPicked] = useState(null);
-  // 순서를 바꾸면 잠금도 같이 따라가야 합니다 — 활동 3을 1번 자리로 옮겼는데
-  // 잠금이 자리에 남아 있으면, 열어 둔 활동이 갑자기 잠깁니다.
-  async function moveActivityByChip(from, to) {
-    if (from == null || to == null || from === to) return;
-    const names = [...activities];
-    const locks = activities.map((_, j) => board.activityLocks?.[j] === true);
-    const [name] = names.splice(from, 1);
-    const [lock] = locks.splice(from, 1);
-    names.splice(to, 0, name);
-    locks.splice(to, 0, lock);
-    await updateStudyBoard(board.id, { activities: names, activityLocks: locks });
-  }
-  function onChipClick(i) {
-    if (!chipOrdering) {
-      toggleActivityLock(i, !isActivityLocked(board, i));
-      return;
-    }
-    if (chipPicked === null) { setChipPicked(i); return; }
-    if (chipPicked === i) { setChipPicked(null); return; }  // 같은 칩 → 집기 취소
-    moveActivityByChip(chipPicked, i);
-    setChipPicked(null);
-  }
+  const [chipDrag, setChipDrag] = useState(null);
+  const [chipOver, setChipOver] = useState(null);
 
   // 활동 순서 바꾸기 — from번째를 뽑아 to번째 자리에 끼워 넣습니다(수업 준비
   // 화면과 같은 방식). 자리를 맞바꾸지 않는 이유: 목록에서 끌어 놓는 몸짓은
@@ -1046,9 +1029,7 @@ export default function StudyProjectView({
             활동 열기 <b>{summaryOpenCount} / {activities.length}</b>
             {chipOrdering && (
               <em className="study-act-gate-hint">
-                {chipPicked === null
-                  ? " — 옮길 활동을 누르세요"
-                  : ` — ‘${activities[chipPicked]}’을(를) 놓을 자리를 누르세요`}
+                {" — 칩을 끌어서 옮기세요 (여닫기는 잠시 멈춤)"}
               </em>
             )}
           </span>
@@ -1056,12 +1037,16 @@ export default function StudyProjectView({
             <button
               type="button"
               className={`btn-ghost section-gate-all${chipOrdering ? " on" : ""}`}
-              onClick={() => { setChipOrdering((v) => !v); setChipPicked(null); }}
+              onClick={() => {
+                setChipOrdering((v) => !v);
+                setChipDrag(null);
+                setChipOver(null);
+              }}
               aria-pressed={chipOrdering}
               title={
                 chipOrdering
                   ? "순서 바꾸기를 끄고 다시 여닫기로 돌아갑니다"
-                  : "칩을 두 번 눌러 활동 순서를 바꿉니다(집었다 → 놓기)"
+                  : "칩을 끌어서 활동 순서를 바꿉니다(그 동안 여닫기는 멈춥니다)"
               }
             >
               순서 바꾸기
@@ -1083,7 +1068,8 @@ export default function StudyProjectView({
           <div className="section-gate-chips">
             {activities.map((act, i) => {
               const chipLocked = isActivityLocked(board, i);
-              const picked = chipPicked === i;
+              const dragging = chipDrag === i;
+              const over = chipOver === i && chipDrag !== i;
               return (
                 <button
                   key={`gate-${i}`}
@@ -1091,19 +1077,56 @@ export default function StudyProjectView({
                   className={
                     `section-gate-chip${chipLocked ? "" : " open"}` +
                     (chipOrdering ? " ordering" : "") +
-                    (picked ? " picked" : "")
+                    (dragging ? " dragging" : "") +
+                    // 끌고 온 칩이 왼쪽에서 왔으면 이 칩 뒤에, 오른쪽에서
+                    // 왔으면 앞에 들어갑니다 — 선도 그쪽에 긋습니다.
+                    (over ? (chipDrag > i ? " over over--left" : " over over--right") : "")
                   }
-                  onClick={() => onChipClick(i)}
+                  // 순서 바꾸기가 켜져 있으면 누르기는 아무 일도 하지 않습니다
+                  // (끌기만 받습니다 — 두 몸짓이 겹치면 잠그려다 순서가 바뀝니다).
+                  onClick={chipOrdering ? undefined : () => toggleActivityLock(i, !chipLocked)}
+                  draggable={chipOrdering}
+                  onDragStart={
+                    chipOrdering
+                      ? (e) => {
+                          setChipDrag(i);
+                          e.dataTransfer.effectAllowed = "move";
+                          // 파이어폭스는 데이터가 없으면 끌기를 시작하지 않습니다
+                          e.dataTransfer.setData("text/plain", String(i));
+                        }
+                      : undefined
+                  }
+                  onDragOver={
+                    chipOrdering && chipDrag != null
+                      ? (e) => { e.preventDefault(); setChipOver(i); }
+                      : undefined
+                  }
+                  onDrop={
+                    chipOrdering && chipDrag != null
+                      ? (e) => {
+                          e.preventDefault();
+                          moveActivity(chipDrag, i);
+                          setChipDrag(null);
+                          setChipOver(null);
+                        }
+                      : undefined
+                  }
+                  onDragEnd={() => { setChipDrag(null); setChipOver(null); }}
+                  // 끌기는 키보드로 안 되므로 ← → 로도 옮길 수 있게 둡니다.
+                  onKeyDown={
+                    chipOrdering
+                      ? (e) => {
+                          if (e.key === "ArrowLeft") { e.preventDefault(); moveActivity(i, i - 1); }
+                          if (e.key === "ArrowRight") { e.preventDefault(); moveActivity(i, i + 1); }
+                        }
+                      : undefined
+                  }
                   title={
                     chipOrdering
-                      ? picked
-                        ? `${act} — 다시 눌러 집기 취소`
-                        : chipPicked === null
-                          ? `${act} — 눌러서 집기`
-                          : `${act} 자리에 놓기`
+                      ? `${act} — 끌어서 옮기기 (← → 키로도 옮길 수 있어요)`
                       : `${i + 1}. ${act} — ${chipLocked ? "눌러서 열기" : "눌러서 잠그기"}`
                   }
-                  aria-pressed={chipOrdering ? picked : !chipLocked}
+                  aria-pressed={chipOrdering ? undefined : !chipLocked}
                 >
                   <span className="section-gate-letter">{i + 1}</span>
                   <span className="section-gate-ko">{act}</span>
