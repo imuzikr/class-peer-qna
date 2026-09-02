@@ -670,6 +670,15 @@ export default function LessonMode({
              '프레젠테이션 중'이라는 말보다 더 알아야 할 정보입니다) */}
         {editing ? (
           <span className="lesson-badge lesson-badge--edit">수업 관리</span>
+        ) : paused ? (
+          // 멈춘 동안 '발표 중'이라고 두면 화면이 거짓말을 합니다. 슬라이드
+          // 위 안내문을 뺐으므로(아래 참고) 멈췄다는 말은 여기서 합니다 —
+          // 배지는 늘 같은 자리에 있어 글자가 바뀌어도 판이 안 밀립니다.
+          <span className="lesson-badge lesson-badge--edit">
+            <span className="lesson-badge-long">방송 멈춤 · 학생 자유 활동</span>
+            <span className="lesson-badge-short">멈춤</span>
+            {className && <span className="lesson-badge-class">{className}</span>}
+          </span>
         ) : presenting ? (
           <span className="lesson-badge">
             <span className="broadcast-live-dot" aria-hidden="true" />
@@ -822,15 +831,11 @@ export default function LessonMode({
             </div>
 
             {/* 넘기기 버튼은 슬라이드와 한 카드에 둡니다 — 아래에 다른 수업
-                기능이 붙어도 슬라이드와 조작이 떨어지지 않게. */}
-            {/* 멈춰 있다는 사실이 이 줄에 없으면, 교사가 슬라이드를 넘기며
-                학생도 따라오는 줄 압니다. 켜져 있을 때만 나옵니다. */}
-            {!editing && paused && (
-              <p className="lesson-paused-note">
-                방송을 멈췄어요 — 학생 화면은 자유롭게 활동 중입니다. 슬라이드
-                위치({idx + 1}/{total})는 그대로예요.
-              </p>
-            )}
+                기능이 붙어도 슬라이드와 조작이 떨어지지 않게.
+                일시정지 안내문은 뺐습니다 — 멈출 때마다 한 줄이 끼어들어
+                아래가 통째로 밀렸습니다. 멈췄다는 것은 머리말 배지와
+                '▶ 이어서' 버튼이 이미 말해 줍니다(둘 다 자리가 고정이라
+                켜고 꺼도 판이 움직이지 않습니다). */}
             <div className="lesson-card-foot">
               <button
                 type="button"
