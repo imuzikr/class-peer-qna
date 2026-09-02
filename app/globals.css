@@ -12981,12 +12981,13 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   flex-wrap: wrap;
   flex-shrink: 0;
 }
-/* 제목 앞의 '프로젝트 목록' — 같은 줄에 놓이므로 제목 높이에 맞춰
-   작고 둥글게. 제목이 길어도 이 버튼은 줄지 않습니다. */
+/* 제목 뒤의 '프로젝트 목록으로' — 21px 세리프 제목과 같은 줄에 섭니다.
+   4px/12px으로 두었더니 제목 옆에서 납작한 띠처럼 보였습니다(제목 줄은
+   28px인데 버튼은 22px). 세로 여백을 키워 제목 줄 높이에 맞춥니다. */
 .study-project-back {
   flex-shrink: 0;
-  padding: 4px 11px;
-  font-size: 12px;
+  padding: 6px 14px;
+  font-size: 13px;
   font-weight: 700;
   border-radius: 999px;
 }
@@ -13434,16 +13435,10 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   background: none;
   font: inherit;
   text-align: left;
-  cursor: pointer;
-  transition: background 0.15s;
 }
-.study-board-act-toggle:hover {
-  background: var(--primary-light);
-}
-.study-board-act-toggle:focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: -2px;
-}
+/* 여닫기가 위 '활동 열기' 칩 줄로 옮겨 가면서 이 줄은 단추가 아니라 글이
+   되었습니다 — 눌러도 아무 일이 없으므로 손 모양과 hover 반응을 뺍니다
+   (누를 수 있는 것처럼 보이면 눌러 보고 아무 일도 없어 헷갈립니다). */
 .study-board-act-no {
   flex-shrink: 0;
   font-size: 11px;
@@ -17802,15 +17797,23 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   font-size: 10px;
 }
 .section-gate-chip.open .section-gate-letter { background: #fff; }
-/* 수업 중 가장 잦은 동작이라 색으로 앞세웁니다.
+/* ('다음 단계 열기'(.section-gate-next)는 뺐습니다 — 칩을 눌러 여는 길이
+   이미 있어 같은 일을 두 자리에서 했고, 채워진 단추라 줄에서 혼자 튀었습니다.)
    .books-head 안의 버튼을 38px로 키우는 규칙(위쪽 '머리말 줄의 컨트롤')이
-   여기까지 닿습니다 — 이 둘은 머리말 컨트롤이 아니라 칩 줄에 딸린 것이라,
+   여기까지 닿습니다 — 이건 머리말 컨트롤이 아니라 칩 줄에 딸린 것이라,
    칩과 같은 27px로 되돌립니다(방송 막대와 같은 이유·같은 방식). */
-.books-head .section-gate .section-gate-next,
-.section-gate-next { height: 27px; padding: 0 12px; font-size: 12.5px; }
-.section-gate-next:disabled { opacity: 0.5; cursor: not-allowed; }
 .books-head .section-gate .section-gate-all,
 .section-gate-all { height: 27px; padding: 0 10px; font-size: 12px; }
+/* 공부방 프로젝트 설정 안의 같은 줄 — 곁텍스트 읽기와 같은 칩을 그대로
+   쓰되, 머리말이 아니라 패널 속이라 위아래 숨만 조금 줍니다. 활동 이름은
+   길 수 있어 칩 안에서 잘라 둡니다(줄이 두 줄로 접히면 목록과 뒤섞입니다). */
+.study-act-gate { margin: 2px 0 14px; }
+.study-act-gate .section-gate-ko {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .paratext-card-head {
   display: flex;
   align-items: center;

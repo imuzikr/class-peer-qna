@@ -25,7 +25,6 @@ import {
   openSectionCount,
   sectionLocksWith,
   sectionLocksUpTo,
-  firstLockedIndex,
   paratextDoneCount,
   paratextCharCount,
   safeBookUrl,
@@ -148,6 +147,12 @@ export default function ParatextBoard({
                   {(activity.topic ?? "").trim() || "학생마다 다른 책"}
                 </span>
                 {className && <span className="book-group-class">{className}</span>}
+                {/* 진행 요약을 반 배지 바로 뒤에 붙입니다 — 아래에 제 줄로
+                    두면 배지 몇 개뿐인 줄 밑에 또 한 줄이 깔려 본문이 그만큼
+                    밀립니다. 이 줄은 오른쪽이 비어 있어 그대로 이어집니다. */}
+                <span className="paratext-sum">
+                  시작 {startedCount}명 · 완성 {doneCount}명 / 전체 {cards.length}명
+                </span>
               </>
             )}
             {/* 잠김 안내도 이 줄에 — 예전엔 머리말 아래 제 줄을 차지했는데,
@@ -185,11 +190,6 @@ export default function ParatextBoard({
             </a>
           )}
         </div>
-        {!open && (
-          <span className="paratext-sum">
-            시작 {startedCount}명 · 완성 {doneCount}명 / 전체 {cards.length}명
-          </span>
-        )}
         {/* 단계 열기 — 공부방 프로젝트의 활동 잠금과 같은 생각입니다.
             여덟 칩이 학생이 보는 여덟 카드와 1:1이라, '지금 어디까지 열렸나'가
             한눈에 들어옵니다. 수업 중 실제로 하는 동작(다음 열기)은 버튼 하나로. */}
@@ -297,7 +297,6 @@ function buildPayload(activity, card, index) {
 // 상태를 봅니다(공부방의 activityLocks와 같은 방식).
 function SectionGate({ activity }) {
   const openCount = openSectionCount(activity);
-  const nextLocked = firstLockedIndex(activity);
   const allOpen = openCount === PARATEXT_SECTION_COUNT;
 
   function setLocks(locks) {
@@ -327,16 +326,8 @@ function SectionGate({ activity }) {
           );
         })}
       </div>
-      {/* 수업 중 가장 잦은 동작 — 앞에서부터 아직 안 연 첫 단계를 엽니다.
-          교사가 건너뛰며 열었어도 빠진 자리를 먼저 채웁니다. */}
-      <button
-        type="button"
-        className="btn-primary section-gate-next"
-        onClick={() => setLocks(sectionLocksUpTo(nextLocked + 1))}
-        disabled={allOpen}
-      >
-        {allOpen ? "모두 열림" : `다음 단계 열기 (${PARATEXT_SECTIONS[nextLocked].ko})`}
-      </button>
+      {/* '다음 단계 열기'는 뺐습니다 — 칩을 바로 눌러 여는 길이 이미 있어
+          같은 일을 두 자리에서 하고, 채워진 단추라 줄에서 혼자 튀었습니다. */}
       <button
         type="button"
         className="btn-ghost section-gate-all"

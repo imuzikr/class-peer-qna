@@ -457,6 +457,13 @@ export default function StudyProjectView({
     await updateStudyBoard(board.id, { activityLocks: next });
   }
 
+  // 앞에서부터 openCount개만 열어 둡니다 — 곁텍스트 읽기의 '모두 열기 /
+  // 1단계만 남기기'와 같은 규칙입니다(lib/paratext.js의 sectionLocksUpTo).
+  async function setActivityLocksUpTo(openCount) {
+    const next = activities.map((_, j) => j >= openCount);
+    await updateStudyBoard(board.id, { activityLocks: next });
+  }
+
   // 활동 순서 바꾸기 — from번째를 뽑아 to번째 자리에 끼워 넣습니다(수업 준비
   // 화면과 같은 방식). 자리를 맞바꾸지 않는 이유: 목록에서 끌어 놓는 몸짓은
   // '여기로 옮긴다'이지 '이 둘을 맞바꾼다'가 아니라, 맞바꾸면 사이에 있던
@@ -736,15 +743,55 @@ export default function StudyProjectView({
                 </div>
               </div>
 
-              {/* 활동별 진척도 — 활동마다 몇 명이 냈는지.
-                  활동 이름을 누르면 그 활동을 열고 잠급니다. 예전에는 수업
-                  진행(발표) 화면에서만 열 수 있어, 수업을 시작하지 않은 채
-                  공부방에서 활동을 열어 주려면 갈 곳이 없었습니다. */}
+              {/* 활동 열기 — 곁텍스트 읽기의 '단계 열기'와 같은 모양·같은
+                  생각입니다. 칩 하나가 학생이 보는 활동 하나라 '지금 어디까지
+                  열렸나'가 한 줄에 들어옵니다. 예전에는 아래 목록의 줄마다
+                  '편집/잠김' 알약을 눌러 여닫았는데, 여덟 줄을 훑어야 전체
+                  상태가 보였습니다. 여닫는 일은 이 줄이 도맡고 아래 목록은
+                  진척도만 보여 줍니다 — 같은 일을 두 자리에서 하면 어느 쪽이
+                  진짜인지 헷갈립니다. */}
+              {activities.length > 0 && (
+                <div className="section-gate study-act-gate">
+                  <span className="section-gate-label">
+                    활동 열기 <b>{summaryOpenCount} / {activities.length}</b>
+                  </span>
+                  <div className="section-gate-chips">
+                    {activities.map((act, i) => {
+                      const chipLocked = isActivityLocked(board, i);
+                      return (
+                        <button
+                          key={`gate-${i}`}
+                          type="button"
+                          className={`section-gate-chip${chipLocked ? "" : " open"}`}
+                          onClick={() => toggleActivityLock(i, !chipLocked)}
+                          title={`${i + 1}. ${act} — ${chipLocked ? "눌러서 열기" : "눌러서 잠그기"}`}
+                          aria-pressed={!chipLocked}
+                        >
+                          <span className="section-gate-letter">{i + 1}</span>
+                          <span className="section-gate-ko">{act}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <button
+                    type="button"
+                    className="btn-ghost section-gate-all"
+                    onClick={() =>
+                      setActivityLocksUpTo(
+                        summaryOpenCount === activities.length ? 1 : activities.length
+                      )
+                    }
+                  >
+                    {summaryOpenCount === activities.length ? "1번만 남기기" : "모두 열기"}
+                  </button>
+                </div>
+              )}
+
+              {/* 활동별 진척도 — 활동마다 몇 명이 냈는지 */}
               <ul className="study-board-acts">
                 {activities.map((act, i) => {
                   const n = stats.perAct[i];
                   const pct = stats.total > 0 ? Math.round((n / stats.total) * 100) : 0;
-                  const actLocked = isActivityLocked(board, i);
                   return (
                     <li
                       key={i}
@@ -793,23 +840,12 @@ export default function StudyProjectView({
                       >
                         ⠿
                       </button>
-                      <button
-                        type="button"
-                        className="study-board-act-toggle"
-                        onClick={() => toggleActivityLock(i, !actLocked)}
-                        aria-pressed={!actLocked}
-                        title={
-                          actLocked
-                            ? "잠김 — 눌러서 학생이 쓸 수 있게 엽니다"
-                            : "편집 — 눌러서 잠급니다(학생은 읽기만)"
-                        }
-                      >
+                      {/* 여닫기는 위 '활동 열기' 줄이 도맡습니다 — 여기서는
+                          이름과 진척도만 읽습니다(단추가 아니라 글입니다). */}
+                      <span className="study-board-act-toggle">
                         <span className="study-board-act-no">활동 {i + 1}</span>
                         <span className="study-board-act-name" title={act}>{act}</span>
-                        <span className={`progress-act-state${actLocked ? " locked" : ""}`}>
-                          {actLocked ? "잠김" : "편집"}
-                        </span>
-                      </button>
+                      </span>
                       <span className="study-board-act-bar">
                         <span
                           className="study-board-act-fill"
