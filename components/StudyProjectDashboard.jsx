@@ -366,9 +366,10 @@ function ProjectCard({
                 />
               ))}
             </span>
+            {/* 라벨은 평균만 말합니다 — 몇 개를 열어 뒀나는 막대가 칸으로
+                이미 보여 주므로, 글자로 되풀이하면 같은 말이 두 번입니다. */}
             <span className="study-project-progress-label">
-              {classSummary.openCount}/{classSummary.total} 열림 · 평균{" "}
-              {classSummary.avgFilled.toFixed(1)}
+              학급 평균 {classSummary.avgFilled.toFixed(1)}/{classSummary.total}
             </span>
           </span>
         )}
