@@ -94,6 +94,15 @@ function activityTime(activity) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+// 목록을 세울 때 쓰는 값 — 시각이 없으면 '가장 나중'으로 봅니다.
+// 방금 만든 활동은 서버가 createdAt을 채워 줄 때까지 잠깐 비어서 오는데
+// (serverTimestamp), 0으로 두면 그 사이 목록 맨 앞으로 튀었다가 제자리인
+// 끝으로 내려갑니다. 내려갈 자리에 미리 둡니다.
+// (store.js의 toDate도 값이 없으면 '지금'으로 봐서 차례가 같습니다)
+function activitySortKey(activity) {
+  return activityTime(activity) || Infinity;
+}
+
 function activityDateLabel(activity) {
   const time = activityTime(activity);
   if (!time) return "날짜 없음";
@@ -308,12 +317,14 @@ function BooksPageInner() {
     : null;
   const activeClassId = activeActivity?.classId ?? classId;
   const activeClassName = classes.find((c) => c.id === activeClassId)?.name ?? "";
-  // 목록에 늘어놓을 활동 — 종류를 섞어 최신 것이 앞에 옵니다. 수업에서 다음에
-  // 찾는 것은 대개 방금 만든 활동이라, 종류보다 시간이 앞선 기준입니다.
-  // (구독이 이미 최신순으로 넘겨주지만, 데모 모드와 옛 문서까지 확실히 하려고
+  // 목록에 늘어놓을 활동 — 종류를 섞어 만든 차례로 놓습니다(오래된 것이 앞).
+  // 최신 것을 앞에 두면 활동을 하나 만들 때마다 목록이 통째로 한 칸씩 밀려,
+  // 어제 열던 활동이 매번 다른 자리에 있게 됩니다. 수업이 흘러온 차례가
+  // 그대로 보이는 편이 찾기 쉽습니다.
+  // (구독이 이미 이 차례로 넘겨주지만, 데모 모드와 옛 문서까지 확실히 하려고
   //  여기서 한 번 더 세웁니다 — 목록의 순서가 이 값에 달려 있습니다.)
   const sortedActivities = useMemo(
-    () => activities.slice().sort((a, b) => activityTime(b) - activityTime(a)),
+    () => activities.slice().sort((a, b) => activitySortKey(a) - activitySortKey(b)),
     [activities]
   );
   // 지운 활동은 목록에서 빠지고 휴지통으로 갑니다. 같은 구독을 나누기만

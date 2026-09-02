@@ -76,8 +76,9 @@ export default function BookActivityStats({ classId }) {
   // 렌더가 그 순간을 반드시 견뎌야 합니다(실제로 못 견뎌 터졌습니다).
   // 반을 바꿔 목록이 갈리면 옛 actId는 아무것도 못 찾으니 자연히 최신 활동으로
   // 떨어집니다 — 되돌리는 effect도 따로 필요 없습니다.
+  // 목록은 만든 차례(오래된 것이 앞)라 '가장 최근'은 맨 끝입니다.
   const activity =
-    activities.find((a) => a.id === actId) ?? activities[0] ?? null;
+    activities.find((a) => a.id === actId) ?? activities.at(-1) ?? null;
   const currentId = activity?.id ?? null;
 
   useEffect(() => {
