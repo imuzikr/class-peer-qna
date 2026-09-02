@@ -83,6 +83,13 @@ export default function StudentRewardTrend({
   // 버튼만 덩그러니 있으면 그 줄이 비어 보이고, 누적 개수는 버튼을 누른
   // 결과가 바로 보여야 하는 값이라 같은 줄에 마주 놓는 편이 낫습니다.
   headRight = null,
+  // 이력 보기 **왼쪽**에 붙일 것(누가기록 모달의 날짜 칸). headRight와 나누는
+  // 이유는 자리가 아니라 성격입니다 — headRight는 버튼과 마주 보는 값이고,
+  // 이쪽은 버튼과 한 벌로 오른쪽 끝에 나란히 서는 조작입니다.
+  headLead = null,
+  // 카드 테두리를 벗깁니다(누가기록 모달). 모달 안에 또 상자를 두면 상자 속
+  // 상자가 되어, 정작 쓰는 칸보다 이 줄이 눈에 띕니다.
+  flush = false,
   // 흐름을 보려고 연 화면(과일 뱃지 모달)에서는 접는 버튼이 할 일이 없습니다.
   showToggle = true,
 }) {
@@ -136,10 +143,16 @@ export default function StudentRewardTrend({
   const peak = Math.max(1, ...shown.map((d) => Math.abs(d.delta)));
 
   return (
-    <section className="rwtrend" aria-label="과일 받은 흐름">
+    <section
+      className={`rwtrend${flush ? " rwtrend--flush" : ""}`}
+      aria-label="과일 받은 흐름"
+    >
       {(!bare || showToggle) && (
       <div className={`rwtrend-head${bare ? " rwtrend-head--bare" : ""}`}>
         {!bare && <h4 className="rwtrend-title">{title}</h4>}
+        {/* headLead는 CSS order가 아니라 DOM 순서로 앞에 둡니다 — 눈에 보이는
+            차례와 탭 이동 차례가 어긋나면 키보드로 쓸 때 되짚어야 합니다. */}
+        {headLead}
         <button
           type="button"
           className="rwtrend-toggle"

@@ -87,16 +87,18 @@ export default function StudentNotesThread({
           무엇인지가 적혀 있어 한 줄을 더 쓸 값어치가 없습니다.
           기본은 접힘이고, 접힌 모습은 누구나 똑같습니다.
 
-          날짜 칸을 그 줄 오른쪽에 함께 놓습니다. 아래에 제 줄로 두면 '날짜'
-          라는 이름표까지 한 줄을 통째로 쓰는데, 입력칸 모양만으로 날짜인 줄
-          알 수 있어 이름표는 화면에서 뺐습니다(스크린리더에는 남깁니다).
+          날짜 칸과 '이력 보기'를 오른쪽 위에 한 벌로 나란히 둡니다(날짜 →
+          이력 보기 차례). 아래에 제 줄로 두면 '날짜'라는 이름표까지 한 줄을
+          통째로 쓰는데, 입력칸 모양만으로 날짜인 줄 알 수 있어 이름표는
+          화면에서 뺐습니다(스크린리더에는 남깁니다).
           이 칸은 아래 form 밖에 있지만 값은 state(date)라 저장에 지장이
           없습니다 — handleAdd가 DOM이 아니라 state를 읽습니다. */}
       <StudentRewardTrend
         studentUid={studentUid}
         classId={classId}
         bare
-        headRight={
+        flush
+        headLead={
           readOnly ? null : (
             <input
               type="date"
