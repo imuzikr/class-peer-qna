@@ -17844,6 +17844,9 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   font-weight: 700;
   color: var(--primary-dark);
 }
+/* 순서를 아예 못 바꾸는 경우 — 안내지 경고가 아니라, 잉크 색을 낮춰 둡니다
+   (빨강으로 두면 무언가 잘못된 것처럼 보이는데, 정상 동작입니다). */
+.study-act-gate-hint.frozen { color: var(--text-sub); font-weight: 400; }
 /* 순서 바꾸기 켜짐 — 이 동안 칩 누르기는 여닫기가 아니라 옮기기입니다.
    글자는 그대로 두고(글자가 바뀌면 버튼 폭이 흔들립니다) 배경·글자색·
    테두리 셋으로 켜짐을 알립니다.

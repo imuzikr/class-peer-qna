@@ -135,6 +135,23 @@ export default function StudyProjectView({
   const shared = board.viewMode === "shared";
   const activities = board.activities ?? [];
 
+  // 활동 순서를 이제 못 바꾸는가 — 학생이 카드에 무언가 쓴 순간부터입니다.
+  // 활동 칸이 곧 학생 카드의 입력 칸이라, 순서가 바뀌면 이미 쓴 답이 다른
+  // 활동 칸에 가서 붙습니다(활동 이름을 고칠 때와 같은 이유·같은 검사).
+  // moveActivity 안에서만 보던 것을 여기로 끌어올렸습니다 — 못 바꾸는 걸
+  // 눌러 본 뒤에야 알게 되면, 끌었다가 제자리로 돌아가는 것만 보이고
+  // 왜인지는 안 보였습니다(설정 패널을 펼쳐야 안내가 있었습니다).
+  const activityOrderFrozen = useMemo(
+    () =>
+      cards
+        .filter((c) => !isTeacherAuthored(c))
+        .some((c) => {
+          const html = c.content ?? "";
+          return stripHtml(html).trim().length > 0 || htmlHasImage(html);
+        }),
+    [cards]
+  );
+
   useEffect(() => {
     // 모둠 프로젝트 + 학생 + '자기 모둠만': 규칙상 내 모둠 카드만 구독 가능.
     // '함께 보기'면 다른 모둠 카드도 읽기 전용으로 내려받습니다.
@@ -506,11 +523,7 @@ export default function StudyProjectView({
     // 카드의 실제 입력 칸이라, 순서가 바뀌면 이미 쓴 답이 다른 활동 칸에
     // 붙어 버립니다(활동 이름을 고칠 때와 같은 이유·같은 검사).
     const studentCards = cards.filter((c) => !isTeacherAuthored(c));
-    const hasContent = studentCards.some((c) => {
-      const html = c.content ?? "";
-      return stripHtml(html).trim().length > 0 || htmlHasImage(html);
-    });
-    if (hasContent) {
+    if (activityOrderFrozen) {
       setActMoveError(
         "학생이 이미 작성한 내용이 있어 활동 순서를 바꿀 수 없어요. 카드 내용을 비운 뒤 다시 시도해 주세요."
       );
@@ -1027,11 +1040,17 @@ export default function StudyProjectView({
         <div className="section-gate study-act-gate">
           <span className="section-gate-label">
             활동 열기 <b>{summaryOpenCount} / {activities.length}</b>
-            {chipOrdering && (
+            {/* 못 바꾸는 까닭은 누르기 전에 말해 줍니다 — 끌었다가 제자리로
+                돌아가는 것만 보이면 고장으로 읽힙니다. */}
+            {activityOrderFrozen ? (
+              <em className="study-act-gate-hint frozen">
+                {" — 학생이 이미 쓴 카드가 있어 순서를 바꿀 수 없어요"}
+              </em>
+            ) : chipOrdering ? (
               <em className="study-act-gate-hint">
                 {" — 칩을 끌어서 옮기세요 (여닫기는 잠시 멈춤)"}
               </em>
-            )}
+            ) : null}
           </span>
           <span className="study-act-gate-tools">
             <button
@@ -1043,10 +1062,13 @@ export default function StudyProjectView({
                 setChipOver(null);
               }}
               aria-pressed={chipOrdering}
+              disabled={activityOrderFrozen}
               title={
-                chipOrdering
-                  ? "순서 바꾸기를 끄고 다시 여닫기로 돌아갑니다"
-                  : "칩을 끌어서 활동 순서를 바꿉니다(그 동안 여닫기는 멈춥니다)"
+                activityOrderFrozen
+                  ? "학생이 이미 작성한 내용이 있어 활동 순서를 바꿀 수 없어요 — 활동 칸이 곧 학생 카드의 입력 칸이라, 순서를 바꾸면 이미 쓴 답이 다른 칸에 붙습니다"
+                  : chipOrdering
+                    ? "순서 바꾸기를 끄고 다시 여닫기로 돌아갑니다"
+                    : "칩을 끌어서 활동 순서를 바꿉니다(그 동안 여닫기는 멈춥니다)"
               }
             >
               순서 바꾸기
@@ -1096,16 +1118,24 @@ export default function StudyProjectView({
                         }
                       : undefined
                   }
+                  // chipDrag가 채워졌는지는 보지 않습니다 — dragstart의 setState가
+                  // 반영되기 전에 첫 dragover가 오면 이 핸들러가 없어서
+                  // preventDefault를 못 하고, 그러면 drop 자체가 안 일어나
+                  // 칩이 조용히 제자리로 돌아갑니다.
                   onDragOver={
-                    chipOrdering && chipDrag != null
+                    chipOrdering
                       ? (e) => { e.preventDefault(); setChipOver(i); }
                       : undefined
                   }
                   onDrop={
-                    chipOrdering && chipDrag != null
+                    chipOrdering
                       ? (e) => {
                           e.preventDefault();
-                          moveActivity(chipDrag, i);
+                          // 출발 자리는 state를 먼저 보되, 아직 안 채워졌으면
+                          // dragstart에서 실어 둔 값으로 갈음합니다.
+                          const raw = e.dataTransfer.getData("text/plain");
+                          const from = chipDrag ?? (raw === "" ? null : Number(raw));
+                          if (from != null && !Number.isNaN(from)) moveActivity(from, i);
                           setChipDrag(null);
                           setChipOver(null);
                         }
