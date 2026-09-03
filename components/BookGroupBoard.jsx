@@ -28,7 +28,7 @@ import {
   todayDateKey,
   toDate,
 } from "@/lib/store";
-import { CELL_COUNT, CONSONANT_LABELS, heatOpacity, cellKey } from "@/lib/consonants";
+import { CELL_COUNT, CONSONANT_LABELS, cellKey } from "@/lib/consonants";
 import { barTint, memberLegend, rowColor } from "@/lib/bookColors";
 import GroupComposer from "./GroupComposer";
 import ConsonantCanvas from "./ConsonantCanvas";
@@ -51,6 +51,10 @@ export default function BookGroupBoard({
   const [composing, setComposing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [pickedId, setPickedId] = useState(null); // 교사가 고른 모둠
+  // 모둠 안에서 한 학생만 골라 볼 때 그 학생 uid. 모둠 판은 모둠원 낱말이
+  // 섞여 있어 "이 학생이 뭘 넣었지"를 보려면 색을 눈으로 좇아야 했습니다.
+  // 이름을 누르면 그 학생 낱말만 남고, 다시 누르면 모둠 판으로 돌아옵니다.
+  const [focusUid, setFocusUid] = useState(null);
 
   useEffect(() => subscribeBookGroups(activity.id, setGroups), [activity.id]);
 
@@ -309,26 +313,51 @@ export default function BookGroupBoard({
                 );
               }
 
+              // 모둠 이름 줄과 모둠원 이름이 **따로** 눌립니다. 그래서 카드
+              // 전체를 단추로 두지 않습니다 — 단추 안에 단추는 못 넣습니다.
               return (
-                <button
-                  key={g.id}
-                  type="button"
-                  className={`book-rail-card${on ? " on" : ""}`}
-                  onClick={() => setPickedId(g.id)}
-                  aria-pressed={on}
-                >
-                  <span className="book-rail-head">
-                    <strong>{g.groupName || `${g.groupIndex}모둠`}</strong>
-                    <span className="book-group-count">{members.length}명</span>
-                  </span>
+                <div key={g.id} className={`book-rail-card${on ? " on" : ""}`}>
+                  <button
+                    type="button"
+                    className="book-rail-pick"
+                    onClick={() => { setPickedId(g.id); setFocusUid(null); }}
+                    aria-pressed={on}
+                    title="이 모둠의 판 보기"
+                  >
+                    <span className="book-rail-head">
+                      <strong>{g.groupName || `${g.groupIndex}모둠`}</strong>
+                      <span className="book-group-count">{members.length}명</span>
+                    </span>
+                  </button>
                   {members.length === 0 ? (
                     <span className="book-group-empty">아직 모둠원이 없어요</span>
                   ) : (
-                    <span className="book-rail-members">
-                      {members.map((m) => m.name).join(" · ")}
-                    </span>
+                    <div className="book-rail-people">
+                      {members.map((m) => {
+                        const only = on && focusUid === m.uid;
+                        return (
+                          <button
+                            key={m.uid}
+                            type="button"
+                            className={`book-rail-person${only ? " on" : ""}`}
+                            onClick={() => {
+                              setPickedId(g.id);
+                              setFocusUid(only ? null : m.uid);
+                            }}
+                            aria-pressed={only}
+                            title={
+                              only
+                                ? `${m.name} — 다시 누르면 모둠 판으로 돌아갑니다`
+                                : `${m.name}의 낱말만 보기`
+                            }
+                          >
+                            {m.name}
+                          </button>
+                        );
+                      })}
+                    </div>
                   )}
-                </button>
+                </div>
               );
             })}
           </aside>
@@ -344,6 +373,13 @@ export default function BookGroupBoard({
                 isTeacher
                 viewMode="group"
                 embedded
+                focusUid={focusUid}
+                focusName={
+                  focusUid
+                    ? (picked.members ?? []).find((m) => m.uid === focusUid)?.name ?? ""
+                    : ""
+                }
+                onClearFocus={() => setFocusUid(null)}
               />
             ) : (
               <p className="empty-note">
@@ -364,7 +400,7 @@ export default function BookGroupBoard({
               absentUids={absentUids}
               attendanceKnown={attendanceKnown}
               activityDate={activityDate}
-              pickedUid={perStudent ? (picked?.members ?? [])[0]?.uid ?? null : null}
+              pickedUid={perStudent ? (picked?.members ?? [])[0]?.uid ?? null : focusUid}
               colorByRow={perStudent}
               roster={roster}
             />
@@ -536,12 +572,21 @@ function GroupProgress({
                     }}
                   />
                 </span>
+                {/* 이 패널은 '그 칸을 채웠나 안 채웠나'만 봅니다. 낱말 수를
+                    진하기로 나타내면 한 개 넣은 칸이 옅게 보여 안 채운 칸과
+                    헷갈리고, 진행률을 눈으로 세기 어려워집니다.
+                    (모둠별 진행 대시보드는 그대로 진하기를 씁니다 — 거기서는
+                    '어디에 얼마나 모였나'가 그 패널의 주제입니다)
+                    14칸을 다 채우면 마지막 칸에 붉은 점 — 손들기 표시와 같은
+                    점이라 '다 됐다'가 목록을 훑는 중에도 눈에 걸립니다. */}
                 <span className="dash-heat">
                   {m.cellCounts.map((n, i) => (
                     <i
                       key={i}
-                      className="dash-heat-cell"
-                      style={n > 0 ? { background: m.color.border, opacity: heatOpacity(n) } : undefined}
+                      className={`dash-heat-cell${
+                        m.filled >= CELL_COUNT && i === CELL_COUNT - 1 ? " is-done" : ""
+                      }`}
+                      style={n > 0 ? { background: m.color.border } : undefined}
                       title={`${CONSONANT_LABELS[i]} · 낱말 ${n}개`}
                     />
                   ))}

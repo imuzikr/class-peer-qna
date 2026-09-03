@@ -41,6 +41,11 @@ export default function ConsonantCanvas({
   // embedded — 교사 화면 가운데 칸에 끼워 넣는 형태(자체 머리말·뒤로가기 없음)
   embedded = false,
   onBack,
+  // 모둠 판에서 한 사람의 낱말만 보고 싶을 때(교사가 왼쪽에서 이름을 누름).
+  // '내 판'(mineOnly)이 자기 것만 거르는 것과 같은 방식입니다.
+  focusUid = null,
+  focusName = "",
+  onClearFocus = null,
 }) {
   const [words, setWords] = useState([]);
   const [groups, setGroups] = useState([]);
@@ -68,10 +73,12 @@ export default function ConsonantCanvas({
   const canEditTopic = perStudent && !activity.locked && (mineOnly ? isMember : !!isTeacher);
 
   // '내 판'은 내가 넣은 낱말만 담습니다.
-  const shown = useMemo(
-    () => (mineOnly ? words.filter((w) => w.authorId === user?.uid) : words),
-    [words, mineOnly, user?.uid]
-  );
+  // 교사가 한 사람을 골랐으면(focusUid) 그 사람 것만 — 같은 거르기입니다.
+  const shown = useMemo(() => {
+    if (mineOnly) return words.filter((w) => w.authorId === user?.uid);
+    if (focusUid) return words.filter((w) => w.authorId === focusUid);
+    return words;
+  }, [words, mineOnly, user?.uid, focusUid]);
 
   // 모둠원 이름·색 (개별 활동은 한 판에 한 사람이라 없음)
   //
@@ -178,6 +185,24 @@ export default function ConsonantCanvas({
       ) : !isMember ? (
         <p className="book-locked-note">이 모둠의 구성원만 단어를 넣을 수 있어요.</p>
       ) : null}
+
+      {/* 한 사람만 보는 중 — 모둠 판인데 낱말이 확 줄어 보이므로, 왜 그런지
+          이 자리에서 밝히고 되돌아가는 길도 함께 둡니다.
+          (왼쪽 목록에서 그 이름을 다시 눌러도 돌아옵니다) */}
+      {focusUid && (
+        <p className="canvas-focus-note">
+          {/* 문장을 span으로 묶습니다 — 부모가 flex라 <b>와 뒤 글자가 따로
+              떨어져 '손수빈 의 낱말만'처럼 사이가 벌어집니다 */}
+          <span>
+            <b>{focusName || "이 학생"}</b>의 낱말만 보는 중
+          </span>
+          {onClearFocus && (
+            <button type="button" className="canvas-focus-clear" onClick={onClearFocus}>
+              모둠 전체 보기
+            </button>
+          )}
+        </p>
+      )}
 
       {/* 모둠원 — 이름과 색을 짝지어. 내 판에서는 나를 굵게 표시합니다 */}
       {legend.length > 0 && (

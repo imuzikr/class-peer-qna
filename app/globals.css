@@ -17623,7 +17623,8 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
   gap: 16px;
 }
 .book-group-rail {
-  width: 210px;
+  /* 모둠원 이름이 한 줄에 셋 들어가고 잘리지 않을 만큼 */
+  width: 240px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -22474,4 +22475,111 @@ body:has(.confirm-backdrop) .cornell-handle {
 /* 좁은 화면에서는 여섯 칸이 안 들어갑니다 — 두 탭 모두 셋으로 */
 @media (max-width: 768px) {
   .notes-mgr-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* ===== 모둠원별 진행 — 채웠나만, 다 채우면 붉은 점 ===== */
+/* 14칸을 다 채운 줄의 마지막 칸에 점 하나. 학생이 손을 들었을 때 교사에게
+   보이는 그 붉은 점(.question-signal-dot)과 같은 색·같은 크기라, 화면이
+   달라도 '여기 봐 달라'는 신호가 하나로 읽힙니다. */
+.dash-heat-cell.is-done { position: relative; }
+.dash-heat-cell.is-done::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  margin: -3.5px 0 0 -3.5px;
+  border-radius: 999px;
+  background: #e05a2f;
+  box-shadow: 0 0 0 2px #fff;
+}
+
+/* ===== 모둠 목록 — 모둠 이름 줄과 모둠원 이름이 따로 눌립니다 ===== */
+.book-rail-pick {
+  display: block;
+  width: 100%;
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+/* 한 줄에 셋 — 이름이 잘리지 않게. 이름표가 아니라 단추라 눌러서 그 학생의
+   낱말만 볼 수 있습니다(다시 누르면 모둠 판으로). */
+.book-rail-people {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+.book-rail-person {
+  border: 1px solid transparent;
+  border-radius: 7px;
+  padding: 3px 4px;
+  background: var(--neutral);
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.book-rail-person:hover {
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+.book-rail-person.on {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+/* 한 사람만 보는 중이라는 안내 — 판 위에 한 줄 */
+.canvas-focus-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+  padding: 7px 11px;
+  border-radius: var(--radius-btn);
+  background: var(--primary-light);
+  font-size: 12.5px;
+  color: var(--primary-dark);
+}
+.canvas-focus-note b { font-weight: 800; }
+.canvas-focus-clear {
+  border: 1px solid var(--primary);
+  border-radius: 999px;
+  padding: 2px 10px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--primary-dark);
+  cursor: pointer;
+}
+
+/* ===== 낱말 칸 안쪽 스크롤바 — 칸 배경에 묻히게 =====
+   흰 궤도가 그대로 보여 칸마다 흰 띠가 하나씩 생겼습니다. 궤도를 비우면
+   그 칸의 배경(판 색·초록·흰색 무엇이든)이 그대로 비쳐 자연스럽습니다. */
+.consonant-words {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(46, 36, 26, 0.26) transparent;
+}
+.consonant-words::-webkit-scrollbar { width: 9px; }
+.consonant-words::-webkit-scrollbar-track { background: transparent; }
+.consonant-words::-webkit-scrollbar-thumb {
+  background: rgba(46, 36, 26, 0.22);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+.consonant-words:hover::-webkit-scrollbar-thumb {
+  background: rgba(46, 36, 26, 0.34);
+  background-clip: content-box;
 }
