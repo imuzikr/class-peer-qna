@@ -16,7 +16,10 @@ import { useMemo, useState } from "react";
 import { composeStudyGroups } from "@/lib/store";
 import { getCurrentUser } from "@/lib/user";
 
-const MAX_GROUPS = 6;
+// 만들 수 있는 모둠 수의 위 끝. 활동 만들기의 '모둠 수'(3~7)와 같은 끝을
+// 봅니다 — 여기가 더 작으면 7모둠으로 만든 활동을 다시 구성할 때 한 모둠이
+// 조용히 사라집니다.
+const MAX_GROUPS = 7;
 const SIZE_OPTIONS = [2, 3, 4, 5, 6]; // 한 모둠당 인원 선택지
 
 // 균등 분할 — total명을 n모둠으로: 앞쪽 (total % n)개 모둠만 +1명 (5,5,4,4,4)

@@ -23,22 +23,56 @@ const TYPES = [
   { key: "kwls", label: "KWLS로 성찰하기", desc: "읽기 전 아는 것·궁금한 것, 읽은 뒤 알게 된 것을 적습니다", defaultTitle: "KWLS로 성찰하기" },
   { key: "mindmap", label: "마인드맵", desc: "주제에서 가지를 뻗어 생각을 방사형·계층형으로 펼칩니다", defaultTitle: "마인드맵" },
 ];
-// 닿소리 채우기의 진행 방식. '개별 활동'은 모둠을 만들지 않고 학생마다
-// 판을 하나씩 주는 방식이라, 모둠 수·모둠 이름 설정이 필요 없습니다.
+// 모둠을 어떻게 짤 것인가. 다섯 갈래이고, 갈라지는 기준은 **누가 언제
+// 명단을 정하는가**입니다.
+//   개별 활동 — 모둠을 안 만듭니다(학생마다 판 하나)
+//   기본 모둠 — 반에 이미 있는 모둠을 그대로 가져옵니다(자리표의 그 모둠)
+//   활동 모둠 — 이 활동만의 모둠. 빈 모둠만 만들어 두고 교사가 짭니다
+//   무작위   — 만들 때 지금 명단을 섞어 고르게 나눕니다
+//   자유 구성 — 빈 모둠만 만들어 두고 학생이 골라 들어갑니다
+//
+// '기본 모둠'과 '활동 모둠'을 나눈 이유: 예전에는 둘이 한 갈래('교사 배정')
+// 였는데, 어느 쪽이든 만들 때 반의 기본 모둠을 그대로 베껴 왔습니다. 그래서
+// '이 활동만 다르게 묶고 싶다'는 경우에 늘 지우는 일부터 해야 했습니다.
 const MODES = [
   { key: "solo", label: "개별 활동" },
-  { key: "teacher", label: "교사 배정" },
+  { key: "base", label: "기본 모둠" },
+  { key: "teacher", label: "활동 모둠" },
   { key: "random", label: "무작위" },
   { key: "free", label: "자유 구성" },
 ];
-const GROUP_COUNTS = [3, 4, 5, 6];
+const GROUP_COUNTS = [3, 4, 5, 6, 7];
+
+// 고른 방식이 무엇을 하는지 한 줄로 — 이름만으로는 '기본'과 '활동'이
+// 어떻게 다른지 알 수 없습니다.
+function modeNote(mode, baseGroupCount) {
+  if (mode === "base") {
+    return baseGroupCount > 0
+      ? `반의 기본 모둠 ${baseGroupCount}개를 그대로 가져옵니다 — 이름·명단까지. 이 활동에서만 고쳐도 기본 모둠은 그대로예요.`
+      : "아직 반에 기본 모둠이 없어요. 공부방의 '멋진 순간' 자리표에서 모둠을 먼저 짜거나, 다른 방식을 골라 주세요.";
+  }
+  if (mode === "teacher") {
+    return "이 활동만의 모둠입니다. 빈 모둠만 만들어 두고, 만든 뒤 '모둠 구성'에서 명단을 짭니다(기본 모둠 불러오기도 거기 있어요).";
+  }
+  if (mode === "random") return "만들 때 지금 반 명단을 섞어 고르게 나눕니다. 만든 뒤 '모둠 구성'에서 손볼 수 있어요.";
+  if (mode === "free") return "빈 모둠만 만들어 두면 학생이 직접 골라 들어갑니다.";
+  return "";
+}
 
 // "햇살, 바람, 나무" → ["햇살","바람","나무"] (빈 항목은 버림)
 function parseNames(raw) {
   return raw.split(",").map((s) => s.trim()).filter(Boolean);
 }
 
-export default function BookActivityForm({ onSave, onClose, initialType = "consonant", fixedType = false }) {
+export default function BookActivityForm({
+  onSave,
+  onClose,
+  initialType = "consonant",
+  fixedType = false,
+  // 반에 이미 짜 둔 기본 모둠이 몇 개인지 — '기본 모둠'을 골랐을 때
+  // 몇 개를 가져오는지 미리 알려 주려고 받습니다(없으면 그 자리에서 안내).
+  baseGroupCount = 0,
+}) {
   const initial = TYPES.find((t) => t.key === initialType) ?? TYPES[0];
   const [type, setType] = useState(initial.key);
   const [title, setTitle] = useState(initial.defaultTitle);
@@ -58,6 +92,9 @@ export default function BookActivityForm({ onSave, onClose, initialType = "conso
   // 닿소리 채우기를 '개별 활동'으로 여는 경우 — 활동 종류로는 모둠 활동이지만
   // 모둠을 만들지 않으므로, 모둠 수·이름 설정을 감춥니다.
   const perStudent = !isSolo && groupMode === "solo";
+  // '기본 모둠'은 모둠 수·이름을 반에서 그대로 가져오므로 여기서 정할 것이
+  // 없습니다(고르게 두면 '4개로 정했는데 5개가 생겼다'가 됩니다).
+  const fromBase = !isSolo && groupMode === "base";
   // 주소를 적었는데 열 수 없는 형태면 만들기 전에 알려 줍니다.
   const urlBad = bookUrl.trim().length > 0 && !safeBookUrl(bookUrl);
 
@@ -86,7 +123,7 @@ export default function BookActivityForm({ onSave, onClose, initialType = "conso
 
     // 이름을 적었는데 모둠 수와 개수가 다르면 만들지 않고 알려 줍니다.
     // (개별 활동은 모둠 이름을 쓰지 않으므로 이 검사를 건너뜁니다)
-    if (!isSolo && !perStudent && names.length > 0 && names.length !== groupCount) {
+    if (!isSolo && !perStudent && !fromBase && names.length > 0 && names.length !== groupCount) {
       setWarning(
         `모둠은 ${groupCount}개인데 이름은 ${names.length}개를 적으셨어요.\n` +
           `개수를 맞추거나, 이름을 비우면 '1모둠·2모둠…'으로 자동으로 붙습니다.`
@@ -104,7 +141,7 @@ export default function BookActivityForm({ onSave, onClose, initialType = "conso
         groupMode,
         groupCount,
         maxPerGroup,
-        groupNames: perStudent ? [] : names,
+        groupNames: perStudent || fromBase ? [] : names,
       });
     } finally {
       setSaving(false);
@@ -213,6 +250,8 @@ export default function BookActivityForm({ onSave, onClose, initialType = "conso
                 주제어를 비워 두면 학생이 자기 판 한가운데를 두 번 눌러 직접 적습니다
                 (읽는 책이 저마다 다를 때).
               </p>
+            ) : fromBase ? (
+              <p className="book-help book-solo-note">{modeNote("base", baseGroupCount)}</p>
             ) : (
             <>
             <div className="book-field-row">
@@ -259,6 +298,7 @@ export default function BookActivityForm({ onSave, onClose, initialType = "conso
                 placeholder="쉼표로 구분 — 예: 햇살, 바람, 나무, 별빛"
               />
             </label>
+            <p className="book-help">{modeNote(groupMode, baseGroupCount)}</p>
             </>
             )}
           </>
@@ -269,13 +309,24 @@ export default function BookActivityForm({ onSave, onClose, initialType = "conso
           <button
             type="submit"
             className="btn-primary"
-            disabled={(topicRequired && !topic.trim()) || saving || urlBad}
+            /* 기본 모둠이 없는데 '기본 모둠'으로 만들면 빈 모둠만 생겨
+               '활동 모둠'과 같아집니다 — 그 자리에서 막고 안내합니다. */
+            disabled={
+              (topicRequired && !topic.trim()) ||
+              saving ||
+              urlBad ||
+              (fromBase && baseGroupCount === 0)
+            }
           >
             {saving
               ? "만드는 중…"
               : isSolo || perStudent
                 ? "학생별 활동으로 만들기"
-                : `모둠 ${groupCount}개와 함께 만들기`}
+                : fromBase
+                  ? baseGroupCount > 0
+                    ? `기본 모둠 ${baseGroupCount}개로 만들기`
+                    : "기본 모둠으로 만들기"
+                  : `모둠 ${groupCount}개와 함께 만들기`}
           </button>
         </div>
 

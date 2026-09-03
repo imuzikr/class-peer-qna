@@ -17253,10 +17253,16 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
 .book-field-row { display: flex; gap: 12px; }
 .book-field-row .book-field { flex: 1; }
 /* 가로 세그먼트 버튼 — 구성 방식·모둠 수 (모달에 스크롤이 안 생기게) */
-.book-seg { display: flex; gap: 6px; }
+/* 방식 고르기 줄 — 다섯 갈래(개별·기본·활동·무작위·자유)가 서므로
+   좁은 창에서는 접힙니다. 접히더라도 글자가 잘리지는 않게 두었습니다:
+   이름이 잘리면 '기본 모둠'과 '활동 모둠'을 구별할 수 없습니다. */
+.book-seg { display: flex; flex-wrap: wrap; gap: 6px; }
 .book-seg-btn {
-  flex: 1;
-  padding: 8px 10px;
+  /* 72px — 창이 480px일 때 다섯이 한 줄에 서는 크기입니다(네 글자 이름이
+     들어가는 가장 작은 값). 더 키우면 다섯째만 아랫줄로 혼자 내려갑니다. */
+  flex: 1 1 72px;
+  white-space: nowrap;
+  padding: 8px 6px;
   border: 1.5px solid var(--border);
   border-radius: var(--radius-btn);
   background: #fff;
