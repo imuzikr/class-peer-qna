@@ -6,7 +6,7 @@
 // 왼쪽: 배움나눔 로고 ｜ 학습 공간 드롭다운(공부방·질문게시판) ｜ 파이썬 실행기 ｜ (리포트|관리자)
 // 오른쪽: 역할 전환(개발용) ｜ 사용자 프로필 ｜ 로그아웃
 // =============================================================
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { isAdmin, isTeacher } from "@/lib/user";
 import { isFirebaseConfigured } from "@/lib/firebase";
@@ -23,6 +23,7 @@ import {
   stopBroadcast,
   reportPresence,
   PRESENCE_BEAT_MS,
+  NOTING_WINDOW_MS,
 } from "@/lib/store";
 import { getSelectedClassId } from "@/lib/classroom";
 import { useCurrentUser } from "@/lib/useCurrentUser";
@@ -33,6 +34,7 @@ import ClassNoticeButton from "./ClassNoticeButton";
 import RoleSwitcher from "./RoleSwitcher";
 import RoleManagerModal from "./RoleManagerModal";
 import PresentationOverlay from "./PresentationOverlay";
+import CornellNoteDrawer from "./CornellNoteDrawer";
 import { IconReport, IconPythonRunner, IconLogo, IconAnswer, IconBlackboard, IconBook, IconTeacher, IconLogout } from "./StatusIcons";
 
 export default function TopNav({ active, onPython, pyActive = false }) {
@@ -46,6 +48,9 @@ export default function TopNav({ active, onPython, pyActive = false }) {
   const [memberships, setMemberships] = useState([]);
   const [sessionClassId, setSessionClassId] = useState(null);
   const [fruitOpen, setFruitOpen] = useState(false); // 과일 뱃지 → 받은 흐름 모달
+  // 수업 노트 서랍이 열려 있는지 — 열리면 발표 화면이 그만큼 좁아집니다
+  // (덮지 않고 밀어냅니다)
+  const [noteOpen, setNoteOpen] = useState(false);
 
   // 관리자만 사용자 디렉터리를 구독(역할 관리·승인 대기 표시용)
   useEffect(() => {
@@ -127,14 +132,24 @@ export default function TopNav({ active, onPython, pyActive = false }) {
   // 창이 일부만 가려져 있어도 학생이 그쪽을 쓰고 있으면 포커스가 넘어가므로,
   // 실제 수업에서 문제가 되는 '딴짓'은 이 조합으로 잡힙니다.
   // (브라우저는 보이는데 아무것도 안 누르고 있는 경우까지는 알 수 없습니다)
+  //
+  // [필기 중 신호]
+  // 위 두 값은 '화면이 보이는가'까지만 압니다 — 켜 두고 아무것도 안 하는
+  // 학생과 열심히 적는 학생이 같아 보입니다. 수업 노트 서랍이 생기면서
+  // '타이핑'이라는 능동 신호가 처음 생겼으므로, 방금 필기했는지를 함께
+  // 올려 교사 전광판에 ✍️로 보여 줍니다. 규칙은 presence에 필드 화이트
+  // 리스트가 없어 이 필드를 더해도 그대로 통과합니다.
   const broadcasting = !!broadcast;
+  const notingRef = useRef(0); // 마지막으로 필기한 시각(ms)
+  const markNoting = useCallback(() => { notingRef.current = Date.now(); }, []);
   useEffect(() => {
     if (!isFirebaseConfigured || admin || !broadcasting || !broadcastClassId || !user?.uid) return;
     const send = () =>
       reportPresence(
         user,
         broadcastClassId,
-        document.visibilityState === "visible" && document.hasFocus()
+        document.visibilityState === "visible" && document.hasFocus(),
+        Date.now() - notingRef.current < NOTING_WINDOW_MS
       );
     send();
     document.addEventListener("visibilitychange", send);
@@ -341,7 +356,24 @@ export default function TopNav({ active, onPython, pyActive = false }) {
     </header>
 
     {/* 학생 화면 — 교사가 방송 중이면 화면 전체를 강제로 덮습니다(학생은 닫을 수 없음) */}
-    {!admin && broadcast && <PresentationOverlay broadcast={broadcast} />}
+    {!admin && broadcast && (
+      <PresentationOverlay broadcast={broadcast} noteOpen={noteOpen} />
+    )}
+
+    {/* 수업 노트 서랍 — 오버레이의 '형제'이고, 방송 조건 바깥입니다.
+        학생이 스스로 공부하려고 남기는 기록이라 방송 중·일시정지·수업 밖
+        어디서나 같은 자리에서 열려야 합니다. 오버레이 안에 넣으면 선생님이
+        잠깐 멈출 때마다(LessonMode가 그때도 방송 문서를 지웁니다) 함께
+        사라져 쓰던 자리를 잃습니다. */}
+    {!admin && activeClassId && (
+      <CornellNoteDrawer
+        classId={activeClassId}
+        user={user}
+        lessonTitle={broadcast?.lessonTitle ?? ""}
+        onOpenChange={setNoteOpen}
+        onType={markNoting}
+      />
+    )}
 
     {/* 교사 화면 — 자기 반에 방송이 켜져 있으면 어디서든 바로 끌 수 있는 안전장치 */}
     {admin && broadcast && (

@@ -216,9 +216,17 @@ async function purgeStudentData(uid, warnings) {
   await deleteByQuery(db.collectionGroup("cards").where("authorId", "==", uid), warnings, "공부방 카드");
   await deleteByQuery(db.collection("kwl").where("userId", "==", uid), warnings, "KWL");
 
-  // 3) 보상(과일) · 누가기록
+  // 3) 보상(과일) · 누가기록 · 수업 노트
   await deleteByQuery(db.collection("rewards").where("uid", "==", uid), warnings, "과일 기록");
   await deleteByQuery(db.collection("studentNotes").where("studentUid", "==", uid), warnings, "누가기록");
+  // 수업 노트(코넬) — classes/{cId}/cornellNotes 아래에 반별로 흩어져 있어
+  // collectionGroup으로 한 번에 훑습니다. 학생이 여러 반에 속했으면 그 반들
+  // 것이 모두 걸립니다.
+  await deleteByQuery(
+    db.collectionGroup("cornellNotes").where("uid", "==", uid),
+    warnings,
+    "수업 노트"
+  );
 
   // 4) 책방 — 낱말에는 실명(authorName)이 들어 있어 반드시 지웁니다.
   await deleteByQuery(db.collectionGroup("words").where("authorId", "==", uid), warnings, "책방 낱말");

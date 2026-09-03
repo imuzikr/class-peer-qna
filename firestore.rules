@@ -168,6 +168,22 @@ service cloud.firestore {
              && cls.get('attendanceOpenDate', '') == date;
     }
 
+    // ── 수업 노트(코넬) 본문 검사 ─────────────────────────────
+    // 학생이 자기 노트에, 문서 ID가 정한 자리에 쓰는지. 칸마다 길이도 봅니다.
+    // (필기 칸은 서식이 붙은 HTML이라 넉넉히 둡니다 — 태그가 길이를 먹습니다)
+    function isMyCornellNote(cId, nId) {
+      return request.resource.data.uid == uid()
+             && request.resource.data.classId == cId
+             && request.resource.data.date is string
+             && nId == (uid() + '_' + request.resource.data.date)
+             && request.resource.data.cue is string
+             && request.resource.data.cue.size() <= 1000
+             && request.resource.data.notes is string
+             && request.resource.data.notes.size() <= 20000
+             && request.resource.data.summary is string
+             && request.resource.data.summary.size() <= 2000;
+    }
+
     // ── 답변 반응(엄지 척/하트/웃는 얼굴) 배열 토글 검증 ──────────
     //  · meTooIds와 같은 방식 — 중복 없이, 이번에 바뀐 사람은 오직 나(uid())뿐이어야 함
     function isOwnReactionToggle(field) {
@@ -539,6 +555,41 @@ service cloud.firestore {
                       && request.resource.data.text.size() > 0
                       && request.resource.data.text.size() <= 2000;
         allow delete: if isAdmin() || ownsClassEditable(cId);
+      }
+
+      // ── 수업 노트(코넬) ─────────────────────────────────────
+      //  · 경로 = classes/{classId}/cornellNotes/{uid}_{날짜}
+      //  · 학생이 수업 중에 적는 필기입니다. 단서(cue) · 필기(notes) ·
+      //    요약(summary) 세 칸을 하루 한 장으로 묶습니다.
+      //  · 이름이 lessonMemos가 아닌 이유: 바로 위 lessonMemos는 '교사의
+      //    수업 메모'입니다. 한 부모 아래 나란히 두면 반드시 헷갈립니다.
+      //  · 읽기는 본인과 담당 교사. 교사가 수업이 끝난 뒤 읽고 피드백을
+      //    줍니다 — 학생에게도 그렇게 알립니다(서랍에 한 줄).
+      //  · **본문 쓰기는 학생 본인만.** 남의 필기를 고칠 수 있으면 그건
+      //    그 학생의 기록이 아니게 됩니다. 교사는 feedback 한 칸만 씁니다.
+      //  · 학생이 다시 저장할 때 선생님 피드백을 지우지 못하게, update는
+      //    feedback이 그대로일 것을 요구합니다(앱은 merge로 써서 그대로 남음).
+      match /cornellNotes/{nId} {
+        allow read: if signedIn() && (
+          isAdmin()
+          || ownsClass(cId)
+          || resource.data.uid == uid()
+        );
+        allow create: if signedIn()
+                      && isClassMember(cId)
+                      && isMyCornellNote(cId, nId)
+                      && !('feedback' in request.resource.data);
+        allow update: if signedIn()
+                      && isClassMember(cId)
+                      && isMyCornellNote(cId, nId)
+                      && request.resource.data.get('feedback', '')
+                         == resource.data.get('feedback', '');
+        // 선생님의 피드백 — 그 칸만. 본문에는 손이 닿지 않습니다.
+        allow update: if (isAdmin() || ownsClassEditable(cId))
+                      && changedOnly(['feedback', 'feedbackAt', 'feedbackBy'])
+                      && request.resource.data.feedback is string
+                      && request.resource.data.feedback.size() <= 2000;
+        allow delete: if signedIn() && (resource.data.uid == uid() || isAdmin());
       }
 
       // ── 참여 전광판 자리표 ─────────────────────────────────

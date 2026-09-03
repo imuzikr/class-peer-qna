@@ -9003,6 +9003,14 @@ pre code {
   0%, 100% { transform: rotate(-9deg); }
   50%      { transform: rotate(9deg); }
 }
+/* 수업 노트에 필기 중 — 손들기(오른쪽 위) 맞은편인 왼쪽 위에 둡니다 */
+.attend-desk-noting {
+  position: absolute;
+  top: 3px;
+  left: 4px;
+  font-size: 15px;
+  line-height: 1;
+}
 @media (prefers-reduced-motion: reduce) {
   .attend-desk-hand,
   .attend-seat-hand {
@@ -12536,6 +12544,16 @@ a.lesson-board-file-name { text-decoration: underline; }
 .attend-seat-live--on { background: #4caf6f; }
 .attend-seat-live--away { background: #f0b483; }
 .attend-seat-live--off { background: #b8b4ab; }
+
+/* 수업 노트에 필기 중 — 손들기(오른쪽 위)와 겹치지 않게 왼쪽 위에 둡니다.
+   '보는 중' 점이 화면이 켜져 있다는 말이라면, 이것은 손이 움직인다는 말입니다. */
+.attend-seat-noting {
+  position: absolute;
+  top: 1px;
+  left: 2px;
+  font-size: 11px;
+  line-height: 1;
+}
 
 /* 출석 캘린더 — 한 달씩 넘겨 보며 날짜를 고릅니다(교사는 클릭해 아래
    목록의 기준 날짜를 바꿀 수 있고, 학생은 보기 전용입니다) */
@@ -21598,3 +21616,224 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
 
 /* (일시정지 안내문 .lesson-paused-note는 뺐습니다 — 멈출 때마다 한 줄이
    끼어들어 아래가 통째로 밀렸습니다. 멈췄다는 표시는 머리말 배지가 맡습니다.) */
+
+/* ===================== 수업 노트 서랍 (학생) ===================== */
+/* 학생이 스스로 공부하려고 남기는 기록이라, 방송과 상관없이 어느 화면에서나
+   같은 자리(오른쪽 가장자리)에서 열립니다. 발표 오버레이는 z-index 3000이라
+   서랍은 그보다 한 칸 위에 서고, 서랍이 열리면 오버레이가 그만큼 좁아집니다
+   (.broadcast-overlay--noted) — 덮는 게 아니라 밀어냅니다. */
+:root {
+  --cornell-w: 380px;
+}
+
+/* 접혀 있을 때의 손잡이 — 세로 탭. 조용하되 늘 같은 자리에 */
+.cornell-handle {
+  position: fixed;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 3001;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: 28px;
+  padding: 16px 0;
+  border: 1px solid var(--border);
+  border-right: none;
+  border-radius: 12px 0 0 12px;
+  background: var(--card-bg);
+  color: var(--text-sub);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  cursor: pointer;
+  box-shadow: -2px 0 10px rgba(46, 36, 26, 0.1);
+  writing-mode: vertical-rl;
+  justify-content: center;
+}
+.cornell-handle:hover {
+  width: 32px;
+  color: var(--primary-dark);
+  border-color: var(--primary);
+}
+/* 오늘 적어 둔 것이 있으면 작은 점 하나 — 열지 않아도 알 수 있게 */
+.cornell-handle-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--primary);
+  flex-shrink: 0;
+}
+/* 선생님 피드백이 와 있으면 손잡이부터 색이 바뀝니다 */
+.cornell-handle.has-feedback {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+/* 모달이 열려 있으면 손잡이를 감춥니다 — z-index가 모달보다 위라 그대로
+   두면 모달 오른쪽 자리를 가리고 탭까지 가로챕니다(FAB와 같은 이유).
+   발표 오버레이는 .modal-backdrop이 아니므로 그 위에서는 그대로 보입니다. */
+body:has(.modal-backdrop) .cornell-handle,
+body:has(.confirm-backdrop) .cornell-handle {
+  display: none;
+}
+
+.cornell-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3001;
+  width: var(--cornell-w);
+  display: flex;
+  flex-direction: column;
+  background: var(--card-bg);
+  border-left: 1px solid var(--border);
+  /* 검은 발표 화면 위에서도, 흰 일반 화면 위에서도 떠 보이게 */
+  box-shadow: -6px 0 26px rgba(46, 36, 26, 0.16);
+}
+.cornell-head {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 12px 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.cornell-head strong { font-size: 15px; color: var(--dark); }
+.cornell-date {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+  font-variant-numeric: tabular-nums;
+}
+.cornell-status {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.cornell-close {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: none;
+  border-radius: 8px;
+  font-size: 19px;
+  line-height: 1;
+  color: var(--text-sub);
+  cursor: pointer;
+}
+.cornell-close:hover { background: var(--neutral); color: var(--text); }
+.cornell-lesson {
+  flex-shrink: 0;
+  padding: 8px 16px;
+  background: var(--bg-deep);
+  border-bottom: 1px solid var(--border);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cornell-empty { padding: 20px 16px; font-size: 13px; color: var(--text-sub); }
+
+.cornell-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 14px 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* 코넬 세 칸 — 서랍이 380px뿐이라 좌우 2단 대신 세로로 쌓습니다.
+   순서(단서 → 필기 → 요약)는 그대로라 코넬의 흐름은 지켜집니다.
+   진짜 2단은 나중에 복습 화면에서 펼칩니다. */
+.cornell-zone { display: flex; flex-direction: column; gap: 6px; }
+.cornell-zone label { display: flex; flex-direction: column; gap: 1px; }
+.cornell-zone label b { font-size: 12.5px; font-weight: 800; color: var(--dark); }
+.cornell-zone label em {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--text-sub);
+}
+.cornell-zone textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  font-family: inherit;
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+/* 단서 칸은 코넬 노트에서 왼쪽에 서는 칸이라, 세로로 쌓아도 그 자리임이
+   보이도록 왼쪽에 띠를 답니다. --primary-light(#f8ece5)는 흰 바탕에서
+   거의 안 보여(대비 1.1) 한 단계 진한 값을 씁니다. */
+.cornell-zone--cue textarea {
+  border-left: 3px solid #e2ab8d;
+}
+.cornell-zone--cue textarea:focus {
+  border-left-color: var(--primary);
+}
+.cornell-rte .rte-area { min-height: 150px; font-size: 13.5px; }
+.cornell-rte .rte-toolbar { padding: 4px 6px; }
+.cornell-rte .rte-tool { width: 26px; height: 26px; }
+
+/* 선생님이 남긴 한 마디 — 맨 위에, 눈에 띄게 */
+.cornell-feedback {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  background: var(--primary-light);
+  border-radius: var(--radius-btn);
+}
+.cornell-feedback-tag {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--primary-dark);
+}
+.cornell-feedback p {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text);
+  white-space: pre-wrap;
+}
+/* 몰래 보는 것이 아니라 알고 쓰는 것이 되도록 */
+.cornell-note-hint {
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--text-sub);
+}
+
+/* 서랍이 열리면 발표 화면이 그만큼 좁아집니다 — 덮지 않고 밀어냅니다 */
+.broadcast-overlay--noted { right: var(--cornell-w); }
+
+/* 좁은 화면 — 옆에 세울 자리가 없어 아래에서 올라오는 시트로 바꿉니다.
+   슬라이드는 위에 남습니다(가리지 않게 화면의 60%까지만). */
+@media (max-width: 760px) {
+  .cornell-handle {
+    top: auto;
+    bottom: 84px;
+    writing-mode: horizontal-tb;
+    width: auto;
+    padding: 8px 14px;
+    border-radius: 999px 0 0 999px;
+  }
+  .cornell-handle:hover { width: auto; }
+  .cornell-drawer {
+    top: auto;
+    left: 0;
+    height: 60vh;
+    width: auto;
+    border-left: none;
+    border-top: 1px solid var(--border);
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -6px 26px rgba(46, 36, 26, 0.18);
+  }
+  .broadcast-overlay--noted { right: 0; bottom: 60vh; }
+}

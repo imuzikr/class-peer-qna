@@ -60,19 +60,22 @@ import StudentToolsModal from "./StudentToolsModal";
 // DOM이 통째로 교체돼 진행 중이던 드래그가 끊깁니다.
 export function SeatCell({
   student, raised = false, top = false, att = "unchecked", live = null,
-  todayCount = 0,
+  noting = false, todayCount = 0,
   onPick, draggable = false, index = null, onDragStart, onDragEnd, onDropTo,
 }) {
   const s = student;
   const attLabel = att === "present" ? " · 출석" : att === "absent" ? " · 결석" : "";
   const liveLabel =
     live === "on" ? " · 보는 중" : live === "away" ? " · 화면 가려짐" : live === "off" ? " · 미접속" : "";
+  // 수업 노트에 방금 필기했는지 — '보는 중'인 학생 사이에서 실제로 손이
+  // 움직이는 학생을 갈라 주는 유일한 신호입니다.
+  const notingLabel = noting ? " · 필기 중" : "";
   return (
     <button
       type="button"
       className={`attend-seat attend-seat--pick attend-seat--${att}${raised ? " attend-seat--raised" : ""}${top ? " attend-seat--top" : ""}`}
       onClick={() => onPick?.(s)}
-      title={`${s.name}${s.studentId ? ` · ${s.studentId}` : ""}${attLabel}${liveLabel}${raised ? " · 질문 있어요" : ""}${todayCount > 0 ? ` · 오늘 과일 ${todayCount}개` : ""}${top ? " · 오늘 과일 1등" : ""} — 눌러서 과일 주기·누가기록${draggable ? ", 끌어서 자리 이동" : ""}`}
+      title={`${s.name}${s.studentId ? ` · ${s.studentId}` : ""}${attLabel}${liveLabel}${notingLabel}${raised ? " · 질문 있어요" : ""}${todayCount > 0 ? ` · 오늘 과일 ${todayCount}개` : ""}${top ? " · 오늘 과일 1등" : ""} — 눌러서 과일 주기·누가기록${draggable ? ", 끌어서 자리 이동" : ""}`}
       draggable={draggable}
       onDragStart={draggable ? (e) => { onDragStart(index); e.dataTransfer.effectAllowed = "move"; } : undefined}
       onDragEnd={draggable ? onDragEnd : undefined}
@@ -85,6 +88,7 @@ export function SeatCell({
       {live && (
         <span className={`attend-seat-live attend-seat-live--${live}`} aria-hidden="true" />
       )}
+      {noting && <span className="attend-seat-noting" aria-hidden="true">✍️</span>}
       <span className="attend-seat-no">{s.studentId || "-"}</span>
       <span className="attend-seat-name">{s.name}</span>
       {todayCount > 0 && (
@@ -106,7 +110,7 @@ export function attStateOf(uid, presentUids) {
 export function SeatPickGrid({
   seats, byUid, raisedUids, raisedCount, onPick, compact = false,
   onDragStart, onDragEnd, onDropTo, topUids = null, presentUids = null,
-  liveState = null, headLead = null, todayCountByUid = null,
+  liveState = null, notingUids = null, headLead = null, todayCountByUid = null,
 }) {
   const draggable = !!(onDragStart && onDragEnd && onDropTo);
   return (
@@ -141,6 +145,7 @@ export function SeatPickGrid({
               top={!!topUids?.has(s.uid)}
               att={attStateOf(s.uid, presentUids)}
               live={liveState?.get(s.uid) ?? null}
+              noting={!!notingUids?.has(s.uid)}
               todayCount={todayCountByUid?.get(s.uid) ?? 0}
               onPick={onPick}
               draggable={draggable}

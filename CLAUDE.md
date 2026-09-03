@@ -66,6 +66,7 @@ Firebase 미설정 시 자동으로 **데모 모드**로 동작 (새로고침 �
 | `components/StudyProjectView.jsx` | 프로젝트 상세 — 개인 카드 그리드 + 교사 도구 |
 | `components/StudyProjectForm.jsx` | 프로젝트 만들기 모달 (제목·안내·활동 목록) |
 | `components/ClassNotesTools.jsx` | 누가기록 관리·수업 메모 버튼 + 모달 묶음 (교사 전용) |
+| `components/CornellNoteDrawer.jsx` | 수업 노트 서랍 (학생 전용) — 오른쪽 손잡이 → 코넬 세 칸 |
 
 책방(`/books`)은 **활동 목록 → 활동** 두 단계입니다(URL은 `?activity=`).
 예전에는 '활동 종류 그리드 → 그 종류의 목록 → 활동' 세 단계였는데, 가운데
@@ -194,6 +195,25 @@ Firebase 미설정 시 자동으로 **데모 모드**로 동작 (새로고침 �
     접고, 칸을 누르면 뜨는 크게 보기에 모둠 색과 함께 전부 있습니다.
     중계 화면(`PresentationOverlay`의 `CastTopWords`)도 같은 모습으로 맞춥니다 —
     한쪽만 바꾸면 교사 화면과 학생 화면이 달라집니다.
+- `classes/{classId}/cornellNotes/{uid}_{날짜}` — **학생 수업 노트(코넬)**
+  (classId, uid, date, lessonTitle, cue, notes, summary, feedback)
+  - 학생이 수업 중에 오른쪽 서랍(`CornellNoteDrawer`)에서 적는 필기입니다.
+    같은 부모의 `lessonMemos`는 **교사의** 수업 메모라 주인이 반대입니다 —
+    이름을 `lessonNotes`로 지으면 반드시 헷갈려서 `cornellNotes`로 뒀습니다.
+  - 세 칸은 코넬 노트 그대로: `cue`(단서·핵심 질문) · `notes`(필기, 서식 HTML)
+    · `summary`(내 말로 요약). 하루 한 장 — 복습 단위가 차시라서입니다.
+  - **읽기는 본인과 담당 교사. 본문 쓰기는 학생 본인만.** 남의 필기를 고칠 수
+    있으면 그건 그 학생의 기록이 아닙니다. 교사는 `feedback` 한 칸만 씁니다
+    (`changedOnly(['feedback','feedbackAt','feedbackBy'])`).
+  - 학생이 이어서 저장해도 피드백이 지워지지 않게, update 규칙이 feedback이
+    그대로일 것을 요구합니다(앱은 merge로 써서 자연히 남습니다).
+  - 서랍은 `TopNav`에서 **발표 오버레이와 형제로, 방송 조건 바깥에** 그립니다.
+    오버레이 안에 넣으면 (ㄱ) 슬라이드를 넘길 때마다 다시 그려져 입력이
+    끊기고, (ㄴ) `LessonMode`가 **일시정지에도** 방송 문서를 지우므로 한
+    차시에 몇 번씩 서랍이 사라집니다. 서랍이 열리면
+    `.broadcast-overlay--noted`로 발표 화면이 그만큼 좁아집니다(덮지 않음).
+  - 탈퇴 정리는 `purgeStudentData`의 `collectionGroup("cornellNotes")` 한 줄.
+    반 아래라 반 삭제는 `purgeClass`가 알아서 정리합니다.
 - `classes/{classId}/rewardEvents` — **과일 지급 이력** (uid, delta, count, byUid, at)
   - `rewards`는 누적 총계뿐이라 '언제 몇 개 받았나'가 없습니다. 참여의 변화를
     보려면 시계열이 필요해 지급할 때마다 한 건 적습니다(`setStudentReward`가

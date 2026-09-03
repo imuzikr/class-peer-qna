@@ -119,6 +119,16 @@ export default function LessonSeatPanel({
     return map;
   }, [roster, presenceByUid, now]);
 
+  // 수업 노트에 방금 필기한 학생 — 화면이 보이는 상태(on)일 때만 뜻이 있습니다
+  const notingUids = useMemo(() => {
+    const set = new Set();
+    roster.forEach((s) => {
+      const p = presenceByUid.get(s.uid);
+      if (p?.noting && deskState(p, now) === "on") set.add(s.uid);
+    });
+    return set;
+  }, [roster, presenceByUid, now]);
+
   // 모둠 보기 — 참여 전광판의 '모둠별 보기'와 같은 방식으로, 배정된 모둠을
   // 먼저 늘어놓고 아직 어느 모둠에도 없는 학생을 '미배정'으로 뒤에 붙입니다.
   // 저장된 모둠은 memberUids(uid 배열) 또는 members([{uid,…}])로 오므로 둘 다
@@ -299,6 +309,7 @@ export default function LessonSeatPanel({
                         raised={raisedUids.has(s.uid)}
                         att={attStateOf(s.uid, presentUids)}
                         live={liveState.get(s.uid) ?? null}
+                        noting={notingUids.has(s.uid)}
                         todayCount={todayCountByUid.get(s.uid) ?? 0}
                         onPick={onAward ? setToolsFor : undefined}
                       />
@@ -322,6 +333,7 @@ export default function LessonSeatPanel({
           onDropTo={(toIndex) => moveSeat(dragIndex, toIndex)}
           presentUids={presentUids}
           liveState={liveState}
+          notingUids={notingUids}
           todayCountByUid={todayCountByUid}
         />
       )}

@@ -14,7 +14,12 @@ import MindmapCanvas from "./MindmapCanvas";
 // 이 화면이 그릴 줄 아는 방송 종류. 새 종류를 추가하면 여기에도 넣어야 합니다.
 const KNOWN_MODES = ["consonant", "entry", "wall", "mindmap", "lesson", "carousel", "single"];
 
-export default function PresentationOverlay({ broadcast }) {
+// noteOpen — 학생이 수업 노트 서랍을 열어 두었는지. 열려 있으면 발표 화면을
+// 그만큼 좁힙니다(덮는 게 아니라 밀어냅니다). 서랍은 이 컴포넌트 밖에서
+// TopNav이 형제로 그립니다 — 안에 두면 슬라이드가 넘어갈 때마다 다시
+// 그려져 입력이 끊깁니다.
+export default function PresentationOverlay({ broadcast, noteOpen = false }) {
+  const shrink = noteOpen ? " broadcast-overlay--noted" : "";
   // [버전이 어긋났을 때]
   // 학생 브라우저에 이전 배포의 화면이 열린 채로 남아 있으면, 새로 생긴
   // 방송 종류를 못 알아봅니다. 그때 그냥 아래로 흘려보내면 빈 발표 카드가
@@ -23,7 +28,7 @@ export default function PresentationOverlay({ broadcast }) {
   if (!KNOWN_MODES.includes(broadcast.mode ?? "")) {
     return (
       <div
-        className="broadcast-overlay broadcast-overlay--stale"
+        className={`broadcast-overlay broadcast-overlay--stale${shrink}`}
         role="alertdialog"
         aria-modal="true"
         aria-label="화면을 불러오지 못했어요"
@@ -57,7 +62,7 @@ export default function PresentationOverlay({ broadcast }) {
     const zoomList = zoomSlot != null ? cells[cellKey(zoomSlot)] ?? [] : null;
     return (
       <div
-        className="broadcast-overlay broadcast-overlay--consonant"
+        className={`broadcast-overlay broadcast-overlay--consonant${shrink}`}
         role="alertdialog"
         aria-modal="true"
         aria-label="선생님 집계 화면"
@@ -140,7 +145,7 @@ export default function PresentationOverlay({ broadcast }) {
     const hasVisibleNode = map.nodes.some((n) => n.text?.trim());
     return (
       <div
-        className="broadcast-overlay broadcast-overlay--mindmap"
+        className={`broadcast-overlay broadcast-overlay--mindmap${shrink}`}
         role="alertdialog"
         aria-modal="true"
         aria-label="선생님이 보여주는 마인드맵"
@@ -181,7 +186,7 @@ export default function PresentationOverlay({ broadcast }) {
     const items = broadcast.items ?? [];
     return (
       <div
-        className="broadcast-overlay broadcast-overlay--wall"
+        className={`broadcast-overlay broadcast-overlay--wall${shrink}`}
         role="alertdialog"
         aria-modal="true"
         aria-label="선생님이 보여주는 친구들의 답"
@@ -220,7 +225,7 @@ export default function PresentationOverlay({ broadcast }) {
     const size = chars <= 40 ? "xl" : chars <= 160 ? "lg" : chars <= 450 ? "md" : "sm";
     return (
       <div
-        className="broadcast-overlay broadcast-overlay--entry"
+        className={`broadcast-overlay broadcast-overlay--entry${shrink}`}
         role="alertdialog"
         aria-modal="true"
         aria-label="선생님이 보여주는 글"
@@ -271,7 +276,7 @@ export default function PresentationOverlay({ broadcast }) {
     );
   }
 
-  return <PresentationOverlayBody broadcast={broadcast} />;
+  return <PresentationOverlayBody broadcast={broadcast} shrink={shrink} />;
 }
 
 // 격자 칸 — 교사 화면(TopWords)과 같은 모습. 많이 나온 낱말 다섯 개만 크게.
@@ -330,13 +335,13 @@ function CastRows({ list, big = false }) {
   );
 }
 
-function PresentationOverlayBody({ broadcast }) {
+function PresentationOverlayBody({ broadcast, shrink = "" }) {
   // 수업하기 — 선생님 화면 전체가 아니라 '슬라이드만' 화면 가득 띄웁니다.
   // (오른쪽 수업 메모는 교사 전용이라 방송에 담기지 않습니다)
   if (broadcast.mode === "lesson") {
     return (
       <div
-        className="broadcast-overlay broadcast-overlay--lesson"
+        className={`broadcast-overlay broadcast-overlay--lesson${shrink}`}
         role="alertdialog"
         aria-modal="true"
         aria-label="선생님 수업 화면"
@@ -373,7 +378,7 @@ function PresentationOverlayBody({ broadcast }) {
   const hasText = html.replace(/<[^>]*>/g, "").trim().length > 0;
 
   return (
-    <div className="broadcast-overlay" role="alertdialog" aria-modal="true" aria-label="선생님 발표 화면">
+    <div className={`broadcast-overlay${shrink}`} role="alertdialog" aria-modal="true" aria-label="선생님 발표 화면">
       <div className="broadcast-bar">
         <span className="broadcast-live-dot" aria-hidden="true" />
         선생님이 화면을 보여주고 있어요

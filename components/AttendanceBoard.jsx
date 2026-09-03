@@ -126,6 +126,13 @@ function StudentCard({
             🖐️
           </span>
         )}
+        {/* 수업 노트에 필기 중 — '화면은 켜져 있는데 아무것도 안 하는' 학생과
+            갈라 보이는 유일한 능동 신호입니다 */}
+        {d.noting && (
+          <span className="attend-desk-noting" aria-label="필기 중" title="수업 노트에 필기 중">
+            ✍️
+          </span>
+        )}
         <span className="attend-desk-no">{d.studentId || "-"}</span>
         <span className="attend-desk-name">
           {d.name}
@@ -201,6 +208,13 @@ export default function AttendanceBoard({
     return deskState(presenceByUid.get(uid), now);
   }
 
+  // 방금 수업 노트에 필기했는지 — 학생 화면이 보이는 상태일 때만 뜻이 있습니다
+  // (자리를 비웠거나 끊긴 학생의 옛 신호가 남아 반짝이지 않게).
+  function notingOf(uid) {
+    const p = presenceByUid.get(uid);
+    return !!(p?.noting && deskState(p, now) === "on");
+  }
+
   const desks = seats.map((uid, i) => {
     const s = byUid.get(uid);
     if (!s) return { key: `empty-${i}`, empty: true, index: i, state: "off" };
@@ -212,6 +226,7 @@ export default function AttendanceBoard({
       name: s.name,
       studentId: s.studentId ?? null,
       emoji: s.emoji ?? "🙂",
+      noting: notingOf(s.uid),
       count: s.count ?? 0,
       state: stateOf(s.uid),
       raised: raisedUids.has(s.uid),
