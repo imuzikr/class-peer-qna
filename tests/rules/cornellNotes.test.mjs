@@ -121,6 +121,36 @@ describe("수업 노트(코넬) 규칙", () => {
     );
   });
 
+  // 그날 수업 자료를 노트에 걸어 둡니다(이름 + 링크). 학생 갈래가 변경 키
+  // 화이트리스트가 아니라 '본인 것 + 칸 길이 + 피드백 불변'만 보므로 규칙을
+  // 고치지 않고 통과해야 합니다 — 짐작하지 말고 여기서 못박아 둡니다.
+  it("학생이 수업 자료 목록을 함께 저장할 수 있다", async () => {
+    const db = asStudent(env, "stu2").firestore();
+    await assertSucceeds(
+      setDoc(
+        noteRef(db, "cA", `stu2_${DATE}`),
+        payload("cA", "stu2", {
+          materials: [
+            { name: "디지털기술.pdf", url: "https://example.com/a.pdf", kind: "file" },
+            { name: "수업 사진", url: "https://example.com/b.png", kind: "image" },
+          ],
+        })
+      )
+    );
+  });
+
+  it("자료 목록을 걸면서 남의 노트에 쓸 수는 없다", async () => {
+    const db = asStudent(env, "stu2").firestore();
+    await assertFails(
+      setDoc(
+        noteRef(db, "cA", `stu1_${DATE}`),
+        payload("cA", "stu2", {
+          materials: [{ name: "a.pdf", url: "https://example.com/a.pdf", kind: "file" }],
+        })
+      )
+    );
+  });
+
   it("학생이 만들면서 피드백을 스스로 적을 수는 없다", async () => {
     const db = asStudent(env, "stu2").firestore();
     await assertFails(

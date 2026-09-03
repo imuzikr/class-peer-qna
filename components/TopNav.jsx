@@ -370,6 +370,8 @@ export default function TopNav({ active, onPython, pyActive = false }) {
         classId={activeClassId}
         user={user}
         lessonTitle={broadcast?.lessonTitle ?? ""}
+        boardId={broadcast?.boardId ?? ""}
+        boardTitle={broadcast?.boardTitle ?? ""}
         onOpenChange={setNoteOpen}
         onType={markNoting}
       />

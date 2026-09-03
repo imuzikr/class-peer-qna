@@ -30,6 +30,7 @@ import {
   subscribeMyCornellNote,
   saveCornellNote,
   fetchMyRecentCornellNotes,
+  fetchBoardHandouts,
   markCornellFeedbackSeen,
   isCornellFeedbackUnread,
   todayDateKey,
@@ -52,6 +53,10 @@ export default function CornellNoteDrawer({
   classId,
   user,
   lessonTitle = "",
+  // 수업 모드에서 방송이 알려 주는 '연결한 프로젝트'.
+  // 제목은 이 이름으로 채우고, 그 프로젝트의 학습 자료를 노트에 걸어 둡니다.
+  boardId = "",
+  boardTitle = "",
   onOpenChange = null, // 열림 상태를 위로 — 발표 화면이 그만큼 좁아집니다
   onType = null,       // 타이핑 신호 — 전광판의 ✍️ 표시로 이어집니다
 }) {
@@ -62,6 +67,8 @@ export default function CornellNoteDrawer({
   // 제목(주제) — 코넬 노트 맨 위 칸. 문서에는 lessonTitle로 저장합니다
   // (새 필드를 늘리지 않으려고요 — 방송 제목을 받아 두던 그 자리입니다).
   const [topic, setTopic] = useState("");
+  // 그날 프로젝트의 학습 자료(이름 + 링크). 노트에 함께 저장됩니다.
+  const [handouts, setHandouts] = useState([]);
   const [cue, setCue] = useState("");
   const [notes, setNotes] = useState("");        // HTML
   const [summary, setSummary] = useState("");
@@ -83,7 +90,7 @@ export default function CornellNoteDrawer({
   // 저장 함수가 항상 '지금 값'을 보도록 — 언마운트·창 닫기 때 쓰는 마지막
   // 저장은 오래된 클로저를 잡기 쉬워서, 값을 ref에 함께 들고 있습니다.
   const latestRef = useRef({ cue: "", notes: "", summary: "", lessonTitle: "" });
-  latestRef.current = { cue, notes, summary, lessonTitle: topic };
+  latestRef.current = { cue, notes, summary, lessonTitle: topic, materials: handouts };
 
   // 접힘 상태는 기억해 둡니다 — 수업마다 다시 여는 수고를 덜려고요
   useEffect(() => {
@@ -130,15 +137,43 @@ export default function CornellNoteDrawer({
     return () => { alive = false; };
   }, [classId, user?.uid, date]);
 
-  // 선생님이 방송에 적어 둔 수업 제목은 **기본값**으로만 씁니다 — 아직
-  // 아무것도 안 적었을 때만 채워 넣고, 학생이 한 번이라도 손대면(dirtyRef)
-  // 다시 건드리지 않습니다. 제목의 주인은 학생입니다.
+  // 제목 기본값 — **프로젝트 이름**이 있으면 그것을 먼저 쓰고, 없으면 수업
+  // 자료 제목으로 갈음합니다. 아직 아무것도 안 적었을 때만 채워 넣고, 학생이
+  // 한 번이라도 손대면(dirtyRef) 다시 건드리지 않습니다 — 제목의 주인은
+  // 학생입니다.
+  const autoTitle = boardTitle || lessonTitle;
   useEffect(() => {
     if (dirtyRef.current || !loaded) return;
-    if (topic || !lessonTitle) return;
+    if (topic || !autoTitle) return;
     if (note?.lessonTitle) return;
-    setTopic(lessonTitle);
-  }, [lessonTitle, topic, loaded, note?.lessonTitle]);
+    setTopic(autoTitle);
+  }, [autoTitle, topic, loaded, note?.lessonTitle]);
+
+  // 그 프로젝트의 학습 자료를 한 번 읽어 노트에 걸어 둡니다(문서 1건).
+  // 이미 저장된 노트에 자료가 있으면 그것을 그대로 두어, 나중에 교사가
+  // 프로젝트에서 자료를 바꿔도 그날 노트에 걸린 것은 흔들리지 않습니다.
+  useEffect(() => {
+    if (!boardId) return;
+    let alive = true;
+    fetchBoardHandouts(boardId)
+      .then((list) => {
+        if (!alive || list.length === 0) return;
+        setHandouts((prev) => (prev.length > 0 ? prev : list));
+        // 자료가 새로 생긴 경우에만 저장을 한 번 밀어 줍니다(빈 노트는 그대로).
+        if ((note?.materials ?? []).length === 0 && (note || dirtyRef.current)) {
+          editSeqRef.current += 1;
+          setDirty(true);
+        }
+      })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [boardId, note?.id]);
+
+  // 이미 저장된 노트에 자료가 있으면 그것을 씁니다
+  useEffect(() => {
+    const saved = note?.materials;
+    if (Array.isArray(saved) && saved.length > 0) setHandouts(saved);
+  }, [note?.id, note?.materials]);
 
   // 읽음 도장 — 노트 문서에 적습니다. 기기를 바꿔도 배지가 되살아나지 않게.
   const markSeen = useCallback(
@@ -385,6 +420,28 @@ export default function CornellNoteDrawer({
                   <span className="cornell-feedback-tag">선생님</span>
                   <p>{feedback}</p>
                 </div>
+              )}
+
+              {/* 오늘 수업 자료 — 선생님이 프로젝트에 올려 둔 파일을 노트에
+                  걸어 둡니다. 두 달 뒤에 "그 자료가 어느 프로젝트였지" 하고
+                  찾아 헤매지 않게, 그날 노트에서 바로 닿습니다.
+                  자료가 없는 수업에는 이 줄이 아예 없습니다. */}
+              {handouts.length > 0 && (
+                <section className="cornell-handouts">
+                  <span className="cornell-handouts-tag">📎 오늘 수업 자료</span>
+                  {handouts.map((m, i) => (
+                    <a
+                      key={`${m.url}_${i}`}
+                      className="cornell-handout"
+                      href={m.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      title={m.name}
+                    >
+                      {m.kind === "image" ? "🖼" : "📄"} {m.name}
+                    </a>
+                  ))}
+                </section>
               )}
 
               {/* 제목 — 코넬 노트의 맨 윗줄. 이게 없으면 나중에 펴 봤을 때

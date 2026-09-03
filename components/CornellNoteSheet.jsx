@@ -22,6 +22,7 @@ export default function CornellNoteSheet({ note, showFeedback = true }) {
   const hasNotes = stripHtml(notesHtml).length > 0;
   const summary = String(note.summary ?? "").trim();
   const feedback = String(note.feedback ?? "").trim();
+  const handouts = Array.isArray(note.materials) ? note.materials : [];
 
   return (
     <article className="cornell-sheet">
@@ -55,6 +56,29 @@ export default function CornellNoteSheet({ note, showFeedback = true }) {
         <h4>내 말로 요약</h4>
         {summary ? <p>{summary}</p> : <p className="cornell-sheet-blank">비어 있어요</p>}
       </section>
+
+      {/* 그날 수업 자료 — 노트를 열면 원본 파일로 바로 갑니다.
+          파일을 복제하지 않고 이름과 링크만 남겼으므로, 교사가 나중에 그
+          파일을 지우면 링크는 깨집니다. 이름은 남아 '무엇이었는지'는 압니다. */}
+      {handouts.length > 0 && (
+        <section className="cornell-sheet-handouts">
+          <h4>📎 수업 자료</h4>
+          <div className="cornell-sheet-handout-list">
+            {handouts.map((m, i) => (
+              <a
+                key={`${m.url}_${i}`}
+                className="cornell-handout"
+                href={m.url}
+                target="_blank"
+                rel="noreferrer"
+                title={m.name}
+              >
+                {m.kind === "image" ? "🖼" : "📄"} {m.name}
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
 
       {showFeedback && feedback && (
         <section className="cornell-sheet-feedback">

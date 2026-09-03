@@ -601,6 +601,13 @@ export default function LessonMode({
     startBroadcast(getCurrentUser(), classId, {
       mode: "lesson",
       lessonTitle: lesson.title ?? "",
+      // 연결한 프로젝트 — 학생 수업 노트가 제목을 여기서 가져오고(코넬 노트의
+      // 맨 윗줄), 그 프로젝트의 학습 자료를 노트에 함께 걸어 둡니다.
+      // id와 이름을 둘 다 싣는 이유: 이름은 곧바로 쓰고, id는 자료를 찾는 데
+      // 씁니다(자료 목록 자체를 싣지 않는 것은 방송 문서가 슬라이드를 넘길
+      // 때마다 통째로 덮어써지기 때문 — 매번 실어 나르면 쓰기가 커집니다).
+      boardId: board?.id ?? "",
+      boardTitle: board?.title ?? "",
       imageUrl: cur.imageUrl,
       slideIndex: idx,
       slideCount: total,

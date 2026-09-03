@@ -43,10 +43,13 @@ export default function ConsonantCanvas({
   onBack,
   // 모둠 판에서 한 사람의 낱말만 보고 싶을 때(교사가 왼쪽에서 이름을 누름).
   // '내 판'(mineOnly)이 자기 것만 거르는 것과 같은 방식입니다.
-  focusUid = null,
-  focusName = "",
-  onClearFocus = null,
+  // 한 사람만 보기 — **판 위의 모둠원 칩**을 눌러 고릅니다. 모둠 목록의
+  // 카드 안에도 이름 단추를 뒀었는데, 모둠을 고르는 것인지 학생을 고르는
+  // 것인지 구분이 어려웠습니다. 이름표가 이미 판 위에 색과 함께 있으니
+  // 그것을 그대로 단추로 씁니다.
+  onFocusChange = null,
 }) {
+  const [focusUid, setFocusUid] = useState(null);
   const [words, setWords] = useState([]);
   const [groups, setGroups] = useState([]);
   const [activeIndex, setActiveIndex] = useState(null); // 입력창이 열린 자음 칸
@@ -80,6 +83,11 @@ export default function ConsonantCanvas({
     return words;
   }, [words, mineOnly, user?.uid, focusUid]);
 
+  // 판이 바뀌면 고름을 풉니다 — 다른 모둠으로 갔는데 앞 모둠에서 고른
+  // 학생이 그대로 남아 있으면 빈 판이 보입니다.
+  useEffect(() => { setFocusUid(null); }, [groupId]);
+  useEffect(() => { onFocusChange?.(focusUid); }, [focusUid, onFocusChange]);
+
   // 모둠원 이름·색 (개별 활동은 한 판에 한 사람이라 없음)
   //
   // '내 판'에도 띄웁니다. 예전에는 모둠 판에만 있었는데, 학생 화면에는
@@ -91,6 +99,9 @@ export default function ConsonantCanvas({
     () => (perStudent ? [] : memberLegend(group)),
     [perStudent, group]
   );
+
+  // 고른 학생의 이름 — 범례에서 찾습니다(판에 저장된 members가 곧 범례).
+  const focusName = legend.find((m) => m.uid === focusUid)?.name ?? "";
 
   // 자음 칸별로 단어를 모아 둡니다 (오래된 순)
   const byCell = useMemo(() => {
@@ -196,30 +207,55 @@ export default function ConsonantCanvas({
           <span>
             <b>{focusName || "이 학생"}</b>의 낱말만 보는 중
           </span>
-          {onClearFocus && (
-            <button type="button" className="canvas-focus-clear" onClick={onClearFocus}>
-              모둠 전체 보기
-            </button>
-          )}
+          <button
+            type="button"
+            className="canvas-focus-clear"
+            onClick={() => setFocusUid(null)}
+          >
+            모둠 전체 보기
+          </button>
         </p>
       )}
 
-      {/* 모둠원 — 이름과 색을 짝지어. 내 판에서는 나를 굵게 표시합니다 */}
-      {legend.length > 0 && (
+      {/* 모둠원 — 이름과 색을 짝지어. 내 판에서는 나를 굵게 표시합니다.
+          교사 화면에서는 **누를 수 있는 칩**입니다 — 누르면 그 학생의 낱말만
+          남고, 위의 '모둠 전체 보기'로 돌아옵니다. 한 사람만 보는 중에는
+          이 줄을 통째로 감춥니다(무엇을 보는 중인지는 위 한 줄이 말합니다).
+          학생 화면에서는 지금까지대로 이름표일 뿐입니다. */}
+      {legend.length > 0 && !focusUid && (
         <div className="canvas-legend">
-          {legend.map((m) => (
-            <span
-              key={m.uid}
-              className={`canvas-legend-item${m.uid === user?.uid ? " me" : ""}`}
-            >
+          {legend.map((m) => {
+            const swatch = (
               <i
                 className="canvas-legend-swatch"
                 style={{ background: m.color.bg, borderColor: m.color.border }}
               />
-              {m.name}
-              {m.uid === user?.uid && <em className="canvas-legend-me">나</em>}
-            </span>
-          ))}
+            );
+            if (!isTeacher || mineOnly) {
+              return (
+                <span
+                  key={m.uid}
+                  className={`canvas-legend-item${m.uid === user?.uid ? " me" : ""}`}
+                >
+                  {swatch}
+                  {m.name}
+                  {m.uid === user?.uid && <em className="canvas-legend-me">나</em>}
+                </span>
+              );
+            }
+            return (
+              <button
+                key={m.uid}
+                type="button"
+                className="canvas-legend-item canvas-legend-pick"
+                onClick={() => setFocusUid(m.uid)}
+                title={`${m.name}의 낱말만 보기`}
+              >
+                {swatch}
+                {m.name}
+              </button>
+            );
+          })}
         </div>
       )}
 

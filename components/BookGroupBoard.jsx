@@ -313,51 +313,30 @@ export default function BookGroupBoard({
                 );
               }
 
-              // 모둠 이름 줄과 모둠원 이름이 **따로** 눌립니다. 그래서 카드
-              // 전체를 단추로 두지 않습니다 — 단추 안에 단추는 못 넣습니다.
+              // 카드는 '모둠 고르기' 하나만 합니다. 한때 카드 안의 이름도
+              // 각각 단추였는데, 모둠을 고르는 것인지 학생을 고르는 것인지
+              // 구분이 어려웠습니다. 학생 고르기는 **판 위의 색 칩**이 맡습니다
+              // (ConsonantCanvas의 범례).
               return (
-                <div key={g.id} className={`book-rail-card${on ? " on" : ""}`}>
-                  <button
-                    type="button"
-                    className="book-rail-pick"
-                    onClick={() => { setPickedId(g.id); setFocusUid(null); }}
-                    aria-pressed={on}
-                    title="이 모둠의 판 보기"
-                  >
-                    <span className="book-rail-head">
-                      <strong>{g.groupName || `${g.groupIndex}모둠`}</strong>
-                      <span className="book-group-count">{members.length}명</span>
-                    </span>
-                  </button>
+                <button
+                  key={g.id}
+                  type="button"
+                  className={`book-rail-card${on ? " on" : ""}`}
+                  onClick={() => setPickedId(g.id)}
+                  aria-pressed={on}
+                >
+                  <span className="book-rail-head">
+                    <strong>{g.groupName || `${g.groupIndex}모둠`}</strong>
+                    <span className="book-group-count">{members.length}명</span>
+                  </span>
                   {members.length === 0 ? (
                     <span className="book-group-empty">아직 모둠원이 없어요</span>
                   ) : (
-                    <div className="book-rail-people">
-                      {members.map((m) => {
-                        const only = on && focusUid === m.uid;
-                        return (
-                          <button
-                            key={m.uid}
-                            type="button"
-                            className={`book-rail-person${only ? " on" : ""}`}
-                            onClick={() => {
-                              setPickedId(g.id);
-                              setFocusUid(only ? null : m.uid);
-                            }}
-                            aria-pressed={only}
-                            title={
-                              only
-                                ? `${m.name} — 다시 누르면 모둠 판으로 돌아갑니다`
-                                : `${m.name}의 낱말만 보기`
-                            }
-                          >
-                            {m.name}
-                          </button>
-                        );
-                      })}
-                    </div>
+                    <span className="book-rail-members">
+                      {members.map((m) => m.name).join(" · ")}
+                    </span>
                   )}
-                </div>
+                </button>
               );
             })}
           </aside>
@@ -373,13 +352,7 @@ export default function BookGroupBoard({
                 isTeacher
                 viewMode="group"
                 embedded
-                focusUid={focusUid}
-                focusName={
-                  focusUid
-                    ? (picked.members ?? []).find((m) => m.uid === focusUid)?.name ?? ""
-                    : ""
-                }
-                onClearFocus={() => setFocusUid(null)}
+                onFocusChange={setFocusUid}
               />
             ) : (
               <p className="empty-note">
