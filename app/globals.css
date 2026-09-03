@@ -22674,21 +22674,24 @@ body:has(.confirm-backdrop) .cornell-handle {
    그것을 그대로 단추로 씁니다(교사 화면에서만). */
 .canvas-legend-pick {
   /* 칩 크기는 '○○의 낱말만 보는 중' 줄에 맞춰 둡니다 — 두 줄이 서로
-     바뀌는 자리라 높이가 어긋나면 아래 판이 위아래로 튑니다. */
-  padding: 5px 11px;
-  border: 1px solid var(--border);
+     바뀌는 자리라 높이가 어긋나면 아래 판이 위아래로 튑니다.
+     테두리 없이 연한 회색 바탕만 — 흰 바탕에 테두리를 두르면 판(연한
+     초록) 위에서 칩 여섯이 한 줄로 도드라져 눈이 그리로 먼저 갑니다.
+     모둠 카드 안의 이름 칩(.book-rail-chip)과 같은 모습입니다. */
+  padding: 6px 12px;
+  border: none;
   border-radius: 999px;
-  background: #fff;
+  background: var(--bg-deep);
   font-family: inherit;
   font-size: 12.5px;
   font-weight: 700;
   color: var(--text-sub);
   cursor: pointer;
-  transition: border-color 0.12s, background 0.12s, box-shadow 0.12s;
+  transition: background 0.12s, color 0.12s, box-shadow 0.12s;
 }
 .canvas-legend-pick:hover {
-  border-color: var(--primary);
   background: var(--primary-light);
+  color: var(--primary-dark);
 }
 .canvas-legend-pick:focus-visible {
   outline: none;
