@@ -30,6 +30,9 @@ import {
 import KwlFullscreenModal from "./KwlFullscreenModal";
 import StudyActivityWall from "./StudyActivityWall";
 
+// 접어 둔 묶음을 기억하는 자리 (브라우저마다·교사마다)
+const FOLD_KEY = "tkwl-folded";
+
 // 날짜를 하루씩 옮깁니다 (YYYY-MM-DD 문자열 기준)
 function shiftDate(dateKey, days) {
   const d = new Date(`${dateKey}T00:00:00`);
@@ -63,6 +66,25 @@ export default function TeacherKwlPanel({
   const [fullscreen, setFullscreen] = useState(false);
   const [picked, setPicked] = useState(null); // { uid, key } — 팝오버 대상
   const [wallKey, setWallKey] = useState(null); // 모아보기로 크게 볼 칸(W·S)
+  // 접어 둔 묶음 — 학생이 늘면 W·S 목록이 길어져 아래 것들이 화면 밖으로
+  // 밀립니다. 무엇을 접어 뒀는지는 다음에 열 때도 그대로 두는 편이 낫습니다
+  // (수업마다 보는 자리가 대개 정해져 있어서).
+  const [folded, setFolded] = useState(() => new Set());
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(FOLD_KEY);
+      if (raw) setFolded(new Set(JSON.parse(raw)));
+    } catch {}
+  }, []);
+  function toggleFold(key) {
+    setFolded((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      try { localStorage.setItem(FOLD_KEY, JSON.stringify([...next])); } catch {}
+      return next;
+    });
+  }
 
   useEffect(() => {
     if (!classId) { setEntries([]); return; }
@@ -226,7 +248,13 @@ export default function TeacherKwlPanel({
         <>
           {/* ── [C] 집계 ── */}
           <section className="tkwl-section">
-            <h4 className="tkwl-title">작성 현황</h4>
+            <FoldTitle
+              open={!folded.has("counts")}
+              onToggle={() => toggleFold("counts")}
+              title="작성 현황"
+            />
+            {!folded.has("counts") && (
+            <>
             <div className="tkwl-counts">
               {KWLS_COLUMNS.map((c, i) => (
                 <span key={c.key} className="tkwl-count" title={c.ko}>
@@ -243,17 +271,24 @@ export default function TeacherKwlPanel({
                 {notStarted.length > 8 && " …"}
               </p>
             )}
+            </>
+            )}
           </section>
 
           {/* ── [B] W·S 모아보기 ── */}
           {COLLECT.map((col) => {
             const list = textsOf(col.key);
+            const open = !folded.has(col.key);
             return (
               <section className="tkwl-section" key={col.key}>
-                <h4 className="tkwl-title">
-                  <span>
-                    {col.ko} <small>{col.letter} · {list.length}개</small>
-                  </span>
+                <FoldTitle
+                  open={open}
+                  onToggle={() => toggleFold(col.key)}
+                  title={col.ko}
+                  note={`${col.letter} · ${list.length}개`}
+                >
+                  {/* 접혀 있어도 모아보기는 그대로 — 접는 이유가 '자리를
+                      줄이려는 것'이지 '안 쓰려는 것'이 아닙니다 */}
                   <button
                     type="button"
                     className="tkwl-wall-btn"
@@ -267,8 +302,8 @@ export default function TeacherKwlPanel({
                   >
                     모아보기
                   </button>
-                </h4>
-                {list.length === 0 ? (
+                </FoldTitle>
+                {!open ? null : list.length === 0 ? (
                   <p className="tkwl-empty">아직 쓴 학생이 없어요.</p>
                 ) : (
                   <ul className="tkwl-wants">
@@ -301,10 +336,16 @@ export default function TeacherKwlPanel({
 
           {/* ── [A] 학생 × K·W·L·S 격자 ── */}
           <section className="tkwl-section">
-            <h4 className="tkwl-title">학생별 진행</h4>
+            <FoldTitle
+              open={!folded.has("grid")}
+              onToggle={() => toggleFold("grid")}
+              title="학생별 진행"
+              note={`${rows.length}명`}
+            />
             {/* 머리글을 스크롤 영역 '안'에 두고 위에 붙여 둡니다 —
                 밖에 두면 세로 막대 너비만큼 칸과 어긋나 보이고, 스크롤을
                 내리면 K·W·L·S가 무엇이었는지도 사라집니다. */}
+            {!folded.has("grid") && (
             <div className="tkwl-grid">
               <div className="tkwl-grid-head">
                 <span />
@@ -343,6 +384,7 @@ export default function TeacherKwlPanel({
                 </div>
               ))}
             </div>
+            )}
           </section>
         </>
       )}
@@ -419,6 +461,29 @@ export default function TeacherKwlPanel({
         />
       )}
     </aside>
+  );
+}
+
+// ── 접었다 펴는 묶음 머리 ──────────────────────────────────
+// KWLS가 쌓이면 W·S 목록이 길어져 아래 묶음이 화면 밖으로 밀립니다.
+// 머리를 눌러 접어 두면 그 자리를 되찾습니다. 접혀 있어도 개수(note)는
+// 남겨 두어, 펼치지 않고도 얼마나 쌓였는지 보입니다.
+function FoldTitle({ open, onToggle, title, note = "", children = null }) {
+  return (
+    <h4 className="tkwl-title">
+      <button
+        type="button"
+        className="tkwl-fold"
+        onClick={onToggle}
+        aria-expanded={open}
+        title={open ? "접기" : "펼치기"}
+      >
+        <span className={`tkwl-fold-caret${open ? " open" : ""}`} aria-hidden="true">›</span>
+        {title}
+        {note && <small>{note}</small>}
+      </button>
+      {children}
+    </h4>
   );
 }
 
