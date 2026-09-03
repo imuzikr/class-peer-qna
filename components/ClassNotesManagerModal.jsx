@@ -1,8 +1,15 @@
 "use client";
 
 // =============================================================
-// 누가기록 관리 (교사 전용) — 반 학생 전체를 한 화면에서
+// 기록 관리 (교사 전용) — 반 학생 전체를 한 화면에서
 // -------------------------------------------------------------
+// 탭이 둘입니다. 주인이 반대인 두 기록을 한 자리에 모았습니다.
+//   · 누가기록  — **교사가 쓰는** 학생 관찰 메모
+//   · 수업 노트 — **학생이 쓴** 코넬 노트를 읽고 한 마디 남기기
+// 둘 다 '반 학생 전체를 학번순으로 늘어놓고 하나를 골라 들어간다'는 같은
+// 모양이라, 버튼을 하나 더 늘리는 대신 탭으로 묶었습니다.
+//
+// [누가기록 탭]
 // 지금까지 누가기록은 자리표에서 학생 자리를 눌러 하나씩 들어가야 했습니다.
 // "이번 학기에 누구 기록을 남겼고 누구를 아직 못 남겼나"를 보려면 자리를
 // 스물여덟 번 눌러 봐야 했습니다.
@@ -18,13 +25,16 @@ import { useEffect, useMemo, useState } from "react";
 import { backdropClose } from "@/lib/modal";
 import { subscribeClassNoteCounts } from "@/lib/store";
 import StudentNotesModal from "./StudentNotesModal";
+import CornellNotesPanel from "./CornellNotesPanel";
 
 export default function ClassNotesManagerModal({
   classId,
   className = "",
   roster = [],
+  user = null,
   onClose,
 }) {
+  const [tab, setTab] = useState("notes"); // notes | cornell
   const [counts, setCounts] = useState({});
   const [selected, setSelected] = useState(null); // 기록을 열어 볼 학생
   const [onlyEmpty, setOnlyEmpty] = useState(false); // '아직 없는 학생만' 보기
@@ -59,13 +69,37 @@ export default function ClassNotesManagerModal({
         >
           <div className="modal-head">
             <h3>
-              📝 누가기록 관리
+              📝 기록 관리
               {className && <span className="notes-student">{className}</span>}
             </h3>
             <button className="btn-close" onClick={onClose} aria-label="닫기">×</button>
           </div>
 
-          {roster.length === 0 ? (
+          <div className="notes-mgr-tabs" role="tablist">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === "notes"}
+              className={`notes-mgr-tab${tab === "notes" ? " active" : ""}`}
+              onClick={() => setTab("notes")}
+            >
+              📝 누가기록
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === "cornell"}
+              className={`notes-mgr-tab${tab === "cornell" ? " active" : ""}`}
+              onClick={() => setTab("cornell")}
+              title="학생이 수업 중에 적은 코넬 노트를 읽고 피드백을 남깁니다"
+            >
+              📓 수업 노트
+            </button>
+          </div>
+
+          {tab === "cornell" ? (
+            <CornellNotesPanel classId={classId} roster={roster} user={user} />
+          ) : roster.length === 0 ? (
             <p className="empty-note">아직 이 반에 입장한 학생이 없어요.</p>
           ) : (
             <>

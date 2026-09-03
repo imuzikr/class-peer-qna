@@ -31,9 +31,9 @@ export default function ClassNotesTools({ classId, className = "", roster = [], 
         type="button"
         className="btn-ghost class-notes-btn"
         onClick={() => setNotesOpen(true)}
-        title="반 학생별 누가기록 — 누가 기록이 있고 없는지 한눈에"
+        title="누가기록과 학생 수업 노트 — 누가 남겼고 누가 아직인지 한눈에"
       >
-        누가기록 관리
+        기록 관리
       </button>
       <button
         type="button"
@@ -49,6 +49,7 @@ export default function ClassNotesTools({ classId, className = "", roster = [], 
           classId={classId}
           className={className}
           roster={roster}
+          user={user}
           onClose={() => setNotesOpen(false)}
         />
       )}

@@ -11,6 +11,7 @@ import {
   subscribeMyStudyCards,
   subscribeMyMemberships,
   subscribeUserKwl,
+  subscribeMyCornellNotes,
   toDate,
 } from "@/lib/store";
 import { isFirebaseConfigured } from "@/lib/firebase";
@@ -23,6 +24,7 @@ import { cardActivitySummary, DONE_MIN_CHARS } from "@/lib/activities";
 import dynamic from "next/dynamic";
 import TopNav from "@/components/TopNav";
 import StudentRewardTrend from "@/components/StudentRewardTrend";
+import CornellNoteSheet from "@/components/CornellNoteSheet";
 import { IconRecord } from "@/components/StatusIcons";
 
 // 활동 히트맵·레이더 차트는 무거워 지연 로딩
@@ -151,6 +153,8 @@ function StudentReportPageInner() {
   const [myCards, setMyCards] = useState([]); // 내가 낸 공부방 카드(전체)
   const [myMemberships, setMyMemberships] = useState([]); // 내가 속한 반
   const [myKwl, setMyKwl] = useState([]); // 내 KWLS 기록(전 기간)
+  const [myNotes, setMyNotes] = useState([]); // 내 수업 노트(코넬)
+  const [openNoteId, setOpenNoteId] = useState(null); // 펼쳐 둔 노트
 
   // 학습 리포트는 학생 화면 — 관리자 보기로 바뀌면 관리자 대시보드로 이동
   const isTeacher = user ? isTeacherRole(user) : false;
@@ -247,6 +251,13 @@ function StudentReportPageInner() {
     [studyBoards, myClassIds]
   );
   const studentBoardCount = myBoards.length;
+
+  // 내 수업 노트(코넬) — 내가 속한 반마다 리스너 하나. 노트는 반 아래에
+  // 있어서(classes/{반}/cornellNotes) 반 목록이 정해진 뒤에야 받을 수 있습니다.
+  useEffect(() => {
+    if (!user || myClassIds.size === 0) { setMyNotes([]); return; }
+    return subscribeMyCornellNotes([...myClassIds], user.uid, setMyNotes);
+  }, [user?.uid, myClassIds]);
 
   // 활동 '칸' 기준 진행 — 카드를 냈는지만 세면, 활동 세 칸 중 한 칸만 쓴
   // 카드도 제출 완료로 잡힙니다. 학생이 자기 리포트를 보고 "다 했네" 하고
@@ -715,6 +726,59 @@ function StudentReportPageInner() {
               <span>{myKwl.length}건</span>
             </div>
             <KwlSemesterHeatmap entries={myKwl} tone="light" />
+          </section>
+        )}
+
+        {/* 수업 노트 — 서랍에서 세로로 쌓아 적은 것을 여기서 **본래 코넬 2단**
+            으로 폅니다. 서랍은 380px라 좌우로 가를 수 없었고, 이 화면은 넓어서
+            왼쪽 단서만 보며 오른쪽을 가리고 떠올리는 복습이 됩니다.
+            반이 있으면 비어 있어도 자리를 둡니다 — 서랍의 '지난 노트' 링크가
+            이 자리로 오기 때문입니다. */}
+        {myClassIds.size > 0 && (
+          <section className="study-report report-cornell" id="cornell-notes">
+            <div className="admin-panel-head">
+              <h2>📓 수업 노트</h2>
+              <span>{myNotes.length > 0 ? `${myNotes.length}장` : "아직 없음"}</span>
+            </div>
+            {myNotes.length === 0 ? (
+              <EmptyPanel>
+                수업 중 화면 오른쪽 &lsquo;수업 노트&rsquo; 손잡이를 당기면 필기할 수 있어요.
+                여기에 날짜별로 모입니다.
+              </EmptyPanel>
+            ) : (
+              <div className="report-cornell-list">
+                {myNotes.map((note) => {
+                  // 가장 최근 것을 펼쳐 둡니다 — 복습은 대개 방금 배운 것부터라서요.
+                  const open = (openNoteId ?? myNotes[0].id) === note.id;
+                  const hasFeedback = !!String(note.feedback ?? "").trim();
+                  return (
+                    <div
+                      key={note.id}
+                      className={`report-cornell-row${open ? " open" : ""}`}
+                    >
+                      <button
+                        type="button"
+                        className="report-cornell-head"
+                        onClick={() => setOpenNoteId(open ? "" : note.id)}
+                        aria-expanded={open}
+                      >
+                        <time className="report-cornell-date">{note.date}</time>
+                        <span className="report-cornell-title">
+                          {note.lessonTitle || "수업"}
+                        </span>
+                        {hasFeedback && (
+                          <span className="report-cornell-fb">선생님 한 마디</span>
+                        )}
+                        <span className="report-cornell-caret" aria-hidden="true">
+                          {open ? "▾" : "▸"}
+                        </span>
+                      </button>
+                      {open && <CornellNoteSheet note={note} />}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </section>
         )}
 

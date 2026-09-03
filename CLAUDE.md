@@ -65,8 +65,11 @@ Firebase 미설정 시 자동으로 **데모 모드**로 동작 (새로고침 �
 | `components/StudyProjectDashboard.jsx` | 공부방 첫 화면 — 프로젝트 카드 그리드 (교사·학생 공통) |
 | `components/StudyProjectView.jsx` | 프로젝트 상세 — 개인 카드 그리드 + 교사 도구 |
 | `components/StudyProjectForm.jsx` | 프로젝트 만들기 모달 (제목·안내·활동 목록) |
-| `components/ClassNotesTools.jsx` | 누가기록 관리·수업 메모 버튼 + 모달 묶음 (교사 전용) |
+| `components/ClassNotesTools.jsx` | 기록 관리·수업 메모 버튼 + 모달 묶음 (교사 전용) |
 | `components/CornellNoteDrawer.jsx` | 수업 노트 서랍 (학생 전용) — 오른쪽 손잡이 → 코넬 세 칸 |
+| `components/CornellNoteSheet.jsx` | 수업 노트 한 장 — **읽기 전용 코넬 2단**(리포트·교사 열람 공용) |
+| `components/CornellNotesPanel.jsx` | '기록 관리'의 수업 노트 탭 — 날짜 하나로 반 전체 |
+| `components/CornellNoteReadModal.jsx` | 한 학생의 지난 노트 넘겨 보기 + 피드백 (교사 전용) |
 
 책방(`/books`)은 **활동 목록 → 활동** 두 단계입니다(URL은 `?activity=`).
 예전에는 '활동 종류 그리드 → 그 종류의 목록 → 활동' 세 단계였는데, 가운데
@@ -212,6 +215,20 @@ Firebase 미설정 시 자동으로 **데모 모드**로 동작 (새로고침 �
     끊기고, (ㄴ) `LessonMode`가 **일시정지에도** 방송 문서를 지우므로 한
     차시에 몇 번씩 서랍이 사라집니다. 서랍이 열리면
     `.broadcast-overlay--noted`로 발표 화면이 그만큼 좁아집니다(덮지 않음).
+  - 서랍은 폭이 380px라 세 칸을 **세로로** 쌓습니다. 진짜 코넬 2단(왼쪽 좁은
+    단서 · 오른쪽 넓은 필기 · 아래 요약)은 `CornellNoteSheet` 한 곳에만 있고,
+    학생 리포트와 교사 열람이 그것을 같이 씁니다 — 한쪽만 고치면 같은 노트가
+    두 얼굴이 됩니다.
+  - **읽는 자리는 셋**입니다: 서랍(오늘 것 쓰기) · `/report`의 '📓 수업 노트'
+    (내 지난 노트, 앵커 `#cornell-notes` — 서랍의 '지난 노트' 링크가 옵니다) ·
+    '기록 관리' 모달의 수업 노트 탭(교사).
+  - **교사 화면은 날짜 하나로 좁혀 읽습니다**(`subscribeClassCornellNotesOn`).
+    반 전체를 기간 제한 없이 받으면 학생 수 × 수업 일수(한 학기면 수천 건)라,
+    '오늘 누가 썼나'를 학생 수만큼으로 줄입니다. 한 학생의 흐름은 카드를 눌러
+    들어갔을 때만 그 학생 것을 받습니다(`subscribeStudentCornellNotes`).
+    학생 리포트는 자기 반마다 리스너 하나(`subscribeMyCornellNotes`) —
+    `collectionGroup`을 안 쓰는 이유는 규칙에 그룹 문을 새로 열지 않으려고요.
+    셋 다 `where` 하나만 걸고 정렬은 화면에서 합니다(복합 색인 회피).
   - 탈퇴 정리는 `purgeStudentData`의 `collectionGroup("cornellNotes")` 한 줄.
     반 아래라 반 삭제는 `purgeClass`가 알아서 정리합니다.
 - `classes/{classId}/rewardEvents` — **과일 지급 이력** (uid, delta, count, byUid, at)

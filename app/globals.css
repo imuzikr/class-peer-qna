@@ -21837,3 +21837,299 @@ body:has(.confirm-backdrop) .cornell-handle {
   }
   .broadcast-overlay--noted { right: 0; bottom: 60vh; }
 }
+
+/* ===== 수업 노트 — 지난 노트 보러 가기 (서랍 맨 아래) ===== */
+.cornell-past-link {
+  align-self: flex-start;
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary-dark);
+  cursor: pointer;
+}
+.cornell-past-link:hover { text-decoration: underline; }
+
+/* ===== 수업 노트 한 장 — 읽기 전용 코넬 2단 =====
+   서랍은 좁아 세 칸을 세로로 쌓지만, 넓은 화면에서는 본래 모양대로 폅니다.
+   왼쪽 단서 칸을 좁게 고정하는 것이 핵심입니다 — 오른쪽을 손으로 가리고
+   왼쪽만 보며 떠올리는 것이 코넬 노트의 복습 방법이라, 두 칸 폭이 비슷해지면
+   그 쓸모가 사라집니다. */
+.cornell-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card, 14px);
+  background: #fff;
+  overflow: hidden;
+}
+.cornell-sheet-grid {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+}
+.cornell-sheet-cue,
+.cornell-sheet-notes,
+.cornell-sheet-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+}
+/* 코넬 노트의 그 세로선 — 단서와 필기를 가르는 선입니다 */
+.cornell-sheet-cue {
+  border-right: 2px solid var(--primary-light);
+  background: #fdfcfa;
+}
+.cornell-sheet-summary {
+  border-top: 1px solid var(--border);
+  background: #fdfcfa;
+}
+.cornell-sheet h4 {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--primary-dark);
+  letter-spacing: 0.02em;
+}
+.cornell-sheet p {
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.cornell-sheet-blank {
+  color: var(--text-sub);
+  font-style: italic;
+}
+.cornell-sheet-rich {
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: var(--text);
+  word-break: break-word;
+}
+.cornell-sheet-rich ul,
+.cornell-sheet-rich ol { padding-left: 20px; }
+.cornell-sheet-rich li { margin: 2px 0; }
+.cornell-sheet-feedback {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--border);
+  background: var(--primary-light);
+}
+.cornell-sheet-feedback p {
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* ===== 기록 관리 모달 — 두 기록의 탭 ===== */
+.notes-mgr-tabs {
+  display: flex;
+  gap: 6px;
+  margin: 2px 0 10px;
+  border-bottom: 1px solid var(--border);
+}
+.notes-mgr-tab {
+  border: none;
+  background: none;
+  padding: 8px 12px;
+  margin-bottom: -1px;
+  border-bottom: 2px solid transparent;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-sub);
+  cursor: pointer;
+}
+.notes-mgr-tab:hover { color: var(--primary-dark); }
+.notes-mgr-tab.active {
+  color: var(--primary-dark);
+  border-bottom-color: var(--primary);
+}
+
+/* 수업 노트 탭 — 날짜 한 줄 + 학생 격자 */
+.cornell-mgr-bar { align-items: center; }
+.cornell-mgr-date {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.cornell-mgr-date input[type="date"] {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  padding: 5px 8px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background: #fff;
+}
+.cornell-read-step {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: #fff;
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--text-sub);
+  cursor: pointer;
+}
+.cornell-read-step:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+.cornell-read-step:disabled { opacity: 0.35; cursor: default; }
+
+/* 미리보기 한 줄이 들어가 카드가 조금 넓어집니다 */
+.cornell-mgr-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.cornell-mgr-preview {
+  margin-top: 2px;
+  width: 100%;
+  /* 안 쓴 학생은 비어 있어도 이만큼 자리를 잡습니다 — 두 줄까지 쓰는 칸이라
+     비워 두면 그 카드만 뱃지가 위로 올라와 격자 줄이 어긋납니다. */
+  min-height: 2.4em;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--text-sub);
+  text-align: center;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* ===== 수업 노트 읽기 모달 (교사) ===== */
+.modal.modal-cornell-read { max-width: 860px; }
+.cornell-read-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 2px 0 10px;
+}
+.cornell-read-date {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  padding: 6px 8px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background: #fff;
+}
+.cornell-read-count {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-sub);
+  font-variant-numeric: tabular-nums;
+}
+.cornell-read-lesson {
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+.cornell-read-feedback {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+}
+.cornell-read-feedback label { display: flex; flex-direction: column; gap: 1px; }
+.cornell-read-feedback label b { font-size: 12.5px; font-weight: 800; color: var(--dark); }
+.cornell-read-feedback label em {
+  font-size: 11px;
+  font-style: normal;
+  color: var(--text-sub);
+}
+.cornell-read-feedback textarea {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--text);
+  resize: vertical;
+}
+.cornell-read-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.cornell-read-hint { font-size: 12px; color: var(--text-sub); }
+
+/* ===== 학습 리포트의 수업 노트 구간 ===== */
+.report-cornell-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.report-cornell-row {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card, 14px);
+  background: #fff;
+  overflow: hidden;
+}
+.report-cornell-row.open { border-color: var(--primary); }
+.report-cornell-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  border: none;
+  background: none;
+  padding: 10px 12px;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.report-cornell-head:hover { background: var(--primary-light); }
+.report-cornell-date {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+  font-variant-numeric: tabular-nums;
+}
+.report-cornell-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.report-cornell-fb {
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--primary);
+  color: #fff;
+}
+.report-cornell-caret { font-size: 12px; color: var(--text-sub); }
+/* 펼친 노트는 줄 안에 들어가므로 바깥 테두리를 지웁니다 */
+.report-cornell-row .cornell-sheet {
+  border: none;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+}
+
+/* 좁은 화면 — 코넬 2단은 세로로 눕힙니다(단서 칸이 200px면 글이 못 들어갑니다) */
+@media (max-width: 768px) {
+  .cornell-sheet-grid { grid-template-columns: 1fr; }
+  .cornell-sheet-cue {
+    border-right: none;
+    border-bottom: 2px solid var(--primary-light);
+  }
+  .cornell-mgr-bar { align-items: stretch; }
+  .cornell-mgr-date { flex-wrap: wrap; }
+}

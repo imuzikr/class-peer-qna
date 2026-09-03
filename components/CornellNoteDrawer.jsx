@@ -26,6 +26,7 @@
 // 바뀌어도 쓰던 글이 날아가지 않게.
 // =============================================================
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   subscribeMyCornellNote,
   saveCornellNote,
@@ -49,6 +50,7 @@ export default function CornellNoteDrawer({
   onOpenChange = null, // 열림 상태를 위로 — 발표 화면이 그만큼 좁아집니다
   onType = null,       // 타이핑 신호 — 전광판의 ✍️ 표시로 이어집니다
 }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [note, setNote] = useState(null);        // 서버에서 온 문서
   const [loaded, setLoaded] = useState(false);
@@ -253,6 +255,20 @@ export default function CornellNoteDrawer({
               <p className="cornell-note-hint">
                 선생님이 수업 뒤에 읽고 피드백을 줄 수 있어요.
               </p>
+
+              {/* 지난 노트는 학습 리포트에서 코넬 2단으로 펼쳐 봅니다 —
+                  서랍은 좁아 오늘 것 쓰기에만 씁니다. 옮겨 가기 전에 쓰던
+                  것을 저장합니다. */}
+              <button
+                type="button"
+                className="cornell-past-link"
+                onClick={() => {
+                  flush();
+                  router.push("/report#cornell-notes");
+                }}
+              >
+                지난 노트 다시 보기 →
+              </button>
             </div>
           )}
         </aside>
