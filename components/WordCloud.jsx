@@ -8,15 +8,20 @@
 // 한 화면에서 그것을 보여 줍니다. 둘은 같은 집계의 두 얼굴이라 읽는 문서는
 // 하나도 늘지 않습니다.
 //
-// 색은 그 낱말을 가장 많이 낸 모둠 색입니다 — 격자·크게 보기와 같은 색이라
-// 화면을 옮겨도 '저 색은 우리 모둠'이 그대로 이어집니다.
+// 색은 **위 다섯에만** 칠하고 나머지는 먹빛(큰 낱말일수록 짙게)입니다.
+// 낱말마다 모둠 색을 입혀 봤더니 일흔 개가 저마다 다른 색이라 '어느 색이
+// 많은가'를 눈이 먼저 세게 되어, 정작 '무엇이 많이 나왔나'가 묻혔습니다.
+// 어느 모둠에서 나왔는지는 격자와 크게 보기가 색으로 말해 줍니다.
 //
 // 자리 잡기는 `lib/wordCloud.js`(순수 계산)에 있고, 여기서는 판의 크기를
 // 재고 글자 폭을 재서 넘겨 주는 일만 합니다.
 // =============================================================
 import { useEffect, useMemo, useRef, useState } from "react";
-import { groupColorOf } from "@/lib/consonants";
-import { layoutCloud, dominantGroup, estimateWidth } from "@/lib/wordCloud";
+import { layoutCloud, accentCount, restGray, estimateWidth } from "@/lib/wordCloud";
+
+// 글자 굵기 — **CSS(.cloud-word)와 반드시 같아야 합니다.** 폭을 재는 canvas와
+// 실제로 그리는 글자의 굵기가 다르면 자리가 어긋나 낱말끼리 겹칩니다.
+const WEIGHT = 800;
 
 export default function WordCloud({
   words = [],
@@ -72,12 +77,25 @@ export default function WordCloud({
 
   const Word = onPick ? "button" : "span";
 
+  // 색을 칠할 낱말과, 나머지의 먹빛을 정할 크기 범위
+  const accentN = useMemo(() => accentCount(words), [words]);
+  const accent = useMemo(
+    () => new Set(words.slice(0, accentN).map((w) => w.text)),
+    [words, accentN]
+  );
+  const [small, big] = useMemo(() => {
+    if (!items.length) return [0, 1];
+    const sizes = items.map((i) => i.size);
+    return [Math.min(...sizes), Math.max(...sizes)];
+  }, [items]);
+
   return (
     <div className="cloud-wrap">
       <div className="cloud-box" ref={boxRef}>
         {items.map((w) => {
-          const g = dominantGroup(w.from);
-          const color = g == null ? "var(--text)" : groupColorOf(g);
+          const color = accent.has(w.text)
+            ? "var(--primary)"
+            : restGray(big > small ? (w.size - small) / (big - small) : 1);
           return (
             <Word
               key={w.text}
@@ -97,7 +115,7 @@ export default function WordCloud({
       <p className="cloud-hint">
         {hint ?? (
           <>
-            많이 나온 낱말일수록 크게, 색은 낸 모둠입니다.
+            많이 나온 낱말일수록 크게, 가장 많이 나온 다섯은 색으로.
             {rest > 0 && <> 여기 없는 낱말 {rest}개는 격자에서 볼 수 있어요.</>}
             {onPick && <> 낱말을 누르면 그 칸이 크게 열립니다.</>}
           </>
@@ -126,7 +144,7 @@ function makeMeasure(el, canvasRef) {
     const key = `${px}|${text}`;
     let hit = cache.get(key);
     if (hit === undefined) {
-      ctx.font = `700 ${px}px ${font}`;
+      ctx.font = `${WEIGHT} ${px}px ${font}`;
       hit = ctx.measureText(text).width;
       cache.set(key, hit);
     }

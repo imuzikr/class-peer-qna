@@ -85,7 +85,7 @@ export default function PresentationOverlay({ broadcast, noteOpen = false }) {
             <WordCloud
               words={broadcast.cloud ?? []}
               rest={broadcast.cloudRest ?? 0}
-              hint="많이 나온 낱말일수록 크게, 색은 낸 모둠입니다."
+              hint="많이 나온 낱말일수록 크게, 가장 많이 나온 다섯은 색으로."
             />
           ) : (
           <div className="consonant-grid dash-grid cast-grid">

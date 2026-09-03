@@ -17929,9 +17929,11 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
   position: absolute;
   transform: translate(-50%, -50%);
   white-space: nowrap;
-  font-weight: 700;
+  /* 굵기는 WordCloud.jsx의 WEIGHT와 반드시 같아야 합니다 — 폭을 재는
+     canvas와 실제 글자의 굵기가 다르면 낱말끼리 겹칩니다. */
+  font-weight: 800;
   line-height: 1.16;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
   padding: 0;
   border: none;
   background: none;
