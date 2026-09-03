@@ -405,30 +405,6 @@ export default function CornellNoteDrawer({
                 />
               </section>
 
-              {/* 저장은 자동입니다(2초). 그래도 단추를 둡니다 — 자리를 뜰 때
-                  '눌러서 끝냈다'는 감각이 필요하고, 기다리는 2초가 불안한 것도
-                  자연스러운 일입니다.
-                  자리는 **마지막 칸(요약) 바로 아래**입니다. 머리말에 뒀더니
-                  요약을 다 쓰고 손이 화면 꼭대기까지 올라가야 했습니다.
-                  상태 글자를 따로 두지 않고 단추가 곧 상태입니다 — 같은 말이
-                  두 군데 있으면 어느 쪽이 맞는지 헷갈립니다. */}
-              <div className="cornell-saverow">
-                <span className="cornell-saverow-hint">안 눌러도 저절로 저장돼요</span>
-                <button
-                  type="button"
-                  className={`cornell-save${dirty ? " on" : ""}`}
-                  onClick={saveNow}
-                  disabled={!dirty || status === "saving"}
-                  title="지금 저장 — 안 눌러도 2초 뒤 저절로 저장돼요"
-                >
-                  {status === "saving"
-                    ? "저장 중…"
-                    : !dirty && status === "saved"
-                      ? "저장됨"
-                      : "저장"}
-                </button>
-              </div>
-
               {/* 몰래 보는 것이 아니라 알고 쓰는 것이 되도록 — 피드백이
                   온다는 걸 알고 쓰는 글은 성격이 달라집니다. */}
               <p className="cornell-note-hint">
@@ -496,6 +472,33 @@ export default function CornellNoteDrawer({
                 노트 전체 보기 →
               </button>
             </div>
+          )}
+
+          {/* 저장은 자동입니다(2초). 그래도 단추를 둡니다 — 자리를 뜰 때
+              '눌러서 끝냈다'는 감각이 필요하고, 기다리는 2초가 불안한 것도
+              자연스러운 일입니다.
+              자리는 **서랍 맨 아래 고정 줄**입니다. 머리말에 뒀을 때는 요약을
+              다 쓰고 손이 화면 꼭대기까지 올라가야 했고, 본문 안(요약 칸 바로
+              아래)에 뒀을 때는 노트가 길어지면 스크롤 밖으로 밀렸습니다.
+              여기는 쓰는 칸 아래이면서 늘 보입니다.
+              상태 글자를 따로 두지 않고 단추가 곧 상태입니다 — 같은 말이 두
+              군데 있으면 어느 쪽이 맞는지 헷갈립니다. */}
+          {loaded && (
+            <footer className="cornell-foot">
+              <button
+                type="button"
+                className={`cornell-save${dirty ? " on" : ""}`}
+                onClick={saveNow}
+                disabled={!dirty || status === "saving"}
+                title="지금 저장 — 안 눌러도 2초 뒤 저절로 저장돼요"
+              >
+                {status === "saving"
+                  ? "저장 중…"
+                  : !dirty && status === "saved"
+                    ? "저장됨"
+                    : "저장"}
+              </button>
+            </footer>
           )}
         </aside>
       )}

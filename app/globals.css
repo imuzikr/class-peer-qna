@@ -22348,7 +22348,11 @@ body:has(.confirm-backdrop) .cornell-handle {
    서랍(z-index 3001) 위에 떠야 합니다 — 보통 모달 배경은 100이라
    그대로 두면 서랍 밑에 깔려 아무것도 안 보입니다. */
 .cornell-viewer-backdrop { z-index: 3010; }
-.modal.modal-cornell-viewer { max-width: 900px; }
+/* 폭을 조금 줄이고 2단 영역에 최소 높이를 줘 정사각형에 가깝게 만듭니다.
+   짧은 노트도 '공책 한 장'처럼 보이고, 왼쪽 단서 칸이 세로로 길어야
+   오른쪽을 가리고 떠올리는 복습이 실제로 됩니다. */
+.modal.modal-cornell-viewer { max-width: 820px; }
+.modal-cornell-viewer .cornell-sheet-grid { min-height: 46vh; }
 /* 복습하는 자리라 글씨를 서랍보다 키웁니다 */
 .modal-cornell-viewer .cornell-sheet p,
 .modal-cornell-viewer .cornell-sheet-rich { font-size: 15px; line-height: 1.75; }
@@ -22367,21 +22371,22 @@ body:has(.confirm-backdrop) .cornell-handle {
   .modal-cornell-viewer .cornell-sheet-grid { grid-template-columns: 1fr; }
 }
 
-/* ===== 저장 줄 — 마지막 칸(요약) 바로 아래 =====
-   머리말에 뒀더니 요약을 다 쓰고 손이 화면 꼭대기까지 올라가야 했습니다.
-   쓰기가 끝나는 자리에 두면 그대로 누르고 끝냅니다. */
-.cornell-saverow {
+/* ===== 저장 줄 — 서랍 맨 아래 고정 =====
+   머리말에 뒀을 때는 요약을 다 쓰고 손이 화면 꼭대기까지 올라가야 했고,
+   본문 안(요약 칸 바로 아래)에 뒀을 때는 노트가 길어지면 스크롤 밖으로
+   밀렸습니다. 여기는 쓰는 칸 아래이면서 늘 보입니다.
+   .cornell-body가 flex:1로 남은 높이를 다 먹으므로 이 줄은 안 밀립니다. */
+.cornell-foot {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 10px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--card-bg);
 }
-/* 단추가 회색일 때 '왜 못 누르지'가 아니라 '이미 됐구나'로 읽히도록 */
-.cornell-saverow-hint {
-  font-size: 11px;
-  color: var(--text-sub);
-}
-.cornell-saverow .cornell-save {
-  padding: 6px 16px;
-  font-size: 12.5px;
+.cornell-foot .cornell-save {
+  padding: 7px 20px;
+  font-size: 13px;
 }
