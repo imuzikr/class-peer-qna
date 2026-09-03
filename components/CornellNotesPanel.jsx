@@ -15,7 +15,6 @@
 // =============================================================
 import { useEffect, useMemo, useState } from "react";
 import { subscribeClassCornellNotesOn, todayDateKey } from "@/lib/store";
-import { stripHtml } from "@/lib/html";
 import CornellNoteReadModal from "./CornellNoteReadModal";
 
 // 'YYYY-MM-DD'에서 며칠 옮기기 — 문자열로만 다루면 월말에서 어긋납니다.
@@ -116,18 +115,15 @@ export default function CornellNotesPanel({ classId, roster = [], user }) {
           {onlyWritten ? "이 날 노트를 쓴 학생이 없어요." : "보여 줄 학생이 없어요."}
         </p>
       ) : (
-        <div className="notes-mgr-grid cornell-mgr-grid">
+        <div className="notes-mgr-grid">
           {students.map((s) => {
             const note = noteByUid.get(s.uid) ?? null;
-            const preview = note
-              ? stripHtml(note.notes ?? "") || String(note.cue ?? "").trim() || String(note.summary ?? "").trim()
-              : "";
             const hasFeedback = !!String(note?.feedback ?? "").trim();
             return (
               <button
                 key={s.uid}
                 type="button"
-                className={`notes-mgr-card cornell-mgr-card${note ? " has" : ""}`}
+                className={`notes-mgr-card${note ? " has" : ""}`}
                 onClick={() => setSelected(s)}
                 title={
                   note
@@ -137,13 +133,10 @@ export default function CornellNotesPanel({ classId, roster = [], user }) {
               >
                 <span className="notes-mgr-no">{s.studentId || "-"}</span>
                 <span className="notes-mgr-name">{s.name}</span>
-                {/* 미리보기 두 줄 — 열어 볼지 말지를 여기서 정합니다.
-                    안 쓴 학생은 비워 둡니다(아래 뱃지가 이미 '없음'이라
-                    같은 말을 두 번 하게 됩니다). 자리는 남겨 두어야 격자에서
-                    뱃지 줄이 카드마다 어긋나지 않습니다 — CSS의 min-height. */}
-                <span className="cornell-mgr-preview">
-                  {note ? preview || "칸이 비어 있어요" : ""}
-                </span>
+                {/* 카드 안은 누가기록 탭과 **똑같습니다**(학번·이름·뱃지).
+                    한때 필기 미리보기를 두 줄 넣었는데, 두 탭을 오가며 같은
+                    학생을 찾는 화면이라 카드 크기가 갈리면 눈이 매번 다시
+                    자리를 잡아야 했습니다. 무엇을 썼는지는 눌러서 봅니다. */}
                 <span className={`notes-mgr-badge${note ? " has" : ""}`}>
                   {note ? (hasFeedback ? "피드백 남김" : "노트 있음") : "없음"}
                 </span>
