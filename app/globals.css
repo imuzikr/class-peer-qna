@@ -22304,3 +22304,36 @@ body:has(.confirm-backdrop) .cornell-handle {
   border-right: none;
   border-bottom: 2px solid var(--primary-light);
 }
+
+/* ===== 손잡이는 열려 있을 때도 남습니다 =====
+   서랍 왼쪽 가장자리로 옮겨 붙어 그대로 '닫기'가 됩니다. 여닫는 자리가 늘
+   같은 곳이라야 손이 기억합니다(예전에는 열리는 순간 사라졌습니다).
+   서랍과 겹치지 않게 오른쪽 여백을 서랍 폭만큼 줍니다. */
+.cornell-handle.open {
+  right: var(--cornell-w);
+  background: var(--card-bg);
+  border-color: var(--border);
+  color: var(--text-sub);
+}
+.cornell-handle.open:hover {
+  color: var(--primary-dark);
+  border-color: var(--primary);
+}
+/* 여는 쪽 ‹ / 닫는 쪽 › — 손잡이가 세로쓰기라 화살표만 가로로 되돌립니다
+   (배지와 같은 이유. 안 그러면 위아래를 가리켜 뜻이 뒤집힙니다) */
+.cornell-handle-caret {
+  writing-mode: horizontal-tb;
+  font-size: 13px;
+  line-height: 1;
+  opacity: 0.55;
+  flex-shrink: 0;
+}
+
+/* 좁은 화면 — 서랍이 아래에서 올라오는 시트라 손잡이는 그 **위**에 얹습니다
+   (오른쪽으로 비키면 시트가 화면 폭을 다 쓰므로 갈 자리가 없습니다) */
+@media (max-width: 760px) {
+  .cornell-handle.open {
+    right: 0;
+    bottom: calc(60vh + 10px);
+  }
+}

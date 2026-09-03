@@ -251,33 +251,48 @@ export default function CornellNoteDrawer({
 
   return (
     <>
-      {/* 손잡이 — 접혀 있을 때만. 어느 화면에서나 같은 자리에 있어야
-          '언제나 꺼낼 수 있다'가 몸에 붙습니다. */}
-      {!open && (
-        <button
-          type="button"
-          className={`cornell-handle${unreadCount > 0 ? " has-feedback" : ""}`}
-          onClick={toggle}
-          title={
-            unreadCount > 0
+      {/* 손잡이 — **열려 있을 때도 남깁니다.** 열면 서랍 왼쪽 가장자리로
+          옮겨 붙어 그대로 '닫기'가 됩니다. 여닫는 자리가 늘 같은 곳이라야
+          손이 기억합니다. 예전에는 열리는 순간 사라져, 닫는 길이 머리말의
+          ×와 Esc뿐이었습니다.
+          바깥을 눌러 닫지는 않습니다 — 수업 중에 슬라이드를 한 번 볼 때마다
+          닫혀 쓰던 흐름이 끊깁니다(글은 자동 저장이라 날아가진 않지만). */}
+      <button
+        type="button"
+        className={`cornell-handle${open ? " open" : ""}${
+          !open && unreadCount > 0 ? " has-feedback" : ""
+        }`}
+        onClick={toggle}
+        title={
+          open
+            ? "수업 노트 닫기 (Esc)"
+            : unreadCount > 0
               ? `선생님이 한 마디를 남겼어요 (${unreadCount}개)`
               : "수업 노트 — 코넬 노트로 필기해요"
-          }
-          aria-label={
-            unreadCount > 0
+        }
+        aria-label={
+          open
+            ? "수업 노트 닫기"
+            : unreadCount > 0
               ? `수업 노트 열기 — 안 읽은 선생님 한 마디 ${unreadCount}개`
               : "수업 노트 열기"
-          }
-        >
-          <span className="cornell-handle-label">수업 노트</span>
-          {/* 숫자가 있으면 숫자를, 없으면 '오늘 쓴 게 있다'는 점만 */}
-          {unreadCount > 0 ? (
-            <span className="cornell-handle-badge">{unreadCount}</span>
-          ) : filled > 0 ? (
-            <span className="cornell-handle-dot" aria-hidden="true" />
-          ) : null}
-        </button>
-      )}
+        }
+        aria-expanded={open}
+      >
+        {/* 여는 쪽인지 닫는 쪽인지 — 화살표 방향으로만 알립니다.
+            글자를 '닫기'로 바꾸면 같은 자리의 같은 것으로 안 보입니다. */}
+        <span className="cornell-handle-caret" aria-hidden="true">
+          {open ? "›" : "‹"}
+        </span>
+        <span className="cornell-handle-label">수업 노트</span>
+        {/* 숫자가 있으면 숫자를, 없으면 '오늘 쓴 게 있다'는 점만.
+            열려 있으면 둘 다 뺍니다 — 안이 이미 다 보입니다. */}
+        {open ? null : unreadCount > 0 ? (
+          <span className="cornell-handle-badge">{unreadCount}</span>
+        ) : filled > 0 ? (
+          <span className="cornell-handle-dot" aria-hidden="true" />
+        ) : null}
+      </button>
 
       {open && (
         <aside className="cornell-drawer" aria-label="수업 노트">
