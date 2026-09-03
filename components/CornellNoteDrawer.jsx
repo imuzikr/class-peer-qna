@@ -26,7 +26,6 @@
 // 바뀌어도 쓰던 글이 날아가지 않게.
 // =============================================================
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   subscribeMyCornellNote,
   saveCornellNote,
@@ -39,6 +38,7 @@ import {
 } from "@/lib/store";
 import RichTextEditor from "./RichTextEditor";
 import CornellNoteSheet from "./CornellNoteSheet";
+import CornellNoteViewerModal from "./CornellNoteViewerModal";
 import { richHtml, stripHtml } from "@/lib/html";
 
 const SAVE_DELAY = 2000; // ms — 이만큼 입력이 없으면 저장
@@ -55,8 +55,8 @@ export default function CornellNoteDrawer({
   onOpenChange = null, // 열림 상태를 위로 — 발표 화면이 그만큼 좁아집니다
   onType = null,       // 타이핑 신호 — 전광판의 ✍️ 표시로 이어집니다
 }) {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [viewerOpen, setViewerOpen] = useState(false); // 크게 보기 창
   const [note, setNote] = useState(null);        // 서버에서 온 문서
   const [loaded, setLoaded] = useState(false);
   const [cue, setCue] = useState("");
@@ -203,9 +203,12 @@ export default function CornellNoteDrawer({
     };
   }, [flush]);
 
-  // Esc는 서랍만 닫습니다 — 발표 오버레이는 학생이 닫을 수 없어야 합니다
+  // Esc는 서랍만 닫습니다 — 발표 오버레이는 학생이 닫을 수 없어야 합니다.
+  // 크게 보기 창이 떠 있으면 그쪽이 먼저 Esc를 씁니다(같은 window에 걸린
+  // 리스너끼리는 stopPropagation이 안 통해, 여기서 아예 비켜 줍니다 —
+  // 안 그러면 Esc 한 번에 창과 서랍이 함께 닫힙니다).
   useEffect(() => {
-    if (!open) return;
+    if (!open || viewerOpen) return;
     function onKey(e) {
       if (e.key === "Escape") { e.stopPropagation(); toggle(); }
     }
@@ -471,15 +474,16 @@ export default function CornellNoteDrawer({
                 </section>
               )}
 
-              {/* 14일보다 옛것과, 코넬 2단을 넓게 펴서 보는 것은 리포트에서 —
-                  서랍은 좁아 오늘 것 쓰기가 본업입니다. 옮겨 가기 전에 쓰던
-                  것을 저장합니다. */}
+              {/* 14일보다 옛것과, 코넬 2단을 넓게 펴 보는 것은 여기서.
+                  예전에는 리포트로 화면을 옮겼는데, 수업 중에는 부담이 큽니다
+                  (방송이 떠 있고 쓰던 노트도 두고 가야 합니다). 그 자리에서
+                  한가운데에 크게 폅니다. 열기 전에 쓰던 것을 저장합니다. */}
               <button
                 type="button"
                 className="cornell-past-link"
                 onClick={() => {
                   flush();
-                  router.push("/report#cornell-notes");
+                  setViewerOpen(true);
                 }}
               >
                 노트 전체 보기 →
@@ -487,6 +491,18 @@ export default function CornellNoteDrawer({
             </div>
           )}
         </aside>
+      )}
+
+      {/* 크게 보기 — 서랍(z-index 3001) **위**에 뜨도록 배경에 따로 z를
+          줍니다(보통 모달은 100이라 서랍 밑에 깔립니다). 서랍 안이 아니라
+          형제로 그려, 서랍이 다시 그려져도 창이 흔들리지 않습니다. */}
+      {viewerOpen && (
+        <CornellNoteViewerModal
+          classId={classId}
+          user={user}
+          initialNotes={merged}
+          onClose={() => setViewerOpen(false)}
+        />
       )}
     </>
   );

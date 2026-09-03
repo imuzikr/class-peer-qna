@@ -22062,6 +22062,10 @@ body:has(.confirm-backdrop) .cornell-handle {
   align-items: center;
   justify-content: flex-end;
   gap: 10px;
+  /* 쓰는 칸 아래선과 단추가 붙어 보여 한 칸 띄웁니다 — 단추가 칸의
+     일부처럼 보이면 '이걸 눌러야 저장된다'가 흐려집니다. */
+  margin-top: 6px;
+  padding-bottom: 2px;
 }
 .cornell-read-hint { font-size: 12px; color: var(--text-sub); }
 
@@ -22336,4 +22340,27 @@ body:has(.confirm-backdrop) .cornell-handle {
     right: 0;
     bottom: calc(60vh + 10px);
   }
+}
+
+/* ===== 내 수업 노트 크게 보기 (학생) =====
+   서랍(z-index 3001) 위에 떠야 합니다 — 보통 모달 배경은 100이라
+   그대로 두면 서랍 밑에 깔려 아무것도 안 보입니다. */
+.cornell-viewer-backdrop { z-index: 3010; }
+.modal.modal-cornell-viewer { max-width: 900px; }
+/* 복습하는 자리라 글씨를 서랍보다 키웁니다 */
+.modal-cornell-viewer .cornell-sheet p,
+.modal-cornell-viewer .cornell-sheet-rich { font-size: 15px; line-height: 1.75; }
+.modal-cornell-viewer .cornell-sheet-cue,
+.modal-cornell-viewer .cornell-sheet-notes,
+.modal-cornell-viewer .cornell-sheet-summary { padding: 16px 18px; }
+.modal-cornell-viewer .cornell-sheet-grid { grid-template-columns: 240px 1fr; }
+.cornell-viewer-hint {
+  margin-top: 10px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-sub);
+}
+
+@media (max-width: 768px) {
+  .modal-cornell-viewer .cornell-sheet-grid { grid-template-columns: 1fr; }
 }
