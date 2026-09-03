@@ -95,7 +95,9 @@ export default function CornellNoteDrawer({
     // 닫을 때는 쓰던 것을 곧바로 저장합니다.
     // (setOpen의 갱신 함수 안에서 부르지 않습니다 — 개발 모드에서 그 함수가
     //  두 번 불려 저장도 두 번 나갑니다)
-    if (!next) flush();
+    // 닫을 때는 곧바로 저장합니다. flush가 아니라 runSave인 이유: 서랍은
+    // 닫혀도 그대로 붙어 있어(open만 false) 단추 상태가 이어집니다.
+    if (!next) runSave();
   }
 
   useEffect(() => { onOpenChange?.(open); }, [open, onOpenChange]);
@@ -152,44 +154,54 @@ export default function CornellNoteDrawer({
     });
   }, [open, merged, seenNow, markSeen]);
 
-  const flush = useCallback(() => {
-    if (!dirtyRef.current || !classId || !user?.uid) return;
-    clearTimeout(timerRef.current);
-    saveCornellNote(classId, user, date, { ...latestRef.current, lessonTitle }).catch(() => {});
-  }, [classId, user, date, lessonTitle]);
+  // 저장 한 곳 — 자동(2초 멎으면)도, 손으로 누르는 것도 여기로 옵니다.
+  // -------------------------------------------------------------
+  // `status`는 **서버에 실제로 쓰는 동안만** 'saving'입니다. 예전에는 글자를
+  // 치는 순간 'saving'으로 바꿔 놓고 저장은 2초 뒤에 했는데, 그 2초 내내
+  // 단추가 잠겨 정작 누르고 싶을 때 못 눌렀습니다 — 단추를 둔 뜻이 사라집니다.
+  //
+  // seq(편집 번호)를 세는 이유: 쓰는 사이(await)에 또 고칠 수 있습니다.
+  // 그때 '저장됨'으로 바꿔 버리면 아직 안 넘어간 글자가 저장된 것처럼 보입니다.
+  // 저장을 시작할 때의 번호와 끝났을 때의 번호가 같을 때만 '저장됨'입니다.
+  const editSeqRef = useRef(0);
+  const savedSeqRef = useRef(0);
 
-  // 자동 저장 — 입력이 멎으면
-  useEffect(() => {
-    if (!dirtyRef.current || !classId || !user?.uid) return;
-    clearTimeout(timerRef.current);
-    setStatus("saving");
-    timerRef.current = setTimeout(async () => {
-      try {
-        await saveCornellNote(classId, user, date, { cue, notes, summary, lessonTitle });
-        setStatus("saved");
-        setDirty(false);
-      } catch {
-        setStatus("idle");
-      }
-    }, SAVE_DELAY);
-    return () => clearTimeout(timerRef.current);
-  }, [cue, notes, summary, classId, user, date, lessonTitle]);
-
-  // 손으로 누르는 저장 — 자동 저장은 그대로 두고 하나 더 둡니다.
-  // 2초를 기다리는 동안이 불안한 것은 자연스러운 일이고, 수업이 끝나 자리를
-  // 뜰 때 '눌러서 끝냈다'는 감각이 필요합니다.
-  const saveNow = useCallback(async () => {
+  const runSave = useCallback(async () => {
     if (!classId || !user?.uid) return;
+    if (editSeqRef.current === savedSeqRef.current) return; // 바뀐 게 없음
     clearTimeout(timerRef.current);
+    const seq = editSeqRef.current;
     setStatus("saving");
     try {
       await saveCornellNote(classId, user, date, { ...latestRef.current, lessonTitle });
-      setStatus("saved");
-      setDirty(false);
+      savedSeqRef.current = seq;
+      if (editSeqRef.current === seq) {
+        setDirty(false);
+        setStatus("saved");
+      } else {
+        setStatus("idle"); // 저장하는 사이에 또 고쳤음 — 곧 다시 저장됩니다
+      }
     } catch {
       setStatus("idle");
     }
   }, [classId, user, date, lessonTitle]);
+
+  // 화면을 벗어날 때 쓰는 마지막 저장 — 언마운트 중일 수 있어 상태는 안 건드립니다
+  const flush = useCallback(() => {
+    if (editSeqRef.current === savedSeqRef.current || !classId || !user?.uid) return;
+    clearTimeout(timerRef.current);
+    savedSeqRef.current = editSeqRef.current;
+    saveCornellNote(classId, user, date, { ...latestRef.current, lessonTitle }).catch(() => {});
+  }, [classId, user, date, lessonTitle]);
+
+  // 자동 저장 — 입력이 멎으면. 여기서는 상태를 미리 바꾸지 않습니다
+  // (그 사이 단추는 '저장'인 채로 살아 있어야 합니다).
+  useEffect(() => {
+    if (editSeqRef.current === savedSeqRef.current) return;
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(runSave, SAVE_DELAY);
+    return () => clearTimeout(timerRef.current);
+  }, [cue, notes, summary, runSave]);
 
   // 화면을 벗어나거나 탭을 닫을 때 마지막으로 한 번 더
   useEffect(() => {
@@ -219,6 +231,7 @@ export default function CornellNoteDrawer({
   function edit(setter) {
     return (v) => {
       dirtyRef.current = true;
+      editSeqRef.current += 1;
       setDirty(true);
       onType?.();   // '필기 중' — 교사 전광판의 ✍️
       setter(v);
@@ -488,7 +501,7 @@ export default function CornellNoteDrawer({
               <button
                 type="button"
                 className={`cornell-save${dirty ? " on" : ""}`}
-                onClick={saveNow}
+                onClick={runSave}
                 disabled={!dirty || status === "saving"}
                 title="지금 저장 — 안 눌러도 2초 뒤 저절로 저장돼요"
               >
