@@ -21715,6 +21715,9 @@ body:has(.confirm-backdrop) .cornell-handle {
   color: var(--text-sub);
 }
 .cornell-close {
+  /* 저장 단추가 머리말을 떠나 요약 칸 아래로 내려가면서, 오른쪽으로 미는
+     일을 여기가 맡습니다(예전에는 그 단추의 margin-left:auto가 했습니다) */
+  margin-left: auto;
   flex-shrink: 0;
   width: 26px;
   height: 26px;
@@ -22231,7 +22234,6 @@ body:has(.confirm-backdrop) .cornell-handle {
    자동 저장은 그대로 두고 하나 더 둡니다. 단추가 곧 상태 표시라
    (저장 / 저장 중… / 저장됨) 같은 말을 두 군데 두지 않습니다. */
 .cornell-save {
-  margin-left: auto;
   flex-shrink: 0;
   border: 1px solid var(--border);
   border-radius: 999px;
@@ -22363,4 +22365,23 @@ body:has(.confirm-backdrop) .cornell-handle {
 
 @media (max-width: 768px) {
   .modal-cornell-viewer .cornell-sheet-grid { grid-template-columns: 1fr; }
+}
+
+/* ===== 저장 줄 — 마지막 칸(요약) 바로 아래 =====
+   머리말에 뒀더니 요약을 다 쓰고 손이 화면 꼭대기까지 올라가야 했습니다.
+   쓰기가 끝나는 자리에 두면 그대로 누르고 끝냅니다. */
+.cornell-saverow {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+/* 단추가 회색일 때 '왜 못 누르지'가 아니라 '이미 됐구나'로 읽히도록 */
+.cornell-saverow-hint {
+  font-size: 11px;
+  color: var(--text-sub);
+}
+.cornell-saverow .cornell-save {
+  padding: 6px 16px;
+  font-size: 12.5px;
 }
