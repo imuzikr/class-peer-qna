@@ -116,17 +116,10 @@ export default function CornellNoteViewerModal({
           </p>
         ) : (
           <>
+            {/* 고르는 칸 · 넘기는 단추 · 몇 번째 — ‹ ›를 **붙여 둡니다.**
+                긴 칸 양끝에 떼어 놓으면 한 장 넘길 때마다 손이 화면을 가로질러
+                오갑니다. 칸도 늘이지 않아 아래 노트와 폭이 맞습니다. */}
             <div className="cornell-read-bar">
-              <button
-                type="button"
-                className="cornell-read-step"
-                onClick={() => go(1)}
-                disabled={index >= notes.length - 1}
-                title="이전 노트 (←)"
-                aria-label="이전 노트"
-              >
-                ‹
-              </button>
               <select
                 className="cornell-read-date"
                 value={id ?? ""}
@@ -141,24 +134,32 @@ export default function CornellNoteViewerModal({
                   </option>
                 ))}
               </select>
-              <button
-                type="button"
-                className="cornell-read-step"
-                onClick={() => go(-1)}
-                disabled={index <= 0}
-                title="다음 노트 (→)"
-                aria-label="다음 노트"
-              >
-                ›
-              </button>
+              <div className="cornell-read-nav">
+                <button
+                  type="button"
+                  className="cornell-read-step"
+                  onClick={() => go(1)}
+                  disabled={index >= notes.length - 1}
+                  title="이전 노트 (←)"
+                  aria-label="이전 노트"
+                >
+                  ‹
+                </button>
+                <button
+                  type="button"
+                  className="cornell-read-step"
+                  onClick={() => go(-1)}
+                  disabled={index <= 0}
+                  title="다음 노트 (→)"
+                  aria-label="다음 노트"
+                >
+                  ›
+                </button>
+              </div>
               <span className="cornell-read-count">
                 {index + 1} / {notes.length}
               </span>
             </div>
-
-            {note?.lessonTitle && (
-              <p className="cornell-read-lesson">{note.lessonTitle}</p>
-            )}
 
             <CornellNoteSheet note={note} />
 

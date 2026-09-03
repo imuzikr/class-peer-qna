@@ -16,6 +16,7 @@ import { richHtml, stripHtml } from "@/lib/html";
 export default function CornellNoteSheet({ note, showFeedback = true }) {
   if (!note) return null;
 
+  const topic = String(note.lessonTitle ?? "").trim();
   const cue = String(note.cue ?? "").trim();
   const notesHtml = richHtml(note.notes ?? "");
   const hasNotes = stripHtml(notesHtml).length > 0;
@@ -24,6 +25,14 @@ export default function CornellNoteSheet({ note, showFeedback = true }) {
 
   return (
     <article className="cornell-sheet">
+      {/* 제목 줄 — 코넬 노트는 원래 맨 위에 '무엇에 대한 필기인가'를 적습니다.
+          이게 없으면 단서·필기부터 시작해 무슨 수업이었는지 알 수 없습니다.
+          날짜를 오른쪽에 함께 둡니다(넘겨 볼 때 지금 어디인지 잃지 않게). */}
+      <header className="cornell-sheet-topic">
+        <h3 className={topic ? "" : "cornell-sheet-blank"}>{topic || "제목 없음"}</h3>
+        <time dateTime={note.date}>{note.date}</time>
+      </header>
+
       <div className="cornell-sheet-grid">
         <section className="cornell-sheet-cue">
           <h4>단서 · 핵심 질문</h4>

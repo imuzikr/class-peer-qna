@@ -118,17 +118,9 @@ export default function CornellNoteReadModal({
           <p className="empty-note">이 학생은 아직 수업 노트를 쓰지 않았어요.</p>
         ) : (
           <>
-            {/* 날짜 넘기기 — 한 학생의 흐름을 따라가는 자리입니다 */}
+            {/* 날짜 넘기기 — 한 학생의 흐름을 따라가는 자리입니다.
+                ‹ ›는 붙여 둡니다(학생 화면과 같은 모양) */}
             <div className="cornell-read-bar">
-              <button
-                type="button"
-                className="cornell-read-step"
-                onClick={() => go(1)}
-                disabled={index >= notes.length - 1}
-                title="이전 날짜"
-              >
-                ‹
-              </button>
               <select
                 className="cornell-read-date"
                 value={date ?? ""}
@@ -143,21 +135,30 @@ export default function CornellNoteReadModal({
                   </option>
                 ))}
               </select>
-              <button
-                type="button"
-                className="cornell-read-step"
-                onClick={() => go(-1)}
-                disabled={index <= 0}
-                title="다음 날짜"
-              >
-                ›
-              </button>
+              <div className="cornell-read-nav">
+                <button
+                  type="button"
+                  className="cornell-read-step"
+                  onClick={() => go(1)}
+                  disabled={index >= notes.length - 1}
+                  title="이전 날짜"
+                >
+                  ‹
+                </button>
+                <button
+                  type="button"
+                  className="cornell-read-step"
+                  onClick={() => go(-1)}
+                  disabled={index <= 0}
+                  title="다음 날짜"
+                >
+                  ›
+                </button>
+              </div>
               <span className="cornell-read-count">
                 {counted.index} / {counted.total}
               </span>
             </div>
-
-            {note?.lessonTitle && <p className="cornell-read-lesson">{note.lessonTitle}</p>}
 
             <CornellNoteSheet note={note} showFeedback={false} />
 

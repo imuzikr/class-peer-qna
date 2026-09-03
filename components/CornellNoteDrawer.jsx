@@ -59,6 +59,9 @@ export default function CornellNoteDrawer({
   const [viewerOpen, setViewerOpen] = useState(false); // 크게 보기 창
   const [note, setNote] = useState(null);        // 서버에서 온 문서
   const [loaded, setLoaded] = useState(false);
+  // 제목(주제) — 코넬 노트 맨 위 칸. 문서에는 lessonTitle로 저장합니다
+  // (새 필드를 늘리지 않으려고요 — 방송 제목을 받아 두던 그 자리입니다).
+  const [topic, setTopic] = useState("");
   const [cue, setCue] = useState("");
   const [notes, setNotes] = useState("");        // HTML
   const [summary, setSummary] = useState("");
@@ -79,8 +82,8 @@ export default function CornellNoteDrawer({
   const timerRef = useRef(null);
   // 저장 함수가 항상 '지금 값'을 보도록 — 언마운트·창 닫기 때 쓰는 마지막
   // 저장은 오래된 클로저를 잡기 쉬워서, 값을 ref에 함께 들고 있습니다.
-  const latestRef = useRef({ cue: "", notes: "", summary: "" });
-  latestRef.current = { cue, notes, summary };
+  const latestRef = useRef({ cue: "", notes: "", summary: "", lessonTitle: "" });
+  latestRef.current = { cue, notes, summary, lessonTitle: topic };
 
   // 접힘 상태는 기억해 둡니다 — 수업마다 다시 여는 수고를 덜려고요
   useEffect(() => {
@@ -107,6 +110,7 @@ export default function CornellNoteDrawer({
     return subscribeMyCornellNote(classId, user.uid, date, (doc) => {
       setNote(doc);
       if (!dirtyRef.current) {
+        setTopic(doc?.lessonTitle ?? "");
         setCue(doc?.cue ?? "");
         setNotes(doc?.notes ?? "");
         setSummary(doc?.summary ?? "");
@@ -125,6 +129,16 @@ export default function CornellNoteDrawer({
       .catch(() => {});
     return () => { alive = false; };
   }, [classId, user?.uid, date]);
+
+  // 선생님이 방송에 적어 둔 수업 제목은 **기본값**으로만 씁니다 — 아직
+  // 아무것도 안 적었을 때만 채워 넣고, 학생이 한 번이라도 손대면(dirtyRef)
+  // 다시 건드리지 않습니다. 제목의 주인은 학생입니다.
+  useEffect(() => {
+    if (dirtyRef.current || !loaded) return;
+    if (topic || !lessonTitle) return;
+    if (note?.lessonTitle) return;
+    setTopic(lessonTitle);
+  }, [lessonTitle, topic, loaded, note?.lessonTitle]);
 
   // 읽음 도장 — 노트 문서에 적습니다. 기기를 바꿔도 배지가 되살아나지 않게.
   const markSeen = useCallback(
@@ -173,7 +187,7 @@ export default function CornellNoteDrawer({
     const seq = editSeqRef.current;
     setStatus("saving");
     try {
-      await saveCornellNote(classId, user, date, { ...latestRef.current, lessonTitle });
+      await saveCornellNote(classId, user, date, latestRef.current);
       savedSeqRef.current = seq;
       if (editSeqRef.current === seq) {
         setDirty(false);
@@ -191,7 +205,7 @@ export default function CornellNoteDrawer({
     if (editSeqRef.current === savedSeqRef.current || !classId || !user?.uid) return;
     clearTimeout(timerRef.current);
     savedSeqRef.current = editSeqRef.current;
-    saveCornellNote(classId, user, date, { ...latestRef.current, lessonTitle }).catch(() => {});
+    saveCornellNote(classId, user, date, latestRef.current).catch(() => {});
   }, [classId, user, date, lessonTitle]);
 
   // 자동 저장 — 입력이 멎으면. 여기서는 상태를 미리 바꾸지 않습니다
@@ -201,7 +215,7 @@ export default function CornellNoteDrawer({
     clearTimeout(timerRef.current);
     timerRef.current = setTimeout(runSave, SAVE_DELAY);
     return () => clearTimeout(timerRef.current);
-  }, [cue, notes, summary, runSave]);
+  }, [topic, cue, notes, summary, runSave]);
 
   // 화면을 벗어나거나 탭을 닫을 때 마지막으로 한 번 더
   useEffect(() => {
@@ -326,8 +340,6 @@ export default function CornellNoteDrawer({
             </button>
           </header>
 
-          {lessonTitle && <p className="cornell-lesson">{lessonTitle}</p>}
-
           {!loaded ? (
             <p className="cornell-empty">불러오는 중이에요…</p>
           ) : (
@@ -374,6 +386,24 @@ export default function CornellNoteDrawer({
                   <p>{feedback}</p>
                 </div>
               )}
+
+              {/* 제목 — 코넬 노트의 맨 윗줄. 이게 없으면 나중에 펴 봤을 때
+                  단서·필기만 있어 무슨 수업이었는지 알 수 없습니다.
+                  선생님이 방송에 적어 둔 수업 제목이 있으면 미리 채워 두되,
+                  고치는 것은 학생의 몫입니다. */}
+              <section className="cornell-zone cornell-zone--topic">
+                <label htmlFor="cornell-topic">
+                  <b>제목</b>
+                  <em>오늘 수업은 무엇에 대한 것이었나요</em>
+                </label>
+                <input
+                  id="cornell-topic"
+                  type="text"
+                  value={topic}
+                  onChange={(e) => edit(setTopic)(e.target.value.slice(0, 200))}
+                  placeholder="예) 디지털 기술과 사회 변화"
+                />
+              </section>
 
               <section className="cornell-zone cornell-zone--cue">
                 <label htmlFor="cornell-cue">
