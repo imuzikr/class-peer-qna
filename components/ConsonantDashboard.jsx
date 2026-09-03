@@ -28,6 +28,8 @@ import {
   groupBarColorOf,
   heatOpacity,
 } from "@/lib/consonants";
+import { cloudWords, CLOUD_TOP_N } from "@/lib/wordCloud";
+import WordCloud from "./WordCloud";
 
 // [학생 화면에 중계]
 // 학생은 보안 규칙상 '자기 모둠 낱말'만 읽을 수 있어서, 스스로는 반 전체
@@ -46,6 +48,8 @@ export default function ConsonantDashboard({
   const [groups, setGroups] = useState([]);
   const [wordsByGroup, setWordsByGroup] = useState({});
   const [zoomSlot, setZoomSlot] = useState(null); // 크게 보기 모달
+  // 같은 집계의 두 얼굴 — 격자(첫 글자로 나뉜 자리) / 낱말 구름(낱말만)
+  const [view, setView] = useState("grid");
 
   useEffect(() => subscribeBookGroups(activity.id, setGroups), [activity.id]);
 
@@ -106,6 +110,10 @@ export default function ConsonantDashboard({
     });
     return out;
   }, [groups, wordsByGroup]);
+
+  // 낱말 구름에 세울 상위 70개 — 격자와 같은 순서 기준으로 고릅니다.
+  // 이미 만들어 둔 merged를 다시 펴는 것뿐이라 읽는 문서가 늘지 않습니다.
+  const cloud = useMemo(() => cloudWords(merged, CLOUD_TOP_N), [merged]);
 
   // 모둠별 진행률 (몇 칸을 채웠는지)
   const progress = useMemo(
@@ -193,6 +201,20 @@ export default function ConsonantDashboard({
       activityTitle: activity.title ?? "",
       topic: activity.topic ?? "",
       cells,
+      // 낱말 구름은 **고른 결과만** 실어 보냅니다. 학생 쪽에서 다시 고르게
+      // 하면 정렬 기준(먼저 채운 순)에 쓰는 시각이 방송 문서에 없어서 교사
+      // 화면과 다른 70개가 뽑힙니다 — 같은 화면이 두 얼굴이 됩니다.
+      view,
+      cloud:
+        view === "cloud"
+          ? cloud.words.map((w) => ({
+              text: w.text,
+              count: w.count,
+              from: w.from,
+              slot: w.slot,
+            }))
+          : [],
+      cloudRest: view === "cloud" ? cloud.rest : 0,
       groupNames: groups.map((g) => ({
         index: g.groupIndex,
         name: g.groupName || `${g.groupIndex}모둠`,
@@ -202,7 +224,7 @@ export default function ConsonantDashboard({
       totalWords,
       groupCount: groups.length,
     };
-  }, [merged, groups, zoomSlot, totalFilled, totalWords, activity.title, activity.topic]);
+  }, [merged, groups, zoomSlot, totalFilled, totalWords, view, cloud, activity.title, activity.topic]);
 
   // 방송 중에는 화면이 바뀔 때마다 다시 보냅니다. 학생이 낱말을 넣을 때마다
   // 쓰기가 몰리지 않도록 0.8초 쉬었다가 한 번만 보냅니다.
@@ -250,6 +272,28 @@ export default function ConsonantDashboard({
         )}
         {/* 제목 바로 뒤 — 수업 중에 관찰한 것을 적으러 화면을 옮기지 않게 */}
         {classTools}
+        {/* 격자 / 낱말 구름 — 같은 집계를 보는 방법만 바뀝니다(읽기는 그대로).
+            중계 중이면 학생 화면도 함께 바뀝니다. */}
+        <div className="dash-view-tabs" role="tablist" aria-label="보는 방법">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={view === "grid"}
+            className={`dash-view-tab${view === "grid" ? " on" : ""}`}
+            onClick={() => setView("grid")}
+          >
+            격자
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={view === "cloud"}
+            className={`dash-view-tab${view === "cloud" ? " on" : ""}`}
+            onClick={() => setView("cloud")}
+          >
+            낱말 구름
+          </button>
+        </div>
         <div className="dash-head-actions">
           {canCast && (
             <button
@@ -284,6 +328,17 @@ export default function ConsonantDashboard({
         </span>
       </div>
 
+      {view === "cloud" ? (
+        // 구름은 판을 넓게 쓸수록 낱말이 커집니다 — 진행 패널은 접어 두고
+        // 가로를 다 씁니다(진행이 궁금하면 격자로 돌아갑니다).
+        <div className="dash-body dash-body--cloud">
+          <WordCloud
+            words={cloud.words}
+            rest={cloud.rest}
+            onPick={(w) => { if (w.slot != null) setZoomSlot(w.slot); }}
+          />
+        </div>
+      ) : (
       <div className="dash-body">
         <div className="consonant-grid dash-grid">
           {GRID_SLOTS.map((slot, pos) => {
@@ -365,6 +420,7 @@ export default function ConsonantDashboard({
           )}
         </aside>
       </div>
+      )}
 
       {/* 자음 한 칸 크게 보기 — 칠판에 띄워 함께 짚어 볼 때 */}
       {zoomSlot !== null && (

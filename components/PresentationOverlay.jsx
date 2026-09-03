@@ -10,6 +10,7 @@ import { sanitizeHtml } from "@/lib/html";
 import { CONSONANT_LABELS, GRID_SLOTS, CELL_COUNT, cellKey, groupColorOf } from "@/lib/consonants";
 import { normalizeMindmap } from "@/lib/mindmap";
 import MindmapCanvas from "./MindmapCanvas";
+import WordCloud from "./WordCloud";
 
 // 이 화면이 그릴 줄 아는 방송 종류. 새 종류를 추가하면 여기에도 넣어야 합니다.
 const KNOWN_MODES = ["consonant", "entry", "wall", "mindmap", "lesson", "carousel", "single"];
@@ -77,6 +78,16 @@ export default function PresentationOverlay({ broadcast, noteOpen = false }) {
         </div>
 
         <div className="broadcast-body">
+          {/* 낱말 구름 — 교사 화면과 같은 것을 그립니다. 고르는 일은 교사
+              쪽에서 이미 끝나 방송 문서에 담겨 오므로(broadcast.cloud),
+              여기서는 자리만 잡습니다. 학생은 누를 수 없습니다. */}
+          {broadcast.view === "cloud" ? (
+            <WordCloud
+              words={broadcast.cloud ?? []}
+              rest={broadcast.cloudRest ?? 0}
+              hint="많이 나온 낱말일수록 크게, 색은 낸 모둠입니다."
+            />
+          ) : (
           <div className="consonant-grid dash-grid cast-grid">
             {GRID_SLOTS.map((slot, pos) => {
               if (slot === null) {
@@ -104,6 +115,7 @@ export default function PresentationOverlay({ broadcast, noteOpen = false }) {
               );
             })}
           </div>
+          )}
         </div>
 
         {/* 교사가 칸을 크게 열면 학생 화면에도 같은 모달이 뜹니다.
