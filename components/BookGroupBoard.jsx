@@ -332,8 +332,14 @@ export default function BookGroupBoard({
                   {members.length === 0 ? (
                     <span className="book-group-empty">아직 모둠원이 없어요</span>
                   ) : (
-                    <span className="book-rail-members">
-                      {members.map((m) => m.name).join(" · ")}
+                    // 이름은 칩으로 한 줄에 셋. 가운뎃점으로 이어 붙이면 이름이
+                    // 어디서 끊기는지 눈으로 세어야 해서, 여섯 명쯤 되면 읽는
+                    // 데 시간이 걸립니다. 누르는 자리는 아니고(모둠 고르기는
+                    // 카드 전체가 맡습니다) 읽기 위한 칩입니다.
+                    <span className="book-rail-chips">
+                      {members.map((m) => (
+                        <span key={m.uid} className="book-rail-chip">{m.name}</span>
+                      ))}
                     </span>
                   )}
                 </button>
