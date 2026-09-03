@@ -1235,7 +1235,16 @@ function AdminDashboardPageInner() {
                 </div>
               </section>
 
-              <ActivityHeatmap questions={selectedQuestions} answerEvents={selectedAnswers} overviewValues={overviewValues} />
+              <ActivityHeatmap
+                questions={selectedQuestions}
+                answerEvents={selectedAnswers}
+                /* 이 화면은 고른 학생의 KWLS까지 이미 받아 둡니다.
+                   수업 노트는 여기서 안 받으므로 넘기지 않습니다 —
+                   그만큼 잔디가 옅게 나오는데, 없는 것을 있는 척하는
+                   것보다 낫습니다(학생 리포트에는 함께 들어갑니다). */
+                kwl={selectedKwl}
+                overviewValues={overviewValues}
+              />
 
               <section className="admin-charts">
                 <div className="admin-chart-panel">

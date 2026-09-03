@@ -480,7 +480,15 @@ function StudentReportPageInner() {
           </div>
         </section>
 
-        <ActivityHeatmap questions={myQuestions} answerEvents={myAnswerEvents} overviewValues={overviewValues} />
+        <ActivityHeatmap
+          questions={myQuestions}
+          answerEvents={myAnswerEvents}
+          /* 잔디는 질문·답변만이 아니라 그날 '몇 갈래로 참여했나'를 봅니다.
+             넷 다 이 화면이 이미 받아 둔 것이라 새로 읽는 문서가 없습니다. */
+          kwl={myKwl}
+          notes={myNotes}
+          overviewValues={overviewValues}
+        />
 
         {/* 내가 받은 과일 — 총계만으로는 '요즘 어떤지'가 안 보여, 수업마다
             받은 양을 날짜로 늘어놓습니다. 여러 반에 속해 있으면 한 흐름으로
