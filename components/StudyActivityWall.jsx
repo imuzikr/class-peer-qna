@@ -49,6 +49,10 @@ export default function StudyActivityWall({
   //    anonName?, anonEmoji?, realName? }]
   rows = [],
   onAward = null,
+  // 한 장 띄우기 꾸러미에 더 실을 값 — 부모가 주면 그대로 덮어씁니다.
+  // KWLS는 여기에 K·W·L·S 딱지·영문 이름·물음·몇 번째 칸인지를 실어,
+  // 사이드 패널에서 띄운 것과 학생 화면이 똑같아지게 합니다.
+  castMeta = null,
   onClose,
 }) {
   const [sort, setSort] = useState("studentId");
@@ -102,7 +106,7 @@ export default function StudyActivityWall({
     if (!cast.target) return null;
     if (cast.target.uid === "__wall__") return wallPayload;
     const row = rows.find((r) => r.uid === cast.target.uid);
-    return row ? onePayload(row, label, title) : null;
+    return row ? onePayload(row, label, title, castMeta) : null;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cast.target, wallPayload, rows, label, title]);
   cast.useLiveUpdate(livePayload);
@@ -121,7 +125,7 @@ export default function StudyActivityWall({
     cardRefs.current.get(target.uid)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
     // 같은 사람이면 cast()가 토글이라 방송이 꺼집니다 — 한 명뿐일 때
     if (alsoCast && !cast.isCasting(target.uid, castKey)) {
-      cast.cast({ uid: target.uid, key: castKey }, onePayload(target, label, title));
+      cast.cast({ uid: target.uid, key: castKey }, onePayload(target, label, title, castMeta));
     }
   }
 
@@ -297,7 +301,7 @@ export default function StudyActivityWall({
                         className={`wall-card-cast${live ? " on" : ""}`}
                         onClick={() => {
                           setFocus(i); // 여기서부터 이전/다음이 이어지도록
-                          cast.cast({ uid: r.uid, key: castKey }, onePayload(r, label, title));
+                          cast.cast({ uid: r.uid, key: castKey }, onePayload(r, label, title, castMeta));
                         }}
                         title={live ? "학생 화면을 되돌립니다" : "이 답만 학급 화면에 크게 띄웁니다"}
                       >
@@ -360,7 +364,11 @@ function castName(row) {
 
 // 답 한 장을 방송 꾸러미로 — PresentationOverlay의 'entry' 모드가 그립니다
 // (RAFT 글쓰기·KWLS와 같은 모양이라 학생 화면이 일관됩니다).
-function onePayload(row, label, title) {
+//
+// meta는 부모가 더 실어 보내는 값입니다(KWLS의 K·W·L·S 딱지·영문 이름·
+// 물음·몇 번째 칸인지). 기본값 위에 덮어써, 사이드 패널에서 띄운 것과
+// 모아보기에서 띄운 것이 학생 화면에서 똑같아집니다.
+function onePayload(row, label, title, meta = null) {
   return {
     mode: "entry",
     activityTitle: label,
@@ -369,5 +377,6 @@ function onePayload(row, label, title) {
     label: title,
     prompt: "",
     fields: [{ label: "", text: row.text.slice(0, CAST_TEXT_MAX) }],
+    ...(meta ?? {}),
   };
 }

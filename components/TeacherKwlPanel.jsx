@@ -143,11 +143,13 @@ export default function TeacherKwlPanel({
   );
   const notStarted = rows.filter((r) => !r.started);
 
-  // [모음] 학생이 '묻고 남긴' 두 칸만 따로 모읍니다 —
-  //   W 알기를 원하는 것 / S 더 알고 싶은 것.
-  // 수업에서 곧바로 다룰거리가 되는 칸이라, K·L(사실 정리)과 달리
-  // 목록으로 훑고 골라 띄우는 쓰임이 있습니다.
-  const COLLECT = KWLS_COLUMNS.filter((c) => c.letter === "W" || c.letter === "S");
+  // [모음] 네 칸을 모두 따로 모읍니다.
+  // 한때 W·S만 두었습니다 — '학생이 묻고 남긴 칸'이라 수업에서 곧바로
+  // 다룰거리가 되고, K·L은 사실 정리라 훑을 일이 적다고 봤습니다. 그런데
+  // 읽기 전 K를 함께 놓고 보면 '무엇을 알고 있다고 여겼나'가 드러나고,
+  // L은 그날 무엇이 남았는지를 나누는 자리가 됩니다. 네 칸 다 두고,
+  // 길어지는 것은 접기로 다스립니다.
+  const COLLECT = KWLS_COLUMNS;
   function textsOf(key) {
     return rows
       .map((r) => ({ ...r, text: (r.answers[key] ?? "").trim() }))
@@ -449,6 +451,18 @@ export default function TeacherKwlPanel({
           castKey={`kwls:${wallCol.key}`}
           rows={wallRows}
           onAward={onAward}
+          // 모아보기에서 띄운 글도 이 패널에서 띄운 것과 같은 모습이 되게 —
+          // K·W·L·S 딱지와 물음이 붙어 있어야 무엇을 읽는 자리인지 압니다
+          // (buildPayload가 만드는 것과 같은 값입니다).
+          castMeta={{
+            activityTitle: "KWLS 성찰",
+            topic: dateLabel(date),
+            letter: wallCol.letter,
+            labelEn: wallCol.en,
+            prompt: wallCol.prompt ?? "",
+            index: KWLS_COLUMNS.indexOf(wallCol),
+            total: KWLS_COLUMNS.length,
+          }}
           onClose={() => setWallKey(null)}
         />
       )}
