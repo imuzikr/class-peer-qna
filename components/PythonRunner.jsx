@@ -97,6 +97,12 @@ export default function PythonRunner({ open, onClose, onAskQuestion, hasModalOpe
     function onDown(e) {
       if (panelRef.current?.contains(e.target)) return;
       if (e.target.closest?.("[data-py-toggle]")) return;
+      // 실행기 바깥이어도 **위에 떠 있는 것**을 누른 것이면 닫지 않습니다.
+      //  · 수업 노트 서랍·손잡이 — 실행기와 나란히 쓰는 옆 패널입니다.
+      //    이게 없으면 서랍의 ×를 누르는 순간 실행기까지 함께 닫혔습니다.
+      //  · 모달 — 그 안(또는 그 배경)을 누른 것이지 실행기를 떠난 게 아닙니다.
+      //    hasModalOpen이 아직 모르는 새 모달까지 여기서 함께 막힙니다.
+      if (e.target.closest?.(".cornell-drawer, .cornell-handle, .modal-backdrop")) return;
       onClose?.();
     }
     document.addEventListener("mousedown", onDown);

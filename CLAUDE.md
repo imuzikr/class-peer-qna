@@ -284,6 +284,15 @@ Firebase 미설정 시 자동으로 **데모 모드**로 동작 (새로고침 �
     보려면 시계열이 필요해 지급할 때마다 한 건 적습니다(`setStudentReward`가
     총계와 **한 트랜잭션**으로 씁니다 — 동시 지급 유실도 이때 함께 막힙니다).
   - 이력이라 수정·삭제 불가. 반 삭제 시 `purgeClass`의 recursiveDelete가 정리.
+  - **＋1·−1 단추는 반드시 `addStudentReward`(델타)로.** `setStudentReward`는
+    '몇 개로 맞춰라'는 절대값이라, 화면에 보이는 개수로 `count + 1`을 만들어
+    보내면 **빨리 두 번 누를 때 두 번째가 묻힙니다** — 첫 번째 결과가 구독으로
+    돌아오기 전이라 두 번 다 같은 값을 보내고, 서버는 `before === safe`로 보아
+    아무 일도 안 합니다(이력도 안 남습니다). 실제로 이 증상이 있었습니다.
+    지금은 누르는 자리가 `onAward(uid, 개수, delta)`로 델타를 함께 넘기고,
+    페이지의 `awardReward`가 델타가 오면 `addStudentReward`로 보냅니다
+    (트랜잭션 안에서 읽은 값에 더하므로 한 번도 안 묻힙니다).
+    절대값 경로는 '개수를 직접 맞추는' 자리에만 남겨 둡니다.
 - `users` — 사용자 프로필 (uid, email, displayName(익명), realName, studentId, role)
   - **식별 정보(실명·이메일·학번)는 여기에만** 저장. 게시물·카드엔 익명 정보만 넣음.
   - 읽기 규칙: 본인+교사. 교사 화면은 `subscribeUserDirectory`로 uid→실명/학번 조회.

@@ -36,6 +36,7 @@ import {
   saveStudySeatLayout,
   saveStudyGroupAssignment,
   setStudentReward,
+  addStudentReward,
   todayDateKey,
   subscribeStudyBoards,
   subscribeClassStudyAttendance,
@@ -297,16 +298,18 @@ function BooksPageInner() {
   }, [admin, attendanceRecords, todayKey, attendanceOpenToday]);
 
   // 과일 주기 — 이름표를 함께 넘겨 자리표·이력에 누구인지 남게 합니다.
-  function awardReward(uid, count) {
+  function awardReward(uid, count, delta = null) {
     const d = directory.find((x) => x.uid === uid);
-    setStudentReward(
-      classId,
-      uid,
-      count,
-      d
-        ? { name: d.realName || d.studentId || d.displayName || "", emoji: d.emoji || "🙂" }
-        : null
-    );
+    const identity = d
+      ? { name: d.realName || d.studentId || d.displayName || "", emoji: d.emoji || "🙂" }
+      : null;
+  // delta가 함께 오면(＋1·−1 단추) **서버에서 더합니다.** 화면에 보이는
+  // 개수는 방금 누른 값이 아직 안 돌아왔을 수 있어, 그걸로 만든 절대값을
+  // 보내면 빨리 두 번 누를 때 두 번째가 같은 값이 되어 묻힙니다
+  // (addStudentReward는 트랜잭션 안에서 읽은 값에 더합니다).
+  // delta가 없는 자리(개수를 직접 맞추는 곳)는 지금까지대로 절대값입니다.
+    if (delta) return addStudentReward(classId, uid, delta, identity);
+    return setStudentReward(classId, uid, count, identity);
   }
 
   // 활동을 열어둔 채 목록이 갱신되면 최신 문서로 맞춰줍니다(주제 수정·잠금 반영).

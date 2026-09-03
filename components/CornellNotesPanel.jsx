@@ -64,30 +64,34 @@ export default function CornellNotesPanel({ classId, roster = [], user }) {
   return (
     <>
       <div className="notes-mgr-bar cornell-mgr-bar">
+        {/* 화살표는 오른쪽에 모아 둡니다 — 칸 양끝에 떼어 놓으면 하루씩
+            옮길 때마다 손이 칸을 가로질러 오갑니다(노트 넘기기와 같은 규칙) */}
         <div className="cornell-mgr-date">
-          <button
-            type="button"
-            className="cornell-read-step"
-            onClick={() => setDate((d) => shiftDate(d, -1))}
-            title="하루 앞으로"
-          >
-            ‹
-          </button>
           <input
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value || today)}
             aria-label="날짜"
           />
-          <button
-            type="button"
-            className="cornell-read-step"
-            onClick={() => setDate((d) => shiftDate(d, 1))}
-            disabled={date >= today}
-            title="하루 뒤로"
-          >
-            ›
-          </button>
+          <div className="cornell-read-nav">
+            <button
+              type="button"
+              className="cornell-read-step"
+              onClick={() => setDate((d) => shiftDate(d, -1))}
+              title="하루 앞으로"
+            >
+              ‹
+            </button>
+            <button
+              type="button"
+              className="cornell-read-step"
+              onClick={() => setDate((d) => shiftDate(d, 1))}
+              disabled={date >= today}
+              title="하루 뒤로"
+            >
+              ›
+            </button>
+          </div>
           {date !== today && (
             <button type="button" className="notes-mgr-filter" onClick={() => setDate(today)}>
               오늘

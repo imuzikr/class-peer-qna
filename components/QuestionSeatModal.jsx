@@ -16,6 +16,7 @@ import { backdropClose } from "@/lib/modal";
 import {
   dailySeatLayoutId,
   setStudentReward,
+  addStudentReward,
   subscribeClassMembers,
   subscribeClassRewards,
   subscribeQuestionSignals,
@@ -230,14 +231,18 @@ export default function QuestionSeatModal({ classId, onClose }) {
 
   // 과일을 줄 때 실명을 함께 저장 — 공부방은 실명 공간이라 학생 화면에도
   // 실명 이름표가 보입니다(공부방 화면의 awardReward와 같은 규칙).
-  function handleAward(uid, count) {
+  function handleAward(uid, count, delta = null) {
     const d = directory.find((x) => x.uid === uid);
-    setStudentReward(
-      classId,
-      uid,
-      count,
-      d ? { name: d.realName || d.studentId || d.displayName || "", emoji: d.emoji || "🙂" } : null
-    );
+    const identity = d
+      ? { name: d.realName || d.studentId || d.displayName || "", emoji: d.emoji || "🙂" }
+      : null;
+  // delta가 함께 오면(＋1·−1 단추) **서버에서 더합니다.** 화면에 보이는
+  // 개수는 방금 누른 값이 아직 안 돌아왔을 수 있어, 그걸로 만든 절대값을
+  // 보내면 빨리 두 번 누를 때 두 번째가 같은 값이 되어 묻힙니다
+  // (addStudentReward는 트랜잭션 안에서 읽은 값에 더합니다).
+  // delta가 없는 자리(개수를 직접 맞추는 곳)는 지금까지대로 절대값입니다.
+    if (delta) return addStudentReward(classId, uid, delta, identity);
+    return setStudentReward(classId, uid, count, identity);
   }
 
   function openNotes(student) {

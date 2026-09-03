@@ -307,7 +307,7 @@ export default function StudyActivityWall({
                       <button
                         type="button"
                         className="wall-card-award"
-                        onClick={() => onAward(r.uid, Math.min(REWARD_MAX, r.count + 1))}
+                        onClick={() => onAward(r.uid, Math.min(REWARD_MAX, r.count + 1), +1)}
                         disabled={r.count >= REWARD_MAX}
                         title={r.count >= REWARD_MAX ? "이미 최대 개수예요" : `과일 주기 (현재 ${r.count}개)`}
                         aria-label="과일 주기"

@@ -1192,7 +1192,7 @@ export default function StudyProjectView({
                 onAward &&
                 (() => {
                   const cur = classRoster.find((s) => s.uid === card.authorId)?.count ?? 0;
-                  onAward(card.authorId, Math.min(REWARD_MAX, cur + 1));
+                  onAward(card.authorId, Math.min(REWARD_MAX, cur + 1), +1);
                 })
               }
             />
@@ -1223,7 +1223,7 @@ export default function StudyProjectView({
                 !seat.isTeacherCard &&
                 (() => {
                   const cur = classRoster.find((s) => s.uid === seat.uid)?.count ?? 0;
-                  onAward(seat.uid, Math.min(REWARD_MAX, cur + 1));
+                  onAward(seat.uid, Math.min(REWARD_MAX, cur + 1), +1);
                 })
               }
             />

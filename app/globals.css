@@ -877,7 +877,8 @@ button.footer-link:hover {
 
 /* ===== 누가기록 관리 (교사) ===== */
 .modal.modal-notes-manager {
-  max-width: 720px;
+  /* 수업 노트 탭이 한 줄에 여섯 명(자리표와 같은 줄바꿈)이라 그만큼 넓힙니다 */
+  max-width: 860px;
 }
 .notes-mgr-bar {
   display: flex;
@@ -21960,6 +21961,7 @@ body:has(.confirm-backdrop) .cornell-handle {
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-shrink: 0;
 }
 .cornell-mgr-date input[type="date"] {
   border: 1px solid var(--border);
@@ -21988,8 +21990,10 @@ body:has(.confirm-backdrop) .cornell-handle {
 }
 .cornell-read-step:disabled { opacity: 0.35; cursor: default; }
 
-/* 미리보기 한 줄이 들어가 카드가 조금 넓어집니다 */
-.cornell-mgr-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+/* 자리표와 같이 **한 줄에 여섯 명**. 자리 배치를 눈에 익힌 채로 보는
+   화면이라 줄바꿈 지점이 자리표와 같아야 사람을 찾기 쉽습니다.
+   (auto-fill이면 창 폭에 따라 5명·6명으로 오락가락했습니다) */
+.cornell-mgr-grid { grid-template-columns: repeat(6, 1fr); }
 .cornell-mgr-preview {
   margin-top: 2px;
   width: 100%;
@@ -22359,11 +22363,38 @@ body:has(.confirm-backdrop) .cornell-handle {
    서랍(z-index 3001) 위에 떠야 합니다 — 보통 모달 배경은 100이라
    그대로 두면 서랍 밑에 깔려 아무것도 안 보입니다. */
 .cornell-viewer-backdrop { z-index: 3010; }
-/* 폭을 조금 줄이고 2단 영역에 최소 높이를 줘 정사각형에 가깝게 만듭니다.
-   짧은 노트도 '공책 한 장'처럼 보이고, 왼쪽 단서 칸이 세로로 길어야
-   오른쪽을 가리고 떠올리는 복습이 실제로 됩니다. */
-.modal.modal-cornell-viewer { max-width: 820px; }
-.modal-cornell-viewer .cornell-sheet-grid { min-height: 46vh; }
+/* 폭을 조금 줄이고 2단 영역이 남는 높이를 다 차지하게 해 정사각형에 가깝게
+   만듭니다. 짧은 노트도 '공책 한 장'처럼 보이고, 왼쪽 단서 칸이 세로로
+   길어야 오른쪽을 가리고 떠올리는 복습이 실제로 됩니다.
+   최소 높이(vh)를 주면 머리말·날짜 줄·요약을 더한 총 높이가 창을 넘겨
+   **바깥 스크롤바**가 생겼습니다. 그래서 flex로 '남는 만큼'만 차지하게
+   두고, 넘치는 것은 단서·필기 칸 **안에서만** 구릅니다. */
+.modal.modal-cornell-viewer {
+  max-width: 820px;
+  /* 높이를 잡아 둡니다 — 안 그러면 짧은 노트에서 창이 내용만큼 납작해져
+     좌우로만 긴 모양이 됩니다. 화면이 작으면 88vh까지만(한 화면 안에). */
+  height: min(88vh, 760px);
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.modal-cornell-viewer .cornell-sheet {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.modal-cornell-viewer .cornell-sheet-grid { flex: 1; min-height: 0; }
+.modal-cornell-viewer .cornell-sheet-cue,
+.modal-cornell-viewer .cornell-sheet-notes { overflow-y: auto; }
+/* 제목·요약·한 마디는 줄어들지 않습니다 — 늘 보여야 하는 줄입니다 */
+.modal-cornell-viewer .cornell-sheet-topic,
+.modal-cornell-viewer .cornell-sheet-summary,
+.modal-cornell-viewer .cornell-sheet-feedback { flex-shrink: 0; }
+.modal-cornell-viewer .modal-head,
+.modal-cornell-viewer .cornell-read-bar,
+.modal-cornell-viewer .cornell-viewer-hint { flex-shrink: 0; }
 /* 복습하는 자리라 글씨를 서랍보다 키웁니다 */
 .modal-cornell-viewer .cornell-sheet p,
 .modal-cornell-viewer .cornell-sheet-rich { font-size: 15px; line-height: 1.75; }
@@ -22450,4 +22481,9 @@ body:has(.confirm-backdrop) .cornell-handle {
 .cornell-zone--topic input:focus {
   outline: none;
   border-color: var(--primary);
+}
+
+/* 좁은 화면에서는 여섯 칸이 안 들어갑니다 — 자리표와 같은 기준으로 셋 */
+@media (max-width: 768px) {
+  .cornell-mgr-grid { grid-template-columns: repeat(3, 1fr); }
 }

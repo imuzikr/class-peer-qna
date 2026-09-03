@@ -27,7 +27,7 @@ import {
   invalidateKwlDays,
   getDirectoryUser,
   subscribeClassRewards,
-  setStudentReward,
+  addStudentReward,
   REWARD_MAX,
 } from "@/lib/store";
 import { KWLS_COLUMNS, kwlsAnswersFromEntry } from "@/lib/kwls";
@@ -89,10 +89,11 @@ export default function KwlFullscreenModal({ classId, initialDate, onClose }) {
     // 과일 문서에 붙는 이름표는 그대로 실명입니다 — 공부방은 실명 참여
     // 공간이고, 학생 화면의 과일 이름표가 이 값을 씁니다. 이 화면이 익명으로
     // 보인다고 저장까지 익명으로 바꾸면 다른 화면의 이름표가 바뀝니다.
-    setStudentReward(
+    // 절대값(cur+1)이 아니라 델타로 — 빨리 두 번 누를 때 한 번이 묻히지 않게
+    addStudentReward(
       classId,
       uid,
-      cur + 1,
+      +1,
       row
         ? {
             name: row.realName || row.authorName || "",

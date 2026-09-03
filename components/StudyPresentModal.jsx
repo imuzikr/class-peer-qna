@@ -11,7 +11,7 @@
 import { useEffect, useState } from "react";
 import {
   subscribeClassRewards,
-  setStudentReward,
+  addStudentReward,
   getDirectoryRealName,
   startBroadcast,
   stopBroadcast,
@@ -108,7 +108,9 @@ export default function StudyPresentModal({ board, cards = [], onClose }) {
     if (count >= REWARD_MAX) return;
     // 실명을 함께 저장 — 공부방은 실명 참여 공간(학생 화면 이름표용).
     // rewards는 규칙상 그 반 소속 학생만 읽을 수 있음.
-    setStudentReward(board.classId, card.authorId, count + 1, {
+    // 절대값(count+1)이 아니라 델타로 줍니다 — 화면의 count는 방금 누른
+    // 결과가 아직 안 돌아왔을 수 있어, 빨리 두 번 누르면 한 번이 묻힙니다.
+    addStudentReward(board.classId, card.authorId, +1, {
       name: displayName,
       emoji: card.authorEmoji || "🙂",
     });

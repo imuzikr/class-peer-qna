@@ -524,8 +524,9 @@ export default function CornellNoteDrawer({
               다 쓰고 손이 화면 꼭대기까지 올라가야 했고, 본문 안(요약 칸 바로
               아래)에 뒀을 때는 노트가 길어지면 스크롤 밖으로 밀렸습니다.
               여기는 쓰는 칸 아래이면서 늘 보입니다.
-              상태 글자를 따로 두지 않고 단추가 곧 상태입니다 — 같은 말이 두
-              군데 있으면 어느 쪽이 맞는지 헷갈립니다. */}
+              **글자는 '저장'으로 고정하고 색만 바뀝니다**(활성 주황 /
+              비활성 회색). 저장·저장 중…·저장됨으로 휙휙 바뀌면 눈이 자꾸
+              그리로 끌리고, 잠깐 스치는 '저장 중…'은 오류처럼 보입니다. */}
           {loaded && (
             <footer className="cornell-foot">
               <button
@@ -533,13 +534,11 @@ export default function CornellNoteDrawer({
                 className={`cornell-save${dirty ? " on" : ""}`}
                 onClick={runSave}
                 disabled={!dirty || status === "saving"}
-                title="지금 저장 — 안 눌러도 2초 뒤 저절로 저장돼요"
+                title={
+                  dirty ? "지금 저장 — 안 눌러도 2초 뒤 저절로 저장돼요" : "저장할 것이 없어요"
+                }
               >
-                {status === "saving"
-                  ? "저장 중…"
-                  : !dirty && status === "saved"
-                    ? "저장됨"
-                    : "저장"}
+                저장
               </button>
             </footer>
           )}

@@ -15,6 +15,11 @@ import { backdropClose } from "@/lib/modal";
 import { REWARD_MAX } from "@/lib/store";
 import StudentRewardTrend from "./StudentRewardTrend";
 
+// onAward(uid, 바꿀개수, delta) — 세 번째 값이 핵심입니다. 여기 보이는
+// `count`는 **방금 누른 결과가 아직 안 돌아왔을 수 있는** 값이라, 그것으로
+// 만든 절대값(count+1)을 그대로 보내면 빨리 두 번 누를 때 두 번째가 같은
+// 값이 되어 조용히 묻힙니다. delta를 함께 주면 서버가 트랜잭션 안에서
+// 지금 값에 더하므로 한 번도 안 묻힙니다.
 export default function StudentToolsModal({
   student,
   classId = null,
@@ -70,7 +75,7 @@ export default function StudentToolsModal({
               <button
                 type="button"
                 className="attend-award-btn attend-award-btn--minus"
-                onClick={() => onAward(student.uid, count - 1)}
+                onClick={() => onAward(student.uid, count - 1, -1)}
                 disabled={count <= 0}
                 title="과일 하나 빼기"
               >
@@ -79,7 +84,7 @@ export default function StudentToolsModal({
               <button
                 type="button"
                 className="attend-award-btn attend-award-btn--plus"
-                onClick={() => onAward(student.uid, count + 1)}
+                onClick={() => onAward(student.uid, count + 1, +1)}
                 disabled={maxed}
                 title={maxed ? "과일이 가득 찼어요" : "과일 하나 주기"}
               >
