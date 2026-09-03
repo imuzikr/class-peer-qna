@@ -229,6 +229,30 @@ Firebase 미설정 시 자동으로 **데모 모드**로 동작 (새로고침 �
     학생 리포트는 자기 반마다 리스너 하나(`subscribeMyCornellNotes`) —
     `collectionGroup`을 안 쓰는 이유는 규칙에 그룹 문을 새로 열지 않으려고요.
     셋 다 `where` 하나만 걸고 정렬은 화면에서 합니다(복합 색인 회피).
+  - **선생님 한 마디 도착 알림** — 서랍이 뜰 때 `fetchMyRecentCornellNotes`로
+    **최근 14일치**를 훑어 안 읽은 것을 셉니다(손잡이 숫자 배지 + 서랍 맨 위
+    목록). 선생님은 수업이 끝난 뒤에 쓰므로 오늘 노트만 보면 어제 것에 달린
+    한 마디를 영영 못 봅니다.
+    - 읽는 방법은 **날짜마다 한 건씩 `getDoc`**입니다(문서 ID가 `uid_날짜`).
+      질의로 좁히려면 uid 등호 + 날짜 범위라 복합 색인이 필요하고, 등호만
+      걸면 그 반의 내 노트가 전부 옵니다(한 학기 쉰 장). 이 방식은 노트가
+      쌓여도 **늘 14건 고정**입니다. 화면을 옮길 때마다 다시 읽지 않게
+      **5분 캐시**를 둡니다(`invalidateMyRecentCornellNotes`).
+    - **`documentId() in [...]` 한 방 질의는 규칙이 거부합니다**(실측).
+      ID 앞부분이 uid라는 건 우리 약속일 뿐이라 규칙이 알 수 없습니다.
+      실측 기록이 `tests/rules/cornellNotes.test.mjs`에 있으니 지우지 마세요.
+    - 읽음 표시는 노트 문서의 `feedbackSeenAt`입니다(`markCornellFeedbackSeen`).
+      localStorage로 하면 폰에서 읽은 것을 노트북이 몰라 배지가 되살아납니다.
+      학생 update 규칙이 변경 키 화이트리스트가 아니라 '본인 것 + 칸 길이 +
+      피드백 불변'만 보므로 **규칙을 고치지 않고** 이 필드가 통과합니다.
+    - 판정은 `isCornellFeedbackUnread` 한 곳에서. `feedbackAt`이 없는 옛
+      기록은 '봤다'로 봅니다 — 안 그러면 배지가 영영 안 꺼집니다.
+  - **읽기 규칙은 `get`/`list`로 나눠 두었습니다.** 문서가 없으면 `resource`가
+    비어 `resource.data.uid == uid()`가 오류로 끝나 **본인조차 거부**됩니다
+    (아직 안 쓴 날짜를 열어 보는 경우 — 새 날 첫 접속이 여기 걸립니다).
+    그래서 `get`에는 `nId.split('_')[0] == uid()` 갈래를 함께 뒀습니다. 쓰기
+    규칙이 ID를 `uid_날짜`로 못 박고 있어 권한이 넓어지지 않습니다.
+    `list`는 문서가 반드시 있으므로 지금까지대로 `resource.data.uid`로 봅니다.
   - 탈퇴 정리는 `purgeStudentData`의 `collectionGroup("cornellNotes")` 한 줄.
     반 아래라 반 삭제는 `purgeClass`가 알아서 정리합니다.
 - `classes/{classId}/rewardEvents` — **과일 지급 이력** (uid, delta, count, byUid, at)

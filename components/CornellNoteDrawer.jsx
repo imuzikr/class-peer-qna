@@ -25,15 +25,19 @@
 // 닫히거나 화면을 벗어날 때 한 번 더 저장합니다 — 방송이 꺼지며 화면이
 // 바뀌어도 쓰던 글이 날아가지 않게.
 // =============================================================
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   subscribeMyCornellNote,
   saveCornellNote,
+  fetchMyRecentCornellNotes,
+  markCornellFeedbackSeen,
+  isCornellFeedbackUnread,
   todayDateKey,
   CORNELL_LIMITS,
 } from "@/lib/store";
 import RichTextEditor from "./RichTextEditor";
+import CornellNoteSheet from "./CornellNoteSheet";
 import { richHtml, stripHtml } from "@/lib/html";
 
 const SAVE_DELAY = 2000; // ms — 이만큼 입력이 없으면 저장
@@ -59,6 +63,10 @@ export default function CornellNoteDrawer({
   const [summary, setSummary] = useState("");
   const [status, setStatus] = useState("idle");  // idle | saving | saved
   const [date] = useState(() => todayDateKey());
+  // 최근 14일치 — '안 읽은 선생님 한 마디'를 찾는 데만 씁니다
+  const [recent, setRecent] = useState([]);
+  const [seenNow, setSeenNow] = useState(() => new Set()); // 이번에 읽은 것
+  const [openPast, setOpenPast] = useState(null);          // 펼쳐 본 지난 노트 id
 
   // 내가 고친 뒤로는 서버 값이 와도 덮어쓰지 않습니다(입력 중 글자가 튀는 것 방지)
   const dirtyRef = useRef(false);
@@ -98,6 +106,45 @@ export default function CornellNoteDrawer({
       setLoaded(true);
     });
   }, [classId, user?.uid, date]);
+
+  // 최근 14일치를 한 번 훑습니다(짧게 캐시되어 화면을 옮겨도 다시 안 읽습니다).
+  // 오늘 것은 위 구독이 실시간으로 보고 있으므로, 여기서는 '지난 것'만 씁니다.
+  useEffect(() => {
+    if (!classId || !user?.uid) { setRecent([]); return; }
+    let alive = true;
+    fetchMyRecentCornellNotes(classId, user.uid)
+      .then((list) => { if (alive) setRecent(list); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [classId, user?.uid, date]);
+
+  // 읽음 도장 — 노트 문서에 적습니다. 기기를 바꿔도 배지가 되살아나지 않게.
+  const markSeen = useCallback(
+    (noteDate, noteId) => {
+      setSeenNow((prev) => (prev.has(noteId) ? prev : new Set(prev).add(noteId)));
+      markCornellFeedbackSeen(classId, user?.uid, noteDate).catch(() => {});
+    },
+    [classId, user?.uid]
+  );
+
+  // 오늘 것은 위 구독이 실시간으로 보고 있으므로 그쪽 값을 앞세웁니다
+  // (선생님이 지금 막 쓴 한 마디는 캐시에 아직 없습니다).
+  const merged = useMemo(() => {
+    const map = new Map(recent.map((n) => [n.id, n]));
+    if (note?.id) map.set(note.id, note);
+    return [...map.values()].sort((a, b) =>
+      String(b.date ?? "").localeCompare(String(a.date ?? ""))
+    );
+  }, [recent, note]);
+
+  // 서랍을 열면 그 자리에서 한 마디가 다 보입니다 — 그 순간 읽은 것으로 봅니다.
+  // (줄마다 눌러야 읽음이 되면, 안 누른 것 때문에 배지가 계속 남습니다)
+  useEffect(() => {
+    if (!open) return;
+    merged.forEach((n) => {
+      if (isCornellFeedbackUnread(n) && !seenNow.has(n.id)) markSeen(n.date, n.id);
+    });
+  }, [open, merged, seenNow, markSeen]);
 
   const flush = useCallback(() => {
     if (!dirtyRef.current || !classId || !user?.uid) return;
@@ -157,6 +204,16 @@ export default function CornellNoteDrawer({
     (cue.trim() ? 1 : 0) + (stripHtml(notes).trim() ? 1 : 0) + (summary.trim() ? 1 : 0);
   const feedback = String(note?.feedback ?? "").trim();
 
+  // 손잡이 배지 — 아직 안 본 한 마디의 수
+  const unreadCount = merged.filter(
+    (n) => isCornellFeedbackUnread(n) && !seenNow.has(n.id)
+  ).length;
+  // 서랍 안에 늘어놓을 지난 한 마디들 (오늘 것은 아래 제자리에 따로 있습니다)
+  const pastFeedback = merged.filter(
+    (n) => n.date !== date && String(n.feedback ?? "").trim()
+  );
+  const openPastNote = pastFeedback.find((n) => n.id === openPast) ?? null;
+
   return (
     <>
       {/* 손잡이 — 접혀 있을 때만. 어느 화면에서나 같은 자리에 있어야
@@ -164,13 +221,26 @@ export default function CornellNoteDrawer({
       {!open && (
         <button
           type="button"
-          className={`cornell-handle${feedback ? " has-feedback" : ""}`}
+          className={`cornell-handle${unreadCount > 0 ? " has-feedback" : ""}`}
           onClick={toggle}
-          title="수업 노트 — 코넬 노트로 필기해요"
-          aria-label="수업 노트 열기"
+          title={
+            unreadCount > 0
+              ? `선생님이 한 마디를 남겼어요 (${unreadCount}개)`
+              : "수업 노트 — 코넬 노트로 필기해요"
+          }
+          aria-label={
+            unreadCount > 0
+              ? `수업 노트 열기 — 안 읽은 선생님 한 마디 ${unreadCount}개`
+              : "수업 노트 열기"
+          }
         >
           <span className="cornell-handle-label">수업 노트</span>
-          {filled > 0 && <span className="cornell-handle-dot" aria-hidden="true" />}
+          {/* 숫자가 있으면 숫자를, 없으면 '오늘 쓴 게 있다'는 점만 */}
+          {unreadCount > 0 ? (
+            <span className="cornell-handle-badge">{unreadCount}</span>
+          ) : filled > 0 ? (
+            <span className="cornell-handle-dot" aria-hidden="true" />
+          ) : null}
         </button>
       )}
 
@@ -199,7 +269,42 @@ export default function CornellNoteDrawer({
             <p className="cornell-empty">불러오는 중이에요…</p>
           ) : (
             <div className="cornell-body">
-              {/* 선생님이 남긴 한 마디 — 있으면 맨 위에 */}
+              {/* 지난 노트에 달린 한 마디 — 선생님은 수업이 끝난 뒤에 쓰므로
+                  대부분 '어제 것'입니다. 여기가 없으면 학생은 리포트에
+                  들어가 그 날짜를 펼쳐 봐야만 알게 됩니다.
+                  줄을 누르면 그날 노트를 이 안에서 펼쳐 봅니다 — 무엇에
+                  대한 말인지 보려고 화면을 옮기지 않아도 되게. */}
+              {pastFeedback.length > 0 && (
+                <div className="cornell-newfb">
+                  <span className="cornell-newfb-tag">
+                    지난 노트에 선생님 한 마디
+                  </span>
+                  {pastFeedback.map((n) => (
+                    <div key={n.id} className="cornell-newfb-row">
+                      <button
+                        type="button"
+                        className={`cornell-newfb-item${openPast === n.id ? " open" : ""}`}
+                        onClick={() => setOpenPast(openPast === n.id ? null : n.id)}
+                        aria-expanded={openPast === n.id}
+                      >
+                        {/* 서랍이 좁아 연도는 뺍니다 — 14일치라 헷갈릴 일이 없습니다 */}
+                        <time dateTime={n.date}>{String(n.date ?? "").slice(5)}</time>
+                        <span className="cornell-newfb-text">{n.feedback}</span>
+                        <span className="cornell-newfb-caret" aria-hidden="true">
+                          {openPast === n.id ? "▾" : "▸"}
+                        </span>
+                      </button>
+                      {/* 펼친 노트는 **누른 줄 바로 아래**에. 목록 끝에 붙이면
+                          어느 줄에 대한 것인지 알 수 없습니다. */}
+                      {openPastNote?.id === n.id && (
+                        <CornellNoteSheet note={openPastNote} showFeedback={false} />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* 선생님이 남긴 한 마디 — 오늘 것은 제자리에 */}
               {feedback && (
                 <div className="cornell-feedback">
                   <span className="cornell-feedback-tag">선생님</span>

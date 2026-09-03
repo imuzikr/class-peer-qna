@@ -15,7 +15,10 @@
 // =============================================================
 import { describe, it, before, after, beforeEach } from "node:test";
 import { assertSucceeds, assertFails } from "@firebase/rules-unit-testing";
-import { doc, getDoc, setDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
+import {
+  doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, serverTimestamp,
+  collection, query, where, documentId,
+} from "firebase/firestore";
 import { makeEnv, asStudent, asTeacher, asAdmin, seed } from "./helpers.mjs";
 
 const DATE = "2026-09-03";
@@ -141,6 +144,42 @@ describe("수업 노트(코넬) 규칙", () => {
     await assertSucceeds(getDoc(noteRef(db, "cA", `stu1_${DATE}`)));
   });
 
+  // ── 최근 며칠치를 어떻게 읽을 것인가 ──
+  // 서랍이 '안 읽은 피드백'을 찾으려면 최근 14일치를 봐야 합니다.
+  // 문서 ID가 `uid_날짜`로 못 박혀 있어 **ID 목록 한 방**(documentId() in [...])
+  // 으로 물어보면 빈 날은 읽기에 세지도 않아 훨씬 쌉니다. 그래서 그렇게 짜려다
+  // **실측으로 막히는 것을 확인**했습니다 — 아래가 그 기록입니다.
+  //
+  // 규칙의 학생 갈래가 `resource.data.uid == uid()`라, 목록(list) 질의에서는
+  // 문서를 열어 봐야 판정이 되는 조건이 됩니다. 질의 자체가 uid로 좁혀져
+  // 있음을 규칙이 알 방법이 없어(ID 문자열의 앞부분이 uid라는 건 우리 약속일
+  // 뿐입니다) 통째로 거부됩니다.
+  //
+  // 그래서 앱은 **날짜마다 한 건씩 get**으로 읽습니다(아래 두 번째 시험).
+  // 빈 날도 한 건씩 세지만 14일이면 14건으로 묶여 있고, 질의도 색인도
+  // 필요 없습니다. 이 시험을 지우지 마세요 — 지우면 다음 사람이 같은 길로
+  // 다시 들어갑니다.
+  it("ID 목록 한 방(in 질의)은 규칙이 거부한다 — 그래서 하루씩 읽습니다", async () => {
+    const db = asStudent(env, "stu1").firestore();
+    const ids = ["2026-09-01", "2026-09-02", DATE].map((d) => `stu1_${d}`);
+    await assertFails(
+      getDocs(
+        query(collection(db, "classes", "cA", "cornellNotes"), where(documentId(), "in", ids))
+      )
+    );
+  });
+
+  it("아직 안 쓴 날짜를 하루씩 읽어 보는 것은 허용된다 (없으면 빈 결과)", async () => {
+    const db = asStudent(env, "stu1").firestore();
+    const snap = await assertSucceeds(getDoc(noteRef(db, "cA", "stu1_2026-08-28")));
+    if (snap.exists()) throw new Error("없는 노트인데 있다고 나왔습니다");
+  });
+
+  it("남의 자리는 아직 안 쓴 날짜여도 읽을 수 없다", async () => {
+    const db = asStudent(env, "stu2").firestore();
+    await assertFails(getDoc(noteRef(db, "cA", "stu1_2026-08-28")));
+  });
+
   it("같은 반 급우는 읽을 수 없다", async () => {
     const db = asStudent(env, "stu2").firestore();
     await assertFails(getDoc(noteRef(db, "cA", `stu1_${DATE}`)));
@@ -208,6 +247,36 @@ describe("수업 노트(코넬) 규칙", () => {
       const db = asStudent(env, "stu1").firestore();
       await assertFails(
         setDoc(noteRef(db, "cA", `stu1_${DATE}`), payload("cA", "stu1", { feedback: "" }))
+      );
+    });
+
+    // ── 읽음 표시(feedbackSeenAt) ──
+    // 선생님 한 마디가 도착했다는 배지를 끄려면 '읽었다'를 어딘가 적어야
+    // 합니다. 브라우저에 적으면 폰에서 읽은 것을 노트북이 모르므로 노트
+    // 문서에 적습니다. 학생 update 갈래는 변경 키 화이트리스트가 아니라
+    // '본인 것 + 칸 길이 + 피드백 불변'만 보므로, 규칙을 고치지 않고도
+    // 새 필드 하나가 통과해야 합니다 — 그것을 여기서 못박아 둡니다.
+    it("학생이 '읽음' 표시만 남기는 것은 허용된다", async () => {
+      const db = asStudent(env, "stu1").firestore();
+      await assertSucceeds(
+        updateDoc(noteRef(db, "cA", `stu1_${DATE}`), { feedbackSeenAt: serverTimestamp() })
+      );
+    });
+
+    it("'읽음' 표시에 피드백 수정을 끼워 넣을 수는 없다", async () => {
+      const db = asStudent(env, "stu1").firestore();
+      await assertFails(
+        updateDoc(noteRef(db, "cA", `stu1_${DATE}`), {
+          feedbackSeenAt: serverTimestamp(),
+          feedback: "내가 고친 피드백",
+        })
+      );
+    });
+
+    it("남의 노트에는 '읽음' 표시도 못 남긴다", async () => {
+      const db = asStudent(env, "stu2").firestore();
+      await assertFails(
+        updateDoc(noteRef(db, "cA", `stu1_${DATE}`), { feedbackSeenAt: serverTimestamp() })
       );
     });
   });

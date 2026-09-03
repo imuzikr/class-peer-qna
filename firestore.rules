@@ -569,8 +569,25 @@ service cloud.firestore {
       //    그 학생의 기록이 아니게 됩니다. 교사는 feedback 한 칸만 씁니다.
       //  · 학생이 다시 저장할 때 선생님 피드백을 지우지 못하게, update는
       //    feedback이 그대로일 것을 요구합니다(앱은 merge로 써서 그대로 남음).
+      //  · 읽기를 get/list로 나눠 둡니다. **아직 안 쓴 날짜를 열어 볼 때**
+      //    문서가 없으면 `resource`가 비어 `resource.data.uid`가 오류로 끝나
+      //    본인조차 거부됩니다(실측). 그래서 get에는 문서 ID로 판정하는
+      //    갈래를 함께 둡니다 — 노트 ID는 쓰기 규칙이 `uid_날짜`로 못 박고
+      //    있으므로, ID가 내 uid로 시작한다는 것은 곧 '내 자리'라는 뜻이라
+      //    권한이 조금도 넓어지지 않습니다.
+      //    이게 없으면 (ㄱ) 새 날 첫 접속마다 조용한 권한 오류가 나고,
+      //    (ㄴ) 서랍이 최근 14일치를 훑어 '안 읽은 피드백'을 찾을 수 없습니다
+      //    (훑는 날 대부분이 아직 안 쓴 날이라서).
       match /cornellNotes/{nId} {
-        allow read: if signedIn() && (
+        allow get: if signedIn() && (
+          isAdmin()
+          || ownsClass(cId)
+          || nId.split('_')[0] == uid()
+          || resource.data.uid == uid()
+        );
+        // 목록으로 받을 때는 문서가 반드시 있으므로 지금까지대로.
+        // (교사의 '그날 반 전체' · 학생의 '내 지난 노트' 두 질의가 여기 걸립니다)
+        allow list: if signedIn() && (
           isAdmin()
           || ownsClass(cId)
           || resource.data.uid == uid()
