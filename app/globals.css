@@ -13313,6 +13313,44 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   font-weight: 700;
   color: var(--text-sub);
 }
+/* 이전/다음 — 한 명씩 차례로. 띄우는 중이면 학급 화면도 함께 넘어갑니다 */
+.wall-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.wall-nav-btn {
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.wall-nav-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary-dark);
+  background: var(--primary-light);
+}
+.wall-nav-pos {
+  min-width: 42px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--dark);
+  font-variant-numeric: tabular-nums;
+}
+.wall-nav-pos i { font-style: normal; color: var(--text-sub); font-weight: 600; }
+.wall-nav-note {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--primary-dark);
+  white-space: nowrap;
+}
 /* 정렬 — 세그먼트 버튼과 같은 결 */
 .wall-sorts {
   display: inline-flex;
@@ -13383,6 +13421,16 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   border-color: var(--primary);
   box-shadow: 0 0 0 2px var(--primary-light);
 }
+/* 이전/다음으로 짚은 카드 — 띄운 것(live)과 겹칠 수 있어 색을 나눕니다.
+   live는 '학생이 지금 보고 있다', focus는 '내가 지금 짚고 있다'입니다. */
+.wall-card.focus {
+  border-color: #7a9bb8;
+  box-shadow: 0 0 0 2px #dde8f1;
+}
+.wall-card.live.focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary-light), 0 0 0 5px #dde8f1;
+}
 .wall-card-head {
   display: flex;
   align-items: baseline;
@@ -13397,6 +13445,33 @@ button.study-cal-cell.has-record:not(:disabled):hover {
 }
 .wall-card-who small { font-size: 11px; color: var(--text-sub); }
 .wall-card-who strong { font-size: 13.5px; color: var(--dark); }
+/* 익명 이름 — 누르면 그 한 사람의 실명이 옆에 붙습니다(교사 화면에서만) */
+button.wall-who-btn {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  flex-wrap: wrap;
+}
+button.wall-who-btn:disabled { cursor: default; }
+button.wall-who-btn:hover:not(:disabled) strong {
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 3px;
+}
+button.wall-who-btn.open strong { color: var(--primary-dark); }
+.wall-who-real {
+  font-style: normal;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--primary-dark);
+  background: var(--primary-light);
+  border-radius: 999px;
+  padding: 1px 8px;
+  white-space: nowrap;
+}
 .wall-card-chars {
   flex-shrink: 0;
   font-size: 11px;
@@ -13436,13 +13511,26 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   border-color: var(--primary);
   color: #fff;
 }
+/* 과일 주기 — 지금까지 받은 개수를 옆에 적습니다(누구에게 얼마나 갔는지
+   보고 고르는 자리라, 숫자가 없으면 매번 다른 화면에서 확인해야 합니다) */
 .wall-card-award {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   border: none;
   background: none;
   font-size: 16px;
   line-height: 1;
   cursor: pointer;
   padding: 2px 4px;
+  border-radius: 999px;
+}
+.wall-card-award:hover:not(:disabled) { background: var(--primary-light); }
+.wall-card-award-n {
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--primary-dark);
 }
 .wall-card-award:disabled { opacity: 0.35; cursor: default; }
 .wall-notyet {
@@ -13455,6 +13543,25 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   font-weight: 800;
   color: var(--primary-dark);
   margin-right: 6px;
+}
+/* 익명으로 그리는 화면에서는 이 딱지가 '실명 보기' 스위치가 됩니다 */
+.wall-notyet-toggle {
+  margin-right: 6px;
+  padding: 2px 9px;
+  border: 1px solid var(--primary-light);
+  border-radius: 999px;
+  background: var(--primary-light);
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--primary-dark);
+  cursor: pointer;
+}
+.wall-notyet-toggle:hover { border-color: var(--primary); }
+.wall-notyet-toggle.on {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
 }
 
 /* 학생 화면 — 모아보기 방송 */
@@ -19088,6 +19195,35 @@ button.study-cal-cell.has-record:not(:disabled):hover {
 /* 칠판에 띄우는 화면이라 뒷자리에서도 읽히게 크게 */
 .entry-cast-body .paratext-read-text { font-size: 19px; line-height: 1.75; }
 .entry-cast-body .paratext-read-label { font-size: 13px; }
+
+/* 글 길이에 따라 네 단계 (PresentationOverlay가 data-size로 알려 줍니다).
+   KWLS 한 칸은 흔히 열댓 자라, 한 크기로 두면 넓은 화면에 작은 글씨 한 줄만
+   놓입니다. 짧을수록 크게 키우고 상자도 함께 넓힙니다. vw를 섞어 큰 칠판에서
+   더 커지되, 학생 개인 화면에서도 무너지지 않게 clamp로 위아래를 묶습니다. */
+.entry-cast[data-size="xl"],
+.entry-cast[data-size="lg"] { width: min(94vw, 1180px); }
+.entry-cast[data-size="xl"] .entry-cast-body .paratext-read-text {
+  font-size: clamp(30px, 5.6vw, 72px);
+  line-height: 1.4;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.entry-cast[data-size="lg"] .entry-cast-body .paratext-read-text {
+  font-size: clamp(24px, 3.4vw, 44px);
+  line-height: 1.5;
+  font-weight: 600;
+}
+.entry-cast[data-size="md"] .entry-cast-body .paratext-read-text {
+  font-size: clamp(20px, 2.2vw, 28px);
+  line-height: 1.65;
+}
+/* 큰 단계에서는 머리말도 함께 키웁니다 — 글자만 커지면 제목이 붙어 보입니다 */
+.entry-cast[data-size="xl"] .entry-cast-head,
+.entry-cast[data-size="lg"] .entry-cast-head { margin-bottom: 16px; }
+.entry-cast[data-size="xl"] .entry-cast-head .paratext-card-title strong,
+.entry-cast[data-size="lg"] .entry-cast-head .paratext-card-title strong {
+  font-size: clamp(20px, 2vw, 28px);
+}
 
 @media (max-width: 760px) {
   .entry-detail-grid { grid-template-columns: 1fr; }

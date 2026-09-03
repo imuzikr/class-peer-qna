@@ -20,7 +20,7 @@
 // 갈리도록. 방송은 RAFT 글쓰기와 같은 useEntryCast를 그대로 씁니다.
 // =============================================================
 import { useEffect, useMemo, useState } from "react";
-import { subscribeAllKwl, todayDateKey } from "@/lib/store";
+import { subscribeAllKwl, todayDateKey, getDirectoryUser } from "@/lib/store";
 import { useEntryCast } from "@/lib/useEntryCast";
 import {
   KWLS_COLUMNS,
@@ -55,6 +55,7 @@ export default function TeacherKwlPanel({
   classId,
   user,
   roster = [],
+  onAward = null, // 모아보기 카드에서 바로 과일 주기 (uid, 새 개수)
   onClose,
 }) {
   const [date, setDate] = useState(() => todayDateKey());
@@ -96,10 +97,17 @@ export default function TeacherKwlPanel({
           .filter(Boolean)
           .join("\n");
       });
+      // 익명 이름 — 학급 화면에 나가는 이름이고, 모아보기 카드에 적히는
+      // 이름입니다. 실명은 교사가 눌렀을 때만 펼쳐집니다.
+      // (디렉터리는 공부방 화면이 이미 구독해 둔 것이라 읽기가 늘지 않습니다)
+      const dir = getDirectoryUser(s.uid);
       return {
         uid: s.uid,
         name: s.name,
+        anonName: dir?.displayName || "익명",
+        anonEmoji: dir?.emoji || s.emoji || "🙂",
         studentId: s.studentId ?? null,
+        count: s.count ?? 0, // 지금까지 받은 과일
         answers,
         parts,
         started: kwlsStarted(answers),
@@ -124,7 +132,8 @@ export default function TeacherKwlPanel({
       .filter((r) => r.text.length > 0);
   }
 
-  // 모아보기에 넘길 답 — 안 쓴 학생까지 포함해야 '몇 명 중 몇 명'이 맞습니다
+  // 모아보기에 넘길 답 — 안 쓴 학생까지 포함해야 '몇 명 중 몇 명'이 맞습니다.
+  // anonName을 실어 보내면 모아보기가 익명으로 그립니다(카드도 학급 화면도).
   const wallRows =
     wallKey === null
       ? []
@@ -133,8 +142,11 @@ export default function TeacherKwlPanel({
           return {
             uid: r.uid,
             name: r.name,
+            anonName: r.anonName,
+            anonEmoji: r.anonEmoji,
+            realName: r.name,
             studentId: r.studentId,
-            count: 0,
+            count: r.count,
             html: text,
             text,
             chars: text.length,
@@ -394,6 +406,7 @@ export default function TeacherKwlPanel({
           title={wallCol.ko}
           castKey={`kwls:${wallCol.key}`}
           rows={wallRows}
+          onAward={onAward}
           onClose={() => setWallKey(null)}
         />
       )}
@@ -417,7 +430,9 @@ function buildPayload(row, key, date) {
     mode: "entry",
     activityTitle: "KWLS 성찰",
     topic: dateLabel(date),
-    writerName: row.name,
+    // 학생들이 보는 쪽에는 익명으로 — 이 패널은 교사만 보는 자리라 실명을
+    // 그대로 두지만, 학급 화면으로 나가는 이름은 닉네임입니다.
+    writerName: row.anonName || row.name,
     letter: col.letter,
     label: col.ko,
     labelEn: col.en,

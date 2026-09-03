@@ -213,6 +213,11 @@ export default function PresentationOverlay({ broadcast }) {
 
   if (broadcast.mode === "entry") {
     const fields = broadcast.fields ?? [];
+    // 글이 짧을수록 크게 — 칠판에 띄우는 화면이라 뒷자리에서 읽혀야 합니다.
+    // KWLS 한 칸은 흔히 열댓 자라, 한 크기로 맞춰 두면 넓은 화면에 작은
+    // 글씨 한 줄만 덩그러니 놓입니다. 길이에 따라 네 단계로 나눕니다.
+    const chars = fields.reduce((n, f) => n + String(f.text ?? "").length, 0);
+    const size = chars <= 40 ? "xl" : chars <= 120 ? "lg" : chars <= 400 ? "md" : "sm";
     return (
       <div
         className="broadcast-overlay broadcast-overlay--entry"
@@ -230,7 +235,7 @@ export default function PresentationOverlay({ broadcast }) {
         </div>
 
         <div className="broadcast-body">
-          <div className="entry-cast">
+          <div className="entry-cast" data-size={size}>
             <header className="entry-cast-head">
               {broadcast.letter && (
                 <span className="paratext-letter" aria-hidden="true">{broadcast.letter}</span>

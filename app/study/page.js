@@ -733,6 +733,7 @@ function StudyPageInner() {
                       classId={classId}
                       user={user}
                       roster={roster}
+                      onAward={currentClass?.archived ? null : awardReward}
                       onClose={() => setKwlPanelOpen(false)}
                     />
                   ) : (
