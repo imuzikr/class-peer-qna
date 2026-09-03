@@ -30,6 +30,9 @@ import {
   safeBookUrl,
 } from "@/lib/paratext";
 import { IconBook, IconLock } from "./StatusIcons";
+import GroupMatesRow from "./GroupMatesRow";
+import GroupJoinRow from "./GroupJoinRow";
+import { isGroupedActivity, useBookGroups, myBookGroup, groupMembers } from "@/lib/bookGroups";
 
 const SAVE_DELAY = 900; // ms — 이만큼 입력이 없으면 저장
 
@@ -57,6 +60,15 @@ export default function ParatextForm({ activity, user, onBack }) {
 
   const locked = !!activity.locked;
   const bookUrl = safeBookUrl(activity.bookUrl);
+
+  // 모둠으로 진행하는 활동이면 내 모둠원을 이름 칩으로 보여 줍니다.
+  // 글은 각자 한 장 그대로 — 모둠은 '누구와 함께 보는가'만 정합니다.
+  const grouped = isGroupedActivity(activity);
+  const groups = useBookGroups(activity.id, grouped);
+  const myGroup = myBookGroup(groups, user?.uid);
+  const mates = groupMembers(myGroup);
+  // '자유 구성'인데 아직 모둠에 안 들었으면 고르는 줄을 대신 둡니다.
+  const needsJoin = grouped && !myGroup && activity.groupMode === "free";
 
   useEffect(() => {
     return subscribeMyParatextEntry(activity.id, user?.uid, (entry) => {
@@ -199,6 +211,19 @@ export default function ParatextForm({ activity, user, onBack }) {
         아직 본문은 읽지 마세요. 표지·제목·목차처럼 <b>본문을 둘러싼 것</b>만 보고
         어떤 책일지 짐작해 적어 봅니다. 카드를 누르면 크게 써 볼 수 있어요.
       </p>
+
+      {/* 우리 모둠 — 내가 쓰는 칸 바로 위에. 모둠으로 묶여도 글은 각자
+          한 장이라, 이 줄이 없으면 모둠이 있는지조차 알 수 없습니다. */}
+      {needsJoin ? (
+        <GroupJoinRow
+          activity={activity}
+          groups={groups}
+          user={user}
+          maxPerGroup={activity.maxPerGroup ?? 6}
+        />
+      ) : (
+        <GroupMatesRow group={myGroup} members={mates} meUid={user?.uid} />
+      )}
 
       {!loaded ? (
         <p className="empty-note">불러오는 중이에요…</p>

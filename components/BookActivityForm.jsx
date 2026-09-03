@@ -86,15 +86,19 @@ export default function BookActivityForm({
   const [saving, setSaving] = useState(false);
 
   const names = parseNames(namesRaw);
-  // 곁텍스트 읽기·RAFT·KWLS·마인드맵은 개인 활동이라 모둠 설정이 없고,
-  // 대신 학생이 눌러볼 도서 정보 주소를 받습니다.
-  const isSolo = ["paratext", "raft", "kwls", "mindmap"].includes(type);
-  // 닿소리 채우기를 '개별 활동'으로 여는 경우 — 활동 종류로는 모둠 활동이지만
-  // 모둠을 만들지 않으므로, 모둠 수·이름 설정을 감춥니다.
-  const perStudent = !isSolo && groupMode === "solo";
+  // 학생이 눌러볼 도서 정보 주소를 받는 종류 — 혼자 읽고 쓰는 활동들입니다.
+  const hasBookUrl = ["paratext", "raft", "kwls", "mindmap"].includes(type);
+  // 모둠으로 진행할 수 있는 종류. 곁텍스트·RAFT도 모둠이 되지만 **글은
+  // 학생마다 한 장 그대로**입니다 — 모둠이 정하는 것은 '누구와 함께 보는가'
+  // (화면의 흐름과 동료 평가의 범위)입니다.
+  const canGroup = ["consonant", "paratext", "raft"].includes(type);
+  // '개별 활동' — 닿소리는 학생마다 판을 하나씩 깔고, 곁텍스트·RAFT는
+  // 지금까지처럼 각자 자기 문서에만 씁니다. 어느 쪽이든 모둠 수·이름이
+  // 필요 없어 그 칸을 감춥니다.
+  const perStudent = canGroup && groupMode === "solo";
   // '기본 모둠'은 모둠 수·이름을 반에서 그대로 가져오므로 여기서 정할 것이
   // 없습니다(고르게 두면 '4개로 정했는데 5개가 생겼다'가 됩니다).
-  const fromBase = !isSolo && groupMode === "base";
+  const fromBase = canGroup && groupMode === "base";
   // 주소를 적었는데 열 수 없는 형태면 만들기 전에 알려 줍니다.
   const urlBad = bookUrl.trim().length > 0 && !safeBookUrl(bookUrl);
 
@@ -105,6 +109,10 @@ export default function BookActivityForm({
     if (title.trim() === "" || title === from?.defaultTitle) {
       setTitle(TYPES.find((t) => t.key === next)?.defaultTitle ?? title);
     }
+    // 종류마다 '보통 이렇게 하는' 방식으로 돌려놓습니다. 닿소리는 원래
+    // 모둠이 함께 채우는 활동이고, 곁텍스트·RAFT는 혼자 쓰는 활동이라
+    // 모둠은 고르는 사람이 일부러 골랐을 때만 붙는 편이 맞습니다.
+    setGroupMode(next === "consonant" ? "teacher" : "solo");
   }
 
   // 주제어를 비워 둘 수 있는 활동 — '학생이 자기 자리에서 직접 적을 길'이
@@ -123,7 +131,7 @@ export default function BookActivityForm({
 
     // 이름을 적었는데 모둠 수와 개수가 다르면 만들지 않고 알려 줍니다.
     // (개별 활동은 모둠 이름을 쓰지 않으므로 이 검사를 건너뜁니다)
-    if (!isSolo && !perStudent && !fromBase && names.length > 0 && names.length !== groupCount) {
+    if (canGroup && !perStudent && !fromBase && names.length > 0 && names.length !== groupCount) {
       setWarning(
         `모둠은 ${groupCount}개인데 이름은 ${names.length}개를 적으셨어요.\n` +
           `개수를 맞추거나, 이름을 비우면 '1모둠·2모둠…'으로 자동으로 붙습니다.`
@@ -137,7 +145,7 @@ export default function BookActivityForm({
         type,
         title,
         topic,
-        bookUrl: isSolo ? bookUrl.trim() : "",
+        bookUrl: hasBookUrl ? bookUrl.trim() : "",
         groupMode,
         groupCount,
         maxPerGroup,
@@ -202,8 +210,10 @@ export default function BookActivityForm({
           </label>
         </div>
 
-        {isSolo ? (
-          /* 개인 활동 — 모둠 설정 대신 학생이 눌러볼 도서 정보 주소를 받습니다 */
+        {/* 혼자 읽고 쓰는 활동에는 학생이 눌러볼 도서 정보 주소를 받습니다.
+            곁텍스트·RAFT는 이 칸과 모둠 설정을 **둘 다** 씁니다 — 모둠으로
+            묶여도 읽는 책은 그대로라서요. */}
+        {hasBookUrl && (
           <label className="book-field">
             <span>
               도서 정보 사이트 <em className="book-optional">선택</em>
@@ -224,7 +234,9 @@ export default function BookActivityForm({
                 : "넣어 두면 학생 화면에 ‘도서 정보’ 버튼이 생겨 새 탭으로 열립니다."}
             </em>
           </label>
-        ) : (
+        )}
+
+        {canGroup && (
           <>
             <div className="book-field">
               <span>모둠 구성 방식</span>
@@ -242,7 +254,16 @@ export default function BookActivityForm({
               </div>
             </div>
 
-            {perStudent ? (
+            {perStudent && type !== "consonant" ? (
+              /* 곁텍스트·RAFT의 '개별 활동' — 지금까지 해 오던 그 모습입니다.
+                 판을 깔지 않고 각자 자기 문서에만 씁니다. */
+              <p className="book-help book-solo-note">
+                모둠 없이 <strong>학생마다 혼자</strong> 씁니다(지금까지와 같아요).
+                모둠으로 묶으면 글은 그대로 각자 한 장이고,
+                <strong> 화면에서 모둠원이 함께 보입니다</strong> — 교사 화면은
+                모둠으로 좁혀 볼 수 있고, RAFT는 모둠 안에서 동료 평가를 할 수 있어요.
+              </p>
+            ) : perStudent ? (
               <p className="book-help book-solo-note">
                 모둠을 만들지 않고 <strong>학생마다 판을 하나씩</strong> 만듭니다.
                 낱말은 본인과 선생님에게만 보이고, ‘전체 보기’에서 반 전체를 한 번에 볼 수 있어요.
@@ -320,7 +341,7 @@ export default function BookActivityForm({
           >
             {saving
               ? "만드는 중…"
-              : isSolo || perStudent
+              : !canGroup || perStudent
                 ? "학생별 활동으로 만들기"
                 : fromBase
                   ? baseGroupCount > 0

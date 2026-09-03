@@ -27,6 +27,9 @@ import {
 } from "@/lib/raft";
 import { safeBookUrl } from "@/lib/paratext";
 import { IconBook, IconLock } from "./StatusIcons";
+import GroupMatesRow from "./GroupMatesRow";
+import GroupJoinRow from "./GroupJoinRow";
+import { isGroupedActivity, useBookGroups, myBookGroup, groupMembers } from "@/lib/bookGroups";
 
 const SAVE_DELAY = 900; // ms — 이만큼 입력이 없으면 저장
 
@@ -45,6 +48,15 @@ export default function RaftForm({ activity, user, onBack }) {
 
   const locked = !!activity.locked;
   const bookUrl = safeBookUrl(activity.bookUrl);
+
+  // 모둠으로 진행하는 활동이면 내 모둠원을 이름 칩으로 보여 줍니다.
+  // 글은 각자 한 장 그대로 — 모둠은 '누구와 함께 보는가'만 정합니다.
+  const grouped = isGroupedActivity(activity);
+  const groups = useBookGroups(activity.id, grouped);
+  const myGroup = myBookGroup(groups, user?.uid);
+  const mates = groupMembers(myGroup);
+  // '자유 구성'인데 아직 모둠에 안 들었으면 고르는 줄을 대신 둡니다.
+  const needsJoin = grouped && !myGroup && activity.groupMode === "free";
 
   useEffect(() => {
     return subscribeMyParatextEntry(activity.id, user?.uid, (entry) => {
@@ -185,6 +197,20 @@ export default function RaftForm({ activity, user, onBack }) {
         <p className="empty-note">불러오는 중이에요…</p>
       ) : (
         <>
+          {/* 우리 모둠 — 내가 쓰는 칸 바로 위에 둡니다. 모둠으로 묶여도 글은
+              각자 한 장이라, 이 줄이 없으면 학생 화면에서는 모둠이 있는지조차
+              알 수 없습니다. */}
+          {needsJoin ? (
+            <GroupJoinRow
+              activity={activity}
+              groups={groups}
+              user={user}
+              maxPerGroup={activity.maxPerGroup ?? 6}
+            />
+          ) : (
+            <GroupMatesRow group={myGroup} members={mates} meUid={user?.uid} />
+          )}
+
           {/* 정한 네 요소를 한 문장으로 — 무엇을 쓸지 스스로 확인하고 시작하게 */}
           <p className={`raft-sentence${planDone ? " done" : ""}`}>
             {raftSentence(answers)}

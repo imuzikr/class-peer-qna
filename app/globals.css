@@ -17884,6 +17884,100 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
 }
 .dash-grid { flex: 1; min-width: 0; }
 
+/* ── 모둠 고르기 줄 (교사) — 곁텍스트·RAFT의 학생 카드를 모둠으로 좁히기 ──
+   닿소리의 왼쪽 모둠 목록과 같은 일을 하되 한 줄입니다. 이 화면들은 카드
+   격자가 주인공이라, 왼쪽에 판을 두면 카드가 좁아져 이름이 잘립니다. */
+.group-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.group-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card-bg);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+  cursor: pointer;
+}
+.group-filter-btn em {
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-sub);
+  opacity: 0.8;
+  font-variant-numeric: tabular-nums;
+}
+.group-filter-btn:hover { border-color: var(--primary); }
+.group-filter-btn.on {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  color: var(--primary-dark);
+}
+.group-filter-btn.on em { color: var(--primary-dark); }
+
+/* ── 우리 모둠 명단 줄 (학생) — 자기가 쓰는 칸 바로 위 ──────────────
+   모둠으로 묶여도 글은 각자 한 장이라, 이 줄이 없으면 학생 화면에서는
+   모둠이 있는지조차 알 수 없습니다. 색은 닿소리 판의 이름표와 같은
+   팔레트(모둠 안 자리 순서)입니다. */
+.mates-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  margin-bottom: 12px;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  background: var(--bg-deep);
+}
+.mates-label {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--text);
+  white-space: nowrap;
+}
+.mates-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.mates-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 11px;
+  border: 1px solid;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+.mates-chip em {
+  font-style: normal;
+  font-size: 10.5px;
+  font-weight: 800;
+  opacity: 0.75;
+}
+.mates-chip--pick { cursor: pointer; }
+.mates-chip--pick:hover { box-shadow: 0 0 0 3px var(--primary-light); }
+/* 모둠 고르기(자유 구성) — 아직 어느 모둠도 내 것이 아니라 사람 색이 없습니다 */
+.mates-chip--join {
+  background: var(--card-bg);
+  border-color: var(--border);
+  color: var(--text);
+  cursor: pointer;
+}
+.mates-chip--join:hover:not(:disabled) { border-color: var(--primary); color: var(--primary-dark); }
+.mates-chip--join:disabled { opacity: 0.5; cursor: default; }
+.mates-hint { font-size: 11.5px; color: var(--text-sub); }
+.mates-row--join { border-style: dashed; }
+
 /* ── 보는 방법 고르기 (격자 / 낱말 구름) ──────────────────────────
    같은 집계를 보는 방법만 바뀌는 자리라 알약 하나에 둘을 붙여 둡니다 —
    '다른 화면으로 간다'가 아니라 '같은 것을 달리 본다'로 읽히게. */

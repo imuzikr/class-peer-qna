@@ -29,6 +29,8 @@ import {
 import { safeBookUrl } from "@/lib/paratext";
 import { IconBook, IconLock } from "./StatusIcons";
 import CastBar from "./CastBar";
+import GroupFilterRow from "./GroupFilterRow";
+import { isGroupedActivity, useBookGroups } from "@/lib/bookGroups";
 
 // 방송할 수 있는 영역 — 네 요소 + 글쓰기
 const REGIONS = [
@@ -55,6 +57,11 @@ export default function RaftBoard({
 }) {
   const [entries, setEntries] = useState([]);
   const [openUid, setOpenUid] = useState(null);
+  // 모둠으로 진행하는 활동이면 카드를 모둠으로 좁혀 볼 수 있습니다.
+  // 글은 모둠으로 묶여도 학생마다 한 장이라, 모둠은 '보는 차례'만 정합니다.
+  const grouped = isGroupedActivity(activity);
+  const groups = useBookGroups(activity.id, grouped);
+  const [pickedGroup, setPickedGroup] = useState(null);
 
   useEffect(() => subscribeParatextEntries(activity.id, setEntries), [activity.id]);
 
@@ -80,6 +87,29 @@ export default function RaftBoard({
       }));
     return [...fromRoster, ...strays];
   }, [roster, entries]);
+
+  // 고른 모둠으로 좁힌 카드 — 방송·통계는 반 전체(cards) 그대로 보고,
+  // 격자에 늘어놓는 것만 좁힙니다.
+  const shownCards = useMemo(() => {
+    if (!pickedGroup) return cards;
+    const g = groups.find((x) => x.id === pickedGroup);
+    if (!g) return cards;
+    const mine = new Set(g.memberUids ?? (g.members ?? []).map((m) => m.uid));
+    return cards.filter((c) => mine.has(c.uid));
+  }, [cards, groups, pickedGroup]);
+
+  // 모둠 줄에 적을 '시작한 인원 / 전체' — 이미 받아 둔 것으로 셉니다
+  const groupCounts = useMemo(() => {
+    if (!grouped) return null;
+    const started = new Set(
+      cards.filter((c) => raftStarted(c.entry?.answers)).map((c) => c.uid)
+    );
+    const out = {};
+    groups.forEach((g) => {
+      out[g.id] = (g.members ?? []).filter((m) => started.has(m.uid)).length;
+    });
+    return out;
+  }, [grouped, groups, cards]);
 
   const startedCount = cards.filter((c) => raftStarted(c.entry?.answers)).length;
   const doneCount = cards.filter((c) => raftDone(c.entry?.answers)).length;
@@ -244,8 +274,17 @@ export default function RaftBoard({
           아직 이 반에 들어온 학생이 없어요. 학생이 반에 들어오면 카드가 생깁니다.
         </p>
       ) : (
+        <>
+          {grouped && (
+            <GroupFilterRow
+              groups={groups}
+              value={pickedGroup}
+              onChange={setPickedGroup}
+              counts={groupCounts}
+            />
+          )}
         <div className="paratext-card-grid">
-          {cards.map((c) => (
+          {shownCards.map((c) => (
             <StudentCard
               key={c.uid}
               card={c}
@@ -254,6 +293,7 @@ export default function RaftBoard({
             />
           ))}
         </div>
+        </>
       )}
     </main>
   );
