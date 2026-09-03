@@ -56,6 +56,8 @@ import BookActivityForm from "@/components/BookActivityForm";
 import BookActivityEditModal from "@/components/BookActivityEditModal";
 import ClassNotesTools from "@/components/ClassNotesTools";
 import StudyActivityPanel from "@/components/StudyActivityPanel";
+import KwlPanel from "@/components/KwlPanel";
+import TeacherKwlPanel from "@/components/TeacherKwlPanel";
 import StudyRewardPanel from "@/components/StudyRewardPanel";
 import BookGroupBoard from "@/components/BookGroupBoard";
 import ConsonantCanvas from "@/components/ConsonantCanvas";
@@ -172,6 +174,10 @@ function BooksPageInner() {
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [confirmPurge, setConfirmPurge] = useState(null);  // 휴지통에서 완전 삭제
   const [trashOpen, setTrashOpen] = useState(false);
+  // KWLS 차트 — 공부방과 같은 패널을 왼쪽에서 폭을 벌리며 밀어 넣습니다.
+  // 책방에서도 KWLS를 쓰므로(책방 활동의 KWLS는 공부방과 같은 `kwl` 컬렉션에
+  // 쌓입니다) '오늘 반이 어디까지 썼나'를 보러 공부방으로 건너가지 않게.
+  const [kwlPanelOpen, setKwlPanelOpen] = useState(false);
   // 편집 중인 활동 (교사)
   const [editingActivity, setEditingActivity] = useState(null);
   const [toast, setToast] = useState("");
@@ -427,6 +433,40 @@ function BooksPageInner() {
       {/* 왼쪽 '오늘' 패널 + 본문. 공부방과 같은 배치라 패널도 같은 컴포넌트를
           그대로 씁니다(프로젝트를 넘기지 않으면 '오늘' 모습이 됩니다). */}
       <div className="books-body">
+        {/* KWLS 차트 — 공부방과 같은 패널·같은 여닫이(폭이 0에서 벌어지며
+            오른쪽을 밀어냅니다). 교사는 '반이 어디까지 썼나', 학생은 '내가
+            쓰는 곳'이라 담기는 것이 다릅니다. 자리도 공부방과 같은 맨 왼쪽 —
+            두 화면을 오갈 때 같은 것이 같은 자리에 있어야 합니다.
+            **목록 화면에서만** 답니다. 활동을 열면 그 화면이 가로를 다 쓰는
+            데다 여는 단추(머리말)가 사라져 닫을 길이 없어집니다. 열어 둔
+            것은 기억해 두어 목록으로 돌아오면 그대로 다시 펴집니다. */}
+        {classId && user && !activeActivity && (
+          <div
+            className={`study-kwl-slot${kwlPanelOpen ? " open" : ""}`}
+            aria-hidden={!kwlPanelOpen}
+          >
+            {kwlPanelOpen &&
+              (admin ? (
+                <TeacherKwlPanel
+                  classId={classId}
+                  user={user}
+                  roster={roster}
+                  onAward={currentClass?.archived ? null : awardReward}
+                  onClose={() => setKwlPanelOpen(false)}
+                />
+              ) : (
+                <KwlPanel
+                  classId={classId}
+                  user={user}
+                  isTeacher={false}
+                  /* 모바일에선 폭을 벌릴 자리가 없어 떠 있는 패널로 열립니다 */
+                  mobileOpen={kwlPanelOpen}
+                  onMobileClose={() => setKwlPanelOpen(false)}
+                />
+              ))}
+          </div>
+        )}
+
         {admin && classId && (
           <StudyActivityPanel
             board={null}
@@ -587,6 +627,24 @@ function BooksPageInner() {
                   ＋ 독서 활동 만들기
                 </button>
               )}
+              {/* 공부방 머리말과 같은 자리·같은 이름 — 두 화면에서 같은 것을
+                  여는 단추라 순서도 같게 둡니다(KWLS 차트 → 기록 관리). */}
+              {classId && user && (
+                <button
+                  className={`btn-ghost${kwlPanelOpen ? " active" : ""}`}
+                  onClick={() => setKwlPanelOpen((v) => !v)}
+                  aria-pressed={kwlPanelOpen}
+                  title={
+                    kwlPanelOpen
+                      ? "KWLS 차트를 닫습니다"
+                      : admin
+                      ? "KWLS 차트를 왼쪽에 펼칩니다 — 작성 현황·궁금한 점 모아보기"
+                      : "KWLS 차트를 왼쪽에 펼칩니다"
+                  }
+                >
+                  KWLS 차트
+                </button>
+              )}
               {classTools}
             </div>
           </div>
@@ -638,6 +696,11 @@ function BooksPageInner() {
           />
         )}
       </div>
+
+      {/* KWLS 차트가 모바일에서 떠 있을 때의 배경(누르면 닫힘) — 공부방과 같음 */}
+      {kwlPanelOpen && !activeActivity && (
+        <div className="kwl-mobile-backdrop" onClick={() => setKwlPanelOpen(false)} />
+      )}
 
       {creatingType && (
         <BookActivityForm
