@@ -941,6 +941,77 @@ service cloud.firestore {
         // 지우기는 담당 교사만 — 학생이 실수로 제출물을 통째로 날리지 못하게
         allow delete: if isAdmin() || ownsBookActivityEditable(aId);
       }
+
+      // ── 동료 평가 — 모둠 친구의 발표를 듣고 남기는 한 마디 ──────────
+      // 문서 ID는 `받는사람_쓴사람`입니다. 한 사람이 한 친구에게 한 장만
+      // 쓰고, 그 장을 고쳐 씁니다(같은 친구에게 여러 장이 쌓이면 무엇이
+      // 마지막 생각인지 알 수 없습니다).
+      //
+      // [읽기] 받은 학생 + 쓴 학생 + 담당 교사.
+      //   반 전체가 서로 다 보게 하지 않은 이유는, 먼저 쓴 코멘트를 보고
+      //   따라 쓰게 되기 때문입니다. 솔직하게 쓰려면 남의 답이 안 보여야
+      //   합니다. 대신 쓴 사람 이름은 남깁니다 — 익명이면 함부로 씁니다.
+      //
+      // [쓰기] 같은 모둠 친구에게만. 판정은 문서에 적힌 groupId 한 번의
+      //   get으로 합니다 — 규칙은 모둠을 뒤져 찾을 수 없어서, 어느 모둠에서
+      //   쓴 것인지 문서가 스스로 말하게 합니다. 그 모둠 명단에 **쓴 사람과
+      //   받는 사람이 둘 다** 들어 있어야 통과하므로, 남의 모둠 id를 적어
+      //   보내도 소용이 없습니다.
+      //
+      // [잠금] 활동 전체 잠금(locked)과 별개로 `peerReviewLocked`가 있습니다.
+      //   수업 중 '이제 그만 쓰고 이야기하자'로 닫는 자리라, 글쓰기까지 함께
+      //   잠기면 안 됩니다. 없는 값은 열린 것으로 봅니다(옛 활동).
+      match /peerReviews/{rId} {
+        function reviewGroupHas(gId, a, b) {
+          return gId is string
+                 && gId.size() > 0
+                 && exists(/databases/$(database)/documents/bookActivities/$(aId)/groups/$(gId))
+                 && get(/databases/$(database)/documents/bookActivities/$(aId)/groups/$(gId))
+                      .data.get('memberUids', []).hasAll([a, b]);
+        }
+        function peerReviewOpen() {
+          return get(/databases/$(database)/documents/bookActivities/$(aId))
+                   .data.get('peerReviewLocked', false) != true;
+        }
+        function validReview(d) {
+          return d.fromUid == uid()
+                 && d.toUid is string
+                 && d.toUid != uid()
+                 && rId == d.toUid + '_' + uid()
+                 && d.html is string
+                 && d.html.size() > 0
+                 && d.html.size() <= 4000
+                 && reviewGroupHas(d.get('groupId', ''), uid(), d.toUid);
+        }
+
+        allow get, list: if signedIn() && (
+          isAdmin()
+          || ownsBookActivity(aId)
+          || resource.data.toUid == uid()
+          || resource.data.fromUid == uid()
+        );
+        allow create: if signedIn()
+                      && isBookActivityMember(aId)
+                      && !isBookActivityLocked(aId)
+                      && peerReviewOpen()
+                      && validReview(request.resource.data);
+        // 고쳐 쓰기는 쓴 사람만. 받는 사람·모둠은 못 바꿉니다(바꿀 수 있으면
+        // 남에게 쓴 글을 다른 친구 것으로 옮겨 놓을 수 있습니다).
+        allow update: if signedIn()
+                      && !isBookActivityLocked(aId)
+                      && peerReviewOpen()
+                      && resource.data.fromUid == uid()
+                      && request.resource.data.fromUid == resource.data.fromUid
+                      && request.resource.data.toUid == resource.data.toUid
+                      && request.resource.data.get('groupId', '') == resource.data.get('groupId', '')
+                      && request.resource.data.html is string
+                      && request.resource.data.html.size() > 0
+                      && request.resource.data.html.size() <= 4000;
+        // 지우기는 쓴 사람과 담당 교사. 학생이 자기 말을 거둘 수 있어야 합니다.
+        allow delete: if isAdmin()
+                      || ownsBookActivityEditable(aId)
+                      || (signedIn() && resource.data.fromUid == uid());
+      }
     }
 
     // ── KWL — 개인 성찰. 본인 + 반 소유 교사/관리자만. ──

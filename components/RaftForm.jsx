@@ -12,7 +12,13 @@
 // 저장은 자동입니다(입력을 멈추면 조용히 저장).
 // =============================================================
 import { useEffect, useMemo, useRef, useState } from "react";
-import { subscribeMyParatextEntry, saveParatextEntry, saveParatextTopic } from "@/lib/store";
+import {
+  subscribeMyParatextEntry,
+  saveParatextEntry,
+  saveParatextTopic,
+  subscribeMyPeerReviews,
+  subscribeReceivedPeerReviews,
+} from "@/lib/store";
 import TopicAskModal from "./TopicAskModal";
 import {
   RAFT_COLUMNS,
@@ -29,6 +35,7 @@ import { safeBookUrl } from "@/lib/paratext";
 import { IconBook, IconLock } from "./StatusIcons";
 import GroupMatesRow from "./GroupMatesRow";
 import GroupJoinRow from "./GroupJoinRow";
+import PeerReviewModal, { PeerReviewList } from "./PeerReviewModal";
 import { isGroupedActivity, useBookGroups, myBookGroup, groupMembers } from "@/lib/bookGroups";
 
 const SAVE_DELAY = 900; // ms — 이만큼 입력이 없으면 저장
@@ -57,6 +64,18 @@ export default function RaftForm({ activity, user, onBack }) {
   const mates = groupMembers(myGroup);
   // '자유 구성'인데 아직 모둠에 안 들었으면 고르는 줄을 대신 둡니다.
   const needsJoin = grouped && !myGroup && activity.groupMode === "free";
+
+  // 동료 평가 — 모둠이 있을 때만. 교사가 잠그면(peerReviewLocked) 읽기만.
+  const peerLocked = activity.peerReviewLocked === true || locked;
+  const [peerOpen, setPeerOpen] = useState(null); // null | { uid } — 열 때 고를 사람
+  const [myReviews, setMyReviews] = useState([]);
+  const [gotReviews, setGotReviews] = useState([]);
+  useEffect(() => {
+    if (!grouped || !user?.uid) { setMyReviews([]); setGotReviews([]); return undefined; }
+    const a = subscribeMyPeerReviews(activity.id, user.uid, setMyReviews);
+    const b = subscribeReceivedPeerReviews(activity.id, user.uid, setGotReviews);
+    return () => { a(); b(); };
+  }, [grouped, activity.id, user?.uid]);
 
   useEffect(() => {
     return subscribeMyParatextEntry(activity.id, user?.uid, (entry) => {
@@ -208,7 +227,25 @@ export default function RaftForm({ activity, user, onBack }) {
               maxPerGroup={activity.maxPerGroup ?? 6}
             />
           ) : (
-            <GroupMatesRow group={myGroup} members={mates} meUid={user?.uid} />
+            <GroupMatesRow
+              group={myGroup}
+              members={mates}
+              meUid={user?.uid}
+              /* 이름을 누르면 그 친구에게 바로 — 발표를 들으며 쓰는 흐름 */
+              onPick={mates.length > 1 ? (m) => setPeerOpen({ uid: m.uid }) : null}
+              actions={
+                mates.length > 1 && (
+                  <button
+                    type="button"
+                    className="btn-ghost peer-open-btn"
+                    onClick={() => setPeerOpen({ uid: null })}
+                  >
+                    ✍️ 동료 평가
+                    {myReviews.length > 0 && <em>{myReviews.length}</em>}
+                  </button>
+                )
+              }
+            />
           )}
 
           {/* 정한 네 요소를 한 문장으로 — 무엇을 쓸지 스스로 확인하고 시작하게 */}
@@ -278,6 +315,24 @@ export default function RaftForm({ activity, user, onBack }) {
             />
           </section>
         </>
+      )}
+
+      {/* 친구들이 내게 남긴 한 마디 — 내가 쓴 글 아래에 둡니다.
+          규칙이 '받은 사람과 쓴 사람과 교사'에게만 열어 두어, 남의 평가는
+          여기 오지 않습니다. */}
+      {grouped && <PeerReviewList reviews={gotReviews} />}
+
+      {peerOpen && myGroup && (
+        <PeerReviewModal
+          activity={activity}
+          group={myGroup}
+          members={mates}
+          user={user}
+          myReviews={myReviews}
+          initialUid={peerOpen.uid}
+          locked={peerLocked}
+          onClose={() => setPeerOpen(null)}
+        />
       )}
 
       {topicAsk && (

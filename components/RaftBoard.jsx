@@ -14,7 +14,11 @@
 // 크게 떠서 무슨 말인지 모르는 일이 없게 합니다.
 // =============================================================
 import { useEffect, useMemo, useState } from "react";
-import { subscribeParatextEntries } from "@/lib/store";
+import {
+  subscribeParatextEntries,
+  subscribeAllPeerReviews,
+  setPeerReviewLocked,
+} from "@/lib/store";
 import { useEntryCast } from "@/lib/useEntryCast";
 import {
   RAFT_COLUMNS,
@@ -30,6 +34,7 @@ import { safeBookUrl } from "@/lib/paratext";
 import { IconBook, IconLock } from "./StatusIcons";
 import CastBar from "./CastBar";
 import GroupFilterRow from "./GroupFilterRow";
+import { PeerReviewList } from "./PeerReviewModal";
 import { isGroupedActivity, useBookGroups } from "@/lib/bookGroups";
 
 // 방송할 수 있는 영역 — 네 요소 + 글쓰기
@@ -62,6 +67,13 @@ export default function RaftBoard({
   const grouped = isGroupedActivity(activity);
   const groups = useBookGroups(activity.id, grouped);
   const [pickedGroup, setPickedGroup] = useState(null);
+  // 동료 평가 — 모둠 활동일 때만. 교사는 전부 읽고, 열고 닫을 수 있습니다.
+  const [reviews, setReviews] = useState([]);
+  useEffect(() => {
+    if (!grouped) { setReviews([]); return undefined; }
+    return subscribeAllPeerReviews(activity.id, setReviews);
+  }, [grouped, activity.id]);
+  const peerLocked = activity.peerReviewLocked === true;
 
   useEffect(() => subscribeParatextEntries(activity.id, setEntries), [activity.id]);
 
@@ -137,6 +149,10 @@ export default function RaftBoard({
   }
 
   const openAnswers = open?.entry?.answers ?? {};
+  const openReviews = useMemo(
+    () => (open ? reviews.filter((r) => r.toUid === open.uid) : []),
+    [reviews, open]
+  );
 
   return (
     <main className="books-main">
@@ -188,6 +204,24 @@ export default function RaftBoard({
               <span className="book-locked-note book-locked-chip">
                 <IconLock size={14} /> 지금은 잠겨 있어 학생이 고칠 수 없어요.
               </span>
+            )}
+            {/* 동료 평가 열기/잠그기 — 활동 전체 잠금과 별개입니다.
+                '이제 그만 쓰고 이야기하자'로 닫는 자리라, 글쓰기까지 함께
+                잠기면 안 됩니다. */}
+            {grouped && !open && (
+              <button
+                type="button"
+                className={`btn-ghost peer-lock-btn${peerLocked ? " on" : ""}`}
+                onClick={() => setPeerReviewLocked(activity.id, !peerLocked)}
+                title={
+                  peerLocked
+                    ? "동료 평가를 다시 열어 줍니다"
+                    : "동료 평가를 잠급니다 — 쓴 것은 그대로 남습니다"
+                }
+              >
+                {peerLocked ? "🔒 동료 평가 잠김" : "✍️ 동료 평가 열림"}
+                {reviews.length > 0 && <em>{reviews.length}</em>}
+              </button>
             )}
           </div>
           {/* 방송 막대는 배지와 같은 줄에 — 배지 몇 개뿐인 줄 아래에 또 한 줄을
@@ -268,6 +302,11 @@ export default function RaftBoard({
               );
             })}
           </div>
+
+          {/* 이 학생이 모둠 친구들에게 받은 한 마디 — 글 바로 아래.
+              규칙이 담당 교사에게 전체를 열어 두므로 여기서 다 보입니다
+              (학생끼리는 자기가 받은 것과 자기가 쓴 것만 봅니다). */}
+          {grouped && <PeerReviewList reviews={openReviews} title="모둠 친구들이 남긴 한 마디" />}
         </>
       ) : cards.length === 0 ? (
         <p className="empty-note">

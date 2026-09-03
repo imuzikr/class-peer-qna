@@ -17977,6 +17977,120 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
 .mates-chip--join:disabled { opacity: 0.5; cursor: default; }
 .mates-hint { font-size: 11.5px; color: var(--text-sub); }
 .mates-row--join { border-style: dashed; }
+/* 모둠 줄 오른쪽 끝의 '동료 평가' — 명단 바로 옆이라야 '이 친구들에게
+   쓰는 것'으로 읽힙니다. 머리말에 두면 활동 전체의 도구로 보입니다. */
+.peer-open-btn { margin-left: auto; padding: 6px 12px; font-size: 12.5px; }
+.peer-open-btn em {
+  font-style: normal;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+/* ── 동료 평가 ────────────────────────────────────────────────── */
+.peer-lock-btn { padding: 5px 11px; font-size: 12px; }
+.peer-lock-btn.on {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  color: var(--primary-dark);
+}
+.peer-lock-btn em {
+  font-style: normal;
+  margin-left: 6px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.peer-modal { width: min(94vw, 620px); }
+.peer-head-group {
+  margin-left: 10px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.peer-body { display: flex; flex-direction: column; gap: 12px; }
+/* 누구에게 쓸지 — 발표를 들으며 이름을 눌러 옮겨 다니는 줄 */
+.peer-people { display: flex; flex-wrap: wrap; gap: 6px; }
+.peer-person {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 13px;
+  border: 1.5px solid var(--border);
+  border-radius: 999px;
+  background: var(--card-bg);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-sub);
+  cursor: pointer;
+}
+.peer-person:hover { border-color: var(--primary); }
+.peer-person.on { font-weight: 800; }
+/* 이미 쓴 친구 — 누구를 아직 안 썼는지 이름줄만 보고 알게 */
+.peer-done-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.75;
+}
+.peer-write { display: flex; flex-direction: column; gap: 10px; }
+.peer-hints {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font-size: 11.5px;
+  color: var(--text-sub);
+  line-height: 1.6;
+}
+.peer-hints b { color: var(--text); font-weight: 800; }
+.peer-editor { min-height: 150px; }
+.peer-actions { display: flex; align-items: center; gap: 10px; }
+.peer-actions .btn-primary { margin-left: auto; }
+.peer-del { color: var(--danger); padding: 6px 12px; font-size: 12.5px; }
+.peer-state { font-size: 12px; color: var(--text-sub); }
+.peer-read {
+  padding: 11px 13px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  background: var(--bg-deep);
+  font-size: 14px;
+  line-height: 1.7;
+}
+/* 받은 한 마디 — 학생 화면 아래와 교사의 학생 상세에서 같이 씁니다 */
+.peer-received { margin-top: 18px; }
+.peer-received h4 {
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 9px;
+}
+.peer-received-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px;
+}
+.peer-card {
+  padding: 11px 13px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  background: var(--card-bg);
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: var(--text);
+}
+.peer-card header {
+  margin-bottom: 5px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--primary-dark);
+}
 
 /* ── 보는 방법 고르기 (격자 / 낱말 구름) ──────────────────────────
    같은 집계를 보는 방법만 바뀌는 자리라 알약 하나에 둘을 붙여 둡니다 —
