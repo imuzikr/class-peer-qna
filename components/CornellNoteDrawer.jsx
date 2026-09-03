@@ -35,6 +35,7 @@ import {
   isCornellFeedbackUnread,
   todayDateKey,
   CORNELL_LIMITS,
+  CORNELL_RECENT_DAYS,
 } from "@/lib/store";
 import RichTextEditor from "./RichTextEditor";
 import CornellNoteSheet from "./CornellNoteSheet";
@@ -62,11 +63,16 @@ export default function CornellNoteDrawer({
   const [notes, setNotes] = useState("");        // HTML
   const [summary, setSummary] = useState("");
   const [status, setStatus] = useState("idle");  // idle | saving | saved
+  // 아직 저장 안 된 편집이 있는지 — 머리말의 '저장' 단추가 이걸 보고 삽니다.
+  // (아래 dirtyRef와 다릅니다: ref는 '한 번이라도 손댔나'라 저장 뒤에도 켜진
+  //  채로 둡니다 — 서버 값이 내 글자를 덮어쓰지 못하게 하는 빗장이라서요)
+  const [dirty, setDirty] = useState(false);
   const [date] = useState(() => todayDateKey());
-  // 최근 14일치 — '안 읽은 선생님 한 마디'를 찾는 데만 씁니다
+  // 최근 14일치 — '안 읽은 선생님 한 마디'와 '지난 노트' 목록에 씁니다
   const [recent, setRecent] = useState([]);
   const [seenNow, setSeenNow] = useState(() => new Set()); // 이번에 읽은 것
-  const [openPast, setOpenPast] = useState(null);          // 펼쳐 본 지난 노트 id
+  const [openAlert, setOpenAlert] = useState(null); // 맨 위 알림에서 펼친 노트
+  const [openPast, setOpenPast] = useState(null);   // 아래 지난 노트에서 펼친 것
 
   // 내가 고친 뒤로는 서버 값이 와도 덮어쓰지 않습니다(입력 중 글자가 튀는 것 방지)
   const dirtyRef = useRef(false);
@@ -161,12 +167,29 @@ export default function CornellNoteDrawer({
       try {
         await saveCornellNote(classId, user, date, { cue, notes, summary, lessonTitle });
         setStatus("saved");
+        setDirty(false);
       } catch {
         setStatus("idle");
       }
     }, SAVE_DELAY);
     return () => clearTimeout(timerRef.current);
   }, [cue, notes, summary, classId, user, date, lessonTitle]);
+
+  // 손으로 누르는 저장 — 자동 저장은 그대로 두고 하나 더 둡니다.
+  // 2초를 기다리는 동안이 불안한 것은 자연스러운 일이고, 수업이 끝나 자리를
+  // 뜰 때 '눌러서 끝냈다'는 감각이 필요합니다.
+  const saveNow = useCallback(async () => {
+    if (!classId || !user?.uid) return;
+    clearTimeout(timerRef.current);
+    setStatus("saving");
+    try {
+      await saveCornellNote(classId, user, date, { ...latestRef.current, lessonTitle });
+      setStatus("saved");
+      setDirty(false);
+    } catch {
+      setStatus("idle");
+    }
+  }, [classId, user, date, lessonTitle]);
 
   // 화면을 벗어나거나 탭을 닫을 때 마지막으로 한 번 더
   useEffect(() => {
@@ -193,6 +216,7 @@ export default function CornellNoteDrawer({
   function edit(setter) {
     return (v) => {
       dirtyRef.current = true;
+      setDirty(true);
       onType?.();   // '필기 중' — 교사 전광판의 ✍️
       setter(v);
     };
@@ -208,11 +232,22 @@ export default function CornellNoteDrawer({
   const unreadCount = merged.filter(
     (n) => isCornellFeedbackUnread(n) && !seenNow.has(n.id)
   ).length;
-  // 서랍 안에 늘어놓을 지난 한 마디들 (오늘 것은 아래 제자리에 따로 있습니다)
-  const pastFeedback = merged.filter(
-    (n) => n.date !== date && String(n.feedback ?? "").trim()
+  // 맨 위 알림 — **이번에 새로 온** 한 마디만. 예전에 읽은 것까지 여기 두면
+  // 알림이 아니라 목록이 되어, 정작 새 것이 묻힙니다(그건 아래 '지난 노트'가
+  // 합니다). seenNow를 함께 보는 이유: 서랍을 연 순간 읽음 처리가 되므로,
+  // 그것만으로 거르면 뜨자마자 사라져 읽을 새가 없습니다.
+  const arrivedFeedback = merged.filter(
+    (n) =>
+      n.date !== date &&
+      String(n.feedback ?? "").trim() &&
+      (isCornellFeedbackUnread(n) || seenNow.has(n.id))
   );
-  const openPastNote = pastFeedback.find((n) => n.id === openPast) ?? null;
+  const openAlertNote = arrivedFeedback.find((n) => n.id === openAlert) ?? null;
+
+  // 아래 '지난 노트' — 최근 14일 전부. 배지를 세려고 이미 받아 둔 것이라
+  // 여기 늘어놓는 데 읽기가 1건도 늘지 않습니다.
+  const pastNotes = merged.filter((n) => n.date !== date);
+  const openPastNote = pastNotes.find((n) => n.id === openPast) ?? null;
 
   return (
     <>
@@ -249,9 +284,23 @@ export default function CornellNoteDrawer({
           <header className="cornell-head">
             <strong>📓 수업 노트</strong>
             <span className="cornell-date">{date}</span>
-            <span className="cornell-status">
-              {status === "saving" ? "저장 중…" : status === "saved" ? "저장됨" : ""}
-            </span>
+            {/* 저장은 자동입니다(2초). 그래도 단추를 둡니다 — 자리를 뜰 때
+                '눌러서 끝냈다'는 감각이 필요하고, 기다리는 2초가 불안한 것도
+                자연스러운 일입니다. 상태 글자를 따로 두지 않고 단추가 곧
+                상태입니다(머리말은 좁고, 같은 말이 두 군데 있으면 헷갈립니다). */}
+            <button
+              type="button"
+              className={`cornell-save${dirty ? " on" : ""}`}
+              onClick={saveNow}
+              disabled={!dirty || status === "saving"}
+              title="지금 저장 — 안 눌러도 2초 뒤 저절로 저장돼요"
+            >
+              {status === "saving"
+                ? "저장 중…"
+                : !dirty && status === "saved"
+                  ? "저장됨"
+                  : "저장"}
+            </button>
             <button
               type="button"
               className="cornell-close"
@@ -274,30 +323,30 @@ export default function CornellNoteDrawer({
                   들어가 그 날짜를 펼쳐 봐야만 알게 됩니다.
                   줄을 누르면 그날 노트를 이 안에서 펼쳐 봅니다 — 무엇에
                   대한 말인지 보려고 화면을 옮기지 않아도 되게. */}
-              {pastFeedback.length > 0 && (
+              {arrivedFeedback.length > 0 && (
                 <div className="cornell-newfb">
                   <span className="cornell-newfb-tag">
                     지난 노트에 선생님 한 마디
                   </span>
-                  {pastFeedback.map((n) => (
+                  {arrivedFeedback.map((n) => (
                     <div key={n.id} className="cornell-newfb-row">
                       <button
                         type="button"
-                        className={`cornell-newfb-item${openPast === n.id ? " open" : ""}`}
-                        onClick={() => setOpenPast(openPast === n.id ? null : n.id)}
-                        aria-expanded={openPast === n.id}
+                        className={`cornell-newfb-item${openAlert === n.id ? " open" : ""}`}
+                        onClick={() => setOpenAlert(openAlert === n.id ? null : n.id)}
+                        aria-expanded={openAlert === n.id}
                       >
                         {/* 서랍이 좁아 연도는 뺍니다 — 14일치라 헷갈릴 일이 없습니다 */}
                         <time dateTime={n.date}>{String(n.date ?? "").slice(5)}</time>
                         <span className="cornell-newfb-text">{n.feedback}</span>
                         <span className="cornell-newfb-caret" aria-hidden="true">
-                          {openPast === n.id ? "▾" : "▸"}
+                          {openAlert === n.id ? "▾" : "▸"}
                         </span>
                       </button>
                       {/* 펼친 노트는 **누른 줄 바로 아래**에. 목록 끝에 붙이면
                           어느 줄에 대한 것인지 알 수 없습니다. */}
-                      {openPastNote?.id === n.id && (
-                        <CornellNoteSheet note={openPastNote} showFeedback={false} />
+                      {openAlertNote?.id === n.id && (
+                        <CornellNoteSheet note={openAlertNote} showFeedback={false} />
                       )}
                     </div>
                   ))}
@@ -361,8 +410,54 @@ export default function CornellNoteDrawer({
                 선생님이 수업 뒤에 읽고 피드백을 줄 수 있어요.
               </p>
 
-              {/* 지난 노트는 학습 리포트에서 코넬 2단으로 펼쳐 봅니다 —
-                  서랍은 좁아 오늘 것 쓰기에만 씁니다. 옮겨 가기 전에 쓰던
+              {/* 지난 노트 — 배지를 세려고 이미 받아 둔 최근 14일치라
+                  여기 늘어놓는 데 읽기가 1건도 늘지 않습니다. 오늘 것을 쓰다
+                  "저번에 뭐라고 적었더라" 할 때 화면을 옮기지 않게 하는 자리라,
+                  쓰는 칸 **아래**에 둡니다(위에 두면 매번 지나쳐 스크롤해야
+                  합니다). 더 옛것은 리포트로 갑니다. */}
+              {pastNotes.length > 0 && (
+                <section className="cornell-past">
+                  <div className="cornell-past-head">
+                    <b>지난 노트</b>
+                    <span>
+                      최근 {CORNELL_RECENT_DAYS}일 · {pastNotes.length}장
+                    </span>
+                  </div>
+                  {pastNotes.map((n) => {
+                    const hasFb = !!String(n.feedback ?? "").trim();
+                    const preview =
+                      String(n.lessonTitle ?? "").trim() ||
+                      stripHtml(n.notes ?? "") ||
+                      String(n.cue ?? "").trim() ||
+                      "수업";
+                    return (
+                      <div key={n.id} className="cornell-past-row">
+                        <button
+                          type="button"
+                          className={`cornell-past-item${openPast === n.id ? " open" : ""}`}
+                          onClick={() => setOpenPast(openPast === n.id ? null : n.id)}
+                          aria-expanded={openPast === n.id}
+                        >
+                          <time dateTime={n.date}>{String(n.date ?? "").slice(5)}</time>
+                          <span className="cornell-past-title">{preview}</span>
+                          {hasFb && (
+                            <span className="cornell-past-fb" title="선생님 한 마디가 있어요">
+                              💬
+                            </span>
+                          )}
+                          <span className="cornell-past-caret" aria-hidden="true">
+                            {openPast === n.id ? "▾" : "▸"}
+                          </span>
+                        </button>
+                        {openPastNote?.id === n.id && <CornellNoteSheet note={openPastNote} />}
+                      </div>
+                    );
+                  })}
+                </section>
+              )}
+
+              {/* 14일보다 옛것과, 코넬 2단을 넓게 펴서 보는 것은 리포트에서 —
+                  서랍은 좁아 오늘 것 쓰기가 본업입니다. 옮겨 가기 전에 쓰던
                   것을 저장합니다. */}
               <button
                 type="button"
@@ -372,7 +467,7 @@ export default function CornellNoteDrawer({
                   router.push("/report#cornell-notes");
                 }}
               >
-                지난 노트 다시 보기 →
+                노트 전체 보기 →
               </button>
             </div>
           )}

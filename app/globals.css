@@ -22213,3 +22213,94 @@ body:has(.confirm-backdrop) .cornell-handle {
   border-bottom: 2px solid var(--primary-light);
 }
 .cornell-newfb .cornell-sheet { font-size: 12.5px; }
+
+/* 손잡이는 세로쓰기(writing-mode: vertical-rl)라 그 안의 숫자까지 눕습니다.
+   배지만 가로쓰기로 되돌립니다 — 글자는 세로로 흘러도 숫자는 바로 서야
+   한눈에 읽힙니다. */
+.cornell-handle-badge {
+  writing-mode: horizontal-tb;
+  text-orientation: mixed;
+  letter-spacing: 0;
+}
+
+/* ===== 서랍 머리말의 '저장' 단추 =====
+   자동 저장은 그대로 두고 하나 더 둡니다. 단추가 곧 상태 표시라
+   (저장 / 저장 중… / 저장됨) 같은 말을 두 군데 두지 않습니다. */
+.cornell-save {
+  margin-left: auto;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 10px;
+  background: #fff;
+  color: var(--text-sub);
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+.cornell-save.on {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+.cornell-save:disabled { cursor: default; }
+.cornell-save:not(:disabled):hover { border-color: var(--primary-dark); }
+
+/* ===== 서랍 아래 '지난 노트' 목록 ===== */
+.cornell-past {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.cornell-past-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+.cornell-past-head b { font-size: 12.5px; font-weight: 800; color: var(--dark); }
+.cornell-past-head span { font-size: 11px; color: var(--text-sub); }
+.cornell-past-row { display: flex; flex-direction: column; gap: 6px; }
+.cornell-past-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  border: none;
+  background: none;
+  padding: 5px 4px;
+  border-radius: 6px;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.cornell-past-item:hover { background: var(--neutral); }
+.cornell-past-item.open { background: var(--neutral); }
+.cornell-past-item time {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-sub);
+  font-variant-numeric: tabular-nums;
+}
+/* 제목은 한 줄로 자릅니다 — 줄 수가 들쭉날쭉하면 날짜가 눈으로 안 따라옵니다 */
+.cornell-past-title {
+  font-size: 12.5px;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cornell-past-fb { font-size: 11px; }
+.cornell-past-caret { font-size: 11px; color: var(--text-sub); }
+/* 서랍은 좁아 여기서도 코넬 2단을 세로로 눕힙니다 */
+.cornell-past .cornell-sheet-grid { grid-template-columns: 1fr; }
+.cornell-past .cornell-sheet-cue {
+  border-right: none;
+  border-bottom: 2px solid var(--primary-light);
+}
