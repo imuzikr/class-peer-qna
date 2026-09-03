@@ -160,11 +160,6 @@ export default function StudyActivityWall({
         role="dialog"
         aria-modal="true"
         aria-label={`${label} 모아보기`}
-        // 깔린 카드 수만큼만 넓힙니다(최대 4열) — 두 장뿐인데 1240px로 열리면
-        // 오른쪽이 텅 빈 채라 화면이 덜 그려진 것처럼 보입니다.
-        // (두 열 아래로는 줄이지 않습니다 — 제목·정렬·띄우기가 있는 머리줄이
-        //  그보다 좁으면 여러 줄로 접혀 오히려 커집니다)
-        style={{ "--wall-cols": Math.min(4, Math.max(2, written.length)) }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="wall-head">

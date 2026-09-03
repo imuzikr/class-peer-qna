@@ -217,7 +217,7 @@ export default function PresentationOverlay({ broadcast }) {
     // KWLS 한 칸은 흔히 열댓 자라, 한 크기로 맞춰 두면 넓은 화면에 작은
     // 글씨 한 줄만 덩그러니 놓입니다. 길이에 따라 네 단계로 나눕니다.
     const chars = fields.reduce((n, f) => n + String(f.text ?? "").length, 0);
-    const size = chars <= 60 ? "xl" : chars <= 200 ? "lg" : chars <= 500 ? "md" : "sm";
+    const size = chars <= 40 ? "xl" : chars <= 160 ? "lg" : chars <= 450 ? "md" : "sm";
     return (
       <div
         className="broadcast-overlay broadcast-overlay--entry"
