@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { backdropClose } from "@/lib/modal";
+import SeatViewToggle from "./SeatViewToggle";
+import { useSeatView } from "@/lib/seatView";
 import { STUDY_SEAT_COUNT } from "@/lib/store";
 
 const GROUP_COLORS = ["#2563eb", "#16a34a", "#f97316", "#9333ea", "#dc2626", "#0891b2"];
@@ -56,6 +58,9 @@ export default function SeatGroupSetupModal({
   onClose,
 }) {
   const [tab, setTab] = useState(initialTab);
+  // 자리표를 보는 쪽 — 자리표가 나오는 네 화면이 같은 값을 함께 씁니다.
+  // 여기서 뒤집어 배정해도 저장되는 배열은 그대로입니다(그림만 돌립니다).
+  const [teacherView, toggleSeatView] = useSeatView();
   const [seats, setSeats] = useState(() => normalizedSeats(seatLayout?.seats ?? roster.map((s) => s.uid)));
   const [groups, setGroups] = useState(() =>
     defaultGroups(groupAssignment?.groups ?? [], new Set(roster.map((s) => s.uid)))
@@ -164,19 +169,25 @@ export default function SeatGroupSetupModal({
           <button className="btn-close" onClick={onClose} aria-label="닫기">×</button>
         </div>
 
-        <div className="seat-setup-tabs">
-          <button type="button" className={tab === "seats" ? "active" : ""} onClick={() => setTab("seats")}>
-            자리 배정하기
-          </button>
-          <button type="button" className={tab === "groups" ? "active" : ""} onClick={() => setTab("groups")}>
-            모둠 설정하기
-          </button>
+        <div className="seat-setup-tabrow">
+          <div className="seat-setup-tabs">
+            <button type="button" className={tab === "seats" ? "active" : ""} onClick={() => setTab("seats")}>
+              자리 배정하기
+            </button>
+            <button type="button" className={tab === "groups" ? "active" : ""} onClick={() => setTab("groups")}>
+              모둠 설정하기
+            </button>
+          </div>
+          {/* 자리 배정에서만 뜻이 있는 단추라 그 탭에서만 답니다 */}
+          {tab === "seats" && (
+            <SeatViewToggle teacherView={teacherView} onToggle={toggleSeatView} />
+          )}
         </div>
 
         {tab === "seats" ? (
           <>
             <div className="seat-setup-body">
-              <div className="seat-setup-grid">
+              <div className={`seat-setup-grid${teacherView ? " seat-flipped" : ""}`}>
                 {seats.map((uid, i) => {
                   const s = studentOf(uid);
                   return (

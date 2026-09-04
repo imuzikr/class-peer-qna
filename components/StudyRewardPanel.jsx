@@ -32,10 +32,10 @@ import { SeatPickGrid } from "./QuestionSeatModal";
 import RewardTally from "./RewardTally";
 import StudentToolsModal from "./StudentToolsModal";
 import StudentNotesModal from "./StudentNotesModal";
+import SeatViewToggle from "./SeatViewToggle";
+import { useSeatView } from "@/lib/seatView";
 
 const COLLAPSE_KEY = "reward_panel_collapsed";
-// 자리표를 보는 쪽 (학생 보기 / 선생님 보기) — 개인 화면 설정
-const SEATVIEW_KEY = "reward_seat_view";
 const GROUP_COLORS = ["#2563eb", "#16a34a", "#f97316", "#9333ea", "#dc2626", "#0891b2"];
 // '자리 배정하기' 모달의 모둠 수 선택([2,3,4,5,6]개)과 같은 범위로 맞춥니다.
 const MIN_GROUPS = 2;
@@ -65,25 +65,16 @@ export default function StudyRewardPanel({
   const [dragUid, setDragUid] = useState(null); // 드래그로 옮기는 중인 학생
   const [pickedUid, setPickedUid] = useState(null); // 짚어 둔 학생(탭으로 옮기기)
   const [zoom, setZoom] = useState(false); // 자리표 확대 보기
-  // 자리표를 어느 쪽에서 보는가. 학생 보기(기본)는 학생이 앉아 칠판을 보는
-  // 방향이고, 선생님 보기는 교탁에서 본 방향이라 좌우·앞뒤가 뒤집힙니다.
-  // 개인 화면 설정이라 localStorage에 기억해 둡니다(수업마다 다시 고르지
-  // 않게 — 한 선생님은 대개 늘 같은 쪽에서 봅니다).
-  const [teacherView, setTeacherView] = useState(false);
+  // 자리표를 어느 쪽에서 보는가 — 자리표가 나오는 네 화면이 같은 값을
+  // 함께 씁니다(lib/seatView.js). 한 화면에서 뒤집으면 나머지도 따라옵니다.
+  const [teacherView, toggleSeatView] = useSeatView();
   // 자리 칸의 🍎 뱃지는 오늘 받은 개수입니다(누적 총계는 과일 주기 모달에).
   const todayCountByUid = useTodayRewardCounts(classId);
 
   // 접힘 상태 복원 — 개인 화면 설정이라 localStorage에 저장
   useEffect(() => {
     try { setCollapsed(localStorage.getItem(COLLAPSE_KEY) === "1"); } catch { /* 무시 */ }
-    try { setTeacherView(localStorage.getItem(SEATVIEW_KEY) === "teacher"); } catch { /* 무시 */ }
   }, []);
-  function toggleSeatView() {
-    setTeacherView((v) => {
-      try { localStorage.setItem(SEATVIEW_KEY, v ? "student" : "teacher"); } catch { /* 무시 */ }
-      return !v;
-    });
-  }
   function toggleCollapsed() {
     setCollapsed((v) => {
       try { localStorage.setItem(COLLAPSE_KEY, v ? "0" : "1"); } catch { /* 무시 */ }
@@ -289,19 +280,7 @@ export default function StudyRewardPanel({
                 </span>
               )}
               {/* 지금 어느 쪽에서 본 배치인지 — 누르면 반대쪽으로 돌아갑니다 */}
-              <button
-                type="button"
-                className="reward-seat-flip"
-                onClick={toggleSeatView}
-                aria-pressed={teacherView}
-                title={
-                  teacherView
-                    ? "교탁에서 본 배치예요. 누르면 학생 쪽에서 본 배치로 돌아갑니다."
-                    : "학생이 앉아 칠판을 보는 배치예요. 누르면 교탁에서 본 배치로 돌립니다."
-                }
-              >
-                {teacherView ? "선생님 보기" : "학생 보기"}
-              </button>
+              <SeatViewToggle teacherView={teacherView} onToggle={toggleSeatView} />
               <button
                 type="button"
                 className="reward-seat-zoom"

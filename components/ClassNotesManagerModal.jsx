@@ -23,6 +23,8 @@
 // =============================================================
 import { useEffect, useMemo, useState } from "react";
 import { backdropClose } from "@/lib/modal";
+import SeatViewToggle from "./SeatViewToggle";
+import { useSeatView } from "@/lib/seatView";
 import { subscribeClassNoteCounts } from "@/lib/store";
 import StudentNotesModal from "./StudentNotesModal";
 import CornellNotesPanel from "./CornellNotesPanel";
@@ -38,6 +40,8 @@ export default function ClassNotesManagerModal({
   const [counts, setCounts] = useState({});
   const [selected, setSelected] = useState(null); // 기록을 열어 볼 학생
   const [onlyEmpty, setOnlyEmpty] = useState(false); // '아직 없는 학생만' 보기
+  // 카드를 늘어놓는 쪽 — 자리표와 같은 값을 함께 씁니다(lib/seatView.js).
+  const [teacherView, toggleSeatView] = useSeatView();
 
   useEffect(() => {
     if (!classId) { setCounts({}); return; }
@@ -52,8 +56,14 @@ export default function ClassNotesManagerModal({
       if (!b.studentId) return -1;
       return String(a.studentId).localeCompare(String(b.studentId), "ko", { numeric: true });
     });
-    return onlyEmpty ? list.filter((s) => !(counts[s.uid] > 0)) : list;
-  }, [roster, counts, onlyEmpty]);
+    const shown = onlyEmpty ? list.filter((s) => !(counts[s.uid] > 0)) : list;
+    // 선생님 보기 — 교탁에서 본 방향. **여기서는 배열을 뒤집습니다.**
+    // 자리표(빈 칸이 섞인 격자)는 그림을 180도 돌려야 하지만, 이 격자는
+    // 빈 칸도 자리 번호도 없는 그냥 명단이라 뒤집는 편이 낫습니다 —
+    // 돌리면 (ㄱ) 목록이 길 때 안쪽 스크롤이 거꾸로 되고, (ㄴ) 마지막 줄의
+    // 남는 자리가 첫 줄 왼쪽에 생겨 어색합니다.
+    return teacherView ? [...shown].reverse() : shown;
+  }, [roster, counts, onlyEmpty, teacherView]);
 
   const withNotes = roster.filter((s) => counts[s.uid] > 0).length;
 
@@ -110,6 +120,9 @@ export default function ClassNotesManagerModal({
                 </span>
                 {/* 이 화면을 여는 가장 흔한 이유가 '누구를 아직 못 남겼나'라
                     그 추리기를 버튼 하나로 둡니다. */}
+                {/* 교실에서 보이는 자리 차례로 훑을 수 있게 — 자리표의 그
+                    단추와 같은 값을 씁니다(한쪽에서 뒤집으면 함께 바뀝니다) */}
+                <SeatViewToggle teacherView={teacherView} onToggle={toggleSeatView} />
                 <button
                   type="button"
                   className={`notes-mgr-filter${onlyEmpty ? " active" : ""}`}

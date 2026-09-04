@@ -896,6 +896,9 @@ button.footer-link:hover {
   flex-wrap: wrap;
   margin: 4px 0 12px;
 }
+/* '학생 보기 / 선생님 보기'와 '아직 없는 학생만'이 오른쪽에 붙어 서게 —
+   줄이 space-between이라 auto 여백이 남는 자리를 다 먹습니다. */
+.notes-mgr-bar .reward-seat-flip { margin-left: auto; }
 .notes-mgr-summary {
   font-size: 13px;
   color: var(--text-sub);
@@ -9220,6 +9223,24 @@ pre code {
   max-height: 94vh;
   overflow-y: auto;
 }
+/* 탭 묶음 + '학생 보기 / 선생님 보기' 한 줄 */
+.seat-setup-tabrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.seat-setup-tabrow .seat-setup-tabs { margin-bottom: 0; }
+.seat-setup-tabrow .reward-seat-flip { margin-left: auto; }
+
+/* 자리표를 통째로 180도 — 칸마다 도로 180도 돌려 글자는 바로 세웁니다.
+   배열을 뒤집지 않는 이유는 자리표에 빈 칸이 섞여 있고, 끌어 옮기기가 쓰는
+   자리 번호(index)가 어긋나기 때문입니다(자세한 것은 CLAUDE.md).
+   **칸에 hover transform이 있으면 이 되돌림이 지워지므로** 아래처럼 회전을
+   함께 적어야 합니다 — 돌아간 좌표계라 화면에서 '위로 1px'은 +1px입니다. */
+.seat-flipped { transform: rotate(180deg); }
+.seat-flipped > * { transform: rotate(180deg); }
+
 .seat-setup-tabs {
   display: inline-flex;
   gap: 4px;
@@ -9257,7 +9278,11 @@ pre code {
   gap: 10px;
 }
 .seat-slot {
-  aspect-ratio: 1 / 1;
+  /* 정사각형이면 한 줄 6칸 × 5줄이 세로로 740px을 넘어 창에 스크롤 막대가
+     생겼습니다. 칸 안에 드는 것은 자리 번호 · 학번 · 이름 세 줄뿐이라
+     3:2면 넉넉합니다(실측: 창 높이 956 → 781px, 스크롤 사라짐). */
+  aspect-ratio: 3 / 2;
+  min-height: 74px;
   min-width: 0;
   padding: 8px 4px;
   border: 1px dashed #d8d5ce;

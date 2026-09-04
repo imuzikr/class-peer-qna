@@ -26,6 +26,8 @@ import { normalizeSeats } from "@/lib/seats";
 import { getCurrentUser } from "@/lib/user";
 import { deskState, attendedTodaySet } from "./AttendanceBoard";
 import { SeatCell, SeatPickGrid, attStateOf } from "./QuestionSeatModal";
+import SeatViewToggle from "./SeatViewToggle";
+import { useSeatView } from "@/lib/seatView";
 import { useTodayRewardCounts } from "@/lib/useTodayRewards";
 import RewardTally from "./RewardTally";
 import StudentToolsModal from "./StudentToolsModal";
@@ -58,6 +60,8 @@ export default function LessonSeatPanel({
   // 셋을 위아래로 쌓지 않고 한 자리에서 갈아 끼웁니다 — 수업 중에 보는
   // 화면이라 세로로 길어지면 아래쪽은 스크롤해야 보입니다.
   const [view, setView] = useState("seat");
+  // 자리표를 보는 쪽 — 자리표가 나오는 네 화면이 같은 값을 함께 씁니다
+  const [teacherView, toggleSeatView] = useSeatView();
   const [ownRaised, setOwnRaised] = useState(() => new Set());
   const raisedUids = raisedUidsProp ?? ownRaised;
   const [dragIndex, setDragIndex] = useState(null);
@@ -207,6 +211,11 @@ export default function LessonSeatPanel({
           </button>
         ))}
       </span>
+      {/* 어느 쪽에서 본 배치인가 — '멋진 순간' 패널과 같은 값을 함께 씁니다.
+          자리표가 있는 보기(개별)에서만 뜻이 있어 그때만 답니다. */}
+      {activeView === "seat" && (
+        <SeatViewToggle teacherView={teacherView} onToggle={toggleSeatView} />
+      )}
       {/* 손든 인원은 어느 보기에서든 보여야 합니다 — 궁금한 순간을 보는
           동안 손을 든 학생이 있어도 놓치지 않게. */}
       <span className={`attend-seatmap-hands${raisedCount > 0 ? " on" : ""}`}>
@@ -335,6 +344,7 @@ export default function LessonSeatPanel({
           liveState={liveState}
           notingUids={notingUids}
           todayCountByUid={todayCountByUid}
+          flipped={teacherView}
         />
       )}
       </div>
