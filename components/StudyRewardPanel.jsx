@@ -129,7 +129,12 @@ export default function StudyRewardPanel({
     setDragUid(null);
     setPickedUid(null);
     const student = roster.find((s) => s.uid === uid);
-    if (!student) return;
+    // **모둠에서 빼는 것은 명단에 없는 학생도 됩니다.** 모둠에 저장된 명단은
+    // 배정하던 때의 스냅샷이라, 반에서 빠졌거나 지운 계정(샘플 계정 등)이
+    // 그대로 남습니다. 예전에는 여기서 그냥 돌아가, 그 칩을 눌러도 아무 일이
+    // 없어 화면에서 지울 길이 아예 없었습니다(실제로 겪은 일 — '학생강현수').
+    // 모둠에 **넣는** 것은 이름·학번을 명단에서 가져와야 하므로 그대로 막습니다.
+    if (!student && targetIndex != null) return;
     const next = groups.map((g) => {
       const cleaned = { ...g, members: (g.members ?? []).filter((m) => m.uid !== uid) };
       if (targetIndex == null || g.index !== targetIndex) return cleaned;
@@ -419,20 +424,31 @@ export default function StudyRewardPanel({
                 {(g.members ?? []).length === 0 ? (
                   <em className="reward-group-empty">여기로 끌어 놓기</em>
                 ) : (
-                  g.members.map((m) => (
-                    <button
-                      key={m.uid}
-                      type="button"
-                      className="reward-chip"
-                      draggable
-                      onDragStart={(e) => { setDragUid(m.uid); e.dataTransfer.effectAllowed = "move"; }}
-                      onDragEnd={() => setDragUid(null)}
-                      onClick={(e) => { e.stopPropagation(); moveToGroup(m.uid, null); }}
-                      title={`${m.name} — 눌러서 모둠에서 빼기`}
-                    >
-                      {m.name}
-                    </button>
-                  ))
+                  g.members.map((m) => {
+                    // 지금 반 명단에 없는 사람 — 배정하던 때의 스냅샷에만 남은
+                    // 자취입니다(반에서 빠졌거나 지운 계정). 옅게 표시해 두어야
+                    // 여러 모둠 중 어느 이름을 눌러 빼야 하는지 눈에 띕니다.
+                    // 명단을 아직 받는 중일 수 있어 roster가 빌 때는 안 봅니다.
+                    const stale = roster.length > 0 && !byUid.has(m.uid);
+                    return (
+                      <button
+                        key={m.uid}
+                        type="button"
+                        className={`reward-chip${stale ? " stale" : ""}`}
+                        draggable
+                        onDragStart={(e) => { setDragUid(m.uid); e.dataTransfer.effectAllowed = "move"; }}
+                        onDragEnd={() => setDragUid(null)}
+                        onClick={(e) => { e.stopPropagation(); moveToGroup(m.uid, null); }}
+                        title={
+                          stale
+                            ? `${m.name} — 지금 반 명단에 없어요. 눌러서 모둠에서 빼기`
+                            : `${m.name} — 눌러서 모둠에서 빼기`
+                        }
+                      >
+                        {m.name}
+                      </button>
+                    );
+                  })
                 )}
               </span>
             </div>
