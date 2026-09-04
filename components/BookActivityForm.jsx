@@ -14,7 +14,7 @@
 // 같은 모둠으로 돌아가는데 활동마다 다시 짜면 같은 일을 되풀이하게 됩니다.
 // =============================================================
 import { backdropClose } from "@/lib/modal";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { safeBookUrl } from "@/lib/paratext";
 import { BOOK_STUDENT_TOPIC_TYPES } from "@/lib/store";
 
@@ -25,59 +25,45 @@ const TYPES = [
   { key: "kwls", label: "KWLS로 성찰하기", desc: "읽기 전 아는 것·궁금한 것, 읽은 뒤 알게 된 것을 적습니다", defaultTitle: "KWLS로 성찰하기" },
   { key: "mindmap", label: "마인드맵", desc: "주제에서 가지를 뻗어 생각을 방사형·계층형으로 펼칩니다", defaultTitle: "마인드맵" },
 ];
-// 모둠을 어떻게 짤 것인가. 다섯 갈래이고, 갈라지는 기준은 **누가 언제
-// 명단을 정하는가**입니다.
-//   개별 활동 — 모둠을 안 만듭니다(학생마다 판 하나)
-//   기본 모둠 — 반에 이미 있는 모둠을 그대로 가져옵니다(자리표의 그 모둠)
-//   활동 모둠 — 이 활동만의 모둠. 빈 모둠만 만들어 두고 교사가 짭니다
-//   무작위   — 만들 때 지금 명단을 섞어 고르게 나눕니다
-//   자유 구성 — 빈 모둠만 만들어 두고 학생이 골라 들어갑니다
+// 모둠을 정하는 일은 **세 번의 물음**입니다. 한 줄에 다섯 갈래를 늘어놓았더니
+// '기본 모둠'과 '활동 모둠'이 나란히 있어 무엇이 무엇인지 알기 어려웠습니다.
+// 이제 묻는 차례대로 갈라 둡니다.
 //
-// '기본 모둠'과 '활동 모둠'을 나눈 이유: 예전에는 둘이 한 갈래('교사 배정')
-// 였는데, 어느 쪽이든 만들 때 반의 기본 모둠을 그대로 베껴 왔습니다. 그래서
-// '이 활동만 다르게 묶고 싶다'는 경우에 늘 지우는 일부터 해야 했습니다.
-const MODES = [
-  { key: "solo", label: "개별 활동" },
-  { key: "base", label: "기본 모둠" },
-  { key: "teacher", label: "활동 모둠" },
-  { key: "random", label: "무작위" },
-  { key: "free", label: "자유 구성" },
+//   ① 모둠으로 할까, 혼자 할까              (모둠 활동 / 개별 활동)
+//   ② 모둠이면 — 반의 기본 모둠 그대로 쓸까, 이 활동만의 모둠을 짤까
+//   ③ 이 활동만의 모둠이면 — 어떻게 짤까     (교사 배정 / 무작위 / 학생이 고르기)
+//
+// 저장되는 값(groupMode)은 지금까지와 같은 다섯 가지입니다 —
+// solo · base · teacher · random · free. 묻는 방법만 바뀝니다.
+const TEMP_MODES = [
+  {
+    key: "teacher",
+    label: "교사 배정",
+    note: "빈 모둠만 만들어 두고, 만든 뒤 '모둠 구성'에서 명단을 짭니다(기본 모둠 불러오기도 거기 있어요).",
+  },
+  {
+    key: "random",
+    label: "무작위",
+    note: "만들 때 지금 반 명단을 섞어 고르게 나눕니다. 만든 뒤 '모둠 구성'에서 손볼 수 있어요.",
+  },
+  {
+    key: "free",
+    label: "학생이 고르기",
+    note: "빈 모둠만 만들어 두면 학생이 직접 골라 들어갑니다.",
+  },
 ];
 const GROUP_COUNTS = [3, 4, 5, 6, 7];
 
-// 고른 방식이 무엇을 하는지 한 줄로 — 이름만으로는 '기본'과 '활동'이
-// 어떻게 다른지 알 수 없습니다.
-function modeNote(mode, baseGroupCount) {
-  if (mode === "base") {
-    return baseGroupCount > 0
-      ? `반의 기본 모둠 ${baseGroupCount}개를 그대로 가져옵니다 — 이름·명단까지. 이 활동에서만 고쳐도 기본 모둠은 그대로예요.`
-      : "아직 반에 기본 모둠이 없어요. 공부방의 '멋진 순간' 자리표에서 모둠을 먼저 짜거나, 다른 방식을 골라 주세요.";
-  }
-  if (mode === "teacher") {
-    return "이 활동만의 모둠입니다. 빈 모둠만 만들어 두고, 만든 뒤 '모둠 구성'에서 명단을 짭니다(기본 모둠 불러오기도 거기 있어요).";
-  }
-  if (mode === "random") return "만들 때 지금 반 명단을 섞어 고르게 나눕니다. 만든 뒤 '모둠 구성'에서 손볼 수 있어요.";
-  if (mode === "free") return "빈 모둠만 만들어 두면 학생이 직접 골라 들어갑니다.";
-  return "";
+// '기본 모둠 그대로'를 골랐을 때의 안내 — 몇 개를 가져오는지, 없으면 어떻게
+// 하는지. 이름만으로는 '기본'과 '이 활동만의 모둠'이 어떻게 다른지 모릅니다.
+function baseNote(baseGroupCount) {
+  return baseGroupCount > 0
+    ? `반의 기본 모둠 ${baseGroupCount}개를 그대로 가져옵니다 — 이름·명단까지. 이 활동에서만 고쳐도 기본 모둠은 그대로예요.`
+    : "아직 반에 기본 모둠이 없어요. 공부방의 '멋진 순간' 자리표에서 모둠을 먼저 짜거나, ‘이 활동만의 모둠’으로 바꿔 주세요.";
 }
 
-// 모둠으로 진행할 수 있는 종류 (BookActivityForm 안에서만 쓰는 목록)
+// 모둠으로 진행할 수 있는 종류
 const GROUPABLE = ["consonant", "paratext", "raft"];
-
-// 창을 열었을 때 어느 방식이 골라져 있을 것인가.
-//
-// **반에 기본 모둠이 있으면 그것부터**입니다. 수업이 대체로 늘 같은 모둠으로
-// 돌아가므로, 활동을 만들 때마다 모둠을 다시 짜는 것은 같은 일을 되풀이하는
-// 것입니다. 다르게 묶고 싶을 때만 '활동 모둠'으로 바꾸면 됩니다.
-//
-// 기본 모둠이 아직 없는 반에서는 그것을 고를 수 없으므로(빈 모둠만 생깁니다),
-// 종류가 보통 하는 방식으로 돌아갑니다 — 닿소리는 모둠이 함께 채우는 활동,
-// 곁텍스트·RAFT는 혼자 쓰는 활동입니다.
-function defaultMode(type, baseGroupCount) {
-  if (!GROUPABLE.includes(type)) return "solo";
-  if (baseGroupCount > 0) return "base";
-  return type === "consonant" ? "teacher" : "solo";
-}
 
 // "햇살, 바람, 나무" → ["햇살","바람","나무"] (빈 항목은 버림)
 function parseNames(raw) {
@@ -98,9 +84,12 @@ export default function BookActivityForm({
   const [title, setTitle] = useState(initial.defaultTitle);
   const [topic, setTopic] = useState("");
   const [bookUrl, setBookUrl] = useState("");
-  const [groupMode, setGroupMode] = useState(() => defaultMode(initial.key, baseGroupCount));
-  // 교사가 한 번이라도 방식을 직접 골랐는지 — 그 뒤로는 자동으로 안 바꿉니다
-  const modeTouched = useRef(false);
+  // 모둠 설정은 세 갈래로 나눠 갖고 있다가 저장할 때 하나로 합칩니다.
+  // **기본은 '모둠 활동 + 반의 기본 모둠'** — 수업이 대체로 늘 같은 모둠으로
+  // 돌아가는데 활동마다 다시 짜면 같은 일을 되풀이하게 됩니다.
+  const [groupWork, setGroupWork] = useState(true);       // ① 모둠으로 할까
+  const [useBaseGroups, setUseBaseGroups] = useState(true); // ② 기본 모둠 그대로
+  const [tempMode, setTempMode] = useState("teacher");     // ③ 임시 모둠 짜는 법
   const [groupCount, setGroupCount] = useState(4);
   const [maxPerGroup, setMaxPerGroup] = useState(6);
   const [namesRaw, setNamesRaw] = useState("");
@@ -113,7 +102,9 @@ export default function BookActivityForm({
   // 모둠으로 진행할 수 있는 종류. 곁텍스트·RAFT도 모둠이 되지만 **글은
   // 학생마다 한 장 그대로**입니다 — 모둠이 정하는 것은 '누구와 함께 보는가'
   // (화면의 흐름과 동료 평가의 범위)입니다.
-  const canGroup = ["consonant", "paratext", "raft"].includes(type);
+  const canGroup = GROUPABLE.includes(type);
+  // 세 갈래를 저장하는 한 값으로 합칩니다(지금까지와 같은 다섯 가지).
+  const groupMode = !canGroup || !groupWork ? "solo" : useBaseGroups ? "base" : tempMode;
   // '개별 활동' — 닿소리는 학생마다 판을 하나씩 깔고, 곁텍스트·RAFT는
   // 지금까지처럼 각자 자기 문서에만 씁니다. 어느 쪽이든 모둠 수·이름이
   // 필요 없어 그 칸을 감춥니다.
@@ -124,14 +115,6 @@ export default function BookActivityForm({
   // 주소를 적었는데 열 수 없는 형태면 만들기 전에 알려 줍니다.
   const urlBad = bookUrl.trim().length > 0 && !safeBookUrl(bookUrl);
 
-  // 반의 기본 모둠은 페이지가 따로 받아 오므로 창을 연 직후에 도착할 수도
-  // 있습니다. 그때 교사가 아직 방식을 고르지 않았다면 기본값을 다시 맞춥니다
-  // — 안 그러면 '기본 모둠이 있는 반인데 활동 모둠으로 열리는' 일이 생깁니다.
-  useEffect(() => {
-    if (modeTouched.current || baseGroupCount === 0) return;
-    setGroupMode((prev) => (prev === defaultMode(type, 0) ? defaultMode(type, baseGroupCount) : prev));
-  }, [baseGroupCount, type]);
-
   // 종류를 바꾸면 활동 이름도 따라갑니다 — 단, 교사가 직접 고친 이름은 지키기
   function pickType(next) {
     setType(next);
@@ -139,11 +122,10 @@ export default function BookActivityForm({
     if (title.trim() === "" || title === from?.defaultTitle) {
       setTitle(TYPES.find((t) => t.key === next)?.defaultTitle ?? title);
     }
-    // 종류를 바꾸면 방식도 그 종류의 기본값으로 돌려놓습니다(대개 '기본 모둠').
-    // 종류를 바꿨다는 것은 다른 활동을 만들겠다는 뜻이라, 앞 종류에서 고른
-    // 방식을 그대로 끌고 오면 오히려 놀랍니다.
-    modeTouched.current = false;
-    setGroupMode(defaultMode(next, baseGroupCount));
+    // 종류를 바꾸면 모둠 설정도 기본값(모둠 활동 + 기본 모둠)으로 돌아갑니다.
+    // 다른 활동을 만들겠다는 뜻이라, 앞 종류에서 고른 것을 끌고 오면 놀랍습니다.
+    setGroupWork(true);
+    setUseBaseGroups(true);
   }
 
   // 주제어를 비워 둘 수 있는 활동 — '학생이 자기 자리에서 직접 적을 길'이
@@ -269,24 +251,73 @@ export default function BookActivityForm({
 
         {canGroup && (
           <>
+            {/* ① 모둠으로 할까, 혼자 할까 */}
             <div className="book-field">
-              <span>모둠 구성 방식</span>
+              <span>진행 방식</span>
               <div className="book-seg">
-                {MODES.map((m) => (
-                  <button
-                    key={m.key}
-                    type="button"
-                    className={`book-seg-btn${groupMode === m.key ? " active" : ""}`}
-                    onClick={() => {
-                      modeTouched.current = true;
-                      setGroupMode(m.key);
-                    }}
-                  >
-                    {m.label}
-                  </button>
-                ))}
+                <button
+                  type="button"
+                  className={`book-seg-btn${groupWork ? " active" : ""}`}
+                  onClick={() => setGroupWork(true)}
+                  aria-pressed={groupWork}
+                >
+                  모둠 활동
+                </button>
+                <button
+                  type="button"
+                  className={`book-seg-btn${!groupWork ? " active" : ""}`}
+                  onClick={() => setGroupWork(false)}
+                  aria-pressed={!groupWork}
+                >
+                  개별 활동
+                </button>
               </div>
             </div>
+
+            {/* ② 모둠이면 — 반의 기본 모둠 그대로 쓸까, 이 활동만의 모둠을 짤까 */}
+            {groupWork && (
+              <div className="book-field">
+                <span>모둠 구성</span>
+                <div className="book-seg">
+                  <button
+                    type="button"
+                    className={`book-seg-btn${useBaseGroups ? " active" : ""}`}
+                    onClick={() => setUseBaseGroups(true)}
+                    aria-pressed={useBaseGroups}
+                  >
+                    기본 모둠 그대로
+                  </button>
+                  <button
+                    type="button"
+                    className={`book-seg-btn${!useBaseGroups ? " active" : ""}`}
+                    onClick={() => setUseBaseGroups(false)}
+                    aria-pressed={!useBaseGroups}
+                  >
+                    이 활동만의 모둠
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ③ 이 활동만의 모둠이면 — 어떻게 짤까 */}
+            {groupWork && !useBaseGroups && (
+              <div className="book-field">
+                <span>모둠 짜는 방법</span>
+                <div className="book-seg">
+                  {TEMP_MODES.map((m) => (
+                    <button
+                      key={m.key}
+                      type="button"
+                      className={`book-seg-btn${tempMode === m.key ? " active" : ""}`}
+                      onClick={() => setTempMode(m.key)}
+                      aria-pressed={tempMode === m.key}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {perStudent && type !== "consonant" ? (
               /* 곁텍스트·RAFT의 '개별 활동' — 지금까지 해 오던 그 모습입니다.
@@ -306,7 +337,7 @@ export default function BookActivityForm({
                 (읽는 책이 저마다 다를 때).
               </p>
             ) : fromBase ? (
-              <p className="book-help book-solo-note">{modeNote("base", baseGroupCount)}</p>
+              <p className="book-help book-solo-note">{baseNote(baseGroupCount)}</p>
             ) : (
             <>
             <div className="book-field-row">
@@ -325,7 +356,7 @@ export default function BookActivityForm({
                   ))}
                 </div>
               </div>
-              {groupMode === "free" && (
+              {tempMode === "free" && (
                 <div className="book-field book-field--narrow">
                   <span>모둠당 최대</span>
                   <select value={maxPerGroup} onChange={(e) => setMaxPerGroup(Number(e.target.value))}>
@@ -353,7 +384,9 @@ export default function BookActivityForm({
                 placeholder="쉼표로 구분 — 예: 햇살, 바람, 나무, 별빛"
               />
             </label>
-            <p className="book-help">{modeNote(groupMode, baseGroupCount)}</p>
+            <p className="book-help">
+              {TEMP_MODES.find((m) => m.key === tempMode)?.note ?? ""}
+            </p>
             </>
             )}
           </>

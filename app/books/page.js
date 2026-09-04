@@ -894,17 +894,17 @@ function ActivityCard({ activity, isTeacher, uid, onOpen, onEdit, onDelete, onTo
   // (활동 20개면 목록 한 번 여는 데 7천여 건). 반면 작업 화면과 전체 보기는
   // 이미 그 활동의 낱말을 전부 읽고 있어, 거기서는 읽기가 1건도 안 늡니다.
 
-  // 카드에 적히는 방식 이름 — 만들기 창의 이름과 같은 말을 씁니다.
-  // (옛 활동의 'teacher'는 '활동 모둠'으로 읽습니다 — 그때도 이 활동만의
+  // 카드에 적히는 방식 이름 — 만들기 창의 말과 맞춥니다.
+  // (옛 활동의 'teacher'도 '임시 모둠'으로 읽습니다 — 그때도 이 활동만의
   //  모둠을 교사가 짜는 방식이었습니다)
   const modeLabel =
     {
       solo: "개별 활동",
       base: "기본 모둠",
-      teacher: "활동 모둠",
-      random: "무작위",
-      free: "자유 구성",
-    }[activity.groupMode] ?? "활동 모둠";
+      teacher: "임시 모둠",
+      random: "무작위 모둠",
+      free: "학생이 고른 모둠",
+    }[activity.groupMode] ?? "임시 모둠";
   // 닿소리 '개별 활동'은 '모둠 n개'가 아니라 '학생 n명'으로 읽는 게 맞습니다
   const perStudent = !solo && activity.groupMode === "solo";
 
