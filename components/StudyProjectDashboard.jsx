@@ -325,7 +325,7 @@ function ProjectCard({
       <button type="button" className="study-project-open" onClick={onOpen}>
         <span className="study-project-badges">
           <span className={`study-project-badge${isGroup ? " group" : ""}`}>
-            {isGroup ? "👥 모둠" : <><IconIndividual size={14} /> 개별</>}
+            {isGroup ? "👥 모둠" : <><IconIndividual size={15} /> 개별</>}
           </span>
           {activities.length > 0 && (
             <span className="study-project-badge soft">활동 {activities.length}개</span>
@@ -333,7 +333,7 @@ function ProjectCard({
           {shared && <span className="study-project-badge soft">함께 보기</span>}
           {locked && (
             <span className="study-project-badge lock">
-              <IconLock size={13} /> 보기 전용
+              <IconLock size={15} /> 보기 전용
             </span>
           )}
         </span>

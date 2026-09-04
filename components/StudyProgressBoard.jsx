@@ -340,7 +340,7 @@ export default function StudyProgressBoard({
                       <span className="grass-act-head">
                         <span className="grass-act-no">활동 {i + 1}</span>
                         <span className={`progress-act-state${locked ? " locked" : ""}`}>
-                          <IconLockState locked={locked} size={12} />
+                          <IconLockState locked={locked} size={14} />
                           {/* '편집'이라고 적었더니 옆 화면(책방 활동 카드)의
                               '편집' 단추(이름 고치기)와 같은 낱말이라, 상태를
                               말하는 자리인지 할 일을 말하는 자리인지 헷갈렸습니다.

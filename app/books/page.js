@@ -1011,7 +1011,7 @@ function ActivityCard({ activity, isTeacher, uid, onOpen, onEdit, onDelete, onTo
             있다'가 아니라 '아직 안 봤다'로도 읽힙니다. 말은 진행 대시보드의
             같은 알약과 맞춥니다(잠김 / 열림). */}
         <span className={`book-activity-state${activity.locked ? " locked" : ""}`}>
-          <IconLockState locked={!!activity.locked} size={13} />
+          <IconLockState locked={!!activity.locked} size={15} />
           {activity.locked ? "잠김" : "열림"}
         </span>
       </button>
