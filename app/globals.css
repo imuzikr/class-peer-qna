@@ -1750,6 +1750,9 @@ button.footer-link:hover {
   color: var(--text);
 }
 .question-signal-seats {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   flex-shrink: 0;
   padding: 4px 9px;
   border: 1px solid var(--border);
@@ -7974,9 +7977,7 @@ pre code {
   border-color: var(--primary);
   background: #fff;
 }
-.lesson-seat-toggle-icon {
-  font-size: 16px;
-}
+.lesson-seat-toggle-icon { flex-shrink: 0; }
 .lesson-seat-toggle-hand {
   margin-left: auto;
   padding: 3px 9px;
@@ -12119,6 +12120,15 @@ a.lesson-board-file-name { text-decoration: underline; }
    기준선만 내려 글자 가운데에 맞춥니다. */
 .inline-icon {
   vertical-align: -3px;
+}
+
+/* 제목 줄 앞에 아이콘을 다는 자리(h2·h3) — 글자와 세로 가운데를 맞춥니다.
+   제목은 한 줄짜리라 inline-flex가 안전합니다(글줄에 섞이는 .inline-icon과
+   달리 접힐 일이 없습니다). */
+.head-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
 }
 
 .study-class-name {

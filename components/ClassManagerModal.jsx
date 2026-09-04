@@ -20,7 +20,7 @@ import {
   reorderClasses,
 } from "@/lib/store";
 import ConfirmModal from "./ConfirmModal";
-import { IconPen, IconTrash, IconArchive } from "./StatusIcons";
+import { IconPen, IconTrash, IconArchive, IconChair } from "./StatusIcons";
 
 export default function ClassManagerModal({
   classes,
@@ -184,7 +184,7 @@ export default function ClassManagerModal({
               disabled={seatSetupDisabled}
               title={seatSetupDisabled ? "이 반에 입장한 학생이 없어요" : "실제 좌석과 장기 모둠을 미리 정합니다"}
             >
-              🪑 자리 배정하기
+              <IconChair size={15} /> 자리 배정하기
             </button>
           )}
         </form>

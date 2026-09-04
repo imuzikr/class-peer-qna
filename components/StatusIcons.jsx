@@ -519,6 +519,22 @@ export function IconLockState({ locked, size = 20, className = "", mono = false 
   return <Icon size={size} className={className} mono={mono} />;
 }
 
+// 자리 배치 — 비스듬히 본 의자.
+// 이모지(🪑)를 쓰던 자리인데, 기기마다 정면 의자·사무용 회전의자·접이식
+// 의자로 다 달랐고 대부분 원색이라 이 화면의 두 색 아이콘들 사이에서
+// 혼자 튀었습니다. 등받이의 가로 두 줄이 무늬 색(#8A6258)이라 작게 줄여도
+// '의자'로 읽힙니다.
+export function IconChair({ size = 20, className = "" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">
+      <path d="M8.05 5.3 15.2 3.9c.82-.16 1.58.47 1.58 1.3v6.55l-8.73 1.7V5.3Z" fill="#FFF7ED" stroke="#3A312E" strokeWidth="1.45" strokeLinejoin="round"/>
+      <path d="M8.05 13.45 16.78 11.75 19.75 13.7 11.02 15.42 8.05 13.45Z" fill="#FFFDF9" stroke="#3A312E" strokeWidth="1.45" strokeLinejoin="round"/>
+      <path d="M11.02 15.42v3.98M19.75 13.7v3.4M8.05 13.45v3.15M16.78 11.75v2.95" stroke="#3A312E" strokeWidth="1.35" strokeLinecap="round"/>
+      <path d="M10.05 7.35 14.75 6.43M10.05 9.75 14.75 8.83" stroke="#8A6258" strokeWidth="1.05" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
 // 반 보관 — 뚜껑을 덮은 상자.
 // 이모지(📦)를 쓰던 자리인데, 기기마다 그림이 아주 달라(택배 상자 · 갈색
 // 종이상자 · 납작한 서류함) 반 관리 창과 공부방 머리말이 다른 그림을

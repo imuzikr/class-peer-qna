@@ -32,6 +32,7 @@ import { useTodayRewardCounts } from "@/lib/useTodayRewards";
 import RewardTally from "./RewardTally";
 import StudentToolsModal from "./StudentToolsModal";
 import StudentNotesModal from "./StudentNotesModal";
+import { IconChair } from "./StatusIcons";
 
 const GROUP_COLORS = ["#2563eb", "#16a34a", "#f97316", "#9333ea", "#dc2626", "#0891b2"];
 
@@ -251,7 +252,7 @@ export default function LessonSeatPanel({
         className="lesson-seat-toggle"
         onClick={() => setOpen(true)}
       >
-        <span className="lesson-seat-toggle-icon" aria-hidden="true">🪑</span>
+        <IconChair size={18} className="lesson-seat-toggle-icon" />
         자리표
         {raisedCount > 0 && (
           <span className="lesson-seat-toggle-hand">🖐️ {raisedCount}</span>
@@ -263,7 +264,7 @@ export default function LessonSeatPanel({
   return (
     <section className="lesson-seat-panel" aria-label="자리표">
       <div className="lesson-card-head">
-        <h2>🪑 자리표</h2>
+        <h2 className="head-icon"><IconChair size={19} /> 자리표</h2>
         <button
           type="button"
           className="lesson-seat-collapse-btn"

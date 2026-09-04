@@ -11,6 +11,7 @@ import {
   subscribeQuestionSignals,
 } from "@/lib/store";
 import QuestionSeatModal from "./QuestionSeatModal";
+import { IconChair } from "./StatusIcons";
 
 export default function QuestionSignalButton({
   classId,
@@ -161,7 +162,7 @@ export default function QuestionSignalButton({
               onClick={() => { setSeatOpen(true); setOpen(false); }}
               title="자리표에서 손든 학생 확인 — 자리를 눌러 과일·누가기록도 열 수 있어요"
             >
-              🪑 자리확인
+              <IconChair size={14} /> 자리확인
             </button>
           </div>
           {readError ? (

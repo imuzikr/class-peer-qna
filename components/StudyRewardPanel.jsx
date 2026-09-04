@@ -34,6 +34,7 @@ import StudentToolsModal from "./StudentToolsModal";
 import StudentNotesModal from "./StudentNotesModal";
 import SeatViewToggle from "./SeatViewToggle";
 import { useSeatView } from "@/lib/seatView";
+import { IconChair } from "./StatusIcons";
 
 const COLLAPSE_KEY = "reward_panel_collapsed";
 const GROUP_COLORS = ["#2563eb", "#16a34a", "#f97316", "#9333ea", "#dc2626", "#0891b2"];
@@ -320,7 +321,7 @@ export default function StudyRewardPanel({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="modal-head">
-              <h3>🪑 자리표</h3>
+              <h3 className="head-icon"><IconChair size={20} /> 자리표</h3>
               <button className="btn-close" onClick={() => setZoom(false)} aria-label="닫기">
                 ×
               </button>

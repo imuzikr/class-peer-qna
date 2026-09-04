@@ -24,7 +24,7 @@ import { createUploadPool } from "@/lib/uploadPool";
 import { uploadImageBlob } from "@/lib/storageUpload";
 import { getCurrentUser } from "@/lib/user";
 import ConfirmModal from "./ConfirmModal";
-import { IconTrash } from "./StatusIcons";
+import { IconTrash, IconChair } from "./StatusIcons";
 
 const MAX_SLIDES = 60;
 // 동시에 올릴 장수 — 교실 회선을 다 잡아먹지 않으면서 왕복 대기를 줄이는 선
@@ -175,7 +175,7 @@ export default function LessonManagerModal({
                   disabled={seatSetupDisabled}
                   title={seatSetupDisabled ? "이 반에 입장한 학생이 없어요" : "실제 좌석과 장기 모둠을 미리 정합니다"}
                 >
-                  🪑 자리 배정하기
+                  <IconChair size={15} /> 자리 배정하기
                 </button>
               )}
             </div>
