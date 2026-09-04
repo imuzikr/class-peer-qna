@@ -4,15 +4,17 @@
 // 독서 활동 만들기 (교사 전용)
 // -------------------------------------------------------------
 // 활동 종류를 먼저 고르면 그에 필요한 항목만 남습니다.
-//  · 닿소리 채우기 — 모둠 협동. 주제어와 모둠 구성을 정합니다.
-//      교사 배정/무작위 → 만든 뒤 모둠 대시보드에서 명단을 짜고,
-//      자유 구성 → 학생이 직접 골라 들어갑니다.
-//      모둠 이름을 쉼표로 적으면 그 이름으로 한 번에 만들어집니다.
-//  · 곁텍스트 읽기 / RAFT 글쓰기 / KWLS로 성찰하기 — 개인 활동. 모둠이 없어
-//      모둠 설정은 감추고, 대신 학생이 눌러볼 도서 정보 사이트 주소를 받습니다.
+//  · 닿소리 채우기 — 모둠이 함께 판을 채웁니다. 모둠 구성 방식을 정합니다.
+//  · 곁텍스트 읽기 / RAFT 글쓰기 — 혼자 쓰지만 **모둠으로 묶을 수 있습니다**
+//      (글은 각자 한 장 그대로, 모둠은 화면의 흐름과 동료 평가의 범위).
+//      도서 정보 주소와 모둠 설정을 둘 다 받습니다.
+//  · KWLS로 성찰하기 / 마인드맵 — 혼자 하는 활동. 모둠 설정이 없습니다.
+//
+// 모둠 방식의 기본값은 **반의 기본 모둠**입니다(있을 때). 수업이 대체로 늘
+// 같은 모둠으로 돌아가는데 활동마다 다시 짜면 같은 일을 되풀이하게 됩니다.
 // =============================================================
 import { backdropClose } from "@/lib/modal";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { safeBookUrl } from "@/lib/paratext";
 import { BOOK_STUDENT_TOPIC_TYPES } from "@/lib/store";
 
@@ -59,6 +61,24 @@ function modeNote(mode, baseGroupCount) {
   return "";
 }
 
+// 모둠으로 진행할 수 있는 종류 (BookActivityForm 안에서만 쓰는 목록)
+const GROUPABLE = ["consonant", "paratext", "raft"];
+
+// 창을 열었을 때 어느 방식이 골라져 있을 것인가.
+//
+// **반에 기본 모둠이 있으면 그것부터**입니다. 수업이 대체로 늘 같은 모둠으로
+// 돌아가므로, 활동을 만들 때마다 모둠을 다시 짜는 것은 같은 일을 되풀이하는
+// 것입니다. 다르게 묶고 싶을 때만 '활동 모둠'으로 바꾸면 됩니다.
+//
+// 기본 모둠이 아직 없는 반에서는 그것을 고를 수 없으므로(빈 모둠만 생깁니다),
+// 종류가 보통 하는 방식으로 돌아갑니다 — 닿소리는 모둠이 함께 채우는 활동,
+// 곁텍스트·RAFT는 혼자 쓰는 활동입니다.
+function defaultMode(type, baseGroupCount) {
+  if (!GROUPABLE.includes(type)) return "solo";
+  if (baseGroupCount > 0) return "base";
+  return type === "consonant" ? "teacher" : "solo";
+}
+
 // "햇살, 바람, 나무" → ["햇살","바람","나무"] (빈 항목은 버림)
 function parseNames(raw) {
   return raw.split(",").map((s) => s.trim()).filter(Boolean);
@@ -78,7 +98,9 @@ export default function BookActivityForm({
   const [title, setTitle] = useState(initial.defaultTitle);
   const [topic, setTopic] = useState("");
   const [bookUrl, setBookUrl] = useState("");
-  const [groupMode, setGroupMode] = useState("teacher");
+  const [groupMode, setGroupMode] = useState(() => defaultMode(initial.key, baseGroupCount));
+  // 교사가 한 번이라도 방식을 직접 골랐는지 — 그 뒤로는 자동으로 안 바꿉니다
+  const modeTouched = useRef(false);
   const [groupCount, setGroupCount] = useState(4);
   const [maxPerGroup, setMaxPerGroup] = useState(6);
   const [namesRaw, setNamesRaw] = useState("");
@@ -102,6 +124,14 @@ export default function BookActivityForm({
   // 주소를 적었는데 열 수 없는 형태면 만들기 전에 알려 줍니다.
   const urlBad = bookUrl.trim().length > 0 && !safeBookUrl(bookUrl);
 
+  // 반의 기본 모둠은 페이지가 따로 받아 오므로 창을 연 직후에 도착할 수도
+  // 있습니다. 그때 교사가 아직 방식을 고르지 않았다면 기본값을 다시 맞춥니다
+  // — 안 그러면 '기본 모둠이 있는 반인데 활동 모둠으로 열리는' 일이 생깁니다.
+  useEffect(() => {
+    if (modeTouched.current || baseGroupCount === 0) return;
+    setGroupMode((prev) => (prev === defaultMode(type, 0) ? defaultMode(type, baseGroupCount) : prev));
+  }, [baseGroupCount, type]);
+
   // 종류를 바꾸면 활동 이름도 따라갑니다 — 단, 교사가 직접 고친 이름은 지키기
   function pickType(next) {
     setType(next);
@@ -109,10 +139,11 @@ export default function BookActivityForm({
     if (title.trim() === "" || title === from?.defaultTitle) {
       setTitle(TYPES.find((t) => t.key === next)?.defaultTitle ?? title);
     }
-    // 종류마다 '보통 이렇게 하는' 방식으로 돌려놓습니다. 닿소리는 원래
-    // 모둠이 함께 채우는 활동이고, 곁텍스트·RAFT는 혼자 쓰는 활동이라
-    // 모둠은 고르는 사람이 일부러 골랐을 때만 붙는 편이 맞습니다.
-    setGroupMode(next === "consonant" ? "teacher" : "solo");
+    // 종류를 바꾸면 방식도 그 종류의 기본값으로 돌려놓습니다(대개 '기본 모둠').
+    // 종류를 바꿨다는 것은 다른 활동을 만들겠다는 뜻이라, 앞 종류에서 고른
+    // 방식을 그대로 끌고 오면 오히려 놀랍니다.
+    modeTouched.current = false;
+    setGroupMode(defaultMode(next, baseGroupCount));
   }
 
   // 주제어를 비워 둘 수 있는 활동 — '학생이 자기 자리에서 직접 적을 길'이
@@ -246,7 +277,10 @@ export default function BookActivityForm({
                     key={m.key}
                     type="button"
                     className={`book-seg-btn${groupMode === m.key ? " active" : ""}`}
-                    onClick={() => setGroupMode(m.key)}
+                    onClick={() => {
+                      modeTouched.current = true;
+                      setGroupMode(m.key);
+                    }}
                   >
                     {m.label}
                   </button>
