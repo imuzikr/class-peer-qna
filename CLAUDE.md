@@ -706,6 +706,30 @@ Firebase 미설정 시 자동으로 **데모 모드**로 동작 (새로고침 �
 - `StudyProgressBoard`의 잔디 범례만 자물쇠가 아니라 **대각선 무늬**입니다 —
   거기서 갈라야 하는 것은 상태가 아니라 칸 색이고, 이미 모양으로 구분됩니다.
 
+### 안내·예시 글자는 `--text-faint`
+
+글자 짙기는 세 단계입니다 — 본문 `--text` · 딸림글 `--text-sub` · **안내·예시
+`--text-faint`(#a09f96)**. 안내는 읽을 것이 아니라 참고할 것이라 살짝 보이면
+됩니다. `--text-faint`가 바닥입니다(`--bg-deep` 위에서 대비 2.4:1).
+
+- **입력칸의 예시 글(placeholder)은 `globals.css` 맨 위 한 곳**에서 정합니다
+  (`input::placeholder, textarea::placeholder`). 정해 두지 않으면 브라우저
+  기본색(크롬 #757575쯤)이라 본문만큼 짙어, 학생이 '이미 쓰여 있는 글'로
+  읽습니다. `opacity: 1`을 함께 두세요 — 파이어폭스는 기본 opacity가 0.54라
+  색만 정하면 한 번 더 옅어집니다.
+  어두운 패널의 입력칸(`.kw-edit-input` · `.study-activity-row-input` ·
+  `.kwl-textarea` · `.mm-node-input`)은 제 규칙이 아래에 있어 그것이 이깁니다 —
+  **이 규칙을 그 아래로 옮기지 마세요.**
+- **쓰기 시작하면 안내가 사라져야 합니다.** placeholder는 저절로 그렇고,
+  칸마다 붙는 힌트(`.paratext-hint`)는 CSS로 그렇게 했습니다
+  (`.raft-col.filled` · `.kwls-col.filled`에서 `display: none`). 자기 글과
+  예시가 나란히 서면 어느 것이 자기 글인지 헷갈립니다.
+- **RAFT 안내 문장**(`.raft-sentence`)은 빈칸이 남은 동안은 '채워 갈 틀'이라
+  가장 옅고, 네 칸을 다 정하면 그때 비로소 **학생이 만든 문장**이 되어
+  한 단계 또렷해집니다(굵게까지는 안 합니다 — 제목처럼 읽힙니다).
+  교사 화면(`RaftBoard`)이 늘 `done`으로 그려, 한 칸도 안 쓴 카드에도
+  '다 정했다'는 짙은 알림줄이 떴습니다. **판정을 학생 화면과 같게 두세요.**
+
 ### PythonRunner 복사 버튼
 - `.py-copy-btn` — `py-head-actions` 안, '전체 화면' 버튼 왼쪽에 위치
 - 복사 후 2초간 초록 체크 아이콘으로 교체 (`copied` state)

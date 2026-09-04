@@ -262,7 +262,16 @@ export default function RaftBoard({
       {open ? (
         /* ── 학생 상세 — 다섯 영역을 한 화면에 ── */
         <>
-          <p className="raft-sentence done">{raftSentence(openAnswers)}</p>
+          {/* 늘 done으로 그렸더니, 한 칸도 안 쓴 학생 카드에서도 '다 정했다'는
+              짙은 색 알림줄이 떴습니다(0 / 4칸인데 문장은 완성 모습).
+              학생 화면과 같은 잣대로 — 네 칸을 다 정했을 때만 done입니다. */}
+          <p
+            className={`raft-sentence${
+              raftPlanCount(openAnswers) === RAFT_COLUMN_COUNT ? " done" : ""
+            }`}
+          >
+            {raftSentence(openAnswers)}
+          </p>
           <div className="entry-detail-grid raft-detail-grid">
             {REGIONS.map((r, i) => {
               const text = String(openAnswers[r.key] ?? "").trim();
