@@ -20,10 +20,12 @@ export function nextFruit(count = 0) {
   const n = FRUITS.length;
   return FRUITS[(((count || 0) % n) + n) % n];
 }
-// **방금 준 과일** — 빼기 단추가 없앨 것입니다(하나도 없으면 쓸 일이 없지만,
-// 음수로 셈이 어긋나지 않게 되돌아 갑니다).
+// **방금 준 과일** — 빼기 단추가 없앨 것입니다.
+// 하나도 없으면 뺄 것이 없으므로(그때 빼기 단추는 꺼져 있습니다) 첫 과일을
+// 그대로 돌려줍니다. 음수로 되돌아 가면 🥝(열째)가 나와, 아무 관계 없는
+// 과일이 꺼진 단추에 붙어 '왜 키위지?' 하게 됩니다.
 export function lastFruit(count = 0) {
-  return nextFruit((count || 0) - 1);
+  return nextFruit(Math.max(1, count || 0) - 1);
 }
 
 // count → 별 개수 (과일 20개 = ⭐ 1개)

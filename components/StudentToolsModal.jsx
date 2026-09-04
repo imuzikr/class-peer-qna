@@ -82,7 +82,9 @@ export default function StudentToolsModal({
                 className="attend-award-btn attend-award-btn--minus"
                 onClick={() => onAward(student.uid, count - 1, -1)}
                 disabled={count <= 0}
-                title="과일 하나 빼기"
+                /* 왜 안 눌리는지 말해 줍니다 — 아무 설명 없이 꺼져 있으면
+                   '고장'으로 읽힙니다(주는 단추가 가득 찼을 때와 같은 뜻). */
+                title={count <= 0 ? "아직 받은 과일이 없어 뺄 것이 없어요" : "과일 하나 빼기"}
               >
                 {lastFruit(count)} <span>-1</span>
               </button>
