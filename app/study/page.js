@@ -83,6 +83,7 @@ import KwlPanel from "@/components/KwlPanel";
 import TeacherKwlPanel from "@/components/TeacherKwlPanel";
 import LessonManagerModal from "@/components/LessonManagerModal";
 import StudyAttendanceModal from "@/components/StudyAttendanceModal";
+import CornellNoteViewerModal from "@/components/CornellNoteViewerModal";
 import SeatGroupSetupModal from "@/components/SeatGroupSetupModal";
 import ClassNotesTools from "@/components/ClassNotesTools";
 import { updateLesson } from "@/lib/store";
@@ -146,6 +147,7 @@ function StudyPageInner() {
   const [classManagerOpen, setClassManagerOpen] = useState(false);
   const [showCode, setShowCode] = useState(false); // 입장 코드 표시 토글
   const [attendanceOpen, setAttendanceOpen] = useState(false); // 출석부 모달
+  const [noteViewerOpen, setNoteViewerOpen] = useState(false); // 내 수업 노트 크게 보기(학생)
   const [attendanceRecords, setAttendanceRecords] = useState([]);
   const [baseGroupAssignment, setBaseGroupAssignment] = useState(null);
   const [attending, setAttending] = useState(false);
@@ -791,6 +793,17 @@ function StudyPageInner() {
                         >
                           출석부 보기
                         </button>
+                        {/* 내 수업 노트 — 수업 중에는 오른쪽 서랍에서 쓰지만,
+                            지난 노트를 넘겨 보고 PDF로 내려받는 자리가 서랍
+                            안에만 있어 찾기 어려웠습니다. 여기서도 같은 창을
+                            엽니다(서랍의 '노트 전체 보기'와 같은 것). */}
+                        <button
+                          className="btn-ghost"
+                          onClick={() => setNoteViewerOpen(true)}
+                          title="지난 수업 노트를 넘겨 보고 PDF로 저장합니다"
+                        >
+                          📓 수업 노트
+                        </button>
                         <button
                           className={`btn-ghost${kwlPanelOpen ? " active" : ""}`}
                           onClick={() => setKwlPanelOpen((v) => !v)}
@@ -1152,6 +1165,17 @@ function StudyPageInner() {
           onStartAttendance={admin ? handleStartAttendance : null}
           onStopAttendance={admin ? handleStopAttendance : null}
           onClose={() => setAttendanceOpen(false)}
+        />
+      )}
+
+      {/* 내 수업 노트 크게 보기 (학생) — 서랍의 '노트 전체 보기'가 여는 것과
+          같은 창입니다. 여기서 PDF로 저장합니다. */}
+      {noteViewerOpen && classId && user && (
+        <CornellNoteViewerModal
+          classId={classId}
+          user={user}
+          className={currentClass?.name ?? ""}
+          onClose={() => setNoteViewerOpen(false)}
         />
       )}
 

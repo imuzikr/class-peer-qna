@@ -10,6 +10,7 @@
 import { useMemo, useState } from "react";
 import { backdropClose } from "@/lib/modal";
 import { toDate, todayDateKey } from "@/lib/store";
+import { downloadAttendanceWorkbook } from "@/lib/exportAttendance";
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -292,6 +293,24 @@ export default function StudyAttendanceModal({
                 {attendanceOpenToday ? "출석 진행 중" : "출석 종료됨"}
               </span>
             </div>
+            {/* 출석부 내려받기 — 명단 × 수업한 날짜의 표 한 장(엑셀).
+                학기말에 옮겨 적거나 보관하려면 화면이 아니라 파일이 필요합니다.
+                기록이 하루도 없으면 받을 것이 없어 막아 둡니다. */}
+            <button
+              type="button"
+              className="btn-ghost study-attendance-export"
+              onClick={() =>
+                downloadAttendanceWorkbook({ className, roster, records })
+              }
+              disabled={dates.length === 0 || roster.length === 0}
+              title={
+                dates.length === 0
+                  ? "아직 출석 기록이 없어요"
+                  : `수업한 ${dates.length}일치 출석부를 엑셀 파일로 내려받습니다`
+              }
+            >
+              ⬇ 출석부 내려받기
+            </button>
             <span className="study-attendance-count">
               출석 {studentRows.filter((s) => s.record).length} / {studentRows.length}
             </span>

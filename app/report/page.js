@@ -16,6 +16,7 @@ import {
 } from "@/lib/store";
 import { isFirebaseConfigured } from "@/lib/firebase";
 import { stripHtml } from "@/lib/html";
+import { printCornellNotes, printableName } from "@/lib/exportCornell";
 import { isTeacher as isTeacherRole } from "@/lib/user";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import AuthGate from "@/components/AuthGate";
@@ -746,6 +747,24 @@ function StudentReportPageInner() {
           <section className="study-report report-cornell" id="cornell-notes">
             <div className="admin-panel-head">
               <h2>📓 수업 노트</h2>
+              {/* PDF로 저장 — 인쇄 창에서 '대상: PDF로 저장'을 고르면 됩니다.
+                  한 장에 노트 하나, 코넬 2단 그대로 나옵니다
+                  (레이아웃은 lib/exportCornell.js 한 곳에서만 정합니다). */}
+              {myNotes.length > 0 && (
+                <button
+                  type="button"
+                  className="cornell-read-pdf report-cornell-pdf"
+                  onClick={() =>
+                    printCornellNotes(myNotes, {
+                      studentName: printableName(user),
+                      className: "",
+                    })
+                  }
+                  title="내 수업 노트를 모두 PDF로 저장합니다"
+                >
+                  🖨 PDF로 저장
+                </button>
+              )}
               <span>{myNotes.length > 0 ? `${myNotes.length}장` : "아직 없음"}</span>
             </div>
             {myNotes.length === 0 ? (

@@ -22,11 +22,13 @@ import {
   markCornellFeedbackSeen,
   isCornellFeedbackUnread,
 } from "@/lib/store";
+import { printCornellNotes, printableName } from "@/lib/exportCornell";
 import CornellNoteSheet from "./CornellNoteSheet";
 
 export default function CornellNoteViewerModal({
   classId,
   user,
+  className = "",
   initialNotes = [],
   startId = null,
   onClose,
@@ -62,6 +64,14 @@ export default function CornellNoteViewerModal({
     markedRef.current.add(note.id);
     markCornellFeedbackSeen(classId, user?.uid, note.date).catch(() => {});
   }, [note, classId, user?.uid]);
+
+  const printMeta = { studentName: printableName(user), className };
+  function printOne(n) {
+    if (n) printCornellNotes([n], printMeta);
+  }
+  function printAll() {
+    if (notes.length > 0) printCornellNotes(notes, printMeta);
+  }
 
   const go = useCallback(
     (step) => {
@@ -158,6 +168,30 @@ export default function CornellNoteViewerModal({
               </div>
               <span className="cornell-read-count">
                 {index + 1} / {notes.length}
+              </span>
+              {/* PDF로 저장 — 인쇄 창을 열고 '대상: PDF로 저장'을 고르면
+                  됩니다. 그림으로 굽지 않아 글자가 글자로 남습니다(복사·검색이
+                  되고 확대해도 안 흐려집니다). 자세한 것은 lib/exportCornell.js.
+                  '이 노트'와 '전체'를 나눈 이유: 오늘 것만 뽑아 붙이는 일과
+                  한 학기치를 묶어 복습하는 일이 둘 다 있어서입니다. */}
+              <span className="cornell-read-print">
+                <button
+                  type="button"
+                  className="cornell-read-pdf"
+                  onClick={() => printOne(note)}
+                  disabled={!note}
+                  title="지금 보고 있는 노트 한 장을 PDF로 저장합니다"
+                >
+                  🖨 이 노트
+                </button>
+                <button
+                  type="button"
+                  className="cornell-read-pdf"
+                  onClick={printAll}
+                  title="이 반에서 쓴 노트를 모두 한 파일로 저장합니다"
+                >
+                  🖨 전체 {notes.length}장
+                </button>
               </span>
             </div>
 

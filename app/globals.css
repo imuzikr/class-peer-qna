@@ -12318,6 +12318,15 @@ a.lesson-board-file-name { text-decoration: underline; }
   color: #26734a;
 }
 
+/* 출석부 내려받기 — 시작·종료 묶음과 '출석 n/N' 사이. margin-left:auto가
+   남는 자리를 다 먹어, 줄이 space-between이어도 이 단추와 '출석 n/N'이
+   오른쪽에 붙어 섭니다(시작·종료는 왼쪽 그대로). */
+.study-attendance-export {
+  margin-left: auto;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  white-space: nowrap;
+}
 .study-attendance-count {
   display: inline-block;
   color: var(--text-sub);
@@ -22479,6 +22488,35 @@ body:has(.confirm-backdrop) .cornell-handle {
   color: var(--text-sub);
   font-variant-numeric: tabular-nums;
 }
+/* PDF로 저장 — '몇 번째' 오른쪽. margin-left:auto가 '몇 번째'에 있어
+   이 묶음은 자연히 오른쪽 끝에 섭니다. */
+.cornell-read-print {
+  display: inline-flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.cornell-read-pdf {
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-sub);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+.cornell-read-pdf:hover:not(:disabled) {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  color: var(--primary-dark);
+}
+.cornell-read-pdf:disabled { opacity: 0.45; cursor: default; }
+/* 학습 리포트의 '수업 노트' 머리말 — 제목과 '12장' 사이. margin-left:auto가
+   남는 자리를 먹어, 줄이 space-between이어도 단추와 장수가 오른쪽에 붙습니다. */
+.report-cornell-pdf { margin-left: auto; }
 .cornell-read-lesson {
   margin-bottom: 8px;
   font-size: 13px;
