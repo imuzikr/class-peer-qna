@@ -1009,10 +1009,10 @@ function ActivityCard({ activity, isTeacher, uid, onOpen, onEdit, onDelete, onTo
             ' · 잠김'으로 끼워 두었을 때는 딸림 정보처럼 읽혀 지나쳤습니다.
             **잠겼을 때만이 아니라 늘 답니다** — 배지가 없는 카드는 '열려
             있다'가 아니라 '아직 안 봤다'로도 읽힙니다. 말은 진행 대시보드의
-            같은 알약과 맞춥니다(잠김 / 편집). */}
+            같은 알약과 맞춥니다(잠김 / 열림). */}
         <span className={`book-activity-state${activity.locked ? " locked" : ""}`}>
           <IconLockState locked={!!activity.locked} size={13} />
-          {activity.locked ? "잠김" : "편집"}
+          {activity.locked ? "잠김" : "열림"}
         </span>
       </button>
       {isTeacher && (

@@ -341,7 +341,12 @@ export default function StudyProgressBoard({
                         <span className="grass-act-no">활동 {i + 1}</span>
                         <span className={`progress-act-state${locked ? " locked" : ""}`}>
                           <IconLockState locked={locked} size={12} />
-                          {locked ? "잠김" : "편집"}
+                          {/* '편집'이라고 적었더니 옆 화면(책방 활동 카드)의
+                              '편집' 단추(이름 고치기)와 같은 낱말이라, 상태를
+                              말하는 자리인지 할 일을 말하는 자리인지 헷갈렸습니다.
+                              **말은 두 화면이 같아야 합니다** — 여기만 고치면
+                              같은 상태가 두 이름을 갖게 됩니다. */}
+                          {locked ? "잠김" : "열림"}
                         </span>
                         <span className="grass-act-count">
                           {doneCounts[i]}/{roster.length}
