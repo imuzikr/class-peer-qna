@@ -10,7 +10,10 @@
 import { useMemo, useState } from "react";
 import { backdropClose } from "@/lib/modal";
 import { toDate, todayDateKey } from "@/lib/store";
-import { downloadAttendanceWorkbook } from "@/lib/exportAttendance";
+import {
+  downloadAttendanceWorkbook,
+  filterRecordsByRange,
+} from "@/lib/exportAttendance";
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -171,6 +174,138 @@ function AttendanceCalendar({
   );
 }
 
+// 출석부 내려받기 — 어느 날짜를 담을지 먼저 고릅니다.
+// -------------------------------------------------------------
+// 예전에는 누르면 곧바로 학기 전체가 받아졌습니다. 실제로는 '오늘 하루'나
+// '이번 달'처럼 좁혀 뽑는 일이 더 잦아, 받아 놓고 엑셀에서 열을 지우는
+// 수고가 따랐습니다.
+//
+// 날짜는 **자유 입력이 아니라 수업한 날 중에서** 고릅니다. 달력에서 아무 날이나
+// 집으면 수업이 없던 날을 고르고도 '왜 비었지' 하게 됩니다.
+function AttendanceExportModal({ dates, roster, records, className, onClose }) {
+  // dates는 최근이 앞(내림차순) — 고르는 목록도 그 차례가 익숙합니다.
+  const oldest = dates[dates.length - 1] ?? "";
+  const newest = dates[0] ?? "";
+  const [mode, setMode] = useState("all"); // all | day | range
+  const [day, setDay] = useState(newest);
+  const [from, setFrom] = useState(oldest);
+  const [to, setTo] = useState(newest);
+
+  // 고른 갈래를 실제 범위로. 기간은 두 값이 뒤집혀 있어도 받아 줍니다
+  // (누르는 차례까지 강요하면 고르다 막힙니다).
+  const range =
+    mode === "day"
+      ? { from: day, to: day }
+      : mode === "range"
+        ? { from: from <= to ? from : to, to: from <= to ? to : from }
+        : { from: "", to: "" };
+
+  const picked = filterRecordsByRange(records, range.from, range.to);
+  const pickedDays = new Set(picked.map((r) => r.date)).size;
+
+  function submit() {
+    downloadAttendanceWorkbook({ className, roster, records, ...range });
+    onClose();
+  }
+
+  return (
+    <div className="modal-backdrop attend-export-backdrop" {...backdropClose(onClose)}>
+      <div
+        className="modal attend-export-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label="출석부 내려받기"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="modal-head">
+          <h3>⬇ 출석부 내려받기</h3>
+          <button className="btn-close" onClick={onClose} aria-label="닫기">×</button>
+        </div>
+
+        <div className="book-field">
+          <span>범위</span>
+          <div className="book-seg">
+            {[
+              ["all", `전체 기간 (${dates.length}일)`],
+              ["day", "하루"],
+              ["range", "기간"],
+            ].map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                className={`book-seg-btn${mode === key ? " active" : ""}`}
+                onClick={() => setMode(key)}
+                aria-pressed={mode === key}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 고른 갈래에 따라 자리가 오르내리지 않게 날짜 칸은 늘 자리를
+            잡아 둡니다(전체 기간일 때는 안내 한 줄). */}
+        <div className="attend-export-when">
+          {mode === "day" ? (
+            <label className="book-field">
+              <span>날짜</span>
+              <select value={day} onChange={(e) => setDay(e.target.value)}>
+                {dates.map((d) => (
+                  <option key={d} value={d}>{formatDateLabel(d)}</option>
+                ))}
+              </select>
+            </label>
+          ) : mode === "range" ? (
+            <div className="book-field-row">
+              <label className="book-field">
+                <span>시작</span>
+                <select value={from} onChange={(e) => setFrom(e.target.value)}>
+                  {dates.map((d) => (
+                    <option key={d} value={d}>{formatDateLabel(d)}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="book-field">
+                <span>끝</span>
+                <select value={to} onChange={(e) => setTo(e.target.value)}>
+                  {dates.map((d) => (
+                    <option key={d} value={d}>{formatDateLabel(d)}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          ) : (
+            <p className="book-help book-solo-note">
+              수업한 날 <strong>{dates.length}일</strong>을 모두 담습니다
+              {oldest && newest && oldest !== newest
+                ? ` (${formatDateLabel(oldest)} ~ ${formatDateLabel(newest)})`
+                : ""}
+              .
+            </p>
+          )}
+        </div>
+
+        {/* 무엇이 담기는지 숫자로 한 번 더 — 누르기 전에 확인합니다 */}
+        <p className="attend-export-sum">
+          담기는 수업일 <b>{pickedDays}일</b> · 학생 <b>{roster.length}명</b>
+        </p>
+
+        <div className="modal-actions">
+          <button type="button" className="btn-ghost" onClick={onClose}>취소</button>
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={submit}
+            disabled={pickedDays === 0}
+          >
+            엑셀로 내려받기
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // 출석 상세 표 — 목록형(현재 반)과 캘린더형(반별 목록에서 고른 반)이
 // 같은 모양({uid, name, studentId, emoji, record})을 쓰므로 공유합니다.
 function AttendanceTable({ rows }) {
@@ -226,6 +361,7 @@ export default function StudyAttendanceModal({
   onClose,
 }) {
   const [viewMode, setViewMode] = useState("list"); // "list" | "calendar"
+  const [exportOpen, setExportOpen] = useState(false); // 출석부 내려받기 — 범위 고르기 창
   const dates = useMemo(
     () => [...new Set(records.map((r) => r.date).filter(Boolean))].sort((a, b) => b.localeCompare(a)),
     [records]
@@ -299,14 +435,12 @@ export default function StudyAttendanceModal({
             <button
               type="button"
               className="btn-ghost study-attendance-export"
-              onClick={() =>
-                downloadAttendanceWorkbook({ className, roster, records })
-              }
+              onClick={() => setExportOpen(true)}
               disabled={dates.length === 0 || roster.length === 0}
               title={
                 dates.length === 0
                   ? "아직 출석 기록이 없어요"
-                  : `수업한 ${dates.length}일치 출석부를 엑셀 파일로 내려받습니다`
+                  : `수업한 ${dates.length}일 가운데 담을 날짜를 골라 엑셀 파일로 내려받습니다`
               }
             >
               ⬇ 출석부 내려받기
@@ -392,6 +526,17 @@ export default function StudyAttendanceModal({
           )}
         </div>
       </div>
+
+      {/* 범위 고르기 창 — 이 모달 위에 뜹니다(z-index는 CSS에서). */}
+      {exportOpen && (
+        <AttendanceExportModal
+          dates={dates}
+          roster={roster}
+          records={records}
+          className={className}
+          onClose={() => setExportOpen(false)}
+        />
+      )}
     </div>
   );
 }
