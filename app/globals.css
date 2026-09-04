@@ -20461,8 +20461,15 @@ span.cloud-word { cursor: default; }
    15px). 높이가 15px 넘게 벌어져 한쪽은 알약, 한쪽은 사각형으로 보였습니다.
    자료 제공 모달(.study-material-modal-foot)과 같은 짜임으로 맞춥니다:
    높이·모서리는 같게, 실행 단추만 채워 앞세우고 줄을 채웁니다. */
+/* **두 단추를 같은 크기로** — 격자 두 칸. 예전에는 실행 단추가 `flex: 1`로
+   줄을 다 채우고 취소는 글자만 한 크기라, 900px짜리 만들기 창에서 850 : 70쯤
+   으로 벌어져 취소가 곁다리처럼 보였습니다.
+   flex로 반씩 나누지 않는 까닭: `flex: 1 1 0`은 기준을 내용 상자로 재서
+   테두리가 있는 쪽(btn-ghost 1px)이 없는 쪽(btn-primary)보다 2px 넓어집니다
+   (실측 190 : 188). 격자 칸은 딱 반씩입니다. */
 .modal-actions {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   align-items: center;
   gap: 10px;
   margin-top: 18px;
@@ -20482,10 +20489,7 @@ span.cloud-word { cursor: default; }
   line-height: 1;
   cursor: pointer;
 }
-/* 실행 단추가 남은 줄을 채웁니다 — 이 모달에서 할 일이 그것 하나입니다 */
-.modal-actions > .btn-primary { flex: 1; }
 .modal-actions > .btn-ghost {
-  flex-shrink: 0;
   color: var(--text);
   background: var(--neutral);
   border-color: transparent;
@@ -20494,16 +20498,6 @@ span.cloud-word { cursor: default; }
 
 /* 도서명·주제 묻는 모달 — 한 가지만 묻는 자리라 좁게 */
 .modal-topic-ask { max-width: 420px; }
-/* 두 단추를 **같은 크기로**. 다른 창(활동 만들기·고치기)은 '만들기'가 주인공
-   이라 그 단추가 줄을 채우지만, 여기는 '지금 적기'와 '나중에'가 나란한
-   선택지라 한쪽만 크면 다른 쪽이 곁다리로 보입니다.
-   flex로 나누지 않고 **격자 두 칸**으로 짭니다 — `flex: 1 1 0`은 기준을
-   내용 상자로 재서, 테두리가 있는 쪽(btn-ghost 1px)이 없는 쪽(btn-primary)
-   보다 2px 넓어집니다(실측 190 : 188). 격자 칸은 딱 반씩입니다. */
-.modal-topic-ask .modal-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-}
 .modal-topic-note {
   margin: 0 0 12px;
   font-size: 13px;
