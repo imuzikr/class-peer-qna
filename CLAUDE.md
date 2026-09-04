@@ -501,6 +501,12 @@ Firebase 미설정 시 자동으로 **데모 모드**로 동작 (새로고침 �
   (`.attend-seatmap-grid--flipped { transform: rotate(180deg) }` + 칸마다 도로
   180도). 자리표는 빈 칸이 섞인 격자라 배열을 뒤집으면 빈 칸이 엉뚱한 곳으로
   가고, 끌어 옮기기가 쓰는 자리 번호(index)도 어긋납니다.
+- **뒤집힌 자리표에서 칸에 transform을 새로 주면 '도로 180도'가 지워집니다.**
+  같은 속성이라 더해지지 않고 덮어씁니다 — 손댄 칸만 거꾸로 뒤집히고,
+  transform에 transition이 걸려 있어 도는 것처럼 보입니다(hover에서 실제로
+  났던 일). 칸에 transform을 줄 때는 `.attend-seatmap-grid--flipped > …`로
+  `rotate(180deg)`를 **함께** 적으세요. 돌아간 좌표계라 화면에서 '위로 1px'은
+  `translateY(1px)`입니다.
 - 패널과 '확대' 창이 **같은 방향**을 씁니다 — 한 자리표가 두 얼굴이면 안 됩니다.
 - 고른 방향은 localStorage(`reward_seat_view`)에 기억합니다. 한 선생님은 대개
   늘 같은 쪽에서 봅니다.
