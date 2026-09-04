@@ -275,7 +275,7 @@ export default function StudyRewardPanel({
                     : "학생이 앉아 칠판을 보는 배치예요. 누르면 교탁에서 본 배치로 돌립니다."
                 }
               >
-                {teacherView ? "🧑‍🏫 선생님 보기" : "🙋 학생 보기"}
+                {teacherView ? "선생님 보기" : "학생 보기"}
               </button>
               <button
                 type="button"

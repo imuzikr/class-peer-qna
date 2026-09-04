@@ -22983,25 +22983,33 @@ body:has(.confirm-backdrop) .cornell-handle {
 .peer-open-btn.is-locked { color: var(--text-sub); }
 .peer-open-btn.is-locked em { background: var(--neutral); color: var(--text-sub); }
 
-/* 자리표 머리말의 단추 묶음 — 보기 방향 · 확대 */
-.reward-seat-head-btns { display: inline-flex; align-items: center; gap: 6px; }
+/* 자리표 머리말의 단추 묶음 — 보기 방향 · 확대
+   손바닥 뱃지와 나란히 오른쪽 끝에 섭니다(margin-left: auto). 셋이 같은
+   알약 모양·같은 바탕이라 한 줄로 읽힙니다 — 하나만 테두리가 있으면 그것만
+   '누르는 것'처럼 보여 나머지가 눌리는 줄 모릅니다. */
+.reward-seat-head-btns {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+/* 묶음 안에서는 밀어낼 자리가 없습니다 — 바깥 auto와 겹치지 않게 지웁니다 */
+.reward-seat-head-btns .reward-seat-zoom { margin-left: 0; }
 .reward-seat-flip {
-  padding: 3px 9px;
-  border: 1px solid var(--border);
+  flex-shrink: 0;
+  padding: 5px 12px;
+  border: none;
   border-radius: 999px;
-  background: var(--card-bg);
-  font-family: inherit;
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 1.6;
+  background: #f1eee8;
   color: var(--text-sub);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 800;
   white-space: nowrap;
   cursor: pointer;
+  transition: background 0.15s, color 0.15s;
 }
-.reward-seat-flip:hover { border-color: var(--primary); color: var(--primary-dark); }
-/* 선생님 보기 — 지금 뒤집어 보는 중이라는 것을 색으로 알려 줍니다 */
-.reward-seat-flip.on {
-  border-color: var(--primary);
-  background: var(--primary-light);
-  color: var(--primary-dark);
-}
+.reward-seat-flip:hover { background: var(--primary-light); color: var(--primary-dark); }
+/* 선생님 보기 — 지금 뒤집어 보는 중이라는 것을 색으로. 손바닥 뱃지가 켜질
+   때와 같은 색이라 '지금 켜져 있음'이 화면에서 한 가지 뜻으로 읽힙니다. */
+.reward-seat-flip.on { background: var(--primary-light); color: var(--primary-dark); }
