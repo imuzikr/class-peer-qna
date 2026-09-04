@@ -112,6 +112,11 @@ export function SeatPickGrid({
   seats, byUid, raisedUids, raisedCount, onPick, compact = false,
   onDragStart, onDragEnd, onDropTo, topUids = null, presentUids = null,
   liveState = null, notingUids = null, headLead = null, todayCountByUid = null,
+  // 선생님 자리에서 본 배치 — 자리표를 통째로 180도 돌립니다.
+  // 자리 순서를 뒤집는 대신 그림을 돌리는 이유: 자리는 빈 칸이 섞인 격자라
+  // 배열을 뒤집으면 빈 칸이 엉뚱한 곳으로 갑니다. 그림을 돌리면 빈 칸까지
+  // 있는 그대로 돌아가고, 끌어 옮기기의 자리 번호(index)도 안 흔들립니다.
+  flipped = false,
 }) {
   const draggable = !!(onDragStart && onDragEnd && onDropTo);
   return (
@@ -125,7 +130,7 @@ export function SeatPickGrid({
           🖐️ {compact ? raisedCount : `질문 ${raisedCount}`}
         </span>
       </div>
-      <div className="attend-seatmap-grid">
+      <div className={`attend-seatmap-grid${flipped ? " attend-seatmap-grid--flipped" : ""}`}>
         {seats.map((uid, i) => {
           const s = uid ? byUid.get(uid) : null;
           if (!s) {

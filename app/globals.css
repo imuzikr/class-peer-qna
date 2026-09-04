@@ -12401,6 +12401,13 @@ a.lesson-board-file-name { text-decoration: underline; }
   grid-template-columns: repeat(6, 1fr);
   gap: 8px;
 }
+/* ── 선생님 보기 — 자리표를 통째로 180도 ──────────────────────────
+   교탁에서 보면 학생 화면과 앞뒤·좌우가 뒤집힙니다. 자리 배열을 뒤집는
+   대신 **그림을 돌립니다**: 자리는 빈 칸이 섞인 격자라 배열을 뒤집으면
+   빈 칸이 엉뚱한 곳으로 가고, 끌어 옮기기가 쓰는 자리 번호도 어긋납니다.
+   글자까지 뒤집히지 않도록 칸마다 도로 180도 돌려 세웁니다. */
+.attend-seatmap-grid--flipped { transform: rotate(180deg); }
+.attend-seatmap-grid--flipped > * { transform: rotate(180deg); }
 /* 공부방 "멋진 순간" 패널처럼 좁은 폭에 넣을 때 — 실제 자리 배정과 똑같이
    한 줄 6칸은 그대로 두고, 칸이 작아지는 만큼 글자만 줄입니다
    (패널 폭 ~260px 기준 → 칸 하나 약 38px). */
@@ -22975,3 +22982,26 @@ body:has(.confirm-backdrop) .cornell-handle {
 /* 잠긴 동안의 '동료 평가' — 자리는 남기되 지금은 쓰는 자리가 아님을 색으로 */
 .peer-open-btn.is-locked { color: var(--text-sub); }
 .peer-open-btn.is-locked em { background: var(--neutral); color: var(--text-sub); }
+
+/* 자리표 머리말의 단추 묶음 — 보기 방향 · 확대 */
+.reward-seat-head-btns { display: inline-flex; align-items: center; gap: 6px; }
+.reward-seat-flip {
+  padding: 3px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card-bg);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.6;
+  color: var(--text-sub);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.reward-seat-flip:hover { border-color: var(--primary); color: var(--primary-dark); }
+/* 선생님 보기 — 지금 뒤집어 보는 중이라는 것을 색으로 알려 줍니다 */
+.reward-seat-flip.on {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  color: var(--primary-dark);
+}
