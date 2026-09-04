@@ -17151,7 +17151,16 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
   font-weight: 800;
   color: var(--text);
 }
-/* 제목 옆 두 컨트롤(반 선택·독서 활동 만들기) 높이 통일 — 공부방 제목 줄
+/* 만들기 단추 줄 — 제목 줄 아래, 오른쪽 끝. 공부방의 '＋ 프로젝트 만들기'와
+   같은 자리라 두 화면에서 '새로 만드는 곳'을 같은 데서 찾습니다. 제목 줄에
+   함께 두었을 때는 반 고르개·KWLS 차트·기록 관리 사이에 섞여 '보는 단추'와
+   '새로 만드는 단추'가 구분되지 않았습니다. .books-head 안에 두어 단추 크기
+   (아래 38px 규칙)와 본문과의 사이(margin-bottom)를 그대로 물려받습니다. */
+.books-head-make {
+  display: flex;
+  justify-content: flex-end;
+}
+/* 제목 옆 컨트롤(반 선택 등) 높이 통일 — 공부방 제목 줄
    (.study-title-row)과 같은 방식·같은 값입니다. 버튼은 크기가 padding으로만
    정해져 select보다 늘 높았습니다(글자 크기도 한 단계 컸습니다). 둘 다
    높이를 못 박고 inline-flex로 가운데를 맞추면 글꼴이 달라져도 어긋나지

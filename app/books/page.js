@@ -620,13 +620,6 @@ function BooksPageInner() {
                   <span className="books-class-name">{currentClass.name}</span>
                 )
               )}
-              {/* 종류는 이 창에서 고릅니다 — 목록을 종류별로 나누지 않게 되면서
-                  종류를 고르는 자리가 여기 하나로 모였습니다. */}
-              {admin && classId && (
-                <button className="btn-primary" onClick={() => setCreatingType("consonant")}>
-                  ＋ 독서 활동 만들기
-                </button>
-              )}
               {/* 공부방 머리말과 같은 자리·같은 이름 — 두 화면에서 같은 것을
                   여는 단추라 순서도 같게 둡니다(KWLS 차트 → 기록 관리). */}
               {classId && user && (
@@ -647,6 +640,20 @@ function BooksPageInner() {
               )}
               {classTools}
             </div>
+
+            {/* 만들기 단추는 제목 줄에서 빼 아래 오른쪽 끝에 따로 둡니다 —
+                공부방의 '＋ 프로젝트 만들기'와 같은 자리입니다. 제목 줄에
+                함께 두었을 때는 반 고르개·KWLS 차트·기록 관리 사이에 섞여
+                '보는 단추'와 '새로 만드는 단추'가 구분되지 않았습니다.
+                종류는 이 창을 열어 고릅니다 — 목록을 종류별로 나누지 않게
+                되면서 종류를 고르는 자리가 여기 하나로 모였습니다. */}
+            {admin && classId && (
+              <div className="books-head-make">
+                <button className="btn-primary" onClick={() => setCreatingType("consonant")}>
+                  ＋ 독서 활동 만들기
+                </button>
+              </div>
+            )}
           </div>
 
           {admin && myClasses.length === 0 ? (
