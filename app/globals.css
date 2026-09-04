@@ -14541,6 +14541,12 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
   text-align: left;
   transition: border-color 0.15s, background 0.15s;
 }
+/* 단추가 세로 flex라, 아이콘 + 글자를 한 줄로 묶으려면 감싸는 칸이 필요합니다 */
+.board-acttype-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
 .board-acttype-btn small {
   font-size: 11.5px;
   font-weight: 500;

@@ -10,6 +10,22 @@ import { REWARD_STAR } from "@/lib/store";
 
 export const FRUITS = ["🍎", "🍊", "🍋", "🍇", "🍓", "🍑", "🍈", "🍉", "🍒", "🥝"];
 
+// **다음에 더해질 과일**. 주는 단추가 늘 사과였더니, 화면에는 열 가지가
+// 줄지어 있는데 누르는 자리만 사과라 '사과를 준다'로 읽혔습니다. 지금 개수를
+// 넣으면 이 다음에 붙을 과일이 나옵니다 — 위의 나열과 순서가 같아야 하므로
+// 여기 한 곳에서만 셉니다(RewardFruits가 i번째를 FRUITS[i % 10]으로 그리니,
+// count개를 가진 사람의 다음 과일은 FRUITS[count % 10]입니다).
+// 별로 접히는 20개 주기와도 어긋나지 않습니다 — (count % 20) % 10 === count % 10.
+export function nextFruit(count = 0) {
+  const n = FRUITS.length;
+  return FRUITS[(((count || 0) % n) + n) % n];
+}
+// **방금 준 과일** — 빼기 단추가 없앨 것입니다(하나도 없으면 쓸 일이 없지만,
+// 음수로 셈이 어긋나지 않게 되돌아 갑니다).
+export function lastFruit(count = 0) {
+  return nextFruit((count || 0) - 1);
+}
+
 // count → 별 개수 (과일 20개 = ⭐ 1개)
 export function rewardStars(count = 0) {
   return Math.floor((count || 0) / REWARD_STAR);

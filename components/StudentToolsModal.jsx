@@ -14,6 +14,7 @@
 import { backdropClose } from "@/lib/modal";
 import { REWARD_MAX } from "@/lib/store";
 import StudentRewardTrend from "./StudentRewardTrend";
+import { nextFruit, lastFruit } from "./RewardFruits";
 import { IconMyPost } from "./StatusIcons";
 
 // onAward(uid, 바꿀개수, delta) — 세 번째 값이 핵심입니다. 여기 보이는
@@ -72,6 +73,9 @@ export default function StudentToolsModal({
               }
             />
 
+            {/* 주는 단추의 과일은 **다음에 붙을 과일**입니다(누적 옆은 그대로
+                사과 — 거기는 '과일'이라는 말의 대표이지 특정 과일이 아닙니다).
+                빼기 단추는 반대로 '방금 준 것'을 보여 줍니다. */}
             <div className="attend-tools-award">
               <button
                 type="button"
@@ -80,7 +84,7 @@ export default function StudentToolsModal({
                 disabled={count <= 0}
                 title="과일 하나 빼기"
               >
-                🍎 <span>-1</span>
+                {lastFruit(count)} <span>-1</span>
               </button>
               <button
                 type="button"
@@ -89,7 +93,7 @@ export default function StudentToolsModal({
                 disabled={maxed}
                 title={maxed ? "과일이 가득 찼어요" : "과일 하나 주기"}
               >
-                🍎 <span>+1</span>
+                {nextFruit(count)} <span>+1</span>
               </button>
             </div>
             {maxed && <p className="attend-tools-maxed">과일이 가득 찼어요 (최대 {REWARD_MAX}개)</p>}

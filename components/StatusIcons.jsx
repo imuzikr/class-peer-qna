@@ -519,6 +519,24 @@ export function IconLockState({ locked, size = 20, className = "", mono = false 
   return <Icon size={size} className={className} mono={mono} />;
 }
 
+// 개별 활동 — 한 사람과 그 옆의 이름표.
+// '개별'에 🧑‍🎓(학사모 쓴 학생)를 쓰고 있었는데, 이 앱에서 학생을 가리키는
+// 그림은 이미 IconStudent이고 그 이모지는 기기마다 사람·피부색·학사모가
+// 제각각이었습니다. '한 사람이 자기 카드를 쓴다'는 뜻만 남깁니다.
+export function IconIndividual({ size = 20, className = "" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">
+      <path d="M8.15 18.95v-1.1c0-1.7 1.38-3.08 3.08-3.08h1.54c1.7 0 3.08 1.38 3.08 3.08v1.1" fill="#FFF7ED"/>
+      <path d="M8.15 18.95v-1.1c0-1.7 1.38-3.08 3.08-3.08h1.54c1.7 0 3.08 1.38 3.08 3.08v1.1" stroke="#3A312E" strokeWidth="1.55" strokeLinecap="round" strokeLinejoin="round"/>
+      <circle cx="12" cy="10" r="3.2" fill="#FFF7ED" stroke="#3A312E" strokeWidth="1.55"/>
+      <path d="M17.1 7.05h2.8v5.1h-2.8" stroke="#3A312E" strokeWidth="1.35" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M18.15 9.2h.9M18.15 10.35h.9" stroke="#8A6258" strokeWidth="1" strokeLinecap="round"/>
+      <path d="M15.2 13.15 17.1 11.7" stroke="#3A312E" strokeWidth="1.35" strokeLinecap="round"/>
+      <path d="M9.35 18.95h5.3" stroke="#8A6258" strokeWidth="1.25" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
 // 자리 배치 — 비스듬히 본 의자.
 // 이모지(🪑)를 쓰던 자리인데, 기기마다 정면 의자·사무용 회전의자·접이식
 // 의자로 다 달랐고 대부분 원색이라 이 화면의 두 색 아이콘들 사이에서

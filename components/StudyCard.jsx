@@ -4,6 +4,7 @@ import { formatTime, getDirectoryUser } from "@/lib/store";
 import { stripHtml } from "@/lib/html";
 import { cardActivitySummary } from "@/lib/activities";
 import { IconTeacher } from "./StatusIcons";
+import { nextFruit } from "./RewardFruits";
 
 const IMAGE_EXTS = new Set(["jpg", "jpeg", "png", "gif", "webp"]);
 
@@ -161,7 +162,7 @@ export default function StudyCard({
             title={rewardMaxed ? "이미 최대 개수예요" : `과일 주기 (현재 ${rewardCount}개)`}
             aria-label={rewardMaxed ? "이미 최대 개수예요" : `과일 주기 (현재 ${rewardCount}개)`}
           >
-            🍎
+            {nextFruit(rewardCount)}
           </button>
         )}
       </div>

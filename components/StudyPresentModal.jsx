@@ -20,7 +20,7 @@ import {
 import { getCurrentUser, isTeacher } from "@/lib/user";
 import { sanitizeHtml, stripImgTags } from "@/lib/html";
 import { parseActivitySections } from "@/lib/activities";
-import RewardFruits, { rewardStars } from "./RewardFruits";
+import RewardFruits, { rewardStars, nextFruit } from "./RewardFruits";
 
 export default function StudyPresentModal({ board, cards = [], onClose }) {
   const [idx, setIdx] = useState(0);
@@ -204,7 +204,7 @@ export default function StudyPresentModal({ board, cards = [], onClose }) {
               onClick={awardFruit}
               disabled={count >= REWARD_MAX}
             >
-              🍎 과일 주기{count >= REWARD_MAX ? " (최대)" : ""}
+              {nextFruit(count)} 과일 주기{count >= REWARD_MAX ? " (최대)" : ""}
             </button>
           )}
         </div>

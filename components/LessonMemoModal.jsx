@@ -25,6 +25,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { backdropClose } from "@/lib/modal";
 import RichTextEditor from "./RichTextEditor";
+import { IconMyPost } from "./StatusIcons";
 import { looksLikeHtml, richHtml, stripHtml } from "@/lib/html";
 import {
   subscribeLessonMemos,
@@ -207,8 +208,8 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-head">
-          <h3>
-            🗒️ 수업 메모
+          <h3 className="head-icon">
+            <IconMyPost size={20} /> 수업 메모
             {className && <span className="notes-student">{className}</span>}
           </h3>
           <button className="btn-close" onClick={onClose} aria-label="닫기">×</button>
