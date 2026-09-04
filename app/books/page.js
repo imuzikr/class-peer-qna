@@ -686,6 +686,7 @@ function BooksPageInner() {
             seatLayout={seatLayout}
             groupAssignment={baseGroupAssignment}
             presentUids={todayPresentUids}
+            attendanceOpen={attendanceOpenToday}
             onAward={awardReward}
             onSaveSeats={(seats) =>
               saveStudySeatLayout(classId, "default", seats, getCurrentUser())

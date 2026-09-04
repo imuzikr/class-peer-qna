@@ -49,6 +49,9 @@ export default function StudyRewardPanel({
   groupAssignment = null,
   // 오늘 출석한 학생 uid 집합. null이면 아직 출석 확인 전(자리 모두 회색).
   presentUids = null,
+  // 지금 출석을 받는 중인가. 머리줄의 '출석 n/N'은 **끝난 뒤에만** 띄웁니다 —
+  // 받는 중에는 아직 오는 중인 학생이 있어 그 숫자가 결석 수처럼 읽힙니다.
+  attendanceOpen = false,
   onSaveSeats,
   onSaveGroups,
 }) {
@@ -204,6 +207,14 @@ export default function StudyRewardPanel({
 
   const byUid = new Map(roster.map((s) => [s.uid, s]));
   const raisedCount = roster.filter((s) => raisedUids.has(s.uid)).length;
+  // 출석을 끝냈고 오늘 기록이 있을 때만 '출석 n/N'을 답니다. presentUids가
+  // null이면 오늘 출석을 아예 안 한 날이고, attendanceOpen이면 아직 받는
+  // 중입니다. 세는 대상은 **지금 명단에 있는 학생**뿐입니다 — 반에서 빠진
+  // 학생의 옛 출석 기록이 섞이면 분자가 분모를 넘습니다.
+  const attendanceDone = !!presentUids && !attendanceOpen;
+  const presentCount = attendanceDone
+    ? roster.filter((s) => presentUids.has(s.uid)).length
+    : 0;
   const groupedUids = new Set(groups.flatMap((g) => (g.members ?? []).map((m) => m.uid)));
   const ungrouped = roster.filter((s) => !groupedUids.has(s.uid));
 
@@ -263,10 +274,19 @@ export default function StudyRewardPanel({
           compact
           headLead={
             <span className="reward-seat-head-btns">
+              {/* 출석을 끝낸 뒤에만 — 오늘 몇 명이 왔나 */}
+              {attendanceDone && (
+                <span
+                  className="reward-seat-att"
+                  title={`오늘 출석 ${presentCount}명 / 전체 ${roster.length}명`}
+                >
+                  출석 <b>{presentCount}</b>/{roster.length}
+                </span>
+              )}
               {/* 지금 어느 쪽에서 본 배치인지 — 누르면 반대쪽으로 돌아갑니다 */}
               <button
                 type="button"
-                className={`reward-seat-flip${teacherView ? " on" : ""}`}
+                className="reward-seat-flip"
                 onClick={toggleSeatView}
                 aria-pressed={teacherView}
                 title={

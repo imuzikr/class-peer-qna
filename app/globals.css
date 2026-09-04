@@ -23052,6 +23052,17 @@ body:has(.confirm-backdrop) .cornell-handle {
   transition: background 0.15s, color 0.15s;
 }
 .reward-seat-flip:hover { background: var(--primary-light); color: var(--primary-dark); }
-/* 선생님 보기 — 지금 뒤집어 보는 중이라는 것을 색으로. 손바닥 뱃지가 켜질
-   때와 같은 색이라 '지금 켜져 있음'이 화면에서 한 가지 뜻으로 읽힙니다. */
-.reward-seat-flip.on { background: var(--primary-light); color: var(--primary-dark); }
+/* 켜짐 색(.on)을 두지 않습니다 — 글자가 '선생님 보기'/'학생 보기'로 바뀌어
+   지금 어느 쪽인지 그대로 말합니다. 색까지 얹으면 옆의 손바닥 뱃지처럼
+   '무언가 켜져 있으니 봐 달라'는 신호로 읽혀 눈길을 뺏습니다. */
+/* 출석 종료 뒤에만 뜨는 '출석 21/25' — 단추가 아니라 알림이라 배경 없이
+   글자만. 숫자는 tabular-nums로 자리를 고정해 값이 바뀌어도 안 흔들립니다. */
+.reward-seat-att {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text-sub);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.reward-seat-att b { font-weight: 800; color: var(--text); }

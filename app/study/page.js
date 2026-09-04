@@ -976,6 +976,7 @@ function StudyPageInner() {
                 seatLayout={seatLayout}
                 groupAssignment={baseGroupAssignment}
                 presentUids={todayPresentUids}
+                attendanceOpen={attendanceOpenToday}
                 readOnly={false}
                 onAward={awardReward}
                 onSaveSeats={(seats) => saveStudySeatLayout(classId, "default", seats, getCurrentUser())}
