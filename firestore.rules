@@ -969,9 +969,13 @@ service cloud.firestore {
                  && get(/databases/$(database)/documents/bookActivities/$(aId)/groups/$(gId))
                       .data.get('memberUids', []).hasAll([a, b]);
         }
+        // **표시가 없으면 잠김**입니다. 동료 평가는 '발표를 듣는 시간'에만
+        // 여는 것이라, 활동을 만들자마자 열려 있으면 아직 아무도 발표하지
+        // 않았는데 코멘트가 쌓입니다. 교사가 한 번 눌러 열어야 시작합니다
+        // (열면 `peerReviewLocked: false`가 적힙니다).
         function peerReviewOpen() {
           return get(/databases/$(database)/documents/bookActivities/$(aId))
-                   .data.get('peerReviewLocked', false) != true;
+                   .data.get('peerReviewLocked', true) == false;
         }
         function validReview(d) {
           return d.fromUid == uid()

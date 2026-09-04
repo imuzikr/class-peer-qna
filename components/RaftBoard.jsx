@@ -35,7 +35,7 @@ import { IconBook, IconLock } from "./StatusIcons";
 import CastBar from "./CastBar";
 import GroupFilterRow from "./GroupFilterRow";
 import { PeerReviewList } from "./PeerReviewModal";
-import { isGroupedActivity, useBookGroups } from "@/lib/bookGroups";
+import { isGroupedActivity, useBookGroups, isPeerReviewOpen } from "@/lib/bookGroups";
 
 // 방송할 수 있는 영역 — 네 요소 + 글쓰기
 const REGIONS = [
@@ -73,7 +73,7 @@ export default function RaftBoard({
     if (!grouped) { setReviews([]); return undefined; }
     return subscribeAllPeerReviews(activity.id, setReviews);
   }, [grouped, activity.id]);
-  const peerLocked = activity.peerReviewLocked === true;
+  const peerLocked = !isPeerReviewOpen(activity); // 표시가 없으면 잠김
 
   useEffect(() => subscribeParatextEntries(activity.id, setEntries), [activity.id]);
 

@@ -22957,3 +22957,21 @@ body:has(.confirm-backdrop) .cornell-handle {
   flex-wrap: wrap;
   gap: 6px;
 }
+
+/* 모둠 줄 오른쪽 끝의 단추 묶음 — '받은 한 마디'와 '동료 평가' */
+.peer-row-actions { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; }
+.peer-row-actions .peer-open-btn { margin-left: 0; }
+.peer-got-btn { padding: 6px 12px; font-size: 12.5px; }
+.peer-got-btn em {
+  font-style: normal;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+}
+/* 잠긴 동안의 '동료 평가' — 자리는 남기되 지금은 쓰는 자리가 아님을 색으로 */
+.peer-open-btn.is-locked { color: var(--text-sub); }
+.peer-open-btn.is-locked em { background: var(--neutral); color: var(--text-sub); }

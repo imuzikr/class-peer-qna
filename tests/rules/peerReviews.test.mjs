@@ -42,8 +42,18 @@ describe("동료 평가 규칙", () => {
       for (const uid of ["stu1", "stu2", "stu3"]) {
         await setDoc(doc(db, "memberships", `${uid}_cA`), { uid, classId: "cA" });
       }
+      // 기본이 '잠김'이라, 쓰기를 시험하는 활동은 교사가 연 상태로 둡니다
+      // (peerReviewLocked: false — 표시가 없으면 잠긴 것으로 봅니다)
       await setDoc(doc(db, "bookActivities", "act1"), {
-        classId: "cA", type: "raft", title: "RAFT", locked: false, grouped: true,
+        classId: "cA", type: "raft", title: "RAFT",
+        locked: false, grouped: true, peerReviewLocked: false,
+      });
+      // 아무 표시도 없는 활동 — 기본값이 잠김인지 확인하는 자리
+      await setDoc(doc(db, "bookActivities", "fresh1"), {
+        classId: "cA", type: "raft", title: "갓 만든 활동", locked: false, grouped: true,
+      });
+      await setDoc(doc(db, "bookActivities", "fresh1", "groups", "group_1"), {
+        activityId: "fresh1", groupIndex: 1, memberUids: ["stu1", "stu2"], members: [],
       });
       // 1모둠: stu1·stu2 / 2모둠: stu3
       await setDoc(doc(db, "bookActivities", "act1", "groups", "group_1"), {
@@ -56,7 +66,8 @@ describe("동료 평가 규칙", () => {
         memberUids: ["stu3"], members: [{ uid: "stu3", name: "학생3" }],
       });
       await setDoc(doc(db, "bookActivities", "locked1"), {
-        classId: "cA", type: "raft", title: "잠긴 활동", locked: true, grouped: true,
+        classId: "cA", type: "raft", title: "잠긴 활동",
+        locked: true, grouped: true, peerReviewLocked: false,
       });
       await setDoc(doc(db, "bookActivities", "locked1", "groups", "group_1"), {
         activityId: "locked1", groupIndex: 1, memberUids: ["stu1", "stu2"], members: [],
@@ -187,6 +198,18 @@ describe("동료 평가 규칙", () => {
       setDoc(
         doc(db, "bookActivities", "act1", "peerReviews", rid("stu2", "stu1")),
         review("stu3", "stu1")
+      )
+    );
+  });
+
+  // 갓 만든 활동에서 아무도 발표하지 않았는데 코멘트가 쌓이면 안 됩니다.
+  // 교사가 한 번 눌러 열어야(peerReviewLocked: false) 시작합니다.
+  it("표시가 없으면 잠긴 것으로 본다 (기본은 잠김)", async () => {
+    const db = asStudent(env, "stu1").firestore();
+    await assertFails(
+      setDoc(
+        doc(db, "bookActivities", "fresh1", "peerReviews", rid("stu2", "stu1")),
+        review("stu2", "stu1", { activityId: "fresh1" })
       )
     );
   });

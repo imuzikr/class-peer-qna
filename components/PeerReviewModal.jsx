@@ -211,7 +211,9 @@ export default function PeerReviewModal({
 export function PeerReviewList({ reviews = [], title = "친구들이 남긴 한 마디" }) {
   if (reviews.length === 0) return null;
   return (
-    <section className="peer-received">
+    // id — 모둠 줄의 '받은 한 마디'가 여기로 데려다 줍니다(글이 길어
+    // 스스로 찾아 내려가기 어렵습니다)
+    <section className="peer-received" id="peer-received">
       <h4>{title}</h4>
       <div className="peer-received-list">
         {reviews.map((r) => (

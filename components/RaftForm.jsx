@@ -36,7 +36,13 @@ import { IconBook, IconLock } from "./StatusIcons";
 import GroupMatesRow from "./GroupMatesRow";
 import GroupJoinRow from "./GroupJoinRow";
 import PeerReviewModal, { PeerReviewList } from "./PeerReviewModal";
-import { isGroupedActivity, useBookGroups, myBookGroup, groupMembers } from "@/lib/bookGroups";
+import {
+  isGroupedActivity,
+  useBookGroups,
+  myBookGroup,
+  groupMembers,
+  isPeerReviewOpen,
+} from "@/lib/bookGroups";
 
 const SAVE_DELAY = 900; // ms — 이만큼 입력이 없으면 저장
 
@@ -65,8 +71,9 @@ export default function RaftForm({ activity, user, onBack }) {
   // '자유 구성'인데 아직 모둠에 안 들었으면 고르는 줄을 대신 둡니다.
   const needsJoin = grouped && !myGroup && activity.groupMode === "free";
 
-  // 동료 평가 — 모둠이 있을 때만. 교사가 잠그면(peerReviewLocked) 읽기만.
-  const peerLocked = activity.peerReviewLocked === true || locked;
+  // 동료 평가 — 모둠이 있을 때만. **기본은 잠김**이고, 교사가 열어 주어야
+  // 쓸 수 있습니다(잠긴 동안에도 이미 쓴 것과 받은 것은 그대로 보입니다).
+  const peerLocked = !isPeerReviewOpen(activity) || locked;
   const [peerOpen, setPeerOpen] = useState(null); // null | { uid } — 열 때 고를 사람
   const [myReviews, setMyReviews] = useState([]);
   const [gotReviews, setGotReviews] = useState([]);
@@ -231,18 +238,58 @@ export default function RaftForm({ activity, user, onBack }) {
               group={myGroup}
               members={mates}
               meUid={user?.uid}
-              /* 이름을 누르면 그 친구에게 바로 — 발표를 들으며 쓰는 흐름 */
-              onPick={mates.length > 1 ? (m) => setPeerOpen({ uid: m.uid }) : null}
+              /* 이름을 누르면 그 친구에게 바로 — 발표를 들으며 쓰는 흐름.
+                 잠겨 있을 때는 이름이 단추가 되지 않습니다(눌러도 못 쓰는
+                 단추는 '고장 났나' 하게 만듭니다). */
+              onPick={
+                mates.length > 1 && !peerLocked
+                  ? (m) => setPeerOpen({ uid: m.uid })
+                  : null
+              }
               actions={
                 mates.length > 1 && (
-                  <button
-                    type="button"
-                    className="btn-ghost peer-open-btn"
-                    onClick={() => setPeerOpen({ uid: null })}
-                  >
-                    ✍️ 동료 평가
-                    {myReviews.length > 0 && <em>{myReviews.length}</em>}
-                  </button>
+                  <span className="peer-row-actions">
+                    {/* 받은 한 마디가 있으면 여기서 먼저 알려 줍니다 — 목록은
+                        긴 글 아래에 있어 스스로 찾아 내려가기 어렵습니다.
+                        누르면 그 자리로 데려다 줍니다. */}
+                    {gotReviews.length > 0 && (
+                      <button
+                        type="button"
+                        className="btn-ghost peer-got-btn"
+                        onClick={() =>
+                          document
+                            .getElementById("peer-received")
+                            ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                        }
+                        title="친구들이 내게 남긴 한 마디를 봅니다"
+                      >
+                        💬 받은 한 마디<em>{gotReviews.length}</em>
+                      </button>
+                    )}
+                    {peerLocked ? (
+                      /* 잠겨 있어도 자리는 남겨 둡니다 — 없어지면 '이 활동에는
+                         동료 평가가 없나' 싶어집니다. 이미 쓴 것은 볼 수 있게
+                         그대로 열립니다. */
+                      <button
+                        type="button"
+                        className="btn-ghost peer-open-btn is-locked"
+                        onClick={() => setPeerOpen({ uid: null })}
+                        title="선생님이 열어 주면 쓸 수 있어요"
+                      >
+                        🔒 동료 평가
+                        {myReviews.length > 0 && <em>{myReviews.length}</em>}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="btn-ghost peer-open-btn"
+                        onClick={() => setPeerOpen({ uid: null })}
+                      >
+                        ✍️ 동료 평가
+                        {myReviews.length > 0 && <em>{myReviews.length}</em>}
+                      </button>
+                    )}
+                  </span>
                 )
               }
             />
