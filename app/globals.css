@@ -12068,8 +12068,19 @@ a.lesson-board-file-name { text-decoration: underline; }
 .study-head-note {
   margin: 0 0 0 auto;
   align-self: center;
-  max-width: 46ch;
+  /* 46ch(≈358px)면 '정보 B — 프로젝트를 열어…' 한 줄이 꼭 들어갑니다.
+     42%를 함께 거는 것은 좁은 화면에서 이 안내가 버튼 줄의 자리를 뺏지
+     않게 하기 위함입니다(버튼이 안내보다 중요합니다). */
+  max-width: min(46ch, 42%);
+  /* **줄지 않습니다.** 옆의 제목 줄은 원래 가로로 밀어 보게 만들어 둔
+     자리라(.study-title-row의 overflow-x) 자리가 모자라면 그쪽이 물러서면
+     됩니다. 예전에는 둘 다 줄어들어, 자리가 넉넉한 화면에서도 이 한 줄이
+     두 줄로 접히고 끝의 '요.' 한 글자만 아랫줄에 남았습니다. */
+  flex-shrink: 0;
   text-align: right;
+  /* 그래도 두 줄이 될 만큼 좁아지면 길이를 반씩 나눠 접습니다 — 한 글자만
+     남는 꼴을 막습니다(못 알아듣는 브라우저는 지금까지대로 접습니다). */
+  text-wrap: balance;
   color: var(--text-sub);
   font-size: 13.5px;
   line-height: 1.5;
