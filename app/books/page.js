@@ -1005,13 +1005,15 @@ function ActivityCard({ activity, isTeacher, uid, onOpen, onEdit, onDelete, onTo
               ? `학생 ${groups.length}명 · ${modeLabel}`
               : `모둠 ${groups.length}개 · ${modeLabel}`}
         </span>
-        {/* 잠김 표시는 글 사이가 아니라 배지로 — 종류·모둠 수를 적는 줄에
-            ' · 잠김'으로 끼워 두면 딸림 정보처럼 읽혀 지나칩니다. */}
-        {activity.locked && (
-          <span className="book-activity-lock">
-            <IconLockState locked size={13} /> 잠김
-          </span>
-        )}
+        {/* 지금 상태 — 자물쇠 그림 + 글자. 종류·모둠 수를 적는 줄에
+            ' · 잠김'으로 끼워 두었을 때는 딸림 정보처럼 읽혀 지나쳤습니다.
+            **잠겼을 때만이 아니라 늘 답니다** — 배지가 없는 카드는 '열려
+            있다'가 아니라 '아직 안 봤다'로도 읽힙니다. 말은 진행 대시보드의
+            같은 알약과 맞춥니다(잠김 / 편집). */}
+        <span className={`book-activity-state${activity.locked ? " locked" : ""}`}>
+          <IconLockState locked={!!activity.locked} size={13} />
+          {activity.locked ? "잠김" : "편집"}
+        </span>
       </button>
       {isTeacher && (
         <div className="book-activity-actions">
@@ -1020,16 +1022,17 @@ function ActivityCard({ activity, isTeacher, uid, onOpen, onEdit, onDelete, onTo
           <button type="button" className="btn-ghost" onClick={onEdit} title="이름·주제어 편집">
             편집
           </button>
-          {/* 그림은 **지금 상태**, 글자는 **누르면 할 일**입니다 — 수업
-              중에는 글자를 읽기 전에 그림부터 눈에 들어오므로, 그림이 앞으로
-              할 일을 가리키면 반대로 읽습니다. */}
+          {/* 여닫기 단추에는 **자물쇠를 달지 않습니다.** 바로 위 배지가
+              지금 상태를 자물쇠로 말하는데, 단추의 글자는 '누르면 할 일'이라
+              한 카드에 방향이 다른 자물쇠 둘이 생깁니다(잠긴 활동에 열린
+              자물쇠 + '잠금 해제'). 상태는 배지가, 할 일은 단추 글자가
+              맡습니다. */}
           <button
             type="button"
-            className="btn-ghost book-lock-btn"
+            className="btn-ghost"
             onClick={onToggleLock}
             title={activity.locked ? "지금 잠겨 있어요 — 눌러서 엽니다" : "지금 열려 있어요 — 눌러서 잠급니다"}
           >
-            <IconLockState locked={!!activity.locked} size={14} />
             {activity.locked ? "잠금 해제" : "잠그기"}
           </button>
           <button type="button" className="btn-ghost qa-delete" onClick={onDelete}>
