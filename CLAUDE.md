@@ -643,9 +643,30 @@ Firebase 미설정 시 자동으로 **데모 모드**로 동작 (새로고침 �
 - 표 마지막 줄의 '출석 인원'은 **지금 명단에 있는 학생만** 셉니다 — 기록에는
   반에서 빠진 학생도 남아 있어, 그대로 세면 위 ○ 개수와 아래 합계가
   어긋납니다.
-- 만드는 법은 활동 자료 내보내기와 같은 `downloadWorkbook`(라이브러리 없이
-  SpreadsheetML). 열이 날짜 수에 따라 달라져 열 이름을 인자로 받습니다 —
-  열이 고정인 `downloadStudyWorkbook`이 이것을 감싸 씁니다.
+- 만드는 법은 활동 자료 내보내기와 같은 `downloadWorkbook`. 열이 날짜 수에
+  따라 달라져 열 이름을 인자로 받습니다 — 열이 고정인
+  `downloadStudyWorkbook`이 이것을 감싸 씁니다.
+- 같은 줄에 서는 것들(단추 둘·상태 알약·내려받기·'출석 n / N')은 **높이를
+  하나로**(`height: 30px`) 맞춥니다. 세로 padding으로 저마다 정하면 글자
+  크기가 다른 만큼(13 · 12.5 · 12px) 줄이 들쭉날쭉해집니다.
+
+### 엑셀 내보내기는 진짜 `.xlsx`입니다
+- `lib/exportStudy.js`의 `downloadWorkbook`이 **OOXML 몇 장을 zip으로 묶어**
+  만듭니다(`buildXlsxParts` + `lib/zip.js`). 라이브러리(SheetJS·JSZip)는
+  여전히 안 씁니다.
+- 예전에는 SpreadsheetML 2003(XML 한 장)을 `.xls` 이름으로 내려 주었는데,
+  엑셀이 열 때마다 **'파일 형식 및 확장명이 일치하지 않습니다'** 경고를
+  띄웠습니다 — 속은 XML인데 이름은 옛 이진 형식이라서입니다. 이름만
+  `.xml`로 바꾸면 경고는 사라져도 더블클릭으로 안 열립니다.
+- `lib/zip.js`는 **압축하지 않습니다**(store, method 0). deflate를 구현하거나
+  비동기 `CompressionStream`을 쓸 만큼 파일이 크지 않습니다(표 한 장 = 수십 KB).
+- 셀은 전부 `t="inlineStr"` — `sharedStrings.xml`을 두면 조금 작아지지만
+  부품이 하나 늘고 어긋날 자리도 하나 늡니다.
+- 열 이름은 `colName`이 만듭니다(0→A … 26→AA). **출석부는 날짜만큼 열이
+  늘어 26칸을 쉽게 넘습니다** — Z 다음을 잘못 세면 엑셀이 파일을 통째로
+  거부합니다.
+- `xmlEscape`는 XML 1.0이 금지하는 제어문자도 걷어 냅니다. 학생 글에 섞여
+  들어오면 '읽을 수 없는 파일'이 됩니다.
 
 ### PythonRunner 복사 버튼
 - `.py-copy-btn` — `py-head-actions` 안, '전체 화면' 버튼 왼쪽에 위치

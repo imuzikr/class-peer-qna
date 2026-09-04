@@ -12339,18 +12339,27 @@ a.lesson-board-file-name { text-decoration: underline; }
 }
 
 /* 출석 시작/종료 — 교사가 그날 출석 받기를 직접 켜고 끕니다 */
-.study-attendance-controls {
+/* 이 줄에 서는 것들은 **높이를 하나로** 맞춥니다 — 단추 둘 · 상태 알약 ·
+   내려받기 단추 · 오른쪽 '출석 n / N'. 저마다 padding으로 높이를 정하면
+   글자 크기가 조금씩 다른 만큼(13px · 12.5px · 12px) 줄이 들쭉날쭉해집니다.
+   세로 padding을 없애고 height 하나로 정한 뒤, 안쪽 정렬은 inline-flex가
+   맡습니다(글자만 있는 '출석 n / N'도 같은 높이라야 줄이 반듯합니다). */
+.study-attendance-toolbar > *,
+.study-attendance-controls > * {
+  height: 30px;
   display: inline-flex;
   align-items: center;
+}
+.study-attendance-controls {
   gap: 8px;
 }
 .study-attendance-start,
 .study-attendance-stop {
-  padding: 7px 14px;
+  padding: 0 14px;
   font-size: 13px;
 }
 .study-attendance-live {
-  padding: 4px 10px;
+  padding: 0 10px;
   border-radius: 999px;
   background: #f1eee8;
   color: var(--text-sub);
@@ -12384,15 +12393,15 @@ a.lesson-board-file-name { text-decoration: underline; }
    오른쪽에 붙어 섭니다(시작·종료는 왼쪽 그대로). */
 .study-attendance-export {
   margin-left: auto;
-  padding: 6px 12px;
+  padding: 0 12px;
   font-size: 12.5px;
   white-space: nowrap;
 }
 .study-attendance-count {
-  display: inline-block;
   color: var(--text-sub);
   font-size: 12px;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 /* 목록형 / 캘린더형 전환 탭 */

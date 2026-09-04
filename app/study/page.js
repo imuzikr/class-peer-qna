@@ -214,7 +214,7 @@ function StudyPageInner() {
         const withRows = sections.filter((s) => s.rows.length > 0);
         if (withRows.length === 0) { setToast("내보낼 학생 활동 카드가 아직 없어요."); return; }
         if (kind === "excel") {
-          downloadStudyWorkbook(withRows, "공부방_활동자료_전체.xls");
+          downloadStudyWorkbook(withRows, "공부방_활동자료_전체.xlsx");
         } else {
           printStudyPdfSections(withRows, "전체 반");
         }
@@ -1156,7 +1156,7 @@ function StudyPageInner() {
                     className="study-export-btn"
                     onClick={() => handleExport("all", "excel")}
                     disabled={exporting}
-                    title="반별 시트로 나눈 엑셀(.xls)"
+                    title="반별 시트로 나눈 엑셀(.xlsx)"
                   >
                     Excel (반별 시트)
                   </button>
