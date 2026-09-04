@@ -827,7 +827,7 @@ function StudyPageInner() {
                           onClick={() => setNoteViewerOpen(true)}
                           title="지난 수업 노트를 넘겨 보고 PDF로 저장합니다"
                         >
-                          📓 수업 노트
+                          수업 노트
                         </button>
                         <button
                           className={`btn-ghost${kwlPanelOpen ? " active" : ""}`}
