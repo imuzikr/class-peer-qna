@@ -26,7 +26,7 @@ import dynamic from "next/dynamic";
 import TopNav from "@/components/TopNav";
 import StudentRewardTrend from "@/components/StudentRewardTrend";
 import CornellNoteSheet from "@/components/CornellNoteSheet";
-import { IconRecord } from "@/components/StatusIcons";
+import { IconRecord, IconInsight } from "@/components/StatusIcons";
 
 // 활동 히트맵·레이더 차트는 무거워 지연 로딩
 const ActivityHeatmap = dynamic(() => import("@/components/ActivityHeatmap"), {
@@ -431,7 +431,10 @@ function StudentReportPageInner() {
           )}
 
           <div className="side-section-head">
-            <h3 className="side-section-title"><IconRecord size={18} /> 내 인사이트 모음</h3>
+            {/* 번개 = 인사이트. 여기도 노트 그림이었는데, 아래 '수업 노트'가 그 그림을
+                쓰게 되어 한 페이지에 같은 그림이 다른 뜻으로 두 번 났습니다.
+                인사이트 그림은 /board·질문 모달·인사이트 창이 이미 쓰던 것입니다. */}
+            <h3 className="side-section-title"><IconInsight size={18} /> 내 인사이트 모음</h3>
             <span>{myReflections.length}개</span>
           </div>
           {myReflections.length === 0 ? (
@@ -746,7 +749,7 @@ function StudentReportPageInner() {
         {myClassIds.size > 0 && (
           <section className="study-report report-cornell" id="cornell-notes">
             <div className="admin-panel-head">
-              <h2>📓 수업 노트</h2>
+              <h2 className="head-icon"><IconRecord size={20} /> 수업 노트</h2>
               {/* PDF로 저장 — 인쇄 창에서 '대상: PDF로 저장'을 고르면 됩니다.
                   한 장에 노트 하나, 코넬 2단 그대로 나옵니다
                   (레이아웃은 lib/exportCornell.js 한 곳에서만 정합니다). */}

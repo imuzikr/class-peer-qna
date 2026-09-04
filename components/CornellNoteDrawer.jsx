@@ -41,6 +41,7 @@ import RichTextEditor from "./RichTextEditor";
 import CornellNoteSheet from "./CornellNoteSheet";
 import CornellNoteViewerModal from "./CornellNoteViewerModal";
 import { richHtml, stripHtml } from "@/lib/html";
+import { IconRecord } from "./StatusIcons";
 
 const SAVE_DELAY = 2000; // ms — 이만큼 입력이 없으면 저장
 const OPEN_KEY = "cornell-drawer-open";
@@ -362,7 +363,7 @@ export default function CornellNoteDrawer({
       {open && (
         <aside className="cornell-drawer" aria-label="수업 노트">
           <header className="cornell-head">
-            <strong>📓 수업 노트</strong>
+            <strong className="head-icon"><IconRecord size={18} /> 수업 노트</strong>
             <span className="cornell-date">{date}</span>
             <button
               type="button"

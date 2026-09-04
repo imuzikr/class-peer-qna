@@ -28,6 +28,7 @@ import { normalizeSeats } from "@/lib/seats";
 import { useTodayRewardCounts } from "@/lib/useTodayRewards";
 import StudentNotesThread from "./StudentNotesThread";
 import StudentToolsModal from "./StudentToolsModal";
+import { IconMyPost } from "./StatusIcons";
 
 // 자리표 그리기만 담당 — 데이터 구독은 아래 컨테이너가 합니다.
 // (구독과 표시를 나눠 두면 자리표 모양을 데이터 없이도 확인할 수 있습니다)
@@ -292,8 +293,8 @@ export default function QuestionSeatModal({ classId, onClose }) {
         {notesFor && (
           <aside className="attend-notes-panel" aria-label={`${notesFor.name} 누가기록`}>
             <div className="modal-head">
-              <h3>
-                📝 누가기록
+              <h3 className="head-icon">
+                <IconMyPost size={19} /> 누가기록
                 <span className="notes-student">
                   {notesFor.emoji} {notesFor.name}
                 </span>

@@ -17,6 +17,7 @@ import { useEffect, useMemo, useState } from "react";
 import { backdropClose } from "@/lib/modal";
 import { subscribeStudentCornellNotes, saveCornellFeedback } from "@/lib/store";
 import CornellNoteSheet from "./CornellNoteSheet";
+import { IconRecord } from "./StatusIcons";
 
 const FEEDBACK_MAX = 2000;
 
@@ -98,13 +99,13 @@ export default function CornellNoteReadModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-head">
-          <h3>
+          <h3 className="head-icon">
             {onBack && (
               <button type="button" className="modal-back" onClick={onBack} aria-label="뒤로" title="뒤로">
                 ‹
               </button>
             )}
-            📓 수업 노트
+            <IconRecord size={19} /> 수업 노트
             <span className="notes-student">
               {student?.emoji ?? "🙂"} {student?.name}
             </span>

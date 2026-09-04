@@ -14,6 +14,7 @@
 import { backdropClose } from "@/lib/modal";
 import { REWARD_MAX } from "@/lib/store";
 import StudentRewardTrend from "./StudentRewardTrend";
+import { IconMyPost } from "./StatusIcons";
 
 // onAward(uid, 바꿀개수, delta) — 세 번째 값이 핵심입니다. 여기 보이는
 // `count`는 **방금 누른 결과가 아직 안 돌아왔을 수 있는** 값이라, 그것으로
@@ -99,7 +100,7 @@ export default function StudentToolsModal({
             className="attend-tools-notes"
             onClick={() => onOpenNotes(student)}
           >
-            📝 누가기록 열기
+            <IconMyPost size={16} /> 누가기록 열기
           </button>
         </div>
       </div>

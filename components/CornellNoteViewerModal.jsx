@@ -24,6 +24,7 @@ import {
 } from "@/lib/store";
 import { printCornellNotes, printableName } from "@/lib/exportCornell";
 import CornellNoteSheet from "./CornellNoteSheet";
+import { IconRecord } from "./StatusIcons";
 
 export default function CornellNoteViewerModal({
   classId,
@@ -114,7 +115,7 @@ export default function CornellNoteViewerModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-head">
-          <h3>📓 내 수업 노트</h3>
+          <h3 className="head-icon"><IconRecord size={20} /> 내 수업 노트</h3>
           <button className="btn-close" onClick={onClose} aria-label="닫기">×</button>
         </div>
 

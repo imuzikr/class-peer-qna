@@ -15,6 +15,7 @@ import { normalizeSeats } from "@/lib/seats";
 import { getCurrentUser } from "@/lib/user";
 import StudentNotesThread from "./StudentNotesThread";
 import StudentToolsModal from "./StudentToolsModal";
+import { IconMyPost } from "./StatusIcons";
 
 const DEFAULT_GROUP_COLORS = ["#2563eb", "#16a34a", "#f97316", "#9333ea", "#dc2626", "#0891b2"];
 
@@ -411,8 +412,8 @@ export default function AttendanceBoard({
           aria-label={`${notesFor.name} 누가기록`}
         >
           <div className="modal-head">
-            <h3>
-              📝 누가기록
+            <h3 className="head-icon">
+              <IconMyPost size={19} /> 누가기록
               <span className="notes-student">
                 {notesFor.emoji} {notesFor.name}
               </span>

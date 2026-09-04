@@ -28,6 +28,7 @@ import { useSeatView } from "@/lib/seatView";
 import { subscribeClassNoteCounts } from "@/lib/store";
 import StudentNotesModal from "./StudentNotesModal";
 import CornellNotesPanel from "./CornellNotesPanel";
+import { IconMyPost, IconRecord } from "./StatusIcons";
 
 export default function ClassNotesManagerModal({
   classId,
@@ -78,8 +79,8 @@ export default function ClassNotesManagerModal({
           onClick={(e) => e.stopPropagation()}
         >
           <div className="modal-head">
-            <h3>
-              📝 기록 관리
+            <h3 className="head-icon">
+              <IconMyPost size={20} /> 기록 관리
               {className && <span className="notes-student">{className}</span>}
             </h3>
             <button className="btn-close" onClick={onClose} aria-label="닫기">×</button>
@@ -93,7 +94,7 @@ export default function ClassNotesManagerModal({
               className={`notes-mgr-tab${tab === "notes" ? " active" : ""}`}
               onClick={() => setTab("notes")}
             >
-              📝 누가기록
+              <IconMyPost size={15} /> 누가기록
             </button>
             <button
               type="button"
@@ -103,7 +104,7 @@ export default function ClassNotesManagerModal({
               onClick={() => setTab("cornell")}
               title="학생이 수업 중에 적은 코넬 노트를 읽고 피드백을 남깁니다"
             >
-              📓 수업 노트
+              <IconRecord size={15} /> 수업 노트
             </button>
           </div>
 

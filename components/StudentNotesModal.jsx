@@ -5,6 +5,7 @@
 // =============================================================
 import { backdropClose } from "@/lib/modal";
 import StudentNotesThread from "./StudentNotesThread";
+import { IconMyPost } from "./StatusIcons";
 
 // onBack — 과일 주기 모달에서 넘어온 경우, 왔던 화면으로 돌아가는 화살표를
 // 왼쪽에 답니다. 기록을 남기고 나서 과일도 주려면 지금까지는 모달을 닫고
@@ -26,7 +27,7 @@ export default function StudentNotesModal({ student, classId = null, onBack = nu
                 ‹
               </button>
             )}
-            📝 누가기록
+            <IconMyPost size={19} /> 누가기록
             <span className="notes-student">
               {student.emoji} {student.name}
             </span>
