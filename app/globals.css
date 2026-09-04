@@ -17223,7 +17223,28 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
 .book-activity-actions .btn-ghost { padding: 4px 10px; font-size: 12px; }
 
 /* ── 활동 만들기 폼 ── */
-.book-form { width: min(94vw, 480px); }
+/* 가로로 넓게, 두 칸으로. 예전에는 480px 한 줄에 항목을 전부 쌓아 창이
+   세로로 길어졌고(종류 5 + 이름·주제어 + 주소 + 모둠 세 물음 + 모둠 수 +
+   이름), 85vh를 넘겨 안쪽에 스크롤 막대가 생겼습니다. 스크롤을 내리면 위에서
+   고른 활동 종류가 화면 밖으로 나가 무엇을 만드는 중인지 보이지 않습니다.
+   .modal의 max-width(640px)보다 세야 해서 선택자를 겹쳐 씁니다. */
+.modal.book-form {
+  width: min(94vw, 900px);
+  max-width: min(94vw, 900px);
+}
+.book-form-cols { display: flex; align-items: flex-start; gap: 20px; }
+/* 왼쪽 — '무엇을 할까'(활동 종류). 폭을 고정해 두어야 종류를 바꿔도
+   오른쪽 칸의 너비가 흔들리지 않습니다. */
+.book-form-side {
+  flex: 0 0 300px;
+  padding-right: 20px;
+  border-right: 1px solid var(--border);
+}
+.book-form-side .book-field { margin-bottom: 0; }
+/* 오른쪽 — '어떻게 할까'(이름·주제어·주소·모둠). min-width: 0 이 없으면
+   안의 긴 안내문이 칸을 밀어 왼쪽이 찌그러집니다. */
+.book-form-main { flex: 1; min-width: 0; }
+.book-form-main > *:last-child { margin-bottom: 0; }
 .book-field {
   display: flex;
   flex-direction: column;
@@ -17259,15 +17280,16 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
 }
 .book-field-row { display: flex; gap: 12px; }
 .book-field-row .book-field { flex: 1; }
-/* 가로 세그먼트 버튼 — 구성 방식·모둠 수 (모달에 스크롤이 안 생기게) */
-/* 방식 고르기 줄 — 다섯 갈래(개별·기본·활동·무작위·자유)가 서므로
+/* 가로 세그먼트 버튼 — 진행 방식·모둠 구성·짜는 방법·모둠 수.
    좁은 창에서는 접힙니다. 접히더라도 글자가 잘리지는 않게 두었습니다:
-   이름이 잘리면 '기본 모둠'과 '활동 모둠'을 구별할 수 없습니다. */
+   이름이 잘리면 '기본 모둠 그대로'와 '이 활동만의 모둠'을 구별할 수 없습니다. */
 .book-seg { display: flex; flex-wrap: wrap; gap: 6px; }
 .book-seg-btn {
-  /* 72px — 창이 480px일 때 다섯이 한 줄에 서는 크기입니다(네 글자 이름이
-     들어가는 가장 작은 값). 더 키우면 다섯째만 아랫줄로 혼자 내려갑니다. */
+  /* 72px — 네 글자 이름이 들어가는 가장 작은 값. max-width는 칸이 넓을 때
+     버튼 둘이 한 줄을 통째로 늘여 잡는 것을 막습니다(두 갈래짜리 줄이
+     혼자 커 보이면 다섯 갈래 줄과 나란히 놓았을 때 어긋납니다). */
   flex: 1 1 72px;
+  max-width: 180px;
   white-space: nowrap;
   padding: 8px 6px;
   border: 1.5px solid var(--border);
@@ -17285,6 +17307,9 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
   background: var(--primary-light);
   color: var(--primary-dark);
 }
+/* 숫자 한 자짜리 줄(모둠 수) — 반 칸 안에 다섯이 한 줄로 서야 옆 칸의
+   '모둠 짜는 방법'이 접히지 않습니다. */
+.book-seg--tight .book-seg-btn { flex: 1 1 40px; max-width: 72px; }
 .book-field--narrow { flex: 0 0 108px; }
 .book-help { font-size: 11.5px; color: var(--text-sub); font-style: normal; line-height: 1.5; }
 /* 개별 활동 안내 — 모둠 수·이름 설정이 사라진 자리를 대신 채웁니다 */
@@ -17299,10 +17324,12 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
 }
 .book-solo-note strong { font-weight: 800; }
 /* 활동 종류 고르기 — 설명이 함께 붙어 세로로 쌓는 넓은 버튼.
-   종류가 넷이라 한 줄에 넷을 늘어놓으면 설명이 읽히지 않아 2×2로 놓습니다 */
+   왼쪽 칸에 다섯을 **세로로** 세웁니다. 2×2(+1)로 놓았을 때는 마지막 하나가
+   혼자 남아 줄이 비었고, 창 위쪽 가로를 다 먹어 아래 항목이 밀려났습니다.
+   세로로 세우면 오른쪽 칸의 항목들과 높이가 맞아떨어집니다. */
 .book-type-seg {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 1fr;
   gap: 8px;
 }
 .book-type-btn {
@@ -18347,7 +18374,22 @@ span.cloud-word { cursor: default; }
   .paratext-card-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
   /* 공부방 활동 대시보드도 마찬가지로 한 줄에 하나씩 */
   .activity-dash-grid { grid-template-columns: 1fr; }
-  .book-type-seg { grid-template-columns: 1fr; }
+  /* 만들기 창 — 좁은 화면에서는 두 칸을 위아래로 되돌립니다(구분선도 아래로).
+     항목 짝짓기(.book-field-row)도 풀어 한 줄에 하나씩 놓습니다. */
+  .book-form-cols { flex-direction: column; gap: 0; }
+  .book-form-side {
+    flex: none;
+    width: 100%;
+    padding: 0 0 13px;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 13px;
+  }
+  .book-form-side .book-field { margin-bottom: 0; }
+  .book-form-main { width: 100%; }
+  .book-field-row { flex-wrap: wrap; }
+  .book-field-row .book-field { flex: 1 1 100%; }
+  .book-field-row .book-field--narrow { flex: 0 0 108px; }
 }
 
 /* 활동 만들기 — 모둠 이름 일괄 입력 */

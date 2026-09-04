@@ -177,26 +177,34 @@ export default function BookActivityForm({
           <button type="button" className="btn-close" onClick={onClose} aria-label="닫기">×</button>
         </div>
 
+        {/* 창을 가로로 넓게 쓰고 두 칸으로 나눕니다 — 왼쪽은 '무엇을 할까'
+            (활동 종류), 오른쪽은 '어떻게 할까'(이름·주제어·모둠). 예전에는
+            전부 한 줄로 쌓아 창이 세로로 길어졌고, 스크롤을 내리면 위에서
+            고른 종류가 화면 밖으로 나가 무엇을 만드는 중인지 안 보였습니다. */}
+        <div className="book-form-cols">
         {!fixedType && (
-          <div className="book-field">
-            <span>활동 종류</span>
-            <div className="book-type-seg">
-              {TYPES.map((t) => (
-                <button
-                  key={t.key}
-                  type="button"
-                  className={`book-type-btn${type === t.key ? " active" : ""}`}
-                  onClick={() => pickType(t.key)}
-                  aria-pressed={type === t.key}
-                >
-                  <strong>{t.label}</strong>
-                  <em>{t.desc}</em>
-                </button>
-              ))}
+          <div className="book-form-side">
+            <div className="book-field">
+              <span>활동 종류</span>
+              <div className="book-type-seg">
+                {TYPES.map((t) => (
+                  <button
+                    key={t.key}
+                    type="button"
+                    className={`book-type-btn${type === t.key ? " active" : ""}`}
+                    onClick={() => pickType(t.key)}
+                    aria-pressed={type === t.key}
+                  >
+                    <strong>{t.label}</strong>
+                    <em>{t.desc}</em>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         )}
 
+        <div className="book-form-main">
         <div className="book-field-row">
           <label className="book-field">
             <span>활동 이름</span>
@@ -251,73 +259,57 @@ export default function BookActivityForm({
 
         {canGroup && (
           <>
-            {/* ① 모둠으로 할까, 혼자 할까 */}
-            <div className="book-field">
-              <span>진행 방식</span>
-              <div className="book-seg">
-                <button
-                  type="button"
-                  className={`book-seg-btn${groupWork ? " active" : ""}`}
-                  onClick={() => setGroupWork(true)}
-                  aria-pressed={groupWork}
-                >
-                  모둠 활동
-                </button>
-                <button
-                  type="button"
-                  className={`book-seg-btn${!groupWork ? " active" : ""}`}
-                  onClick={() => setGroupWork(false)}
-                  aria-pressed={!groupWork}
-                >
-                  개별 활동
-                </button>
-              </div>
-            </div>
-
-            {/* ② 모둠이면 — 반의 기본 모둠 그대로 쓸까, 이 활동만의 모둠을 짤까 */}
-            {groupWork && (
+            {/* ①② 한 줄에 나란히 — '모둠으로 할까'와 '어떤 모둠으로 할까'는
+                이어지는 물음이라 함께 보여야 답하기 쉽습니다. */}
+            <div className="book-field-row">
+              {/* ① 모둠으로 할까, 혼자 할까 */}
               <div className="book-field">
-                <span>모둠 구성</span>
+                <span>진행 방식</span>
                 <div className="book-seg">
                   <button
                     type="button"
-                    className={`book-seg-btn${useBaseGroups ? " active" : ""}`}
-                    onClick={() => setUseBaseGroups(true)}
-                    aria-pressed={useBaseGroups}
+                    className={`book-seg-btn${groupWork ? " active" : ""}`}
+                    onClick={() => setGroupWork(true)}
+                    aria-pressed={groupWork}
                   >
-                    기본 모둠 그대로
+                    모둠 활동
                   </button>
                   <button
                     type="button"
-                    className={`book-seg-btn${!useBaseGroups ? " active" : ""}`}
-                    onClick={() => setUseBaseGroups(false)}
-                    aria-pressed={!useBaseGroups}
+                    className={`book-seg-btn${!groupWork ? " active" : ""}`}
+                    onClick={() => setGroupWork(false)}
+                    aria-pressed={!groupWork}
                   >
-                    이 활동만의 모둠
+                    개별 활동
                   </button>
                 </div>
               </div>
-            )}
 
-            {/* ③ 이 활동만의 모둠이면 — 어떻게 짤까 */}
-            {groupWork && !useBaseGroups && (
-              <div className="book-field">
-                <span>모둠 짜는 방법</span>
-                <div className="book-seg">
-                  {TEMP_MODES.map((m) => (
+              {/* ② 모둠이면 — 반의 기본 모둠 그대로 쓸까, 이 활동만의 모둠을 짤까 */}
+              {groupWork && (
+                <div className="book-field">
+                  <span>모둠 구성</span>
+                  <div className="book-seg">
                     <button
-                      key={m.key}
                       type="button"
-                      className={`book-seg-btn${tempMode === m.key ? " active" : ""}`}
-                      onClick={() => setTempMode(m.key)}
-                      aria-pressed={tempMode === m.key}
+                      className={`book-seg-btn${useBaseGroups ? " active" : ""}`}
+                      onClick={() => setUseBaseGroups(true)}
+                      aria-pressed={useBaseGroups}
                     >
-                      {m.label}
+                      기본 모둠 그대로
                     </button>
-                  ))}
+                    <button
+                      type="button"
+                      className={`book-seg-btn${!useBaseGroups ? " active" : ""}`}
+                      onClick={() => setUseBaseGroups(false)}
+                      aria-pressed={!useBaseGroups}
+                    >
+                      이 활동만의 모둠
+                    </button>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
             {perStudent && type !== "consonant" ? (
               /* 곁텍스트·RAFT의 '개별 활동' — 지금까지 해 오던 그 모습입니다.
@@ -340,10 +332,31 @@ export default function BookActivityForm({
               <p className="book-help book-solo-note">{baseNote(baseGroupCount)}</p>
             ) : (
             <>
+            {/* ③ 이 활동만의 모둠이면 — 어떻게 짤까 · 몇 모둠으로 할까.
+                이 두 물음은 늘 함께 뜹니다(③이 뜨는 조건 = 이 자리) — 한 줄에
+                놓아 창이 세로로 늘어나지 않게 합니다. */}
             <div className="book-field-row">
               <div className="book-field">
-                <span>모둠 수</span>
+                <span>모둠 짜는 방법</span>
                 <div className="book-seg">
+                  {TEMP_MODES.map((m) => (
+                    <button
+                      key={m.key}
+                      type="button"
+                      className={`book-seg-btn${tempMode === m.key ? " active" : ""}`}
+                      onClick={() => setTempMode(m.key)}
+                      aria-pressed={tempMode === m.key}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="book-field">
+                <span>모둠 수</span>
+                {/* 숫자 한 자라 좁게 — 넓은 버튼과 같은 크기로 두면 이 줄만
+                    혼자 길어져 옆 칸(모둠 짜는 방법)이 접힙니다. */}
+                <div className="book-seg book-seg--tight">
                   {GROUP_COUNTS.map((n) => (
                     <button
                       key={n}
@@ -356,6 +369,28 @@ export default function BookActivityForm({
                   ))}
                 </div>
               </div>
+            </div>
+
+            {/* 모둠 이름 · 모둠당 최대 — '학생이 고르기'일 때만 뒤 칸이 붙습니다.
+                위 줄(짜는 방법 · 모둠 수)에 끼우면 그 줄이 세 칸이 되어 버튼
+                줄이 두 줄로 접힙니다. */}
+            <div className="book-field-row">
+              <label className="book-field">
+                <span>
+                  모둠 이름 <em className="book-optional">선택</em>
+                  {names.length > 0 && (
+                    <b className={names.length === groupCount ? "book-cnt ok" : "book-cnt bad"}>
+                      {names.length} / {groupCount}
+                    </b>
+                  )}
+                </span>
+                <input
+                  type="text"
+                  value={namesRaw}
+                  onChange={(e) => setNamesRaw(e.target.value)}
+                  placeholder="쉼표로 구분 — 예: 햇살, 바람, 나무, 별빛"
+                />
+              </label>
               {tempMode === "free" && (
                 <div className="book-field book-field--narrow">
                   <span>모둠당 최대</span>
@@ -367,23 +402,6 @@ export default function BookActivityForm({
                 </div>
               )}
             </div>
-
-            <label className="book-field">
-              <span>
-                모둠 이름 <em className="book-optional">선택</em>
-                {names.length > 0 && (
-                  <b className={names.length === groupCount ? "book-cnt ok" : "book-cnt bad"}>
-                    {names.length} / {groupCount}
-                  </b>
-                )}
-              </span>
-              <input
-                type="text"
-                value={namesRaw}
-                onChange={(e) => setNamesRaw(e.target.value)}
-                placeholder="쉼표로 구분 — 예: 햇살, 바람, 나무, 별빛"
-              />
-            </label>
             <p className="book-help">
               {TEMP_MODES.find((m) => m.key === tempMode)?.note ?? ""}
             </p>
@@ -391,6 +409,8 @@ export default function BookActivityForm({
             )}
           </>
         )}
+        </div>{/* .book-form-main */}
+        </div>{/* .book-form-cols */}
 
         <div className="modal-actions">
           <button type="button" className="btn-ghost" onClick={onClose}>취소</button>
