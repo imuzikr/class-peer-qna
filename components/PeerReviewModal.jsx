@@ -19,6 +19,7 @@ import RichTextEditor from "./RichTextEditor";
 import { savePeerReview, deletePeerReview, peerReviewId } from "@/lib/store";
 import { richHtml, stripHtml } from "@/lib/html";
 import { MEMBER_COLORS } from "@/lib/bookColors";
+import { IconLock } from "./StatusIcons";
 
 const HINTS = [
   { key: "감상", text: "어떤 점이 좋았나요? 인상 깊은 대목은?" },
@@ -150,7 +151,7 @@ export default function PeerReviewModal({
               {locked ? (
                 <>
                   <p className="book-locked-note">
-                    지금은 동료 평가가 잠겨 있어요. 쓴 것은 그대로 남아 있습니다.
+                    <IconLock size={15} /> 지금은 동료 평가가 잠겨 있어요. 쓴 것은 그대로 남아 있습니다.
                   </p>
                   {existing ? (
                     <div

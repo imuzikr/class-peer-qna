@@ -34,7 +34,7 @@ import { formatFileSize } from "@/lib/image";
 import { backdropClose } from "@/lib/modal";
 import { cardProgress } from "./StudyProgressBoard";
 import UploadProgress from "./UploadProgress";
-import { IconLock, IconPen } from "./StatusIcons";
+import { IconLockState, IconPen } from "./StatusIcons";
 import StudyTodayFeed from "./StudyTodayFeed";
 import ConfirmModal from "./ConfirmModal";
 
@@ -376,7 +376,10 @@ export default function StudyActivityPanel({
                       aria-pressed={!savedActLocked}
                       aria-label={`활동 ${i + 1} ${savedActLocked ? "열기" : "잠그기"}`}
                     >
-                      <IconLock size={13} />
+                      {/* 그림이 지금 상태를 말합니다 — 예전에는 열려 있어도
+                          닫힌 자물쇠를 그리고 바탕색만 옅게 두어, 잠근 활동과
+                          연 활동이 스치듯 보면 같아 보였습니다. */}
+                      <IconLockState locked={savedActLocked} size={14} mono />
                     </button>
                   )}
                   <input

@@ -31,7 +31,7 @@ import {
   paratextCharCount,
   safeBookUrl,
 } from "@/lib/paratext";
-import { IconBook, IconLock } from "./StatusIcons";
+import { IconBook, IconLock, IconLockState } from "./StatusIcons";
 import CastBar from "./CastBar";
 
 export default function ParatextBoard({
@@ -365,6 +365,9 @@ function SectionGate({ activity }) {
             >
               <span className="section-gate-letter">{s.letter}</span>
               <span className="section-gate-ko">{s.ko}</span>
+              {/* 열림/잠김은 테두리·바탕색으로도 갈리지만 둘 다 옅은 색이라,
+                  칠판에 띄우면 그 차이가 좁아집니다. 자물쇠를 함께 답니다. */}
+              <IconLockState locked={locked} size={13} className="section-gate-lock" />
             </button>
           );
         })}

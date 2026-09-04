@@ -31,7 +31,7 @@ const DrawingCanvas = dynamic(() => import("./DrawingCanvas"), { ssr: false });
 import StudyQuestionPeek from "./StudyQuestionPeek";
 import ZoomableImage from "./ZoomableImage";
 import UploadProgress from "./UploadProgress";
-import { IconAsk, IconSolved, IconTrash, IconTeacher } from "./StatusIcons";
+import { IconAsk, IconSolved, IconTrash, IconTeacher, IconLock } from "./StatusIcons";
 
 export default function StudyCardModal({
   board,
@@ -547,7 +547,9 @@ export default function StudyCardModal({
                           <span className="activity-dash-card-head">
                             <span className="activity-dash-no">활동 {i + 1}</span>
                             {actLocked ? (
-                              <span className="activity-dash-lock">🔒 잠김</span>
+                              <span className="activity-dash-lock">
+                                <IconLock size={12} /> 잠김
+                              </span>
                             ) : (
                               <span className={`activity-dash-count${done ? " ok" : ""}`}>
                                 {n}/{DONE_MIN_CHARS}자
@@ -916,7 +918,11 @@ function ActivityWriteModal({
         <div className="modal-head">
           <h3>
             <span className="activity-write-no">활동 {index + 1}</span>
-            {locked && <span className="activity-dash-lock">🔒 잠김</span>}
+            {locked && (
+              <span className="activity-dash-lock">
+                <IconLock size={13} /> 잠김
+              </span>
+            )}
           </h3>
           <button type="button" className="btn-close" onClick={onClose} aria-label="닫기">
             ×

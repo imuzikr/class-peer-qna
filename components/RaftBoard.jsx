@@ -31,7 +31,7 @@ import {
   raftDone,
 } from "@/lib/raft";
 import { safeBookUrl } from "@/lib/paratext";
-import { IconBook, IconLock } from "./StatusIcons";
+import { IconBook, IconLock, IconLockState } from "./StatusIcons";
 import CastBar from "./CastBar";
 import GroupFilterRow from "./GroupFilterRow";
 import { PeerReviewList } from "./PeerReviewModal";
@@ -222,7 +222,8 @@ export default function RaftBoard({
                     : "동료 평가를 잠급니다 — 쓴 것은 그대로 남습니다"
                 }
               >
-                {peerLocked ? "🔒 동료 평가 잠김" : "✍️ 동료 평가 열림"}
+                <IconLockState locked={peerLocked} size={14} />
+                {peerLocked ? "동료 평가 잠김" : "동료 평가 열림"}
                 {reviews.length > 0 && <em>{reviews.length}</em>}
               </button>
             )}

@@ -57,6 +57,7 @@ import {
   IconTrash,
   IconCheck,
   IconLock,
+  IconLockState,
   IconDuplicate,
   IconPeople,
   IconSettings,
@@ -692,7 +693,11 @@ export default function StudyProjectView({
                     {shared ? "함께 보기" : isGroup ? "자기 모둠만" : "나만 보기"}
                   </span>
                 )}
-                {locked && <span className="study-project-badge lock">🔒 보기 전용</span>}
+                {locked && (
+                  <span className="study-project-badge lock">
+                    <IconLock size={13} /> 보기 전용
+                  </span>
+                )}
               </>
             )}
 
@@ -1160,6 +1165,12 @@ export default function StudyProjectView({
                 >
                   <span className="section-gate-letter">{i + 1}</span>
                   <span className="section-gate-ko">{act}</span>
+                  {/* 순서 바꾸는 중에는 누르기가 여닫기가 아니므로 자물쇠를
+                      감춥니다 — 그때도 그림이 남아 있으면 '눌러서 여는 것'으로
+                      읽힙니다(칩 폭도 그만큼 아낍니다). */}
+                  {!chipOrdering && (
+                    <IconLockState locked={chipLocked} size={13} className="section-gate-lock" />
+                  )}
                 </button>
               );
             })}
@@ -1443,7 +1454,7 @@ function SeatPlaceholder({ seat, activities, canStart, canPeek, onClick }) {
 
       <p className="study-seat-empty-note">
         {seat.locked
-          ? "🔒 본인과 선생님만 볼 수 있어요"
+          ? <><IconLock size={13} /> 본인과 선생님만 볼 수 있어요</>
           : canStart
           ? "＋ 활동 시작하기"
           : seat.absent

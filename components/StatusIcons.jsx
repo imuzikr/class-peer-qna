@@ -471,15 +471,52 @@ export function IconSettings({ size = 20, className = "" }) {
   );
 }
 
-export function IconLock({ size = 20, className = "" }) {
+// ── 잠김 / 열림 ────────────────────────────────────────────────
+// 두 아이콘은 **한 쌍**입니다 — 같은 몸통·같은 두 색(먹빛 #3A312E, 무늬
+// #8A6258)에 고리만 다릅니다. 닫힌 고리 = 잠김, 열린 고리 + 반짝임 = 열림.
+// 상태가 갈리는 자리는 색이나 글자만으로 두지 말고 이 쌍을 쓰세요 —
+// 색만으로는 '연한 회색 칩'과 '연한 살구색 칩'을 스쳐 보고 가리기 어렵고,
+// 교실 화면(빔프로젝터)에서는 그 차이가 더 좁아집니다.
+//
+// mono: 어두운 패널 위에서는 제자리 색(밝은 바탕에 맞춘 먹빛)이 안 보이므로
+// 두 색을 글자색으로 갈음하고 몸통을 비웁니다(`.study-activity-lock`).
+export function IconLock({ size = 20, className = "", mono = false }) {
+  const ink = mono ? "currentColor" : "#3A312E";
+  const accent = mono ? "currentColor" : "#8A6258";
+  const body = mono ? "none" : "#FFF7ED";
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">
-      <path d="M7.25 10.35V8.7c0-2.62 2.13-4.75 4.75-4.75s4.75 2.13 4.75 4.75v1.65" stroke="#3A312E" strokeWidth="1.65" strokeLinecap="round"/>
-      <path d="M6.65 10.35h10.7c.9 0 1.65.74 1.65 1.65v5.4c0 .9-.74 1.65-1.65 1.65H6.65C5.74 19.05 5 18.3 5 17.4V12c0-.9.74-1.65 1.65-1.65Z" fill="#FFF7ED" stroke="#3A312E" strokeWidth="1.65" strokeLinejoin="round"/>
-      <path d="M12 13.35v2.75" stroke="#8A6258" strokeWidth="1.55" strokeLinecap="round"/>
-      <circle cx="12" cy="13.05" r=".72" fill="#8A6258"/>
+      <path d="M7.25 10.35V8.7c0-2.62 2.13-4.75 4.75-4.75s4.75 2.13 4.75 4.75v1.65" stroke={ink} strokeWidth="1.65" strokeLinecap="round"/>
+      <path d="M6.65 10.35h10.7c.9 0 1.65.74 1.65 1.65v5.4c0 .9-.74 1.65-1.65 1.65H6.65C5.74 19.05 5 18.3 5 17.4V12c0-.9.74-1.65 1.65-1.65Z" fill={body} stroke={ink} strokeWidth="1.65" strokeLinejoin="round"/>
+      <path d="M12 13.35v2.75" stroke={accent} strokeWidth="1.55" strokeLinecap="round"/>
+      <circle cx="12" cy="13.05" r=".72" fill={accent}/>
     </svg>
   );
+}
+
+// 열림 — 고리가 오른쪽 위로 열려 있고, 그 끝에 반짝임 하나.
+// 몸통에 IconLock과 같은 크림색을 채웁니다: 칩·버튼 배경이 색깔일 때
+// 한쪽만 속이 비면 같은 쌍으로 안 읽힙니다.
+export function IconUnlock({ size = 20, className = "", mono = false }) {
+  const ink = mono ? "currentColor" : "#3A312E";
+  const accent = mono ? "currentColor" : "#8A6258";
+  const body = mono ? "none" : "#FFF7ED";
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">
+      <path d="M7.05 10.25V8.75c0-2.55 1.94-4.7 4.48-4.86 2.2-.14 4.1 1.18 4.82 3.08" stroke={ink} strokeWidth="1.65" strokeLinecap="round"/>
+      <path d="M6.55 10.25h10.9c.9 0 1.65.74 1.65 1.65v5.55c0 .9-.74 1.65-1.65 1.65H6.55c-.9 0-1.65-.74-1.65-1.65V11.9c0-.9.74-1.65 1.65-1.65Z" fill={body} stroke={ink} strokeWidth="1.65" strokeLinejoin="round"/>
+      <circle cx="12" cy="13.25" r=".72" fill={accent}/>
+      <path d="M12 13.65v2.7" stroke={accent} strokeWidth="1.5" strokeLinecap="round"/>
+      <path d="M17.95 4.15 18.22 4.88c.04.11.13.2.24.24l.73.27-.73.27a.45.45 0 0 0-.24.24l-.27.73-.27-.73a.45.45 0 0 0-.24-.24l-.73-.27.73-.27c.11-.04.2-.13.24-.24l.27-.73Z" fill={accent}/>
+    </svg>
+  );
+}
+
+// 상태 하나로 둘 중 하나를 그립니다. 잠김/열림이 갈리는 자리는 **전부**
+// 이것을 거쳐야 두 화면이 다른 그림을 쓰는 일이 생기지 않습니다.
+export function IconLockState({ locked, size = 20, className = "", mono = false }) {
+  const Icon = locked ? IconLock : IconUnlock;
+  return <Icon size={size} className={className} mono={mono} />;
 }
 
 export function IconPeople({ size = 20, className = "" }) {

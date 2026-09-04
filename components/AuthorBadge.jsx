@@ -11,7 +11,7 @@
 import { useState } from "react";
 import { getCurrentUser, isTeacher } from "@/lib/user";
 import { getDirectoryUser } from "@/lib/store";
-import { IconTeacher } from "@/components/StatusIcons";
+import { IconTeacher, IconUnlock } from "@/components/StatusIcons";
 
 export default function AuthorBadge({ name, emoji, realName, uid }) {
   const [revealed, setRevealed] = useState(false);
@@ -42,7 +42,9 @@ export default function AuthorBadge({ name, emoji, realName, uid }) {
       <strong className="author-name">{name}</strong>
       {admin && revealed && (
         <span className="author-real">
-          🔓 {studentId ? `${studentId} ` : ""}
+          {/* 익명 뒤의 실제 사용자를 연 자리 — 잠금 아이콘과 한 쌍이라
+              '가려진 것이 열렸다'가 그림으로 읽힙니다. */}
+          <IconUnlock size={13} /> {studentId ? `${studentId} ` : ""}
           {resolvedRealName || "정보 없음"}
         </span>
       )}

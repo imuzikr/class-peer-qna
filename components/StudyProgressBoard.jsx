@@ -28,6 +28,7 @@ import {
   todayDateKey,
 } from "@/lib/store";
 import { stripHtml } from "@/lib/html";
+import { IconLockState } from "./StatusIcons";
 import {
   matchActivitySections,
   isActivityLocked,
@@ -339,6 +340,7 @@ export default function StudyProgressBoard({
                       <span className="grass-act-head">
                         <span className="grass-act-no">활동 {i + 1}</span>
                         <span className={`progress-act-state${locked ? " locked" : ""}`}>
+                          <IconLockState locked={locked} size={12} />
                           {locked ? "잠김" : "편집"}
                         </span>
                         <span className="grass-act-count">

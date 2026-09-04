@@ -70,7 +70,7 @@ import KwlsBoard from "@/components/KwlsBoard";
 import KwlsForm from "@/components/KwlsForm";
 import MindmapBoard from "@/components/MindmapBoard";
 import MindmapForm from "@/components/MindmapForm";
-import { IconBook, IconTrash } from "@/components/StatusIcons";
+import { IconBook, IconTrash, IconLockState } from "@/components/StatusIcons";
 
 // 활동 종류의 이름 — 목록 카드에 '무엇을 하는 활동인가'를 적는 데 씁니다.
 // 설명과 '추가하기' 문구는 종류 그리드를 없애면서 함께 뺐습니다. 종류를
@@ -1004,8 +1004,14 @@ function ActivityCard({ activity, isTeacher, uid, onOpen, onEdit, onDelete, onTo
             : perStudent
               ? `학생 ${groups.length}명 · ${modeLabel}`
               : `모둠 ${groups.length}개 · ${modeLabel}`}
-          {activity.locked && " · 잠김"}
         </span>
+        {/* 잠김 표시는 글 사이가 아니라 배지로 — 종류·모둠 수를 적는 줄에
+            ' · 잠김'으로 끼워 두면 딸림 정보처럼 읽혀 지나칩니다. */}
+        {activity.locked && (
+          <span className="book-activity-lock">
+            <IconLockState locked size={13} /> 잠김
+          </span>
+        )}
       </button>
       {isTeacher && (
         <div className="book-activity-actions">
@@ -1014,7 +1020,16 @@ function ActivityCard({ activity, isTeacher, uid, onOpen, onEdit, onDelete, onTo
           <button type="button" className="btn-ghost" onClick={onEdit} title="이름·주제어 편집">
             편집
           </button>
-          <button type="button" className="btn-ghost" onClick={onToggleLock}>
+          {/* 그림은 **지금 상태**, 글자는 **누르면 할 일**입니다 — 수업
+              중에는 글자를 읽기 전에 그림부터 눈에 들어오므로, 그림이 앞으로
+              할 일을 가리키면 반대로 읽습니다. */}
+          <button
+            type="button"
+            className="btn-ghost book-lock-btn"
+            onClick={onToggleLock}
+            title={activity.locked ? "지금 잠겨 있어요 — 눌러서 엽니다" : "지금 열려 있어요 — 눌러서 잠급니다"}
+          >
+            <IconLockState locked={!!activity.locked} size={14} />
             {activity.locked ? "잠금 해제" : "잠그기"}
           </button>
           <button type="button" className="btn-ghost qa-delete" onClick={onDelete}>

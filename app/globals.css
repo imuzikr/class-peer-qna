@@ -1933,6 +1933,9 @@ button.footer-link:hover {
 
 /* 관리자가 클릭했을 때 나타나는 실명 칩 */
 .author-real {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   background: var(--dark);
   color: #faf9f5;
   border-radius: 999px;
@@ -7861,9 +7864,7 @@ pre code {
   opacity: 0.55;
   cursor: default;
 }
-.lesson-lock-icon {
-  font-size: 13px;
-}
+.lesson-lock-icon { flex-shrink: 0; }
 /* 이 반만 프로젝트 연결이 비어 있을 때의 한 줄 안내 — '활동 열기' 자리를
    대신하므로 카드가 아니라 얇은 줄로 둡니다(있어야 할 것이 없는 이유만 알림) */
 .lesson-link-hint {
@@ -8661,7 +8662,9 @@ pre code {
 /* 활동의 두 상태 — '편집'(학생이 쓸 수 있음) / '잠김'(읽기만).
    기본값을 '편집' 쪽 색으로 두어, 회색인 '잠김'과 한눈에 갈립니다. */
 .progress-act-state {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   border: 1px solid #efc19a;
   border-radius: 999px;
   padding: 2px 10px;
@@ -14164,6 +14167,9 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
   min-width: 0;
 }
 .study-seat-empty-note {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   margin-top: auto;
   font-size: 12px;
   font-weight: 700;
@@ -15214,6 +15220,10 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
   padding: 2px 10px;
 }
 .activity-dash-lock {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
   font-size: 11.5px;
   font-weight: 700;
   color: var(--text-sub);
@@ -17333,6 +17343,22 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
   font-size: 12px;
   color: var(--text-sub);
 }
+/* 잠긴 활동 — 종류·모둠 수를 적는 줄에 ' · 잠김'으로 끼워 두었더니 딸림
+   정보처럼 읽혀 그냥 지나쳤습니다. 자물쇠를 단 배지로 따로 세웁니다.
+   (열린 활동에는 아무것도 달지 않습니다 — 목록은 대부분이 열려 있어,
+   거기에 다 배지를 달면 잠긴 것을 고르는 일이 오히려 어려워집니다.) */
+.book-activity-lock {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1px solid #e6c3b8;
+  background: #f6e7e3;
+  color: #a4553a;
+  font-size: 11.5px;
+  font-weight: 700;
+}
 .book-activity-actions {
   display: flex;
   justify-content: flex-end;
@@ -17342,6 +17368,8 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
   background: var(--bg-deep);
 }
 .book-activity-actions .btn-ghost { padding: 4px 10px; font-size: 12px; }
+/* 여닫는 단추 — 그림은 지금 상태, 글자는 누르면 할 일입니다 */
+.book-lock-btn { gap: 4px; }
 
 /* ── 활동 만들기 폼 ── */
 /* 가로로 넓게, 두 칸으로. 예전에는 480px 한 줄에 항목을 전부 쌓아 창이
@@ -18690,6 +18718,18 @@ span.cloud-word { cursor: default; }
   font-size: 10px;
 }
 .section-gate-chip.open .section-gate-letter { background: #fff; }
+/* 칩 끝의 자물쇠 — 닫힌 고리면 잠김, 열린 고리면 열림.
+   테두리(점선/실선)와 바탕색으로도 갈리지만 둘 다 옅은 색이라, 교실 화면에
+   띄우면 그 차이가 좁아집니다. 그림이 있으면 멀리서도 한눈에 갈립니다.
+   글자 뒤에 두는 이유: 앞에 두면 숫자 배지와 나란히 서서 '번호 + 그림'이
+   한 덩어리로 보이고, 이름이 줄어들 때 그림이 이름을 밀어냅니다. */
+.section-gate-lock {
+  flex-shrink: 0;
+  margin-left: 1px;
+}
+/* 잠긴 칩은 조금 옅게 — 열린 칩이 늘 먼저 눈에 들어와야 합니다
+   ('지금 어디까지 열렸나'가 이 줄을 보는 이유라서요). */
+.section-gate-chip:not(.open) .section-gate-lock { opacity: 0.55; }
 /* ('다음 단계 열기'(.section-gate-next)는 뺐습니다 — 칩을 눌러 여는 길이
    이미 있어 같은 일을 두 자리에서 했고, 채워진 단추라 줄에서 혼자 튀었습니다.)
    .books-head 안의 버튼을 38px로 키우는 규칙(위쪽 '머리말 줄의 컨트롤')이
@@ -18770,8 +18810,10 @@ span.cloud-word { cursor: default; }
 }
 .study-act-gate .section-gate-chip {
   flex: 0 1 auto;
-  min-width: 62px;
-  max-width: 240px;
+  /* 자물쇠(13px)와 그 앞 여백만큼 바닥을 넓힙니다 — 예전 값(62px)을 그대로
+     두면 다 줄어들었을 때 이름이 사라지고 그림만 남습니다. */
+  min-width: 80px;
+  max-width: 258px;
 }
 .study-act-gate .section-gate-letter { flex-shrink: 0; }
 .study-act-gate .section-gate-ko {

@@ -60,6 +60,7 @@ import ClassNoticeButton from "./ClassNoticeButton";
 import NotificationBell from "./NotificationBell";
 import { isFirebaseConfigured } from "@/lib/firebase";
 import UploadProgress from "./UploadProgress";
+import { IconLockState } from "./StatusIcons";
 
 export default function LessonMode({
   lesson,
@@ -1005,9 +1006,15 @@ export default function LessonMode({
                           title={`${a} — ${locked ? "눌러서 열기" : "눌러서 잠그기"}`}
                           aria-pressed={!locked}
                         >
-                          <span className="lesson-lock-icon" aria-hidden="true">
-                            {locked ? "🔒" : "🔓"}
-                          </span>
+                          {/* 자물쇠 그림 = 지금 상태(닫힘/열림), 툴팁 =
+                              누르면 할 일. 이모지였을 때는 두 그림의 굵기와
+                              색이 기기마다 달라 화면에 띄우면 구별이 어려웠고,
+                              고리가 열린 쪽이 오히려 작아 보였습니다. */}
+                          <IconLockState
+                            locked={locked}
+                            size={17}
+                            className="lesson-lock-icon"
+                          />
                           활동 {i + 1}
                         </button>
                       );

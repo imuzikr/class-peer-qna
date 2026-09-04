@@ -409,7 +409,9 @@ export default function StudyMyActivityCard({
               <header className="study-mycard-col-head">
                 <span className="activity-dash-no">활동 {i + 1}</span>
                 {actLocked ? (
-                  <span className="activity-dash-lock">🔒 잠김</span>
+                  <span className="activity-dash-lock">
+                    <IconLock size={12} /> 잠김
+                  </span>
                 ) : (
                   <span className={`activity-dash-count${done ? " ok" : ""}`}>
                     {n}/{DONE_MIN_CHARS}자

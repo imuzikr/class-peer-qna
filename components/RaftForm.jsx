@@ -32,7 +32,7 @@ import {
   raftWritingChars,
 } from "@/lib/raft";
 import { safeBookUrl } from "@/lib/paratext";
-import { IconBook, IconLock } from "./StatusIcons";
+import { IconBook, IconLock, IconUnlock } from "./StatusIcons";
 import GroupMatesRow from "./GroupMatesRow";
 import GroupJoinRow from "./GroupJoinRow";
 import PeerReviewModal, { PeerReviewList } from "./PeerReviewModal";
@@ -276,7 +276,7 @@ export default function RaftForm({ activity, user, onBack }) {
                         onClick={() => setPeerOpen({ uid: null })}
                         title="선생님이 열어 주면 쓸 수 있어요"
                       >
-                        🔒 동료 평가
+                        <IconLock size={14} /> 동료 평가
                         {myReviews.length > 0 && <em>{myReviews.length}</em>}
                       </button>
                     ) : (
@@ -285,7 +285,7 @@ export default function RaftForm({ activity, user, onBack }) {
                         className="btn-ghost peer-open-btn"
                         onClick={() => setPeerOpen({ uid: null })}
                       >
-                        ✍️ 동료 평가
+                        <IconUnlock size={14} /> 동료 평가
                         {myReviews.length > 0 && <em>{myReviews.length}</em>}
                       </button>
                     )}

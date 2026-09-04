@@ -24,6 +24,7 @@ import {
   toDate,
 } from "@/lib/store";
 import { cardActivitySummary, isActivityLocked } from "@/lib/activities";
+import { IconLock } from "./StatusIcons";
 
 function dateLabel(value) {
   const d = value ? toDate(value) : null;
@@ -330,7 +331,11 @@ function ProjectCard({
             <span className="study-project-badge soft">활동 {activities.length}개</span>
           )}
           {shared && <span className="study-project-badge soft">함께 보기</span>}
-          {locked && <span className="study-project-badge lock">🔒 보기 전용</span>}
+          {locked && (
+            <span className="study-project-badge lock">
+              <IconLock size={13} /> 보기 전용
+            </span>
+          )}
         </span>
 
         <strong className="study-project-title">{board.title}</strong>
