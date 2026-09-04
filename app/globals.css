@@ -12114,6 +12114,13 @@ a.lesson-board-file-name { text-decoration: underline; }
   line-height: 1.5;
 }
 
+/* 글줄 안에 섞이는 아이콘 — 이 안내는 오른쪽 정렬에 text-wrap: balance라
+   flex로 감싸면 접히는 방식이 달라집니다. 그래서 inline 그대로 두고
+   기준선만 내려 글자 가운데에 맞춥니다. */
+.inline-icon {
+  vertical-align: -3px;
+}
+
 .study-class-name {
   color: var(--primary-dark);
   font-weight: 700;

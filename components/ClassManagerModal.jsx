@@ -20,7 +20,7 @@ import {
   reorderClasses,
 } from "@/lib/store";
 import ConfirmModal from "./ConfirmModal";
-import { IconPen, IconTrash } from "./StatusIcons";
+import { IconPen, IconTrash, IconArchive } from "./StatusIcons";
 
 export default function ClassManagerModal({
   classes,
@@ -242,7 +242,7 @@ export default function ClassManagerModal({
                       disabled={busyId === c.id}
                       title="보관하면 학생 접근이 막히고 목록에서 숨겨져요"
                     >
-                      📦 보관
+                      <IconArchive size={15} /> 보관
                     </button>
                   </div>
                 </li>

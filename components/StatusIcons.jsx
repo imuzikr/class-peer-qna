@@ -519,6 +519,23 @@ export function IconLockState({ locked, size = 20, className = "", mono = false 
   return <Icon size={size} className={className} mono={mono} />;
 }
 
+// 반 보관 — 뚜껑을 덮은 상자.
+// 이모지(📦)를 쓰던 자리인데, 기기마다 그림이 아주 달라(택배 상자 · 갈색
+// 종이상자 · 납작한 서류함) 반 관리 창과 공부방 머리말이 다른 그림을
+// 보여 주었습니다. 다른 아이콘과 같은 두 색(먹빛 #3A312E, 무늬 #8A6258)
+// 이라 줄에 섞여도 튀지 않습니다.
+export function IconArchive({ size = 20, className = "" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">
+      <path d="M5.65 9.75h12.7c.8 0 1.45.65 1.45 1.45v6.25c0 .8-.65 1.45-1.45 1.45H5.65c-.8 0-1.45-.65-1.45-1.45V11.2c0-.8.65-1.45 1.45-1.45Z" fill="#FFF7ED" stroke="#3A312E" strokeWidth="1.55" strokeLinejoin="round"/>
+      <path d="M5.7 5.55h12.6c.47 0 .9.27 1.1.7l1.2 2.58c.34.74-.2 1.57-1.02 1.57H4.42c-.82 0-1.36-.83-1.02-1.57l1.2-2.58c.2-.43.63-.7 1.1-.7Z" fill="#FFFDF9" stroke="#3A312E" strokeWidth="1.55" strokeLinejoin="round"/>
+      <path d="M4.55 10.4h14.9" stroke="#8A6258" strokeWidth="1.25" strokeLinecap="round"/>
+      <path d="M9.05 12.4h5.9v2.25h-5.9v-2.25Z" stroke="#8A6258" strokeWidth="1.25" strokeLinejoin="round"/>
+      <path d="M8.3 17.05h7.4" stroke="#3A312E" strokeWidth="1.25" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
 export function IconPeople({ size = 20, className = "" }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">

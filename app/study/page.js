@@ -86,6 +86,7 @@ import StudyAttendanceModal from "@/components/StudyAttendanceModal";
 import CornellNoteViewerModal from "@/components/CornellNoteViewerModal";
 import SeatGroupSetupModal from "@/components/SeatGroupSetupModal";
 import ClassNotesTools from "@/components/ClassNotesTools";
+import { IconArchive } from "@/components/StatusIcons";
 import { updateLesson } from "@/lib/store";
 
 // 파이썬 실행기(CodeMirror 등)는 무거워 지연 로딩 → 초기 로드/전환 속도 개선
@@ -845,7 +846,7 @@ function StudyPageInner() {
                     )}
                     {admin && currentClass?.archived ? (
                       <span className="study-class-archived-badge" title="보관된 반 — 보기 전용(편집하려면 먼저 복원하세요)">
-                        📦 {currentClass.name} · 보관됨
+                        <IconArchive size={15} /> {currentClass.name} · 보관됨
                       </span>
                     ) : (
                       admin && myClasses.length > 0 && (
@@ -944,7 +945,7 @@ function StudyPageInner() {
                     '지금 편집이 막혀 있다'는 상태라 그대로 둡니다. */}
                 {admin ? (
                   currentClass?.archived ? (
-                    <p className="study-head-note">📦 보관된 반의 데이터를 보기 전용으로 보고 있어요. 편집하려면 ‘반 관리하기’에서 먼저 복원하세요.</p>
+                    <p className="study-head-note"><IconArchive size={15} className="inline-icon" /> 보관된 반의 데이터를 보기 전용으로 보고 있어요. 편집하려면 ‘반 관리하기’에서 먼저 복원하세요.</p>
                   ) : null
                 ) : currentClass ? (
                   <p className="study-head-note">
