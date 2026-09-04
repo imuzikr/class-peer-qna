@@ -39,6 +39,7 @@ import {
   todayDateKey,
   subscribeStudyBoards,
   subscribeClassStudyAttendance,
+  subscribeClassRewards,
 } from "@/lib/store";
 import { isFirebaseConfigured } from "@/lib/firebase";
 import { isAdmin, isTeacher, getCurrentUser } from "@/lib/user";
@@ -284,6 +285,20 @@ function BooksPageInner() {
     return subscribeClassStudyAttendance(classId, setAttendanceRecords);
   }, [admin, classId]);
 
+  // 이 반의 과일 **누적 총계** — 자리표를 눌러 뜨는 '과일 주기' 창이 씁니다.
+  // 여기를 안 받고 있어서, 책방에서는 그 창의 '누적'이 늘 0으로 보이고
+  // '−1' 단추가 영영 꺼져 있었습니다(0개면 뺄 것이 없다고 판단하므로).
+  // 자리 칸의 🍎 뱃지는 rewardEvents에서 따로 세는 **오늘치**라 멀쩡했고,
+  // 그래서 '뱃지는 4인데 누적은 0'이 되었습니다. 공부방과 같게 맞춥니다.
+  // 이 값을 쓰는 '멋진 순간' 패널이 교사 전용이라 교사만 받습니다 —
+  // 학생 쉰 명이 저마다 리스너를 하나씩 더 여는 것을 피합니다(출석 기록과
+  // 같은 기준). 규칙상 학생도 제 반은 읽을 수 있지만 쓸 데가 없습니다.
+  const [rewards, setRewards] = useState([]);
+  useEffect(() => {
+    if (!admin || !classId) { setRewards([]); return; }
+    return subscribeClassRewards(classId, setRewards);
+  }, [admin, classId]);
+
   const classBoards = useMemo(
     () => studyBoards.filter((b) => b.classId === classId),
     [studyBoards, classId]
@@ -291,6 +306,8 @@ function BooksPageInner() {
 
   const roster = useMemo(() => {
     const dir = new Map(directory.map((d) => [d.uid, d]));
+    const countByUid = {};
+    rewards.forEach((r) => { countByUid[r.uid] = r.count ?? 0; });
     return memberUids
       .map((uid) => {
         const d = dir.get(uid) ?? {};
@@ -299,10 +316,12 @@ function BooksPageInner() {
           name: d.realName || d.studentId || "이름 미설정",
           studentId: d.studentId || null,
           emoji: d.emoji || "🙂",
+          // 누적 총계 — 없으면 '과일 주기' 창이 0으로 보고 '−1'을 잠급니다.
+          count: countByUid[uid] ?? 0,
         };
       })
       .sort((a, b) => (a.studentId || a.name).localeCompare(b.studentId || b.name, "ko"));
-  }, [memberUids, directory]);
+  }, [memberUids, directory, rewards]);
 
   // 오늘 출석한 학생 — 공부방과 같은 기준입니다(app/study/page.js).
   // 출석을 아직 시작하지도, 기록이 하나도 남지도 않았으면 null을 주어 자리를
