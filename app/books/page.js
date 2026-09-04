@@ -1025,15 +1025,25 @@ function ActivityCard({ activity, isTeacher, uid, onOpen, onEdit, onDelete, onTo
           {/* 여닫기 단추에는 **자물쇠를 달지 않습니다.** 바로 위 배지가
               지금 상태를 자물쇠로 말하는데, 단추의 글자는 '누르면 할 일'이라
               한 카드에 방향이 다른 자물쇠 둘이 생깁니다(잠긴 활동에 열린
-              자물쇠 + '잠금 해제'). 상태는 배지가, 할 일은 단추 글자가
-              맡습니다. */}
+              자물쇠 + 열어 주는 단추). 상태는 배지가, 할 일은 단추 글자가
+              맡습니다.
+              말머리에 **'활동'을 붙입니다** — 옆에 '편집'(이름·주제어 고치기)
+              단추가 있어서 '잠그기 / 잠금 해제'만 적으면 무엇을 잠그는
+              것인지가 흐려집니다. 여는 쪽은 '잠금 해제'가 아니라 **'활동
+              시작하기'** 입니다: 선생님이 이 단추를 누르는 순간은 '자물쇠를
+              푸는 때'가 아니라 '이 활동을 시키는 때'이고, 다시 여는 것도
+              그 반에게는 새로 시작하는 일입니다. */}
           <button
             type="button"
             className="btn-ghost"
             onClick={onToggleLock}
-            title={activity.locked ? "지금 잠겨 있어요 — 눌러서 엽니다" : "지금 열려 있어요 — 눌러서 잠급니다"}
+            title={
+              activity.locked
+                ? "지금 잠겨 있어요 — 눌러서 학생이 쓸 수 있게 엽니다"
+                : "지금 열려 있어요 — 눌러서 잠그면 학생이 더 고칠 수 없어요"
+            }
           >
-            {activity.locked ? "잠금 해제" : "잠그기"}
+            {activity.locked ? "활동 시작하기" : "활동 잠그기"}
           </button>
           <button type="button" className="btn-ghost qa-delete" onClick={onDelete}>
             <IconTrash size={15} />
