@@ -18693,19 +18693,23 @@ span.cloud-word { cursor: default; }
 .section-gate-chip.over--right::after { right: -3px; }
 /* 칩은 **언제나 한 줄**입니다. 접히게 두면 활동 수·화면 폭에 따라 줄이
    하나에서 셋까지 오락가락하고, 그때마다 아래 카드가 밀렸습니다.
-   대신 칩끼리 남는 폭을 고르게 나눠 갖고, 이름은 제 칸 안에서 말줄임으로
-   접습니다 — 전체 이름은 툴팁과 아래 진척도 목록에 그대로 있고, 숫자
-   뱃지가 이미 순서를 말해 줍니다.
-   활동이 아주 많아 그래도 넘칠 때만 이 줄이 옆으로 구릅니다(min-width가
-   바닥이라, 그 아래로는 글자가 사라지는 대신 스크롤이 생깁니다). */
+   다만 **남는 폭을 나눠 가지지는 않습니다**(flex-grow 0) — 활동이 하나뿐인
+   프로젝트에서 칩 하나가 줄을 통째로 늘여 잡아, 알약이 아니라 넓은 띠로
+   보였습니다. 이름만큼만 차지하고, 줄이 모자랄 때 비로소 서로 줄어들며
+   말줄임으로 접습니다(전체 이름은 툴팁과 아래 진척도 목록에 그대로 있고,
+   숫자 뱃지가 이미 순서를 말해 줍니다).
+   이름이 아주 긴 활동 하나가 줄을 독차지하지 않게 max-width로 막고,
+   활동이 아주 많아 그래도 넘칠 때만 이 줄이 옆으로 구릅니다
+   (min-width가 바닥이라, 그 아래로는 글자가 사라지는 대신 스크롤이 생깁니다). */
 .study-act-gate .section-gate-chips {
   flex-wrap: nowrap;
   overflow-x: auto;
   scrollbar-width: thin;
 }
 .study-act-gate .section-gate-chip {
-  flex: 1 1 0;
+  flex: 0 1 auto;
   min-width: 62px;
+  max-width: 240px;
 }
 .study-act-gate .section-gate-letter { flex-shrink: 0; }
 .study-act-gate .section-gate-ko {
