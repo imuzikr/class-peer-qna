@@ -21,7 +21,6 @@ import {
   subscribeBookGroups,
   subscribeMyParatextEntry,
   BOOK_STUDENT_TOPIC_TYPES,
-  BOOK_SOLO_TYPES,
   addBookActivity,
   deleteBookActivity,
   restoreBookActivity,
@@ -56,6 +55,7 @@ import BookActivityForm from "@/components/BookActivityForm";
 import BookActivityEditModal from "@/components/BookActivityEditModal";
 import ClassNotesTools from "@/components/ClassNotesTools";
 import StudyActivityPanel from "@/components/StudyActivityPanel";
+import { isGroupedActivity } from "@/lib/bookGroups";
 import KwlPanel from "@/components/KwlPanel";
 import TeacherKwlPanel from "@/components/TeacherKwlPanel";
 import StudyRewardPanel from "@/components/StudyRewardPanel";
@@ -856,8 +856,14 @@ function ActivityCard({ activity, isTeacher, uid, onOpen, onEdit, onDelete, onTo
   // 종류 이름 — 목록에 종류가 섞여 있으므로 카드마다 밝혀야 합니다.
   // (예전에는 종류별 목록이라 화면 머리말에 한 번 적혀 있었습니다)
   const kindLabel = ACTIVITY_KIND_BY_KEY.get(activity.type)?.label ?? "독서 활동";
-  // 개인 활동(곁텍스트 읽기·RAFT·KWLS·마인드맵)은 모둠이 없습니다.
-  const solo = BOOK_SOLO_TYPES.includes(activity.type);
+  // 이 활동에 판(모둠)이 있는가.
+  //  · 닿소리 — 늘 있습니다('개별 활동'이면 1인 판을 학생마다 하나씩)
+  //  · 곁텍스트·RAFT — 모둠으로 연 것(grouped)만
+  //  · KWLS·마인드맵 — 없음
+  // 종류만 보고 판정하면 **모둠으로 연 RAFT가 카드에 '개인 활동'으로**
+  // 적힙니다(실제로 그랬습니다). 모둠 구독도 안 걸려 '모둠 n개'도 못 셉니다.
+  const hasGroups = activity.type === "consonant" || isGroupedActivity(activity);
+  const solo = !hasGroups;
   const [groups, setGroups] = useState([]);
   // 개인 활동은 모둠이 없으므로 모둠 구독 자체를 걸지 않습니다.
   useEffect(() => {

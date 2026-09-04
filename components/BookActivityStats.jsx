@@ -37,7 +37,6 @@ import {
   subscribeBookActivities,
   subscribeBookGroups,
   subscribeGroupWords,
-  BOOK_SOLO_TYPES,
 } from "@/lib/store";
 import { CONSONANT_LABELS, GRID_SLOTS, CELL_COUNT, cellKey } from "@/lib/consonants";
 
@@ -63,11 +62,14 @@ export default function BookActivityStats({ classId }) {
     return subscribeBookActivities(classId, setAllActivities);
   }, [classId]);
 
-  // 모둠이 있는 활동만 — 지금은 닿소리 채우기 하나입니다.
+  // **닿소리 채우기만** — 이 화면이 세는 것은 판의 낱말입니다.
+  // 예전에는 '모둠이 없는 종류를 뺀다'로 걸렀는데, 곁텍스트·RAFT도 모둠으로
+  // 열 수 있게 되면서 그 조건이 낱말 없는 활동까지 끌어옵니다(그러면 빈
+  // 격자가 뜹니다). 세는 대상으로 바로 거릅니다.
   // 휴지통에 있는 것(deleted)은 뺍니다 — 목록에서 사라진 활동이 통계에만
   // 남아 있으면 어디서 온 숫자인지 알 수 없습니다.
   const activities = useMemo(
-    () => allActivities.filter((a) => !a.deleted && !BOOK_SOLO_TYPES.includes(a.type)),
+    () => allActivities.filter((a) => !a.deleted && a.type === "consonant"),
     [allActivities]
   );
 
