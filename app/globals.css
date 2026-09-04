@@ -17310,6 +17310,15 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
 /* 숫자 한 자짜리 줄(모둠 수) — 반 칸 안에 다섯이 한 줄로 서야 옆 칸의
    '모둠 짜는 방법'이 접히지 않습니다. */
 .book-seg--tight .book-seg-btn { flex: 1 1 40px; max-width: 72px; }
+/* 모둠 설정의 아랫부분 — 고른 갈래에 따라 내용이 통째로 바뀌는 자리입니다.
+   '이 활동만의 모둠'이 가장 크고(줄 둘 + 안내 두 줄 = 164px), '기본 모둠
+   그대로'·'개별 활동'은 안내문 한 덩이뿐이라 60~100px입니다. 그대로 두면
+   설정을 고르는 도중에 창이 커졌다 작아졌다 하므로, 가장 큰 갈래에 맞춰
+   자리를 미리 잡아 둡니다 — 어느 갈래를 눌러도 창 크기가 그대로입니다.
+   ('모둠 짜는 방법'을 바꿀 때 안내문이 한 줄↔두 줄로 오가는 것도 함께 잡힙니다)
+   166px인 것은 '학생이 고르기'의 '모둠당 최대' 고르개가 글자 칸보다 1.3px
+   높아서입니다 — 164로 두면 그 갈래에서만 창이 그만큼 자랍니다. */
+.book-group-detail { min-height: 166px; }
 .book-field--narrow { flex: 0 0 108px; }
 .book-help { font-size: 11.5px; color: var(--text-sub); font-style: normal; line-height: 1.5; }
 /* 개별 활동 안내 — 모둠 수·이름 설정이 사라진 자리를 대신 채웁니다 */
@@ -18389,6 +18398,9 @@ span.cloud-word { cursor: default; }
   .book-form-main { width: 100%; }
   .book-field-row { flex-wrap: wrap; }
   .book-field-row .book-field { flex: 1 1 100%; }
+  /* 좁은 화면에서는 자리를 미리 잡지 않습니다 — 줄이 세로로 풀려 '이 활동만의
+     모둠'은 어차피 164px를 넘고, 짧은 갈래에는 빈 자리만 크게 남습니다. */
+  .book-group-detail { min-height: 0; }
   .book-field-row .book-field--narrow { flex: 0 0 108px; }
 }
 

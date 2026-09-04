@@ -311,6 +311,11 @@ export default function BookActivityForm({
               )}
             </div>
 
+            {/* 어느 갈래를 골라도 같은 높이를 차지합니다(min-height) — 고르는
+                도중에 창이 커졌다 작아졌다 하면 눈이 따라가기 어렵습니다.
+                '이 활동만의 모둠'이 가장 크고(두 줄 + 안내), 나머지 갈래는
+                그 안에 담깁니다. */}
+            <div className="book-group-detail">
             {perStudent && type !== "consonant" ? (
               /* 곁텍스트·RAFT의 '개별 활동' — 지금까지 해 오던 그 모습입니다.
                  판을 깔지 않고 각자 자기 문서에만 씁니다. */
@@ -407,6 +412,7 @@ export default function BookActivityForm({
             </p>
             </>
             )}
+            </div>{/* .book-group-detail */}
           </>
         )}
         </div>{/* .book-form-main */}
