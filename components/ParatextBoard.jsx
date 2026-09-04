@@ -43,6 +43,7 @@ export default function ParatextBoard({
   onBack,
   // 누가기록 관리·수업 메모 버튼 묶음 (교사 전용, 없으면 null)
   classTools = null,
+  classPicker = null,
 }) {
   const [entries, setEntries] = useState([]);
   const [openUid, setOpenUid] = useState(null);
@@ -176,7 +177,9 @@ export default function ParatextBoard({
                 <span className={`book-group-topic${(activity.topic ?? "").trim() ? "" : " soft"}`}>
                   {(activity.topic ?? "").trim() || "학생마다 다른 책"}
                 </span>
-                {className && <span className="book-group-class">{className}</span>}
+                {/* 반 표시 — 고를 반이 둘 이상이면 고르개(반을 바꾸면 그 반의
+                    활동 목록으로 갑니다), 하나면 이름 배지입니다. */}
+                {classPicker ?? (className && <span className="book-group-class">{className}</span>)}
                 {/* 진행 요약을 반 배지 바로 뒤에 붙입니다 — 아래에 제 줄로
                     두면 배지 몇 개뿐인 줄 밑에 또 한 줄이 깔려 본문이 그만큼
                     밀립니다. 이 줄은 오른쪽이 비어 있어 그대로 이어집니다. */}

@@ -12160,6 +12160,16 @@ a.lesson-board-file-name { text-decoration: underline; }
   font-size: 13px;
   line-height: 1;
 }
+/* 활동 화면의 반 고르개 — 목록 머리말에서는 38px이지만, 이 줄에서는
+   '어느 반인가'를 알려 주는 딸림 정보라 옆 배지 높이(27px)에 맞춥니다.
+   세로 여백이 4px인 것은 <select>가 line-height를 듣지 않아서입니다 —
+   글자 상자가 늘 17px이라 여백으로만 맞출 수 있습니다(실측: 6px→31px,
+   4px→27px = 배지와 같음). */
+.books-head-row .books-head-main .book-class-pick {
+  height: auto;
+  padding: 4px 12px;
+  font-size: 13px;
+}
 /* 배지에도 '보이지 않는 테두리'를 둡니다 — 버튼만 1px 테두리를 갖고 있어
    나란히 서면 배지가 2px 낮았습니다. 자리만 차지하고 보이지는 않습니다. */
 .books-head-row .books-head-main .book-group-topic,

@@ -46,6 +46,7 @@ export default function MindmapBoard({
   onBack,
   // 누가기록 관리·수업 메모 버튼 묶음 (교사 전용, 없으면 null)
   classTools = null,
+  classPicker = null,
 }) {
   const [entries, setEntries] = useState([]);
   const [openUid, setOpenUid] = useState(null);
@@ -152,7 +153,9 @@ export default function MindmapBoard({
             <span className={`book-group-topic${(activity.topic ?? "").trim() ? "" : " soft"}`}>
               {(activity.topic ?? "").trim() || "학생마다 다른 주제"}
             </span>
-            {className && <span className="book-group-class">{className}</span>}
+            {/* 반 표시 — 고를 반이 둘 이상이면 고르개(반을 바꾸면 그 반의
+                활동 목록으로 갑니다), 하나면 이름 배지입니다. */}
+            {classPicker ?? (className && <span className="book-group-class">{className}</span>)}
             {/* 잠김 안내도 이 줄에 — 예전엔 머리말 아래 제 줄을 차지했는데,
                 이 줄은 배지 두어 개뿐이라 오른쪽이 비어 있었습니다.
                 '지금 잠겨 있다'는 활동에 붙는 상태라 배지와 같은 성격입니다. */}

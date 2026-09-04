@@ -416,6 +416,39 @@ function BooksPageInner() {
       />
     ) : null;
 
+  // 활동 화면의 반 표시 — 목록 머리말의 반 고르개를 그대로 씁니다.
+  // 예전에는 반 이름 배지 하나뿐이라, 다른 반의 활동을 보려면 '← 활동 목록'
+  // 으로 나갔다가 거기서 반을 고쳐야 했습니다. 활동을 보다가 옆 반으로
+  // 넘어가는 일이 수업 중에 잦습니다.
+  // **반을 바꾸면 그 반의 활동 목록으로 갑니다** — 지금 연 활동은 이 반의
+  // 것이라, 반만 바꾸고 화면을 그대로 두면 남의 반 활동을 보게 됩니다.
+  // 고를 것이 하나뿐이면(학생 대부분·반이 하나인 교사) 지금까지처럼 이름
+  // 배지입니다 — 한 줄짜리 고르개는 누를 것이 없는데 눌러 보게 만듭니다.
+  const pickableClasses = admin
+    ? myClasses
+    : classes.filter((c) => membershipIds.includes(c.id));
+  const classPicker =
+    pickableClasses.length > 1 ? (
+      <select
+        className="study-class-select book-class-pick"
+        value={activeClassId ?? ""}
+        onChange={(e) => {
+          const id = e.target.value;
+          if (admin) setTeacherClassId(id);
+          setSelectedClassId(id);
+          goToList();
+        }}
+        title="반을 바꾸면 그 반의 활동 목록으로 갑니다"
+        aria-label="반 고르기"
+      >
+        {pickableClasses.map((c) => (
+          <option key={c.id} value={c.id}>{c.name}</option>
+        ))}
+      </select>
+    ) : activeClassName ? (
+      <span className="book-group-class">{activeClassName}</span>
+    ) : null;
+
   // ── 학생인데 아직 반에 안 들어왔으면 입장 코드부터 ──
   if (isFirebaseConfigured && !admin && user && membershipIds.length === 0) {
     return (
@@ -484,6 +517,7 @@ function BooksPageInner() {
         <MindmapBoard
           activity={activeActivity}
           className={activeClassName}
+          classPicker={classPicker}
           classId={activeClassId}
           user={user}
           roster={roster}
@@ -501,6 +535,7 @@ function BooksPageInner() {
         <KwlsBoard
           activity={activeActivity}
           className={activeClassName}
+          classPicker={classPicker}
           classId={activeClassId}
           user={user}
           roster={roster}
@@ -518,6 +553,7 @@ function BooksPageInner() {
         <RaftBoard
           activity={activeActivity}
           className={activeClassName}
+          classPicker={classPicker}
           classId={activeClassId}
           user={user}
           roster={roster}
@@ -535,6 +571,7 @@ function BooksPageInner() {
         <ParatextBoard
           activity={activeActivity}
           className={activeClassName}
+          classPicker={classPicker}
           classId={activeClassId}
           user={user}
           roster={roster}
@@ -572,6 +609,7 @@ function BooksPageInner() {
           className={
             classes.find((c) => c.id === activeActivity.classId)?.name ?? ""
           }
+          classPicker={classPicker}
           user={user}
           isTeacher={admin}
           roster={roster}

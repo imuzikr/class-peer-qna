@@ -46,6 +46,7 @@ export default function BookGroupBoard({
   onToast,
   // 누가기록 관리·수업 메모 버튼 묶음 (교사 전용, 없으면 null)
   classTools = null,
+  classPicker = null,
 }) {
   const [groups, setGroups] = useState([]);
   const [composing, setComposing] = useState(false);
@@ -154,7 +155,9 @@ export default function BookGroupBoard({
             <span className="book-group-topic">{activity.topic}</span>
           )}
           {/* 이 활동이 어느 반 것인지 — 학생에게 안 보이면 반이 다른 경우가 많아 표시 */}
-          {className && <span className="book-group-class">{className}</span>}
+          {/* 반 표시 — 고를 반이 둘 이상이면 고르개(반을 바꾸면 그 반의
+              활동 목록으로 갑니다), 하나면 이름 배지입니다. */}
+          {classPicker ?? (className && <span className="book-group-class">{className}</span>)}
           {/* 잠김 안내도 이 줄에 — 예전엔 머리말 아래 제 줄을 하나 차지했는데,
               이 줄은 배지 한두 개뿐이라 오른쪽이 통째로 비어 있었습니다.
               '지금 잠겨 있다'는 활동에 붙는 상태라 배지들과 같은 성격입니다. */}
