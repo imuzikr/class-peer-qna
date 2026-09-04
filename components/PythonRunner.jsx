@@ -349,7 +349,7 @@ export default function PythonRunner({ open, onClose, onAskQuestion, hasModalOpe
                   if (code.trim()) onAskQuestion(code);
                 }}
               >
-                <IconAnswer size={22} /> 질문 만들기
+                <IconAnswer size={17} /> 질문 만들기
               </button>
             )}
             <button className="btn-ghost" onClick={() => setLines([])}>

@@ -4473,14 +4473,19 @@ pre code {
   align-items: center;
   gap: 8px;
 }
-/* 세 버튼 모두 글자 줄바꿈 방지 */
+/* 세 단추의 **높이를 하나로**. 저마다 세로 padding으로 정하고 있었고
+   '질문 만들기'에는 아이콘까지 들어 있어, 나란히 선 셋의 높이가 다
+   달랐습니다(실행 33 · 질문 만들기 36 · 출력 지우기 29px).
+   높이를 못 박고 안쪽 정렬은 inline-flex가 맡습니다. */
 .py-actions button {
-  white-space: nowrap;
-}
-/* 실행 버튼을 작게 — 나머지 두 버튼이 한 줄에 들어오도록 */
-.py-actions .btn-primary {
-  padding: 8px 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 34px;
+  padding: 0 12px;
   font-size: 13px;
+  white-space: nowrap;
 }
 .py-run-hint {
   font-size: 11px;
@@ -9157,6 +9162,12 @@ pre code {
   color: var(--danger);
 }
 .attend-tools-notes {
+  /* 아이콘 + 글자를 한 줄 가운데로. 그냥 두면 SVG가 글자의 **기준선**에
+     앉아 아래로 반쯤 내려가고, 글자만 위로 뜬 것처럼 보입니다. */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   width: 100%;
   min-height: 46px;
   border: 1px solid var(--border);
@@ -17243,6 +17254,9 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
      터치 영역 확보 (최소 44px)
      ────────────────────────────────────────────────────────── */
   .btn-primary { min-height: 44px; font-size: 15px; }
+  /* 파이썬 실행기의 세 단추 — 위 규칙이 .btn-primary에만 걸려 그 하나만
+     44px가 되고 나머지 둘은 34px로 남습니다. 셋을 함께 올립니다. */
+  .py-actions button { height: 44px; min-height: 44px; font-size: 13px; }
   .kwl-save-btn { min-height: 44px; }
   .filter-btn { min-height: 40px; }
   .vote-btn { min-height: 40px; min-width: 40px; }
@@ -20480,6 +20494,16 @@ span.cloud-word { cursor: default; }
 
 /* 도서명·주제 묻는 모달 — 한 가지만 묻는 자리라 좁게 */
 .modal-topic-ask { max-width: 420px; }
+/* 두 단추를 **같은 크기로**. 다른 창(활동 만들기·고치기)은 '만들기'가 주인공
+   이라 그 단추가 줄을 채우지만, 여기는 '지금 적기'와 '나중에'가 나란한
+   선택지라 한쪽만 크면 다른 쪽이 곁다리로 보입니다.
+   flex로 나누지 않고 **격자 두 칸**으로 짭니다 — `flex: 1 1 0`은 기준을
+   내용 상자로 재서, 테두리가 있는 쪽(btn-ghost 1px)이 없는 쪽(btn-primary)
+   보다 2px 넓어집니다(실측 190 : 188). 격자 칸은 딱 반씩입니다. */
+.modal-topic-ask .modal-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
 .modal-topic-note {
   margin: 0 0 12px;
   font-size: 13px;
