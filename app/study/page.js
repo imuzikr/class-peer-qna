@@ -140,6 +140,8 @@ function StudyPageInner() {
   // 학생이 입장한 반(세션 선택 + 서버 소속)과 교사가 보고 있는 반(화면 상태)은 별개입니다.
   const [localSelectedId, setLocalSelectedId] = useState(null); // 세션에서 고른 반
   const [memberships, setMemberships] = useState([]); // 서버 소속(기기 무관)
+  // 소속 구독의 첫 답이 왔는가 — []가 '소속 없음'인지 '아직 모름'인지 가릅니다
+  const [membershipsLoaded, setMembershipsLoaded] = useState(false);
   const [teacherClassId, setTeacherClassId] = useState(null);
   const [joinCodesMap, setJoinCodesMap] = useState({}); // 교사: classId→{code,expiresAt}
   const [regenerating, setRegenerating] = useState(false);
@@ -250,12 +252,25 @@ function StudyPageInner() {
   const superAdmin = user ? isAdmin(user) : false;   // 최고 관리자 (모든 반 접근)
 
   // 학생: 서버 소속 구독 — 기기·캐시가 바뀌어도 로그인하면 소속이 따라옵니다.
+  //
+  // **첫 답이 오기 전까지는 '소속 없음'이 아니라 '아직 모름'입니다.**
+  // memberships는 []로 시작하는데, 그 값만 보고 판단하면 로그인 직후
+  // 서버 답을 기다리는 몇백 밀리초 동안 반에 이미 든 학생에게도 입장 코드
+  // 화면이 번쩍 스쳤습니다(공부방을 첫 화면으로 두면 매번 겪습니다).
+  // 그래서 '답이 한 번이라도 왔는가'를 따로 들고, 그 전에는 아래에서
+  // 조용히 기다립니다.
   useEffect(() => {
     if (!user || admin) {
       setMemberships([]);
+      // 교사·비로그인은 물어볼 것이 없어 곧바로 결론입니다.
+      setMembershipsLoaded(true);
       return;
     }
-    return subscribeMyMemberships(user.uid, setMemberships);
+    setMembershipsLoaded(false);
+    return subscribeMyMemberships(user.uid, (list) => {
+      setMemberships(list);
+      setMembershipsLoaded(true);
+    });
   }, [user?.uid, admin]);
 
   // 학생: 프로필의 classIds에 지금 소속된 반이 다 들어 있는지 확인하고,
@@ -688,8 +703,13 @@ function StudyPageInner() {
     await reorderStudyBoards(ids);
   }
 
-  // 학생이 아직 반에 입장하지 않았으면 입장 화면을 보여줍니다
-  const showEntry = user && !admin && !classId;
+  // 학생 소속을 아직 확인하는 중 — 입장 화면도 본문도 아직 그리지 않습니다.
+  // (AuthGate의 로그인 대기 화면과 같은 모습이라, 학생 눈에는 스피너 하나가
+  //  이어지다 제 화면이 뜨는 것으로 보입니다)
+  const checkingClass = !!user && !admin && !membershipsLoaded;
+  // 학생이 아직 반에 입장하지 않았으면 입장 화면을 보여줍니다.
+  // **소속 답이 온 뒤에만** 판단합니다 — 그 전에는 '소속 없음'이 아닙니다.
+  const showEntry = user && !admin && membershipsLoaded && !classId;
 
   return (
     <div className="board-shell study-shell">
@@ -706,7 +726,12 @@ function StudyPageInner() {
         pyActive={pyOpen}
       />
 
-      {showEntry ? (
+      {checkingClass ? (
+        <div className="auth-gate auth-gate--inline" role="status" aria-live="polite">
+          <span className="auth-gate-spinner" aria-hidden="true" />
+          <span className="sr-only">반 정보를 불러오는 중</span>
+        </div>
+      ) : showEntry ? (
         <ClassEntry />
       ) : (
         <main className="study-main">

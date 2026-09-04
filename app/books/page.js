@@ -158,6 +158,8 @@ function BooksPageInner() {
 
   const [classes, setClasses] = useState([]);
   const [memberships, setMemberships] = useState([]);
+  // 소속 구독의 첫 답이 왔는가 — []가 '소속 없음'인지 '아직 모름'인지 가릅니다
+  const [membershipsLoaded, setMembershipsLoaded] = useState(false);
   const [localSelectedId, setLocalSelectedId] = useState(null);
   const [teacherClassId, setTeacherClassId] = useState(null);
   const [directory, setDirectory] = useState([]);
@@ -196,9 +198,22 @@ function BooksPageInner() {
   useEffect(() => subscribeClasses(setClasses), []);
 
   // 학생: 서버 소속 구독
+  //
+  // **첫 답이 오기 전까지는 '소속 없음'이 아니라 '아직 모름'입니다.**
+  // memberships가 []로 시작해, 그 값만 보고 판단하면 로그인 직후 서버 답을
+  // 기다리는 사이 반에 이미 든 학생에게도 입장 코드 화면이 번쩍 스칩니다
+  // (공부방도 같은 이유로 같은 방식을 씁니다).
   useEffect(() => {
-    if (!user || admin) { setMemberships([]); return; }
-    return subscribeMyMemberships(user.uid, setMemberships);
+    if (!user || admin) {
+      setMemberships([]);
+      setMembershipsLoaded(true); // 교사·비로그인은 물어볼 것이 없습니다
+      return;
+    }
+    setMembershipsLoaded(false);
+    return subscribeMyMemberships(user.uid, (list) => {
+      setMemberships(list);
+      setMembershipsLoaded(true);
+    });
   }, [user?.uid, admin]);
 
   // 교사: 실명 디렉터리 (모둠 구성에 필요)
@@ -449,7 +464,23 @@ function BooksPageInner() {
       <span className="book-group-class">{activeClassName}</span>
     ) : null;
 
+  // ── 학생 소속을 아직 확인하는 중 — 입장 화면도 본문도 아직 그리지 않습니다.
+  //    (AuthGate의 로그인 대기 화면과 같은 모습이라, 학생 눈에는 스피너
+  //     하나가 이어지다 제 화면이 뜨는 것으로 보입니다) ──
+  if (isFirebaseConfigured && !admin && user && !membershipsLoaded) {
+    return (
+      <div className="board-shell">
+        <TopNav active="books" />
+        <div className="auth-gate auth-gate--inline" role="status" aria-live="polite">
+          <span className="auth-gate-spinner" aria-hidden="true" />
+          <span className="sr-only">반 정보를 불러오는 중</span>
+        </div>
+      </div>
+    );
+  }
+
   // ── 학생인데 아직 반에 안 들어왔으면 입장 코드부터 ──
+  //    소속 답이 온 뒤에만 판단합니다 — 그 전에는 '소속 없음'이 아닙니다.
   if (isFirebaseConfigured && !admin && user && membershipIds.length === 0) {
     return (
       <div className="board-shell">

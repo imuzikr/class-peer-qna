@@ -112,6 +112,14 @@ html[data-auth-pending] .site-footer {
 @keyframes auth-gate-spin {
   to { transform: rotate(360deg); }
 }
+/* 상단바 아래에 놓이는 대기 화면 — 로그인 뒤 '이 학생이 어느 반인가'를
+   확인하는 짧은 사이입니다. 위 규칙의 100vh를 그대로 쓰면 상단바(56px)
+   높이만큼 넘쳐 스크롤 막대가 생기므로, .board-shell(세로 flex)이 남긴
+   자리만 채웁니다. */
+.auth-gate--inline {
+  min-height: 0;
+  flex: 1;
+}
 /* 움직임을 줄여 달라고 한 사람에게는 돌리지 않고 옅게만 둡니다 */
 @media (prefers-reduced-motion: reduce) {
   .auth-gate-spinner {
