@@ -56,6 +56,7 @@ import GroupComposer from "./GroupComposer";
 import {
   IconTrash,
   IconCheck,
+  IconGroup,
   IconIndividual,
   IconLock,
   IconLockState,
@@ -683,7 +684,7 @@ export default function StudyProjectView({
               <>
                 {!isNotice && (
                   <span className={`study-project-badge${isGroup ? " group" : ""}`}>
-                    {isGroup ? "👥 모둠 활동" : <><IconIndividual size={15} /> 개별 활동</>}
+                    {isGroup ? <><IconGroup size={15} /> 모둠 활동</> : <><IconIndividual size={15} /> 개별 활동</>}
                   </span>
                 )}
                 {activities.length > 0 && (
@@ -810,7 +811,7 @@ export default function StudyProjectView({
                 <span className="study-board-row-actions">
                   {!isNotice && (
                     <span className={`study-project-badge${isGroup ? " group" : ""}`}>
-                      {isGroup ? "👥 모둠 활동" : <><IconIndividual size={15} /> 개별 활동</>}
+                      {isGroup ? <><IconGroup size={15} /> 모둠 활동</> : <><IconIndividual size={15} /> 개별 활동</>}
                     </span>
                   )}
                   {activities.length > 0 && (

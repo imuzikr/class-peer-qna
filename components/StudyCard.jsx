@@ -3,7 +3,7 @@
 import { formatTime, getDirectoryUser } from "@/lib/store";
 import { stripHtml } from "@/lib/html";
 import { cardActivitySummary } from "@/lib/activities";
-import { IconTeacher } from "./StatusIcons";
+import { IconTeacher, IconGroup } from "./StatusIcons";
 import { nextFruit } from "./RewardFruits";
 
 const IMAGE_EXTS = new Set(["jpg", "jpeg", "png", "gif", "webp"]);
@@ -67,7 +67,7 @@ export default function StudyCard({
     >
       <div className="study-card-head">
         <span className="avatar avatar-sm" aria-hidden="true">
-          {isGroupCard ? "👥" : isTeacherCard ? <IconTeacher size={22} /> : (card.authorEmoji ?? "🙂")}
+          {isGroupCard ? <IconGroup size={22} /> : isTeacherCard ? <IconTeacher size={22} /> : (card.authorEmoji ?? "🙂")}
         </span>
         <div className="study-card-author">
           {isGroupCard ? (

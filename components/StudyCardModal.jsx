@@ -31,7 +31,7 @@ const DrawingCanvas = dynamic(() => import("./DrawingCanvas"), { ssr: false });
 import StudyQuestionPeek from "./StudyQuestionPeek";
 import ZoomableImage from "./ZoomableImage";
 import UploadProgress from "./UploadProgress";
-import { IconAsk, IconSolved, IconTrash, IconTeacher, IconLock } from "./StatusIcons";
+import { IconAsk, IconSolved, IconTrash, IconTeacher, IconLock, IconGroup } from "./StatusIcons";
 
 export default function StudyCardModal({
   board,
@@ -461,7 +461,7 @@ export default function StudyCardModal({
         {!isNew && (
           <div className="study-card-meta">
             <span className="avatar avatar-sm" aria-hidden="true">
-              {card.groupId ? "👥" : isTeacherCard ? <IconTeacher size={22} /> : (card.authorEmoji ?? "🙂")}
+              {card.groupId ? <IconGroup size={22} /> : isTeacherCard ? <IconTeacher size={22} /> : (card.authorEmoji ?? "🙂")}
             </span>
             {card.groupId ? (
               <span className="study-card-meta-group">

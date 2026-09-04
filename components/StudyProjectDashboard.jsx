@@ -24,7 +24,7 @@ import {
   toDate,
 } from "@/lib/store";
 import { cardActivitySummary, isActivityLocked } from "@/lib/activities";
-import { IconLock, IconIndividual } from "./StatusIcons";
+import { IconLock, IconIndividual, IconGroup } from "./StatusIcons";
 
 function dateLabel(value) {
   const d = value ? toDate(value) : null;
@@ -325,7 +325,7 @@ function ProjectCard({
       <button type="button" className="study-project-open" onClick={onOpen}>
         <span className="study-project-badges">
           <span className={`study-project-badge${isGroup ? " group" : ""}`}>
-            {isGroup ? "👥 모둠" : <><IconIndividual size={15} /> 개별</>}
+            {isGroup ? <><IconGroup size={15} /> 모둠</> : <><IconIndividual size={15} /> 개별</>}
           </span>
           {activities.length > 0 && (
             <span className="study-project-badge soft">활동 {activities.length}개</span>

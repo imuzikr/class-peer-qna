@@ -18,7 +18,7 @@ import { useState } from "react";
 import { addStudyBoard, addStudyCard, addKeyword } from "@/lib/store";
 import { buildActivityTemplate } from "@/lib/activities";
 import { getCurrentUser } from "@/lib/user";
-import { IconIndividual } from "./StatusIcons";
+import { IconIndividual, IconGroup } from "./StatusIcons";
 
 export default function StudyProjectForm({ keywords = [], classId = null, onClose, onCreated }) {
   const [title, setTitle] = useState("");
@@ -119,7 +119,7 @@ export default function StudyProjectForm({ keywords = [], classId = null, onClos
               className={`board-acttype-btn${activityType === "group" ? " active" : ""}`}
               onClick={() => setActivityType("group")}
             >
-              <span className="board-acttype-label">👥 모둠 활동</span>
+              <span className="board-acttype-label"><IconGroup size={16} /> 모둠 활동</span>
               <small>모둠 구성 후 모둠당 카드 1장</small>
             </button>
           </div>

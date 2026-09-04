@@ -519,6 +519,24 @@ export function IconLockState({ locked, size = 20, className = "", mono = false 
   return <Icon size={size} className={className} mono={mono} />;
 }
 
+// 모둠 활동 — 가운데 한 사람과 좌우로 반쯤 걸친 두 사람.
+// 개별(IconIndividual)과 **한 쌍**입니다: 몸통이 같고 사람 수만 다릅니다.
+// 👥를 쓰고 있었는데 기기마다 두 사람의 색·머리 모양이 달랐고, 옆에 선
+// '개별'이 선 그림이라 하나는 컬러 이모지·하나는 선 그림으로 갈렸습니다.
+export function IconGroup({ size = 20, className = "" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">
+      <circle cx="12" cy="8.35" r="2.45" fill="#FFF7ED" stroke="#3A312E" strokeWidth="1.45"/>
+      <path d="M7.15 19.05v-.8c0-2.42 1.96-4.38 4.38-4.38h.94c2.42 0 4.38 1.96 4.38 4.38v.8" fill="#FFF7ED"/>
+      <path d="M7.15 19.05v-.8c0-2.42 1.96-4.38 4.38-4.38h.94c2.42 0 4.38 1.96 4.38 4.38v.8" stroke="#3A312E" strokeWidth="1.45" strokeLinecap="round" strokeLinejoin="round"/>
+      <circle cx="6.65" cy="10.85" r="1.82" fill="#FFF7ED" stroke="#8A6258" strokeWidth="1.35"/>
+      <path d="M3.45 17.8c.18-1.9 1.5-3.12 3.2-3.12.55 0 1.05.13 1.5.38" stroke="#8A6258" strokeWidth="1.35" strokeLinecap="round"/>
+      <circle cx="17.35" cy="10.85" r="1.82" fill="#FFF7ED" stroke="#8A6258" strokeWidth="1.35"/>
+      <path d="M20.55 17.8c-.18-1.9-1.5-3.12-3.2-3.12-.55 0-1.05.13-1.5.38" stroke="#8A6258" strokeWidth="1.35" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
 // 개별 활동 — 한 사람과 그 옆의 이름표.
 // '개별'에 🧑‍🎓(학사모 쓴 학생)를 쓰고 있었는데, 이 앱에서 학생을 가리키는
 // 그림은 이미 IconStudent이고 그 이모지는 기기마다 사람·피부색·학사모가

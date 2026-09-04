@@ -18176,6 +18176,9 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
   background: var(--bg-deep);
 }
 .mates-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   font-size: 12.5px;
   font-weight: 800;
   color: var(--text);

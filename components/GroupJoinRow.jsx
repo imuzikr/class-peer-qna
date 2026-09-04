@@ -13,6 +13,7 @@
 // =============================================================
 import { useState } from "react";
 import { joinBookGroup } from "@/lib/store";
+import { IconGroup } from "./StatusIcons";
 
 export default function GroupJoinRow({ activity, groups = [], user, maxPerGroup = 6 }) {
   const [busy, setBusy] = useState(null);
@@ -29,7 +30,7 @@ export default function GroupJoinRow({ activity, groups = [], user, maxPerGroup 
 
   return (
     <div className="mates-row mates-row--join">
-      <span className="mates-label">👥 모둠 고르기</span>
+      <span className="mates-label"><IconGroup size={15} /> 모둠 고르기</span>
       <div className="mates-chips">
         {groups.map((g) => {
           const n = (g.members ?? []).length;

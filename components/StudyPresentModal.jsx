@@ -21,6 +21,7 @@ import { getCurrentUser, isTeacher } from "@/lib/user";
 import { sanitizeHtml, stripImgTags } from "@/lib/html";
 import { parseActivitySections } from "@/lib/activities";
 import RewardFruits, { rewardStars, nextFruit } from "./RewardFruits";
+import { IconGroup } from "./StatusIcons";
 
 export default function StudyPresentModal({ board, cards = [], onClose }) {
   const [idx, setIdx] = useState(0);
@@ -123,7 +124,7 @@ export default function StudyPresentModal({ board, cards = [], onClose }) {
         <div className="present-head">
           <div className="present-who">
             <span className="present-avatar" aria-hidden="true">
-              {isGroupCard ? "👥" : card.authorEmoji || "🙂"}
+              {isGroupCard ? <IconGroup size={26} /> : card.authorEmoji || "🙂"}
             </span>
             <strong className="present-name">{displayName}</strong>
             {isGroupCard && card.members?.length > 0 && (

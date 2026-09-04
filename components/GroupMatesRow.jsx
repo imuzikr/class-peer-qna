@@ -14,6 +14,7 @@
 // 안 주면 그냥 이름표입니다.
 // =============================================================
 import { MEMBER_COLORS } from "@/lib/bookColors";
+import { IconGroup } from "./StatusIcons";
 
 export default function GroupMatesRow({
   group,
@@ -29,7 +30,7 @@ export default function GroupMatesRow({
 
   return (
     <div className="mates-row">
-      <span className="mates-label">👥 {title}</span>
+      <span className="mates-label"><IconGroup size={15} /> {title}</span>
       <div className="mates-chips">
         {members.map((m, i) => {
           const color = MEMBER_COLORS[i % MEMBER_COLORS.length];

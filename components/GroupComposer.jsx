@@ -15,6 +15,7 @@ import { backdropClose } from "@/lib/modal";
 import { useMemo, useState } from "react";
 import { composeStudyGroups } from "@/lib/store";
 import { getCurrentUser } from "@/lib/user";
+import { IconGroup } from "./StatusIcons";
 
 // 만들 수 있는 모둠 수의 위 끝. 활동 만들기의 '모둠 수'(3~7)와 같은 끝을
 // 봅니다 — 여기가 더 작으면 7모둠으로 만든 활동을 다시 구성할 때 한 모둠이
@@ -237,7 +238,7 @@ export default function GroupComposer({
     <div className="modal-backdrop" {...backdropClose(onClose)}>
       <div className="modal modal-group-composer" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
-          <h3>👥 {groupSetName}</h3>
+          <h3 className="head-icon"><IconGroup size={20} /> {groupSetName}</h3>
           <button className="btn-close" onClick={onClose} aria-label="닫기">×</button>
         </div>
 

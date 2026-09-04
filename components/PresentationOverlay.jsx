@@ -11,6 +11,7 @@ import { CONSONANT_LABELS, GRID_SLOTS, CELL_COUNT, cellKey, groupColorOf } from 
 import { normalizeMindmap } from "@/lib/mindmap";
 import MindmapCanvas from "./MindmapCanvas";
 import WordCloud from "./WordCloud";
+import { IconGroup } from "./StatusIcons";
 
 // 이 화면이 그릴 줄 아는 방송 종류. 새 종류를 추가하면 여기에도 넣어야 합니다.
 const KNOWN_MODES = ["consonant", "entry", "wall", "mindmap", "lesson", "carousel", "single"];
@@ -403,7 +404,7 @@ function PresentationOverlayBody({ broadcast, shrink = "" }) {
       <div className="broadcast-body">
         <div className="present-slide broadcast-slide">
           <div className="broadcast-who">
-            <span aria-hidden="true">{isGroup ? "👥" : "🙂"}</span>
+            <span aria-hidden="true">{isGroup ? <IconGroup size={24} /> : "🙂"}</span>
             <strong>{broadcast.displayName}</strong>
             {isGroup && broadcast.members?.length > 0 && (
               <span className="present-group-members">
