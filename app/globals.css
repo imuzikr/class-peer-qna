@@ -6406,6 +6406,65 @@ pre code {
   pointer-events: none;
 }
 
+/* ── 반 편성 (StudentEditModal) ────────────────────────────────
+   위 프로필 칸들과 성격이 다릅니다 — 누르는 즉시 저장되므로 '저장/취소'
+   줄 위에 선으로 갈라 둡니다. 아래 '탈퇴 처리'와 같은 방식의 구분선이라,
+   한 창 안에서 '지금 바로 일어나는 일'끼리 모양이 같습니다. */
+.student-edit-classes {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.student-edit-classes-label {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text-sub);
+}
+.student-edit-class-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+/* 켜짐/꺼짐이 곧 '이 반에 있다/없다'입니다. 색만으로 가르지 않도록 켜진
+   칩에는 체크를 함께 답니다(자물쇠 한 쌍과 같은 생각) — 빔프로젝터에
+   띄우면 연한 살구와 흰색의 차이가 좁아집니다. */
+.student-edit-class {
+  height: 32px;
+  padding: 0 13px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.student-edit-class:hover:not(:disabled) {
+  border-color: var(--primary);
+}
+.student-edit-class.on {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+.student-edit-class.on::before {
+  content: "✓ ";
+}
+.student-edit-class:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+.student-edit-classes-hint {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--text-faint);
+}
+
 .student-edit-actions {
   display: flex;
   gap: 10px;

@@ -1463,6 +1463,9 @@ function AdminDashboardPageInner() {
       {editingStudent && (
         <StudentEditModal
           student={editingStudent}
+          /* 반 편성을 고칠 수 있는 범위 = 내가 개설한 반. 규칙도 같은
+             기준이라(ownsClassEditable) 화면에 없는 반은 애초에 못 씁니다. */
+          classes={myClasses}
           onClose={() => setEditingStudent(null)}
         />
       )}
