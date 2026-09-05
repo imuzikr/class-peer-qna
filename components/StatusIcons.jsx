@@ -533,20 +533,22 @@ export function IconSort({ size = 20, className = "" }) {
   );
 }
 
-// 모둠 활동 — 가운데 한 사람과 좌우로 반쯤 걸친 두 사람.
-// 개별(IconIndividual)과 **한 쌍**입니다: 몸통이 같고 사람 수만 다릅니다.
+// 모둠 활동 — 나란히 선 두 사람.
+// 개별(IconIndividual)과 **한 쌍**입니다: 세는 것은 사람 수 하나뿐입니다.
 // 👥를 쓰고 있었는데 기기마다 두 사람의 색·머리 모양이 달랐고, 옆에 선
 // '개별'이 선 그림이라 하나는 컬러 이모지·하나는 선 그림으로 갈렸습니다.
+// 예전에는 '가운데 한 사람 + 좌우로 반쯤 걸친 두 사람'이라 세 사람이었는데,
+// 15px로 줄면 옆의 두 사람이 가운데 몸통에 붙어 덩어리 하나로 뭉쳤습니다.
+// 지금은 둘이 떨어져 서서 작은 크기에서도 '한 사람이 아니다'가 읽힙니다.
+// 오른쪽 사람만 초록(#3F704B)인 것은 이 앱에서 이 아이콘 하나뿐입니다 —
+// 색이 다르면 겹쳐 보여도 두 사람인 것이 갈립니다(먹빛 둘이면 한 덩어리).
 export function IconGroup({ size = 20, className = "" }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">
-      <circle cx="12" cy="8.35" r="2.45" fill="#FFF7ED" stroke="#3A312E" strokeWidth="1.45"/>
-      <path d="M7.15 19.05v-.8c0-2.42 1.96-4.38 4.38-4.38h.94c2.42 0 4.38 1.96 4.38 4.38v.8" fill="#FFF7ED"/>
-      <path d="M7.15 19.05v-.8c0-2.42 1.96-4.38 4.38-4.38h.94c2.42 0 4.38 1.96 4.38 4.38v.8" stroke="#3A312E" strokeWidth="1.45" strokeLinecap="round" strokeLinejoin="round"/>
-      <circle cx="6.65" cy="10.85" r="1.82" fill="#FFF7ED" stroke="#8A6258" strokeWidth="1.35"/>
-      <path d="M3.45 17.8c.18-1.9 1.5-3.12 3.2-3.12.55 0 1.05.13 1.5.38" stroke="#8A6258" strokeWidth="1.35" strokeLinecap="round"/>
-      <circle cx="17.35" cy="10.85" r="1.82" fill="#FFF7ED" stroke="#8A6258" strokeWidth="1.35"/>
-      <path d="M20.55 17.8c-.18-1.9-1.5-3.12-3.2-3.12-.55 0-1.05.13-1.5.38" stroke="#8A6258" strokeWidth="1.35" strokeLinecap="round"/>
+      <circle cx="8.35" cy="7.2" r="2.35" fill="#FFFDF9" stroke="#3A312E" strokeWidth="1.55"/>
+      <circle cx="15.65" cy="7.2" r="2.35" fill="#FFFDF9" stroke="#3F704B" strokeWidth="1.55"/>
+      <path d="M3.55 18.5v-.9c0-2.7 2.05-4.72 4.8-4.72 1.52 0 2.8.62 3.65 1.65" stroke="#3A312E" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M20.45 18.5v-.9c0-2.7-2.05-4.72-4.8-4.72-1.52 0-2.8.62-3.65 1.65" stroke="#3F704B" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   );
 }
