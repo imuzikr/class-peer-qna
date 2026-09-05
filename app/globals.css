@@ -8666,7 +8666,53 @@ pre code {
    격자·칸·툴팁은 공부방 전광판의 것을 그대로 씁니다(두 방의 전광판이 서로
    다른 모양이면 교사가 같은 것을 두 번 익혀야 합니다). 여기 더한 것은
    ① 단계 머리의 알파벳 ② 학생 이름 줄 ③ 칸 색 둘입니다. */
+/* 단계 이름표는 **한 줄, 세네 칸 고정 격자**입니다.
+   공부방(.grass-act)은 세로 두 줄(활동 번호 줄 + 활동 이름)인데, 여기는
+   아래 줄에 깔던 물음이 여덟 줄 모두 말줄임으로 잘려 '무엇을 묻는지'는
+   어차피 안 보이면서 격자만 두 배로 길어져 걷어 냈습니다.
+   **칸을 px로 못 박는 까닭**: 줄마다 따로 선 격자라 `auto`로 두면 칸 너비가
+   줄마다 제 내용에 맞춰져(`0/29`와 `26/29`, `표지`와 `참고문헌`) 자물쇠와
+   숫자가 여덟 줄에서 저마다 다른 자리에 섭니다. 가장 긴 항목에 맞춰 못
+   박아야 세로로 줄이 맞습니다. */
+.bookboard .grass-act {
+  display: grid;
+  grid-template-columns: 17px 1fr 58px 38px;
+  gap: 7px;
+  align-items: center;
+  /* 208px으로 뒀더니 이름 칸이 60px이라 가장 긴 이름(62px — '8. 시각자료')이
+     2px 모자라 말줄임으로 잘렸습니다(실측). 가장 긴 것에 맞추고 조금 남깁니다.
+     활동마다 단계 이름 길이가 달라 폭은 부르는 쪽이 `--head-w`로 넘깁니다. */
+  width: var(--head-w, 232px);
+  padding-right: 14px;
+}
+/* 잠금이 없는 활동(RAFT)은 배지 칸을 통째로 뺍니다 — 비워 두면 이름과
+   진행률 사이가 까닭 없이 벌어집니다.
+   **반드시 위 기본 규칙 뒤에 두세요** — 특이도가 같아(0,2,0) 앞에 두면
+   기본의 네 칸이 이겨, 없는 배지 칸이 96px을 차지한 채 이름 칸만
+   28px으로 짜부라집니다(실제로 그랬습니다). */
+.bookboard--nolock .grass-act { grid-template-columns: 17px 1fr 38px; }
+.bookboard .grass-act-no {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--text);
+}
+/* 상태 알약은 칸을 꽉 채워 '열림'과 '잠김'의 좌우 끝이 맞습니다 */
+.bookboard .progress-act-state {
+  justify-content: center;
+  width: 100%;
+  padding-left: 0;
+  padding-right: 0;
+}
+/* 진행률은 오른쪽 끝에 붙이고 숫자 폭을 고정합니다 — 자릿수가 달라도
+   (`0/29` · `26/29`) 오른쪽 끝이 한 줄로 섭니다. */
+.bookboard .grass-act-count {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
 /* CATAPULT의 한 글자 — 학생 화면·단계 열기 칩의 것과 같은 글자입니다 */
+.grass-act-letter:empty { background: none; }
 .grass-act-letter {
   display: inline-flex;
   align-items: center;
@@ -8715,13 +8761,15 @@ pre code {
    스물아홉 칸으로 늘어서서 그 색이 칸마다 하나씩 끊겨 이름표가 아니라
    **알약 스물아홉 개**로 보였습니다(실측). 머리줄은 배경이 이어져야
    머리줄입니다.
-   **뿌리 클래스는 `.reading-board`입니다.** `.paratext-progress`로 지었다가
+   **뿌리 클래스는 `.bookboard`입니다.** `.paratext-progress`로 지었다가
    되돌렸습니다 — 그 이름은 이미 활동 만들기 창들(ParatextForm·RaftForm·
    KwlsForm·MindmapForm)과 학생 카드가 쓰는 진행 배지라, 모달에 붙이자
    창 전체가 --primary-light로 물들었습니다(모둠 메모의 `.memo-list` 충돌과
-   같은 함정입니다). */
+   같은 함정입니다). `.book-progress`도 피했습니다 — `.book-progress-legend`·
+   `-done`·`-sum`이 이미 따로 있어, 뿌리로 쓰면 그것들이 이 모달의 자식처럼
+   읽힙니다. */
 .reading-board .grass-name,
-.reading-board .grass-act { background: #fff; }
+.bookboard .grass-act { background: #fff; }
 /* 쓰는 중 · 시작 전 — 학생 카드의 네모(.paratext-mark)와 같은 색.
    공부방의 --open(연한 주황 = 열려 있는데 덜 씀)을 여기서 쓰지 않는 까닭:
    책방은 그 상태를 '쓰는 중'과 '시작 전' 둘로 나눠 보여 줍니다. */

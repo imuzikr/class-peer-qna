@@ -34,6 +34,7 @@ import { safeBookUrl } from "@/lib/paratext";
 import { IconBook, IconLock, IconLockState } from "./StatusIcons";
 import CastBar from "./CastBar";
 import GroupFilterRow from "./GroupFilterRow";
+import RaftProgressBoard from "./RaftProgressBoard";
 import { PeerReviewList } from "./PeerReviewModal";
 import { isGroupedActivity, useBookGroups, isPeerReviewOpen } from "@/lib/bookGroups";
 
@@ -68,6 +69,8 @@ export default function RaftBoard({
   const grouped = isGroupedActivity(activity);
   const groups = useBookGroups(activity.id, grouped);
   const [pickedGroup, setPickedGroup] = useState(null);
+  // 글쓰는중 전광판 — R·A·F·T + 글쓰기 다섯 줄 × 반 전체(곁텍스트와 같은 격자)
+  const [boardOpen, setBoardOpen] = useState(false);
   // 동료 평가 — 모둠 활동일 때만. 교사는 전부 읽고, 열고 닫을 수 있습니다.
   const [reviews, setReviews] = useState([]);
   useEffect(() => {
@@ -327,14 +330,28 @@ export default function RaftBoard({
         </p>
       ) : (
         <>
-          {grouped && (
-            <GroupFilterRow
-              groups={groups}
-              value={pickedGroup}
-              onChange={setPickedGroup}
-              counts={groupCounts}
-            />
-          )}
+          {/* 모둠 고르는 줄 — 그 끝(마지막 모둠 뒤)에 전광판을 엽니다.
+              모둠이 없는 활동에서는 이 줄에 전광판 단추만 섭니다.
+              전광판은 **고른 모둠이 아니라 반 전체**를 보여 줍니다 — 모둠을
+              다 지나온 자리에 두는 까닭이 그것입니다(cards, shownCards 아님). */}
+          <GroupFilterRow
+            groups={grouped ? groups : []}
+            value={pickedGroup}
+            onChange={setPickedGroup}
+            counts={groupCounts}
+            trailing={
+              cards.length > 0 && (
+                <button
+                  type="button"
+                  className="group-filter-act"
+                  onClick={() => setBoardOpen(true)}
+                  title="R·A·F·T와 글쓰기 × 반 전체를 한 격자로 봅니다"
+                >
+                  전광판
+                </button>
+              )
+            }
+          />
         <div className="paratext-card-grid">
           {shownCards.map((c) => (
             <StudentCard
@@ -346,6 +363,17 @@ export default function RaftBoard({
           ))}
         </div>
         </>
+      )}
+
+      {/* 전광판 — 학생 카드를 열면 닫습니다(그 화면이 곧 답이라 뒤에
+          격자를 켜 둘 이유가 없습니다). */}
+      {boardOpen && (
+        <RaftProgressBoard
+          activity={activity}
+          cards={cards}
+          onOpenStudent={(uid) => { setOpenUid(uid); setBoardOpen(false); }}
+          onClose={() => setBoardOpen(false)}
+        />
       )}
     </main>
   );
