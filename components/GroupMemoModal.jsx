@@ -308,58 +308,58 @@ export default function GroupMemoModal({
                     sendDisabled={sending}
                   />
 
+                  {/* 대화는 **테두리 하나 안**에서 좌우로 오갑니다. 글마다
+                      상자를 두르면 한 대화가 여러 덩이로 쪼개져, 목록에서
+                      스레드로 묶어 놓은 것이 여기서 도로 흩어집니다.
+                      누가 한 말인지는 **왼쪽/오른쪽**이 말하므로 이름을
+                      줄마다 적지 않습니다(1:1 대화라 위 머리줄이 이미
+                      상대를 말합니다). */}
                   {!activeThread ? (
                     <p className="notes-empty">첫 마디를 남겨 보세요.</p>
                   ) : (
-                    <ul className="notes-list gmemo-list">
+                    <div className="gmemo-chat">
                       {activeThread.items.map((m) => {
                         const mine = m.fromUid === myUid;
                         return (
-                          <li
+                          <div
                             key={m.id}
-                            className={`notes-item gmemo-item${mine ? " gmemo-item--mine" : ""}`}
+                            className={`gmemo-msg${mine ? " gmemo-msg--mine" : ""}`}
                           >
-                            {m.replyToText && (
-                              <p className="gmemo-quote">
-                                ↩ {m.replyToName ? `${m.replyToName}: ` : ""}
-                                {m.replyToText}
-                              </p>
-                            )}
-                            <div
-                              className="notes-text gmemo-text"
-                              dangerouslySetInnerHTML={{ __html: richHtml(m.html) }}
-                            />
-                            <div className="notes-meta">
-                              {/* 누가·언제를 한 덩이로 묶습니다 — .notes-meta가
-                                  space-between이라 셋을 그냥 두면 시각이
-                                  한가운데로 떠 버립니다. */}
-                              <span className="gmemo-by">
-                                <span className="gmemo-who">{mine ? "나" : m.fromName}</span>
-                                <time>{formatTime(m.createdAt)}</time>
-                              </span>
-                              <span className="notes-item-actions">
+                            <div className="gmemo-bubble">
+                              {m.replyToText && (
+                                <p className="gmemo-quote">
+                                  ↩ {m.replyToName ? `${m.replyToName}: ` : ""}
+                                  {m.replyToText}
+                                </p>
+                              )}
+                              <div
+                                className="gmemo-text"
+                                dangerouslySetInnerHTML={{ __html: richHtml(m.html) }}
+                              />
+                            </div>
+                            <div className="gmemo-msg-meta">
+                              <time>{formatTime(m.createdAt)}</time>
+                              <button
+                                type="button"
+                                className="notes-edit"
+                                onClick={() => setReplyTo(m)}
+                              >
+                                답장
+                              </button>
+                              {mine && (
                                 <button
                                   type="button"
-                                  className="notes-edit"
-                                  onClick={() => setReplyTo(m)}
+                                  className="notes-del"
+                                  onClick={() => handleDelete(m)}
                                 >
-                                  답장
+                                  거두기
                                 </button>
-                                {mine && (
-                                  <button
-                                    type="button"
-                                    className="notes-del"
-                                    onClick={() => handleDelete(m)}
-                                  >
-                                    거두기
-                                  </button>
-                                )}
-                              </span>
+                              )}
                             </div>
-                          </li>
+                          </div>
                         );
                       })}
-                    </ul>
+                    </div>
                   )}
                 </div>
               )}
