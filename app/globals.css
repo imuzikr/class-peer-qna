@@ -10084,12 +10084,26 @@ a.lesson-board-file-name { text-decoration: underline; }
   gap: 6px;
   flex-shrink: 0;
 }
+/* 수업 관리 목록의 단추 셋 — 수업 시작 직전에 누르는 자리라 손이 급합니다.
+   12px 글자에 세로 여백 6px이면 높이가 27px밖에 안 돼 눌러야 할 곳이
+   작았습니다. 높이를 36px로 못 박고 글자도 13.5px로 올립니다
+   (줄이 그만큼 두꺼워지는 것은 괜찮습니다 — 한 줄에 수업 하나입니다). */
 .lesson-row-actions .btn-ghost,
 .lesson-row-actions .btn-primary {
-  padding: 6px 12px;
-  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  padding: 0 14px;
+  font-size: 13.5px;
   line-height: 1;
   box-sizing: border-box;
+}
+/* 아이콘만 있는 삭제 단추는 **정사각형**으로. 글자 단추와 같은 좌우 여백을
+   주면 아이콘 하나가 옆으로 늘어져 줄에서 혼자 넓어 보입니다. */
+.lesson-row-actions .qa-delete {
+  width: 36px;
+  padding: 0;
 }
 /* btn-primary는 테두리가 없어 btn-ghost(1px solid)보다 2px 낮게 보였습니다 —
    투명 테두리를 같은 두께로 둬 높이를 맞춥니다. */

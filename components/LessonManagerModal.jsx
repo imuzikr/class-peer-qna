@@ -204,7 +204,7 @@ export default function LessonManagerModal({
                         onClick={() => setConfirmDel(l)}
                         aria-label="삭제"
                       >
-                        <IconTrash size={15} />
+                        <IconTrash size={18} />
                       </button>
                     </div>
                   </div>
