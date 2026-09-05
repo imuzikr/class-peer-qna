@@ -11107,10 +11107,141 @@ a.lesson-board-file-name { text-decoration: underline; }
    여기서 다시 쓰면 나중에 나온 이쪽이 이겨, 학생 창 하나 손보려다 교사의
    수업 메모 목록이 함께 흔들립니다. 주인이 반대인 두 '메모'라 이름도
    갈라 둡니다. */
+/* 왼쪽 목록 + 오른쪽 대화 두 칸이라 560px로는 좁습니다. 창은 안 구르고
+   **각 칸이 따로** 구릅니다(overflow: hidden + 칸마다 auto) — 통째로
+   구르면 오른쪽 대화를 내리는 동안 왼쪽 목록이 화면 밖으로 사라져,
+   다른 대화로 옮기려면 다시 위로 올라와야 합니다. */
 .group-memo-modal {
-  width: min(560px, 94vw);
-  max-height: 85vh;
+  /* `.modal`의 max-width가 640px이라 width만 키우면 안 넓어집니다
+     (max-width가 width를 이깁니다) — 둘 다 적어야 합니다. */
+  width: min(880px, 94vw);
+  max-width: 94vw;
+  height: min(640px, 86vh);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.gmemo-cols {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: 18px;
+  margin-top: 4px;
+}
+/* 왼쪽 — '누구에게 새로 쓸까'와 '어떤 대화를 이어 갈까'. 폭을 고정해 두어야
+   대화를 갈아 끼워도 목록이 흔들리지 않습니다(오른쪽만 바뀝니다). */
+.gmemo-side {
+  flex: 0 0 264px;
+  min-height: 0;
   overflow-y: auto;
+  padding-right: 16px;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.gmemo-side-label {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text-sub);
+}
+.gmemo-side-label + .gmemo-mates {
+  margin-bottom: 6px;
+}
+.gmemo-side-label:not(:first-child) {
+  margin-top: 6px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.gmemo-side-empty {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+/* 대화 한 줄 — 상대·시각·첫 메모·답장 수. 첫 메모는 **두 줄까지**만
+   보여 줍니다(한 줄이면 무슨 말인지 알기 어렵고, 세 줄부터는 목록에
+   다섯이 안 들어옵니다). */
+.gmemo-threads {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.gmemo-thread {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-deep);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.gmemo-thread:hover {
+  border-color: var(--primary);
+}
+.gmemo-thread.on {
+  background: var(--primary-light);
+  border-color: var(--primary);
+}
+.gmemo-thread-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.gmemo-thread-who {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--text);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.gmemo-thread-at {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+.gmemo-thread-text {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-sub);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.gmemo-thread-count {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--primary-dark);
+}
+/* 오른쪽 — 고른 대화. 여기만 구릅니다. */
+.gmemo-main {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+}
+.gmemo-pane-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 14px;
+}
+.gmemo-pane-sub {
+  margin-left: auto;
+  font-size: 11.5px;
+  color: var(--text-faint);
+}
+.gmemo-thread-pane {
+  gap: 10px;
 }
 .gmemo-group-name {
   margin-left: 8px;
@@ -11201,8 +11332,12 @@ a.lesson-board-file-name { text-decoration: underline; }
 }
 /* 대화라 오래된 것이 위입니다 — 열면 마지막 말이 보이도록 목록을 조금 더
    길게 두고, 새 글은 아래에 붙습니다. */
+/* `.notes-list`는 제 안에서 구르지만(max-height 360px), 여기서는 **오른쪽
+   칸이 구르는 자리**입니다. 그대로 두면 스크롤이 둘로 겹쳐, 대화를 내리다
+   안쪽 끝에 닿으면 멈춘 것처럼 보입니다. 높이 제한을 풉니다. */
 .gmemo-list {
-  max-height: 320px;
+  max-height: none;
+  overflow-y: visible;
 }
 /* 내가 쓴 것은 살구빛으로 살짝 들어 올립니다. 왼쪽/오른쪽으로 가르지
    않는 이유: 서식 글이 들어와 폭이 제각각이면 말풍선이 들쭉날쭉해지고,
@@ -17520,6 +17655,20 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
   .topnav-drop-btn { font-size: 12px; padding: 4px 8px; }
   .modal { padding: 16px 14px 32px; }
   .kwl-panel { width: 92vw; max-width: 92vw; }
+  /* 우리 모둠 — 두 칸을 나란히 둘 폭이 없어 위아래로 풉니다. 목록은 높이를
+     제한해(구름) 아래 대화가 화면 밖으로 밀리지 않게 하고, 창이 통째로
+     구르도록 되돌립니다(좁은 화면에서 칸마다 구르면 어느 것을 만지는지
+     알 수 없습니다). */
+  .group-memo-modal { height: auto; overflow-y: auto; }
+  .gmemo-cols { flex-direction: column; gap: 14px; }
+  .gmemo-side {
+    flex: none;
+    max-height: 40vh;
+    padding: 0 0 14px;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+  .gmemo-main { overflow-y: visible; }
   .kwl-fab { bottom: 16px; right: 12px; padding: 10px 14px; font-size: 13px; }
 }
 

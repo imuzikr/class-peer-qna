@@ -3,20 +3,29 @@
 // =============================================================
 // 우리 모둠 (학생) — 모둠원 확인 + 모둠원에게 메모 남기기
 // -------------------------------------------------------------
-// 구성은 '누가기록' 모달을 그대로 따릅니다: 위에 쓰는 칸, 아래에 지금까지의
-// 글 목록. 다른 점은 셋뿐입니다 —
-//  · 쓰는 칸이 서식 에디터입니다(RichTextEditor, variant="chat").
-//  · 주고받는 글이라 목록이 **오래된 것부터**입니다(대화처럼 위에서 아래로).
-//    누가기록은 교사가 혼자 쌓는 기록이라 최신순이 맞지만, 여기서는 최신순이면
-//    답과 물음이 거꾸로 놓여 읽을 수가 없습니다.
-//  · 글마다 '답장'이 있습니다 — 누르면 그 말을 인용해 두고 씁니다.
+// **왼쪽에 대화 목록, 오른쪽에 그 대화.** 예전에는 모둠원을 눌러야 비로소
+// 무언가 보였는데, 창을 여는 이유의 태반은 '새 메모를 쓰려고'가 아니라
+// '방금 온 메모를 보려고'입니다. 열자마자 최근 대화가 서 있어야 합니다.
 //
-// [읽는 문서] 모둠 문서 하나(groupAssignments/default) + 이 모둠원과 주고받은
-// 메모(pairKey 하나로 질의) + 내가 받은 안 읽은 메모(배지용). 셋 다 등호
-// 하나짜리라 새 색인이 없습니다.
+// [스레드로 묶습니다] 답장이 오간 것은 **한 줄**입니다(lib/memoThreads.js).
+// 목록에는 그 대화의 **첫 메모**만 서고, 누르면 오른쪽에 오간 말이 전부
+// 펼쳐집니다. 이렇게 묶어 두면 목록을 **최근순**으로 세워도 대화가 흩어지지
+// 않습니다 — 한 대화가 여러 줄로 쪼개져 사이사이 남의 말이 끼지 않으니까요.
+// 세우는 기준은 뿌리가 아니라 **마지막 글**입니다: 어제 시작한 대화에 방금
+// 답이 오면 그것이 지금 볼 것인데, 뿌리 기준이면 아래에 묻힙니다.
 //
-// [읽음 처리] 그 친구의 대화를 **연 순간** 받은 것을 읽음으로 바꿉니다 —
-// 알림 벨의 '읽음'을 따로 누르게 하면, 읽고 답까지 했는데 배지가 남습니다.
+// [모둠원 칩은 '새로 쓰기'입니다] 목록은 이어 가는 길, 칩은 시작하는 길로
+// 갈라 둡니다. 칩을 누르면 오른쪽이 빈 대화(새 메모)가 됩니다.
+//
+// [쓰는 칸] 누가기록 모달과 같은 자리(위에 쓰는 칸, 아래에 지금까지의 글).
+// 다른 점은 서식 에디터라는 것과, 목록이 **오래된 것부터**라는 것입니다 —
+// 대화라 최신순이면 답과 물음이 거꾸로 놓입니다.
+//
+// [읽는 문서] 모둠 문서 하나 + 이 반에서 내가 주고받은 메모 전부(등호
+// 하나짜리 질의 둘). 친구를 고를 때마다 리스너를 새로 걸지 않습니다.
+//
+// [읽음 처리] 그 대화를 **연 순간** 받은 것을 읽음으로 바꿉니다 — 알림의
+// '읽음'을 따로 누르게 하면, 읽고 답까지 했는데 배지가 남습니다.
 // =============================================================
 import { useEffect, useMemo, useRef, useState } from "react";
 import { backdropClose } from "@/lib/modal";
@@ -24,34 +33,40 @@ import {
   deleteGroupMemo,
   markGroupMemoRead,
   sendGroupMemo,
-  subscribeGroupMemoThread,
-  subscribeMyUnreadMemos,
+  subscribeMyGroupMemos,
   subscribeStudyGroupAssignment,
   formatTime,
 } from "@/lib/store";
+import { buildMemoThreads } from "@/lib/memoThreads";
 import { richHtml, stripHtml } from "@/lib/html";
 import RichTextEditor from "./RichTextEditor";
 import { IconGroup } from "./StatusIcons";
+
+// 목록에 세우는 대화 수. 더 늘리면 창이 길어지기만 하고, 오래된 대화는
+// 어차피 그 친구 칩으로 새로 시작하는 편이 빠릅니다.
+const THREAD_LIMIT = 5;
 
 export default function GroupMemoModal({
   classId,
   user,
   roster = [],
-  // 알림에서 들어왔을 때 곧바로 열 상대 — 없으면 아무도 안 고른 상태
+  // 알림에서 들어왔을 때 곧바로 열 상대 — 그 사람과의 **가장 최근 대화**를
+  // 폅니다. 없으면 그 사람에게 쓰는 새 메모.
   initialUid = null,
   onClose,
 }) {
   const myUid = user?.uid ?? null;
   const [assignment, setAssignment] = useState(null);
-  const [pickedUid, setPickedUid] = useState(initialUid);
-  const [unread, setUnread] = useState([]);
-  const [thread, setThread] = useState([]);
+  const [memos, setMemos] = useState([]);
+  // 고른 것 — { kind: 'thread', id } | { kind: 'new', uid } | null
+  const [picked, setPicked] = useState(null);
   const [replyTo, setReplyTo] = useState(null);
   const [sending, setSending] = useState(false);
   // 보낸 뒤 에디터를 비우려면 통째로 새로 그려야 합니다(내용을 DOM이 들고
   // 있는 contentEditable이라 값을 밖에서 되돌릴 길이 없습니다).
   const [composeKey, setComposeKey] = useState(0);
   const draftRef = useRef("");
+  const seededRef = useRef(false);
 
   useEffect(() => {
     if (!classId) return;
@@ -59,29 +74,11 @@ export default function GroupMemoModal({
   }, [classId]);
 
   useEffect(() => {
-    if (!myUid) return;
-    return subscribeMyUnreadMemos(myUid, setUnread);
-  }, [myUid]);
+    if (!classId || !myUid) { setMemos([]); return; }
+    return subscribeMyGroupMemos(classId, myUid, setMemos);
+  }, [classId, myUid]);
 
-  useEffect(() => {
-    if (!classId || !myUid || !pickedUid) { setThread([]); return; }
-    return subscribeGroupMemoThread(classId, myUid, pickedUid, setThread);
-  }, [classId, myUid, pickedUid]);
-
-  // 상대를 바꾸면 쓰다 만 글·인용이 따라오지 않게 정리합니다
-  useEffect(() => {
-    setReplyTo(null);
-    draftRef.current = "";
-    setComposeKey((k) => k + 1);
-  }, [pickedUid]);
-
-  // 열어 본 대화의 받은 메모를 읽음으로. 실패해도 무시합니다 — 배지가
-  // 남을 뿐이고, 다음에 열면 다시 시도합니다.
-  useEffect(() => {
-    thread
-      .filter((m) => m.toUid === myUid && !m.read)
-      .forEach((m) => markGroupMemoRead(m.id).catch(() => {}));
-  }, [thread, myUid]);
+  const threads = useMemo(() => buildMemoThreads(memos, myUid), [memos, myUid]);
 
   // 내 모둠 — 명단에서 나를 뺀 나머지가 '모둠원'입니다.
   const myGroup = useMemo(() => {
@@ -101,29 +98,64 @@ export default function GroupMemoModal({
       .map((m) => ({ ...m, ...inClass.get(m.uid) }));
   }, [myGroup, myUid, roster]);
 
-  const unreadByUid = useMemo(() => {
-    const map = {};
-    unread.forEach((m) => { map[m.fromUid] = (map[m.fromUid] ?? 0) + 1; });
-    return map;
-  }, [unread]);
+  const nameOf = useMemo(() => {
+    const map = new Map(mates.map((m) => [m.uid, m]));
+    return (uid) => map.get(uid)?.name ?? "";
+  }, [mates]);
 
-  const picked = mates.find((m) => m.uid === pickedUid) ?? null;
+  // 알림에서 들어왔으면 그 사람과의 가장 최근 대화를 폅니다. 대화가 아직
+  // 없으면 그 사람에게 쓰는 새 메모로. **한 번만** 합니다(ref) — 그러지
+  // 않으면 목록이 갱신될 때마다 사용자가 고른 것을 덮어씁니다.
+  useEffect(() => {
+    if (seededRef.current || !initialUid || memos.length === 0) return;
+    seededRef.current = true;
+    const t = threads.find((x) => x.otherUid === initialUid);
+    setPicked(t ? { kind: "thread", id: t.id } : { kind: "new", uid: initialUid });
+  }, [initialUid, memos.length, threads]);
+
+  const activeThread =
+    picked?.kind === "thread" ? threads.find((t) => t.id === picked.id) ?? null : null;
+  const partnerUid =
+    picked?.kind === "new" ? picked.uid : activeThread?.otherUid ?? null;
+  const partner = mates.find((m) => m.uid === partnerUid) ?? null;
+
+  // 고른 것이 바뀌면 쓰다 만 글·인용을 정리합니다
+  useEffect(() => {
+    setReplyTo(null);
+    draftRef.current = "";
+    setComposeKey((k) => k + 1);
+  }, [picked?.kind, picked?.id, picked?.uid]);
+
+  // 펼친 대화에서 받은 메모를 읽음으로. 실패해도 무시합니다 — 배지가 남을
+  // 뿐이고, 다음에 열면 다시 시도합니다.
+  useEffect(() => {
+    (activeThread?.items ?? [])
+      .filter((m) => m.toUid === myUid && !m.read)
+      .forEach((m) => markGroupMemoRead(m.id).catch(() => {}));
+  }, [activeThread, myUid]);
 
   async function handleSend() {
     const html = draftRef.current;
-    if (!picked || sending || !stripHtml(html).trim()) return;
+    if (!partner || sending || !stripHtml(html).trim()) return;
     setSending(true);
     try {
-      await sendGroupMemo(user, {
+      // 대화 안에서 쓴 글은 그 대화에 이어 붙입니다 — 답장할 글을 따로
+      // 고르지 않았으면 **그 대화의 마지막 글**에 답한 것으로 둡니다.
+      // 이래야 스레드가 갈라지지 않습니다.
+      const link = replyTo ?? activeThread?.last ?? null;
+      const id = await sendGroupMemo(user, {
         classId,
-        toUid: picked.uid,
-        toName: picked.name,
+        toUid: partner.uid,
+        toName: partner.name,
         html,
-        replyTo,
+        replyTo: link,
       });
       draftRef.current = "";
       setReplyTo(null);
       setComposeKey((k) => k + 1);
+      // 새 메모를 보냈으면 방금 만든 대화를 그대로 폅니다(빈 화면으로
+      // 돌아가면 '보내진 건가' 싶어집니다).
+      if (picked?.kind === "new" && id) setPicked({ kind: "thread", id });
     } finally {
       setSending(false);
     }
@@ -134,6 +166,8 @@ export default function GroupMemoModal({
     if (replyTo?.id === memo.id) setReplyTo(null);
     await deleteGroupMemo(memo.id).catch(() => {});
   }
+
+  const recent = threads.slice(0, THREAD_LIMIT);
 
   return (
     <div className="modal-backdrop" {...backdropClose(onClose)}>
@@ -159,122 +193,178 @@ export default function GroupMemoModal({
         ) : mates.length === 0 ? (
           <p className="notes-empty">우리 모둠에 나 말고 다른 친구가 없어요.</p>
         ) : (
-          <>
-            {/* 모둠원 — 누르면 그 친구와의 메모가 아래에 열립니다 */}
-            <div className="gmemo-mates" role="tablist" aria-label="모둠원">
-              {mates.map((m) => {
-                const n = unreadByUid[m.uid] ?? 0;
-                const on = m.uid === pickedUid;
-                return (
-                  <button
-                    key={m.uid}
-                    type="button"
-                    role="tab"
-                    aria-selected={on}
-                    className={`gmemo-mate${on ? " on" : ""}`}
-                    onClick={() => setPickedUid(on ? null : m.uid)}
-                    title={`${m.name}에게 메모 남기기`}
-                  >
-                    <span aria-hidden="true">{m.emoji || "🙂"}</span> {m.name}
-                    {n > 0 && (
-                      <span className="gmemo-mate-badge" aria-label={`안 읽은 메모 ${n}건`}>
-                        {n}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
+          <div className="gmemo-cols">
+            {/* ── 왼쪽: 누구에게 새로 쓸까 + 어떤 대화를 이어 갈까 ── */}
+            <div className="gmemo-side">
+              <span className="gmemo-side-label">모둠원에게 새 메모</span>
+              <div className="gmemo-mates">
+                {mates.map((m) => {
+                  const on = picked?.kind === "new" && picked.uid === m.uid;
+                  return (
+                    <button
+                      key={m.uid}
+                      type="button"
+                      className={`gmemo-mate${on ? " on" : ""}`}
+                      onClick={() => setPicked(on ? null : { kind: "new", uid: m.uid })}
+                      title={`${m.name}에게 새 메모 쓰기`}
+                    >
+                      <span aria-hidden="true">{m.emoji || "🙂"}</span> {m.name}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <span className="gmemo-side-label">최근 대화</span>
+              {recent.length === 0 ? (
+                <p className="gmemo-side-empty">아직 주고받은 메모가 없어요.</p>
+              ) : (
+                <ul className="gmemo-threads">
+                  {recent.map((t) => {
+                    const on = picked?.kind === "thread" && picked.id === t.id;
+                    const mine = t.root.fromUid === myUid;
+                    return (
+                      <li key={t.id}>
+                        <button
+                          type="button"
+                          className={`gmemo-thread${on ? " on" : ""}`}
+                          onClick={() => setPicked({ kind: "thread", id: t.id })}
+                          aria-current={on}
+                        >
+                          <span className="gmemo-thread-head">
+                            <span className="gmemo-thread-who">
+                              {nameOf(t.otherUid) || t.root.toName || "모둠 친구"}
+                            </span>
+                            {t.unread > 0 && (
+                              <span
+                                className="gmemo-mate-badge"
+                                aria-label={`안 읽은 메모 ${t.unread}건`}
+                              >
+                                {t.unread}
+                              </span>
+                            )}
+                            <time className="gmemo-thread-at">{formatTime(t.lastAt)}</time>
+                          </span>
+                          {/* 목록에는 **첫 메모**만. 대화가 무엇으로 시작했는지가
+                              그 줄의 이름표입니다(마지막 말은 자꾸 바뀝니다). */}
+                          <span className="gmemo-thread-text">
+                            {mine ? "나: " : ""}
+                            {stripHtml(t.root.html || "")}
+                          </span>
+                          {t.items.length > 1 && (
+                            <span className="gmemo-thread-count">
+                              답장 {t.items.length - 1}
+                            </span>
+                          )}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
             </div>
 
-            {!picked ? (
-              <p className="notes-empty">모둠원을 누르면 메모를 주고받을 수 있어요.</p>
-            ) : (
-              <div className="notes-thread gmemo-thread">
-                {/* 답장 — 어느 말에 답하는 중인지 쓰는 칸 바로 위에 둡니다 */}
-                {replyTo && (
-                  <div className="gmemo-replying">
-                    <span className="gmemo-replying-label">
-                      ↩ {replyTo.fromName}에게 답장
+            {/* ── 오른쪽: 고른 대화 ── */}
+            <div className="gmemo-main">
+              {!partner ? (
+                <p className="notes-empty">
+                  왼쪽에서 대화를 누르거나, 모둠원을 눌러 새 메모를 써 보세요.
+                </p>
+              ) : (
+                <div className="notes-thread gmemo-thread-pane">
+                  <div className="gmemo-pane-head">
+                    <span aria-hidden="true">{partner.emoji || "🙂"}</span>
+                    <strong>{partner.name}</strong>
+                    <span className="gmemo-pane-sub">
+                      {activeThread ? `메모 ${activeThread.items.length}` : "새 메모"}
                     </span>
-                    <span className="gmemo-replying-text">
-                      {stripHtml(replyTo.html).slice(0, 60)}
-                    </span>
-                    <button
-                      type="button"
-                      className="gmemo-replying-cancel"
-                      onClick={() => setReplyTo(null)}
-                      aria-label="답장 취소"
-                    >
-                      ×
-                    </button>
                   </div>
-                )}
 
-                <RichTextEditor
-                  key={composeKey}
-                  variant="chat"
-                  placeholder={`${picked.name}에게 남길 말 — Ctrl+Enter로 보내기`}
-                  onChange={(html) => { draftRef.current = html; }}
-                  onSend={handleSend}
-                  sendDisabled={sending}
-                />
+                  {/* 답장 — 어느 말에 답하는 중인지 쓰는 칸 바로 위에 둡니다 */}
+                  {replyTo && (
+                    <div className="gmemo-replying">
+                      <span className="gmemo-replying-label">
+                        ↩ {replyTo.fromName}에게 답장
+                      </span>
+                      <span className="gmemo-replying-text">
+                        {stripHtml(replyTo.html).slice(0, 60)}
+                      </span>
+                      <button
+                        type="button"
+                        className="gmemo-replying-cancel"
+                        onClick={() => setReplyTo(null)}
+                        aria-label="답장 취소"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  )}
 
-                {thread.length === 0 ? (
-                  <p className="notes-empty">아직 주고받은 메모가 없어요.</p>
-                ) : (
-                  <ul className="notes-list gmemo-list">
-                    {thread.map((m) => {
-                      const mine = m.fromUid === myUid;
-                      return (
-                        <li
-                          key={m.id}
-                          className={`notes-item gmemo-item${mine ? " gmemo-item--mine" : ""}`}
-                        >
-                          {m.replyToText && (
-                            <p className="gmemo-quote">
-                              ↩ {m.replyToName ? `${m.replyToName}: ` : ""}
-                              {m.replyToText}
-                            </p>
-                          )}
-                          <div
-                            className="notes-text gmemo-text"
-                            dangerouslySetInnerHTML={{ __html: richHtml(m.html) }}
-                          />
-                          <div className="notes-meta">
-                            {/* 누가·언제를 한 덩이로 묶습니다 — .notes-meta가
-                                space-between이라 셋을 그냥 두면 시각이
-                                한가운데로 떠 버립니다. */}
-                            <span className="gmemo-by">
-                              <span className="gmemo-who">{mine ? "나" : m.fromName}</span>
-                              <time>{formatTime(m.createdAt)}</time>
-                            </span>
-                            <span className="notes-item-actions">
-                              <button
-                                type="button"
-                                className="notes-edit"
-                                onClick={() => setReplyTo(m)}
-                              >
-                                답장
-                              </button>
-                              {mine && (
+                  <RichTextEditor
+                    key={composeKey}
+                    variant="chat"
+                    placeholder={`${partner.name}에게 남길 말 — Ctrl+Enter로 보내기`}
+                    onChange={(html) => { draftRef.current = html; }}
+                    onSend={handleSend}
+                    sendDisabled={sending}
+                  />
+
+                  {!activeThread ? (
+                    <p className="notes-empty">첫 마디를 남겨 보세요.</p>
+                  ) : (
+                    <ul className="notes-list gmemo-list">
+                      {activeThread.items.map((m) => {
+                        const mine = m.fromUid === myUid;
+                        return (
+                          <li
+                            key={m.id}
+                            className={`notes-item gmemo-item${mine ? " gmemo-item--mine" : ""}`}
+                          >
+                            {m.replyToText && (
+                              <p className="gmemo-quote">
+                                ↩ {m.replyToName ? `${m.replyToName}: ` : ""}
+                                {m.replyToText}
+                              </p>
+                            )}
+                            <div
+                              className="notes-text gmemo-text"
+                              dangerouslySetInnerHTML={{ __html: richHtml(m.html) }}
+                            />
+                            <div className="notes-meta">
+                              {/* 누가·언제를 한 덩이로 묶습니다 — .notes-meta가
+                                  space-between이라 셋을 그냥 두면 시각이
+                                  한가운데로 떠 버립니다. */}
+                              <span className="gmemo-by">
+                                <span className="gmemo-who">{mine ? "나" : m.fromName}</span>
+                                <time>{formatTime(m.createdAt)}</time>
+                              </span>
+                              <span className="notes-item-actions">
                                 <button
                                   type="button"
-                                  className="notes-del"
-                                  onClick={() => handleDelete(m)}
+                                  className="notes-edit"
+                                  onClick={() => setReplyTo(m)}
                                 >
-                                  거두기
+                                  답장
                                 </button>
-                              )}
-                            </span>
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-              </div>
-            )}
-          </>
+                                {mine && (
+                                  <button
+                                    type="button"
+                                    className="notes-del"
+                                    onClick={() => handleDelete(m)}
+                                  >
+                                    거두기
+                                  </button>
+                                )}
+                              </span>
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
         )}
       </div>
     </div>
