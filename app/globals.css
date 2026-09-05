@@ -7096,9 +7096,11 @@ pre code {
   gap: 4px;
   flex-shrink: 0;
 }
+/* 옆의 '정렬' 알약과 **높이를 하나로**(22px) — 같은 줄에 선 것들이 2px씩
+   달라도 줄이 미묘하게 들쭉날쭉해 보입니다. */
 .reward-groups-count-btn {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   display: grid;
   place-items: center;
   border: 1px solid var(--border);
@@ -7117,12 +7119,14 @@ pre code {
   opacity: 0.4;
   cursor: default;
 }
+/* 그림이 들어가 20px 알약에는 빠듯해 22px로 한 칸 키웁니다 —
+   옆의 ＋ − 단추도 같은 22px로 함께 올렸습니다. */
 .reward-groups-sort-btn {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  height: 20px;
-  padding: 0 8px;
+  gap: 4px;
+  height: 22px;
+  padding: 0 9px;
   border: 1px solid var(--border);
   border-radius: 999px;
   background: #fff;

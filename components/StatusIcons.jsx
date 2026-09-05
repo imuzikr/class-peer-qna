@@ -519,6 +519,20 @@ export function IconLockState({ locked, size = 20, className = "", mono = false 
   return <Icon size={size} className={className} mono={mono} />;
 }
 
+// 정렬 — 아래로 향한 화살표 + 짧은 데서 긴 데로 늘어나는 세 줄.
+// 🔢(1234) 이모지를 쓰고 있었는데, 기기마다 색이 원색(파랑·빨강)이라 옆의
+// ＋ − 단추와 함께 선 얇은 알약 줄에서 혼자 튀었고, 무엇보다 '숫자'로만
+// 읽혀 '순서를 매긴다'는 뜻이 안 보였습니다.
+export function IconSort({ size = 20, className = "" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">
+      <path d="M6.4 5.75v12.5" stroke="#8A6258" strokeWidth="1.6" strokeLinecap="round"/>
+      <path d="M6.4 18.25 4.75 16.6M6.4 18.25l1.65-1.65" stroke="#8A6258" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M11 7.45h3.45M11 12h5.25M11 16.55h7.05" stroke="#3A312E" strokeWidth="1.65" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
 // 모둠 활동 — 가운데 한 사람과 좌우로 반쯤 걸친 두 사람.
 // 개별(IconIndividual)과 **한 쌍**입니다: 몸통이 같고 사람 수만 다릅니다.
 // 👥를 쓰고 있었는데 기기마다 두 사람의 색·머리 모양이 달랐고, 옆에 선

@@ -34,7 +34,7 @@ import StudentToolsModal from "./StudentToolsModal";
 import StudentNotesModal from "./StudentNotesModal";
 import SeatViewToggle from "./SeatViewToggle";
 import { useSeatView } from "@/lib/seatView";
-import { IconChair } from "./StatusIcons";
+import { IconChair, IconSort } from "./StatusIcons";
 
 const COLLAPSE_KEY = "reward_panel_collapsed";
 const GROUP_COLORS = ["#2563eb", "#16a34a", "#f97316", "#9333ea", "#dc2626", "#0891b2"];
@@ -386,7 +386,7 @@ export default function StudyRewardPanel({
                 title="모둠마다 학생을 학번순으로 정렬"
                 aria-label="모둠마다 학생을 학번순으로 정렬"
               >
-                🔢 정렬
+                <IconSort size={14} /> 정렬
               </button>
             </div>
           </div>
