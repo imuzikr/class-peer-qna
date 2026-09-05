@@ -41,7 +41,7 @@ function fullDate(ymd) {
 export default function KwlClassGrid({ classId, kwl = [], roster = [] }) {
   const [open, setOpen] = useState(null); // { date, uid } — 크게 볼 칸
 
-  const { dates, rows, total } = useMemo(() => {
+  const { dates, rows, total, dateIndex } = useMemo(() => {
     // (학생, 날짜) → 그날 그 학생의 기록들
     const bucket = new Map();
     const dateSet = new Set();
@@ -71,7 +71,14 @@ export default function KwlClassGrid({ classId, kwl = [], roster = [] }) {
         )
       );
 
+    // 크게 보기 창의 달력·좌우 화살표가 쓸 '어느 날에 누가 썼나'를 여기서
+    // 함께 만들어 넘깁니다 — 격자가 이미 세고 있는 값이라, 그 창이 같은
+    // 질의를 다시 하지 않아도 됩니다. 셈은 격자가 칸을 칠하는 기준과 같은
+    // 것이라야 합니다(한 칸이라도 채운 날만) — 다르면 색이 없는 칸으로
+    // 화살표가 내려앉습니다.
     let filledCells = 0;
+    const counts = {};
+    const byUid = {};
     const rowList = people.map((p) => ({
       ...p,
       cells: dateList.map((date) => {
@@ -79,12 +86,21 @@ export default function KwlClassGrid({ classId, kwl = [], roster = [] }) {
         if (!list) return { date, level: 0, labels: [] };
         const filled = kwlsFilledKeysOf(list);
         const cols = KWLS_COLUMNS.filter((c) => filled.has(c.key));
-        if (cols.length > 0) filledCells += 1;
+        if (cols.length > 0) {
+          filledCells += 1;
+          counts[date] = (counts[date] ?? 0) + 1;
+          (byUid[p.uid] ||= []).push(date);
+        }
         return { date, level: cols.length, labels: cols.map((c) => c.ko) };
       }),
     }));
 
-    return { dates: dateList, rows: rowList, total: filledCells };
+    return {
+      dates: dateList,
+      rows: rowList,
+      total: filledCells,
+      dateIndex: { counts, byUid },
+    };
   }, [kwl, roster]);
 
   return (
@@ -161,6 +177,7 @@ export default function KwlClassGrid({ classId, kwl = [], roster = [] }) {
           initialDate={open.date}
           initialUid={open.uid}
           roster={roster}
+          dateIndex={dateIndex}
           onClose={() => setOpen(null)}
         />
       )}

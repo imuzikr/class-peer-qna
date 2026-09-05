@@ -15,15 +15,29 @@
 // (subscribeUserDirectory)에서 꺼내 쓰므로 읽기가 늘지 않습니다.
 //
 // [날짜]
-// 좌우 화살표(하루씩) + 달력. 달력은 이 반의 KWLS가 있는 날을 초록으로
-// 칠하고 그날 쓴 사람 수를 적습니다 — 기록이 있는 날로 바로 건너뛰려고요.
-// 날짜가 바뀔 때마다 그 날짜의 기록을 실시간 구독합니다.
+// 좌우 화살표 + 달력. 달력은 이 반의 KWLS가 있는 날을 초록으로 칠하고
+// 그날 쓴 사람 수를 적습니다. 날짜가 바뀔 때마다 그 날짜의 기록을 실시간
+// 구독합니다.
+//
+// [화살표는 하루씩이 아니라 '기록이 있는 다음 날'로 건너뜁니다.]
+// 하루씩 옮기면 수업이 없던 날·주말이 그대로 걸려, 지난 기록을 훑는 데
+// 빈 화면을 몇 번씩 지나야 했습니다(한 주 쉬면 일곱 번). 지금은 기록이
+// 있는 가장 가까운 날로 곧장 갑니다 — 달력에서 초록 칸만 골라 누르는 것과
+// 같은 움직임입니다. 한 학생만 보는 중이면 **그 학생이 쓴 날**로 갑니다.
+// 그러지 않으면 반의 다른 학생이 쓴 날에 내려앉아 여전히 빈 화면입니다.
+// 더 갈 곳이 없으면 화살표가 꺼집니다.
+//
+// 그 목록(어느 날에 누가 썼나)은 달력이 쓰는 요약과 **같은 읽기 한 번**에서
+// 나옵니다(fetchKwlDays / fetchKwlUserDays가 한 캐시를 나눠 씁니다).
+// 종합 격자에서 열 때는 그 화면이 이미 들고 있는 값을 dateIndex로 받아
+// 아예 읽지 않습니다.
 // =============================================================
 import { Fragment, useEffect, useMemo, useState } from "react";
 import {
   subscribeAllKwl,
   fetchAllKwlOnce,
   fetchKwlDays,
+  fetchKwlUserDays,
   invalidateKwlDays,
   getDirectoryUser,
   subscribeClassRewards,
@@ -37,11 +51,6 @@ function toYMD(d) {
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
-}
-function addDays(dateStr, delta) {
-  const d = new Date(dateStr + "T00:00:00");
-  d.setDate(d.getDate() + delta);
-  return toYMD(d);
 }
 function formatDateLabel(dateStr) {
   const d = new Date(dateStr + "T00:00:00");
@@ -59,6 +68,11 @@ export default function KwlFullscreenModal({
   // 날짜를 넘길 때마다 목록이 바뀌어 고른 사람이 사라지므로, 넘겨주는 쪽이
   // 있으면 반 전체를 씁니다.
   roster = [],
+  // 이미 만들어 둔 '어느 날에 누가 썼나' — { counts: {날짜: 사람 수},
+  // byUid: { uid: [날짜…] } }. 종합 격자가 그 화면의 자료로 만들어 넘겨
+  // 주므로, 달력을 열거나 화살표를 눌러도 새로 읽지 않습니다. 없으면
+  // 필요해진 순간에 한 번 읽습니다.
+  dateIndex = null,
   onClose,
 }) {
   const [date, setDate] = useState(initialDate || TODAY);
@@ -68,7 +82,8 @@ export default function KwlFullscreenModal({
   const [rewardMap, setRewardMap] = useState({}); // uid -> 과일 개수
   const [revealed, setRevealed] = useState(() => new Set()); // 실명을 펼친 uid
   const [calOpen, setCalOpen] = useState(false);
-  const [days, setDays] = useState(null); // { 'YYYY-MM-DD': 쓴 사람 수 } — 달력용
+  const [days, setDays] = useState(() => dateIndex?.counts || null); // { 'YYYY-MM-DD': 쓴 사람 수 }
+  const [userDays, setUserDays] = useState(() => dateIndex?.byUid || null); // { uid: [날짜…] }
 
   // 날짜가 바뀔 때마다 그 날짜의 기록을 실시간 구독
   useEffect(() => {
@@ -86,14 +101,22 @@ export default function KwlFullscreenModal({
     });
   }, [classId]);
 
-  // 달력을 처음 열 때만 '어느 날에 기록이 있나'를 한 번 읽습니다
-  // (반의 kwl을 통째로 읽는 질의라 열지 않으면 아예 읽지 않습니다).
+  // '어느 날에 누가 썼나'는 반의 kwl을 통째로 읽는 질의라, 그것이 실제로
+  // 필요해질 때 — 달력을 처음 열거나 화살표를 처음 누를 때 — 한 번만
+  // 읽습니다. 두 함수가 같은 캐시를 쓰므로 읽기는 한 번입니다.
   useEffect(() => {
     if (!calOpen || !classId || days) return;
-    let alive = true;
-    fetchKwlDays(classId).then((d) => { if (alive) setDays(d); });
-    return () => { alive = false; };
+    loadDayIndex();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [calOpen, classId, days]);
+
+  async function loadDayIndex() {
+    if (!classId) return { days: {}, byUid: {} };
+    const [d, u] = await Promise.all([fetchKwlDays(classId), fetchKwlUserDays(classId)]);
+    setDays(d);
+    setUserDays(u);
+    return { days: d, byUid: u };
+  }
 
   function awardFruit(uid, row = null) {
     const cur = rewardMap[uid] ?? 0;
@@ -129,6 +152,36 @@ export default function KwlFullscreenModal({
     setCalOpen(false);
   }
 
+  // 지금 화살표가 훑을 날짜들 — 한 학생만 보는 중이면 그 학생이 쓴 날,
+  // 반 전체를 보는 중이면 누구라도 쓴 날. 아직 안 읽었으면 null입니다
+  // (그때는 화살표를 눌러 읽고 나서 옮깁니다).
+  function navDatesFrom(idx) {
+    if (!idx?.days) return null;
+    if (pickedUid) return idx.byUid?.[pickedUid] ?? [];
+    return Object.keys(idx.days).sort();
+  }
+  const navDates = useMemo(
+    () => navDatesFrom({ days, byUid: userDays }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [days, userDays, pickedUid]
+  );
+
+  function stepIn(list, dir, from) {
+    if (!list) return null;
+    return dir < 0
+      ? [...list].reverse().find((d) => d < from) ?? null
+      : list.find((d) => d > from) ?? null;
+  }
+
+  // 화살표 — 하루씩이 아니라 '기록이 있는 다음 날'로. 아직 목록을 안 읽었으면
+  // 여기서 한 번 읽고 곧바로 옮깁니다(달력을 안 열어도 화살표만으로 됩니다).
+  async function jumpDate(dir) {
+    let list = navDates;
+    if (!list) list = navDatesFrom(await loadDayIndex());
+    const next = stepIn(list, dir, date);
+    if (next) goDate(next);
+  }
+
   // Esc 닫기, ←/→ 날짜 이동 (입력 필드에 포커스 중일 땐 방향키 그대로 사용하게 제외)
   useEffect(() => {
     function onKey(e) {
@@ -139,24 +192,24 @@ export default function KwlFullscreenModal({
       if (e.key === "Escape") {
         if (calOpen) setCalOpen(false);
         else onClose();
-      } else if (!typing && e.key === "ArrowLeft") setDate((d) => addDays(d, -1));
-      else if (!typing && e.key === "ArrowRight") {
-        setDate((d) => (d < TODAY ? addDays(d, 1) : d));
-      }
+      } else if (!typing && e.key === "ArrowLeft") jumpDate(-1);
+      else if (!typing && e.key === "ArrowRight") jumpDate(1);
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose, calOpen]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onClose, calOpen, navDates, date, pickedUid]);
 
   async function handleRefresh() {
     if (refreshing) return;
     setRefreshing(true);
     try {
       setEntries(await fetchAllKwlOnce(classId, date));
-      // 달력도 같이 최신으로 — 이 버튼을 누르는 이유가 '보는 동안 새로
-      // 들어온 것'이라, 달력만 옛 요약으로 남으면 앞뒤가 안 맞습니다.
+      // 달력·화살표가 보는 목록도 같이 최신으로 — 이 버튼을 누르는 이유가
+      // '보는 동안 새로 들어온 것'이라, 여기만 옛 요약으로 남으면 앞뒤가
+      // 안 맞습니다(방금 쓴 날로 화살표가 안 넘어갑니다).
       invalidateKwlDays(classId);
-      setDays(days ? await fetchKwlDays(classId, { force: true }) : null);
+      if (days) await loadDayIndex();
     } finally {
       setRefreshing(false);
     }
@@ -233,6 +286,8 @@ export default function KwlFullscreenModal({
   }, [days, entries, date]);
 
   const isToday = date === TODAY;
+  const prevDate = stepIn(navDates, -1, date);
+  const nextDate = stepIn(navDates, 1, date);
 
   return (
     <div className="modal-backdrop present-backdrop" onClick={onClose}>
@@ -274,22 +329,25 @@ export default function KwlFullscreenModal({
                 📅 {formatDateLabel(date)}
               </button>
               <div className="kwlfs-date-arrows">
+                {/* 목록을 아직 안 읽었으면(navDates === null) 꺼 두지 않습니다 —
+                    누르는 것이 곧 읽어 오는 일이라, 미리 꺼 두면 고장으로 보입니다. */}
                 <button
                   type="button"
                   className="kwlfs-date-arrow"
-                  onClick={() => goDate(addDays(date, -1))}
-                  aria-label="전날"
-                  title="전날 (←)"
+                  onClick={() => jumpDate(-1)}
+                  disabled={navDates ? !prevDate : false}
+                  aria-label="이전 기록"
+                  title={prevDate ? `${formatDateLabel(prevDate)} (←)` : `이전 기록 (←)${navDates ? " — 더 앞은 없어요" : ""}`}
                 >
                   ‹
                 </button>
                 <button
                   type="button"
                   className="kwlfs-date-arrow"
-                  onClick={() => goDate(addDays(date, 1))}
-                  disabled={isToday}
-                  aria-label="다음날"
-                  title="다음날 (→)"
+                  onClick={() => jumpDate(1)}
+                  disabled={navDates ? !nextDate : false}
+                  aria-label="다음 기록"
+                  title={nextDate ? `${formatDateLabel(nextDate)} (→)` : `다음 기록 (→)${navDates ? " — 더 뒤는 없어요" : ""}`}
                 >
                   ›
                 </button>
