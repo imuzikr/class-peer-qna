@@ -29,12 +29,16 @@ import {
   raftStarted,
   raftWritingChars,
   raftDone,
+  raftRows,
+  raftCellState,
 } from "@/lib/raft";
 import { safeBookUrl } from "@/lib/paratext";
 import { IconBook, IconLock, IconLockState } from "./StatusIcons";
 import CastBar from "./CastBar";
 import GroupFilterRow from "./GroupFilterRow";
 import RaftProgressBoard from "./RaftProgressBoard";
+import BookStudentRail from "./BookStudentRail";
+import EntryProgressPanel from "./EntryProgressPanel";
 import { PeerReviewList } from "./PeerReviewModal";
 import { isGroupedActivity, useBookGroups, isPeerReviewOpen } from "@/lib/bookGroups";
 
@@ -132,6 +136,11 @@ export default function RaftBoard({
 
   const open = openUid ? cards.find((c) => c.uid === openUid) ?? null : null;
 
+  // 왼쪽 목록의 네모·오른쪽 패널의 칸이 쓰는 줄 정의 — 전광판과 **같은**
+  // 것입니다(lib/raft.js). 한쪽만 고치면 같은 학생이 두 화면에서 다른
+  // 상태로 보입니다.
+  const stepRows = useMemo(() => raftRows(), []);
+
   const castCard = cast.target ? cards.find((c) => c.uid === cast.target.uid) ?? null : null;
   const castIndex = cast.target ? REGIONS.findIndex((r) => r.key === cast.target.key) : -1;
 
@@ -159,54 +168,32 @@ export default function RaftBoard({
   );
 
   return (
-    <main className="books-main">
+    <main className="books-main book-workspace-main">
       <div className="books-head">
         {/* 제목 · 돌아가는 길 · 도구 순서 — 닿소리 머리말(BookGroupBoard)과
             같은 차례입니다. 아래 둘째 줄은 딸림 정보(주제어·반)만 두는 자리라
             화면을 옮기는 버튼은 여기 첫 줄에 둡니다. */}
+        {/* 제목은 늘 활동 이름입니다 — 학생은 왼쪽 목록이 말해 주므로
+            제목이 학생 이름으로 바뀌면 지금 어느 활동인지 알 수 없어집니다. */}
         <div className="books-head-title">
-          <h1 className="book-group-title">{open ? open.name : activity.title}</h1>
-          {open ? (
-            <button type="button" className="btn-ghost" onClick={() => setOpenUid(null)}>
-              ← 학생 목록
-            </button>
-          ) : (
-            <button type="button" className="btn-ghost" onClick={onBack}>← 활동 목록</button>
-          )}
+          <h1 className="book-group-title">{activity.title}</h1>
+          <button type="button" className="btn-ghost" onClick={onBack}>← 활동 목록</button>
           {classTools}
         </div>
         <div className="books-head-row">
           <div className="books-head-main">
-            {open ? (
-              <>
-                {open.studentId && (
-                  <span className="book-group-class">{open.studentId}</span>
-                )}
-                {/* 활동에 주제어가 없으면 학생이 적은 책이름을 씁니다 */}
-                {!(activity.topic ?? "").trim() && open.entry?.topic && (
-                  <span className="book-group-topic">{open.entry.topic}</span>
-                )}
-                <span className="book-group-topic">
-                  {raftPlanCount(openAnswers)} / {RAFT_COLUMN_COUNT}칸 ·
-                  {" "}글 {raftWritingChars(openAnswers)}자
-                </span>
-              </>
-            ) : (
-              <>
-                {/* 주제어를 비워 두면 학생마다 제 책으로 씁니다 —
-                    빈 배지를 두는 대신 그 사실을 적어 둡니다 */}
-                <span className={`book-group-topic${(activity.topic ?? "").trim() ? "" : " soft"}`}>
-                  {(activity.topic ?? "").trim() || "학생마다 다른 책"}
-                </span>
-                {/* 반 표시 — 고를 반이 둘 이상이면 고르개(반을 바꾸면 그 반의
-                    활동 목록으로 갑니다), 하나면 이름 배지입니다. */}
-                {classPicker ?? (className && <span className="book-group-class">{className}</span>)}
-              </>
-            )}
+            {/* 주제어를 비워 두면 학생마다 제 책으로 씁니다 —
+                빈 배지를 두는 대신 그 사실을 적어 둡니다 */}
+            <span className={`book-group-topic${(activity.topic ?? "").trim() ? "" : " soft"}`}>
+              {(activity.topic ?? "").trim() || "학생마다 다른 책"}
+            </span>
+            {/* 반 표시 — 고를 반이 둘 이상이면 고르개(반을 바꾸면 그 반의
+                활동 목록으로 갑니다), 하나면 이름 배지입니다. */}
+            {classPicker ?? (className && <span className="book-group-class">{className}</span>)}
             {/* 잠김 안내도 이 줄에 — 예전엔 머리말 아래 제 줄을 차지했는데,
                 이 줄은 배지 두어 개뿐이라 오른쪽이 비어 있었습니다.
                 '지금 잠겨 있다'는 활동에 붙는 상태라 배지와 같은 성격입니다. */}
-            {activity.locked && !open && (
+            {activity.locked && (
               <span className="book-locked-note book-locked-chip">
                 <IconLock size={14} /> 지금은 잠겨 있어 학생이 고칠 수 없어요.
               </span>
@@ -214,7 +201,7 @@ export default function RaftBoard({
             {/* 동료 평가 열기/잠그기 — 활동 전체 잠금과 별개입니다.
                 '이제 그만 쓰고 이야기하자'로 닫는 자리라, 글쓰기까지 함께
                 잠기면 안 됩니다. */}
-            {grouped && !open && (
+            {grouped && (
               <button
                 type="button"
                 className={`btn-ghost peer-lock-btn${peerLocked ? " on" : ""}`}
@@ -244,7 +231,7 @@ export default function RaftBoard({
               onStop={cast.stop}
             />
           )}
-          {bookUrl && !open && (
+          {bookUrl && (
             <a
               className="btn-primary book-info-btn"
               href={bookUrl}
@@ -255,114 +242,148 @@ export default function RaftBoard({
             </a>
           )}
         </div>
-        {!open && (
-          <span className="paratext-sum">
-            시작 {startedCount}명 · 완성 {doneCount}명 / 전체 {cards.length}명
-          </span>
-        )}
+        <span className="paratext-sum">
+          시작 {startedCount}명 · 완성 {doneCount}명 / 전체 {cards.length}명
+        </span>
       </div>
 
-      {open ? (
-        /* ── 학생 상세 — 다섯 영역을 한 화면에 ── */
-        <>
-          {/* 늘 done으로 그렸더니, 한 칸도 안 쓴 학생 카드에서도 '다 정했다'는
-              짙은 색 알림줄이 떴습니다(0 / 4칸인데 문장은 완성 모습).
-              학생 화면과 같은 잣대로 — 네 칸을 다 정했을 때만 done입니다. */}
-          <p
-            className={`raft-sentence${
-              raftPlanCount(openAnswers) === RAFT_COLUMN_COUNT ? " done" : ""
-            }`}
-          >
-            {raftSentence(openAnswers)}
-          </p>
-          <div className="entry-detail-grid raft-detail-grid">
-            {REGIONS.map((r, i) => {
-              const text = String(openAnswers[r.key] ?? "").trim();
-              const live = cast.isCasting(open.uid, r.key);
-              const isWriting = r.key === RAFT_WRITING.key;
-              return (
-                <section
-                  key={r.key}
-                  className={`entry-region${text ? " done" : ""}${live ? " live" : ""}${isWriting ? " wide" : ""}`}
-                >
-                  <header className="paratext-card-head">
-                    {r.letter && (
-                      <span className="paratext-letter" aria-hidden="true">{r.letter}</span>
-                    )}
-                    <span className="paratext-card-title">
-                      <strong>{r.ko}</strong>
-                      {r.en && <em>{r.en}</em>}
-                    </span>
-                    {cast.canCast && (
-                      <button
-                        type="button"
-                        className={`btn-ghost dash-cast-btn${live ? " on" : ""}`}
-                        onClick={() => castRegion(open, i)}
-                        title={
-                          live
-                            ? "학생 화면을 원래대로 되돌립니다"
-                            : "이 영역을 학급 전체 화면에 띄웁니다"
-                        }
-                      >
-                        {live && <span className="broadcast-live-dot" aria-hidden="true" />}
-                        {live ? "수업 종료" : "수업 시작"}
-                      </button>
-                    )}
-                  </header>
-                  <div className="entry-region-body">
-                    <p className={`paratext-read-text${text ? "" : " empty"}`}>
-                      {text || "아직 쓰지 않았어요"}
-                    </p>
-                  </div>
-                </section>
-              );
-            })}
-          </div>
+      {/* 모둠 고르는 줄 — 그 끝(마지막 모둠 뒤)에 전광판을 엽니다.
+          전광판은 고른 모둠이 아니라 **반 전체**를 보여 줍니다(cards). */}
+      <GroupFilterRow
+        groups={grouped ? groups : []}
+        value={pickedGroup}
+        onChange={setPickedGroup}
+        counts={groupCounts}
+        trailing={
+          cards.length > 0 && (
+            <button
+              type="button"
+              className="group-filter-act"
+              onClick={() => setBoardOpen(true)}
+              title="R·A·F·T와 글쓰기 × 반 전체를 한 격자로 봅니다"
+            >
+              전광판
+            </button>
+          )
+        }
+      />
 
-          {/* 이 학생이 모둠 친구들에게 받은 한 마디 — 글 바로 아래.
-              규칙이 담당 교사에게 전체를 열어 두므로 여기서 다 보입니다
-              (학생끼리는 자기가 받은 것과 자기가 쓴 것만 봅니다). */}
-          {grouped && <PeerReviewList reviews={openReviews} title="모둠 친구들이 남긴 한 마디" />}
-        </>
-      ) : cards.length === 0 ? (
+      {cards.length === 0 ? (
         <p className="empty-note">
           아직 이 반에 들어온 학생이 없어요. 학생이 반에 들어오면 카드가 생깁니다.
         </p>
       ) : (
-        <>
-          {/* 모둠 고르는 줄 — 그 끝(마지막 모둠 뒤)에 전광판을 엽니다.
-              모둠이 없는 활동에서는 이 줄에 전광판 단추만 섭니다.
-              전광판은 **고른 모둠이 아니라 반 전체**를 보여 줍니다 — 모둠을
-              다 지나온 자리에 두는 까닭이 그것입니다(cards, shownCards 아님). */}
-          <GroupFilterRow
-            groups={grouped ? groups : []}
-            value={pickedGroup}
-            onChange={setPickedGroup}
-            counts={groupCounts}
-            trailing={
-              cards.length > 0 && (
-                <button
-                  type="button"
-                  className="group-filter-act"
-                  onClick={() => setBoardOpen(true)}
-                  title="R·A·F·T와 글쓰기 × 반 전체를 한 격자로 봅니다"
-                >
-                  전광판
-                </button>
-              )
+        /* ── 세 칸 — 왼쪽 학생 목록 · 가운데 그 학생의 다섯 영역 · 오른쪽 진행 ──
+           닿소리 채우기(BookGroupBoard)와 **같은 뼈대·같은 CSS**입니다. */
+        <div className="book-workspace">
+          <BookStudentRail
+            cards={shownCards}
+            pickedUid={openUid}
+            onPick={setOpenUid}
+            rows={stepRows}
+            cellState={raftCellState}
+            castUid={cast.target?.uid ?? null}
+            meta={(c) =>
+              !raftStarted(c.entry?.answers)
+                ? "아직 시작 전"
+                : `${raftPlanCount(c.entry?.answers)} / ${RAFT_COLUMN_COUNT}칸 · 글 ${raftWritingChars(c.entry?.answers)}자`
             }
           />
-        <div className="paratext-card-grid">
-          {shownCards.map((c) => (
-            <StudentCard
-              key={c.uid}
-              card={c}
-              casting={cast.target?.uid === c.uid}
-              onOpen={() => setOpenUid(c.uid)}
-            />
-          ))}
+
+          <div className="book-workspace-center">
+            {open ? (
+              <>
+                {/* 가운데 칸의 머리 — 누구를 보고 있는지. 머리말의 제목은
+                    활동 이름이라, 이 줄이 없으면 학생 이름이 화면 어디에도
+                    없습니다. */}
+                <div className="entry-detail-head">
+                  <h2>
+                    {open.name}
+                    {open.studentId && <em>{open.studentId}</em>}
+                  </h2>
+                  {!(activity.topic ?? "").trim() && open.entry?.topic && (
+                    <span className="book-group-topic">{open.entry.topic}</span>
+                  )}
+                  <span className="book-group-class">
+                    {raftPlanCount(openAnswers)} / {RAFT_COLUMN_COUNT}칸 ·
+                    {" "}글 {raftWritingChars(openAnswers)}자
+                  </span>
+                </div>
+
+                {/* 늘 done으로 그렸더니, 한 칸도 안 쓴 학생 카드에서도 '다 정했다'는
+                    짙은 색 알림줄이 떴습니다(0 / 4칸인데 문장은 완성 모습).
+                    학생 화면과 같은 잣대로 — 네 칸을 다 정했을 때만 done입니다. */}
+                <p
+                  className={`raft-sentence${
+                    raftPlanCount(openAnswers) === RAFT_COLUMN_COUNT ? " done" : ""
+                  }`}
+                >
+                  {raftSentence(openAnswers)}
+                </p>
+                <div className="entry-detail-grid raft-detail-grid">
+                  {REGIONS.map((r, i) => {
+                    const text = String(openAnswers[r.key] ?? "").trim();
+                    const live = cast.isCasting(open.uid, r.key);
+                    const isWriting = r.key === RAFT_WRITING.key;
+                    return (
+                      <section
+                        key={r.key}
+                        className={`entry-region${text ? " done" : ""}${live ? " live" : ""}${isWriting ? " wide" : ""}`}
+                      >
+                        <header className="paratext-card-head">
+                          {r.letter && (
+                            <span className="paratext-letter" aria-hidden="true">{r.letter}</span>
+                          )}
+                          <span className="paratext-card-title">
+                            <strong>{r.ko}</strong>
+                            {r.en && <em>{r.en}</em>}
+                          </span>
+                          {cast.canCast && (
+                            <button
+                              type="button"
+                              className={`btn-ghost dash-cast-btn${live ? " on" : ""}`}
+                              onClick={() => castRegion(open, i)}
+                              title={
+                                live
+                                  ? "학생 화면을 원래대로 되돌립니다"
+                                  : "이 영역을 학급 전체 화면에 띄웁니다"
+                              }
+                            >
+                              {live && <span className="broadcast-live-dot" aria-hidden="true" />}
+                              {live ? "수업 종료" : "수업 시작"}
+                            </button>
+                          )}
+                        </header>
+                        <div className="entry-region-body">
+                          <p className={`paratext-read-text${text ? "" : " empty"}`}>
+                            {text || "아직 쓰지 않았어요"}
+                          </p>
+                        </div>
+                      </section>
+                    );
+                  })}
+                </div>
+
+                {/* 이 학생이 모둠 친구들에게 받은 한 마디 — 글 바로 아래.
+                    규칙이 담당 교사에게 전체를 열어 두므로 여기서 다 보입니다
+                    (학생끼리는 자기가 받은 것과 자기가 쓴 것만 봅니다). */}
+                {grouped && <PeerReviewList reviews={openReviews} title="모둠 친구들이 남긴 한 마디" />}
+              </>
+            ) : (
+              <p className="empty-note">왼쪽에서 학생을 골라 주세요.</p>
+            )}
+          </div>
+
+          {/* 오른쪽 — 학생별 진행. 모둠으로 좁혀 봐도 **반 전체**를 셉니다. */}
+          <EntryProgressPanel
+            cards={cards}
+            rows={stepRows}
+            cellState={raftCellState}
+            pickedUid={openUid}
+            onPick={setOpenUid}
+            extra={(m) => ` · 글 ${raftWritingChars(m.entry?.answers)}자`}
+          />
         </div>
-        </>
       )}
 
       {/* 전광판 — 학생 카드를 열면 닫습니다(그 화면이 곧 답이라 뒤에
@@ -398,49 +419,4 @@ function buildPayload(activity, card, index) {
     total: REGION_COUNT,
     fields: [{ label: "", text: String(answers[r.key] ?? "").trim() }],
   };
-}
-
-// 학생 한 명의 카드 — 이름 + 네 요소 네모 + 글자 수
-function StudentCard({ card, casting, onOpen }) {
-  const answers = card.entry?.answers ?? {};
-  const plan = raftPlanCount(answers);
-  const chars = raftWritingChars(answers);
-  const state = raftDone(answers) ? "done" : raftStarted(answers) ? "doing" : "none";
-
-  return (
-    <button
-      type="button"
-      className={`paratext-student-card ${state}${casting ? " casting" : ""}`}
-      onClick={onOpen}
-      aria-label={`${card.name} 학생의 RAFT 글 열기`}
-    >
-      <span className="paratext-student-head">
-        <strong>{card.name}</strong>
-        {card.studentId && <span className="paratext-student-no">{card.studentId}</span>}
-        {casting && <span className="broadcast-live-dot" aria-hidden="true" />}
-      </span>
-      {/* 학생이 스스로 적은 도서명 — 활동에 주제어가 없을 때만 생깁니다.
-          저마다 다른 책으로 쓰는 활동이라 누가 무엇을 읽고 쓰는지가 여기서
-          보여야 합니다. 이미 받아 온 기록에 들어 있어 읽기가 늘지 않습니다. */}
-      {card.entry?.topic && (
-        <span className="paratext-student-topic">{card.entry.topic}</span>
-      )}
-
-      <span className="raft-marks">
-        {RAFT_COLUMNS.map((c) => (
-          <i
-            key={c.key}
-            className={`paratext-mark ${String(answers[c.key] ?? "").trim() ? "done" : "empty"}`}
-            title={`${c.letter} · ${c.ko}`}
-          />
-        ))}
-      </span>
-
-      <span className="paratext-student-meta">
-        {!raftStarted(answers)
-          ? "아직 시작 전"
-          : `${plan} / ${RAFT_COLUMN_COUNT}칸 · 글 ${chars}자`}
-      </span>
-    </button>
-  );
 }

@@ -18608,6 +18608,87 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
   display: flex;
   flex-direction: column;
 }
+/* ── 곁텍스트·RAFT·KWLS의 세 칸 화면에서 더 쓰는 것들 ──
+   뼈대(.book-workspace·.book-group-rail·.book-workspace-center·.dash-side)는
+   닿소리 채우기의 것을 그대로 씁니다 — 네 활동의 교사 화면이 서로 다른
+   모양이면 교사가 화면마다 다시 익혀야 합니다. */
+/* 왼쪽 카드 안의 단계 네모 — 학생 카드 격자에 있던 것을 그대로 옮겼습니다.
+   칸 수가 활동마다 달라(여덟·다섯·넷) 개수를 못 박지 않고 고르게 나눕니다. */
+.book-rail-marks {
+  display: flex;
+  gap: 3px;
+}
+.book-rail-marks .paratext-mark {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 11px;
+}
+.book-rail-topic {
+  font-size: 11.5px;
+  color: var(--text-sub);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.book-rail-meta {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.book-rail-card.on .book-rail-meta,
+.book-rail-card.on .book-rail-topic { color: var(--primary-dark); }
+
+/* 가운데 칸의 머리 — 지금 누구를 보고 있는지. 머리말의 제목은 활동 이름이라
+   이 줄이 없으면 학생 이름이 화면 어디에도 없습니다(왼쪽 목록의 켜진 카드만
+   으로는 약합니다). */
+.entry-detail-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.entry-detail-head h2 {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--text);
+}
+.entry-detail-head h2 em {
+  font-style: normal;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+  font-variant-numeric: tabular-nums;
+}
+/* 가운데 칸은 제 안에서 구릅니다 — 페이지가 통째로 구르면 왼쪽 목록과
+   오른쪽 패널이 함께 밀려 올라가, 학생을 바꾸려면 도로 올라와야 합니다. */
+.book-workspace-center { overflow-y: auto; }
+.book-workspace-center > .entry-detail-grid { margin-top: 12px; }
+/* 세 칸 안에서는 KWLS 네 칸이 화면 높이만큼 늘어나지 않습니다 — 가운데가
+   제 스크롤을 가지므로 그 안에서 100vh를 잡으면 늘 스크롤이 생깁니다. */
+.book-workspace-center .kwls-detail-grid { min-height: 0; }
+
+/* 오른쪽 패널의 단계 네모 — 누르면 그 학생 화면으로 갑니다 */
+.entry-heat {
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+}
+.entry-heat-cell--doing { background: #f3c99a; }
+.entry-heat-cell--locked {
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(0, 0, 0, 0.13) 0 2px,
+    transparent 2px 5px
+  );
+}
+
 .book-workspace-center > .empty-note {
   flex: 1;
   display: flex;

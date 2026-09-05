@@ -24,9 +24,15 @@ import {
   kwlsFilledCount,
   kwlsPhaseDone,
   kwlsStarted,
+  kwlsRows,
+  kwlsCellState,
 } from "@/lib/kwls";
 import { safeBookUrl } from "@/lib/paratext";
 import { IconBook, IconLock } from "./StatusIcons";
+import KwlsProgressBoard from "./KwlsProgressBoard";
+import GroupFilterRow from "./GroupFilterRow";
+import BookStudentRail from "./BookStudentRail";
+import EntryProgressPanel from "./EntryProgressPanel";
 import CastBar from "./CastBar";
 
 // 방송할 수 있는 영역 — 네 칸 그대로
@@ -46,6 +52,8 @@ export default function KwlsBoard({
 }) {
   const [entries, setEntries] = useState([]);
   const [openUid, setOpenUid] = useState(null);
+  // 성찰중 전광판 — 네 칸 × 반 전체(곁텍스트·RAFT와 같은 격자)
+  const [boardOpen, setBoardOpen] = useState(false);
 
   // 제출물을 kwl 스트림에서 읽습니다 — 공부방·책방 KWLS를 한 곳에서 보기
   // 위한 전환입니다(store.js의 subscribeActivityKwl 주석 참고). 반환 모양은
@@ -85,6 +93,10 @@ export default function KwlsBoard({
 
   const open = openUid ? cards.find((c) => c.uid === openUid) ?? null : null;
 
+  // 왼쪽 목록의 네모·오른쪽 패널의 칸이 쓰는 줄 정의 — 전광판과 **같은**
+  // 것입니다(lib/kwls.js).
+  const stepRows = useMemo(() => kwlsRows(), []);
+
   const castCard = cast.target ? cards.find((c) => c.uid === cast.target.uid) ?? null : null;
   const castIndex = cast.target ? REGIONS.findIndex((r) => r.key === cast.target.key) : -1;
 
@@ -108,54 +120,32 @@ export default function KwlsBoard({
   const openAnswers = open?.entry?.answers ?? {};
 
   return (
-    <main className="books-main">
+    <main className="books-main book-workspace-main">
       <div className="books-head">
         {/* 제목 · 돌아가는 길 · 도구 순서 — 닿소리 머리말(BookGroupBoard)과
             같은 차례입니다. 아래 둘째 줄은 딸림 정보(주제어·반)만 두는 자리라
             화면을 옮기는 버튼은 여기 첫 줄에 둡니다. */}
+        {/* 제목은 늘 활동 이름입니다 — 학생은 왼쪽 목록이 말해 주므로
+            제목이 학생 이름으로 바뀌면 지금 어느 활동인지 알 수 없어집니다. */}
         <div className="books-head-title">
-          <h1 className="book-group-title">{open ? open.name : activity.title}</h1>
-          {open ? (
-            <button type="button" className="btn-ghost" onClick={() => setOpenUid(null)}>
-              ← 학생 목록
-            </button>
-          ) : (
-            <button type="button" className="btn-ghost" onClick={onBack}>← 활동 목록</button>
-          )}
+          <h1 className="book-group-title">{activity.title}</h1>
+          <button type="button" className="btn-ghost" onClick={onBack}>← 활동 목록</button>
           {classTools}
         </div>
         <div className="books-head-row">
           <div className="books-head-main">
-            {open ? (
-              <>
-                {open.studentId && (
-                  <span className="book-group-class">{open.studentId}</span>
-                )}
-                {/* 활동에 주제어가 없으면 학생이 적은 것을 씁니다 */}
-                {!(activity.topic ?? "").trim() && open.entry?.topic && (
-                  <span className="book-group-topic">{open.entry.topic}</span>
-                )}
-                <span className="book-group-topic">
-                  {kwlsFilledCount(openAnswers)} / {KWLS_COLUMN_COUNT}칸 ·
-                  {" "}글 {kwlsChars(openAnswers)}자
-                </span>
-              </>
-            ) : (
-              <>
-                {/* 주제어를 비워 두면 학생마다 제 주제로 합니다 —
-                    빈 배지를 두는 대신 그 사실을 적어 둡니다 */}
-                <span className={`book-group-topic${(activity.topic ?? "").trim() ? "" : " soft"}`}>
-                  {(activity.topic ?? "").trim() || "학생마다 다른 주제"}
-                </span>
-                {/* 반 표시 — 고를 반이 둘 이상이면 고르개(반을 바꾸면 그 반의
-                    활동 목록으로 갑니다), 하나면 이름 배지입니다. */}
-                {classPicker ?? (className && <span className="book-group-class">{className}</span>)}
-              </>
-            )}
+            {/* 주제어를 비워 두면 학생마다 제 주제로 합니다 —
+                빈 배지를 두는 대신 그 사실을 적어 둡니다 */}
+            <span className={`book-group-topic${(activity.topic ?? "").trim() ? "" : " soft"}`}>
+              {(activity.topic ?? "").trim() || "학생마다 다른 주제"}
+            </span>
+            {/* 반 표시 — 고를 반이 둘 이상이면 고르개(반을 바꾸면 그 반의
+                활동 목록으로 갑니다), 하나면 이름 배지입니다. */}
+            {classPicker ?? (className && <span className="book-group-class">{className}</span>)}
             {/* 잠김 안내도 이 줄에 — 예전엔 머리말 아래 제 줄을 차지했는데,
                 이 줄은 배지 두어 개뿐이라 오른쪽이 비어 있었습니다.
                 '지금 잠겨 있다'는 활동에 붙는 상태라 배지와 같은 성격입니다. */}
-            {activity.locked && !open && (
+            {activity.locked && (
               <span className="book-locked-note book-locked-chip">
                 <IconLock size={14} /> 지금은 잠겨 있어 학생이 고칠 수 없어요.
               </span>
@@ -174,7 +164,7 @@ export default function KwlsBoard({
               onStop={cast.stop}
             />
           )}
-          {bookUrl && !open && (
+          {bookUrl && (
             <a
               className="btn-primary book-info-btn"
               href={bookUrl}
@@ -185,73 +175,138 @@ export default function KwlsBoard({
             </a>
           )}
         </div>
-        {!open && (
-          <span className="paratext-sum">
-            시작 {startedCount}명 · 읽기 전 마침 {readyCount}명 · 완성 {doneCount}명 /
-            {" "}전체 {cards.length}명
-          </span>
-        )}
+        <span className="paratext-sum">
+          시작 {startedCount}명 · 읽기 전 마침 {readyCount}명 · 완성 {doneCount}명 /
+          {" "}전체 {cards.length}명
+        </span>
       </div>
 
-      {open ? (
-        /* ── 학생 상세 — 네 칸을 한 화면에 ── */
-        <div className="entry-detail-grid kwls-detail-grid">
-          {REGIONS.map((r, i) => {
-            const text = String(openAnswers[r.key] ?? "").trim();
-            const live = cast.isCasting(open.uid, r.key);
-            return (
-              <section
-                key={r.key}
-                className={`entry-region kwls-region ${r.phase}${text ? " done" : ""}${
-                  live ? " live" : ""
-                }`}
-              >
-                <header className="paratext-card-head">
-                  <span className="paratext-letter" aria-hidden="true">{r.letter}</span>
-                  <span className="paratext-card-title">
-                    <strong>{r.ko}</strong>
-                    <em>{r.en}</em>
-                  </span>
-                  {cast.canCast && (
-                    <button
-                      type="button"
-                      className={`btn-ghost dash-cast-btn${live ? " on" : ""}`}
-                      onClick={() => castRegion(open, i)}
-                      title={
-                        live
-                          ? "학생 화면을 원래대로 되돌립니다"
-                          : "이 칸을 학급 전체 화면에 띄웁니다"
-                      }
-                    >
-                      {live && <span className="broadcast-live-dot" aria-hidden="true" />}
-                      {live ? "수업 종료" : "수업 시작"}
-                    </button>
-                  )}
-                </header>
-                <div className="entry-region-body">
-                  <p className={`paratext-read-text${text ? "" : " empty"}`}>
-                    {text || "아직 쓰지 않았어요"}
-                  </p>
-                </div>
-              </section>
-            );
-          })}
-        </div>
-      ) : cards.length === 0 ? (
+      {/* 전광판 — 네 칸 × 반 전체. 모둠이 없는 활동이라 이 줄에는
+          단추 하나만 섭니다(곁텍스트·RAFT와 같은 자리). */}
+      <GroupFilterRow
+        trailing={
+          cards.length > 0 && (
+            <button
+              type="button"
+              className="group-filter-act"
+              onClick={() => setBoardOpen(true)}
+              title="K·W·L·S 네 칸 × 반 전체를 한 격자로 봅니다"
+            >
+              전광판
+            </button>
+          )
+        }
+      />
+
+      {cards.length === 0 ? (
         <p className="empty-note">
           아직 이 반에 들어온 학생이 없어요. 학생이 반에 들어오면 카드가 생깁니다.
         </p>
       ) : (
-        <div className="paratext-card-grid">
-          {cards.map((c) => (
-            <StudentCard
-              key={c.uid}
-              card={c}
-              casting={cast.target?.uid === c.uid}
-              onOpen={() => setOpenUid(c.uid)}
-            />
-          ))}
+        /* ── 세 칸 — 왼쪽 학생 목록 · 가운데 그 학생의 네 칸 · 오른쪽 진행 ──
+           닿소리 채우기(BookGroupBoard)와 **같은 뼈대·같은 CSS**입니다. */
+        <div className="book-workspace">
+          <BookStudentRail
+            cards={cards}
+            pickedUid={openUid}
+            onPick={setOpenUid}
+            rows={stepRows}
+            cellState={kwlsCellState}
+            castUid={cast.target?.uid ?? null}
+            meta={(c) =>
+              !kwlsStarted(c.entry?.answers)
+                ? "아직 시작 전"
+                : `${kwlsFilledCount(c.entry?.answers)} / ${KWLS_COLUMN_COUNT}칸 · 글 ${kwlsChars(c.entry?.answers)}자`
+            }
+          />
+
+          <div className="book-workspace-center">
+            {open ? (
+              <>
+                {/* 가운데 칸의 머리 — 누구를 보고 있는지. 머리말의 제목은
+                    활동 이름이라, 이 줄이 없으면 학생 이름이 화면 어디에도
+                    없습니다. */}
+                <div className="entry-detail-head">
+                  <h2>
+                    {open.name}
+                    {open.studentId && <em>{open.studentId}</em>}
+                  </h2>
+                  {!(activity.topic ?? "").trim() && open.entry?.topic && (
+                    <span className="book-group-topic">{open.entry.topic}</span>
+                  )}
+                  <span className="book-group-class">
+                    {kwlsFilledCount(openAnswers)} / {KWLS_COLUMN_COUNT}칸 ·
+                    {" "}글 {kwlsChars(openAnswers)}자
+                  </span>
+                </div>
+
+                <div className="entry-detail-grid kwls-detail-grid">
+                  {REGIONS.map((r, i) => {
+                    const text = String(openAnswers[r.key] ?? "").trim();
+                    const live = cast.isCasting(open.uid, r.key);
+                    return (
+                      <section
+                        key={r.key}
+                        className={`entry-region kwls-region ${r.phase}${text ? " done" : ""}${
+                          live ? " live" : ""
+                        }`}
+                      >
+                        <header className="paratext-card-head">
+                          <span className="paratext-letter" aria-hidden="true">{r.letter}</span>
+                          <span className="paratext-card-title">
+                            <strong>{r.ko}</strong>
+                            <em>{r.en}</em>
+                          </span>
+                          {cast.canCast && (
+                            <button
+                              type="button"
+                              className={`btn-ghost dash-cast-btn${live ? " on" : ""}`}
+                              onClick={() => castRegion(open, i)}
+                              title={
+                                live
+                                  ? "학생 화면을 원래대로 되돌립니다"
+                                  : "이 칸을 학급 전체 화면에 띄웁니다"
+                              }
+                            >
+                              {live && <span className="broadcast-live-dot" aria-hidden="true" />}
+                              {live ? "수업 종료" : "수업 시작"}
+                            </button>
+                          )}
+                        </header>
+                        <div className="entry-region-body">
+                          <p className={`paratext-read-text${text ? "" : " empty"}`}>
+                            {text || "아직 쓰지 않았어요"}
+                          </p>
+                        </div>
+                      </section>
+                    );
+                  })}
+                </div>
+              </>
+            ) : (
+              <p className="empty-note">왼쪽에서 학생을 골라 주세요.</p>
+            )}
+          </div>
+
+          <EntryProgressPanel
+            cards={cards}
+            rows={stepRows}
+            cellState={kwlsCellState}
+            pickedUid={openUid}
+            onPick={setOpenUid}
+            extra={(m) => ` · 글 ${kwlsChars(m.entry?.answers)}자`}
+          />
         </div>
+      )}
+
+      {/* 전광판 — 학생을 고르면 닫습니다(그 화면이 곧 답입니다). */}
+      {boardOpen && (
+        <KwlsProgressBoard
+          activity={activity}
+          cards={cards}
+          onOpenStudent={(uid) => { setOpenUid(uid); setBoardOpen(false); }}
+          onClose={() => setBoardOpen(false)}
+        />
       )}
     </main>
   );
@@ -275,49 +330,4 @@ function buildPayload(activity, card, index) {
     total: REGION_COUNT,
     fields: [{ label: "", text: String(answers[r.key] ?? "").trim() }],
   };
-}
-
-// 학생 한 명의 카드 — 이름 + K·W·L·S 네모 + 진행 상황
-function StudentCard({ card, casting, onOpen }) {
-  const answers = card.entry?.answers ?? {};
-  const filled = kwlsFilledCount(answers);
-  const chars = kwlsChars(answers);
-  const state = kwlsDone(answers) ? "done" : kwlsStarted(answers) ? "doing" : "none";
-
-  return (
-    <button
-      type="button"
-      className={`paratext-student-card ${state}${casting ? " casting" : ""}`}
-      onClick={onOpen}
-      aria-label={`${card.name} 학생의 KWLS 성찰 열기`}
-    >
-      <span className="paratext-student-head">
-        <strong>{card.name}</strong>
-        {card.studentId && <span className="paratext-student-no">{card.studentId}</span>}
-        {casting && <span className="broadcast-live-dot" aria-hidden="true" />}
-      </span>
-      {/* 학생이 스스로 적은 주제 — 활동에 주제어가 없을 때만 생깁니다.
-          저마다 다른 주제로 하는 활동이라 누가 무엇을 다루는지가 여기서
-          보여야 합니다. 이미 받아 온 기록에 들어 있어 읽기가 늘지 않습니다. */}
-      {card.entry?.topic && (
-        <span className="paratext-student-topic">{card.entry.topic}</span>
-      )}
-
-      <span className="kwls-marks">
-        {KWLS_COLUMNS.map((c) => (
-          <i
-            key={c.key}
-            className={`paratext-mark ${String(answers[c.key] ?? "").trim() ? "done" : "empty"}`}
-            title={`${c.letter} · ${c.ko}`}
-          />
-        ))}
-      </span>
-
-      <span className="paratext-student-meta">
-        {!kwlsStarted(answers)
-          ? "아직 시작 전"
-          : `${filled} / ${KWLS_COLUMN_COUNT}칸 · 글 ${chars}자`}
-      </span>
-    </button>
-  );
 }
