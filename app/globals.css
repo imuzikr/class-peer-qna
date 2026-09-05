@@ -18667,7 +18667,14 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
 }
 /* 가운데 칸은 제 안에서 구릅니다 — 페이지가 통째로 구르면 왼쪽 목록과
    오른쪽 패널이 함께 밀려 올라가, 학생을 바꾸려면 도로 올라와야 합니다. */
-.book-workspace-center { overflow-y: auto; }
+.book-workspace-center {
+  overflow-y: auto;
+  /* 이 칸의 '폭'을 기준으로 안쪽 배치를 접을 수 있게 합니다(@container).
+     화면 폭 기준 미디어 쿼리로는 여기를 다룰 수 없습니다 — 창이 1900px이어도
+     양옆에 '오늘' 패널·학생 목록·진행 패널·'멋진 순간'이 서면 가운데는
+     600px밖에 안 남는데, 미디어 쿼리는 창만 보고 '넓다'고 판단합니다. */
+  container-type: inline-size;
+}
 .book-workspace-center > .entry-detail-grid { margin-top: 12px; }
 /* 세 칸 안에서는 KWLS 네 칸이 화면 높이만큼 늘어나지 않습니다 — 가운데가
    제 스크롤을 가지므로 그 안에서 100vh를 잡으면 늘 스크롤이 생깁니다. */
@@ -20119,6 +20126,25 @@ span.cloud-word { cursor: default; }
   .entry-detail-grid.kwls-detail-grid { grid-template-columns: 1fr; }
   .kwls-guide { font-size: 12.5px; }
   /* 한 줄일 때는 도움말 자리를 비워 둘 이유가 없습니다 */
+  .kwls-col-prompt { min-height: 0; }
+}
+
+/* ── 세 칸 작업 화면 안에서의 K·W·L·S ──
+   위 미디어 쿼리와 같은 뜻인데 재는 대상이 '창'이 아니라 '가운데 칸'입니다.
+   넷을 600px에 우겨 넣으면 칸이 130px이 되어 '이미 알고 있는 것'이 한 글자씩
+   세로로 쪼개지고 가로 스크롤이 생겼습니다(실측). 접는 지점은 창 기준 값
+   (1100 / 560)을 가운데 칸에 맞춰 옮긴 것입니다 — 양옆 패널이 대략 그만큼을
+   가져가므로 접히는 순간이 창 기준일 때와 비슷하게 느껴집니다.
+   RAFT는 원래 두 칸이라 같은 폭에서도 한 칸이 290px이라 그대로 둡니다. */
+@container (max-width: 1000px) {
+  .entry-detail-grid.kwls-detail-grid {
+    grid-template-columns: repeat(2, 1fr);
+    grid-auto-rows: auto;
+    min-height: 0;
+  }
+}
+@container (max-width: 620px) {
+  .entry-detail-grid.kwls-detail-grid { grid-template-columns: 1fr; }
   .kwls-col-prompt { min-height: 0; }
 }
 
