@@ -2,7 +2,8 @@
 // 자리표 / 반 기본 모둠
 //   classes/{cId}/seatLayouts/{layoutId}
 //   classes/{cId}/groupAssignments/default
-// 둘 다 교사 전용 자산입니다(학생은 읽기도 불가).
+// 쓰기는 둘 다 교사 전용입니다. 읽기는 자리표만 그 반 학생에게 열려
+// 있습니다(공부방 '자리 배치' — 내 자리 찾기). 모둠은 여전히 교사 전용.
 // =============================================================
 import { describe, it, before, after, beforeEach } from "node:test";
 import { assertSucceeds, assertFails } from "@firebase/rules-unit-testing";
@@ -71,19 +72,51 @@ describe("자리표·기본 모둠 규칙", () => {
       );
     });
 
-    it("학생은 자리표를 읽지도 쓰지도 못한다", async () => {
+    // 공부방 머리줄의 '자리 배치'(MySeatModal)가 이 문서를 읽습니다.
+    // 읽기만 열려 있고 쓰기는 여전히 교사만입니다.
+    it("그 반 학생은 자리표를 읽을 수 있다 — 쓰지는 못한다", async () => {
       await seed(env, (db) =>
         setDoc(doc(db, "classes", "cA", "seatLayouts", "default"), {
           classId: "cA", layoutId: "default", seats: seats(30),
         })
       );
       const db = asStudent(env, "stu1").firestore();
-      await assertFails(getDoc(doc(db, "classes", "cA", "seatLayouts", "default")));
+      await assertSucceeds(getDoc(doc(db, "classes", "cA", "seatLayouts", "default")));
       await assertFails(
         setDoc(doc(db, "classes", "cA", "seatLayouts", "default"), {
           classId: "cA", layoutId: "default", seats: seats(30), updatedBy: "stu1",
         })
       );
+    });
+
+    // 아직 안 흔든 날에는 daily 문서가 없습니다 — 문서가 없어도 규칙 평가가
+    // 오류로 끝나지 않는지(=본인조차 거부되지 않는지) 함께 고정해 둡니다.
+    it("없는 날짜별 자리표를 읽어도 거부되지 않는다", async () => {
+      const db = asStudent(env, "stu1").firestore();
+      await assertSucceeds(
+        getDoc(doc(db, "classes", "cA", "seatLayouts", "daily_2026-09-05"))
+      );
+    });
+
+    it("다른 반 학생은 이 반 자리표를 읽지 못한다", async () => {
+      await seed(env, (db) =>
+        setDoc(doc(db, "classes", "cA", "seatLayouts", "default"), {
+          classId: "cA", layoutId: "default", seats: seats(30),
+        })
+      );
+      const db = asStudent(env, "stu2").firestore();
+      await assertFails(getDoc(doc(db, "classes", "cA", "seatLayouts", "default")));
+    });
+
+    it("보관된 반은 소속 학생도 자리표를 읽지 못한다", async () => {
+      await seed(env, async (db) => {
+        await setDoc(doc(db, "classes", "cA"), { createdBy: "teacherA", archived: true });
+        await setDoc(doc(db, "classes", "cA", "seatLayouts", "default"), {
+          classId: "cA", layoutId: "default", seats: seats(30),
+        });
+      });
+      const db = asStudent(env, "stu1").firestore();
+      await assertFails(getDoc(doc(db, "classes", "cA", "seatLayouts", "default")));
     });
 
     it("다른 반 교사는 이 반 자리표에 손댈 수 없다", async () => {

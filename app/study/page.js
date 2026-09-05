@@ -85,6 +85,7 @@ import LessonManagerModal from "@/components/LessonManagerModal";
 import StudyAttendanceModal from "@/components/StudyAttendanceModal";
 import CornellNoteViewerModal from "@/components/CornellNoteViewerModal";
 import SeatGroupSetupModal from "@/components/SeatGroupSetupModal";
+import MySeatModal from "@/components/MySeatModal";
 import ClassNotesTools from "@/components/ClassNotesTools";
 import { IconArchive } from "@/components/StatusIcons";
 import { updateLesson } from "@/lib/store";
@@ -151,6 +152,7 @@ function StudyPageInner() {
   const [showCode, setShowCode] = useState(false); // 입장 코드 표시 토글
   const [attendanceOpen, setAttendanceOpen] = useState(false); // 출석부 모달
   const [noteViewerOpen, setNoteViewerOpen] = useState(false); // 내 수업 노트 크게 보기(학생)
+  const [mySeatOpen, setMySeatOpen] = useState(false); // 자리 배치 보기(학생)
   const [attendanceRecords, setAttendanceRecords] = useState([]);
   const [baseGroupAssignment, setBaseGroupAssignment] = useState(null);
   const [attending, setAttending] = useState(false);
@@ -813,6 +815,18 @@ function StudyPageInner() {
                         >
                           {attendedToday ? "출석 완료" : "출석하기"}
                         </button>
+                        {/* 자리 배치 — 선생님이 정해 둔 자리에서 내 자리를
+                            찾는 창입니다. 출석과는 무관해서(색이 출석/결석이
+                            아니라 '내 자리/남의 자리') 출석 단추들 왼쪽이
+                            아니라 그 사이에 두지 않고, '출석부 보기' 바로
+                            왼쪽에 붙여 '반을 보는 것들'끼리 모읍니다. */}
+                        <button
+                          className="btn-ghost"
+                          onClick={() => setMySeatOpen(true)}
+                          title="선생님이 정한 자리 배치에서 내 자리를 봅니다"
+                        >
+                          자리 배치
+                        </button>
                         <button
                           className="btn-ghost"
                           onClick={() => setAttendanceOpen(true)}
@@ -1202,6 +1216,17 @@ function StudyPageInner() {
           user={user}
           className={currentClass?.name ?? ""}
           onClose={() => setNoteViewerOpen(false)}
+        />
+      )}
+
+      {/* 자리 배치 보기 (학생) — 자리표 문서 둘만 읽습니다. 이름·학번은
+          이미 받아 둔 급우 명단을 그대로 넘겨 새로 읽지 않습니다. */}
+      {mySeatOpen && classId && user && (
+        <MySeatModal
+          classId={classId}
+          myUid={user.uid}
+          roster={studentClassRoster}
+          onClose={() => setMySeatOpen(false)}
         />
       )}
 

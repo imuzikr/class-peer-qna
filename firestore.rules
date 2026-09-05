@@ -613,7 +613,14 @@ service cloud.firestore {
       //  · default: 수업 준비에서 만든 기본 자리표
       //  · daily_YYYY-MM-DD: 발표 중 임시 이동한 당일 자리표
       match /seatLayouts/{layoutId} {
-        allow read: if signedIn() && (isAdmin() || ownsClass(cId));
+        // 읽기는 그 반 학생에게도 엽니다 — 공부방 머리줄의 '자리 배치'가
+        // 이 문서를 열어 자기 자리를 보여 줍니다(components/MySeatModal.jsx).
+        // 새로 드러나는 것은 '누가 어디 앉는가'뿐입니다: 자리표에는 uid만
+        // 들어 있고 이름·학번은 users에서 따로 읽는데, 그쪽은 이미 급우끼리
+        // 열려 있습니다(isClassmateOf). 게다가 교실에 들어서면 어차피 보이는
+        // 사실입니다. isClassMember는 보관된 반을 함께 막아 줍니다.
+        // **쓰기는 그대로 교사만** — 자리를 정하는 것은 선생님입니다.
+        allow read: if signedIn() && (isAdmin() || ownsClass(cId) || isClassMember(cId));
         allow create, update: if signedIn()
                               && (isAdmin() || ownsClassEditable(cId))
                               && request.resource.data.classId == cId
