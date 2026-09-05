@@ -1070,27 +1070,13 @@ button.footer-link:hover {
   padding-top: 12px;
   border-top: 1px solid var(--border);
 }
-.memo-history-toggle {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  border: none;
-  background: none;
-  padding: 0;
-  font-family: inherit;
+/* 이 줄의 왼쪽 — 예전에는 펼치는 단추(.memo-history-toggle)였는데, 목록이
+   옆 패널로 나가면서 펼칠 것이 없어졌습니다. 이제 아래 반 버튼 줄이
+   무엇인지 말해 주는 이름표입니다. */
+.memo-history-label {
   font-size: 13px;
   font-weight: 700;
   color: var(--text);
-  cursor: pointer;
-}
-.memo-history-toggle em {
-  font-style: normal;
-  font-size: 11.5px;
-  font-weight: 700;
-  color: #fff;
-  background: var(--primary);
-  border-radius: 999px;
-  padding: 1px 7px;
 }
 .memo-caret {
   display: inline-block;
@@ -1140,8 +1126,6 @@ button.footer-link:hover {
   justify-content: space-between;
   gap: 10px;
 }
-/* 사각형 버튼 — 옆의 알약(.memo-history-toggle의 건수 배지)과 구분되게,
-   그리고 이 앱의 다른 버튼들과 같은 모서리로. */
 /* 바로 위 '저장'(.memo-save)과 같은 모양·같은 크기입니다 — 모서리도 글자
    크기도 안쪽 여백도. 테두리 1px만큼 위아래를 덜어 높이를 맞춥니다.
    채우지 않고 테두리만 두른 것은 색까지 같으면 '저장'과 어느 쪽이 먼저인지
@@ -1161,8 +1145,54 @@ button.footer-link:hover {
 .memo-cal-btn:hover { background: var(--primary-light); }
 .memo-cal-btn.on { background: var(--primary-light); }
 
-/* ── 달력 패널 ── */
-.memo-cal-panel {
+/* ── 반 버튼 줄 ──
+   내가 맡은 반이 알약으로 섭니다. 누르면 그 반의 지난 메모가 옆 패널로
+   나옵니다. 언제나 한 줄로 두지 않고 넘치면 접습니다 — 활동 열기 칩과
+   달리 여기 아래에는 밀려날 것이 없고(모달의 마지막 줄), 반 이름이 길면
+   가로로 굴리는 것보다 두 줄이 한눈에 낫습니다. */
+.memo-class-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.memo-class-btn {
+  padding: 5px 13px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-deep, #f7f5f0);
+  color: var(--text-sub);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.14s, border-color 0.14s, color 0.14s;
+}
+.memo-class-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+/* 지금 이 반 — 모달을 연 맥락이라 조금 또렷하게. 켜짐(.on)과는 다릅니다:
+   이쪽은 '어느 반에 쓰는 중인가', 저쪽은 '지금 어느 반을 펼쳐 뒀는가'. */
+.memo-class-btn.mine {
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+.memo-class-btn.on {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+/* 보관된 반 — 있다는 건 알리되(지난 메모는 그대로 읽힙니다) 조용하게 */
+.memo-class-btn.archived {
+  opacity: 0.6;
+  font-weight: 600;
+}
+
+/* ── 옆 패널 (지난 메모 · 달력) ──
+   둘은 같은 자리에 서므로 껍데기를 함께 씁니다(.memo-side-panel). 한 번에
+   하나만 열립니다 — 자리가 하나뿐이라 둘이 겹칩니다. */
+.memo-side-panel {
   position: absolute;
   top: 0;
   left: 100%;
@@ -1183,7 +1213,7 @@ button.footer-link:hover {
   from { opacity: 0; transform: translateX(-22px); }
   to { opacity: 1; transform: translateX(0); }
 }
-.memo-cal-panel-head {
+.memo-side-panel-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1191,13 +1221,29 @@ button.footer-link:hover {
   padding: 14px 16px 10px;
   border-bottom: 1px solid var(--border);
 }
-.memo-cal-panel-head h4 {
+.memo-side-panel-head h4 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
   margin: 0;
   font-size: 15px;
   font-weight: 800;
   color: var(--text);
 }
-.memo-cal-panel-body {
+/* 지난 메모 건수 — 반 버튼에는 없고 여기에만 있습니다(그걸 버튼에 적으려면
+   반마다 메모를 미리 읽어야 합니다). */
+.memo-panel-count {
+  flex: none;
+  font-style: normal;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--primary);
+  border-radius: 999px;
+  padding: 1px 7px;
+}
+.memo-side-panel-body {
   padding: 12px 16px 16px;
   overflow-y: auto;
 }
@@ -1205,7 +1251,7 @@ button.footer-link:hover {
    그보다 좁으면 모달 옆에 둘 자리가 없으므로 화면 오른쪽 끝에 붙는
    서랍으로 바꿉니다(파이썬 실행 패널과 같은 모양). */
 @media (max-width: 960px) {
-  .memo-cal-panel {
+  .memo-side-panel {
     position: fixed;
     top: 0;
     right: 0;
@@ -1342,8 +1388,25 @@ button.footer-link:hover {
 .memo-cal-editing .memo-rte { width: 100%; box-sizing: border-box; }
 .memo-cal-editing .memo-item-actions { display: flex; justify-content: flex-end; gap: 6px; }
 /* 패널 안에서는 버튼을 한 단계 작게 — 폭이 320px입니다 */
-.memo-cal-panel .memo-save,
-.memo-cal-panel .btn-ghost { padding: 6px 12px; font-size: 12.5px; }
+.memo-side-panel .memo-save,
+.memo-side-panel .btn-ghost { padding: 6px 12px; font-size: 12.5px; }
+
+/* ── 지난 메모 패널 안의 목록 ──
+   모달 안에 펼치던 것과 같은 목록(.memo-list·.memo-item)이지만, 자리가
+   320px로 좁아진 만큼 두 가지를 손봅니다. */
+/* ① 목록 제 스크롤을 풉니다 — 구르는 것은 패널 몸통 하나여야 합니다.
+      스크롤이 둘로 겹치면 내리다 안쪽 끝에서 멈춘 것처럼 보입니다
+      (모둠 메모의 .gmemo-chat과 같은 이유). */
+.memo-class-panel .memo-list {
+  max-height: none;
+  overflow: visible;
+  margin-top: 0;
+}
+/* ② 날짜·시각·수정/삭제가 한 줄에 안 들어갑니다 — 접히게 둡니다 */
+.memo-class-panel .memo-item-head { flex-wrap: wrap; }
+.memo-class-panel .memo-item-text { font-size: 13px; }
+.memo-class-panel .memo-empty { margin-top: 0; }
+.memo-class-panel .memo-cal-readonly { margin-top: 0; }
 .memo-empty {
   margin: 10px 0 0;
   font-size: 13px;

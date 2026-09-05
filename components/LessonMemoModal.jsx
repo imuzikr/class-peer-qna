@@ -9,8 +9,20 @@
 // 길었다", "다음엔 예시를 먼저" 같은 것들이요. 그걸 적을 자리가 없어
 // 수업이 끝나면 사라졌습니다.
 //
-// 그래서 이 화면은 쓰는 칸이 먼저입니다. 지난 메모는 접어 두고(드롭다운),
-// 펼쳐야 보입니다 — 수업 중에 여는 화면이라 쓰기까지 한 번에 닿아야 합니다.
+// 그래서 이 화면은 쓰는 칸이 먼저입니다. 지난 메모는 모달 안에 펼치지 않고
+// **옆 패널**로 내보냅니다 — 수업 중에 여는 화면이라 쓰기까지 한 번에 닿아야
+// 하고, 목록이 아래에 펼쳐지면 그만큼 쓰는 칸이 화면 위로 밀립니다.
+//
+// [반 버튼 줄]
+// 쓰는 칸 아래에 내가 맡은 반이 버튼으로 섭니다. 누르면 그 반의 지난 메모가
+// 오른쪽 패널로 미끄러져 나옵니다. 예전에는 '지난 메모' 드롭다운 하나였고
+// 그것은 늘 **지금 이 반**의 것이었습니다 — 옆 반 메모를 보려면 캘린더를
+// 켜고 날짜를 짚어 들어가는 길뿐이었는데, 대개 찾는 것은 '그 반에 뭘 적어
+// 뒀더라'이지 '9월 3일에 뭘 적었더라'가 아닙니다.
+//
+// 버튼에는 건수를 안 적습니다. 그걸 적으려면 반마다 메모를 미리 읽어야
+// 하는데(반이 서넛이면 그만큼 리스너), 이 화면은 쓰러 여는 곳입니다.
+// 건수는 패널을 열었을 때 그 머리말에 있습니다.
 //
 // 학생은 이 메모를 읽지 못합니다(firestore.rules).
 //
@@ -67,22 +79,34 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
   const [date, setDate] = useState(() => todayDateKey());
   const [memos, setMemos] = useState([]);
   const [busy, setBusy] = useState(false);
-  // 지난 메모를 보는 방식 — null(접힘) | "list" | "calendar"
+  // 오른쪽 패널 — null(없음) | "class"(한 반의 지난 메모) | "calendar"
+  // 둘은 같은 자리에 서므로 한 번에 하나만 엽니다.
   const [historyView, setHistoryView] = useState(null);
-  // 캘린더용 — 내가 맡은 반 전체와 그 반들의 메모
-  // (달력에서 고른 날짜·반·메모는 패널이 스스로 들고 있습니다 — 패널을
-  //  닫으면 함께 사라져야 하는 값이라 여기 둘 이유가 없습니다)
+  const [historyClassId, setHistoryClassId] = useState(classId);
+  // 내가 맡은 반 — 버튼 줄에 이름을 세우는 데 씁니다(캘린더도 함께 씁니다).
+  // 반 문서는 몇 개뿐이라 늘 구독해도 가볍습니다. 무거운 것은 반마다의
+  // '메모'라, 그쪽은 지금도 필요할 때만 읽습니다(아래 두 구독).
   const [myClasses, setMyClasses] = useState([]);
   const [otherMemos, setOtherMemos] = useState({});
-  const [editing, setEditing] = useState(null); // { id, text, date }
-  const [confirmDelete, setConfirmDelete] = useState(null); // memoId
 
   useEffect(() => {
     if (!classId) { setMemos([]); return; }
     return subscribeLessonMemos(classId, setMemos);
   }, [classId]);
 
-  // [캘린더 보기를 켤 때만 다른 반까지 읽습니다]
+  // 페이지에서 반을 바꾸면 옆 패널도 따라갑니다 — 안 그러면 쓰는 칸은 새 반인데
+  // 옆에는 앞 반의 지난 메모가 남아, 지금 어느 반을 보는 중인지 어긋납니다.
+  useEffect(() => {
+    setHistoryClassId(classId);
+  }, [classId]);
+
+  useEffect(() => {
+    return subscribeClasses((list) =>
+      setMyClasses(list.filter((c) => c.createdBy === user?.uid))
+    );
+  }, [user?.uid]);
+
+  // [캘린더 보기를 켤 때만 다른 반의 메모까지 읽습니다]
   // 이 모달은 '지금 이 반'의 맥락에서 열리지만, 달력은 성격이 다릅니다 —
   // 하루에 여러 반 수업이 들어 있어, 9월 1일을 눌렀는데 한 반 것만 나오면
   // 그날을 되짚는 데 쓸 수가 없습니다. 그래서 달력에서는 내가 맡은 반을
@@ -92,12 +116,6 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
   // 교사가 달력을 열 때만 그만큼 리스너가 늘고, 규칙상 내가 맡은 반만
   // 읽히므로(ownsClass) 남의 반은 애초에 걸리지 않습니다.
   const calendarOn = historyView === "calendar";
-  useEffect(() => {
-    if (!calendarOn) { setMyClasses([]); return; }
-    return subscribeClasses((list) =>
-      setMyClasses(list.filter((c) => c.createdBy === user?.uid))
-    );
-  }, [calendarOn, user?.uid]);
 
   // 반 목록은 구독이 갱신될 때마다 새 배열로 오므로, 실제로 반이 바뀐
   // 때만 다시 걸도록 id 문자열을 열쇠로 씁니다(ConsonantDashboard와 같은 방식).
@@ -126,6 +144,42 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
     () => new Set(myClasses.filter((c) => c.archived).map((c) => c.id)),
     [myClasses]
   );
+
+  // ── 반 버튼 줄 ─────────────────────────────────────
+  // 지금 이 반이 늘 맨 앞입니다(모달을 연 맥락). 나머지는 반 관리에서 정한
+  // 차례 그대로. 반 목록이 아직 안 왔어도 이 반 하나는 서 있어야 하므로
+  // 여기서 손수 만들어 앞에 붙입니다.
+  const memoClasses = useMemo(() => {
+    const self = myClasses.find((c) => c.id === classId);
+    const head = {
+      id: classId,
+      name: className || self?.name || "이 반",
+      archived: !!self?.archived,
+    };
+    return [head, ...myClasses.filter((c) => c.id !== classId)];
+  }, [myClasses, classId, className]);
+
+  // 고른 반의 지난 메모. 지금 이 반이면 **이미 구독 중인 것을 그대로** 씁니다
+  // — 같은 컬렉션에 리스너를 둘 걸 이유가 없습니다.
+  //
+  // null은 '없다'가 아니라 '아직 안 왔다'입니다(CLAUDE.md의 그 함정) — 빈
+  // 배열로 두면 반을 바꾼 순간 '메모가 없어요'가 한 번 스칩니다.
+  const [pickedMemos, setPickedMemos] = useState(null);
+  const classPanelOn = historyView === "class";
+  const otherPanelClassId =
+    classPanelOn && historyClassId && historyClassId !== classId ? historyClassId : null;
+  useEffect(() => {
+    setPickedMemos(null);
+    if (!otherPanelClassId) return;
+    return subscribeLessonMemos(otherPanelClassId, setPickedMemos);
+  }, [otherPanelClassId]);
+  const panelMemos = otherPanelClassId ? pickedMemos : memos;
+
+  function openClassPanel(cid) {
+    if (classPanelOn && historyClassId === cid) { setHistoryView(null); return; }
+    setHistoryClassId(cid);
+    setHistoryView("class");
+  }
 
   const calendarMemos = useMemo(() => {
     const rows = memos.map((m) => ({ ...m, classId }));
@@ -172,7 +226,10 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
       // 방금 적은 것이 목록에 들어가는 것을 보여 줍니다 — 저장됐는지
       // 따로 확인하러 가지 않아도 되게. 달력을 보던 중이면 그대로 둡니다
       // (그 날짜의 건수가 바로 늘어 저장된 것이 거기서도 보입니다).
-      setHistoryView((v) => (v === "calendar" ? v : "list"));
+      if (historyView !== "calendar") {
+        setHistoryClassId(classId);
+        setHistoryView("class");
+      }
     } finally {
       setBusy(false);
     }
@@ -181,23 +238,11 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
   // Ctrl/⌘+Enter로 저장은 에디터가 처리합니다(onSend) — 앱의 다른
   // 입력칸과 같은 약속입니다.
 
-  async function handleEditSave() {
-    const body = editing?.text.trim() ?? "";
-    if (memoEmpty(body) || body.length > MAX_LEN) return;
-    await updateLessonMemo(classId, editing.id, body, editing.date);
-    setEditing(null);
-  }
-
-  async function handleDelete(memoId) {
-    await deleteLessonMemo(classId, memoId);
-    setConfirmDelete(null);
-  }
-
   return (
     <div className="modal-backdrop" {...backdropClose(onClose)}>
-      {/* 모달과 달력 패널을 한 줄로 묶습니다 — 달력을 모달 안에 쌓으니
-          세로로 너무 길어져(달력 하나가 250px), 쓰는 칸이 화면 위로
-          밀려났습니다. 파이썬 실행 패널(.py-panel)과 같은 방식으로
+      {/* 모달과 옆 패널(지난 메모·달력)을 한 줄로 묶습니다 — 목록이나 달력을
+          모달 안에 쌓으니 세로로 너무 길어져(달력 하나가 250px), 쓰는 칸이
+          화면 위로 밀려났습니다. 파이썬 실행 패널(.py-panel)과 같은 방식으로
           옆에서 미끄러져 나옵니다. */}
       <div className="memo-modal-row">
       <div
@@ -253,20 +298,13 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
           </button>
         </div>
 
-        {/* 지난 메모 — 접어 둡니다. 수업 중에는 쓰는 일이 먼저입니다. */}
+        {/* 지난 메모 — 반 버튼 줄입니다. 누르면 그 반의 목록이 옆 패널로
+            나옵니다(모달 안에 펼치지 않는 까닭은 파일 맨 위 설명 참고). */}
         <div className="memo-history">
           <div className="memo-history-head">
-            <button
-              type="button"
-              className="memo-history-toggle"
-              onClick={() => setHistoryView((v) => (v === "list" ? null : "list"))}
-              aria-expanded={historyView === "list"}
-            >
-              <span className={`memo-caret${historyView === "list" ? " open" : ""}`} aria-hidden="true">›</span>
-              지난 메모 {memos.length > 0 && <em>{memos.length}</em>}
-            </button>
-            {/* 달력은 옆 패널로 엽니다(아래 memo-cal-panel).
-                켤 때만 다른 반까지 읽습니다(위 구독 참고). */}
+            <span className="memo-history-label">지난 메모</span>
+            {/* 달력도 같은 자리(옆 패널)에 섭니다 — 그래서 한 번에 하나만
+                열립니다. 켤 때만 다른 반의 메모까지 읽습니다(위 구독 참고). */}
             <button
               type="button"
               className={`memo-cal-btn${calendarOn ? " on" : ""}`}
@@ -279,113 +317,44 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
             </button>
           </div>
 
-          {historyView === "list" && (
-            memos.length === 0 ? (
-              <p className="memo-empty">아직 적어 둔 메모가 없어요.</p>
-            ) : (
-              <ul className="memo-list">
-                {memos.map((m) => (
-                  <li key={m.id} className="memo-item">
-                    {editing?.id === m.id ? (
-                      <>
-                        <label className="notes-date-row">
-                          <span>날짜</span>
-                          <input
-                            type="date"
-                            className="notes-date"
-                            value={editing.date}
-                            onChange={(e) => setEditing({ ...editing, date: e.target.value })}
-                            max={todayDateKey()}
-                          />
-                        </label>
-                        <RichTextEditor
-                          key={m.id}
-                          className="memo-rte memo-rte--sm"
-                          tools={MEMO_TOOLS}
-                          small
-                          initialHtml={richHtml(m.text)}
-                          onChange={(html) => setEditing((prev) => (prev ? { ...prev, text: html } : prev))}
-                          onSend={handleEditSave}
-                          sendDisabled={memoEmpty(editing.text) || editing.text.length > MAX_LEN}
-                        />
-                        <div className="memo-item-actions">
-                          <button type="button" className="btn-ghost" onClick={() => setEditing(null)}>
-                            취소
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-primary memo-save"
-                            onClick={handleEditSave}
-                            disabled={memoEmpty(editing.text) || editing.text.length > MAX_LEN}
-                          >
-                            저장
-                          </button>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <div className="memo-item-head">
-                          <span className="memo-item-time">
-                            <b className="memo-item-date">{lessonMemoDate(m)}</b>
-                            {/* 쓴 시각도 남깁니다 — 같은 날 여러 번 적을 때
-                                순서를 알아볼 수 있어야 합니다 */}
-                            <span className="memo-item-clock">{formatTime(m.createdAt)}</span>
-                          </span>
-                          <span className="memo-item-actions">
-                            <button
-                              type="button"
-                              className="memo-mini-btn"
-                              onClick={() =>
-                                setEditing({ id: m.id, text: m.text, date: lessonMemoDate(m) })
-                              }
-                            >
-                              수정
-                            </button>
-                            {confirmDelete === m.id ? (
-                              <>
-                                <button
-                                  type="button"
-                                  className="memo-mini-btn danger"
-                                  onClick={() => handleDelete(m.id)}
-                                >
-                                  정말 지울까요?
-                                </button>
-                                <button
-                                  type="button"
-                                  className="memo-mini-btn"
-                                  onClick={() => setConfirmDelete(null)}
-                                >
-                                  취소
-                                </button>
-                              </>
-                            ) : (
-                              <button
-                                type="button"
-                                className="memo-mini-btn"
-                                onClick={() => setConfirmDelete(m.id)}
-                              >
-                                삭제
-                              </button>
-                            )}
-                          </span>
-                        </div>
-                        {/* 서식이 붙기 전 메모는 순수 텍스트라 richHtml이
-                            줄바꿈만 살려 내보냅니다(lib/html.js) */}
-                        <div
-                          className="memo-item-text"
-                          dangerouslySetInnerHTML={{ __html: richHtml(m.text) }}
-                        />
-                      </>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )
-          )}
+          <div className="memo-class-row">
+            {memoClasses.map((c) => {
+              const on = classPanelOn && historyClassId === c.id;
+              const label = c.name || "반 이름 없음";
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  className={[
+                    "memo-class-btn",
+                    on && "on",
+                    c.id === classId && "mine",
+                    c.archived && "archived",
+                  ].filter(Boolean).join(" ")}
+                  onClick={() => openClassPanel(c.id)}
+                  aria-pressed={on}
+                  aria-expanded={on}
+                  title={`${label}에 적어 둔 지난 메모 보기`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
-      {/* 달력 패널 — 모달 오른쪽에서 미끄러져 나옵니다 */}
+      {/* 옆 패널 — 지난 메모와 달력이 같은 자리에 섭니다(한 번에 하나) */}
+      {classPanelOn && (
+        <MemoClassPanel
+          classId={historyClassId}
+          name={nameOfClass(historyClassId) || "반 이름 없음"}
+          memos={panelMemos}
+          readOnly={archivedClassIds.has(historyClassId)}
+          onClose={() => setHistoryView(null)}
+        />
+      )}
+
       {calendarOn && (
         <MemoCalendarPanel
           byDate={byDate}
@@ -398,6 +367,165 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
       )}
       </div>
     </div>
+  );
+}
+
+// ── 한 반의 지난 메모 패널 ──────────────────────────────
+// 예전에 모달 안에 펼치던 목록 그대로입니다(.memo-list·.memo-item) — 자리만
+// 옆 패널로 옮겼습니다. 고치고 지우는 것도 여기서 합니다.
+//
+// **memos === null은 '없다'가 아니라 '아직 안 왔다'입니다.** 빈 배열과 갈라
+// 두지 않으면 반을 바꿀 때마다 '아직 적어 둔 메모가 없어요'가 한 번 스칩니다
+// (CLAUDE.md '아직 모름과 없음을 가릅니다'와 같은 함정).
+function MemoClassPanel({ classId, name, memos, readOnly, onClose }) {
+  const [editing, setEditing] = useState(null); // { id, text, date }
+  const [confirmDelete, setConfirmDelete] = useState(null); // memoId
+
+  // 반을 바꾸면 고치던 것·지우려던 것을 놓습니다 — 앞 반의 메모 id를 든 채로
+  // 저장을 누르면 이 반에 없는 문서를 고치게 됩니다.
+  useEffect(() => {
+    setEditing(null);
+    setConfirmDelete(null);
+  }, [classId]);
+
+  async function handleEditSave() {
+    const body = editing?.text.trim() ?? "";
+    if (memoEmpty(body) || body.length > MAX_LEN) return;
+    await updateLessonMemo(classId, editing.id, body, editing.date);
+    setEditing(null);
+  }
+
+  async function handleDelete(memoId) {
+    await deleteLessonMemo(classId, memoId);
+    setConfirmDelete(null);
+  }
+
+  return (
+    <aside
+      className="memo-side-panel memo-class-panel"
+      onClick={(e) => e.stopPropagation()}
+      aria-label={`${name} 지난 메모`}
+    >
+      <div className="memo-side-panel-head">
+        <h4>
+          {name}
+          {/* 건수는 여기에만 있습니다 — 버튼 줄에 적으려면 반마다 메모를
+              미리 읽어야 합니다(파일 맨 위 설명 참고). */}
+          {memos?.length > 0 && <em className="memo-panel-count">{memos.length}건</em>}
+        </h4>
+        <button type="button" className="btn-close" onClick={onClose} aria-label="지난 메모 닫기">×</button>
+      </div>
+
+      <div className="memo-side-panel-body">
+        {readOnly && <p className="memo-cal-readonly">보관된 반이라 고치거나 지울 수 없어요.</p>}
+
+        {memos === null ? (
+          <p className="memo-empty">불러오는 중이에요…</p>
+        ) : memos.length === 0 ? (
+          <p className="memo-empty">아직 적어 둔 메모가 없어요.</p>
+        ) : (
+          <ul className="memo-list">
+            {memos.map((m) => (
+              <li key={m.id} className="memo-item">
+                {editing?.id === m.id ? (
+                  <>
+                    <label className="notes-date-row">
+                      <span>날짜</span>
+                      <input
+                        type="date"
+                        className="notes-date"
+                        value={editing.date}
+                        onChange={(e) => setEditing({ ...editing, date: e.target.value })}
+                        max={todayDateKey()}
+                      />
+                    </label>
+                    <RichTextEditor
+                      key={m.id}
+                      className="memo-rte memo-rte--sm"
+                      tools={MEMO_TOOLS}
+                      small
+                      initialHtml={richHtml(m.text)}
+                      onChange={(html) => setEditing((prev) => (prev ? { ...prev, text: html } : prev))}
+                      onSend={handleEditSave}
+                      sendDisabled={memoEmpty(editing.text) || editing.text.length > MAX_LEN}
+                    />
+                    <div className="memo-item-actions">
+                      <button type="button" className="btn-ghost" onClick={() => setEditing(null)}>
+                        취소
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-primary memo-save"
+                        onClick={handleEditSave}
+                        disabled={memoEmpty(editing.text) || editing.text.length > MAX_LEN}
+                      >
+                        저장
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="memo-item-head">
+                      <span className="memo-item-time">
+                        <b className="memo-item-date">{lessonMemoDate(m)}</b>
+                        {/* 쓴 시각도 남깁니다 — 같은 날 여러 번 적을 때
+                            순서를 알아볼 수 있어야 합니다 */}
+                        <span className="memo-item-clock">{formatTime(m.createdAt)}</span>
+                      </span>
+                      {!readOnly && (
+                        <span className="memo-item-actions">
+                          <button
+                            type="button"
+                            className="memo-mini-btn"
+                            onClick={() =>
+                              setEditing({ id: m.id, text: m.text, date: lessonMemoDate(m) })
+                            }
+                          >
+                            수정
+                          </button>
+                          {confirmDelete === m.id ? (
+                            <>
+                              <button
+                                type="button"
+                                className="memo-mini-btn danger"
+                                onClick={() => handleDelete(m.id)}
+                              >
+                                정말 지울까요?
+                              </button>
+                              <button
+                                type="button"
+                                className="memo-mini-btn"
+                                onClick={() => setConfirmDelete(null)}
+                              >
+                                취소
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              type="button"
+                              className="memo-mini-btn"
+                              onClick={() => setConfirmDelete(m.id)}
+                            >
+                              삭제
+                            </button>
+                          )}
+                        </span>
+                      )}
+                    </div>
+                    {/* 서식이 붙기 전 메모는 순수 텍스트라 richHtml이
+                        줄바꿈만 살려 내보냅니다(lib/html.js) */}
+                    <div
+                      className="memo-item-text"
+                      dangerouslySetInnerHTML={{ __html: richHtml(m.text) }}
+                    />
+                  </>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </aside>
   );
 }
 
@@ -527,13 +655,13 @@ function MemoCalendarPanel({ byDate, nameOfClass, archivedClassIds, currentClass
   const classMemos = pickedClass ? dayMemos.filter((m) => m.classId === pickedClass) : [];
 
   return (
-    <aside className="memo-cal-panel" onClick={(e) => e.stopPropagation()} aria-label="수업 메모 캘린더">
-      <div className="memo-cal-panel-head">
+    <aside className="memo-side-panel memo-cal-panel" onClick={(e) => e.stopPropagation()} aria-label="수업 메모 캘린더">
+      <div className="memo-side-panel-head">
         <h4>캘린더</h4>
         <button type="button" className="btn-close" onClick={onClose} aria-label="캘린더 닫기">×</button>
       </div>
 
-      <div className="memo-cal-panel-body">
+      <div className="memo-side-panel-body">
         {calendarOpen && (
         <div className="study-attendance-calendar">
           <div className="study-cal-head">
