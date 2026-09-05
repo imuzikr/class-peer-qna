@@ -502,6 +502,12 @@ Firebase 미설정 시 자동으로 **데모 모드**로 동작 (새로고침 �
 - `users` — 사용자 프로필 (uid, email, displayName(익명), realName, studentId, role)
   - **식별 정보(실명·이메일·학번)는 여기에만** 저장. 게시물·카드엔 익명 정보만 넣음.
   - 읽기 규칙: 본인+교사. 교사 화면은 `subscribeUserDirectory`로 uid→실명/학번 조회.
+- `groupMemos` — **모둠 메모** (classId, pairKey, fromUid/fromName,
+  toUid/toName, html, replyToId/replyToText/replyToName, read, createdAt)
+  - 학생이 같은 기본 모둠 친구에게 남기는 쪽지. 자세한 것은 아래
+    '우리 모둠 · 모둠 메모' 절.
+  - `pairKey`는 두 uid를 **정렬해 이은 값**(`a__b`)이라 누가 보내든 같습니다.
+    `lib/store.js`의 `memoPairKey`와 규칙의 `pairKeyOf`가 **같아야** 합니다.
 - `users/{uid}/notifications` — 개인 알림함 (답변 알림 · 반 공지)
   - 규칙은 **본인에게만** 열려 있습니다(`userId == uid()`). 교사도 못 읽고 못
     지웁니다 — 반 공지 알림에 교사 실명과 공지 본문이 들어 있어서, 여기를
@@ -579,6 +585,43 @@ Firebase 미설정 시 자동으로 **데모 모드**로 동작 (새로고침 �
   그대로 교사만. `tests/rules/seatGroups.test.mjs`에 소속 학생 읽기 허용 ·
   쓰기 거부 · 다른 반 학생 거부 · 보관된 반 거부 · **없는 daily 문서 읽기**를
   함께 박아 두었습니다.
+
+### 우리 모둠 · 모둠 메모 (`groupMemos`)
+
+- 공부방 머리줄 '자리 배치' **오른쪽**의 `우리 모둠`(학생 전용)이
+  `components/GroupMemoModal.jsx`를 엽니다 — 모둠원을 보고, 눌러서 쪽지를
+  주고받습니다. 구성은 **누가기록 모달 그대로**(위에 쓰는 칸, 아래에 목록,
+  `.notes-*` 뼈대 재사용). 다른 점 셋: 쓰는 칸이 서식 에디터
+  (`RichTextEditor variant="chat"`) · 목록이 **오래된 것부터**(대화라
+  최신순이면 답과 물음이 거꾸로 놓입니다) · 글마다 '답장'.
+- **`users/{uid}/notifications`에 쓰지 않습니다.** 그 자리는 본인만 읽고
+  쓰게 잠가 둔 곳이라(교사도 못 읽습니다) 학생끼리 서로의 알림함에 쓰게
+  열면 그 잠금이 무너지고, 서버 함수로 우회하면 이 기능 하나 때문에
+  Cloud Functions 배포가 걸립니다. 대신 **알림 벨이 두 곳을 함께 구독해
+  한 목록으로** 보여 줍니다(`NotificationBell` — `_src`로 갈라 읽음 처리도
+  저마다). 메모 알림을 누르면 `/study?memo=<보낸사람>`으로 갑니다.
+- **읽음은 그 대화를 연 순간** 바뀝니다(모달이 처리). 알림의 '읽음'을 따로
+  누르게 하면 읽고 답까지 했는데 배지가 남습니다.
+- **질의는 등호뿐**이라 복합 색인이 없습니다. 다만 **`pairKey` 하나만 걸면
+  거부됩니다**(실측) — list 규칙은 결과 문서가 아니라 **질의**로 판정해서,
+  질의가 `toUid`/`fromUid`를 증명하지 못하면 "Property toUid is undefined
+  on object"로 떨어집니다. 그래서 `subscribeGroupMemoThread`가 보낸 것·
+  받은 것 **둘로 나눠** 구독합니다(책방 동료 평가와 같은 이유·같은 해법).
+  `tests/rules/groupMemos.test.mjs`에 시험으로 박아 두었으니 지우지 마세요.
+- 규칙: 읽기는 **주고받은 두 사람만**(교사도 못 읽습니다 — 누가기록과 주인이
+  반대입니다). 쓰기는 **같은 기본 모둠일 때만** — 반이 같은 것만으로 열면
+  화면에 없는 길로 아무 급우에게나 보낼 수 있습니다. 규칙 언어에 반복이
+  없어 모둠 여섯 개를 손으로 펼쳐 봅니다(`groupAssignments`가 6개로 이미
+  못 박혀 있습니다). 문서가 없는 반에서 `get()`이 평가 오류로 끝나지 않게
+  `exists()`를 앞에 둡니다. 받은 사람은 `read` 한 칸만, 지우는 것은 보낸
+  사람만.
+- `groupAssignments` **읽기도 그 반 학생에게 열었습니다**(`isClassMember`).
+  여기 든 것은 이름·학번·이모지뿐이고 그건 이미 급우끼리 열려 있습니다.
+  모둠을 짜는 것은 그대로 교사만.
+- **CSS 접두사는 `gmemo-`**입니다. `.memo-list`·`.memo-item`은 이미
+  **교사의 수업 메모**가 쓰고 있어(globals.css 1350줄 언저리) 같은 이름을
+  아래에서 다시 쓰면 이쪽이 이겨 교사 화면이 함께 흔들립니다. 주인이 반대인
+  두 '메모'라 이름도 갈라 둡니다.
 
 ### 자리표 '선생님 보기'
 - **네 화면이 한 값을 함께 씁니다**(`lib/seatView.js`의 `useSeatView`,

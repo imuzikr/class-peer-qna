@@ -311,6 +311,68 @@ service cloud.firestore {
       allow list, write: if isAdmin();
     }
 
+    // ── 모둠 메모 (학생 ↔ 같은 모둠 학생) ─────────────────────
+    //  공부방 '우리 모둠'에서 모둠 친구에게 남기는 짧은 쪽지입니다.
+    //  users/{uid}/notifications에 쓰지 않고 이 컬렉션 하나만 씁니다 —
+    //  알림함은 본인만 쓸 수 있게 잠가 둔 자리라(교사도 못 읽습니다),
+    //  학생끼리 서로의 알림함에 쓰게 열면 그 잠금이 무너집니다. 대신
+    //  알림 벨이 '내가 받은 안 읽은 메모'를 함께 구독합니다.
+    //
+    //  · 읽기는 **주고받은 두 사람만**. 교사도 못 읽습니다 — 이 쪽지는
+    //    누가기록(교사가 학생을 관찰해 적는 글)과 주인이 다릅니다.
+    //  · 쓰기는 **같은 기본 모둠일 때만**. 반이 같다는 것만으로 열면
+    //    화면에 없는 길로 아무 급우에게나 보낼 수 있게 됩니다.
+    //  · 받은 사람은 `read` 한 칸만 바꿉니다(알림에서 치우기).
+    //  · 보낸 사람은 자기 글을 지울 수 있습니다. 남의 글은 못 지웁니다.
+    match /groupMemos/{mId} {
+      // 문서 ID가 아니라 필드(pairKey)로 짝을 적어 둡니다 — 학생 쪽 질의가
+      // `where('pairKey','==',…)` 하나로 끝나 새 색인이 필요 없습니다.
+      function pairKeyOf(a, b) {
+        return a < b ? a + '__' + b : b + '__' + a;
+      }
+      // 그 반 기본 모둠 하나 안에 둘이 함께 있는지. 모둠은 최대 6개로
+      // 규칙이 이미 못 박고 있어(groupAssignments) 여섯 번 펼쳐 봅니다 —
+      // 규칙 언어에는 반복이 없습니다.
+      function baseGroups(cId) {
+        return get(/databases/$(database)/documents/classes/$(cId)/groupAssignments/default).data.get('groups', []);
+      }
+      function inGroupAt(gs, i, a, b) {
+        return gs.size() > i && gs[i].get('memberUids', []).hasAll([a, b]);
+      }
+      function inSameBaseGroup(cId, a, b) {
+        return exists(/databases/$(database)/documents/classes/$(cId)/groupAssignments/default)
+               && inSameBaseGroupIn(baseGroups(cId), a, b);
+      }
+      function inSameBaseGroupIn(gs, a, b) {
+        return inGroupAt(gs, 0, a, b) || inGroupAt(gs, 1, a, b) || inGroupAt(gs, 2, a, b)
+               || inGroupAt(gs, 3, a, b) || inGroupAt(gs, 4, a, b) || inGroupAt(gs, 5, a, b);
+      }
+
+      allow read: if signedIn()
+                  && (resource.data.toUid == uid() || resource.data.fromUid == uid());
+      allow create: if signedIn()
+                    && request.resource.data.fromUid == uid()
+                    && request.resource.data.toUid is string
+                    && request.resource.data.toUid != uid()
+                    && request.resource.data.classId is string
+                    && request.resource.data.pairKey == pairKeyOf(uid(), request.resource.data.toUid)
+                    && request.resource.data.read == false
+                    && request.resource.data.createdAt == request.time
+                    && request.resource.data.html is string
+                    && request.resource.data.html.size() <= 4000
+                    && isClassMember(request.resource.data.classId)
+                    && exists(/databases/$(database)/documents/memberships/$(request.resource.data.toUid + '_' + request.resource.data.classId))
+                    && inSameBaseGroup(request.resource.data.classId,
+                                       uid(), request.resource.data.toUid);
+      // 받은 사람의 '읽음' 표시만. 본문은 누구도 못 고칩니다 — 고칠 수 있으면
+      // 상대가 본 뒤에 말이 바뀝니다.
+      allow update: if signedIn()
+                    && resource.data.toUid == uid()
+                    && changedOnly(['read', 'readAt'])
+                    && request.resource.data.read == true;
+      allow delete: if signedIn() && resource.data.fromUid == uid();
+    }
+
     // ── 질문 (전체 공유) ──────────────────────────────────────
     match /questions/{qId} {
       allow read: if signedIn();
@@ -633,7 +695,12 @@ service cloud.firestore {
       // ── 참여 전광판 기본 모둠 구성 ─────────────────────────
       //  · 반 단위 장기 모둠입니다. 참여 전광판의 모둠별 보기에서만 씁니다.
       match /groupAssignments/{assignmentId} {
-        allow read: if signedIn() && (isAdmin() || ownsClass(cId));
+        // 읽기는 그 반 학생에게도 엽니다 — 공부방 머리줄의 '우리 모둠'이
+        // 이 문서 하나를 열어 모둠원 명단을 보여 줍니다. 여기 든 것은
+        // 이름·학번·이모지뿐이고, 그건 이미 급우끼리 열려 있습니다
+        // (isClassmateOf). 모둠은 교실에서 눈으로 보이는 사실이기도 합니다.
+        // 쓰기는 그대로 교사만 — 모둠을 짜는 것은 선생님입니다.
+        allow read: if signedIn() && (isAdmin() || ownsClass(cId) || isClassMember(cId));
         allow create, update: if signedIn()
                               && (isAdmin() || ownsClassEditable(cId))
                               && assignmentId == 'default'

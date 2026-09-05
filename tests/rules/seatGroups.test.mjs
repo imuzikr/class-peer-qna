@@ -157,19 +157,31 @@ describe("자리표·기본 모둠 규칙", () => {
       );
     });
 
-    it("학생은 기본 모둠을 읽지도 쓰지도 못한다", async () => {
+    // 공부방 머리줄의 '우리 모둠'(GroupMemoModal)이 이 문서를 읽습니다.
+    // 읽기만 열려 있고 모둠을 짜는 것은 여전히 교사만입니다.
+    it("그 반 학생은 기본 모둠을 읽을 수 있다 — 쓰지는 못한다", async () => {
       await seed(env, (db) =>
         setDoc(doc(db, "classes", "cA", "groupAssignments", "default"), {
           classId: "cA", groups: groups(4),
         })
       );
       const db = asStudent(env, "stu1").firestore();
-      await assertFails(getDoc(doc(db, "classes", "cA", "groupAssignments", "default")));
+      await assertSucceeds(getDoc(doc(db, "classes", "cA", "groupAssignments", "default")));
       await assertFails(
         setDoc(doc(db, "classes", "cA", "groupAssignments", "default"), {
           classId: "cA", groups: groups(4), updatedBy: "stu1",
         })
       );
+    });
+
+    it("다른 반 학생은 이 반 기본 모둠을 읽지 못한다", async () => {
+      await seed(env, (db) =>
+        setDoc(doc(db, "classes", "cA", "groupAssignments", "default"), {
+          classId: "cA", groups: groups(4),
+        })
+      );
+      const db = asStudent(env, "stu2").firestore();
+      await assertFails(getDoc(doc(db, "classes", "cA", "groupAssignments", "default")));
     });
   });
 });

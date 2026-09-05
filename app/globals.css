@@ -11039,6 +11039,142 @@ a.lesson-board-file-name { text-decoration: underline; }
   text-decoration: underline;
 }
 
+/* ── 우리 모둠 · 모둠 메모 (GroupMemoModal) ──────────────────────
+   누가기록(.notes-*)의 뼈대를 그대로 쓰고, 여기서만 다른 것을 얹습니다:
+   모둠원 고르는 줄 · 답장 인용 · 내 글/받은 글 구분.
+
+   **접두사가 `gmemo-`인 까닭**: `.memo-list`·`.memo-item`은 이미 **교사의
+   수업 메모**가 쓰고 있습니다(이 파일 위쪽 1350줄 언저리). 같은 이름을
+   여기서 다시 쓰면 나중에 나온 이쪽이 이겨, 학생 창 하나 손보려다 교사의
+   수업 메모 목록이 함께 흔들립니다. 주인이 반대인 두 '메모'라 이름도
+   갈라 둡니다. */
+.group-memo-modal {
+  width: min(560px, 94vw);
+  max-height: 85vh;
+  overflow-y: auto;
+}
+.gmemo-group-name {
+  margin-left: 8px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--bg-deep);
+  color: var(--text-sub);
+  font-size: 12px;
+  font-weight: 700;
+}
+/* 모둠원 줄 — 넘치면 접힙니다(활동 열기 칩과 달리 여기는 이름 몇 개뿐이라
+   줄 수가 오락가락할 일이 없고, 옆으로 굴리면 뒤쪽 친구가 숨습니다). */
+.gmemo-mates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 14px;
+}
+.gmemo-mate {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 32px;
+  padding: 0 13px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.gmemo-mate:hover {
+  border-color: var(--primary);
+}
+.gmemo-mate.on {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+/* 안 읽은 메모 수 — 상단바 알림 뱃지(.notif-badge)와 같은 뜻이라 같은 색 */
+.gmemo-mate-badge {
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 800;
+  line-height: 17px;
+  text-align: center;
+}
+/* 답장 — 지금 어느 말에 답하는 중인지 쓰는 칸 바로 위에 */
+.gmemo-replying {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-left: 3px solid var(--primary);
+  border-radius: 0 8px 8px 0;
+  background: var(--bg-deep);
+  font-size: 12px;
+}
+.gmemo-replying-label {
+  flex-shrink: 0;
+  color: var(--primary-dark);
+  font-weight: 800;
+}
+.gmemo-replying-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--text-faint);
+}
+.gmemo-replying-cancel {
+  flex-shrink: 0;
+  border: none;
+  background: none;
+  color: var(--text-sub);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+/* 대화라 오래된 것이 위입니다 — 열면 마지막 말이 보이도록 목록을 조금 더
+   길게 두고, 새 글은 아래에 붙습니다. */
+.gmemo-list {
+  max-height: 320px;
+}
+/* 내가 쓴 것은 살구빛으로 살짝 들어 올립니다. 왼쪽/오른쪽으로 가르지
+   않는 이유: 서식 글이 들어와 폭이 제각각이면 말풍선이 들쭉날쭉해지고,
+   누가기록과 같은 목록 모양이 아니게 됩니다. */
+.gmemo-item--mine {
+  background: var(--primary-light);
+  border-color: #e8d5c8;
+}
+.gmemo-text :is(p, div) {
+  margin: 0;
+}
+.gmemo-quote {
+  margin: 0 0 6px;
+  padding-left: 8px;
+  border-left: 2px solid var(--border);
+  color: var(--text-faint);
+  font-size: 11.5px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.gmemo-by {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.gmemo-who {
+  font-weight: 800;
+  color: var(--text);
+}
+
 /* 대시보드 누가기록 패널 — 다른 관리자 패널과 동일한 카드 */
 .admin-notes-panel {
   background: #fff;

@@ -86,6 +86,7 @@ import StudyAttendanceModal from "@/components/StudyAttendanceModal";
 import CornellNoteViewerModal from "@/components/CornellNoteViewerModal";
 import SeatGroupSetupModal from "@/components/SeatGroupSetupModal";
 import MySeatModal from "@/components/MySeatModal";
+import GroupMemoModal from "@/components/GroupMemoModal";
 import ClassNotesTools from "@/components/ClassNotesTools";
 import { IconArchive } from "@/components/StatusIcons";
 import { updateLesson } from "@/lib/store";
@@ -153,6 +154,8 @@ function StudyPageInner() {
   const [attendanceOpen, setAttendanceOpen] = useState(false); // 출석부 모달
   const [noteViewerOpen, setNoteViewerOpen] = useState(false); // 내 수업 노트 크게 보기(학생)
   const [mySeatOpen, setMySeatOpen] = useState(false); // 자리 배치 보기(학생)
+  // 우리 모둠 — 열려 있으면 `{ uid | null }`(누구의 메모를 펴 둘지). 닫힘은 null.
+  const [groupMemo, setGroupMemo] = useState(null);
   const [attendanceRecords, setAttendanceRecords] = useState([]);
   const [baseGroupAssignment, setBaseGroupAssignment] = useState(null);
   const [attending, setAttending] = useState(false);
@@ -457,6 +460,16 @@ function StudyPageInner() {
   const activeLesson = lessonParam ? lessons.find((l) => l.id === lessonParam) ?? null : null;
   const editingLesson = modeParam === "edit" ? activeLesson : null;
   const teaching = modeParam === "teach" ? activeLesson : null;
+
+  // ── 알림에서 온 모둠 메모 (?memo=<보낸 사람 uid>) ──
+  // 알림 벨이 이 주소로 보냅니다. 창을 연 뒤 주소는 곧바로 지웁니다 —
+  // 남겨 두면 창을 닫고 새로 고칠 때마다 다시 열립니다.
+  const memoParam = searchParams.get("memo");
+  useEffect(() => {
+    if (!memoParam) return;
+    setGroupMemo({ uid: memoParam });
+    router.replace("/study");
+  }, [memoParam, router]);
 
   // ── 프로젝트 열기/닫기 (?project=<보드 id>) ──
   // 열려 있는 프로젝트는 목록이 갱신될 때마다 최신 문서로 다시 찾습니다 —
@@ -826,6 +839,16 @@ function StudyPageInner() {
                           title="선생님이 정한 자리 배치에서 내 자리를 봅니다"
                         >
                           자리 배치
+                        </button>
+                        {/* 우리 모둠 — 모둠원을 확인하고, 눌러서 메모를
+                            주고받습니다. 자리 배치 바로 옆인 이유: 둘 다
+                            '이 반에서 나는 어디에 속해 있나'를 봅니다. */}
+                        <button
+                          className="btn-ghost"
+                          onClick={() => setGroupMemo({ uid: null })}
+                          title="우리 모둠 친구를 보고 메모를 남깁니다"
+                        >
+                          우리 모둠
                         </button>
                         <button
                           className="btn-ghost"
@@ -1227,6 +1250,18 @@ function StudyPageInner() {
           myUid={user.uid}
           roster={studentClassRoster}
           onClose={() => setMySeatOpen(false)}
+        />
+      )}
+
+      {/* 우리 모둠 (학생) — 모둠 문서 하나와 그 친구와 주고받은 메모만
+          읽습니다. 명단은 자리 배치와 같은 것을 그대로 넘깁니다. */}
+      {groupMemo && classId && user && (
+        <GroupMemoModal
+          classId={classId}
+          user={user}
+          roster={studentClassRoster}
+          initialUid={groupMemo.uid}
+          onClose={() => setGroupMemo(null)}
         />
       )}
 
