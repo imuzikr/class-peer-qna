@@ -20572,7 +20572,20 @@ span.cloud-word { cursor: default; }
 }
 .paratext-read-text.empty { color: var(--text-sub); }
 /* RAFT 글쓰기 칸은 내용이 길어 한 줄을 통째로 씁니다 */
+/* RAFT는 **두 칸 고정**입니다 — R·A 한 줄, F·T 한 줄, 글쓰기가 아래 한 줄.
+   `.entry-detail-grid`의 `auto-fill`을 그대로 두면 가운데 칸 폭에 따라 한 줄에
+   셋이 서다 둘이 서다 하고, 셋이 서는 화면에서는 R·A·F 다음에 T 하나만 덩그러니
+   남아 네 요소가 한 묶음으로 안 읽힙니다. RAFT는 개수가 넷으로 못 박힌 틀이라
+   폭에 맡길 것이 아닙니다.
+   (`.entry-detail-grid` 뒤에 놓이므로 선택자를 한 겹 좁히지 않아도 이깁니다 —
+   `.kwls-detail-grid`가 `.entry-detail-grid.kwls-detail-grid`로 적혀 있는 것은
+   그쪽 규칙이 파일에서 **앞**에 오기 때문입니다) */
+.raft-detail-grid { grid-template-columns: repeat(2, 1fr); }
 .raft-detail-grid .entry-region.wide { grid-column: 1 / -1; }
+/* 좁아지면 한 줄에 하나 — 두 칸을 우겨 넣으면 카드가 좁아 글이 자꾸 접힙니다 */
+@media (max-width: 900px) {
+  .raft-detail-grid { grid-template-columns: 1fr; }
+}
 
 /* ── 방송 상태 막대 ── */
 .cast-bar {
