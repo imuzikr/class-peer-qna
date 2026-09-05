@@ -49,8 +49,20 @@ function formatDateLabel(dateStr) {
 }
 const TODAY = toYMD(new Date());
 
-export default function KwlFullscreenModal({ classId, initialDate, onClose }) {
+export default function KwlFullscreenModal({
+  classId,
+  initialDate,
+  // 한 학생만 보며 날짜를 넘길 때 — 종합 격자에서 칸을 누르면 그 학생으로
+  // 열립니다. 빈 값이면 그날 쓴 학생 전부를 봅니다(지금까지의 기본).
+  initialUid = "",
+  // 드롭다운에 세울 반 명단. 없으면 그날 쓴 학생들로만 채웁니다 — 그러면
+  // 날짜를 넘길 때마다 목록이 바뀌어 고른 사람이 사라지므로, 넘겨주는 쪽이
+  // 있으면 반 전체를 씁니다.
+  roster = [],
+  onClose,
+}) {
   const [date, setDate] = useState(initialDate || TODAY);
+  const [pickedUid, setPickedUid] = useState(initialUid || "");
   const [entries, setEntries] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const [rewardMap, setRewardMap] = useState({}); // uid -> 과일 개수
@@ -173,6 +185,42 @@ export default function KwlFullscreenModal({ classId, initialDate, onClose }) {
     [entries]
   );
 
+  // 드롭다운에 세울 사람들 — 반 명단이 오면 그것(날짜를 넘겨도 안 바뀜),
+  // 없으면 그날 쓴 학생으로. 차례는 목록과 같은 학번순입니다.
+  const pickList = useMemo(() => {
+    const from =
+      roster.length > 0
+        ? roster.map((s) => ({
+            uid: s.uid ?? s.id,
+            name: s.realName || s.name || "이름 미설정",
+            studentId: s.studentId || "",
+          }))
+        : rows.map((r) => ({
+            uid: r.userId,
+            name: r.realName || r.anonName,
+            studentId: r.studentId || "",
+          }));
+    return from
+      .filter((s) => s.uid)
+      .sort((a, b) =>
+        String(a.studentId || a.name).localeCompare(
+          String(b.studentId || b.name),
+          "ko",
+          { numeric: true }
+        )
+      );
+  }, [roster, rows]);
+
+  // 한 사람만 보는 중이면 그 사람 줄만 남깁니다. 그 날짜에 그 학생이 안 썼으면
+  // 빈 화면이 되는데, 그것이 곧 '이 날은 안 썼다'는 답이라 그대로 둡니다
+  // (아래 빈 상태 문구가 누구의 어느 날인지 말해 줍니다).
+  const shownRows = useMemo(
+    () => (pickedUid ? rows.filter((r) => r.userId === pickedUid) : rows),
+    [rows, pickedUid]
+  );
+  const pickedName =
+    pickList.find((s) => s.uid === pickedUid)?.name || "";
+
   // 달력에 깔 값 — 지금 보고 있는 날짜만은 실시간 구독으로 아는 정확한 수로
   // 덮어씁니다(요약은 달력을 연 시점의 것이라 한 박자 늦을 수 있습니다).
   const calDays = useMemo(() => {
@@ -192,7 +240,27 @@ export default function KwlFullscreenModal({ classId, initialDate, onClose }) {
         <div className="present-head">
           <div className="present-who">
             <strong className="present-name">📝 KWLS</strong>
-            <span className="present-progress">{rows.length}명</span>
+            <span className="present-progress">
+              {pickedUid ? (pickedName || "선택한 학생") : `${rows.length}명`}
+            </span>
+
+            {/* 학생 고르기 — 한 사람만 두고 좌우 화살표로 날짜를 넘기면
+                그 학생의 흐름이 됩니다. '반 전체'로 되돌리면 지금까지대로. */}
+            {pickList.length > 0 && (
+              <select
+                className="kwlfs-who-select"
+                value={pickedUid}
+                onChange={(e) => setPickedUid(e.target.value)}
+                title="한 학생만 보기 — 날짜를 넘기면 그 학생의 흐름이 됩니다"
+              >
+                <option value="">반 전체</option>
+                {pickList.map((s) => (
+                  <option key={s.uid} value={s.uid}>
+                    {s.studentId ? `${s.studentId} ${s.name}` : s.name}
+                  </option>
+                ))}
+              </select>
+            )}
 
             {/* 날짜 이동 — 달력 열기(라벨) + 나란히 붙은 좌우 화살표 */}
             <div className="kwlfs-date-nav">
@@ -257,14 +325,17 @@ export default function KwlFullscreenModal({ classId, initialDate, onClose }) {
         </div>
 
         <div className="kwlfs-body">
-          {rows.length === 0 ? (
-            <p className="present-empty">{formatDateLabel(date)}에 저장된 KWLS가 없어요.</p>
+          {shownRows.length === 0 ? (
+            <p className="present-empty">
+              {formatDateLabel(date)}에{" "}
+              {pickedUid ? `${pickedName || "이 학생"}이 쓴 KWLS가` : "저장된 KWLS가"} 없어요.
+            </p>
           ) : (
             <div
               className="kwlfs-table"
               // 마지막에 1fr 트랙을 추가해, 내용이 짧아도 컬럼 배경이 빈 공간까지
               // 이어지게 합니다(콘텐츠가 길면 이 트랙은 그냥 축소되어 무해).
-              style={{ gridTemplateRows: `repeat(${rows.length + 1}, auto) 1fr` }}
+              style={{ gridTemplateRows: `repeat(${shownRows.length + 1}, auto) 1fr` }}
             >
               {/* 컬럼 배경 띠 — 헤더부터 하단 빈 공간까지 관통 (먼저 그려 셀 아래 깔림) */}
               <div className="kwlfs-colbg kwlfs-colbg--name" />
@@ -292,7 +363,7 @@ export default function KwlFullscreenModal({ classId, initialDate, onClose }) {
                 </div>
               ))}
 
-              {rows.map((r, i) => {
+              {shownRows.map((r, i) => {
                 const rowNum = i + 2; // 1행은 헤더
                 const answers = kwlsAnswersFromEntry(r);
                 const open = revealed.has(r.userId);

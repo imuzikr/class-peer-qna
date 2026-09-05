@@ -37,6 +37,7 @@ import StudentNotesThread from "@/components/StudentNotesThread";
 import RewardFruits, { rewardStars } from "@/components/RewardFruits";
 import StudentKwlPanel from "@/components/StudentKwlPanel";
 import KwlOutcome from "@/components/KwlOutcome";
+import KwlClassGrid from "@/components/KwlClassGrid";
 import BookActivityStats from "@/components/BookActivityStats";
 import ClassOverview from "@/components/ClassOverview";
 import ClassRewardTrend from "@/components/ClassRewardTrend";
@@ -1206,6 +1207,16 @@ function AdminDashboardPageInner() {
               {/* 책방도 반 단위 — 게다가 활동 하나씩만 집계할 수 있습니다
                   (words·entries에 collectionGroup 규칙이 없음) */}
               {selectedClassId && <BookActivityStats classId={selectedClassId} />}
+              {/* KWLS 종합 격자 — 세로 학생, 가로 'KWLS를 쓴 날'. 칸을 누르면
+                  그 학생·그 날짜의 K·W·L·S가 크게 열립니다. classKwl은 위
+                  패널들이 이미 쓰는 배열이라 읽기가 늘지 않습니다. */}
+              {selectedClassId && (
+                <KwlClassGrid
+                  classId={selectedClassId}
+                  kwl={classKwl}
+                  roster={overviewStudents}
+                />
+              )}
             </>
           ) : selected ? (
             <>

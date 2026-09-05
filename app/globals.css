@@ -24141,3 +24141,120 @@ body:has(.confirm-backdrop) .cornell-handle {
   font-variant-numeric: tabular-nums;
 }
 .reward-seat-att b { font-weight: 800; color: var(--text); }
+
+/* ── KWLS 종합 격자 (/admin 종합 분석 맨 아래) ──
+   세로 학생 · 가로 'KWLS를 쓴 날'. 색은 그날 채운 칸 수(1~4)이고, 램프는
+   KWLS 학기 히트맵의 밝은 바탕용(.kwls-hm--light)과 **같은 값**입니다 —
+   같은 것을 세는 두 격자가 다른 색을 쓰면 한쪽을 보고 다른 쪽을 오해합니다. */
+.kgrid-note {
+  font-size: 12px;
+  color: var(--text-sub);
+  font-variant-numeric: tabular-nums;
+}
+.kgrid-note b { color: var(--primary-dark); font-weight: 800; }
+/* 가로는 날짜 수만큼, 세로는 학생 수만큼 길어집니다 — 둘 다 이 상자 안에서만
+   구르고, 이름 칸과 날짜 줄은 붙여 두어 어디를 보든 누구의 언제인지 압니다. */
+.kgrid-scroll {
+  margin-top: 10px;
+  max-height: 560px;
+  overflow: auto;
+}
+.kgrid-table {
+  border-collapse: separate;
+  border-spacing: 3px;
+}
+.kgrid-table th {
+  font-weight: 700;
+  color: var(--text-sub);
+  white-space: nowrap;
+}
+/* 날짜 줄 — 위에 붙습니다 */
+.kgrid-date {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--card-bg);
+  padding: 2px 0 4px;
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+}
+/* 이름 칸 — 왼쪽에 붙습니다 */
+.kgrid-name {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--card-bg);
+  padding-right: 8px;
+  text-align: left;
+  font-size: 12px;
+  color: var(--text);
+  max-width: 132px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.kgrid-name em {
+  font-style: normal;
+  font-weight: 700;
+  color: var(--text-sub);
+  font-variant-numeric: tabular-nums;
+  margin-right: 5px;
+}
+/* 두 방향이 만나는 모서리 — 둘 다 붙어야 가려지지 않습니다 */
+.kgrid-corner {
+  position: sticky;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  background: var(--card-bg);
+  text-align: left;
+  font-size: 11.5px;
+}
+.kgrid-cell {
+  display: block;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: var(--neutral);
+  cursor: pointer;
+  transition: box-shadow 0.12s;
+}
+.kgrid-cell:hover { box-shadow: 0 0 0 2px var(--primary); }
+.kgrid-cell.lv1 { background: #84c192; }
+.kgrid-cell.lv2 { background: #619f70; }
+.kgrid-cell.lv3 { background: #41794f; }
+.kgrid-cell.lv4 { background: #22502f; }
+
+.kgrid-legend {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--text-sub);
+}
+.kgrid-swatch {
+  width: 13px;
+  height: 13px;
+  border-radius: 3px;
+  background: var(--neutral);
+}
+.kgrid-swatch.lv1 { background: #84c192; }
+.kgrid-swatch.lv2 { background: #619f70; }
+.kgrid-swatch.lv3 { background: #41794f; }
+.kgrid-swatch.lv4 { background: #22502f; }
+.kgrid-legend-hint { margin-left: auto; font-style: normal; }
+
+/* 전체 화면의 학생 고르개 — 날짜 이동 왼쪽 */
+.kwlfs-who-select {
+  height: 28px;
+  max-width: 168px;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 12.5px;
+  color: var(--text);
+}
