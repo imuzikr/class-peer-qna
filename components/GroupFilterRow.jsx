@@ -10,15 +10,26 @@
 //
 // '전체'가 기본입니다. 모둠은 보는 차례를 정하는 것이지 가르는 것이 아니라서,
 // 처음 열었을 때는 반 전체가 보여야 합니다.
+//
+// [trailing — 마지막 모둠 뒤에 붙는 단추]
+// 이 줄은 '어느 모둠을 볼까'를 고르는 자리라, 그 끝은 '모둠을 다 지나온
+// 자리'입니다. 반 전체를 한눈에 보는 단추(전광판)가 서기에 알맞습니다.
+// 모둠이 없는 활동(개인 활동)에서는 칩 줄 없이 그 단추만 섭니다 — 전광판은
+// 모둠과 상관없이 쓸 수 있어야 하니까요.
+//
+// 칩은 `role="tablist"` 안에 그대로 두고 단추는 그 **밖**에 둡니다. 탭 목록
+// 안에 탭이 아닌 것이 섞이면 보조기기가 그것도 탭으로 읽습니다.
 // =============================================================
 export default function GroupFilterRow({
   groups = [],
   value = null, // 고른 모둠 id (null = 전체)
   onChange,
   counts = null, // { [groupId]: 시작한 인원 } — 없으면 인원 수만 적습니다
+  trailing = null, // 마지막 모둠 뒤에 붙일 것 (없으면 안 그립니다)
 }) {
-  if (groups.length === 0) return null;
-  return (
+  if (groups.length === 0 && !trailing) return null;
+
+  const tabs = groups.length > 0 && (
     <div className="group-filter" role="tablist" aria-label="모둠 고르기">
       <button
         type="button"
@@ -46,6 +57,17 @@ export default function GroupFilterRow({
           </button>
         );
       })}
+    </div>
+  );
+
+  // 붙일 것이 없으면 지금까지처럼 칩 줄 하나만 — 감싸는 상자를 늘리지
+  // 않으려고요(그 상자의 아래 여백이 칩 줄의 것과 겹칩니다).
+  if (!trailing) return tabs;
+
+  return (
+    <div className="group-filter-row">
+      {tabs}
+      {trailing}
     </div>
   );
 }

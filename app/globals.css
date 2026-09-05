@@ -8662,6 +8662,72 @@ pre code {
   white-space: nowrap;
 }
 
+/* ── 책방의 읽는중 전광판만 쓰는 것들 ──
+   격자·칸·툴팁은 공부방 전광판의 것을 그대로 씁니다(두 방의 전광판이 서로
+   다른 모양이면 교사가 같은 것을 두 번 익혀야 합니다). 여기 더한 것은
+   ① 단계 머리의 알파벳 ② 학생 이름 줄 ③ 칸 색 둘입니다. */
+/* CATAPULT의 한 글자 — 학생 화면·단계 열기 칩의 것과 같은 글자입니다 */
+.grass-act-letter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 17px;
+  flex: none;
+  border-radius: 5px;
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  font-size: 10.5px;
+  font-weight: 800;
+}
+/* 이름 줄 — 칸이 22px이라 가로로는 못 적어 세로쓰기입니다. 세로로 구를 때
+   위에 붙어 있어야 어느 칸이 누구인지 잃지 않습니다. */
+.grass-name {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  height: 68px;
+  padding: 2px 0 4px;
+  border: none;
+  background: var(--bg);
+  writing-mode: vertical-rl;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  justify-self: center;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+  cursor: pointer;
+}
+.grass-name:hover { color: var(--primary-dark); }
+/* 이름 줄과 단계 이름표가 만나는 왼쪽 위 빈칸 — 두 sticky가 겹치는
+   자리라 둘보다 위에 있어야 글자가 비쳐 보이지 않습니다. */
+.grass-corner {
+  position: sticky;
+  top: 0;
+  left: 0;
+  z-index: 3;
+}
+/* 붙어 있는 칸(sticky)들의 바탕은 **그 모달의 바탕과 같아야** 합니다.
+   공부방 전광판의 .grass-act는 크림색(--bg)을 쓰는데, 이 화면은 이름 줄이
+   스물아홉 칸으로 늘어서서 그 색이 칸마다 하나씩 끊겨 이름표가 아니라
+   **알약 스물아홉 개**로 보였습니다(실측). 머리줄은 배경이 이어져야
+   머리줄입니다.
+   **뿌리 클래스는 `.reading-board`입니다.** `.paratext-progress`로 지었다가
+   되돌렸습니다 — 그 이름은 이미 활동 만들기 창들(ParatextForm·RaftForm·
+   KwlsForm·MindmapForm)과 학생 카드가 쓰는 진행 배지라, 모달에 붙이자
+   창 전체가 --primary-light로 물들었습니다(모둠 메모의 `.memo-list` 충돌과
+   같은 함정입니다). */
+.reading-board .grass-name,
+.reading-board .grass-act { background: #fff; }
+/* 쓰는 중 · 시작 전 — 학생 카드의 네모(.paratext-mark)와 같은 색.
+   공부방의 --open(연한 주황 = 열려 있는데 덜 씀)을 여기서 쓰지 않는 까닭:
+   책방은 그 상태를 '쓰는 중'과 '시작 전' 둘로 나눠 보여 줍니다. */
+.grass-cell--doing { background: #f3c99a; border-color: #e2b077; }
+.grass-cell--empty { background: var(--neutral); border-color: var(--border); }
+
 .grass-cell {
   width: 22px;
   height: 22px;
@@ -8900,14 +8966,36 @@ pre code {
     transparent calc(50% + 1px)
   );
 }
+/* 아래 둘은 책방(읽는중 전광판)에만 씁니다 — 색은 학생 카드의 여덟 네모
+   (.paratext-mark)와 **같은 값**입니다. 같은 화면에서 카드를 보다가 격자를
+   여는데 색이 다르면 두 번 익혀야 합니다. */
+/* 쓰는 중 — 한 단계가 여러 칸인 것이 셋 있어(제목·목차·머리말) '반쯤 쓴'
+   상태가 실제로 자주 생깁니다. 공부방에는 이 상태가 없습니다. */
+.progress-mark--doing {
+  background: #f3c99a;
+  border: 1px solid #e2b077;
+}
+/* 아직 시작 전 */
+.progress-mark--empty {
+  background: var(--neutral);
+  border: 1px solid var(--border);
+}
 .progress-legend {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 14px;
   margin-bottom: 12px;
   font-size: 12.5px;
   font-weight: 700;
   color: var(--text-sub);
+}
+/* 범례 끝에 붙는 한 줄 요약 — 네모가 아니라 문장이라 옅게, 왼쪽에 여백을
+   더 둡니다(범례 항목들과 한 덩이로 읽히지 않게) */
+.progress-legend-sum {
+  margin-left: auto;
+  font-weight: 700;
+  color: var(--text-faint);
 }
 .progress-legend-item {
   display: inline-flex;
@@ -18679,6 +18767,33 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
   color: var(--primary-dark);
 }
 .group-filter-btn.on em { color: var(--primary-dark); }
+/* 마지막 모둠 뒤에 붙는 단추(전광판) — 칩 줄과 한 줄에 서지만 성격이
+   다릅니다. 칩은 '어느 모둠을 볼까'를 고르는 것이고 이것은 '지금 열어라'라
+   비워 둔 채 테두리만 둡니다(칩과 같이 채우면 켜진 모둠처럼 보입니다).
+   글자가 이미 할 일이라 자물쇠·아이콘을 달지 않습니다. */
+.group-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+/* 감싸는 줄이 아래 여백을 맡으므로 안쪽 칩 줄의 것은 풉니다(안 그러면 겹쳐
+   24px이 됩니다) */
+.group-filter-row .group-filter { margin-bottom: 0; }
+.group-filter-act {
+  padding: 6px 14px;
+  border: 1px solid var(--primary);
+  border-radius: 999px;
+  background: none;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--primary-dark);
+  cursor: pointer;
+  transition: background 0.14s;
+}
+.group-filter-act:hover { background: var(--primary-light); }
 
 /* ── 우리 모둠 명단 줄 (학생) — 자기가 쓰는 칸 바로 위 ──────────────
    모둠으로 묶여도 글은 각자 한 장이라, 이 줄이 없으면 학생 화면에서는

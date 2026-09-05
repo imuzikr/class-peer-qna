@@ -17,6 +17,7 @@ import { useEffect, useMemo, useState } from "react";
 import { subscribeParatextEntries, updateBookActivity } from "@/lib/store";
 import { useEntryCast } from "@/lib/useEntryCast";
 import GroupFilterRow from "./GroupFilterRow";
+import ParatextProgressBoard from "./ParatextProgressBoard";
 import { isGroupedActivity, useBookGroups } from "@/lib/bookGroups";
 import {
   PARATEXT_SECTIONS,
@@ -52,6 +53,8 @@ export default function ParatextBoard({
   const grouped = isGroupedActivity(activity);
   const groups = useBookGroups(activity.id, grouped);
   const [pickedGroup, setPickedGroup] = useState(null);
+  // 읽는중 전광판 — 여덟 단계 × 반 전체를 한 격자로(공부방 전광판과 같은 모양)
+  const [boardOpen, setBoardOpen] = useState(false);
 
   useEffect(() => subscribeParatextEntries(activity.id, setEntries), [activity.id]);
 
@@ -286,14 +289,28 @@ export default function ParatextBoard({
         </p>
       ) : (
         <>
-          {grouped && (
-            <GroupFilterRow
-              groups={groups}
-              value={pickedGroup}
-              onChange={setPickedGroup}
-              counts={groupCounts}
-            />
-          )}
+          {/* 모둠 고르는 줄 — 그 끝(마지막 모둠 뒤)에 전광판을 엽니다.
+              모둠이 없는 활동에서는 이 줄에 전광판 단추만 섭니다.
+              전광판은 **고른 모둠이 아니라 반 전체**를 보여 줍니다 — 모둠을
+              다 지나온 자리에 두는 까닭이 그것입니다(cards, shownCards 아님). */}
+          <GroupFilterRow
+            groups={grouped ? groups : []}
+            value={pickedGroup}
+            onChange={setPickedGroup}
+            counts={groupCounts}
+            trailing={
+              cards.length > 0 && (
+                <button
+                  type="button"
+                  className="group-filter-act"
+                  onClick={() => setBoardOpen(true)}
+                  title="여덟 단계 × 반 전체를 한 격자로 봅니다"
+                >
+                  전광판
+                </button>
+              )
+            }
+          />
           <div className="paratext-card-grid">
             {shownCards.map((c) => (
               <StudentCard
@@ -305,6 +322,17 @@ export default function ParatextBoard({
             ))}
           </div>
         </>
+      )}
+
+      {/* 전광판 — 학생 상세로 들어가면 닫습니다(그 화면이 곧 답이라
+          뒤에 격자를 켜 둘 이유가 없습니다). */}
+      {boardOpen && (
+        <ParatextProgressBoard
+          activity={activity}
+          cards={cards}
+          onOpenStudent={(uid) => { setOpenUid(uid); setBoardOpen(false); }}
+          onClose={() => setBoardOpen(false)}
+        />
       )}
     </main>
   );
