@@ -4105,6 +4105,12 @@ button.understood-bulb:hover {
 .rte-chat .rte-toolbar {
   border-top: 1px solid var(--border);
 }
+/* 툴바를 위로 올린 채팅 에디터(toolbarTop) — 가르는 선도 따라 넘어갑니다.
+   안 그러면 툴바 위에 선이 그어져 창 머리와 붙어 보입니다. */
+.rte-chat.rte-toolbar-top .rte-toolbar {
+  border-top: none;
+  border-bottom: 1px solid var(--border);
+}
 
 /* 툴바 아이콘 버튼 */
 .rte-tool {

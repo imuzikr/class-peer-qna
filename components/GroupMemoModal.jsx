@@ -302,6 +302,10 @@ export default function GroupMemoModal({
                   <RichTextEditor
                     key={composeKey}
                     variant="chat"
+                    /* 꾸미개가 먼저, 쓰는 칸이 그다음 — 질문·공지 작성 창과
+                       같은 순서입니다. 메신저처럼 아래에 두면 서식을 쓰려고
+                       칸 밖으로 눈이 한 번 내려갔다 올라와야 합니다. */
+                    toolbarTop
                     placeholder={`${partner.name}에게 남길 말 — Ctrl+Enter로 보내기`}
                     onChange={(html) => { draftRef.current = html; }}
                     onSend={handleSend}

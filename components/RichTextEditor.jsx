@@ -8,6 +8,11 @@
 //   variant="full" : 박스 상단에 툴바 (질문·공지 작성용)
 //   variant="chat" : 박스 하단에 툴바 + 종이비행기 전송 버튼 (채팅용)
 //
+// toolbarTop: chat이면서 툴바만 위로 올립니다(전송 버튼은 그대로 툴바에).
+//   메신저는 툴바가 아래인 것이 익숙하지만, '쓰는 칸'이 넓고 서식을 실제로
+//   쓰는 자리(모둠 메모)에서는 **꾸미개가 먼저, 쓰는 칸이 그다음**이라야
+//   질문·공지 작성 창과 순서가 같아집니다.
+//
 // tools로 툴바에 보일 것만 고를 수 있습니다(수업 메모처럼 서식이 몇 개면
 // 충분한 자리용). 안 주면 전부 보입니다.
 //
@@ -133,6 +138,7 @@ function pickCommands(tools) {
 
 export default function RichTextEditor({
   variant = "full", // "full" | "chat"
+  toolbarTop = false, // chat이면서 툴바를 위로 (전송 버튼은 그대로 툴바에)
   small = false, // true면 낮은 입력 높이 (공지 등 좁은 영역용)
   className = "", // 쓰는 자리에서 크기·글자를 조정할 때
   initialHtml = "", // 처음부터 채워 둘 내용 (예: 실행기에서 넘어온 코드)
@@ -338,9 +344,9 @@ export default function RichTextEditor({
 
   return (
     <div
-      className={`rte rte-${variant} ${small ? "rte-sm" : ""} ${className}`.trim()}
+      className={`rte rte-${variant}${toolbarTop ? " rte-toolbar-top" : ""} ${small ? "rte-sm" : ""} ${className}`.trim()}
     >
-      {variant === "full" ? (
+      {variant === "full" || toolbarTop ? (
         <>
           {toolbar}
           {area}
