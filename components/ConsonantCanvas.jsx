@@ -19,6 +19,18 @@
 //   비워 둘 수 있고, 학생이 한가운데 칸을 두 번 눌러 직접 적습니다(판에 저장).
 //   또 '누가 넣었는지'를 색으로 나눌 이유가 없으므로(한 판에 한 사람) 낱말에
 //   사람 색을 입히지 않고 범례도 두지 않습니다.
+//
+// [판 위의 빠른 입력칸 — 학생만]
+//   칸마다 ＋를 눌러 넣는 길은 그대로 두고, 판 위에 낱말 입력칸을 하나 둡니다.
+//   적으면 **첫 글자의 초성**으로 갈 칸을 스스로 골라 넣습니다(lib/korean.js의
+//   initialJamoOf → lib/consonants.js의 cellIndexOfWord). 열네 칸을 눈으로
+//   훑어 ＋를 찾는 일이 낱말마다 되풀이되던 것이 한 줄로 줄어듭니다.
+//   · 넣기 전에 '→ ㄱ 칸'을 미리 보여 줍니다 — 어디로 갈지 모르고 Enter를
+//     누르게 두지 않으려고요.
+//   · 넣은 뒤에는 그 칸이 잠깐 밝아집니다(.flash). 판이 3×5라 낱말이 어디에
+//     떨어졌는지 눈으로 좇기 어렵습니다.
+//   · 한글로 시작하지 않으면 **넣지 않고** 까닭을 알립니다. 엉뚱한 칸에
+//     넣는 것보다 낫습니다.
 // =============================================================
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -28,8 +40,15 @@ import {
   deleteConsonantWord,
   setBookGroupTopic,
 } from "@/lib/store";
-import { CONSONANT_LABELS, GRID_SLOTS, CELL_COUNT, cellKey } from "@/lib/consonants";
+import {
+  CONSONANT_LABELS,
+  GRID_SLOTS,
+  CELL_COUNT,
+  cellKey,
+  cellIndexOfWord,
+} from "@/lib/consonants";
 import { memberColor, memberLegend } from "@/lib/bookColors";
+import { eunNeun } from "@/lib/korean";
 import { IconLock } from "./StatusIcons";
 
 export default function ConsonantCanvas({
@@ -58,6 +77,14 @@ export default function ConsonantCanvas({
   const [topicEditing, setTopicEditing] = useState(false); // 개별 활동 — 주제어 고치는 중
   const [topicDraft, setTopicDraft] = useState("");
   const topicRef = useRef(null);
+  // 판 위 빠른 입력칸 (학생)
+  const [quick, setQuick] = useState("");
+  const [quickNote, setQuickNote] = useState(""); // 못 넣었을 때 까닭
+  const quickRef = useRef(null);
+  // 방금 넣은 칸을 잠깐 밝힙니다. 같은 칸에 연달아 넣어도 다시 밝아지도록
+  // 번호(n)를 함께 들어 상태가 늘 새 값이 되게 합니다.
+  const [flash, setFlash] = useState(null); // { i, n }
+  const flashSeq = useRef(0);
 
   useEffect(() => subscribeGroupWords(activity.id, groupId, setWords), [activity.id, groupId]);
   useEffect(() => subscribeBookGroups(activity.id, setGroups), [activity.id]);
@@ -137,6 +164,40 @@ export default function ConsonantCanvas({
     if (!canWrite) return;
     setActiveIndex(index);
     setDraft("");
+  }
+
+  // ── 판 위 빠른 입력칸 ──
+  // 적는 동안 미리 보여 줄 칸(-1이면 아직 고를 수 없는 말)
+  const quickIndex = cellIndexOfWord(quick);
+
+  useEffect(() => {
+    if (!flash) return undefined;
+    const t = setTimeout(() => setFlash(null), 1100);
+    return () => clearTimeout(t);
+  }, [flash]);
+
+  async function addQuick() {
+    const text = quick.trim();
+    if (!text) return;
+    const index = cellIndexOfWord(text);
+    if (index < 0) {
+      setQuickNote("한글로 시작하는 낱말만 넣을 수 있어요");
+      return;
+    }
+    // 같은 낱말을 두 번 — 빠르게 적는 칸이라 실제로 잦습니다(Enter를 두 번
+    // 누르거나, 아까 넣은 것을 잊고 다시 적거나). 칸을 눌러 넣던 때보다
+    // 알아채기 어려워 여기서만 막습니다.
+    const mine = (byCell[cellKey(index)] ?? []).filter((w) => w.authorId === user?.uid);
+    if (mine.some((w) => w.text === text)) {
+      setQuickNote(`${eunNeun(text)} 이미 ${CONSONANT_LABELS[index]} 칸에 있어요`);
+      return;
+    }
+    setQuick("");
+    setQuickNote("");
+    flashSeq.current += 1;
+    setFlash({ i: index, n: flashSeq.current });
+    await addConsonantWord(activity.id, groupId, { cellKey: cellKey(index), text }, user);
+    quickRef.current?.focus(); // 연달아 적을 수 있게
   }
 
   // ── 한가운데 주제어 (개별 활동) ──
@@ -259,6 +320,42 @@ export default function ConsonantCanvas({
         </div>
       )}
 
+      {/* 빠른 입력칸 — 판 위 한 줄. 첫 글자의 초성으로 칸을 스스로 고릅니다.
+          칸마다 있는 ＋는 그대로 둡니다(고른 칸이 마음에 안 들 때, 그리고
+          한글로 시작하지 않는 낱말을 넣을 때 그 길이 필요합니다). */}
+      {canWrite && (
+        <div className="consonant-quick">
+          <input
+            ref={quickRef}
+            className="consonant-quick-input"
+            value={quick}
+            onChange={(e) => { setQuick(e.target.value); setQuickNote(""); }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") { e.preventDefault(); addQuick(); }
+              else if (e.key === "Escape") { setQuick(""); setQuickNote(""); }
+            }}
+            placeholder="낱말을 적고 Enter — 첫 글자를 보고 칸을 골라 줍니다"
+            maxLength={20}
+            aria-label="낱말 넣기"
+          />
+          {/* 어디로 갈지 미리 — 모르고 Enter를 누르게 두지 않으려고요 */}
+          <span className={`consonant-quick-to${quick.trim() && quickIndex < 0 ? " none" : ""}`}>
+            {quick.trim()
+              ? (quickIndex >= 0 ? `→ ${CONSONANT_LABELS[quickIndex]} 칸` : "→ ?")
+              : "→"}
+          </span>
+          <button
+            type="button"
+            className="consonant-quick-btn"
+            onClick={addQuick}
+            disabled={!quick.trim() || quickIndex < 0}
+          >
+            넣기
+          </button>
+          {quickNote && <em className="consonant-quick-note">{quickNote}</em>}
+        </div>
+      )}
+
       <div className="consonant-grid">
         {GRID_SLOTS.map((slot, pos) => {
           // 한가운데 — 주제어 칸
@@ -301,7 +398,7 @@ export default function ConsonantCanvas({
           return (
             <div
               key={pos}
-              className={`consonant-cell${list.length > 0 ? " has-words" : ""}${open ? " open" : ""}`}
+              className={`consonant-cell${list.length > 0 ? " has-words" : ""}${open ? " open" : ""}${flash?.i === slot ? " flash" : ""}`}
             >
               <div className="consonant-cell-head">
                 <span className="consonant-label">{CONSONANT_LABELS[slot]}</span>
@@ -378,7 +475,8 @@ export default function ConsonantCanvas({
 
       {canWrite && (
         <p className="canvas-hint">
-          칸의 ＋를 누르고 단어를 적은 뒤 Enter를 누르세요. 내가 넣은 단어는 ×로 지울 수 있어요.
+          위 칸에 낱말을 적고 Enter를 누르면 첫 글자에 맞는 자음 칸으로 들어가요.
+          칸의 ＋로 직접 골라 넣을 수도 있고, 내가 넣은 단어는 ×로 지울 수 있어요.
           {canEditTopic && " 한가운데 칸을 두 번 누르면 주제어를 적을 수 있어요."}
         </p>
       )}

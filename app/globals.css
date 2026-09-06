@@ -18401,6 +18401,74 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
   flex-shrink: 0;
 }
 
+/* ── 판 위 빠른 입력칸 (학생) ────────────────────────────────────
+   낱말 하나를 적으면 첫 글자의 초성으로 칸이 정해집니다. 판이 남는 높이를
+   다 쓰므로(.consonant-grid가 flex:1) 이 줄은 줄어들지 않게 둡니다. */
+.consonant-quick {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.consonant-quick-input {
+  flex: 1 1 220px;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  padding: 8px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text);
+  background: #fff;
+}
+.consonant-quick-input:focus {
+  outline: none;
+  border-color: var(--board-ink-deep, var(--primary));
+  box-shadow: 0 0 0 3px var(--board-chip, var(--primary-light));
+}
+/* 갈 칸 미리보기 — 자리를 미리 잡아 두어 글자가 바뀌어도 옆 단추가
+   움직이지 않습니다(움직이면 누르려던 곳이 어긋납니다). */
+.consonant-quick-to {
+  flex-shrink: 0;
+  min-width: 62px;
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--board-ink-deep, var(--primary-dark));
+  font-variant-numeric: tabular-nums;
+}
+.consonant-quick-to.none { color: var(--text-faint); }
+.consonant-quick-btn {
+  flex-shrink: 0;
+  border: 1px solid var(--board-ink-deep, var(--primary));
+  border-radius: 999px;
+  background: var(--board-chip, var(--primary-light));
+  padding: 7px 16px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--board-chip-ink, var(--primary-dark));
+  cursor: pointer;
+}
+.consonant-quick-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+/* 못 넣은 까닭 — 줄이 좁으면 아래로 내려갑니다(위 flex-wrap) */
+.consonant-quick-note {
+  flex: 1 1 100%;
+  font-style: normal;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--primary-dark);
+}
+/* 방금 낱말이 떨어진 칸 — 판이 3×5라 어디로 갔는지 눈으로 좇기 어렵습니다 */
+.consonant-cell.flash {
+  border-color: var(--board-ink-deep, var(--primary));
+  box-shadow: 0 0 0 3px var(--board-chip, var(--primary-light));
+}
+
 .consonant-grid {
   flex: 1;
   min-height: 0;
