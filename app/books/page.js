@@ -176,6 +176,8 @@ function BooksPageInner() {
   const [creatingType, setCreatingType] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [confirmPurge, setConfirmPurge] = useState(null);  // 휴지통에서 완전 삭제
+  const [emptying, setEmptying] = useState(false);         // 휴지통 비우기 진행 중
+  const [confirmEmpty, setConfirmEmpty] = useState(false); // 휴지통 통째로 비우기
   const [trashOpen, setTrashOpen] = useState(false);
   // KWLS 차트 — 공부방과 같은 패널을 왼쪽에서 폭을 벌리며 밀어 넣습니다.
   // 책방에서도 KWLS를 쓰므로(책방 활동의 KWLS는 공부방과 같은 `kwl` 컬렉션에
@@ -435,6 +437,33 @@ function BooksPageInner() {
     setConfirmPurge(null);
     await purgeBookActivity(target.id);
     setToast("완전히 삭제했어요.");
+  }
+
+  // 휴지통 비우기 — 한 번에 다 지웁니다. 한 건씩 지우는 것과 같은 일이지만
+  // 학기말에 스무 개를 하나씩 확인하며 지우는 일을 없앱니다.
+  //
+  // **한 건씩 차례로** 지웁니다(Promise.all이 아니라 for). 활동 하나를 지우는
+  // 것이 하위 컬렉션(모둠·낱말·기록)까지 훑는 일이라, 스무 개를 한꺼번에
+  // 던지면 쓰기가 한 순간에 몰립니다. 중간에 하나가 실패해도 앞의 것은
+  // 지워진 채로 남으므로, 무엇까지 지웠는지 알림에 적습니다.
+  async function handleEmptyTrash() {
+    if (emptying) return;
+    const list = trashedActivities;
+    setConfirmEmpty(false);
+    setEmptying(true);
+    let done = 0;
+    try {
+      for (const a of list) {
+        await purgeBookActivity(a.id);
+        done += 1;
+      }
+      setToast(`휴지통을 비웠어요. ${done}개를 완전히 삭제했습니다.`);
+    } catch (e) {
+      console.warn("[책방] 휴지통 비우기 중 멈췄어요:", e?.code, e?.message);
+      setToast(`${done}개를 지운 뒤 멈췄어요. 남은 것은 다시 시도해 주세요.`);
+    } finally {
+      setEmptying(false);
+    }
   }
 
   // 누가기록 관리·수업 메모 — 화면마다 다시 만들지 않고 이 한 덩어리를
@@ -756,6 +785,8 @@ function BooksPageInner() {
               onToggleTrash={() => setTrashOpen((v) => !v)}
               onRestore={handleRestore}
               onPurge={setConfirmPurge}
+              onEmptyTrash={() => setConfirmEmpty(true)}
+              emptying={emptying}
               isTeacher={admin}
               uid={user?.uid ?? null}
               onOpen={goToActivity}
@@ -853,6 +884,25 @@ function BooksPageInner() {
         />
       )}
 
+      {/* 휴지통 비우기 — 한 번에 다 지웁니다. 되묻는 창에 **몇 개인지와
+          무엇이 함께 지워지는지**를 밝힙니다. 한 건씩 지울 때는 활동 이름이
+          preview에 뜨는데 여기는 여러 개라, 그 자리에 개수를 적습니다. */}
+      {confirmEmpty && (
+        <ConfirmModal
+          title="휴지통 비우기"
+          preview={`활동 ${trashedActivities.length}개`}
+          description={
+            "휴지통에 있는 활동을 모두 완전히 삭제합니다.\n" +
+            "학생들이 쓴 내용(모둠 · 낱말 · 기록)도 함께 지워집니다.\n" +
+            "되돌릴 수 없습니다."
+          }
+          confirmLabel={`${trashedActivities.length}개 완전 삭제`}
+          danger
+          onConfirm={handleEmptyTrash}
+          onClose={() => setConfirmEmpty(false)}
+        />
+      )}
+
       {/* 과일을 받은 순간의 축포 — 학생 화면에서만. 교사는 자기가 준 것이라
           축하할 일이 아니고, 한 화면에서 여러 번 주다 보면 방해가 됩니다. */}
       <RewardCelebration amount={cheerAmount} onDone={clearCheer} />
@@ -878,6 +928,8 @@ function ActivityList({
   onToggleTrash,
   onRestore,
   onPurge,
+  onEmptyTrash,
+  emptying = false,
 }) {
   return (
     <>
@@ -909,15 +961,31 @@ function ActivityList({
           '지운 게 어디 갔지' 하고 찾아 헤매지 않게 하기 위함입니다. */}
       {isTeacher && trashed.length > 0 && (
         <section className="book-trash">
-          <button
-            type="button"
-            className="book-trash-toggle"
-            onClick={onToggleTrash}
-            aria-expanded={trashOpen}
-          >
-            <span className={`memo-caret${trashOpen ? " open" : ""}`} aria-hidden="true">›</span>
-            <IconTrash size={14} /> 휴지통 <em>{trashed.length}</em>
-          </button>
+          {/* 머리줄 — 왼쪽에 펴고 접는 단추, 오른쪽 끝에 '휴지통 비우기'.
+              한 건씩 지우는 길(각 줄의 '완전 삭제')은 그대로 두고, 학기말에
+              스무 개를 하나씩 확인하며 지우지 않아도 되게 한 줄을 더합니다.
+              접혀 있어도 보입니다 — 누르면 되묻는 창이 무엇을 몇 개 지우는지
+              먼저 밝히므로, 안 펴 봤다고 잘못 지워지지 않습니다. */}
+          <div className="book-trash-head">
+            <button
+              type="button"
+              className="book-trash-toggle"
+              onClick={onToggleTrash}
+              aria-expanded={trashOpen}
+            >
+              <span className={`memo-caret${trashOpen ? " open" : ""}`} aria-hidden="true">›</span>
+              <IconTrash size={14} /> 휴지통 <em>{trashed.length}</em>
+            </button>
+            <button
+              type="button"
+              className="btn-ghost qa-delete book-trash-empty"
+              onClick={onEmptyTrash}
+              disabled={emptying}
+              title="휴지통에 있는 활동을 모두 완전히 삭제합니다"
+            >
+              {emptying ? "비우는 중…" : "휴지통 비우기"}
+            </button>
+          </div>
 
           {trashOpen && (
             <ul className="book-trash-list">

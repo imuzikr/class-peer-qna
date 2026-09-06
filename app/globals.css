@@ -22260,6 +22260,18 @@ span.cloud-word { cursor: default; }
   padding-top: 14px;
   border-top: 1px solid var(--border);
 }
+/* 머리줄 — 왼쪽 '휴지통 n', 오른쪽 끝 '휴지통 비우기' */
+.book-trash-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.book-trash-empty {
+  margin-left: auto;
+  flex-shrink: 0;
+  padding: 5px 12px;
+  font-size: 12.5px;
+}
 .book-trash-toggle {
   display: inline-flex;
   align-items: center;
