@@ -20,17 +20,22 @@
 //   또 '누가 넣었는지'를 색으로 나눌 이유가 없으므로(한 판에 한 사람) 낱말에
 //   사람 색을 입히지 않고 범례도 두지 않습니다.
 //
-// [판 위의 빠른 입력칸 — 학생만]
-//   칸마다 ＋를 눌러 넣는 길은 그대로 두고, 판 위에 낱말 입력칸을 하나 둡니다.
-//   적으면 **첫 글자의 초성**으로 갈 칸을 스스로 골라 넣습니다(lib/korean.js의
-//   initialJamoOf → lib/consonants.js의 cellIndexOfWord). 열네 칸을 눈으로
-//   훑어 ＋를 찾는 일이 낱말마다 되풀이되던 것이 한 줄로 줄어듭니다.
-//   · 넣기 전에 '→ ㄱ 칸'을 미리 보여 줍니다 — 어디로 갈지 모르고 Enter를
+// [빠른 입력칸 — 학생만]
+//   칸마다 ＋를 눌러 넣는 길은 그대로 두고, **모둠원 이름 칩 줄 맨 앞**에
+//   낱말 입력칸을 하나 둡니다. 적으면 **첫 글자의 초성**으로 갈 칸을 스스로
+//   골라 넣습니다(lib/korean.js의 initialJamoOf → lib/consonants.js의
+//   cellIndexOfWord). 열네 칸을 눈으로 훑어 ＋를 찾는 일이 낱말마다
+//   되풀이되던 것이 한 번으로 줄어듭니다.
+//   · **제 줄을 두지 않습니다.** 판(.consonant-grid)이 남는 높이를 다 쓰므로
+//     줄이 하나 늘면 그만큼 판이 낮아집니다. 이미 있는 이름 칩 줄에 얹고
+//     너비도 판의 한 칸쯤만 씁니다.
+//   · 넣기 전에 '→ ㄱ'을 미리 보여 줍니다 — 어디로 갈지 모르고 Enter를
 //     누르게 두지 않으려고요.
 //   · 넣은 뒤에는 그 칸이 잠깐 밝아집니다(.flash). 판이 3×5라 낱말이 어디에
 //     떨어졌는지 눈으로 좇기 어렵습니다.
 //   · 한글로 시작하지 않으면 **넣지 않고** 까닭을 알립니다. 엉뚱한 칸에
-//     넣는 것보다 낫습니다.
+//     넣는 것보다 낫습니다. 그 알림은 줄 **아래에 떠서**(absolute) 잠깐
+//     머물다 사라집니다 — 줄 안에 두면 이름 칩이 밀려 판이 내려앉습니다.
 // =============================================================
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -176,6 +181,14 @@ export default function ConsonantCanvas({
     return () => clearTimeout(t);
   }, [flash]);
 
+  // 못 넣은 까닭은 줄 아래에 떠 있다가 스스로 사라집니다 — 다음 낱말을
+  // 적기 시작하면(onChange) 그때도 지웁니다.
+  useEffect(() => {
+    if (!quickNote) return undefined;
+    const t = setTimeout(() => setQuickNote(""), 3000);
+    return () => clearTimeout(t);
+  }, [quickNote]);
+
   async function addQuick() {
     const text = quick.trim();
     if (!text) return;
@@ -283,8 +296,48 @@ export default function ConsonantCanvas({
           남고, 위의 '모둠 전체 보기'로 돌아옵니다. 한 사람만 보는 중에는
           이 줄을 통째로 감춥니다(무엇을 보는 중인지는 위 한 줄이 말합니다).
           학생 화면에서는 지금까지대로 이름표일 뿐입니다. */}
-      {legend.length > 0 && !focusUid && (
+      {(legend.length > 0 || canWrite) && !focusUid && (
         <div className="canvas-legend">
+          {/* 빠른 입력칸 — 이름 칩 앞. 낱말 하나가 들어갈 만큼만(판의 한 칸
+              너비쯤) 차지합니다. 줄을 따로 두면 판이 그만큼 낮아집니다.
+              칸마다 있는 ＋는 그대로 둡니다(한글로 시작하지 않는 낱말과
+              '고른 칸이 마음에 안 들 때'는 그 길로만 넣습니다). */}
+          {canWrite && (
+            <span className="consonant-quick">
+              <input
+                ref={quickRef}
+                className="consonant-quick-input"
+                value={quick}
+                onChange={(e) => { setQuick(e.target.value); setQuickNote(""); }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") { e.preventDefault(); addQuick(); }
+                  else if (e.key === "Escape") { setQuick(""); setQuickNote(""); }
+                }}
+                placeholder="낱말 넣기"
+                title="낱말을 적고 Enter — 첫 글자를 보고 칸을 골라 줍니다"
+                maxLength={20}
+                aria-label="낱말 넣기"
+              />
+              {/* 어디로 갈지 미리 — 모르고 Enter를 누르게 두지 않으려고요.
+                  자리를 미리 잡아 두어 글자가 바뀌어도 옆 단추가 안 움직입니다. */}
+              <span className={`consonant-quick-to${quick.trim() && quickIndex < 0 ? " none" : ""}`}>
+                {quick.trim() ? (quickIndex >= 0 ? `→ ${CONSONANT_LABELS[quickIndex]}` : "→ ?") : "→"}
+              </span>
+              <button
+                type="button"
+                className="consonant-quick-btn"
+                onClick={addQuick}
+                disabled={!quick.trim() || quickIndex < 0}
+                title="적은 낱말을 넣습니다 (Enter)"
+              >
+                넣기
+              </button>
+              {/* 못 넣은 까닭 — 줄 아래에 잠깐 떠 있습니다. 이 줄 안에 두면
+                  글자가 길어 이름 칩이 다음 줄로 밀리고, 그만큼 판이
+                  아래로 내려앉습니다(줄 높이가 곧 판의 높이입니다). */}
+              {quickNote && <em className="consonant-quick-note">{quickNote}</em>}
+            </span>
+          )}
           {legend.map((m) => {
             const swatch = (
               <i
@@ -317,42 +370,6 @@ export default function ConsonantCanvas({
               </button>
             );
           })}
-        </div>
-      )}
-
-      {/* 빠른 입력칸 — 판 위 한 줄. 첫 글자의 초성으로 칸을 스스로 고릅니다.
-          칸마다 있는 ＋는 그대로 둡니다(고른 칸이 마음에 안 들 때, 그리고
-          한글로 시작하지 않는 낱말을 넣을 때 그 길이 필요합니다). */}
-      {canWrite && (
-        <div className="consonant-quick">
-          <input
-            ref={quickRef}
-            className="consonant-quick-input"
-            value={quick}
-            onChange={(e) => { setQuick(e.target.value); setQuickNote(""); }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") { e.preventDefault(); addQuick(); }
-              else if (e.key === "Escape") { setQuick(""); setQuickNote(""); }
-            }}
-            placeholder="낱말을 적고 Enter — 첫 글자를 보고 칸을 골라 줍니다"
-            maxLength={20}
-            aria-label="낱말 넣기"
-          />
-          {/* 어디로 갈지 미리 — 모르고 Enter를 누르게 두지 않으려고요 */}
-          <span className={`consonant-quick-to${quick.trim() && quickIndex < 0 ? " none" : ""}`}>
-            {quick.trim()
-              ? (quickIndex >= 0 ? `→ ${CONSONANT_LABELS[quickIndex]} 칸` : "→ ?")
-              : "→"}
-          </span>
-          <button
-            type="button"
-            className="consonant-quick-btn"
-            onClick={addQuick}
-            disabled={!quick.trim() || quickIndex < 0}
-          >
-            넣기
-          </button>
-          {quickNote && <em className="consonant-quick-note">{quickNote}</em>}
         </div>
       )}
 
