@@ -22424,6 +22424,13 @@ span.cloud-word { cursor: default; }
   padding-top: 18px;
   border-top: 1px solid var(--border);
 }
+/* 머리줄 — 왼쪽 '🗑 휴지통', 오른쪽 끝 '휴지통 비우기'(펼쳤을 때만) */
+.study-trash-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.study-trash-empty-btn { margin-left: auto; }
 .study-trash-toggle {
   display: inline-flex;
   align-items: center;

@@ -25,6 +25,7 @@ import {
 } from "@/lib/store";
 import { cardActivitySummary, isActivityLocked } from "@/lib/activities";
 import { IconLock, IconIndividual, IconGroup } from "./StatusIcons";
+import ConfirmModal from "./ConfirmModal";
 
 function dateLabel(value) {
   const d = value ? toDate(value) : null;
@@ -54,6 +55,9 @@ export default function StudyProjectDashboard({
   const [trashBusy, setTrashBusy] = useState(false);
   // 완전 삭제는 되돌릴 수 없어 그 카드에서 한 번 더 묻습니다.
   const [confirmPurge, setConfirmPurge] = useState(null);
+  // 휴지통 비우기 — 여러 개를 한 번에 지우는 자리라 줄 안이 아니라 창으로
+  // 묻습니다(책방 휴지통과 같은 모양).
+  const [confirmEmpty, setConfirmEmpty] = useState(false);
 
   const projects = boards.filter((b) => b.type !== "notice");
   const canManage = isTeacher && !readOnly;
@@ -70,7 +74,11 @@ export default function StudyProjectDashboard({
     loadTrash();
   }, [trashOpen, loadTrash]);
   // 반을 바꾸면 접어 둡니다 — 다른 반의 휴지통이 펼쳐진 채로 남지 않게.
-  useEffect(() => { setTrashOpen(false); setConfirmPurge(null); }, [classId]);
+  useEffect(() => {
+    setTrashOpen(false);
+    setConfirmPurge(null);
+    setConfirmEmpty(false);
+  }, [classId]);
 
   async function handleRestore(board) {
     if (trashBusy) return;
@@ -93,6 +101,32 @@ export default function StudyProjectDashboard({
       await loadTrash();
       onToast?.(`‘${board.title}’ 프로젝트를 완전히 지웠어요.`);
     } finally {
+      setTrashBusy(false);
+    }
+  }
+
+  // 휴지통 비우기 — 한 번에 다 지웁니다(책방 휴지통과 같은 방식).
+  // **한 건씩 차례로** 부릅니다(`Promise.all` 아님) — 프로젝트 하나가 반
+  // 학생 전원의 카드까지 훑는 일이라, 여럿을 한꺼번에 던지면 쓰기가 한
+  // 순간에 몰립니다. 중간에 멈추면 앞의 것은 지워진 채이므로 몇 개까지
+  // 지웠는지 알립니다.
+  async function handleEmptyTrash() {
+    if (trashBusy) return;
+    const list = trashed;
+    setConfirmEmpty(false);
+    setTrashBusy(true);
+    let done = 0;
+    try {
+      for (const b of list) {
+        await purgeStudyBoard(b.id);
+        done += 1;
+      }
+      onToast?.(`휴지통을 비웠어요. 프로젝트 ${done}개를 완전히 지웠습니다.`);
+    } catch (e) {
+      console.warn("[공부방] 휴지통 비우기 중 멈췄어요:", e?.code, e?.message);
+      onToast?.(`${done}개를 지운 뒤 멈췄어요. 남은 것은 다시 시도해 주세요.`);
+    } finally {
+      await loadTrash();
       setTrashBusy(false);
     }
   }
@@ -146,17 +180,35 @@ export default function StudyProjectDashboard({
           되돌릴 자리가 필요합니다. 평소엔 접혀 있고, 열 때만 읽습니다. */}
       {canManage && (
         <div className="study-trash">
-          <button
-            type="button"
-            className={`study-trash-toggle${trashOpen ? " on" : ""}`}
-            onClick={() => setTrashOpen((v) => !v)}
-            aria-expanded={trashOpen}
-          >
-            🗑 휴지통
-            <span className="study-trash-caret" aria-hidden="true">
-              {trashOpen ? "▲" : "▼"}
-            </span>
-          </button>
+          {/* 머리줄 — 왼쪽에 펴고 접는 단추, 오른쪽 끝에 '휴지통 비우기'.
+              책방과 달리 **펼쳤을 때만** 답니다. 이 휴지통은 열 때 비로소
+              읽어 오므로(loadTrash) 접혀 있는 동안은 몇 개인지 모르는데,
+              되묻는 창이 개수를 말해 주지 못하면 무엇을 지우는지 모르고
+              누르게 됩니다. */}
+          <div className="study-trash-head">
+            <button
+              type="button"
+              className={`study-trash-toggle${trashOpen ? " on" : ""}`}
+              onClick={() => setTrashOpen((v) => !v)}
+              aria-expanded={trashOpen}
+            >
+              🗑 휴지통
+              <span className="study-trash-caret" aria-hidden="true">
+                {trashOpen ? "▲" : "▼"}
+              </span>
+            </button>
+            {trashOpen && trashed.length > 0 && (
+              <button
+                type="button"
+                className="study-trash-btn danger study-trash-empty-btn"
+                onClick={() => setConfirmEmpty(true)}
+                disabled={trashBusy}
+                title="휴지통에 있는 프로젝트를 모두 완전히 지웁니다"
+              >
+                {trashBusy ? "비우는 중…" : "휴지통 비우기"}
+              </button>
+            )}
+          </div>
 
           {trashOpen && (
             trashed.length === 0 ? (
@@ -220,6 +272,25 @@ export default function StudyProjectDashboard({
             )
           )}
         </div>
+      )}
+
+      {/* 휴지통 비우기 되묻기 — 개수와 '무엇이 함께 지워지는가'를 밝힙니다.
+          한 건씩 지울 때는 줄 안에서 묻지만(그 줄에 이름이 적혀 있으니),
+          여러 개를 한 번에 지우는 일은 창으로 세워 확인합니다. */}
+      {confirmEmpty && (
+        <ConfirmModal
+          title="휴지통 비우기"
+          preview={`프로젝트 ${trashed.length}개`}
+          description={
+            "휴지통에 있는 프로젝트를 모두 완전히 지웁니다.\n" +
+            "그 프로젝트에 딸린 반 학생 전원의 개인 카드도 함께 지워집니다.\n" +
+            "되돌릴 수 없습니다."
+          }
+          confirmLabel={`${trashed.length}개 완전 삭제`}
+          danger
+          onConfirm={handleEmptyTrash}
+          onClose={() => setConfirmEmpty(false)}
+        />
       )}
     </div>
   );
