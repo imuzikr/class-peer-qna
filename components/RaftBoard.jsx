@@ -167,6 +167,21 @@ export default function RaftBoard({
     [reviews, open]
   );
 
+  // 전광판 단추 — 서는 자리가 둘입니다: 모둠 칩이 있으면 그 줄 끝,
+  // 없으면 머리말의 진행 요약 옆. 어느 쪽이든 보여 주는 것은 **반 전체**
+  // 입니다(모둠으로 좁혀 봐도 격자는 반 전체).
+  const chipRow = grouped && groups.length > 0;
+  const boardBtn = cards.length > 0 && (
+    <button
+      type="button"
+      className="group-filter-act"
+      onClick={() => setBoardOpen(true)}
+      title="R·A·F·T와 글쓰기 × 반 전체를 한 격자로 봅니다"
+    >
+      전광판
+    </button>
+  );
+
   return (
     <main className="books-main book-workspace-main">
       <div className="books-head">
@@ -196,6 +211,8 @@ export default function RaftBoard({
             <span className="paratext-sum">
               시작 {startedCount}명 · 완성 {doneCount}명 / 전체 {cards.length}명
             </span>
+            {/* 칩 줄이 없는 활동에서는 전광판이 여기 섭니다 */}
+            {!chipRow && boardBtn}
             {/* 잠김 안내도 이 줄에 — 예전엔 머리말 아래 제 줄을 차지했는데,
                 이 줄은 배지 두어 개뿐이라 오른쪽이 비어 있었습니다.
                 '지금 잠겨 있다'는 활동에 붙는 상태라 배지와 같은 성격입니다. */}
@@ -252,23 +269,15 @@ export default function RaftBoard({
 
       {/* 모둠 고르는 줄 — 그 끝(마지막 모둠 뒤)에 전광판을 엽니다.
           전광판은 고른 모둠이 아니라 **반 전체**를 보여 줍니다(cards). */}
+      {/* 모둠 칩 줄 — 그 끝(마지막 모둠 뒤)에 전광판을 엽니다.
+          칩이 없으면 이 줄을 아예 안 그리고 전광판은 머리말로 갑니다
+          (단추 하나를 세우려고 줄 하나를 쓰지 않게). */}
       <GroupFilterRow
         groups={grouped ? groups : []}
         value={pickedGroup}
         onChange={setPickedGroup}
         counts={groupCounts}
-        trailing={
-          cards.length > 0 && (
-            <button
-              type="button"
-              className="group-filter-act"
-              onClick={() => setBoardOpen(true)}
-              title="R·A·F·T와 글쓰기 × 반 전체를 한 격자로 봅니다"
-            >
-              전광판
-            </button>
-          )
-        }
+        trailing={chipRow ? boardBtn : null}
       />
 
       {cards.length === 0 ? (

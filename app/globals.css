@@ -12864,12 +12864,16 @@ a.lesson-board-file-name { text-decoration: underline; }
    ('전체 보기'는 이 화면에서 가장 앞서는 행동이라 38px 그대로입니다) */
 .books-head-row .books-head-main .btn-ghost,
 .books-head-row .books-head-main .book-group-topic,
-.books-head-row .books-head-main .book-group-class {
+.books-head-row .books-head-main .book-group-class,
+/* 칩 줄이 없는 활동에서는 전광판도 이 줄에 섭니다 — 제 줄에서 쓰던 크기
+   (12.5px · padding 6/14)로 두면 옆 배지보다 2px 높아 줄이 어긋납니다. */
+.books-head-row .books-head-main .group-filter-act {
   height: auto;
   padding: 6px 12px;
   font-size: 13px;
   line-height: 1;
 }
+.books-head-row .books-head-main .group-filter-act { flex-shrink: 0; }
 /* 활동 화면의 반 고르개 — 목록 머리말에서는 38px이지만, 이 줄에서는
    '어느 반인가'를 알려 주는 딸림 정보라 옆 배지 높이(27px)에 맞춥니다.
    세로 여백이 4px인 것은 <select>가 line-height를 듣지 않아서입니다 —

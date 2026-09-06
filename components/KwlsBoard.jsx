@@ -30,7 +30,6 @@ import {
 import { safeBookUrl } from "@/lib/paratext";
 import { IconBook, IconLock } from "./StatusIcons";
 import KwlsProgressBoard from "./KwlsProgressBoard";
-import GroupFilterRow from "./GroupFilterRow";
 import BookStudentRail from "./BookStudentRail";
 import EntryProgressPanel from "./EntryProgressPanel";
 import CastBar from "./CastBar";
@@ -119,6 +118,20 @@ export default function KwlsBoard({
 
   const openAnswers = open?.entry?.answers ?? {};
 
+  // 전광판 — 모둠이 없는 활동이라 칩 줄이 아예 없습니다. 단추 하나를
+  // 세우려고 줄 하나를 쓰지 않게 머리말의 진행 요약 옆에 둡니다
+  // (곁텍스트·RAFT도 칩이 없을 때는 같은 자리입니다).
+  const boardBtn = cards.length > 0 && (
+    <button
+      type="button"
+      className="group-filter-act"
+      onClick={() => setBoardOpen(true)}
+      title="K·W·L·S 네 칸 × 반 전체를 한 격자로 봅니다"
+    >
+      전광판
+    </button>
+  );
+
   return (
     <main className="books-main book-workspace-main">
       <div className="books-head">
@@ -149,6 +162,7 @@ export default function KwlsBoard({
               시작 {startedCount}명 · 읽기 전 마침 {readyCount}명 · 완성 {doneCount}명 /
               {" "}전체 {cards.length}명
             </span>
+            {boardBtn}
             {/* 잠김 안내도 이 줄에 — 예전엔 머리말 아래 제 줄을 차지했는데,
                 이 줄은 배지 두어 개뿐이라 오른쪽이 비어 있었습니다.
                 '지금 잠겨 있다'는 활동에 붙는 상태라 배지와 같은 성격입니다. */}
@@ -183,23 +197,6 @@ export default function KwlsBoard({
           )}
         </div>
       </div>
-
-      {/* 전광판 — 네 칸 × 반 전체. 모둠이 없는 활동이라 이 줄에는
-          단추 하나만 섭니다(곁텍스트·RAFT와 같은 자리). */}
-      <GroupFilterRow
-        trailing={
-          cards.length > 0 && (
-            <button
-              type="button"
-              className="group-filter-act"
-              onClick={() => setBoardOpen(true)}
-              title="K·W·L·S 네 칸 × 반 전체를 한 격자로 봅니다"
-            >
-              전광판
-            </button>
-          )
-        }
-      />
 
       {cards.length === 0 ? (
         <p className="empty-note">
