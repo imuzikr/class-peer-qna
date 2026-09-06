@@ -45,6 +45,7 @@ import {
   REWARD_MAX,
 } from "@/lib/store";
 import { KWLS_COLUMNS, kwlsAnswersFromEntry } from "@/lib/kwls";
+import KwlDateCalendar from "./KwlDateCalendar";
 
 function toYMD(d) {
   const y = d.getFullYear();
@@ -359,7 +360,7 @@ export default function KwlFullscreenModal({
               )}
 
               {calOpen && (
-                <KwlCalendar
+                <KwlDateCalendar
                   date={date}
                   days={calDays}
                   onPick={goDate}
@@ -483,92 +484,6 @@ export default function KwlFullscreenModal({
           )}
         </div>
       </div>
-    </div>
-  );
-}
-
-// ── 날짜 달력 ──────────────────────────────────────────────
-// 출석부 달력(StudyAttendanceModal)·수업 메모 달력과 같은 짜임·같은 CSS를
-// 씁니다(.study-attendance-calendar). 교사가 이미 그 모양에 익숙하고,
-// 격자·요일 머리·달 넘기기를 다시 만들 이유가 없습니다. 다른 점은 칸에
-// 채우는 값뿐입니다 — 여기는 '그날 KWLS를 쓴 사람 수'.
-//
-// 기록이 없는 날도 누를 수 있게 둡니다. 이 달력의 쓰임은 '있는 날로 건너뛰기'
-// 지만, 빈 날을 확인하러 가는 길까지 막을 이유는 없습니다(화살표로는 갈 수
-// 있는데 달력에서만 막히면 오히려 고장으로 보입니다). 앞날만 막습니다.
-const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
-
-function shiftMonth(cursor, delta) {
-  const m = cursor.month + delta;
-  if (m < 0) return { year: cursor.year - 1, month: 11 };
-  if (m > 11) return { year: cursor.year + 1, month: 0 };
-  return { year: cursor.year, month: m };
-}
-
-function KwlCalendar({ date, days, onPick, onClose }) {
-  const [cursor, setCursor] = useState(() => {
-    const [y, m] = date.split("-").map(Number);
-    return { year: y, month: (m || 1) - 1 };
-  });
-
-  const daysInMonth = new Date(cursor.year, cursor.month + 1, 0).getDate();
-  const startWeekday = new Date(cursor.year, cursor.month, 1).getDay();
-  const cells = Array.from({ length: startWeekday }, () => null).concat(
-    Array.from({ length: daysInMonth }, (_, i) => i + 1)
-  );
-  const loading = days === null;
-
-  return (
-    <div className="kwlfs-cal" onClick={(e) => e.stopPropagation()}>
-      <div className="study-attendance-calendar">
-        <div className="study-cal-head">
-          <button type="button" onClick={() => setCursor((c) => shiftMonth(c, -1))} aria-label="이전 달">‹</button>
-          <span>{cursor.year}년 {cursor.month + 1}월</span>
-          <button type="button" onClick={() => setCursor((c) => shiftMonth(c, 1))} aria-label="다음 달">›</button>
-        </div>
-        <div className="study-cal-weekdays" aria-hidden="true">
-          {WEEKDAYS.map((w) => <span key={w}>{w}</span>)}
-        </div>
-        <div className="study-cal-grid">
-          {cells.map((d, i) => {
-            if (d === null) {
-              return <span key={`blank${i}`} className="study-cal-cell study-cal-cell--blank" />;
-            }
-            const key = `${cursor.year}-${String(cursor.month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-            const count = days?.[key] ?? 0;
-            const cls = [
-              "study-cal-cell",
-              count > 0 && "has-record",
-              key === date && "selected",
-              key === TODAY && "today",
-            ].filter(Boolean).join(" ");
-            return (
-              <button
-                key={key}
-                type="button"
-                className={cls}
-                onClick={() => onPick(key)}
-                disabled={key > TODAY}
-                title={count > 0 ? `${count}명이 썼어요` : "기록 없음"}
-              >
-                <span className="study-cal-day">{d}</span>
-                {count > 0 && <span className="study-cal-count">{count}</span>}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-      <p className="kwlfs-cal-foot">
-        {loading ? (
-          "기록이 있는 날을 찾는 중이에요…"
-        ) : (
-          <>
-            <span className="kwlfs-cal-swatch" aria-hidden="true" />
-            초록 = 쓴 날 · 숫자 = 사람 수
-          </>
-        )}
-        <button type="button" className="kwlfs-cal-close" onClick={onClose}>닫기</button>
-      </p>
     </div>
   );
 }

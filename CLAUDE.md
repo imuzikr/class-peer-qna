@@ -68,7 +68,10 @@ Firebase 미설정 시 자동으로 **데모 모드**로 동작 (새로고침 �
 | `components/ClassNotesTools.jsx` | 기록 관리·수업 메모 버튼 + 모달 묶음 (교사 전용) |
 | `components/CornellNoteDrawer.jsx` | 수업 노트 서랍 (학생 전용) — 오른쪽 손잡이 → 코넬 세 칸 |
 | `components/CornellNoteSheet.jsx` | 수업 노트 한 장 — **읽기 전용 코넬 2단**(리포트·교사 열람 공용) |
-| `components/CornellNoteViewerModal.jsx` | 내 노트 크게 보기 (학생) — 연속 넘기기 |
+| `components/CornellNoteViewerModal.jsx` | 내 노트 크게 보기 (학생) — 코넬 · KWLS 두 탭 |
+| `components/MyKwlsNotes.jsx` | 위 창의 'KWLS 노트' 탭 — 내 KWLS 넘겨 보기 |
+| `components/KwlsNoteSheet.jsx` | KWLS 한 장 — 읽기 전용 K·W·L·S 2×2 |
+| `components/KwlDateCalendar.jsx` | KWLS 날짜 달력 (교사 전체 화면 · 학생 KWLS 탭 공용) |
 | `components/CornellNotesPanel.jsx` | '기록 관리'의 수업 노트 탭 — 날짜 하나로 반 전체 |
 | `components/CornellNoteReadModal.jsx` | 한 학생의 지난 노트 넘겨 보기 + 피드백 (교사 전용) |
 
@@ -466,6 +469,31 @@ Firebase 미설정 시 자동으로 **데모 모드**로 동작 (새로고침 �
     - Esc가 겹칩니다: 같은 `window`에 걸린 리스너끼리는 `stopPropagation`이
       안 통해, 창이 떠 있는 동안 서랍의 Esc 처리를 아예 비켜 줍니다
       (`if (!open || viewerOpen) return`). 안 그러면 한 번에 둘 다 닫힙니다.
+    - **탭이 둘입니다 — 코넬 노트 · KWLS 노트**(`.dash-view-tabs`).
+      학생이 남기는 '내가 쓴 것'이 그 둘이라, 지난 기록을 펴 보는 자리를
+      여기 하나로 모읍니다(예전에는 KWLS를 보려면 공부방 사이드 패널의
+      기록 탭까지 찾아 들어가야 했습니다).
+      - KWLS 탭은 `MyKwlsNotes`가 통째로 맡습니다 — 구독(`subscribeMyAllKwl`,
+        내 것만·등호 둘)도, 넘기기도, 달력도. **한 번 열면 감춰만 둡니다**
+        (`hidden`) — 탭을 오갈 때마다 지웠다 만들면 그때마다 다시 읽습니다.
+      - 한 장은 `KwlsNoteSheet` — 껍데기(`.cornell-sheet`)와 제목 줄은 코넬
+        한 장과 **같은 것**이고 안쪽만 K·W·L·S 2×2입니다(위가 읽기 전,
+        아래가 읽은 뒤 — 학생이 쓸 때 본 배치 그대로). 같은 창에서 탭만
+        바꿔 넘나드는 자리라 두 장이 다른 모양이면 다른 공책처럼 보입니다.
+      - **인쇄가 없습니다.** 코넬 노트는 종이로 뽑아 복습하는 자리지만
+        KWLS는 화면에서 견주어 보는 기록입니다.
+      - **빈 기록은 한 장으로 세지 않습니다**(한 칸이라도 썼나) — 교사
+        화면의 달력·화살표와 같은 기준입니다.
+      - 방향키(← →)를 두 탭이 함께 들으면 한 번 눌러 두 장이 넘어갑니다.
+        코넬 쪽은 `tab === 'cornell'`일 때만, KWLS 쪽은 `active`일 때만.
+      - 날짜 달력은 `KwlDateCalendar` — 교사의 KWLS 전체 화면과 **같은
+        것**입니다(그쪽은 '그날 쓴 사람 수', 여기는 '내 기록 건수').
+        학생 쪽만 기록이 없는 날을 못 누르게 합니다(`disableEmpty`) —
+        볼 것이 없는 날이라서요. 교사 화면은 빈 날도 확인하러 가는
+        자리라 그대로 열어 둡니다.
+      - 팝업은 **오른쪽에 맞춰** 답니다(`.cornell-read-calwrap .kwlfs-cal`).
+        단추가 줄 오른쪽 끝이라 왼쪽 기준이면 340px이 창 밖으로 나가는데,
+        이 창은 `overflow: hidden`이라 그대로 잘립니다(실측).
   - **교사 화면은 날짜 하나로 좁혀 읽습니다**(`subscribeClassCornellNotesOn`).
     반 전체를 기간 제한 없이 받으면 학생 수 × 수업 일수(한 학기면 수천 건)라,
     '오늘 누가 썼나'를 학생 수만큼으로 줄입니다. 한 학생의 흐름은 카드를 눌러

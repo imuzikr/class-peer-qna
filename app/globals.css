@@ -23470,6 +23470,8 @@ body:has(.confirm-backdrop) .cornell-handle {
   font-weight: 700;
   color: var(--text-sub);
   font-variant-numeric: tabular-nums;
+  /* 좁은 화면에서 '1 / 3'이 세 줄로 접혀 줄 높이가 들쭉날쭉해집니다 */
+  white-space: nowrap;
 }
 /* PDF로 저장 — '몇 번째' 오른쪽. margin-left:auto가 '몇 번째'에 있어
    이 묶음은 자연히 오른쪽 끝에 섭니다. */
@@ -23861,6 +23863,77 @@ body:has(.confirm-backdrop) .cornell-handle {
   font-size: 12px;
   line-height: 1.6;
   color: var(--text-sub);
+}
+
+/* ── 크게 보기의 탭 둘 — 코넬 노트 / KWLS 노트 ──────────────────
+   알약 줄 자체는 .dash-view-tabs를 그대로 씁니다(이 앱에서 '한 자리에 두
+   얼굴'을 고르는 자리는 늘 그 모양입니다). 여기서는 자리만 잡습니다. */
+.cornell-view-tabs { align-self: flex-start; margin: 0 0 10px; flex-shrink: 0; }
+/* 탭 한 칸 — 창이 flex column이라 남는 높이를 여기서 다시 나눠 줍니다.
+   숨길 때 display:none이 이기도록 [hidden]을 따로 적어 둡니다(display를
+   준 요소는 hidden 속성만으로 안 숨습니다). */
+.cornell-view-pane {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.cornell-view-pane[hidden] { display: none; }
+/* 달력 단추 — 팝업이 이 줄 아래로 펴지도록 자리를 잡아 둡니다.
+   단추가 줄 오른쪽 끝이라 팝업도 오른쪽에 맞춰 답니다 — 왼쪽 기준(.kwlfs-cal의
+   기본)으로 두면 340px이 창 밖으로 나가는데, 이 창은 overflow:hidden이라
+   그대로 잘립니다(실측). */
+.cornell-read-calwrap { position: relative; flex-shrink: 0; }
+.cornell-read-calwrap .kwlfs-cal { left: auto; right: 0; }
+.cornell-read-pdf.on {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  color: var(--primary-dark);
+}
+
+/* ── KWLS 한 장 — K·W·L·S 네 칸 ───────────────────────────────
+   껍데기는 코넬 한 장과 같은 것(.cornell-sheet)이고 안쪽만 다릅니다.
+   2×2로 두어 위가 읽기 전(K·W), 아래가 읽은 뒤(L·S)입니다 — 학생이 쓸 때
+   본 배치와 같아야 어디에 무엇을 썼는지 그대로 읽힙니다. */
+.kwls-sheet-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-auto-rows: 1fr;
+}
+.kwls-sheet-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  min-height: 0;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+/* 오른쪽 칸·마지막 줄은 바깥 테두리와 겹치므로 선을 빼 둡니다 */
+.kwls-sheet-cell--w, .kwls-sheet-cell--s { border-right: none; }
+.kwls-sheet-cell--l, .kwls-sheet-cell--s { border-bottom: none; }
+/* 읽기 전 두 칸에만 옅은 바탕 — 코넬의 단서 칸과 같은 색입니다.
+   '읽기 전 / 읽은 뒤'가 색으로도 갈립니다. */
+.kwls-sheet-cell--k, .kwls-sheet-cell--w { background: #fdfcfa; }
+.kwls-sheet-cell h4 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+/* 크게 보기에서는 네 칸이 남는 높이를 나눠 갖고, 길면 칸 안에서 구릅니다 */
+.modal-cornell-viewer .kwls-sheet-grid { flex: 1; min-height: 0; }
+.modal-cornell-viewer .kwls-sheet-cell { overflow-y: auto; padding: 16px 18px; }
+
+@media (max-width: 768px) {
+  /* 한 줄에 하나 — 두 칸을 우겨 넣으면 글이 자꾸 접힙니다 */
+  .kwls-sheet-grid { grid-template-columns: 1fr; grid-auto-rows: auto; }
+  .kwls-sheet-cell { border-right: none; }
+  .kwls-sheet-cell--l { border-bottom: 1px solid var(--border); }
+  /* 세로로 쌓이면 네 칸이 창보다 길어집니다 — 칸마다 따로 구르면 어디를
+     굴리는지 알 수 없으므로 **격자 하나만** 구릅니다(질문 모달의 단일
+     스크롤과 같은 생각). 안 그러면 아래 한 줄 안내가 창 밖으로 잘립니다. */
+  .modal-cornell-viewer .kwls-sheet-grid { overflow-y: auto; }
+  .modal-cornell-viewer .kwls-sheet-cell { overflow: visible; }
 }
 
 @media (max-width: 768px) {

@@ -14,6 +14,15 @@
 //
 // 넘기기는 이전(‹, 더 옛날) · 다음(›, 더 최근) 두 단추와 ← → 자판입니다.
 // 목록은 최근이 앞이라 '이전'이 index+1입니다 — 교사 열람 화면과 같은 규칙.
+//
+// [탭 둘 — 코넬 노트 · KWLS 노트]
+// 학생이 남기는 '내가 쓴 것'은 이 둘입니다. 따로 두면 KWLS를 보러 공부방
+// 사이드 패널의 기록 탭까지 찾아 들어가야 해서, 지난 기록을 펴 보는 자리를
+// 여기 하나로 모읍니다. 코넬 탭은 지금까지 그대로이고, KWLS 탭은
+// MyKwlsNotes가 통째로 맡습니다(구독도 그쪽에서).
+//
+// KWLS 탭은 **한 번 열면 감춰만 둡니다.** 탭을 오갈 때마다 지웠다 다시
+// 만들면 그때마다 구독이 새로 붙어 내 기록을 다시 읽습니다.
 // =============================================================
 import { useCallback, useEffect, useRef, useState } from "react";
 import { backdropClose } from "@/lib/modal";
@@ -24,6 +33,7 @@ import {
 } from "@/lib/store";
 import { printCornellNotes, printableName } from "@/lib/exportCornell";
 import CornellNoteSheet from "./CornellNoteSheet";
+import MyKwlsNotes from "./MyKwlsNotes";
 import { IconRecord } from "./StatusIcons";
 
 export default function CornellNoteViewerModal({
@@ -34,6 +44,9 @@ export default function CornellNoteViewerModal({
   startId = null,
   onClose,
 }) {
+  const [tab, setTab] = useState("cornell"); // 'cornell' | 'kwls'
+  // KWLS 탭은 한 번 열린 뒤로는 계속 붙어 있습니다(감추기만) — 위 설명 참고
+  const [kwlsMounted, setKwlsMounted] = useState(false);
   // 서랍이 이미 갖고 있는 14일치로 먼저 그립니다 — 빈 화면이 잠깐 스치지 않게
   const [notes, setNotes] = useState(initialNotes);
   const [id, setId] = useState(startId ?? initialNotes[0]?.id ?? null);
@@ -87,11 +100,14 @@ export default function CornellNoteViewerModal({
   );
 
   // ← 더 옛날 / → 더 최근. Esc는 이 창만 닫습니다(서랍은 그대로).
+  // 방향키는 **코넬 탭일 때만** — KWLS 탭은 제 것을 따로 듣습니다.
   useEffect(() => {
     function onKey(e) {
       if (e.key === "Escape") {
         e.stopPropagation();
         onClose();
+      } else if (tab !== "cornell") {
+        // 다른 탭이 넘길 차례입니다
       } else if (e.key === "ArrowLeft") {
         go(1);
       } else if (e.key === "ArrowRight") {
@@ -100,7 +116,12 @@ export default function CornellNoteViewerModal({
     }
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [go, onClose]);
+  }, [go, onClose, tab]);
+
+  function pickTab(next) {
+    setTab(next);
+    if (next === "kwls") setKwlsMounted(true);
+  }
 
   return (
     <div
@@ -119,6 +140,30 @@ export default function CornellNoteViewerModal({
           <button className="btn-close" onClick={onClose} aria-label="닫기">×</button>
         </div>
 
+        {/* 탭 — 전체 보기의 격자/구름 탭과 같은 모양(.dash-view-tabs)입니다.
+            이 앱에서 '한 자리에 두 얼굴'을 고르는 자리는 늘 이 알약 줄입니다. */}
+        <div className="cornell-view-tabs dash-view-tabs" role="tablist">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === "cornell"}
+            className={`dash-view-tab${tab === "cornell" ? " on" : ""}`}
+            onClick={() => pickTab("cornell")}
+          >
+            코넬 노트
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === "kwls"}
+            className={`dash-view-tab${tab === "kwls" ? " on" : ""}`}
+            onClick={() => pickTab("kwls")}
+          >
+            KWLS 노트
+          </button>
+        </div>
+
+        <div className="cornell-view-pane" hidden={tab !== "cornell"}>
         {!loaded ? (
           <p className="empty-note">불러오는 중이에요…</p>
         ) : notes.length === 0 ? (
@@ -204,6 +249,13 @@ export default function CornellNoteViewerModal({
               오른쪽 필기를 손으로 가리고 왼쪽 단서만 보며 떠올려 보세요. ← → 로 넘길 수 있어요.
             </p>
           </>
+        )}
+        </div>
+
+        {kwlsMounted && (
+          <div className="cornell-view-pane" hidden={tab !== "kwls"}>
+            <MyKwlsNotes classId={classId} user={user} active={tab === "kwls"} />
+          </div>
         )}
       </div>
     </div>
