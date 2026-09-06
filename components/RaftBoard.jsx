@@ -190,6 +190,12 @@ export default function RaftBoard({
             {/* 반 표시 — 고를 반이 둘 이상이면 고르개(반을 바꾸면 그 반의
                 활동 목록으로 갑니다), 하나면 이름 배지입니다. */}
             {classPicker ?? (className && <span className="book-group-class">{className}</span>)}
+            {/* 진행 요약도 이 줄에 — 배지 두어 개뿐이라 오른쪽이 비어 있는데
+                아래에 제 줄을 차지하고 있었습니다(곁텍스트는 처음부터 이
+                자리였습니다 — 네 화면의 머리말이 같아야 합니다). */}
+            <span className="paratext-sum">
+              시작 {startedCount}명 · 완성 {doneCount}명 / 전체 {cards.length}명
+            </span>
             {/* 잠김 안내도 이 줄에 — 예전엔 머리말 아래 제 줄을 차지했는데,
                 이 줄은 배지 두어 개뿐이라 오른쪽이 비어 있었습니다.
                 '지금 잠겨 있다'는 활동에 붙는 상태라 배지와 같은 성격입니다. */}
@@ -242,9 +248,6 @@ export default function RaftBoard({
             </a>
           )}
         </div>
-        <span className="paratext-sum">
-          시작 {startedCount}명 · 완성 {doneCount}명 / 전체 {cards.length}명
-        </span>
       </div>
 
       {/* 모둠 고르는 줄 — 그 끝(마지막 모둠 뒤)에 전광판을 엽니다.
