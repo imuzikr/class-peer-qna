@@ -46,7 +46,9 @@
 // (RichTextEditor의 tools). 나머지(기울임·코드 블록)는 수업 메모에서 쓸 일이
 // 없어 뺐습니다.
 //
-// 체크 목록의 네모는 **읽는 자리에서 바로** 켜고 끕니다(패널·달력) — 할 일을
+// 체크 줄은 목록 안에서 글머리 기호 줄과 **섞어 쓸 수 있습니다**(표시가 <ul>이
+// 아니라 <li>에 붙습니다 — lib/html.js). 네모는 **읽는 자리에서 바로** 켜고
+// 끕니다(패널·달력) — 할 일을
 // 적어 두고 나중에 지우는 자리라, 켜려고 '수정'으로 들어갔다 나오게 하면
 // 뜻이 없습니다. 켜면 그 메모 문서를 그 자리에서 고쳐 씁니다.
 //
@@ -63,6 +65,8 @@ import {
   stripHtml,
   toggleChecklistItem,
   checklistIndexOf,
+  hitCheckBox,
+  CHECK_ITEM_SELECTOR,
 } from "@/lib/html";
 import {
   subscribeLessonMemos,
@@ -79,10 +83,6 @@ import {
 // 들어가므로, 예전처럼 잘라 내지 않고 넘으면 저장을 막고 알려 줍니다 —
 // HTML을 가운데서 자르면 태그가 끊겨 글이 망가집니다.
 const MAX_LEN = 2000;
-
-// 체크 목록의 네모를 '누른 것'으로 볼 왼쪽 폭(px) — 에디터(RichTextEditor의
-// CHECK_HIT)·CSS의 li::before 자리와 같은 값이어야 합니다.
-const CHECK_HIT = 22;
 
 // 서식만 있고 글자는 없는 상태('<div><br></div>')를 빈 메모로 봅니다.
 function memoEmpty(html) {
@@ -488,10 +488,8 @@ function MemoClassPanel({ classId, name, memos, readOnly, onClose }) {
   // 같은 차례라, 글이 길어도 어긋나지 않습니다).
   async function onCheck(e, memo) {
     if (readOnly) return;
-    const li = e.target.closest?.("ul.checklist > li");
-    if (!li) return;
-    const box = li.getBoundingClientRect();
-    if (e.clientX - box.left > CHECK_HIT) return; // 글자를 누른 것
+    const li = e.target.closest?.(CHECK_ITEM_SELECTOR);
+    if (!li || !hitCheckBox(li, e.clientX)) return; // 글자를 누른 것
     const index = checklistIndexOf(e.currentTarget, li);
     if (index < 0) return;
     li.classList.toggle("done"); // 눈에 먼저 — 저장을 기다리지 않게
@@ -727,10 +725,8 @@ function MemoCalendarPanel({ byDate, nameOfClass, archivedClassIds, currentClass
   // 체크 목록의 네모 — 펼친 메모에서 바로 켜고 끕니다(패널과 같은 방식).
   async function onCheck(e, memo) {
     if (readOnly || busy) return;
-    const li = e.target.closest?.("ul.checklist > li");
-    if (!li) return;
-    const box = li.getBoundingClientRect();
-    if (e.clientX - box.left > CHECK_HIT) return;
+    const li = e.target.closest?.(CHECK_ITEM_SELECTOR);
+    if (!li || !hitCheckBox(li, e.clientX)) return;
     const index = checklistIndexOf(e.currentTarget, li);
     if (index < 0) return;
     li.classList.toggle("done");

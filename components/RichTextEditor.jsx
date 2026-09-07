@@ -23,7 +23,7 @@
 // =============================================================
 import { useEffect, useMemo, useRef, useState } from "react";
 import { uploadImage } from "@/lib/storageUpload";
-import { escapeHtml } from "@/lib/html";
+import { escapeHtml, CHECK_ITEM_SELECTOR, hitCheckBox } from "@/lib/html";
 
 // ───── 툴바 아이콘 (선 스타일 SVG) ─────
 const svgProps = {
@@ -108,10 +108,6 @@ function IconSend() {
   );
 }
 
-// 체크 목록의 네모를 '누른 것'으로 볼 왼쪽 폭(px) — CSS의 li::before 자리와
-// 같아야 합니다(.rte-area ul.checklist > li).
-const CHECK_HIT = 22;
-
 // 서식 명령 정의 (null은 구분선)
 const COMMANDS = [
   {
@@ -134,7 +130,7 @@ const COMMANDS = [
   { cmd: "insertOrderedList", title: "번호 목록", icon: <IconOl /> },
   {
     cmd: "checkList",
-    title: "체크 목록 — 네모를 눌러 켜고 끕니다",
+    title: "체크 줄 — 고른 줄만 네모로 (네모를 눌러 켜고 끕니다)",
     icon: <IconCheckList />,
     custom: true,
   },
@@ -214,42 +210,60 @@ export default function RichTextEditor({
     onChange(ref.current.innerHTML);
   }
 
-  // ── 체크 목록 ───────────────────────────────────────────────
-  // 글머리 기호 목록에 `checklist` 표시를 붙였다 뗐다 합니다. 목록 자체는
-  // 브라우저(execCommand)가 만들어 주므로 Enter로 줄이 이어지고, 표시는
-  // 그 <ul>에만 붙습니다 — 새 <li>는 저절로 같은 목록에 들어갑니다.
+  // ── 체크 줄 ─────────────────────────────────────────────────
+  // 표시는 목록이 아니라 **줄(<li>)마다** 붙습니다 — 한 목록 안에서 글머리
+  // 기호 줄과 체크 줄을 섞어 쓸 수 있어야 하기 때문입니다(lib/html.js).
+  // 목록 자체는 브라우저(execCommand)가 만들어 주므로 Enter로 줄이 이어지고,
+  // 새 <li>는 앞 줄의 표시를 물려받습니다(체크 줄 뒤에서는 체크 줄로) —
+  // 할 일을 잇달아 적을 때 매번 다시 누르지 않아도 됩니다.
   function toggleCheckList() {
     ref.current?.focus();
-    const ul = closestList();
-    if (ul) {
-      // 이미 목록이면 표시만 켜고 끕니다(체크 목록 ↔ 글머리 기호)
-      ul.classList.toggle("checklist");
-      if (!ul.classList.contains("checklist")) {
-        ul.querySelectorAll("li.done").forEach((li) => li.classList.remove("done"));
-      }
-    } else {
+    let items = selectedListItems();
+    if (items.length === 0) {
       document.execCommand("insertUnorderedList", false, null);
-      closestList()?.classList.add("checklist");
+      items = selectedListItems();
+      if (items.length === 0) return;
     }
+    // 옛 모양(ul.checklist)이 섞여 있으면 먼저 줄마다로 풀어 둡니다 —
+    // 그래야 그중 한 줄만 글머리 기호로 되돌릴 수 있습니다.
+    items.forEach((li) => spreadLegacyList(li.parentElement));
+    // 하나라도 체크가 아니면 전부 체크로, 다 체크면 전부 글머리 기호로.
+    const allCheck = items.every((li) => li.classList.contains("check"));
+    items.forEach((li) => {
+      if (allCheck) li.classList.remove("check", "done");
+      else li.classList.add("check");
+    });
     onChange(ref.current.innerHTML);
   }
 
-  // 커서가 든 <ul> (에디터 안일 때만)
-  function closestList() {
-    const node = window.getSelection()?.anchorNode;
-    if (!node || !ref.current?.contains(node)) return null;
-    const el = node.nodeType === 1 ? node : node.parentElement;
-    const ul = el?.closest("ul");
-    return ul && ref.current.contains(ul) ? ul : null;
+  // ul.checklist(옛 모양) → 그 안의 li마다 check 표시로
+  function spreadLegacyList(ul) {
+    if (!ul || ul.tagName !== "UL" || !ul.classList.contains("checklist")) return;
+    ul.classList.remove("checklist");
+    [...ul.children].forEach((li) => li.classList.add("check"));
   }
 
-  // 네모를 눌러 켜고 끄기 — 상자는 li::before로 그려져 있어, 글자 왼쪽
-  // 자리를 누른 것을 그 네모를 누른 것으로 봅니다.
+  // 지금 고른 <li>들 — 커서만 있으면 그 한 줄, 여러 줄을 끌어 골랐으면 전부.
+  function selectedListItems() {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0 || !ref.current) return [];
+    const range = sel.getRangeAt(0);
+    const hit = [...ref.current.querySelectorAll("li")].filter((li) =>
+      range.intersectsNode(li)
+    );
+    if (hit.length > 0) return hit;
+    const node = sel.anchorNode;
+    const el = node?.nodeType === 1 ? node : node?.parentElement;
+    const li = el?.closest("li");
+    return li && ref.current.contains(li) ? [li] : [];
+  }
+
+  // 네모를 눌러 켜고 끄기 — 네모는 글자 왼쪽(글머리 기호가 서던 자리)에
+  // 그려져 있어, 줄의 왼쪽 끝보다 왼쪽을 누른 것만 봅니다.
   function handleAreaClick(e) {
-    const li = e.target.closest?.("ul.checklist > li");
+    const li = e.target.closest?.(CHECK_ITEM_SELECTOR);
     if (!li || !ref.current?.contains(li)) return;
-    const box = li.getBoundingClientRect();
-    if (e.clientX - box.left > CHECK_HIT) return; // 글자를 누른 것 — 커서만 옮깁니다
+    if (!hitCheckBox(li, e.clientX)) return; // 글자를 누른 것 — 커서만 옮깁니다
     e.preventDefault();
     li.classList.toggle("done");
     onChange(ref.current.innerHTML);
