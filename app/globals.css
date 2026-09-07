@@ -23488,9 +23488,15 @@ body:has(.confirm-backdrop) .cornell-handle {
   flex-direction: column;
   gap: 0;
   border: 1px solid var(--border);
-  border-radius: var(--radius-card, 14px);
   background: #fff;
   overflow: hidden;
+  /* 양쪽 끝 세로선을 지웁니다 — 남는 것은 행을 가르는 가로 줄과 단서·필기를
+     가르는 세로선 하나뿐이라, 상자가 아니라 **줄 친 노트**로 읽힙니다.
+     테두리가 위아래만 남으므로 둥근 모서리도 함께 뺍니다(옆이 없는 채로
+     모서리만 굴리면 선이 허공에서 끊깁니다). */
+  border-left: none;
+  border-right: none;
+  border-radius: 0;
 }
 .cornell-sheet-grid {
   display: grid;

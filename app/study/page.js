@@ -856,17 +856,6 @@ function StudyPageInner() {
                         >
                           출석부 보기
                         </button>
-                        {/* 내 수업 노트 — 수업 중에는 오른쪽 서랍에서 쓰지만,
-                            지난 노트를 넘겨 보고 PDF로 내려받는 자리가 서랍
-                            안에만 있어 찾기 어려웠습니다. 여기서도 같은 창을
-                            엽니다(서랍의 '노트 전체 보기'와 같은 것). */}
-                        <button
-                          className="btn-ghost"
-                          onClick={() => setNoteViewerOpen(true)}
-                          title="지난 수업 노트를 넘겨 보고 PDF로 저장합니다"
-                        >
-                          수업 노트
-                        </button>
                         <button
                           className={`btn-ghost${kwlPanelOpen ? " active" : ""}`}
                           onClick={() => setKwlPanelOpen((v) => !v)}
@@ -878,6 +867,17 @@ function StudyPageInner() {
                           }
                         >
                           KWLS 차트
+                        </button>
+                        {/* 내 수업 노트 — 수업 중에는 오른쪽 서랍에서 쓰지만,
+                            지난 노트를 넘겨 보고 PDF로 내려받는 자리가 서랍
+                            안에만 있어 찾기 어려웠습니다. 여기서도 같은 창을
+                            엽니다(서랍의 '노트 전체 보기'와 같은 것). */}
+                        <button
+                          className="btn-ghost"
+                          onClick={() => setNoteViewerOpen(true)}
+                          title="지난 수업 노트를 넘겨 보고 PDF로 저장합니다"
+                        >
+                          수업 노트
                         </button>
                       </>
                     )}

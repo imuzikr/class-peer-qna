@@ -512,7 +512,9 @@ export default function CornellNoteDrawer({
                   나중에 2단으로 펴 볼 때 왼쪽 물음과 오른쪽 필기가 어긋나지
                   않습니다(그것이 이 모양을 만든 까닭입니다).
                   수업 중에 미리 나누지 않습니다 — 처음엔 하나뿐이라 죽 쓰고,
-                  주제가 바뀔 때 아래 '＋'로 한 줄을 더합니다. */}
+                  주제가 바뀔 때 아래 '＋ 다음 핵심 질문'으로 한 줄을 더합니다.
+                  ('덩어리'는 코드 안에서만 쓰는 말입니다 — 학생 화면에는
+                   '핵심 질문'으로 적습니다.) */}
               {blocks.map((b, i) => (
                 <section key={b.id} className="cornell-block">
                   <div className="cornell-block-head">
@@ -522,8 +524,8 @@ export default function CornellNoteDrawer({
                         type="button"
                         className="cornell-block-del"
                         onClick={() => removeBlock(b.id)}
-                        title="이 덩어리 지우기"
-                        aria-label={`${i + 1}번째 덩어리 지우기`}
+                        title="이 핵심 질문 지우기"
+                        aria-label={`${i + 1}번째 핵심 질문 지우기`}
                       >
                         ×
                       </button>
@@ -533,7 +535,7 @@ export default function CornellNoteDrawer({
                   <div className="cornell-zone cornell-zone--cue">
                     <label htmlFor={`cornell-cue-${b.id}`}>
                       <b>단서 · 핵심 질문</b>
-                      <em>이 덩어리를 떠올릴 낱말이나 물음</em>
+                      <em>이 부분을 떠올릴 낱말이나 물음</em>
                     </label>
                     <textarea
                       id={`cornell-cue-${b.id}`}
@@ -564,7 +566,7 @@ export default function CornellNoteDrawer({
               ))}
 
               {/* 덩어리 더하기 — 주제가 바뀌는 순간에 누릅니다.
-                  빈 덩어리를 또 만들지 않게, 마지막 줄이 비어 있으면 잠급니다. */}
+                  빈 줄을 또 만들지 않게, 마지막 줄이 비어 있으면 잠급니다. */}
               <button
                 type="button"
                 className="cornell-block-add"
@@ -572,11 +574,11 @@ export default function CornellNoteDrawer({
                 disabled={blocks.length >= CORNELL_BLOCK_MAX || blockEmpty(blocks[blocks.length - 1])}
                 title={
                   blocks.length >= CORNELL_BLOCK_MAX
-                    ? `한 장에 ${CORNELL_BLOCK_MAX}덩어리까지 담을 수 있어요`
+                    ? `한 장에 ${CORNELL_BLOCK_MAX}개까지 담을 수 있어요`
                     : "새 주제로 넘어갈 때 눌러 한 줄 더하기"
                 }
               >
-                ＋ 다음 덩어리
+                ＋ 다음 핵심 질문
               </button>
 
               <section className="cornell-zone cornell-zone--summary">
