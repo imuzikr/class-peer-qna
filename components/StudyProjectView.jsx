@@ -611,6 +611,12 @@ export default function StudyProjectView({
         canDelete={isTeacher}
         isTeacher={isTeacher}
         writerName={detailSeat.mine ? user?.displayName ?? "" : detailSeat.name}
+        // 누구의 카드를 보고 있는지 — 머리말에 칩으로 답니다. 교사가 학생
+        // 자리를 눌러 들어오면 화면 어디에도 이름이 없어, 옆 자리로 옮겨
+        // 다니다 보면 지금 누구를 보는 중인지 놓칩니다.
+        writerStudentId={detailSeat.mine ? null : detailSeat.studentId}
+        writerEmoji={detailSeat.emoji}
+        isMine={!!detailSeat.mine}
         onBack={() => setDetailSeat(null)}
         // 카드에서 곧바로 공부방 첫 화면으로 — '프로젝트로'를 거쳐 다시
         // '프로젝트 목록으로'를 누르는 두 단계를 한 번으로 줄입니다.

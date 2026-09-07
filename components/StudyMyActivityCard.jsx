@@ -61,6 +61,10 @@ export default function StudyMyActivityCard({
   canDelete = false,
   isTeacher = false,
   writerName = "",
+  // 누구의 카드인가 — 머리말 칩에 씁니다. 내 카드면(isMine) 안 답니다.
+  writerStudentId = null,
+  writerEmoji = "",
+  isMine = false,
   onBack,        // 이 프로젝트의 카드 그리드로
   onBackToList,  // 공부방 첫 화면(프로젝트 목록)으로 — 없으면 버튼도 안 보임
   onAsk,
@@ -339,6 +343,22 @@ export default function StudyMyActivityCard({
           )
         )}
       </div>
+
+      {/* 누구의 카드인가 — 제목 줄 바로 아래. 교사가 학생 자리를 눌러
+          들어오면 화면 어디에도 이름이 없어, 옆 자리로 옮겨 다니다 보면
+          지금 누구를 보는 중인지 놓칩니다. 내 카드일 때는 안 답니다
+          (내 것을 보면서 내 이름을 읽을 이유가 없습니다). */}
+      {writerName && !isMine && (
+        <p className="study-mycard-who">
+          <span className="study-mycard-who-chip">
+            {writerEmoji && (
+              <span className="avatar avatar-sm" aria-hidden="true">{writerEmoji}</span>
+            )}
+            {writerStudentId && <em>{writerStudentId}</em>}
+            <strong>{writerName}</strong>
+          </span>
+        </p>
+      )}
 
       {board.description && <p className="study-project-view-desc">{board.description}</p>}
 

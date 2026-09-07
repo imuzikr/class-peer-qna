@@ -64,6 +64,7 @@ Firebase 미설정 시 자동으로 **데모 모드**로 동작 (새로고침 �
 | `components/PythonRunner.jsx` | Python 코드 실행기 (코드 복사 버튼 포함) |
 | `components/StudyProjectDashboard.jsx` | 공부방 첫 화면 — 프로젝트 카드 그리드 (교사·학생 공통) |
 | `components/StudyProjectView.jsx` | 프로젝트 상세 — 개인 카드 그리드 + 교사 도구 |
+| `components/StudyMyActivityCard.jsx` | 개인 카드 상세 — 활동 칸 + 누구의 카드인지 칩 |
 | `components/StudyProjectForm.jsx` | 프로젝트 만들기 모달 (제목·안내·활동 목록) |
 | `components/ClassNotesTools.jsx` | 기록 관리·수업 메모 버튼 + 모달 묶음 (교사 전용) |
 | `components/CornellNoteDrawer.jsx` | 수업 노트 서랍 (학생 전용) — 오른쪽 손잡이 → 코넬 세 칸 |
