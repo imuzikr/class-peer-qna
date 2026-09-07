@@ -10,16 +10,30 @@
 //
 // 학생 리포트와 교사 열람 화면이 같은 것을 씁니다 — 한쪽만 고치면 같은
 // 노트가 두 얼굴이 됩니다.
+//
+// [덩어리마다 한 줄]
+// 단서와 필기는 **덩어리로 짝지어** 저장됩니다(lib/cornell.js). 한 덩어리가
+// 표의 한 행이 되어, 왼쪽 물음이 제 오른쪽 필기와 나란히 섭니다. 예전에는
+// 두 칸이 각자 흐르는 글이라 '사물인터넷은 무엇일까?'가 저 아래 엉뚱한
+// 문단 옆에 가 있었습니다.
+// 덩어리를 모르는 옛 노트는 `blocksOf`가 **한 행짜리**로 읽어 지금까지와
+// 똑같이 보입니다.
+//
+// 이름표(단서·필기)는 **맨 위에 한 번만** 답니다 — 행마다 붙이면 행이 셋만
+// 돼도 이름표가 여섯 개라 정작 글이 묻힙니다. 행은 가로 줄로 갈립니다.
 // =============================================================
+import { Fragment } from "react";
 import { richHtml, stripHtml } from "@/lib/html";
+import { blocksOf, blockEmpty } from "@/lib/cornell";
 
 export default function CornellNoteSheet({ note, showFeedback = true }) {
   if (!note) return null;
 
   const topic = String(note.lessonTitle ?? "").trim();
-  const cue = String(note.cue ?? "").trim();
-  const notesHtml = richHtml(note.notes ?? "");
-  const hasNotes = stripHtml(notesHtml).length > 0;
+  // 빈 덩어리는 빼되, 다 비었으면 한 줄은 남겨 '비어 있어요'를 보입니다.
+  const all = blocksOf(note);
+  const used = all.filter((b) => !blockEmpty(b));
+  const rows = used.length > 0 ? used : all.slice(0, 1);
   const summary = String(note.summary ?? "").trim();
   const feedback = String(note.feedback ?? "").trim();
   const handouts = Array.isArray(note.materials) ? note.materials : [];
@@ -35,21 +49,32 @@ export default function CornellNoteSheet({ note, showFeedback = true }) {
       </header>
 
       <div className="cornell-sheet-grid">
-        <section className="cornell-sheet-cue">
-          <h4>단서 · 핵심 질문</h4>
-          {cue ? <p>{cue}</p> : <p className="cornell-sheet-blank">비어 있어요</p>}
-        </section>
-        <section className="cornell-sheet-notes">
-          <h4>필기</h4>
-          {hasNotes ? (
-            <div
-              className="cornell-sheet-rich"
-              dangerouslySetInnerHTML={{ __html: notesHtml }}
-            />
-          ) : (
-            <p className="cornell-sheet-blank">비어 있어요</p>
-          )}
-        </section>
+        {/* 이름표 줄 — 맨 위 한 번만 */}
+        <div className="cornell-sheet-cue cornell-sheet-th">단서 · 핵심 질문</div>
+        <div className="cornell-sheet-notes cornell-sheet-th">필기</div>
+
+        {rows.map((b) => {
+          const cue = String(b.cue ?? "").trim();
+          const notesHtml = richHtml(b.notes ?? "");
+          const hasNotes = stripHtml(notesHtml).length > 0;
+          return (
+            <Fragment key={b.id}>
+              <section className="cornell-sheet-cue">
+                {cue ? <p>{cue}</p> : <p className="cornell-sheet-blank">비어 있어요</p>}
+              </section>
+              <section className="cornell-sheet-notes">
+                {hasNotes ? (
+                  <div
+                    className="cornell-sheet-rich"
+                    dangerouslySetInnerHTML={{ __html: notesHtml }}
+                  />
+                ) : (
+                  <p className="cornell-sheet-blank">비어 있어요</p>
+                )}
+              </section>
+            </Fragment>
+          );
+        })}
       </div>
 
       <section className="cornell-sheet-summary">

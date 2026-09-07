@@ -39,6 +39,14 @@ import {
 } from "@/lib/store";
 import RichTextEditor from "./RichTextEditor";
 import CornellNoteSheet from "./CornellNoteSheet";
+import {
+  blocksOf,
+  emptyBlock,
+  flattenBlocks,
+  usedBlocks,
+  blockEmpty,
+  CORNELL_BLOCK_MAX,
+} from "@/lib/cornell";
 import CornellNoteViewerModal from "./CornellNoteViewerModal";
 import { richHtml, stripHtml } from "@/lib/html";
 import { IconRecord } from "./StatusIcons";
@@ -70,8 +78,13 @@ export default function CornellNoteDrawer({
   const [topic, setTopic] = useState("");
   // 그날 프로젝트의 학습 자료(이름 + 링크). 노트에 함께 저장됩니다.
   const [handouts, setHandouts] = useState([]);
-  const [cue, setCue] = useState("");
-  const [notes, setNotes] = useState("");        // HTML
+  // 덩어리 목록 — 하나가 '단서 한 칸 + 필기 한 칸'입니다(lib/cornell.js).
+  // 처음에는 하나뿐이라 지금까지처럼 죽 쓰고, 주제가 바뀔 때 학생이 더합니다.
+  const [blocks, setBlocks] = useState(() => [emptyBlock()]);
+  // 서버 값을 새로 받아들일 때마다 하나씩 — 필기 에디터는 비제어라
+  // initialHtml을 **마운트 때 한 번만** 봅니다. 이 번호를 열쇠에 섞어야
+  // 서버에서 온 글이 화면에 들어옵니다.
+  const [loadSeq, setLoadSeq] = useState(0);
   const [summary, setSummary] = useState("");
   const [status, setStatus] = useState("idle");  // idle | saving | saved
   // 아직 저장 안 된 편집이 있는지 — 머리말의 '저장' 단추가 이걸 보고 삽니다.
@@ -90,8 +103,16 @@ export default function CornellNoteDrawer({
   const timerRef = useRef(null);
   // 저장 함수가 항상 '지금 값'을 보도록 — 언마운트·창 닫기 때 쓰는 마지막
   // 저장은 오래된 클로저를 잡기 쉬워서, 값을 ref에 함께 들고 있습니다.
-  const latestRef = useRef({ cue: "", notes: "", summary: "", lessonTitle: "" });
-  latestRef.current = { cue, notes, summary, lessonTitle: topic, materials: handouts };
+  const latestRef = useRef({ blocks: [], summary: "", lessonTitle: "" });
+  // 저장에는 **쓴 덩어리만** 보냅니다. 빈 줄을 남기면 다음에 펴 볼 때
+  // 빈 행이 늘어서 있습니다. cue/notes는 legacy 거울입니다(lib/cornell.js).
+  latestRef.current = {
+    ...flattenBlocks(blocks),
+    blocks: usedBlocks(blocks),
+    summary,
+    lessonTitle: topic,
+    materials: handouts,
+  };
 
   // 접힘 상태는 기억해 둡니다 — 수업마다 다시 여는 수고를 덜려고요
   useEffect(() => {
@@ -119,9 +140,9 @@ export default function CornellNoteDrawer({
       setNote(doc);
       if (!dirtyRef.current) {
         setTopic(doc?.lessonTitle ?? "");
-        setCue(doc?.cue ?? "");
-        setNotes(doc?.notes ?? "");
+        setBlocks(blocksOf(doc));
         setSummary(doc?.summary ?? "");
+        setLoadSeq((n) => n + 1);
       }
       setLoaded(true);
     });
@@ -251,7 +272,7 @@ export default function CornellNoteDrawer({
     clearTimeout(timerRef.current);
     timerRef.current = setTimeout(runSave, SAVE_DELAY);
     return () => clearTimeout(timerRef.current);
-  }, [topic, cue, notes, summary, runSave]);
+  }, [topic, blocks, summary, runSave]);
 
   // 화면을 벗어나거나 탭을 닫을 때 마지막으로 한 번 더
   useEffect(() => {
@@ -280,18 +301,41 @@ export default function CornellNoteDrawer({
 
   function edit(setter) {
     return (v) => {
-      dirtyRef.current = true;
-      editSeqRef.current += 1;
-      setDirty(true);
-      onType?.();   // '필기 중' — 교사 전광판의 ✍️
+      touch();
       setter(v);
     };
   }
 
+  // 고쳤다는 표시 — 자동 저장·'저장' 단추·전광판의 ✍️가 이걸 봅니다
+  function touch() {
+    dirtyRef.current = true;
+    editSeqRef.current += 1;
+    setDirty(true);
+    onType?.();
+  }
+
+  function editBlock(id, patch) {
+    touch();
+    setBlocks((prev) => prev.map((b) => (b.id === id ? { ...b, ...patch } : b)));
+  }
+
+  function addBlock() {
+    touch();
+    setBlocks((prev) =>
+      prev.length >= CORNELL_BLOCK_MAX ? prev : [...prev, emptyBlock()]
+    );
+  }
+
+  // 마지막 한 줄은 남깁니다 — 덩어리가 0개면 쓸 자리가 사라집니다.
+  function removeBlock(id) {
+    touch();
+    setBlocks((prev) => (prev.length <= 1 ? prev : prev.filter((b) => b.id !== id)));
+  }
+
   if (!classId || !user?.uid) return null;
 
-  const filled =
-    (cue.trim() ? 1 : 0) + (stripHtml(notes).trim() ? 1 : 0) + (summary.trim() ? 1 : 0);
+  // 손잡이 점 — '오늘 뭔가 적었나'. 덩어리 어느 칸이든 글이 있으면 켭니다.
+  const filled = usedBlocks(blocks).length + (summary.trim() ? 1 : 0);
   const feedback = String(note?.feedback ?? "").trim();
 
   // 손잡이 배지 — 아직 안 본 한 마디의 수
@@ -463,34 +507,77 @@ export default function CornellNoteDrawer({
                 />
               </section>
 
-              <section className="cornell-zone cornell-zone--cue">
-                <label htmlFor="cornell-cue">
-                  <b>단서 · 핵심 질문</b>
-                  <em>나중에 이것만 보고 떠올릴 낱말이나 물음</em>
-                </label>
-                <textarea
-                  id="cornell-cue"
-                  rows={3}
-                  value={cue}
-                  onChange={(e) => edit(setCue)(e.target.value.slice(0, CORNELL_LIMITS.cue))}
-                  placeholder="예) 사물인터넷은 왜 필요할까?"
-                />
-              </section>
+              {/* 덩어리 — 하나가 '단서 한 칸 + 필기 한 칸'입니다. 서랍은
+                  폭이 380px이라 둘을 위아래로 쌓지만, 한 덩어리로 묶여 있어
+                  나중에 2단으로 펴 볼 때 왼쪽 물음과 오른쪽 필기가 어긋나지
+                  않습니다(그것이 이 모양을 만든 까닭입니다).
+                  수업 중에 미리 나누지 않습니다 — 처음엔 하나뿐이라 죽 쓰고,
+                  주제가 바뀔 때 아래 '＋'로 한 줄을 더합니다. */}
+              {blocks.map((b, i) => (
+                <section key={b.id} className="cornell-block">
+                  <div className="cornell-block-head">
+                    <span className="cornell-block-no">{i + 1}</span>
+                    {blocks.length > 1 && (
+                      <button
+                        type="button"
+                        className="cornell-block-del"
+                        onClick={() => removeBlock(b.id)}
+                        title="이 덩어리 지우기"
+                        aria-label={`${i + 1}번째 덩어리 지우기`}
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
 
-              <section className="cornell-zone cornell-zone--notes">
-                <label>
-                  <b>필기</b>
-                  <em>수업에서 들은 것을 그대로</em>
-                </label>
-                <RichTextEditor
-                  key={`cornell-${date}`}
-                  className="cornell-rte"
-                  tools={NOTE_TOOLS}
-                  initialHtml={richHtml(note?.notes ?? "")}
-                  onChange={edit(setNotes)}
-                  placeholder="들은 것, 칠판에 적힌 것, 떠오른 것"
-                />
-              </section>
+                  <div className="cornell-zone cornell-zone--cue">
+                    <label htmlFor={`cornell-cue-${b.id}`}>
+                      <b>단서 · 핵심 질문</b>
+                      <em>이 덩어리를 떠올릴 낱말이나 물음</em>
+                    </label>
+                    <textarea
+                      id={`cornell-cue-${b.id}`}
+                      rows={2}
+                      value={b.cue}
+                      onChange={(e) =>
+                        editBlock(b.id, { cue: e.target.value.slice(0, CORNELL_LIMITS.cue) })
+                      }
+                      placeholder="예) 사물인터넷은 왜 필요할까?"
+                    />
+                  </div>
+
+                  <div className="cornell-zone cornell-zone--notes">
+                    <label>
+                      <b>필기</b>
+                      <em>수업에서 들은 것을 그대로</em>
+                    </label>
+                    <RichTextEditor
+                      key={`cornell-${date}-${loadSeq}-${b.id}`}
+                      className="cornell-rte"
+                      tools={NOTE_TOOLS}
+                      initialHtml={richHtml(b.notes ?? "")}
+                      onChange={(html) => editBlock(b.id, { notes: html })}
+                      placeholder="들은 것, 칠판에 적힌 것, 떠오른 것"
+                    />
+                  </div>
+                </section>
+              ))}
+
+              {/* 덩어리 더하기 — 주제가 바뀌는 순간에 누릅니다.
+                  빈 덩어리를 또 만들지 않게, 마지막 줄이 비어 있으면 잠급니다. */}
+              <button
+                type="button"
+                className="cornell-block-add"
+                onClick={addBlock}
+                disabled={blocks.length >= CORNELL_BLOCK_MAX || blockEmpty(blocks[blocks.length - 1])}
+                title={
+                  blocks.length >= CORNELL_BLOCK_MAX
+                    ? `한 장에 ${CORNELL_BLOCK_MAX}덩어리까지 담을 수 있어요`
+                    : "새 주제로 넘어갈 때 눌러 한 줄 더하기"
+                }
+              >
+                ＋ 다음 덩어리
+              </button>
 
               <section className="cornell-zone cornell-zone--summary">
                 <label htmlFor="cornell-summary">

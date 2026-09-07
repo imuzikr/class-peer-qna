@@ -139,6 +139,47 @@ describe("수업 노트(코넬) 규칙", () => {
     );
   });
 
+  // 단서·필기를 '덩어리'로 짝지어 저장합니다(lib/cornell.js). blocks는 규칙에
+  // 이름이 적혀 있지 않은 **덧붙는 칸**이라 지금 규칙 그대로 통과해야 합니다 —
+  // 그래야 이 기능 하나 때문에 규칙을 고치고 배포할 일이 없습니다.
+  // cue/notes는 덩어리를 이어 붙인 거울이라 길이 검사도 그대로 걸립니다.
+  it("학생이 덩어리(blocks)를 함께 저장할 수 있다", async () => {
+    const db = asStudent(env, "stu2").firestore();
+    await assertSucceeds(
+      setDoc(
+        noteRef(db, "cA", `stu2_${DATE}`),
+        payload("cA", "stu2", {
+          blocks: [
+            { id: "b1", cue: "사물인터넷은?", notes: "<div>센서로 데이터 수집</div>" },
+            { id: "b2", cue: "빅데이터는?", notes: "<div>패턴 분석</div>" },
+          ],
+        })
+      )
+    );
+  });
+
+  it("덩어리를 붙여도 남의 노트에는 쓸 수 없다", async () => {
+    const db = asStudent(env, "stu2").firestore();
+    await assertFails(
+      setDoc(
+        noteRef(db, "cA", `stu1_${DATE}`),
+        payload("cA", "stu2", { blocks: [{ id: "b1", cue: "가", notes: "<div>나</div>" }] })
+      )
+    );
+  });
+
+  it("교사는 덩어리를 고칠 수 없다 — 본문은 학생 것입니다", async () => {
+    await seed(env, async (db) => {
+      await setDoc(noteRef(db, "cA", `stu1_${DATE}`), payload("cA", "stu1"));
+    });
+    const db = asTeacher(env, "teacherA").firestore();
+    await assertFails(
+      updateDoc(noteRef(db, "cA", `stu1_${DATE}`), {
+        blocks: [{ id: "b1", cue: "교사가 바꿈", notes: "<div>x</div>" }],
+      })
+    );
+  });
+
   it("자료 목록을 걸면서 남의 노트에 쓸 수는 없다", async () => {
     const db = asStudent(env, "stu2").firestore();
     await assertFails(

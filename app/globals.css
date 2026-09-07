@@ -23339,6 +23339,72 @@ body:has(.confirm-backdrop) .cornell-handle {
 .cornell-zone--cue textarea:focus {
   border-left-color: var(--primary);
 }
+/* ── 덩어리 한 줄 (서랍) ───────────────────────────────────────
+   '단서 한 칸 + 필기 한 칸'을 한 묶음으로 두릅니다. 서랍은 폭이 380px이라
+   둘을 위아래로 쌓지만, 묶여 있는 것이 보여야 나중에 2단으로 펴 볼 때
+   어느 물음이 어느 필기의 것인지 알 수 있습니다. */
+.cornell-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 12px 12px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--primary-light);
+  border-radius: var(--radius-btn);
+  background: #fdfcfa;
+}
+.cornell-block-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 20px;
+}
+.cornell-block-no {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--primary-light);
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--primary-dark);
+  font-variant-numeric: tabular-nums;
+}
+.cornell-block-del {
+  margin-left: auto;
+  border: none;
+  background: none;
+  padding: 0 2px;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--text-faint);
+  cursor: pointer;
+}
+.cornell-block-del:hover { color: var(--danger); }
+/* 덩어리 안에서는 이름표를 작게 — 줄마다 되풀이되는 글자라서요 */
+.cornell-block .cornell-zone label b { font-size: 11.5px; }
+.cornell-block .cornell-rte .rte-area { min-height: 110px; }
+/* 새 주제로 넘어갈 때 누르는 단추 — 덩어리 목록 바로 아래 */
+.cornell-block-add {
+  align-self: flex-start;
+  border: 1px dashed var(--border);
+  border-radius: 999px;
+  background: none;
+  padding: 6px 14px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+  cursor: pointer;
+}
+.cornell-block-add:hover:not(:disabled) {
+  border-color: var(--primary);
+  border-style: solid;
+  color: var(--primary-dark);
+}
+.cornell-block-add:disabled { opacity: 0.45; cursor: default; }
+
 .cornell-rte .rte-area { min-height: 150px; font-size: 13.5px; }
 .cornell-rte .rte-toolbar { padding: 4px 6px; }
 .cornell-rte .rte-tool { width: 26px; height: 26px; }
@@ -23442,6 +23508,18 @@ body:has(.confirm-backdrop) .cornell-handle {
 .cornell-sheet-cue {
   border-right: 2px solid var(--primary-light);
   background: #fdfcfa;
+}
+/* 덩어리마다 한 행. 행을 가르는 가로 줄을 칸 위쪽에 둡니다 — 머리 줄
+   (.cornell-sheet-th) 바로 아래도 이 선으로 갈립니다. */
+.cornell-sheet-cue,
+.cornell-sheet-notes { border-top: 1px solid var(--border); }
+.cornell-sheet-th {
+  border-top: none;
+  padding-bottom: 6px;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--primary-dark);
+  letter-spacing: 0.02em;
 }
 .cornell-sheet-summary {
   border-top: 1px solid var(--border);
@@ -23720,6 +23798,19 @@ body:has(.confirm-backdrop) .cornell-handle {
     border-right: none;
     border-bottom: 2px solid var(--primary-light);
   }
+
+  /* 한 칸으로 눕으면 머리 줄이 뜻을 잃습니다(이름표 둘이 맨 위에 겹쳐 서고
+     아래 행들은 이름표 없이 흐릅니다). 머리를 감추고 칸마다 붙입니다. */
+  .cornell-sheet-th { display: none; }
+  .cornell-sheet-cue::before,
+  .cornell-sheet-notes::before {
+    font-size: 11.5px;
+    font-weight: 800;
+    color: var(--primary-dark);
+    letter-spacing: 0.02em;
+  }
+  .cornell-sheet-cue::before { content: "단서 · 핵심 질문"; }
+  .cornell-sheet-notes::before { content: "필기"; }
   .cornell-mgr-bar { align-items: stretch; }
   .cornell-mgr-date { flex-wrap: wrap; }
 }
@@ -23802,6 +23893,15 @@ body:has(.confirm-backdrop) .cornell-handle {
   border-right: none;
   border-bottom: 2px solid var(--primary-light);
 }
+.cornell-newfb .cornell-sheet-th { display: none; }
+.cornell-newfb .cornell-sheet-cue::before,
+.cornell-newfb .cornell-sheet-notes::before {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--primary-dark);
+}
+.cornell-newfb .cornell-sheet-cue::before { content: "단서 · 핵심 질문"; }
+.cornell-newfb .cornell-sheet-notes::before { content: "필기"; }
 .cornell-newfb .cornell-sheet { font-size: 12.5px; }
 
 /* 손잡이는 세로쓰기(writing-mode: vertical-rl)라 그 안의 숫자까지 눕습니다.
@@ -23893,6 +23993,15 @@ body:has(.confirm-backdrop) .cornell-handle {
   border-right: none;
   border-bottom: 2px solid var(--primary-light);
 }
+.cornell-past .cornell-sheet-th { display: none; }
+.cornell-past .cornell-sheet-cue::before,
+.cornell-past .cornell-sheet-notes::before {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--primary-dark);
+}
+.cornell-past .cornell-sheet-cue::before { content: "단서 · 핵심 질문"; }
+.cornell-past .cornell-sheet-notes::before { content: "필기"; }
 
 /* ===== 손잡이는 열려 있을 때도 남습니다 =====
    서랍 왼쪽 가장자리로 옮겨 붙어 그대로 '닫기'가 됩니다. 여닫는 자리가 늘
@@ -23953,9 +24062,19 @@ body:has(.confirm-backdrop) .cornell-handle {
   display: flex;
   flex-direction: column;
 }
-.modal-cornell-viewer .cornell-sheet-grid { flex: 1; min-height: 0; }
+/* 덩어리가 여럿이면 **격자 하나가** 구릅니다 — 칸마다 따로 구르면 짝지어
+   둔 왼쪽 물음과 오른쪽 필기가 서로 어긋나 흐릅니다(그러라고 행으로 묶은
+   것이 아닙니다). 이름표 줄은 붙어 남습니다. */
+.modal-cornell-viewer .cornell-sheet-grid { flex: 1; min-height: 0; overflow-y: auto; }
 .modal-cornell-viewer .cornell-sheet-cue,
-.modal-cornell-viewer .cornell-sheet-notes { overflow-y: auto; }
+.modal-cornell-viewer .cornell-sheet-notes { overflow: visible; }
+.modal-cornell-viewer .cornell-sheet-th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #fff;
+}
+.modal-cornell-viewer .cornell-sheet-cue.cornell-sheet-th { background: #fdfcfa; }
 /* 제목·요약·한 마디는 줄어들지 않습니다 — 늘 보여야 하는 줄입니다 */
 .modal-cornell-viewer .cornell-sheet-topic,
 .modal-cornell-viewer .cornell-sheet-summary,
