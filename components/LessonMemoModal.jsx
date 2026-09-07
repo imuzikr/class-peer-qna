@@ -27,10 +27,9 @@
 // 길뿐이었는데, 대개 찾는 것은 '그 반에 뭘 적어 뒀더라'이지 '9월 3일에 뭘
 // 적었더라'가 아닙니다.
 //
-// 차례는 **만든 차례**(오래된 반이 앞)로 고정입니다 — 지금 이 반이라고 앞으로
-// 올리지 않습니다. 올리면 반을 옮길 때마다 줄이 통째로 다시 짜여 어제 누르던
-// 반이 매번 다른 자리에 있습니다. 어느 반에 쓰는 중인지는 자리가 아니라
-// `.mine`(테두리)이 말합니다.
+// 차례는 **이름순**입니다 — 지금 이 반이라고 앞으로 올리지 않습니다. 올리면
+// 반을 옮길 때마다 줄이 통째로 다시 짜여 어제 누르던 반이 매번 다른 자리에
+// 있습니다. 어느 반에 쓰는 중인지는 자리가 아니라 `.mine`(테두리)이 말합니다.
 //
 // 보관된 반은 규칙(ownsClassEditable)이 쓰기를 막으므로, 그 반을 고르면
 // 저장을 잠그고 까닭을 밝힙니다 — 눌러 보고서야 실패를 알게 하지 않으려고요.
@@ -63,7 +62,6 @@ import {
   lessonMemoDate,
   todayDateKey,
   formatTime,
-  toDate,
 } from "@/lib/store";
 
 // 규칙(firestore.rules)과 같은 값. 서식이 붙은 뒤로는 태그까지 이 길이에
@@ -166,10 +164,15 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
   );
 
   // ── 반 버튼 줄 ─────────────────────────────────────
-  // 차례는 **만든 차례**(오래된 반이 앞)입니다. `subscribeClasses`가 매겨 주는
-  // 차례(`sortByClassOrder`)를 그대로 쓰지 않는 까닭은, 그것이 '끌어 정한 값'이
-  // 있는 반을 앞세우고 없는 반을 뒤로 미뤄 한 번도 안 끈 반이 이름과 상관없이
-  // 맨 끝에 서기 때문입니다. 만든 차례는 그 값과 무관하게 늘 같습니다.
+  // 차례는 **이름순**입니다(`localeCompare("ko", { numeric: true })`).
+  // 한때 만든 차례였는데, 같은 이름으로 시작하는 반들이 만든 날에 따라
+  // 흩어졌습니다 — '인공지능 기초 A · J · B'처럼요. 교사는 이 줄을 이름으로
+  // 훑으므로 A·B·J로 나란히 서야 눈이 한 번에 짚습니다. 숫자도 함께 봐서
+  // '1반 · 2반 · 10반'이 제대로 섭니다(글자순이면 10반이 2반 앞에 옵니다).
+  //
+  // `subscribeClasses`가 매겨 주는 차례(`sortByClassOrder`)는 쓰지 않습니다 —
+  // 그것은 '반 관리하기에서 끌어 정한 값'이 있는 반을 앞세우고 없는 반을 뒤로
+  // 미뤄, 한 번도 안 끈 반이 이름과 상관없이 맨 끝에 섭니다.
   //
   // **지금 이 반을 맨 앞으로 올리지 않습니다.** 올려 두면 반을 옮길 때마다
   // 줄이 통째로 다시 짜여, 어제 누르던 반이 매번 다른 자리에 있습니다(책방
@@ -177,19 +180,18 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
   // 자리가 아니라 `.mine`(테두리)이 말합니다.
   //
   // 반 목록이 아직 안 왔어도 이 반 하나는 서 있어야 하므로, 없으면 손수
-  // 만들어 끝에 붙입니다(곧 제 자리를 찾아 들어갑니다).
+  // 만들어 붙입니다(곧 제 자리를 찾아 들어갑니다).
   const memoClasses = useMemo(() => {
     const list = myClasses.map((c) => ({
       id: c.id,
       // 지금 이 반의 이름은 페이지가 준 것을 앞세웁니다(구독보다 먼저 옵니다)
       name: (c.id === classId ? className : "") || c.name || "반 이름 없음",
       archived: !!c.archived,
-      at: toDate(c.createdAt).getTime(),
     }));
     if (classId && !list.some((c) => c.id === classId)) {
-      list.push({ id: classId, name: className || "이 반", archived: false, at: Infinity });
+      list.push({ id: classId, name: className || "이 반", archived: false });
     }
-    return list.sort((a, b) => a.at - b.at);
+    return list.sort((a, b) => a.name.localeCompare(b.name, "ko", { numeric: true }));
   }, [myClasses, classId, className]);
 
   // 고른 반의 지난 메모. 지금 이 반이면 **이미 구독 중인 것을 그대로** 씁니다
