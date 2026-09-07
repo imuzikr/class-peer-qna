@@ -15064,7 +15064,37 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
    교사가 학생 자리를 눌러 들어오면 화면 어디에도 이름이 없어, 옆 자리로
    옮겨 다니다 보면 지금 누구를 보는 중인지 놓칩니다. 학번은 이름 앞에
    옅게 — 자리표·명단·전광판과 같은 차례입니다. */
-.study-mycard-who { margin: 2px 0 10px; }
+.study-mycard-who {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 2px 0 10px;
+}
+/* 옆 학생으로 — 이름 칩 바로 뒤에 붙입니다(수업 노트 크게 보기의 ‹ ›와
+   같은 생각: 떼어 놓으면 한 명 넘길 때마다 손이 화면을 가로지릅니다). */
+.study-mycard-who-nav {
+  display: inline-flex;
+  gap: 4px;
+}
+.study-mycard-who-nav button {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--text-sub);
+  cursor: pointer;
+}
+.study-mycard-who-nav button:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+.study-mycard-who-nav button:disabled { opacity: 0.35; cursor: default; }
 .study-mycard-who-chip {
   display: inline-flex;
   align-items: center;

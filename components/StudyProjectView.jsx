@@ -598,8 +598,22 @@ export default function StudyProjectView({
   // 학생의 카드를 기준으로 편집 권한(canEditCard)을 판단하되, 카드가 아직
   // 없으면(학생이 시작 전) 무조건 읽기 전용입니다.
   if (detailSeat) {
+    // 옆 자리로 — 격자와 **같은 차례**(sortedSeats)를 따릅니다. 교실에서
+    // 번호대로 넘겨 보는 자리라, 화면에 늘어선 순서와 다르면 어디까지 봤는지
+    // 알 수 없습니다(발표 모드를 sortedSeats로 맞춘 것과 같은 이유).
+    // 잠긴 자리는 건너뜁니다 — 눌러도 안 열리는 자리라서요.
+    const walk = (sortedSeats ?? seats ?? []).filter((s) => !s.locked);
+    const at = walk.findIndex((s) => s.key === detailSeat.key);
+    const step = (delta) => {
+      const next = walk[at + delta];
+      if (next) setDetailSeat(next);
+    };
     return (
       <StudyMyActivityCard
+        // 학생을 바꾸면 **다시 세웁니다.** 이 컴포넌트는 카드 내용을
+        // 마운트 때 한 번만 읽어 상태로 들고 있어(savedSections·cardIdRef),
+        // 그대로 두면 앞 학생의 글이 남고 자동 저장이 그 카드로 갈 수 있습니다.
+        key={detailSeat.key}
         board={board}
         user={user}
         card={detailSeat.mine ? myCard : detailSeat.card}
@@ -617,6 +631,11 @@ export default function StudyProjectView({
         writerStudentId={detailSeat.mine ? null : detailSeat.studentId}
         writerEmoji={detailSeat.emoji}
         isMine={!!detailSeat.mine}
+        // 앞·뒤 학생 — 갈 곳이 없으면 null이라 화살표가 꺼집니다
+        prevWriter={at > 0 ? walk[at - 1] : null}
+        nextWriter={at >= 0 && at < walk.length - 1 ? walk[at + 1] : null}
+        onPrevWriter={() => step(-1)}
+        onNextWriter={() => step(1)}
         onBack={() => setDetailSeat(null)}
         // 카드에서 곧바로 공부방 첫 화면으로 — '프로젝트로'를 거쳐 다시
         // '프로젝트 목록으로'를 누르는 두 단계를 한 번으로 줄입니다.

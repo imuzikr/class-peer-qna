@@ -53,6 +53,13 @@ const MAX_FILE_BYTES = 200 * 1024;
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const MAX_ATTACH_COUNT = 5;
 
+// 화살표 툴팁에 적을 이름 — 학번이 있으면 앞에 붙입니다(명단과 같은 차례)
+function seatLabel(seat) {
+  const id = String(seat?.studentId ?? "").trim();
+  const name = seat?.name ?? "학생";
+  return id ? `${id} ${name}` : name;
+}
+
 export default function StudyMyActivityCard({
   board,
   user,
@@ -65,6 +72,11 @@ export default function StudyMyActivityCard({
   writerStudentId = null,
   writerEmoji = "",
   isMine = false,
+  // 앞·뒤 학생 — 교사가 카드를 넘겨 볼 때. 갈 곳이 없으면 null입니다.
+  prevWriter = null,
+  nextWriter = null,
+  onPrevWriter = null,
+  onNextWriter = null,
   onBack,        // 이 프로젝트의 카드 그리드로
   onBackToList,  // 공부방 첫 화면(프로젝트 목록)으로 — 없으면 버튼도 안 보임
   onAsk,
@@ -293,6 +305,22 @@ export default function StudyMyActivityCard({
   );
   cast.useLiveUpdate(livePayload);
 
+  // ← → 로도 넘깁니다 — 카드가 여덟 칸이라 마우스를 위로 올리는 일이
+  // 잦습니다. 글을 쓰는 중(입력칸·서식 에디터)에는 비켜 줍니다.
+  useEffect(() => {
+    if (!onPrevWriter && !onNextWriter) return undefined;
+    function onKey(e) {
+      const el = document.activeElement;
+      const tag = el?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      if (el?.isContentEditable) return;
+      if (e.key === "ArrowLeft" && prevWriter) onPrevWriter?.();
+      else if (e.key === "ArrowRight" && nextWriter) onNextWriter?.();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onPrevWriter, onNextWriter, prevWriter, nextWriter]);
+
   return (
     <section className="study-mycard-page">
       <div className="study-mycard-head">
@@ -357,6 +385,32 @@ export default function StudyMyActivityCard({
             {writerStudentId && <em>{writerStudentId}</em>}
             <strong>{writerName}</strong>
           </span>
+          {/* 옆 학생으로 — 이름 바로 뒤에 붙여 둡니다. 떼어 놓으면 한 명
+              넘길 때마다 손이 화면을 가로질러 오갑니다(수업 노트 크게 보기의
+              ‹ ›와 같은 생각). 갈 곳이 없으면 꺼지고, 툴팁이 **갈 학생을
+              미리** 적습니다. */}
+          {(onPrevWriter || onNextWriter) && (
+            <span className="study-mycard-who-nav">
+              <button
+                type="button"
+                onClick={onPrevWriter}
+                disabled={!prevWriter}
+                aria-label="앞 학생"
+                title={prevWriter ? `${seatLabel(prevWriter)} (←)` : "앞 학생 — 더 앞은 없어요"}
+              >
+                ‹
+              </button>
+              <button
+                type="button"
+                onClick={onNextWriter}
+                disabled={!nextWriter}
+                aria-label="다음 학생"
+                title={nextWriter ? `${seatLabel(nextWriter)} (→)` : "다음 학생 — 더 뒤는 없어요"}
+              >
+                ›
+              </button>
+            </span>
+          )}
         </p>
       )}
 
