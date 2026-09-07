@@ -69,6 +69,18 @@ function IconOl() {
   );
 }
 
+function IconCheckList() {
+  return (
+    <svg {...svgProps}>
+      <rect x="3" y="4" width="7" height="7" rx="1.5" />
+      <path d="M4.6 7.6l1.6 1.6 2.6-3" />
+      <rect x="3" y="14" width="7" height="7" rx="1.5" />
+      <line x1="13" y1="7.5" x2="21" y2="7.5" />
+      <line x1="13" y1="17.5" x2="21" y2="17.5" />
+    </svg>
+  );
+}
+
 export function IconImage() {
   return (
     <svg {...svgProps}>
@@ -96,6 +108,10 @@ function IconSend() {
   );
 }
 
+// 체크 목록의 네모를 '누른 것'으로 볼 왼쪽 폭(px) — CSS의 li::before 자리와
+// 같아야 합니다(.rte-area ul.checklist > li).
+const CHECK_HIT = 22;
+
 // 서식 명령 정의 (null은 구분선)
 const COMMANDS = [
   {
@@ -116,6 +132,12 @@ const COMMANDS = [
   null,
   { cmd: "insertUnorderedList", title: "글머리 기호", icon: <IconUl /> },
   { cmd: "insertOrderedList", title: "번호 목록", icon: <IconOl /> },
+  {
+    cmd: "checkList",
+    title: "체크 목록 — 네모를 눌러 켜고 끕니다",
+    icon: <IconCheckList />,
+    custom: true,
+  },
   null,
   { cmd: "codeBlock", title: "코드 블록 (</>)", icon: <code className="rte-glyph rte-code-glyph">&lt;/&gt;</code>, custom: true },
 ];
@@ -189,6 +211,47 @@ export default function RichTextEditor({
   function exec(command) {
     ref.current?.focus();
     document.execCommand(command, false, null);
+    onChange(ref.current.innerHTML);
+  }
+
+  // ── 체크 목록 ───────────────────────────────────────────────
+  // 글머리 기호 목록에 `checklist` 표시를 붙였다 뗐다 합니다. 목록 자체는
+  // 브라우저(execCommand)가 만들어 주므로 Enter로 줄이 이어지고, 표시는
+  // 그 <ul>에만 붙습니다 — 새 <li>는 저절로 같은 목록에 들어갑니다.
+  function toggleCheckList() {
+    ref.current?.focus();
+    const ul = closestList();
+    if (ul) {
+      // 이미 목록이면 표시만 켜고 끕니다(체크 목록 ↔ 글머리 기호)
+      ul.classList.toggle("checklist");
+      if (!ul.classList.contains("checklist")) {
+        ul.querySelectorAll("li.done").forEach((li) => li.classList.remove("done"));
+      }
+    } else {
+      document.execCommand("insertUnorderedList", false, null);
+      closestList()?.classList.add("checklist");
+    }
+    onChange(ref.current.innerHTML);
+  }
+
+  // 커서가 든 <ul> (에디터 안일 때만)
+  function closestList() {
+    const node = window.getSelection()?.anchorNode;
+    if (!node || !ref.current?.contains(node)) return null;
+    const el = node.nodeType === 1 ? node : node.parentElement;
+    const ul = el?.closest("ul");
+    return ul && ref.current.contains(ul) ? ul : null;
+  }
+
+  // 네모를 눌러 켜고 끄기 — 상자는 li::before로 그려져 있어, 글자 왼쪽
+  // 자리를 누른 것을 그 네모를 누른 것으로 봅니다.
+  function handleAreaClick(e) {
+    const li = e.target.closest?.("ul.checklist > li");
+    if (!li || !ref.current?.contains(li)) return;
+    const box = li.getBoundingClientRect();
+    if (e.clientX - box.left > CHECK_HIT) return; // 글자를 누른 것 — 커서만 옮깁니다
+    e.preventDefault();
+    li.classList.toggle("done");
     onChange(ref.current.innerHTML);
   }
 
@@ -305,7 +368,13 @@ export default function RichTextEditor({
             title={c.title}
             className={`rte-tool ${active[c.cmd] ? "active" : ""}`}
             onMouseDown={(e) => e.preventDefault()}
-            onClick={() => c.custom ? insertCodeBlock() : exec(c.cmd)}
+            onClick={() =>
+              c.cmd === "checkList"
+                ? toggleCheckList()
+                : c.custom
+                  ? insertCodeBlock()
+                  : exec(c.cmd)
+            }
           >
             {c.icon}
           </button>
@@ -339,6 +408,7 @@ export default function RichTextEditor({
       onInput={handleInput}
       onKeyDown={handleKeyDown}
       onPaste={handlePaste}
+      onClick={handleAreaClick}
     />
   );
 

@@ -42,8 +42,13 @@
 //
 // [서식]
 // 메모는 대개 여러 갈래를 늘어놓게 됩니다("설명이 길었다 / 다음엔 예시부터").
-// 그래서 굵게·밑줄·글머리 기호·번호 목록만 붙여 두었습니다(RichTextEditor의
-// tools). 나머지(기울임·코드 블록)는 수업 메모에서 쓸 일이 없어 뺐습니다.
+// 그래서 굵게·밑줄·글머리 기호·번호 목록·**체크 목록**만 붙여 두었습니다
+// (RichTextEditor의 tools). 나머지(기울임·코드 블록)는 수업 메모에서 쓸 일이
+// 없어 뺐습니다.
+//
+// 체크 목록의 네모는 **읽는 자리에서 바로** 켜고 끕니다(패널·달력) — 할 일을
+// 적어 두고 나중에 지우는 자리라, 켜려고 '수정'으로 들어갔다 나오게 하면
+// 뜻이 없습니다. 켜면 그 메모 문서를 그 자리에서 고쳐 씁니다.
 //
 // 저장되는 값은 HTML 문자열입니다. 서식이 붙기 전에 적은 메모는 순수
 // 텍스트로 남아 있어, 읽을 때 richHtml()이 둘을 함께 다룹니다.
@@ -52,7 +57,13 @@ import { useEffect, useMemo, useState } from "react";
 import { backdropClose } from "@/lib/modal";
 import RichTextEditor from "./RichTextEditor";
 import { IconMyPost } from "./StatusIcons";
-import { looksLikeHtml, richHtml, stripHtml } from "@/lib/html";
+import {
+  looksLikeHtml,
+  richHtml,
+  stripHtml,
+  toggleChecklistItem,
+  checklistIndexOf,
+} from "@/lib/html";
 import {
   subscribeLessonMemos,
   subscribeClasses,
@@ -69,6 +80,10 @@ import {
 // HTML을 가운데서 자르면 태그가 끊겨 글이 망가집니다.
 const MAX_LEN = 2000;
 
+// 체크 목록의 네모를 '누른 것'으로 볼 왼쪽 폭(px) — 에디터(RichTextEditor의
+// CHECK_HIT)·CSS의 li::before 자리와 같은 값이어야 합니다.
+const CHECK_HIT = 22;
+
 // 서식만 있고 글자는 없는 상태('<div><br></div>')를 빈 메모로 봅니다.
 function memoEmpty(html) {
   return !stripHtml(html).trim();
@@ -81,7 +96,13 @@ function memoPreview(value) {
 }
 
 // 수업 메모에 붙이는 서식 — 글머리 기호·번호 목록·굵게·밑줄까지만
-const MEMO_TOOLS = ["bold", "underline", "insertUnorderedList", "insertOrderedList"];
+const MEMO_TOOLS = [
+  "bold",
+  "underline",
+  "insertUnorderedList",
+  "insertOrderedList",
+  "checkList",
+];
 
 export default function LessonMemoModal({ classId, className = "", user, onClose }) {
   const [text, setText] = useState(""); // HTML 문자열
@@ -462,6 +483,26 @@ function MemoClassPanel({ classId, name, memos, readOnly, onClose }) {
     setConfirmDelete(null);
   }
 
+  // 체크 목록의 네모 — 누르면 그 자리에서 켜고 끄고 저장합니다.
+  // 저장된 HTML의 몇 번째 항목인지로 찾습니다(화면에 그린 것과 저장된 것이
+  // 같은 차례라, 글이 길어도 어긋나지 않습니다).
+  async function onCheck(e, memo) {
+    if (readOnly) return;
+    const li = e.target.closest?.("ul.checklist > li");
+    if (!li) return;
+    const box = li.getBoundingClientRect();
+    if (e.clientX - box.left > CHECK_HIT) return; // 글자를 누른 것
+    const index = checklistIndexOf(e.currentTarget, li);
+    if (index < 0) return;
+    li.classList.toggle("done"); // 눈에 먼저 — 저장을 기다리지 않게
+    await updateLessonMemo(
+      classId,
+      memo.id,
+      toggleChecklistItem(richHtml(memo.text), index),
+      lessonMemoDate(memo)
+    );
+  }
+
   return (
     <aside
       className="memo-side-panel memo-class-panel"
@@ -575,9 +616,13 @@ function MemoClassPanel({ classId, name, memos, readOnly, onClose }) {
                       )}
                     </div>
                     {/* 서식이 붙기 전 메모는 순수 텍스트라 richHtml이
-                        줄바꿈만 살려 내보냅니다(lib/html.js) */}
+                        줄바꿈만 살려 내보냅니다(lib/html.js).
+                        체크 목록의 네모는 **여기서** 켜고 끕니다 — 할 일을
+                        적어 두고 나중에 지우는 자리가 이 목록이라, 켜려고
+                        '수정'으로 들어갔다 나오게 하면 뜻이 없습니다. */}
                     <div
                       className="memo-item-text"
+                      onClick={(e) => onCheck(e, m)}
                       dangerouslySetInnerHTML={{ __html: richHtml(m.text) }}
                     />
                   </>
@@ -677,6 +722,24 @@ function MemoCalendarPanel({ byDate, nameOfClass, archivedClassIds, currentClass
     } finally {
       setBusy(false);
     }
+  }
+
+  // 체크 목록의 네모 — 펼친 메모에서 바로 켜고 끕니다(패널과 같은 방식).
+  async function onCheck(e, memo) {
+    if (readOnly || busy) return;
+    const li = e.target.closest?.("ul.checklist > li");
+    if (!li) return;
+    const box = li.getBoundingClientRect();
+    if (e.clientX - box.left > CHECK_HIT) return;
+    const index = checklistIndexOf(e.currentTarget, li);
+    if (index < 0) return;
+    li.classList.toggle("done");
+    await updateLessonMemo(
+      pickedClass,
+      memo.id,
+      toggleChecklistItem(richHtml(memo.text), index),
+      picked
+    ).catch(() => {});
   }
 
   async function saveEdit() {
@@ -902,6 +965,7 @@ function MemoCalendarPanel({ byDate, nameOfClass, archivedClassIds, currentClass
                     {open && (
                       <div
                         className="memo-cal-memo-body"
+                        onClick={(e) => onCheck(e, m)}
                         dangerouslySetInnerHTML={{ __html: richHtml(m.text) }}
                       />
                     )}

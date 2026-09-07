@@ -23570,6 +23570,71 @@ body:has(.confirm-backdrop) .cornell-handle {
   line-height: 1.6;
 }
 
+
+/* ===== 체크 목록 (수업 메모) =========================================
+   `<ul class="checklist">`의 `<li>`이고, 켜진 줄은 `class="done"`입니다.
+   <input type="checkbox">를 쓰지 않는 까닭은 lib/html.js 주석 참고 —
+   상자는 여기서 CSS로 그립니다.
+
+   **왼쪽 22px이 '네모를 누른 자리'입니다.** 그 값이 세 곳에 흩어져 있으니
+   (RichTextEditor의 CHECK_HIT · LessonMemoModal의 CHECK_HIT · 아래 padding)
+   고칠 때는 함께 고치세요. 글자를 누른 것은 켜고 끄지 않습니다 — 읽다가
+   무심코 눌러 할 일이 지워지면 안 됩니다. */
+ul.checklist {
+  list-style: none;
+  padding-left: 0;
+  margin: 4px 0;
+}
+ul.checklist > li {
+  position: relative;
+  padding-left: 22px;
+  margin: 3px 0;
+  list-style: none;
+}
+/* 네모 — 글자 첫 줄에 맞춰 왼쪽에 */
+ul.checklist > li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.28em;
+  width: 13px;
+  height: 13px;
+  box-sizing: border-box;
+  border: 1.5px solid var(--border);
+  border-radius: 3px;
+  background: #fff;
+}
+/* 켠 줄 — 초록 네모에 흰 체크. 글자는 옅어지고 줄이 그어집니다.
+   체크 표시는 ::after로 그린 'ㄴ'을 돌린 것입니다(글꼴에 기대지 않게). */
+ul.checklist > li.done::before {
+  border-color: #3f704b;
+  background: #3f704b;
+}
+ul.checklist > li.done::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: calc(0.28em + 2px);
+  width: 4px;
+  height: 7px;
+  box-sizing: border-box;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(42deg);
+}
+ul.checklist > li.done {
+  color: var(--text-faint);
+  text-decoration: line-through;
+}
+/* 켜고 끌 수 있는 자리에서는 네모 위에서 손 모양으로 — 읽기 전용
+   (보관된 반)에서는 그대로 둡니다. */
+.memo-item-text ul.checklist > li::before,
+.memo-cal-memo-body ul.checklist > li::before,
+.rte-area ul.checklist > li::before {
+  cursor: pointer;
+}
+.memo-item-text ul.checklist > li::before:hover { border-color: var(--primary); }
+
 /* ===== 기록 관리 모달 — 두 기록의 탭 ===== */
 .notes-mgr-tabs {
   display: flex;
