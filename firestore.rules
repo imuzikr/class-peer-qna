@@ -171,6 +171,15 @@ service cloud.firestore {
     // ── 수업 노트(코넬) 본문 검사 ─────────────────────────────
     // 학생이 자기 노트에, 문서 ID가 정한 자리에 쓰는지. 칸마다 길이도 봅니다.
     // (필기 칸은 서식이 붙은 HTML이라 넉넉히 둡니다 — 태그가 길이를 먹습니다)
+    // 손들기에 함께 오는 태그·메모. 없어도 되지만, 있으면 글자여야 하고
+    // 메모는 1000자까지입니다(교사 화면에 그대로 뿌려지는 글이라서요).
+    function questionSignalSaid() {
+      return request.resource.data.get('tag', '') is string
+             && request.resource.data.get('tag', '').size() <= 20
+             && request.resource.data.get('note', '') is string
+             && request.resource.data.get('note', '').size() <= 1000;
+    }
+
     function isMyCornellNote(cId, nId) {
       return request.resource.data.uid == uid()
              && request.resource.data.classId == cId
@@ -488,6 +497,10 @@ service cloud.firestore {
       // ── 언제든 질문하기(손들기) ─────────────────────────────
       //  · 경로 = classes/{classId}/questionSignals/{uid}
       //  · 학생은 자기 손들기만 켜고/끄고, 담당 교사는 반 전체 목록만 확인합니다.
+      //  · 태그(tag)와 메모(note)를 함께 보냅니다 — '무엇 때문에 손을
+      //    들었나'. 둘 다 없어도 손은 올라갑니다(그냥 부르는 손). 메모는
+      //    교사 화면에 그대로 뿌려지므로 길이를 여기서 못 박습니다
+      //    (lib/questionTags.js의 QUESTION_NOTE_MAX와 같은 값).
       match /questionSignals/{studentUid} {
         allow get: if signedIn() && (
           isAdmin()
@@ -503,6 +516,7 @@ service cloud.firestore {
                       && request.resource.data.uid == uid()
                       && request.resource.data.classId == cId
                       && isClassMember(cId)
+                      && questionSignalSaid()
                       && request.resource.data.createdAt == request.time
                       && request.resource.data.updatedAt == request.time;
         allow update: if signedIn()
@@ -512,6 +526,7 @@ service cloud.firestore {
                       && request.resource.data.classId == cId
                       && request.resource.data.createdAt == resource.data.createdAt
                       && isClassMember(cId)
+                      && questionSignalSaid()
                       && request.resource.data.updatedAt == request.time;
         allow delete: if signedIn() && (
           studentUid == uid()

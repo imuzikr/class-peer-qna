@@ -11,6 +11,11 @@ import {
   subscribeQuestionSignals,
 } from "@/lib/store";
 import QuestionSeatModal from "./QuestionSeatModal";
+import {
+  QUESTION_TAGS,
+  QUESTION_NOTE_MAX,
+  questionTagOf,
+} from "@/lib/questionTags";
 import { IconChair } from "./StatusIcons";
 
 export default function QuestionSignalButton({
@@ -27,6 +32,9 @@ export default function QuestionSignalButton({
   const [mine, setMine] = useState(null);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  // 학생이 손을 들며 함께 보내는 것 — 태그 하나와 짧은 메모.
+  const [tag, setTag] = useState("");
+  const [note, setNote] = useState("");
   // 확인 처리 중인 학생 uid — 그 항목의 확인 버튼만 잠가 중복 클릭을 막습니다.
   const [dismissing, setDismissing] = useState(() => new Set());
   const wrapRef = useRef(null);
@@ -51,6 +59,15 @@ export default function QuestionSignalButton({
     return () => document.removeEventListener("pointerdown", onDown);
   }, [open]);
 
+  // 창을 열 때 지금 든 손의 값을 채워 둡니다 — 고쳐 보낼 수 있게.
+  // (창을 닫았다 다시 열면 늘 저장된 값에서 시작합니다)
+  useEffect(() => {
+    if (isTeacher || !open) return;
+    setTag(mine?.tag ?? "");
+    setNote(mine?.note ?? "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, isTeacher]);
+
   const count = isTeacher ? signals.length : mine ? 1 : 0;
   const active = count > 0;
 
@@ -64,15 +81,37 @@ export default function QuestionSignalButton({
   // 학생 쪽은 그대로 늘 있습니다 — 손을 드는 버튼 자체라 사라지면 들 수가
   // 없습니다.
 
-  async function handleClick() {
+  // 학생도 곧바로 손을 들지 않고 **작은 창**을 먼저 엽니다 — 태그와 메모를
+  // 함께 보내면 교사가 다가가기 전에 무엇인지 알 수 있습니다. 그냥 부르는
+  // 손도 있어야 하므로 '메모 없이 보내기'가 나란히 있습니다.
+  function handleClick() {
     if (!classId || !user?.uid || busy) return;
-    if (isTeacher) {
-      setOpen((v) => !v);
-      return;
-    }
+    setOpen((v) => !v);
+  }
+
+  // 손 들기(또는 든 손 고치기). withNote=false면 메모 없이 보냅니다.
+  async function raise(withNote) {
+    if (!classId || !user?.uid || busy) return;
     setBusy(true);
     try {
-      await setQuestionSignal(classId, user, !mine);
+      await setQuestionSignal(classId, user, true, {
+        tag,
+        note: withNote ? note : "",
+      });
+      setOpen(false);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function lower() {
+    if (!classId || !user?.uid || busy) return;
+    setBusy(true);
+    try {
+      await setQuestionSignal(classId, user, false);
+      setTag("");
+      setNote("");
+      setOpen(false);
     } finally {
       setBusy(false);
     }
@@ -145,6 +184,90 @@ export default function QuestionSignalButton({
         {active && <span className="question-signal-dot" aria-hidden="true" />}
       </button>
 
+      {/* 학생 — 손바닥 옆에 뜨는 작은 창. 태그 하나와 짧은 메모를 함께
+          보냅니다. 이미 손을 들었으면 그 값이 채워져 있어 고쳐 보내거나
+          내릴 수 있습니다. */}
+      {!isTeacher && open && (
+        <div className="question-signal-dropdown question-signal-ask">
+          <div className="question-signal-head">
+            <p className="question-signal-title">
+              {mine ? "든 손 고치기" : "질문하기"}
+            </p>
+            <button
+              type="button"
+              className="btn-close"
+              onClick={() => setOpen(false)}
+              aria-label="닫기"
+            >
+              ×
+            </button>
+          </div>
+
+          {/* 태그 — 셋 다 같은 크기(한 줄 3칸 격자). 고르는 데 시간이 들면
+              손드는 일 자체가 부담이 되므로 갈래를 셋으로 못 박아 둡니다.
+              다시 누르면 고름이 풀립니다(태그 없이도 보낼 수 있습니다). */}
+          <div className="qsig-tags" role="group" aria-label="무엇 때문인가요">
+            {QUESTION_TAGS.map((t) => (
+              <button
+                key={t.key}
+                type="button"
+                className={`qsig-tag qsig-tag--${t.key}${tag === t.key ? " on" : ""}`}
+                onClick={() => setTag((v) => (v === t.key ? "" : t.key))}
+                aria-pressed={tag === t.key}
+              >
+                {/* 이모지는 여기 안 답니다 — 셋을 같은 크기로 두려면 알약
+                    하나가 121px인데, 이모지까지 넣으면 글자가 잘립니다.
+                    고른 것은 색이 말해 주고, 교사 목록에서는 알약이 하나뿐이라
+                    자리가 남아 이모지를 답니다. */}
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          <label className="qsig-note-label" htmlFor="qsig-note">
+            메모 <em>(선택)</em>
+          </label>
+          <textarea
+            id="qsig-note"
+            className="qsig-note"
+            value={note}
+            onChange={(e) => setNote(e.target.value.slice(0, QUESTION_NOTE_MAX))}
+            placeholder="어떤 도움이 필요한지 적어 주세요."
+            rows={4}
+          />
+          <span className="qsig-note-count">
+            {note.length.toLocaleString()} / {QUESTION_NOTE_MAX.toLocaleString()}자
+          </span>
+
+          <div className="qsig-actions">
+            {mine ? (
+              <button type="button" className="btn-ghost" onClick={lower} disabled={busy}>
+                손 내리기
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="btn-ghost"
+                onClick={() => raise(false)}
+                disabled={busy}
+                title="메모 없이 손만 듭니다"
+              >
+                메모 없이 보내기
+              </button>
+            )}
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={() => raise(true)}
+              disabled={busy || !note.trim()}
+              title={note.trim() ? "" : "메모를 적으면 눌러 보낼 수 있어요"}
+            >
+              {mine ? "고쳐 보내기" : "메모와 함께 보내기"}
+            </button>
+          </div>
+        </div>
+      )}
+
       {isTeacher && open && (
         <div className="question-signal-dropdown" role="menu">
           <div className="question-signal-head">
@@ -211,6 +334,22 @@ export default function QuestionSignalButton({
                       닫기
                     </button>
                   </span>
+                  {/* 학생이 함께 보낸 것 — 태그가 먼저, 그 아래 메모.
+                      다가가기 전에 무엇인지 알 수 있게 하는 자리라, 이름
+                      줄 바로 아래에 둡니다. 없으면 줄 자체가 없습니다. */}
+                  {(questionTagOf(s.tag) || String(s.note ?? "").trim()) && (
+                    <span className="qsig-said">
+                      {questionTagOf(s.tag) && (
+                        <span className={`qsig-tag qsig-tag--${s.tag} on`}>
+                          <span aria-hidden="true">{questionTagOf(s.tag).emoji}</span>
+                          {questionTagOf(s.tag).label}
+                        </span>
+                      )}
+                      {String(s.note ?? "").trim() && (
+                        <span className="qsig-said-note">{s.note}</span>
+                      )}
+                    </span>
+                  )}
                 </li>
               ))}
             </ul>

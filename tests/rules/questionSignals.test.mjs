@@ -44,6 +44,36 @@ describe("손들기 규칙", () => {
     await assertSucceeds(deleteDoc(doc(db, ...sigPath("cA", "stu1"))));
   });
 
+  // 손을 들면서 '무엇 때문인가'를 함께 보냅니다(태그 하나 + 짧은 메모).
+  // 메모는 교사 화면에 그대로 뿌려지는 글이라 길이를 규칙이 못 박습니다.
+  it("태그와 메모를 함께 보낼 수 있다", async () => {
+    const db = asStudent(env, "stu1").firestore();
+    await assertSucceeds(
+      setDoc(doc(db, ...sigPath("cA", "stu1")), {
+        ...payload("cA", "stu1"),
+        tag: "bug",
+        note: "3번 활동에서 저장이 안 돼요",
+      })
+    );
+  });
+
+  it("메모가 1000자를 넘으면 거부된다", async () => {
+    const db = asStudent(env, "stu1").firestore();
+    await assertFails(
+      setDoc(doc(db, ...sigPath("cA", "stu1")), {
+        ...payload("cA", "stu1"),
+        note: "가".repeat(1001),
+      })
+    );
+  });
+
+  it("메모가 글자가 아니면 거부된다", async () => {
+    const db = asStudent(env, "stu1").firestore();
+    await assertFails(
+      setDoc(doc(db, ...sigPath("cA", "stu1")), { ...payload("cA", "stu1"), note: 123 })
+    );
+  });
+
   it("남을 대신해 손을 들 수 없다", async () => {
     const db = asStudent(env, "stu1").firestore();
     await assertFails(setDoc(doc(db, ...sigPath("cA", "stu2")), payload("cA", "stu2")));
