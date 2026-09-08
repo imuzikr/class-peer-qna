@@ -4445,6 +4445,15 @@ pre code {
   background: var(--neutral);
 }
 
+/* 예시 코드 — 빈 칸에 옅게 뜨는 안내입니다(실제 내용이 아니라, 한 글자만
+   쳐도 저절로 사라집니다). CodeMirror의 placeholder 자리에 줄마다 <div>로
+   쌓아 넣으므로, 여기서는 편집기 글자와 같은 줄 높이만 맞춰 줍니다. */
+.py-sample {
+  color: var(--text-faint);
+  white-space: pre;
+}
+.py-sample > div { line-height: 1.4; }
+
 /* 본문 배치: 보통은 세로, 전체 화면은 좌우 분할 */
 .py-body {
   display: flex;

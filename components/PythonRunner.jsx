@@ -13,7 +13,7 @@
 import { useEffect, useRef, useState } from "react";
 import { IconPythonRunner, IconKeyboard, IconAnswer } from "@/components/StatusIcons";
 import { EditorView, basicSetup } from "codemirror";
-import { keymap } from "@codemirror/view";
+import { keymap, placeholder } from "@codemirror/view";
 import { indentWithTab } from "@codemirror/commands";
 import { acceptCompletion } from "@codemirror/autocomplete";
 import { Prec } from "@codemirror/state";
@@ -67,13 +67,30 @@ self.onmessage = async (e) => {
 };
 `;
 
+// 빈 칸에 옅게 뜨는 **예시**입니다 — 실제 내용이 아니라 안내라, 학생이
+// 한 글자만 쳐도 저절로 사라집니다. 예전에는 이것이 진짜 코드로 채워져
+// 있어서, 자기 코드를 적으면 예시 줄이 아래에 남아 뒤섞였습니다(지우려면
+// 여섯 줄을 손으로 지워야 했습니다).
 const SAMPLE_CODE = `# 파이썬 코드를 입력하고 Ctrl+Enter로 실행해 보세요!
 name = input("이름을 입력하세요: ")
 print(f"안녕하세요, {name}님!")
 
 for i in range(1, 6):
-    print(f"{i}단계: {'★' * i}")
-`;
+    print(f"{i}단계: {'★' * i}")`;
+
+// CodeMirror의 placeholder는 문자열을 한 줄로 붙여 버리므로(줄바꿈이 공백이
+// 됩니다) 줄마다 <div>로 쌓은 조각을 넘깁니다.
+function samplePlaceholder() {
+  const wrap = document.createElement("div");
+  wrap.className = "py-sample";
+  SAMPLE_CODE.split("\n").forEach((line) => {
+    const row = document.createElement("div");
+    // 빈 줄도 높이를 지키도록
+    row.textContent = line || "\u00a0";
+    wrap.appendChild(row);
+  });
+  return wrap;
+}
 
 export default function PythonRunner({ open, onClose, onAskQuestion, hasModalOpen = false }) {
   const [stdinText, setStdinText] = useState("홍길동");
@@ -113,7 +130,7 @@ export default function PythonRunner({ open, onClose, onAskQuestion, hasModalOpe
   useEffect(() => {
     if (!editorHostRef.current || viewRef.current) return;
     const view = new EditorView({
-      doc: SAMPLE_CODE,
+      doc: "",
       parent: editorHostRef.current,
       extensions: [
         // Ctrl+Enter 실행 + Tab으로 자동 완성 채택 (최우선 등록)
@@ -135,6 +152,7 @@ export default function PythonRunner({ open, onClose, onAskQuestion, hasModalOpe
         basicSetup, // 줄 번호, 문법 강조, 괄호 자동 닫기, 자동 완성 등
         keymap.of([indentWithTab]), // (완성 목록이 없을 때) Tab 들여쓰기
         python(), // 파이썬 문법 강조 + 키워드/변수 자동 완성
+        placeholder(samplePlaceholder()),
       ],
     });
     viewRef.current = view;
@@ -242,6 +260,19 @@ export default function PythonRunner({ open, onClose, onAskQuestion, hasModalOpe
     });
   }
 
+  // 지우개 — 쓴 코드를 통째로 비웁니다. 비면 예시(placeholder)가 다시
+  // 옅게 떠서 '여기에 이렇게 쓴다'는 안내가 돌아옵니다.
+  // 되묻지 않습니다 — 실행기의 코드는 저장되는 글이 아니고, 실수로 눌러도
+  // Ctrl+Z(CodeMirror의 되돌리기)로 곧바로 되살아납니다.
+  function clearCode() {
+    const view = viewRef.current;
+    if (!view) return;
+    view.dispatch({
+      changes: { from: 0, to: view.state.doc.length, insert: "" },
+    });
+    view.focus();
+  }
+
   function stop() {
     workerRef.current?.terminate();
     workerRef.current = null;
@@ -269,6 +300,27 @@ export default function PythonRunner({ open, onClose, onAskQuestion, hasModalOpe
       <div className="py-head">
         <h3><IconPythonRunner size={26} /> 파이썬 실행기</h3>
         <div className="py-head-actions">
+          {/* 지우개 — 복사하기 왼쪽. 둘 다 '지금 쓴 코드'에 대한 일이라
+              나란히 두고, 화면을 여닫는 단추(전체 화면·닫기)와는 갈라 둡니다. */}
+          <button
+            className="py-copy-btn py-clear-btn"
+            onClick={clearCode}
+            title="코드 모두 지우기"
+            aria-label="코드 모두 지우기"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              {/* 지우개 — 기울어진 몸통과 바닥 줄 */}
+              <path
+                d="M9.4 19.2 4.6 14.4a1.4 1.4 0 0 1 0-2l7-7a1.4 1.4 0 0 1 2 0l4.8 4.8a1.4 1.4 0 0 1 0 2l-7.2 7.2H9.4Z"
+                fill="#FFF7ED"
+                stroke="#3A312E"
+                strokeWidth="1.55"
+                strokeLinejoin="round"
+              />
+              <path d="m8.6 8.2 6.8 6.8" stroke="#8A6258" strokeWidth="1.5" strokeLinecap="round" />
+              <path d="M5 20.4h14" stroke="#3A312E" strokeWidth="1.55" strokeLinecap="round" />
+            </svg>
+          </button>
           <button
             className="py-copy-btn"
             onClick={copyCode}
