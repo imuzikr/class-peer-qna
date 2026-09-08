@@ -77,8 +77,6 @@ import NewQuestionForm from "@/components/NewQuestionForm";
 import ClassEntry from "@/components/ClassEntry";
 import ClassManagerModal from "@/components/ClassManagerModal";
 import Toast from "@/components/Toast";
-import RewardCelebration from "@/components/RewardCelebration";
-import { useRewardCelebration } from "@/lib/useRewardCelebration";
 import KwlPanel from "@/components/KwlPanel";
 import TeacherKwlPanel from "@/components/TeacherKwlPanel";
 import LessonManagerModal from "@/components/LessonManagerModal";
@@ -366,8 +364,6 @@ function StudyPageInner() {
   }, [admin, teacherClassId]);
 
   const classId = admin ? teacherClassId : studentClassId;
-  // 과일을 받은 순간 — 학생 화면에서만 축포를 터뜨립니다(useRewardCelebration 참고)
-  const [cheerAmount, clearCheer] = useRewardCelebration(classId, user?.uid, !admin);
   const currentClass =
     (admin ? myClassesAll : classes).find((c) => c.id === classId) ?? null;
   const currentCode = joinCodesMap[classId] ?? null; // { code, expiresAt } | null
@@ -1415,9 +1411,6 @@ function StudyPageInner() {
         />
       )}
 
-      {/* 과일을 받은 순간의 축포 — 학생 화면에서만. 교사는 자기가 준 것이라
-          축하할 일이 아니고, 한 화면에서 여러 번 주다 보면 방해가 됩니다. */}
-      <RewardCelebration amount={cheerAmount} onDone={clearCheer} />
       <Toast message={toast} onDone={() => setToast("")} />
     </div>
   );

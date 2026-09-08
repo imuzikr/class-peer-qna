@@ -83,7 +83,7 @@ export default function QuestionSignalButton({
 
   // 학생도 곧바로 손을 들지 않고 **작은 창**을 먼저 엽니다 — 태그와 메모를
   // 함께 보내면 교사가 다가가기 전에 무엇인지 알 수 있습니다. 그냥 부르는
-  // 손도 있어야 하므로 '메모 없이 보내기'가 나란히 있습니다.
+  // 손도 있어야 하므로 '내용 없이 손들기'가 나란히 있습니다.
   function handleClick() {
     if (!classId || !user?.uid || busy) return;
     setOpen((v) => !v);
@@ -250,9 +250,9 @@ export default function QuestionSignalButton({
                 className="btn-ghost"
                 onClick={() => raise(false)}
                 disabled={busy}
-                title="메모 없이 손만 듭니다"
+                title="적은 것 없이 손만 듭니다"
               >
-                메모 없이 보내기
+                내용 없이 손들기
               </button>
             )}
             <button
@@ -262,7 +262,7 @@ export default function QuestionSignalButton({
               disabled={busy || !note.trim()}
               title={note.trim() ? "" : "메모를 적으면 눌러 보낼 수 있어요"}
             >
-              {mine ? "고쳐 보내기" : "메모와 함께 보내기"}
+              {mine ? "고쳐 보내기" : "내용과 함께 손들기"}
             </button>
           </div>
         </div>

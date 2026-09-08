@@ -1898,10 +1898,13 @@ button.footer-link:hover {
   font-size: 11px;
   color: var(--text-faint);
 }
-/* 두 단추는 위아래로 — 좌우로 두면 '메모 없이 보내기'가 취소처럼 읽힙니다.
-   둘 다 보내는 단추라 나란히 쌓고, 메모가 있는 쪽만 채운 색입니다. */
-.qsig-actions { display: flex; flex-direction: column; gap: 6px; }
-.qsig-actions button { width: 100%; }
+/* 두 단추는 한 줄에 반씩 — 모달 아래 두 단추와 같은 규칙입니다
+   (`.modal-actions` 참고: `flex: 1 1 0`으로 두면 테두리가 있는 `.btn-ghost`가
+   `.btn-primary`보다 2px 넓어져, 격자로 정확히 반씩 나눕니다).
+   둘 다 손을 드는 단추이고, 적은 내용이 있는 쪽만 채운 색입니다.
+   창이 400px이라 '내용과 함께 손들기'가 한 줄에 그대로 섭니다. */
+.qsig-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.qsig-actions button { width: 100%; white-space: nowrap; }
 
 /* 교사 목록 — 이름 줄 아래에 태그와 메모 */
 .qsig-said {

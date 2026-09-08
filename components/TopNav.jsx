@@ -35,6 +35,8 @@ import RoleSwitcher from "./RoleSwitcher";
 import RoleManagerModal from "./RoleManagerModal";
 import PresentationOverlay from "./PresentationOverlay";
 import CornellNoteDrawer from "./CornellNoteDrawer";
+import RewardCelebration from "./RewardCelebration";
+import { useRewardCelebration } from "@/lib/useRewardCelebration";
 import { IconReport, IconPythonRunner, IconLogo, IconAnswer, IconBlackboard, IconBook, IconTeacher, IconLogout } from "./StatusIcons";
 
 export default function TopNav({ active, onPython, pyActive = false }) {
@@ -89,6 +91,18 @@ export default function TopNav({ active, onPython, pyActive = false }) {
     }
     return subscribeMyClassRewardCount(activeClassId, user.uid, setFruitTotal);
   }, [admin, activeClassId, user?.uid]);
+
+  // 과일을 받은 순간 터지는 축포 — 상단바에서 한 번만 답니다.
+  // -------------------------------------------------------------
+  // 예전에는 공부방·책방 페이지가 저마다 달고 있었습니다. 그런데 과일을
+  // 주는 자리는 그 두 화면뿐이 아닙니다 — 상단바의 손바닥('🍎 확인')은 어느
+  // 화면에서든 눌리고, 학생도 질문방·리포트·파이썬 실행기 어디에나 있을 수
+  // 있어 축포가 안 터지는 일이 잦았습니다(손들기에 태그·메모가 붙으면서
+  // 이 길로 주는 일이 늘어 눈에 띄었습니다).
+  // 상단바는 다섯 화면에 모두 떠 있으므로 여기 한 번 달면 어디서 받아도
+  // 터집니다. **페이지에는 다시 달지 마세요** — 구독이 둘이 되어 축포가
+  // 두 번 겹칩니다.
+  const [cheerAmount, clearCheer] = useRewardCelebration(activeClassId, user?.uid, !admin);
 
   // 발표 강제 전환(방송) 구독 — 학생은 "지금 보고 있는 반", 교사는 자신이
   // 마지막으로 고른 반 기준. 어느 화면에 있든(질문방·책방·리포트 등) 이
@@ -376,6 +390,9 @@ export default function TopNav({ active, onPython, pyActive = false }) {
         onType={markNoting}
       />
     )}
+
+    {/* 과일을 받은 순간 — 학생 화면 어디서든(위 훅 참고) */}
+    <RewardCelebration amount={cheerAmount} onDone={clearCheer} />
 
     {/* 교사 화면 — 자기 반에 방송이 켜져 있으면 어디서든 바로 끌 수 있는 안전장치 */}
     {admin && broadcast && (
