@@ -70,6 +70,7 @@ import {
 } from "@/lib/html";
 import {
   subscribeLessonMemos,
+  LESSON_MEMO_CALENDAR,
   subscribeClasses,
   addLessonMemo,
   updateLessonMemo,
@@ -162,9 +163,15 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
   const otherKey = otherClassIds.join(",");
   useEffect(() => {
     if (!calendarOn || !otherKey) { setOtherMemos({}); return; }
+    // 여기만 **50건**입니다(`LESSON_MEMO_CALENDAR`). 한 반을 펼쳐 보는
+    // 자리는 200건이지만, 달력은 켜는 순간 맡은 반 수만큼 리스너가 걸려
+    // 그 값을 그대로 쓰면 한 번에 1,200건을 읽습니다. 달력이 답하는 물음은
+    // '그날 수업이 있었나'라 최근 것만으로 충분합니다.
     const unsubs = otherKey.split(",").map((cid) =>
-      subscribeLessonMemos(cid, (list) =>
-        setOtherMemos((prev) => ({ ...prev, [cid]: list }))
+      subscribeLessonMemos(
+        cid,
+        (list) => setOtherMemos((prev) => ({ ...prev, [cid]: list })),
+        LESSON_MEMO_CALENDAR
       )
     );
     return () => unsubs.forEach((u) => u());
