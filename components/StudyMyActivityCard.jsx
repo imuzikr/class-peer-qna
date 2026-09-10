@@ -42,6 +42,7 @@ import RichTextEditor from "./RichTextEditor";
 import ZoomableImage from "./ZoomableImage";
 import UploadProgress from "./UploadProgress";
 import StudyQuestionPeek from "./StudyQuestionPeek";
+import { nextFruit } from "./RewardFruits";
 import { IconAsk, IconSolved, IconLock, IconTrash } from "./StatusIcons";
 
 const FILE_EXTS = {
@@ -82,6 +83,11 @@ export default function StudyMyActivityCard({
   onBackToList,  // 공부방 첫 화면(프로젝트 목록)으로 — 없으면 버튼도 안 보임
   onAsk,
   relatedQuestions = [],
+  // 과일 주기 — 활동 칸 머리의 단추. 줄 수 없는 자리(내 카드·교사 카드·
+  // 보관된 반)에서는 부모가 onAward를 안 내려 주므로 단추도 안 섭니다.
+  rewardCount = 0,
+  rewardMax = Infinity,
+  onAward = null,
 }) {
   const isNew = card === null;
   const activities = board.activities ?? [];
@@ -344,6 +350,12 @@ export default function StudyMyActivityCard({
 
   const doneCount = activityContents.filter((c) => stripHtml(c ?? "").length >= DONE_MIN_CHARS).length;
 
+  // 과일 주기 — 교사가 남의 카드를 볼 때만. 활동 칸마다 단추가 서지만 주는
+  // 대상은 이 카드의 주인 한 사람이라, 어느 칸에서 눌러도 같은 일입니다
+  // (활동 2의 답을 읽다가 그 자리에서 바로 줄 수 있게 하려는 것입니다).
+  const canAward = isTeacher && !isMine && !!onAward;
+  const rewardMaxed = rewardCount >= rewardMax;
+
   // ── 교사 방송 — 활동 하나를 학급 전체 화면에 띄우기 ──
   // 방송 대상은 '학생 uid + 활동 번호'로 구분합니다(RAFT 글쓰기와 같은 방식).
   const cast = useEntryCast(board.classId, isTeacher ? user : null);
@@ -548,7 +560,28 @@ export default function StudyMyActivityCard({
               className={`raft-col study-mycard-col${done ? " filled" : ""}${actLocked ? " locked" : ""}`}
             >
               <header className="study-mycard-col-head">
-                <span className="activity-dash-no">활동 {i + 1}</span>
+                {/* 활동 번호와 과일 단추는 **한 덩이**로 묶습니다. 이 줄이
+                    space-between이라 그냥 나란히 두면 넷이 고르게 흩어져
+                    '0/10자'가 가운데를 벗어납니다(지금 배치가 흐트러짐). */}
+                <span className="study-mycard-col-no">
+                  <span className="activity-dash-no">활동 {i + 1}</span>
+                  {canAward && (
+                    <button
+                      type="button"
+                      className="study-card-award-btn study-mycard-award"
+                      onClick={onAward}
+                      disabled={rewardMaxed}
+                      title={
+                        rewardMaxed
+                          ? "이미 최대 개수예요"
+                          : `${writerName || "이 학생"}에게 과일 주기 (현재 ${rewardCount}개)`
+                      }
+                      aria-label="과일 주기"
+                    >
+                      {nextFruit(rewardCount)}
+                    </button>
+                  )}
+                </span>
                 {actLocked ? (
                   <span className="activity-dash-lock">
                     <IconLock size={12} /> 잠김

@@ -3,7 +3,7 @@
 // =============================================================
 // 궁금한 순간 — 반 전체가 지금까지 받은 과일을 한눈에
 // -------------------------------------------------------------
-// '멋진 순간' 자리표의 🍎 뱃지는 **오늘** 받은 개수입니다. 누가 얼마나
+// '멋진 순간' 자리표의 🍊 뱃지는 **오늘** 받은 개수입니다. 누가 얼마나
 // 쌓아 왔는지는 자리를 하나씩 눌러 과일 주기 모달을 열어야 알 수 있었습니다.
 // 이 패널은 누적 총계를 많이 받은 순으로 가로 막대에 늘어놓습니다.
 //
@@ -83,7 +83,7 @@ export default function RewardTally({ classId = null, roster = [], embedded = fa
           aria-expanded={open}
           title={open ? "접기" : "반 전체가 받은 과일 보기"}
         >
-          <span className="reward-title">🍎 궁금한 순간</span>
+          <span className="reward-title">🍊 궁금한 순간</span>
           <span className="reward-tally-caret" aria-hidden="true">
             {open ? "▴" : "▾"}
           </span>

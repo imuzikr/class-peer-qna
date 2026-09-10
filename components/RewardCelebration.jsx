@@ -278,7 +278,7 @@ export default function RewardCelebration({ amount = 0, onDone }) {
       <div className="reward-cheer-sky" aria-hidden="true" />
       <canvas ref={canvasRef} className="reward-cheer-canvas" aria-hidden="true" />
       <div className="reward-cheer-badge" role="status">
-        <span className="reward-cheer-emoji" aria-hidden="true">🍎</span>
+        <span className="reward-cheer-emoji" aria-hidden="true">🍊</span>
         <strong className="reward-cheer-plus">+{amount}</strong>
         <span className="reward-cheer-text">과일을 받았어요!</span>
       </div>

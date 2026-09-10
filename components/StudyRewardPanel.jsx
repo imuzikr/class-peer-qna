@@ -69,7 +69,7 @@ export default function StudyRewardPanel({
   // 자리표를 어느 쪽에서 보는가 — 자리표가 나오는 네 화면이 같은 값을
   // 함께 씁니다(lib/seatView.js). 한 화면에서 뒤집으면 나머지도 따라옵니다.
   const [teacherView, toggleSeatView] = useSeatView();
-  // 자리 칸의 🍎 뱃지는 오늘 받은 개수입니다(누적 총계는 과일 주기 모달에).
+  // 자리 칸의 🍊 뱃지는 오늘 받은 개수입니다(누적 총계는 과일 주기 모달에).
   const todayCountByUid = useTodayRewardCounts(classId);
 
   // 접힘 상태 복원 — 개인 화면 설정이라 localStorage에 저장
@@ -196,7 +196,7 @@ export default function StudyRewardPanel({
         aria-label="멋진 순간 펼치기"
       >
         <span className="reward-collapsed-expand" aria-hidden="true">«</span>
-        <span className="reward-collapsed-icon" aria-hidden="true">🍎</span>
+        <span className="reward-collapsed-icon" aria-hidden="true">🍊</span>
         <span className="reward-collapsed-title">멋진 순간</span>
       </aside>
     );
@@ -248,7 +248,7 @@ export default function StudyRewardPanel({
       <div className="reward-panel-inner">
       <div className="reward-head">
         <div className="reward-head-row">
-          <span className="reward-title">🍎 멋진 순간</span>
+          <span className="reward-title">🍊 멋진 순간</span>
           <button
             type="button"
             className="reward-collapse-btn"

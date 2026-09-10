@@ -314,7 +314,7 @@ export default function QuestionSignalButton({
                     </span>
                     {/* 두 갈래로 나눠 둡니다 — 손든 것을 격려하는 '확인'과,
                         잘못 눌린 손을 조용히 내리는 '닫기'. 과일이 붙는 쪽에만
-                        🍎를 달아 어느 버튼이 주는 버튼인지 눈으로 갈립니다. */}
+                        🍊를 달아 어느 버튼이 주는 버튼인지 눈으로 갈립니다. */}
                     <button
                       type="button"
                       className="question-signal-confirm"
@@ -322,7 +322,7 @@ export default function QuestionSignalButton({
                       disabled={dismissing.has(s.uid)}
                       title={`${s.name || "이 학생"}의 질문 확인 — 과일 1개를 주고 목록에서 지웁니다`}
                     >
-                      🍎 확인
+                      🍊 확인
                     </button>
                     <button
                       type="button"

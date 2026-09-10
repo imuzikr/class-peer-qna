@@ -9,7 +9,7 @@
 //
 //   · 정렬 — 학번순 / 제출순 / 글자 수순
 //   · 이전/다음 — 한 명씩 차례로. 띄우는 중이면 학급 화면도 함께 넘어갑니다
-//   · 카드마다 '띄우기'(그 답 하나만 학급 화면에) + 🍎(멋진 순간)
+//   · 카드마다 '띄우기'(그 답 하나만 학급 화면에) + 🍊(멋진 순간)
 //   · 위쪽 '이 화면 학급에 띄우기' — 깔린 답 전체를 학생 화면에 그대로
 //
 // 어떤 칸이든 담을 수 있게 답은 부모가 만들어 넘깁니다(rows) — 프로젝트
@@ -312,7 +312,7 @@ export default function StudyActivityWall({
                         title={r.count >= REWARD_MAX ? "이미 최대 개수예요" : `과일 주기 (현재 ${r.count}개)`}
                         aria-label="과일 주기"
                       >
-                        🍎<span className="wall-card-award-n">{r.count ?? 0}</span>
+                        🍊<span className="wall-card-award-n">{r.count ?? 0}</span>
                       </button>
                     )}
                   </footer>

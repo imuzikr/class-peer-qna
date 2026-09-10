@@ -455,7 +455,7 @@ export default function KwlFullscreenModal({
                         </span>
                       )}
                       <span className="kwlfs-fruit">
-                        <span className="kwlfs-fruit-count">🍎 {rewardMap[r.userId] ?? 0}</span>
+                        <span className="kwlfs-fruit-count">🍊 {rewardMap[r.userId] ?? 0}</span>
                         <button
                           type="button"
                           className="kwlfs-fruit-btn"

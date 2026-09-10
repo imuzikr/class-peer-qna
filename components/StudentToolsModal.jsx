@@ -68,7 +68,7 @@ export default function StudentToolsModal({
                 // 새로 돕니다(눌렀다는 신호). aria-live로 소리로도 알립니다.
                 <span className="attend-tools-total" aria-live="polite">
                   <span className="attend-tools-total-label">누적</span>
-                  <span className="attend-tools-total-n" key={count}>🍎 {count}</span>
+                  <span className="attend-tools-total-n" key={count}>🍊 {count}</span>
                 </span>
               }
             />

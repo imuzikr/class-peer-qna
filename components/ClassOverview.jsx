@@ -48,7 +48,7 @@ export default function ClassOverview({
         {/* 멋진 순간 — 전체 학급이면 학급별 비교 막대, 특정 반이면 합계 숫자 */}
         {classFruitStats && classFruitStats.length > 0 ? (
           <div className="admin-stat tone-moments stat-fruit-chart">
-            <span>🍎 멋진 순간</span>
+            <span>🍊 멋진 순간</span>
             <div className="stat-fruit-bars">
               {classFruitStats.map((c) => (
                 <div className="stat-fruit-row" key={c.classId}>
@@ -67,7 +67,7 @@ export default function ClassOverview({
             </div>
           </div>
         ) : (
-          <div className="admin-stat tone-moments"><span>🍎 멋진 순간</span><strong>{fruitTotal}</strong></div>
+          <div className="admin-stat tone-moments"><span>🍊 멋진 순간</span><strong>{fruitTotal}</strong></div>
         )}
 
         <div className="admin-stat tone-ask"><span>전체 질문</span><strong>{totalQuestions}</strong></div>

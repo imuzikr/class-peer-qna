@@ -162,7 +162,7 @@ export default function ParticipationBreadth({
             점을 '참여 안 함'으로 읽으면 안 되므로 밝혀 둡니다. */}
         {stat.perChannel[4] === 0 && (
           <em className="breadth-note">
-            손들기는 ‘🍎 확인’을 누른 순간부터 쌓입니다 — 아직 기록이 없어
+            손들기는 ‘🍊 확인’을 누른 순간부터 쌓입니다 — 아직 기록이 없어
             다섯 번째 점은 모두 꺼져 있어요.
           </em>
         )}

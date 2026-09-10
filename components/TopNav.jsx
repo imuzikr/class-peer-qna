@@ -95,7 +95,7 @@ export default function TopNav({ active, onPython, pyActive = false }) {
   // 과일을 받은 순간 터지는 축포 — 상단바에서 한 번만 답니다.
   // -------------------------------------------------------------
   // 예전에는 공부방·책방 페이지가 저마다 달고 있었습니다. 그런데 과일을
-  // 주는 자리는 그 두 화면뿐이 아닙니다 — 상단바의 손바닥('🍎 확인')은 어느
+  // 주는 자리는 그 두 화면뿐이 아닙니다 — 상단바의 손바닥('🍊 확인')은 어느
   // 화면에서든 눌리고, 학생도 질문방·리포트·파이썬 실행기 어디에나 있을 수
   // 있어 축포가 안 터지는 일이 잦았습니다(손들기에 태그·메모가 붙으면서
   // 이 길로 주는 일이 늘어 눈에 띄었습니다).
@@ -243,7 +243,7 @@ export default function TopNav({ active, onPython, pyActive = false }) {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="modal-head">
-              <h3>🍎 내가 받은 과일</h3>
+              <h3>🍊 내가 받은 과일</h3>
               <button className="btn-close" onClick={() => setFruitOpen(false)} aria-label="닫기">
                 ×
               </button>
@@ -293,7 +293,7 @@ export default function TopNav({ active, onPython, pyActive = false }) {
             onClick={() => setFruitOpen(true)}
             title="지금까지 받은 과일 — 눌러서 받은 흐름 보기"
           >
-            🍎 {fruitTotal}
+            🍊 {fruitTotal}
           </button>
         )}
         {user && isFirebaseConfigured && <NotificationBell uid={user.uid} />}

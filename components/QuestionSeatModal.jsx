@@ -41,7 +41,7 @@ import { IconMyPost } from "./StatusIcons";
 // topUids: 공부방 카드의 '반응 1등' 테두리 강조와 같은 방식으로, 오늘 과일을
 // 가장 많이 받은 학생의 자리를 눈에 띄게 표시합니다(안 넘기면 강조 없음).
 // todayCountByUid: uid → 오늘 받은 과일 수(lib/useTodayRewards). 자리 칸의
-// 🍎 뱃지는 이 값으로 그립니다 — 누적 총계(roster[].count)가 아닙니다.
+// 🍊 뱃지는 이 값으로 그립니다 — 누적 총계(roster[].count)가 아닙니다.
 // 자리표는 수업 중에 보는 화면이라 학기 누적이 뜨면 그날의 움직임이 묻히고,
 // 숫자가 커지기만 해서 오늘 누가 받았는지 읽을 수 없기 때문입니다. 누적은
 // 자리를 눌러 여는 과일 주기 모달에 그대로 남아 있습니다(안 넘기면 뱃지 없음).
@@ -95,7 +95,7 @@ export function SeatCell({
       <span className="attend-seat-name">{s.name}</span>
       {todayCount > 0 && (
         <span className="attend-seat-fruit" aria-label={`오늘 받은 과일 ${todayCount}개`}>
-          🍎 {todayCount}
+          🍊 {todayCount}
         </span>
       )}
     </button>

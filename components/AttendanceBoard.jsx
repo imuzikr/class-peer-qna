@@ -143,7 +143,7 @@ function StudentCard({
         {/* 지금까지 받은 과일 수 — 카드 안에 작게 붙여 한눈에 보이게 */}
         {clickable && count > 0 && (
           <span className="attend-desk-fruit" aria-label={`과일 ${count}개`}>
-            🍎 {count}
+            🍊 {count}
           </span>
         )}
       </div>

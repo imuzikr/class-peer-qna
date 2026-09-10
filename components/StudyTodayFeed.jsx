@@ -213,7 +213,7 @@ export default function StudyTodayFeed({
     fruit: "아직 과일을 준 학생이 없어요.",
   };
 
-  const ICON = { attend: "✋", card: "📝", kwl: "💭", fruit: "🍎" };
+  const ICON = { attend: "✋", card: "📝", kwl: "💭", fruit: "🍊" };
   const LABEL = { attend: "출석", card: "카드", kwl: "성찰", fruit: "과일" };
 
   return (

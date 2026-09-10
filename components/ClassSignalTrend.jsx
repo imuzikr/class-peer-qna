@@ -93,7 +93,7 @@ export default function ClassSignalTrend({ classId = null, roster = [], events =
           아직 받아 준 손이 없어요.
           <br />
           <small>
-            손들기 이력은 교사가 <strong>‘🍎 확인’</strong>을 누른 순간부터 쌓입니다.
+            손들기 이력은 교사가 <strong>‘🍊 확인’</strong>을 누른 순간부터 쌓입니다.
             이 기능을 넣기 전의 손들기는 남아 있지 않아, 처음 얼마간은 비어 있는 것이 정상입니다.
           </small>
         </p>

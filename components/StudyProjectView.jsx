@@ -642,6 +642,24 @@ export default function StudyProjectView({
         onBackToList={onBack}
         onAsk={onAsk}
         relatedQuestions={relatedQuestions}
+        // 활동 칸 머리의 과일 단추 — 학생 카드 격자의 단추와 **같은 값·같은
+        // 길**입니다(`classRoster`의 누적 개수 → 델타로 주기). 교사 카드와
+        // 내 카드에는 안 답니다.
+        rewardCount={
+          detailSeat.mine
+            ? 0
+            : classRoster.find((s) => s.uid === detailSeat.uid)?.count ?? 0
+        }
+        rewardMax={REWARD_MAX}
+        onAward={
+          onAward && !detailSeat.mine && !detailSeat.isTeacherCard
+            ? () => {
+                const cur =
+                  classRoster.find((s) => s.uid === detailSeat.uid)?.count ?? 0;
+                onAward(detailSeat.uid, Math.min(REWARD_MAX, cur + 1), +1);
+              }
+            : null
+        }
       />
     );
   }

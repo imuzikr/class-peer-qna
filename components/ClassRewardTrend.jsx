@@ -151,7 +151,7 @@ export default function ClassRewardTrend({ classId, roster = [], rewards = [] })
   return (
     <section className="admin-chart-panel crtrend">
       <div className="admin-panel-head">
-        <h2>🍎 반 전체 과일 흐름</h2>
+        <h2>🍊 반 전체 과일 흐름</h2>
         <span className="crtrend-sub">
           {loaded && dates.length > 0
             ? `최근 ${dates.length}개 수업일${totalDates > dates.length ? ` (전체 ${totalDates}일)` : ""}`

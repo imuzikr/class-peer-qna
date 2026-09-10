@@ -503,7 +503,7 @@ function StudentReportPageInner() {
             studentUid={user.uid}
             classIds={[...myClassIds]}
             defaultOpen
-            title="🍎 내가 받은 과일"
+            title="🍊 내가 받은 과일"
           />
         )}
 
