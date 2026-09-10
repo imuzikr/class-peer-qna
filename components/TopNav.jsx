@@ -19,6 +19,7 @@ import {
   subscribeMyClassRewardCount,
   subscribeBroadcast,
   subscribeClassMembers,
+  subscribeClass,
   fetchClass,
   stopBroadcast,
   reportPresence,
@@ -36,6 +37,7 @@ import RoleManagerModal from "./RoleManagerModal";
 import PresentationOverlay from "./PresentationOverlay";
 import CornellNoteDrawer from "./CornellNoteDrawer";
 import RewardCelebration from "./RewardCelebration";
+import ClassMarquee from "./ClassMarquee";
 import { useRewardCelebration } from "@/lib/useRewardCelebration";
 import { IconReport, IconPythonRunner, IconLogo, IconAnswer, IconBlackboard, IconBook, IconTeacher, IconLogout } from "./StatusIcons";
 
@@ -125,6 +127,14 @@ export default function TopNav({ active, onPython, pyActive = false }) {
     }
     return subscribeClassMembers(broadcastClassId, setNoticeMemberUids);
   }, [admin, broadcastClassId]);
+  // 전광판 — 지금 보고 있는 반의 문서 하나만 구독합니다(글이 그 안에
+  // 배열로 들어 있습니다). 교사는 마지막으로 고른 반, 학생은 소속 반.
+  const [marqueeClass, setMarqueeClass] = useState(null);
+  useEffect(() => {
+    if (!broadcastClassId) { setMarqueeClass(null); return; }
+    return subscribeClass(broadcastClassId, setMarqueeClass);
+  }, [broadcastClassId]);
+
   const [noticeClassName, setNoticeClassName] = useState("");
   useEffect(() => {
     if (!admin || !broadcastClassId) { setNoticeClassName(""); return; }
@@ -367,6 +377,10 @@ export default function TopNav({ active, onPython, pyActive = false }) {
           자기 margin-left:auto와 .user-area의 margin-left:auto가 남는 폭을
           반씩 나눠 가져, 문구가 그 사이 가운데에 섭니다. */}
       <span className="topbar-tagline">작은 변화로 시작하는 성장의 기록</span>
+
+      {/* 전광판 — 문구 오른쪽, 사용자 영역 앞. 문구를 왼쪽으로 당기고
+          (margin-left를 풀고) 남는 가로를 이 칸이 받습니다. */}
+      <ClassMarquee cls={marqueeClass} isTeacher={admin} />
     </header>
 
     {/* 학생 화면 — 교사가 방송 중이면 화면 전체를 강제로 덮습니다(학생은 닫을 수 없음) */}
