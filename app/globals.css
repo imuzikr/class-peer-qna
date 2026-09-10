@@ -4412,10 +4412,15 @@ code.rte-code-glyph {
 }
 
 /* 코드 블록 — 어두운 배경에 진짜 코드처럼 표시 */
+/* `.study-card-content`·`.study-card-body`가 여기 빠져 있어, 공부방 카드에
+   넣은 코드만 밋밋한 글로 나왔습니다 — 에디터에서는 검은 블록이던 것이
+   저장하고 보면 평범한 글이 되니 '서식이 안 먹는다'로 보입니다. */
 .rte-area pre,
 .qa-content pre,
 .chat-bubble pre,
-.notice-item pre {
+.notice-item pre,
+.study-card-content pre,
+.study-card-body pre {
   background: var(--dark);
   color: #ede9e0;
   font-family: var(--font-mono);
@@ -4441,7 +4446,11 @@ pre code {
 .qa-content ul,
 .qa-content ol,
 .notice-item ul,
-.notice-item ol {
+.notice-item ol,
+.study-card-content ul,
+.study-card-content ol,
+.study-card-body ul,
+.study-card-body ol {
   padding-left: 20px;
   margin: 4px 0;
 }
@@ -4559,10 +4568,21 @@ pre code {
   font-size: 12px;
   color: var(--text-faint);
 }
+/* 프로젝트·활동 고르개 두 개를 한 줄에 나란히 */
+.py-project-picks {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.py-project-pick {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0; /* 없으면 긴 이름이 칸을 밀어 두 칸이 안 맞습니다 */
+}
 .py-project-label {
   font-size: 12px;
   color: var(--text-sub);
-  margin-top: 2px;
 }
 .py-project-select,
 .py-project-input {
@@ -4600,27 +4620,26 @@ pre code {
 }
 .py-project-form-actions button { width: 100%; font-size: 12.5px; padding: 6px 8px; }
 
-/* 학생 쪽 — 고르지 못하고 '어디로 가는지'만 봅니다 */
-.py-project-fixed {
-  padding: 10px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--bg);
-}
 .py-project-where {
   margin: 0;
   display: flex;
   flex-direction: column;
   gap: 3px;
   font-size: 13px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
 }
+.py-project-where strong,
+.py-project-where span { overflow-wrap: anywhere; }
 .py-project-where span { color: var(--text-sub); font-size: 12.5px; }
-.py-project-empty { margin: 0; font-size: 12.5px; color: var(--text-faint); }
 .py-project-lock {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  margin-top: 6px;
+  gap: 3px;
+  margin-left: 6px;
+  font-style: normal;
   font-size: 12px;
   color: var(--text-sub);
 }
@@ -16735,14 +16754,6 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
   line-height: 1.6;
   color: var(--text);
   word-break: break-word;
-}
-
-.study-card-body pre {
-  background: #f4f4f4;
-  border-radius: 8px;
-  padding: 10px;
-  overflow-x: auto;
-  font-size: 13px;
 }
 
 .study-card-image {

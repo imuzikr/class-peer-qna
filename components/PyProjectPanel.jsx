@@ -6,12 +6,18 @@
 // 실행기 오른쪽에 한 칸 더 열려, 지금 짠 코드를 **프로젝트의 활동 칸으로**
 // 보냅니다. 실행기와 공부방을 오가며 복사해 붙이던 일이 단추 하나가 됩니다.
 //
-// [목적지는 교사가 정합니다]
-// 교사가 프로젝트와 활동을 고르면 그것이 반 문서에 적히고(`setClassPyTarget`),
-// 그 반 학생의 실행기는 모두 거기로 보냅니다. 학생은 목적지를 못 바꿉니다 —
-// 스물몇 명이 저마다 다른 활동에 보내면 교사가 한 화면에서 모아 볼 수
-// 없습니다. 교사가 아직 안 정했으면 학생 쪽은 보내기가 잠기고 그렇게
-// 적힙니다(단추만 죽어 있으면 고장으로 보입니다).
+// [교사가 기본을 정하고, 학생이 바꿀 수 있습니다]
+// 교사가 고른 것은 반 문서에 적혀(`setClassPyTarget`) 그 반 학생 실행기의
+// **기본 목적지**가 됩니다 — 수업 중에 스물몇 명이 저마다 찾아 들어가지
+// 않게 하는 자리입니다. 다만 프로젝트가 여럿 돌아가고 한 프로젝트에 활동도
+// 여럿이라, 학생이 지난 활동을 마저 채우려면 바꿀 수 있어야 합니다. 그래서
+// 학생의 고름은 **그 화면 안에서만** 삽니다(반 문서는 교사만 씁니다).
+//
+// [보내는 것은 학생입니다]
+// 교사 쪽에는 보내기가 없습니다. 카드는 한 사람에 한 장인데 교사 카드만
+// 자동 ID로 생겨(`addStudyCard`), 교사가 누르면 누를 때마다 **새 카드가
+// 쌓였습니다**(학생 카드 격자에 '선생님' 카드가 여러 장). 교사에게 이 칸은
+// 보낼 곳을 정하고 필요하면 만드는 자리입니다.
 //
 // [읽는 문서가 늘지 않습니다]
 // 프로젝트 목록(`boards`)도 반 문서(`pyTarget`)도 공부방·질문방이 **이미
@@ -57,6 +63,10 @@ export default function PyProjectPanel({
   const [newAct, setNewAct] = useState("");
   const [addingAct, setAddingAct] = useState(false); // 활동 추가 폼
   const [actName, setActName] = useState("");
+  // 학생이 직접 고른 목적지 — null이면 선생님이 정한 것을 그대로 따릅니다.
+  // (반 문서는 교사만 쓸 수 있어 여기 담습니다. 화면을 닫으면 사라지고
+  //  다시 선생님 것을 따라갑니다 — 그게 수업의 기본값이라서요.)
+  const [myPick, setMyPick] = useState(null);
   const noteTimer = useRef(null);
 
   useEffect(() => () => clearTimeout(noteTimer.current), []);
@@ -77,7 +87,10 @@ export default function PyProjectPanel({
     [boards, classId]
   );
 
-  const target = pyTarget?.boardId ? pyTarget : null;
+  // 교사는 늘 반 문서를 보고, 학생은 자기가 고른 것이 있으면 그것을 봅니다.
+  const chosen = isTeacher ? pyTarget : myPick ?? pyTarget;
+  const target = chosen?.boardId ? chosen : null;
+  // 고른 프로젝트가 사라졌으면(지워졌거나 다른 반) 없는 것으로 봅니다.
   const board = target ? projects.find((b) => b.id === target.boardId) ?? null : null;
   const activities = board?.activities ?? [];
   const actIndex = Math.min(target?.actIndex ?? 0, Math.max(0, activities.length - 1));
@@ -90,13 +103,17 @@ export default function PyProjectPanel({
   const groupBoard = board?.activityType === "group";
   const boardLocked = board?.editMode === "locked";
 
+  // 교사가 고르면 반 전체의 기본값이 바뀌고, 학생이 고르면 자기 화면만.
   async function pickBoard(boardId) {
-    if (!isTeacher) return;
-    await setClassPyTarget(classId, boardId ? { boardId, actIndex: 0 } : null);
+    const next = boardId ? { boardId, actIndex: 0 } : null;
+    if (isTeacher) await setClassPyTarget(classId, next);
+    else setMyPick(next);
   }
   async function pickAct(i) {
-    if (!isTeacher || !board) return;
-    await setClassPyTarget(classId, { boardId: board.id, actIndex: Number(i) });
+    if (!board) return;
+    const next = { boardId: board.id, actIndex: Number(i) };
+    if (isTeacher) await setClassPyTarget(classId, next);
+    else setMyPick(next);
   }
 
   // ── 그 자리에서 프로젝트 만들기(교사) ─────────────────────
@@ -183,14 +200,12 @@ export default function PyProjectPanel({
   }
 
   const blockedWhy = !board
-    ? isTeacher
-      ? "보낼 프로젝트와 활동을 고르세요."
-      : "선생님이 아직 보낼 곳을 정하지 않았어요."
+    ? "보낼 프로젝트와 활동을 고르세요."
     : boardLocked
       ? "이 프로젝트는 잠겨 있어요."
       : locked
         ? "이 활동은 아직 잠겨 있어요."
-        : groupBoard && !isTeacher
+        : groupBoard
           ? "모둠 프로젝트에는 보낼 수 없어요."
           : "";
 
@@ -201,39 +216,63 @@ export default function PyProjectPanel({
         {className && <em className="py-project-scope">{className}</em>}
       </div>
 
-      {/* 교사 — 고르는 자리. 여기서 고른 것이 곧 그 반 전체의 목적지입니다. */}
-      {isTeacher ? (
-        <>
-          <label className="py-project-label" htmlFor="py-board">프로젝트</label>
+      {/* 고르는 자리 — 교사·학생 **둘 다** 봅니다. 프로젝트가 여럿 돌아가고
+          한 프로젝트에 활동도 여럿이라, 어디로 가는지가 늘 화면에 있어야
+          합니다. 둘을 한 줄에 나란히 둡니다(칸이 300px이라 이름은 고르개가
+          알아서 줄여 적습니다 — 고른 것은 아래 보내기 단추가 되풀이합니다). */}
+      <div className="py-project-picks">
+        <label className="py-project-pick">
+          <span className="py-project-label">프로젝트</span>
           <select
-            id="py-board"
             className="py-project-select"
             value={board?.id ?? ""}
             onChange={(e) => pickBoard(e.target.value)}
-            disabled={busy}
+            disabled={busy || projects.length === 0}
           >
             <option value="">— 고르지 않음 —</option>
             {projects.map((b) => (
               <option key={b.id} value={b.id}>{b.title}</option>
             ))}
           </select>
+        </label>
 
-          <label className="py-project-label" htmlFor="py-act">활동</label>
+        <label className="py-project-pick">
+          <span className="py-project-label">활동</span>
           <select
-            id="py-act"
             className="py-project-select"
             value={board ? actIndex : ""}
             onChange={(e) => pickAct(e.target.value)}
             disabled={busy || !board || activities.length === 0}
           >
-            {!board && <option value="">— 프로젝트를 먼저 고르세요 —</option>}
+            {!board && <option value="">— 먼저 고르세요 —</option>}
             {activities.map((a, i) => (
               <option key={i} value={i}>
                 {i + 1}. {a}{isActivityLocked(board, i) ? " (잠김)" : ""}
               </option>
             ))}
           </select>
+        </label>
+      </div>
 
+      {/* 지금 어디로 가는지 한 줄로 되풀이합니다 — 고르개는 폭이 좁아 긴
+          이름이 잘립니다. 잠긴 활동이면 그것도 여기서 말합니다. */}
+      {board && (
+        <p className="py-project-where">
+          <strong>{board.title}</strong>
+          <span>
+            {actIndex + 1}. {actName_}
+            {locked && (
+              <em className="py-project-lock">
+                <IconLockState locked size={13} /> 잠김
+              </em>
+            )}
+          </span>
+        </p>
+      )}
+
+      {/* 교사만 — 수업 중에 공부방으로 건너갔다 오면 짜던 코드가 없습니다 */}
+      {isTeacher && (
+        <>
           <div className="py-project-make">
             {board && !addingAct && !making && (
               <button type="button" className="btn-ghost" onClick={() => setAddingAct(true)}>
@@ -285,37 +324,31 @@ export default function PyProjectPanel({
             </form>
           )}
         </>
-      ) : (
-        // 학생 — 어디로 가는지만 보여 줍니다(고르지 못합니다).
-        <div className="py-project-fixed">
-          {board ? (
-            <>
-              <p className="py-project-where">
-                <strong>{board.title}</strong>
-                <span>{actIndex + 1}. {actName_}</span>
-              </p>
-              {locked && (
-                <span className="py-project-lock">
-                  <IconLockState locked size={14} /> 아직 잠긴 활동이에요
-                </span>
-              )}
-            </>
-          ) : (
-            <p className="py-project-empty">선생님이 아직 보낼 곳을 정하지 않았어요.</p>
-          )}
-        </div>
       )}
 
-      <button
-        type="button"
-        className="btn-primary py-project-send"
-        onClick={send}
-        disabled={busy || !!blockedWhy}
-        title={blockedWhy || `${actName_}에 코드와 실행 결과를 보냅니다`}
-      >
-        {busy ? "보내는 중…" : "활동으로 보내기"}
-      </button>
-      {blockedWhy && <p className="py-project-why">{blockedWhy}</p>}
+      {/* [보내기는 학생만] 카드는 한 사람에 한 장인데 **교사 카드만 자동
+          ID로** 생겨서(`addStudyCard`), 교사가 누르면 다음에 그 카드를 못 찾고
+          누를 때마다 새로 만들었습니다 — 학생 카드 격자에 '선생님' 카드가
+          여러 장 쌓였습니다. 교사에게 이 칸은 보낼 곳을 정하는 자리입니다. */}
+      {isTeacher ? (
+        <p className="py-project-why">
+          보내는 것은 학생입니다. 여기서 고른 곳이 그 반 학생 실행기의
+          기본 목적지가 됩니다.
+        </p>
+      ) : (
+        <>
+          <button
+            type="button"
+            className="btn-primary py-project-send"
+            onClick={send}
+            disabled={busy || !!blockedWhy}
+            title={blockedWhy || `${actName_}에 코드와 실행 결과를 보냅니다`}
+          >
+            {busy ? "보내는 중…" : "활동으로 보내기"}
+          </button>
+          {blockedWhy && <p className="py-project-why">{blockedWhy}</p>}
+        </>
+      )}
       {note && <p className={`py-project-note py-project-note--${note.kind}`}>{note.text}</p>}
 
       <p className="py-project-hint">
