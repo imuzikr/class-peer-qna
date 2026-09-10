@@ -705,7 +705,10 @@ button.footer-link:hover {
   height: 36px;
   padding: 0 14px;
   border-radius: 999px;
-  background: var(--primary-light);
+  /* 연한 회색 바탕에 검은 글자 — 살구색 바탕에 주황 글자였는데, 상단바에서
+     가장 먼저 읽혀야 하는 줄이 색으로 튀기만 하고 정작 글자는 덜 또렷했습니다.
+     바탕을 죽이고 글자를 살립니다. */
+  background: var(--neutral);
 }
 .class-marquee-text {
   margin: 0;
@@ -719,7 +722,7 @@ button.footer-link:hover {
      눈이 먼저 그것을 짚습니다(컴포넌트 주석 참고). */
   font-size: 15px;
   font-weight: 700;
-  color: var(--primary-dark, #c15a2a);
+  color: var(--dark);
   /* 글이 바뀔 때 조용히 갈립니다 — key가 바뀌며 다시 그려지므로 이 애니
      메이션이 처음부터 돕니다. 흐르는 글씨로 하지 않은 까닭은 컴포넌트
      주석 참고(수업 중 화면 위에서 계속 움직이면 눈길을 뺏습니다). */
@@ -747,8 +750,8 @@ button.footer-link:hover {
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: var(--primary-dark, #c15a2a);
-  opacity: 0.3;
+  background: var(--dark);
+  opacity: 0.25;
 }
 .class-marquee-dots i.on { opacity: 1; }
 .class-marquee-edit {
@@ -757,7 +760,7 @@ button.footer-link:hover {
   background: none;
   padding: 2px 4px;
   font-size: 13px;
-  color: var(--primary-dark, #c15a2a);
+  color: var(--text-sub);
   cursor: pointer;
 }
 .class-marquee-edit:hover { color: var(--dark); }
