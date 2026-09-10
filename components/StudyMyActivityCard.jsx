@@ -117,6 +117,11 @@ export default function StudyMyActivityCard({
   const cardIdRef = useRef(card?.id ?? null);
   // 우리가 마지막으로 저장한 HTML — 밖에서 바뀐 것과 가리기 위한 기준입니다.
   const lastSavedHtmlRef = useRef(card?.content ?? "");
+  // 그때의 칸별 값 — '이 칸을 학생이 그 뒤에 건드렸나'를 칸마다 가릅니다.
+  const lastSavedPartsRef = useRef({
+    contents: activities.map((_, i) => savedSections.current[i]?.content ?? ""),
+    titles: activities.map((a, i) => savedSections.current[i]?.title || a),
+  });
   const savingRef = useRef(false);
   const pendingRef = useRef(false);
   const dirtyRef = useRef(false);
@@ -136,20 +141,24 @@ export default function StudyMyActivityCard({
   function buildPayload() {
     // 짜는 자리는 lib/activities.js 한 곳입니다 — 실행기의 '활동으로 보내기'가
     // 같은 카드를 다시 쓰므로, 두 곳이 다른 모양을 만들면 되읽을 때 어긋납니다.
-    const htmlToSave = buildActivityHtml(
-      activities.map((act, i) => activityTitles[i] ?? act),
-      activityContents
-    );
-    const hasContent = activityContents.some((c) => {
+    const titles = activities.map((act, i) => activityTitles[i] ?? act);
+    const contents = activities.map((_, i) => activityContents[i] ?? "");
+    const htmlToSave = buildActivityHtml(titles, contents);
+    const hasContent = contents.some((c) => {
       const sc = sanitizeHtml(c ?? "");
       return stripHtml(sc).trim().length > 0 || htmlHasImage(sc);
     });
-    return { htmlToSave, valid: hasContent || !!imageUrl || attachments.length > 0 };
+    return {
+      htmlToSave,
+      parts: { titles, contents },
+      valid: hasContent || !!imageUrl || attachments.length > 0,
+    };
   }
 
-  async function persist(htmlToSave) {
+  async function persist(htmlToSave, parts) {
     const payload = { title: "", content: htmlToSave, imageUrl, attachments };
     lastSavedHtmlRef.current = htmlToSave;
+    if (parts) lastSavedPartsRef.current = parts;
     if (cardIdRef.current) {
       await updateStudyCard(board.id, cardIdRef.current, payload);
     } else {
@@ -160,7 +169,7 @@ export default function StudyMyActivityCard({
 
   async function flushSave() {
     if (!canEdit) return;
-    const { htmlToSave, valid } = buildPayload();
+    const { htmlToSave, parts, valid } = buildPayload();
     if (!valid) return;
     if (savingRef.current) { pendingRef.current = true; return; }
     savingRef.current = true;
@@ -168,7 +177,7 @@ export default function StudyMyActivityCard({
     if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
     setAutoStatus("saving");
     try {
-      await persist(htmlToSave);
+      await persist(htmlToSave, parts);
       baselineSigRef.current = sigOf();
       showSavedThenHide();
     } catch {
@@ -213,28 +222,46 @@ export default function StudyMyActivityCard({
   //
   // 들여오지 않는 세 경우 — 셋 다 **학생이 쓰던 글을 지키기 위해서**입니다.
   //  · 우리가 방금 저장한 것과 같음(내가 쓴 것이 돌아온 것뿐)
-  //  · 아직 안 보낸 글이 있음(dirty·saving) — 들여오면 타이핑이 날아갑니다
+  //  · 지금 쓰는 중인 칸 — 그 칸만 그대로 둡니다(아래 '칸마다 따로' 참고)
   //  · '크게 쓰기' 창이 떠 있음 — 그 에디터는 비제어라 마운트 때 한 번만
   //    읽으므로, 밑에서 값을 갈아 끼우면 화면과 상태가 어긋납니다
+  //    (그 창이 떠 있는 동안은 실행기의 2단도 접혀 보낼 수 없습니다)
+  //
+  // [칸마다 따로 봅니다] 예전에는 안 보낸 글이 하나라도 있으면(dirty) 통째로
+  // 비켜 주었는데, 그 뒤 자동 저장이 **옛 상태를 그대로 써서 방금 들어온
+  // 코드를 지웠습니다**. 지금은 '마지막으로 저장한 값 그대로인 칸'만
+  // 들여옵니다 — 학생이 고치는 중인 칸은 그대로 두고, 나머지 칸으로 들어온
+  // 것은 받아들입니다.
   useEffect(() => {
     const incoming = card?.content ?? "";
     if (card?.id) cardIdRef.current = card.id;
     if (incoming === lastSavedHtmlRef.current) return;
-    if (dirtyRef.current || savingRef.current) return;
+    if (savingRef.current) return;
     if (editingAct !== null) return;
 
     const secs = parseActivitySections(incoming);
     savedSections.current = secs;
-    const nextContents = activities.map((_, i) => secs[i]?.content ?? "");
-    const nextTitles = activities.map((a, i) => secs[i]?.title || a);
+    const known = lastSavedPartsRef.current;
+    const incContents = activities.map((_, i) => secs[i]?.content ?? "");
+    const incTitles = activities.map((a, i) => secs[i]?.title || a);
+    const nextContents = incContents.map((inc, i) => {
+      const mine = activityContents[i] ?? "";
+      return mine === (known.contents[i] ?? "") ? inc : mine;
+    });
+    const nextTitles = incTitles.map((inc, i) => {
+      const mine = activityTitles[i] ?? activities[i];
+      return mine === (known.titles[i] ?? activities[i]) ? inc : mine;
+    });
     lastSavedHtmlRef.current = incoming;
+    lastSavedPartsRef.current = { contents: incContents, titles: incTitles };
     setActivityContents(nextContents);
     setActivityTitles(nextTitles);
-    // 들여온 값을 '내가 고친 것'으로 오해해 되저장하지 않게 기준점을 옮깁니다
+    // 기준점은 **들어온 값**입니다 — 들여온 그대로면 되저장하지 않고, 안 보낸
+    // 글이 남아 섞였으면 곧 그 섞인 결과가 저장됩니다
     // (`sigOf()`와 **같은 모양**이어야 합니다).
     baselineSigRef.current = JSON.stringify({
-      activityContents: nextContents,
-      activityTitles: nextTitles,
+      activityContents: incContents,
+      activityTitles: incTitles,
       imageUrl,
       attachments,
     });

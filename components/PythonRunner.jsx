@@ -136,6 +136,8 @@ export default function PythonRunner({
   const workerRef = useRef(null);
   const timerRef = useRef(null);
   const panelRef = useRef(null);
+  // 지금 출력 칸에 있는 결과를 낸 코드 (아직 한 번도 안 돌렸으면 null)
+  const ranCodeRef = useRef(null);
 
   // 패널 바깥을 클릭하면 실행기를 닫습니다.
   // (모달이 떠 있을 땐 무시, 실행기 토글 버튼[data-py-toggle] 클릭도 무시)
@@ -270,6 +272,9 @@ export default function PythonRunner({
     const code = viewRef.current?.state.doc.toString() ?? "";
     if (!code.trim()) return;
     setLines([]);
+    // 이 출력이 '어느 코드가 낸 것인지' 적어 둡니다 — '활동으로 보내기'가
+    // 고쳐 놓고 다시 안 돌린 코드에 지난 결과를 붙이지 않게(lib/pyShare.js).
+    ranCodeRef.current = code;
 
     if (!workerRef.current) {
       setStatus("loading");
@@ -521,6 +526,7 @@ export default function PythonRunner({
             isTeacher={isTeacher}
             getCode={() => viewRef.current?.state.doc.toString() ?? ""}
             getLines={() => lines}
+            getRanCode={() => ranCodeRef.current}
           />
         )}
       </div>

@@ -55,6 +55,9 @@ export default function PyProjectPanel({
   // 지금 실행기에 있는 것 — 누를 때 읽습니다(매 글자마다 다시 그리지 않게).
   getCode,
   getLines,
+  // 지금 출력 칸의 결과를 낸 코드 — 고쳐 놓고 다시 안 돌렸으면 결과를
+  // 안 붙이는 데 씁니다(lib/pyShare.js).
+  getRanCode,
 }) {
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState(null); // { kind: 'ok'|'err', text }
@@ -172,7 +175,7 @@ export default function PyProjectPanel({
   // ── 보내기 ────────────────────────────────────────────────
   async function send() {
     if (!board || busy) return;
-    const html = pyShareHtml(getCode?.() ?? "", getLines?.() ?? []);
+    const html = pyShareHtml(getCode?.() ?? "", getLines?.() ?? [], getRanCode?.());
     if (!html) {
       say("err", "보낼 코드가 없어요. 먼저 코드를 적어 주세요.");
       return;
