@@ -115,6 +115,8 @@ export default function StudyMyActivityCard({
   const [peekQuestion, setPeekQuestion] = useState(null);
 
   const cardIdRef = useRef(card?.id ?? null);
+  // 우리가 마지막으로 저장한 HTML — 밖에서 바뀐 것과 가리기 위한 기준입니다.
+  const lastSavedHtmlRef = useRef(card?.content ?? "");
   const savingRef = useRef(false);
   const pendingRef = useRef(false);
   const dirtyRef = useRef(false);
@@ -147,6 +149,7 @@ export default function StudyMyActivityCard({
 
   async function persist(htmlToSave) {
     const payload = { title: "", content: htmlToSave, imageUrl, attachments };
+    lastSavedHtmlRef.current = htmlToSave;
     if (cardIdRef.current) {
       await updateStudyCard(board.id, cardIdRef.current, payload);
     } else {
@@ -200,6 +203,43 @@ export default function StudyMyActivityCard({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // ── 밖에서 카드가 바뀌면 화면에 들여옵니다 ──────────────────
+  // 이 컴포넌트는 카드 내용을 **마운트 때 한 번만** 읽어 상태로 들고 있었습니다.
+  // 파이썬 실행기의 '활동으로 보내기'가 생기면서 그 사이에 같은 카드가 밖에서
+  // 바뀌는 길이 열렸는데, 화면은 그대로라 학생이 보낸 코드가 **아무 데도 안
+  // 보였습니다**(그 상태로 자동 저장이 돌면 보낸 것을 덮어쓰기까지 합니다).
+  // `card`는 이미 구독으로 살아 오므로 새로 읽는 문서는 없습니다.
+  //
+  // 들여오지 않는 세 경우 — 셋 다 **학생이 쓰던 글을 지키기 위해서**입니다.
+  //  · 우리가 방금 저장한 것과 같음(내가 쓴 것이 돌아온 것뿐)
+  //  · 아직 안 보낸 글이 있음(dirty·saving) — 들여오면 타이핑이 날아갑니다
+  //  · '크게 쓰기' 창이 떠 있음 — 그 에디터는 비제어라 마운트 때 한 번만
+  //    읽으므로, 밑에서 값을 갈아 끼우면 화면과 상태가 어긋납니다
+  useEffect(() => {
+    const incoming = card?.content ?? "";
+    if (card?.id) cardIdRef.current = card.id;
+    if (incoming === lastSavedHtmlRef.current) return;
+    if (dirtyRef.current || savingRef.current) return;
+    if (editingAct !== null) return;
+
+    const secs = parseActivitySections(incoming);
+    savedSections.current = secs;
+    const nextContents = activities.map((_, i) => secs[i]?.content ?? "");
+    const nextTitles = activities.map((a, i) => secs[i]?.title || a);
+    lastSavedHtmlRef.current = incoming;
+    setActivityContents(nextContents);
+    setActivityTitles(nextTitles);
+    // 들여온 값을 '내가 고친 것'으로 오해해 되저장하지 않게 기준점을 옮깁니다
+    // (`sigOf()`와 **같은 모양**이어야 합니다).
+    baselineSigRef.current = JSON.stringify({
+      activityContents: nextContents,
+      activityTitles: nextTitles,
+      imageUrl,
+      attachments,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [card?.content, card?.id, editingAct]);
 
   async function handleDelete() {
     if (!card) return;

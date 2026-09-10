@@ -393,6 +393,42 @@ export default function RichTextEditor({
     return null;
   }
 
+  // 코드 블록을 통째로 걷어 내고 그 자리에 빈 줄을 둡니다.
+  // -------------------------------------------------------------
+  // 안을 다 지워도 **빈 검은 블록이 한 줄 남아** 한 번 더 지워야 사라졌습니다.
+  // 마지막 글자를 지우는 그 backspace가 블록까지 함께 걷어 가야, 지우는 사람의
+  // 눈에는 '다 지웠다'와 '사라졌다'가 한 동작이 됩니다.
+  function dropPre(pre) {
+    const line = document.createElement("div");
+    line.innerHTML = "<br>";
+    pre.replaceWith(line);
+    const sel = window.getSelection();
+    const r = document.createRange();
+    r.setStart(line, 0);
+    r.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(r);
+    onChange(ref.current.innerHTML);
+  }
+
+  // 이번 지우기로 코드 블록이 비게 되는가.
+  // -------------------------------------------------------------
+  // **눈에 보이는 글자**로 셉니다. 코드 블록은 만들 때 빈칸 하나로 시작해서
+  // (`escapeHtml(...) || " "`) 글자 수로 세면 다 지운 뒤에도 공백 하나가 남아,
+  // 블록을 없애는 데 backspace가 한 번 더 듭니다 — 고치려던 그 증상입니다.
+  function preWillEmpty(pre) {
+    const text = (pre.textContent ?? "").replace(/\u00a0/g, " ");
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return text.trim() === "";
+    // 골라 놓고 지우는 경우 — 고른 것이 블록의 전부인가
+    if (!sel.isCollapsed) {
+      return sel.toString().replace(/\u00a0/g, " ").length >= text.length;
+    }
+    // 커서만 있는 경우 — 이미 비었거나(0), 보이는 글자가 하나뿐이라
+    // 그것을 지우면 비는 경우(1).
+    return text.trim().length <= 1;
+  }
+
   // <pre> 블록 뒤로 커서를 이동 (내용은 그대로, 코드 블록 탈출)
   function escapeCodeBlock(pre) {
     let next = pre.nextSibling;
@@ -423,6 +459,16 @@ export default function RichTextEditor({
 
     // 띄어쓰기: 줄 맨 앞의 '-' 하나였으면 글머리 기호로
     if (e.key === " " && dashToBullet(e)) return;
+
+    // 지우기: 코드 블록이 비게 되면 블록까지 한 번에 걷어 냅니다
+    if (e.key === "Backspace" || e.key === "Delete") {
+      const pre = getContainingPre();
+      if (pre && preWillEmpty(pre)) {
+        e.preventDefault();
+        dropPre(pre);
+        return;
+      }
+    }
 
     // Escape: 코드 블록 어디서든 탈출
     if (e.key === "Escape") {
