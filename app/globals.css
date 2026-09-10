@@ -901,6 +901,17 @@ button.footer-link:hover {
 .profile-menu-item:hover {
   background: var(--primary-light);
 }
+/* 로그아웃 — 메뉴의 마지막에 선으로 갈라 둡니다. 위 둘은 '여는 것'이고
+   이것은 '나가는 것'이라, 나란히 두면 잘못 눌러 로그아웃됩니다.
+   상단바에 나와 있던 것을 여기로 옮겼습니다(전광판 자리를 비우려고 —
+   components/UserProfile.jsx 주석 참고). */
+.profile-menu-item--out {
+  margin-top: 4px;
+  padding-top: 11px;
+  border-top: 1px solid var(--border);
+  border-radius: 0 0 8px 8px;
+  color: var(--text-sub);
+}
 .profile-modal-hint {
   font-size: 12.5px;
   color: var(--text-sub);
@@ -2463,10 +2474,9 @@ button.footer-link:hover {
    실제로 눈에 보이는 거리는 '여백 + gap + 여백'입니다. 여백을 8px→5px로
    줄이고 gap을 4px로 두어 그림끼리 14px — 예전 22px의 3분의 2입니다. */
 .topbar .user-area { gap: 4px; }
-/* 다만 글자 요소(이름·로그아웃)까지 4px로 붙으면 답답합니다. 아이콘 묶음이
+/* 다만 글자 요소(이름)까지 4px로 붙으면 답답합니다. 아이콘 묶음이
    끝나는 자리에서만 다시 벌립니다. */
-.topbar .user-area .profile-wrap,
-.topbar .user-area .btn-logout { margin-left: 6px; }
+.topbar .user-area .profile-wrap { margin-left: 6px; }
 
 /* 상단바 프로필 왼쪽 — 학생이 받은 과일 총 개수 */
 .fruit-total-chip {
@@ -2558,13 +2568,6 @@ button.footer-link:hover {
 .metoo-btn svg,
 .filter-item svg {
   flex-shrink: 0;
-}
-
-/* 로그아웃 — 아이콘 + 라벨 정렬 */
-.btn-logout {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
 }
 
 /* [개발용] 관리자/학생 보기 전환 토글 */
@@ -18060,9 +18063,6 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
     right: 1px;
   }
 
-  /* 로그아웃 아이콘만 (1줄 — 프로필과 함께, 공간이 좁아 이름은 생략) */
-  .btn-logout .nav-label { display: none; }
-
   /* 역할 전환 스위치 숨김 (개발용) */
   .role-switch { display: none; }
 
@@ -24411,6 +24411,16 @@ ul.checklist > li.done {
   gap: 6px;
   margin-top: 12px;
 }
+/* 이름표 줄 — 왼쪽에 '선생님 한 마디', 오른쪽 끝에 과일 단추.
+   `align-items: flex-start`인 것은 왼쪽이 두 줄(제목 + 딸림글)이라 가운데로
+   맞추면 과일이 두 줄 한가운데에 떠 제목과 어긋나 보이기 때문입니다. */
+.cornell-read-fbhead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.cornell-read-award { font-size: 17px; }
 .cornell-read-feedback label { display: flex; flex-direction: column; gap: 1px; }
 .cornell-read-feedback label b { font-size: 12.5px; font-weight: 800; color: var(--dark); }
 .cornell-read-feedback label em {

@@ -15,8 +15,15 @@
 // =============================================================
 import { useEffect, useMemo, useState } from "react";
 import { backdropClose } from "@/lib/modal";
-import { subscribeStudentCornellNotes, saveCornellFeedback } from "@/lib/store";
+import {
+  subscribeStudentCornellNotes,
+  saveCornellFeedback,
+  subscribeMyClassRewardCount,
+  addStudentReward,
+  REWARD_MAX,
+} from "@/lib/store";
 import CornellNoteSheet from "./CornellNoteSheet";
+import { nextFruit } from "./RewardFruits";
 import { IconRecord } from "./StatusIcons";
 
 const FEEDBACK_MAX = 2000;
@@ -36,6 +43,34 @@ export default function CornellNoteReadModal({
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  // ── 과일 주기 ────────────────────────────────────────────
+  // 노트를 읽는 그 자리에서 바로 줍니다 — 잘 쓴 노트를 보고 격려하려면
+  // 창을 닫고 자리표나 카드 격자로 건너가야 했습니다.
+  // 문서 **한 건**만 봅니다(`rewards/{classId}_{uid}`). 이름이 `My…`지만
+  // uid를 받는 함수라 교사가 학생 것을 보는 데도 그대로 씁니다.
+  const [rewardCount, setRewardCount] = useState(0);
+  const [awarding, setAwarding] = useState(false);
+  useEffect(() => {
+    if (!classId || !student?.uid) { setRewardCount(0); return; }
+    return subscribeMyClassRewardCount(classId, student.uid, setRewardCount);
+  }, [classId, student?.uid]);
+
+  const rewardMaxed = rewardCount >= REWARD_MAX;
+  async function award() {
+    if (awarding || rewardMaxed) return;
+    setAwarding(true);
+    try {
+      // **델타로 줍니다**(절대값 아님) — 빨리 두 번 누를 때 두 번째가
+      // 묻히지 않게. 자세한 것은 CLAUDE.md의 '과일 지급 이력' 절.
+      await addStudentReward(classId, student.uid, +1, {
+        name: student.name,
+        emoji: student.emoji,
+      });
+    } finally {
+      setAwarding(false);
+    }
+  }
 
   useEffect(() => {
     if (!classId || !student?.uid) { setNotes([]); setLoaded(true); return; }
@@ -164,10 +199,29 @@ export default function CornellNoteReadModal({
             <CornellNoteSheet note={note} showFeedback={false} />
 
             <div className="cornell-read-feedback">
-              <label htmlFor="cornell-feedback">
-                <b>선생님 한 마디</b>
-                <em>학생 서랍 맨 위에 그대로 보입니다</em>
-              </label>
+              {/* 이름표 줄 오른쪽 끝에 과일 단추 — 노트를 읽은 바로 그
+                  자리에서 격려합니다. 값도 길도 카드 격자·활동 칸의 단추와
+                  같습니다(`nextFruit(개수)` · 델타로 주기). */}
+              <div className="cornell-read-fbhead">
+                <label htmlFor="cornell-feedback">
+                  <b>선생님 한 마디</b>
+                  <em>학생 서랍 맨 위에 그대로 보입니다</em>
+                </label>
+                <button
+                  type="button"
+                  className="study-card-award-btn cornell-read-award"
+                  onClick={award}
+                  disabled={awarding || rewardMaxed}
+                  title={
+                    rewardMaxed
+                      ? "이미 최대 개수예요"
+                      : `${student?.name || "이 학생"}에게 과일 주기 (현재 ${rewardCount}개)`
+                  }
+                  aria-label="과일 주기"
+                >
+                  {nextFruit(rewardCount)}
+                </button>
+              </div>
               <textarea
                 id="cornell-feedback"
                 rows={3}

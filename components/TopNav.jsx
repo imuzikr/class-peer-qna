@@ -4,7 +4,7 @@
 // 공통 상단 내비게이션
 // -------------------------------------------------------------
 // 왼쪽: 배움나눔 로고 ｜ 학습 공간 드롭다운(공부방·질문게시판) ｜ 파이썬 실행기 ｜ (리포트|관리자)
-// 오른쪽: 역할 전환(개발용) ｜ 사용자 프로필 ｜ 로그아웃
+// 오른쪽: 역할 전환(개발용) ｜ 손들기 ｜ 공지 ｜ 알림 ｜ 사용자 프로필(로그아웃은 그 메뉴 안)
 // =============================================================
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -39,7 +39,7 @@ import CornellNoteDrawer from "./CornellNoteDrawer";
 import RewardCelebration from "./RewardCelebration";
 import ClassMarquee from "./ClassMarquee";
 import { useRewardCelebration } from "@/lib/useRewardCelebration";
-import { IconReport, IconPythonRunner, IconLogo, IconAnswer, IconBlackboard, IconBook, IconTeacher, IconLogout } from "./StatusIcons";
+import { IconReport, IconPythonRunner, IconLogo, IconAnswer, IconBlackboard, IconBook, IconTeacher } from "./StatusIcons";
 
 export default function TopNav({ active, onPython, pyActive = false }) {
   const router = useRouter();
@@ -307,13 +307,14 @@ export default function TopNav({ active, onPython, pyActive = false }) {
           </button>
         )}
         {user && isFirebaseConfigured && <NotificationBell uid={user.uid} />}
+        {/* 로그아웃은 이 메뉴 안으로 들어갔습니다 — 상단바에 전광판을 두려고
+            자리를 비웠고, 하루에 한 번 누를까 말까 한 것이 늘 폭을 차지할
+            이유도 없습니다(UserProfile 주석 참고). */}
         <UserProfile
           pendingCount={isStrictAdmin ? pendingTeacherCount : 0}
           onOpenRoleMgr={isStrictAdmin ? () => setRoleMgrOpen(true) : null}
+          onLogout={handleLogout}
         />
-        <button className="btn-ghost btn-logout" onClick={handleLogout} title="로그아웃">
-          <IconLogout size={18} /> <span className="nav-label">로그아웃</span>
-        </button>
       </div>
 
       {/* 둘째 줄(좁은 화면) / 로고 옆(넓은 화면): 이동 메뉴 — 질문방 · 공부방 ·
