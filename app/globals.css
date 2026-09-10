@@ -1402,7 +1402,27 @@ button.footer-link:hover {
 .memo-cal-edit { flex-shrink: 0; align-self: center; }
 .memo-cal-editing { display: flex; flex-direction: column; gap: 6px; }
 .memo-cal-editing .memo-rte { width: 100%; box-sizing: border-box; }
-.memo-cal-editing .memo-item-actions { display: flex; justify-content: flex-end; gap: 6px; }
+/* ── 메모를 고치는 줄 (지난 메모 패널 · 달력 패널 공용) ──
+   목록의 '수정·삭제'와 같은 `.memo-item-actions`를 쓰지만 하는 일이 달라
+   자리와 크기를 여기서 따로 정합니다. **두 패널이 이 한 규칙을 함께 씁니다**
+   — 한쪽만 고치면 같은 창의 두 자리에서 저장 단추가 다르게 보입니다. */
+.memo-edit-actions {
+  justify-content: flex-end; /* 왼쪽에 붙어 오른쪽이 160px 비어 있었습니다 */
+  margin-top: 2px;
+}
+/* `.btn-primary`에는 `line-height`가 없어 `normal`(12.5px 글자에 약 17px)을
+   물려받습니다 — 옆의 `.btn-ghost`는 `line-height: 1`이라 저장이 2.5px 더
+   높았습니다(실측 29 대 26.5). 줄높이를 맞추고, 테두리가 없는 만큼 위아래
+   1px씩을 여백으로 채워 **둘 다 26.5px**로 만듭니다.
+   `.memo-save`를 통째로 고치지 않는 까닭: 수업 메모 본 창의 저장 단추는
+   `.memo-cal-btn`이 높이를 맞춰 쓰고 있어(그쪽 주석 참고) 함께 움직입니다.
+   선택자에 `.memo-side-panel`을 함께 적는 것은 **아래에 오는**
+   `.memo-side-panel .memo-save`(padding 6px 12px)와 특이도가 같으면 그쪽이
+   이기기 때문입니다 — 순서에 기대지 않게 한 단계 올려 둡니다. */
+.memo-side-panel .memo-edit-actions .memo-save {
+  padding: 7px 12px;
+  line-height: 1;
+}
 /* 패널 안에서는 버튼을 한 단계 작게 — 폭이 320px입니다 */
 .memo-side-panel .memo-save,
 .memo-side-panel .btn-ghost { padding: 6px 12px; font-size: 12.5px; }

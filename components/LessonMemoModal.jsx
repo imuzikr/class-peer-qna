@@ -550,7 +550,7 @@ function MemoClassPanel({ classId, name, memos, readOnly, onClose }) {
                       onSend={handleEditSave}
                       sendDisabled={memoEmpty(editing.text) || editing.text.length > MAX_LEN}
                     />
-                    <div className="memo-item-actions">
+                    <div className="memo-item-actions memo-edit-actions">
                       <button type="button" className="btn-ghost" onClick={() => setEditing(null)}>
                         취소
                       </button>
@@ -915,7 +915,7 @@ function MemoCalendarPanel({ byDate, nameOfClass, archivedClassIds, currentClass
                         onSend={saveEdit}
                         sendDisabled={busy || memoEmpty(editText) || editText.length > MAX_LEN}
                       />
-                      <div className="memo-item-actions">
+                      <div className="memo-item-actions memo-edit-actions">
                         <button type="button" className="btn-ghost" onClick={() => setEditingId("")}>
                           취소
                         </button>
