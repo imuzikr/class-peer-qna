@@ -307,6 +307,72 @@ export default function RichTextEditor({
     }
   }
 
+  // ── '- ' 로 글머리 기호 ───────────────────────────────────────
+  // 줄 맨 앞에 붙임표 하나를 적고 띄어쓰기를 누르면 그 줄이 글머리 기호가
+  // 됩니다(마크다운을 쓰는 손이 그대로 통하게). 툴바를 짚으러 가지 않아도
+  // 되어, 여러 줄을 잇달아 적을 때 흐름이 안 끊깁니다.
+  //
+  // **그 서식이 있는 에디터에서만** 합니다 — 툴바에 글머리 기호가 없는 자리
+  // (`tools`로 좁혀 둔 곳)에서 저절로 목록이 생기면 되돌릴 단추가 없습니다.
+  const canBullet = commands.some((c) => c?.cmd === "insertUnorderedList");
+
+  // 줄을 여는 블록(div·li·pre…). 첫 줄은 감싼 것 없이 뿌리에 바로 놓입니다.
+  const BLOCK_TAGS = new Set([
+    "DIV", "P", "LI", "PRE", "BLOCKQUOTE", "TD", "TH",
+    "H1", "H2", "H3", "H4", "H5", "H6",
+  ]);
+  function blockOf(node) {
+    let el = node?.nodeType === 1 ? node : node?.parentElement;
+    while (el && el !== ref.current) {
+      if (BLOCK_TAGS.has(el.nodeName)) return el;
+      el = el.parentElement;
+    }
+    return ref.current;
+  }
+
+  // 커서 앞, **같은 줄**의 글자. 줄은 블록에서 시작하고 <br>에서 다시
+  // 시작합니다 — `Range.toString()`은 <br>을 없는 셈 쳐서 앞줄까지 이어
+  // 붙이므로(그러면 `<div>가나<br>-|</div>`가 '가나-'가 됩니다), 조각을
+  // 떠서 직접 훑고 <br>을 만나면 지금까지 모은 것을 버립니다.
+  function linePrefix(range) {
+    const block = blockOf(range.startContainer);
+    if (!block) return null;
+    const r = document.createRange();
+    r.selectNodeContents(block);
+    r.setEnd(range.startContainer, range.startOffset);
+    const walker = document.createTreeWalker(
+      r.cloneContents(),
+      NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT
+    );
+    let out = "";
+    while (walker.nextNode()) {
+      const n = walker.currentNode;
+      if (n.nodeType === Node.TEXT_NODE) out += n.nodeValue;
+      else if (n.nodeName === "BR") out = "";
+    }
+    return out;
+  }
+
+  // 띄어쓰기를 가로챌 자리인가 — 맞으면 목록으로 바꾸고 true.
+  function dashToBullet(e) {
+    if (!canBullet) return false;
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0 || !sel.isCollapsed) return false;
+    const range = sel.getRangeAt(0);
+    if (!ref.current?.contains(range.startContainer)) return false;
+    // 이미 목록 안이면 할 일이 없고, 코드 블록 안의 '-'는 진짜 붙임표입니다.
+    if (isInList() || getContainingPre()) return false;
+    if (linePrefix(range) !== "-") return false;
+
+    e.preventDefault();
+    // 붙임표는 브라우저에게 지우게 합니다 — 커서 앞 한 글자라 범위를 손으로
+    // 잡을 것 없이 정확하고, Ctrl+Z 한 번으로 되돌아옵니다.
+    document.execCommand("delete", false, null);
+    document.execCommand("insertUnorderedList", false, null);
+    onChange(ref.current.innerHTML);
+    return true;
+  }
+
   // 커서가 목록(li) 안에 있으면 Enter는 '새 항목 추가'로 동작해야 함
   function isInList() {
     let node = window.getSelection()?.anchorNode;
@@ -354,6 +420,9 @@ export default function RichTextEditor({
       if (!sendDisabled) onSend?.();
       return;
     }
+
+    // 띄어쓰기: 줄 맨 앞의 '-' 하나였으면 글머리 기호로
+    if (e.key === " " && dashToBullet(e)) return;
 
     // Escape: 코드 블록 어디서든 탈출
     if (e.key === "Escape") {
