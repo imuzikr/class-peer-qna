@@ -827,8 +827,12 @@ function MemoCalendarPanel({ byDate, nameOfClass, archivedClassIds, currentClass
                   disabled={!has}
                   title={has ? `메모 ${list.length}건` : undefined}
                 >
+                  {/* 건수는 **적지 않습니다** — 이 달력이 답하는 물음은
+                      '어느 날에 적어 뒀나' 하나이고, 그건 칸 색이 이미
+                      말합니다. 날짜 아래 작은 숫자를 더 두면 한 칸에 숫자가
+                      둘이라 어느 것이 날짜인지 한 번 더 보게 됩니다.
+                      몇 건인지는 툴팁에 그대로 있습니다. */}
                   <span className="study-cal-day">{d}</span>
-                  {has && <span className="study-cal-count">{list.length}</span>}
                 </button>
               );
             })}

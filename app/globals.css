@@ -1289,9 +1289,13 @@ button.footer-link:hover {
 }
 
 /* 달력 격자는 출석부의 것을 그대로 씁니다(.study-attendance-calendar).
-   패널이 좁아 칸만 낮추고 건수는 숫자만 적습니다. */
+   패널이 좁아 칸만 낮춥니다. **건수(.study-cal-count)는 안 그립니다** —
+   '어느 날에 적어 뒀나'는 칸 색이 이미 말하고, 날짜 아래 작은 숫자를 더 두면
+   한 칸에 숫자가 둘이라 어느 것이 날짜인지 한 번 더 보게 됩니다. 칸이
+   `justify-content: center`라 숫자 하나만 남아도 가운데에 그대로 섭니다.
+   출석 달력과 KWLS 달력은 건수를 계속 그립니다 — 거기서는 '몇 명이'가
+   그 화면의 주제라 뜻이 다릅니다. */
 .memo-cal-panel .study-cal-cell { min-height: 38px; }
-.memo-cal-panel .study-cal-count { font-size: 10.5px; }
 /* 다른 반 메모만 있는 날 — 있다는 건 알리되 이 반 날짜보다 조용하게 */
 .memo-cal-panel .study-cal-cell.memo-cal-other { opacity: 0.6; }
 .memo-cal-panel .study-cal-cell:disabled { cursor: default; }
