@@ -699,23 +699,25 @@ button.footer-link:hover {
   gap: 8px;
   flex: 0 1 auto;
   min-width: 0;
-  max-width: 520px;
+  max-width: 560px;
   margin-left: auto;
-  height: 32px;
-  padding: 0 12px;
+  /* 글자를 15px로 키우면서 알약도 함께 — 32px에 두면 글자가 위아래로 낍니다 */
+  height: 36px;
+  padding: 0 14px;
   border-radius: 999px;
   background: var(--primary-light);
 }
 .class-marquee-text {
-  display: flex;
-  align-items: center;
-  gap: 6px;
   margin: 0;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 13px;
+  /* 상단바에서 눈에 들어와야 하는 한 줄이라 본문(13px)보다 큽니다. 옆 문구
+     (.topbar-tagline, 세리프 19px)보다는 작게 둬 둘이 경쟁하지 않게 합니다.
+     이모지·아이콘은 안 답니다 — 읽을 것은 이름 하나뿐이라 그림이 앞에 붙으면
+     눈이 먼저 그것을 짚습니다(컴포넌트 주석 참고). */
+  font-size: 15px;
   font-weight: 700;
   color: var(--primary-dark, #c15a2a);
   /* 글이 바뀔 때 조용히 갈립니다 — key가 바뀌며 다시 그려지므로 이 애니

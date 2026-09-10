@@ -49,9 +49,11 @@ export default function ClassMarquee({ cls, isTeacher = false }) {
 
   return (
     <div className="class-marquee">
+      {/* 이모지를 안 답니다 — 이 줄에서 읽을 것은 학생 이름 하나뿐이라,
+          앞에 그림이 붙으면 그만큼 글자가 밀리고 눈이 먼저 그림을 짚습니다.
+          여기가 전광판이라는 것은 알약 바탕이 이미 말합니다. */}
       {items.length > 0 ? (
         <p className="class-marquee-text" key={items[safeAt]?.id ?? safeAt} title={items[safeAt]?.text}>
-          <span aria-hidden="true">📣</span>
           {items[safeAt]?.text}
         </p>
       ) : (
