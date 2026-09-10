@@ -1168,7 +1168,11 @@ button.footer-link:hover {
   text-overflow: ellipsis;
   white-space: nowrap;
   text-align: center;
-  padding: 5px 13px;
+  /* 세로 5px일 때는 높이가 29px이라 알약이라기엔 납작했습니다. 8px으로
+     35px입니다(글자 12.5px에 줄높이 normal = 17px + 여백 16 + 테두리 2).
+     **flex로 바꾸지 마세요** — 가운데 정렬을 flex로 하면 긴 반 이름의
+     말줄임(text-overflow)이 안 걸려 '인공지능 기초 A'가 칸을 넘칩니다. */
+  padding: 8px 13px;
   border: 1px solid var(--border);
   border-radius: 999px;
   background: var(--bg-deep, #f7f5f0);
