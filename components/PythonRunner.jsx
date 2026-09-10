@@ -18,6 +18,7 @@ import { indentWithTab } from "@codemirror/commands";
 import { acceptCompletion } from "@codemirror/autocomplete";
 import { Prec } from "@codemirror/state";
 import { python } from "@codemirror/lang-python";
+import PyProjectPanel from "./PyProjectPanel";
 
 const PYODIDE_VERSION = "0.26.4";
 const TIMEOUT_MS = 15000;
@@ -92,7 +93,28 @@ function samplePlaceholder() {
   return wrap;
 }
 
-export default function PythonRunner({ open, onClose, onAskQuestion, hasModalOpen = false }) {
+// 2단 서랍입니다.
+//  1단 — 실행기만(지금까지의 모습).
+//  2단 — '프로젝트 연계'를 누르면 폭이 화면 가득으로 벌어지며 오른쪽에
+//        프로젝트 패널이 한 칸 더 열립니다. 짠 코드를 프로젝트의 활동 칸으로
+//        곧바로 보낼 수 있고, 교사는 거기서 보낼 곳을 정하거나 프로젝트·활동을
+//        새로 만듭니다.
+// 2단은 예전 '전체 화면'이 하던 일(에디터 ｜ 입출력 좌우 배치)을 그대로
+// 하면서 칸이 하나 더 붙은 것이라, 넓게 쓰던 자리를 잃지 않습니다.
+export default function PythonRunner({
+  open,
+  onClose,
+  onAskQuestion,
+  hasModalOpen = false,
+  // 2단(프로젝트 연계)에 필요한 것들 — 페이지가 **이미 구독해 둔 값**을
+  // 그대로 내려 줍니다(이 패널 때문에 새로 읽는 문서가 없습니다).
+  classId = null,
+  className = "",
+  boards = null, // null이면 2단 자체를 안 답니다(연계할 자리가 없는 화면)
+  pyTarget = null,
+  user = null,
+  isTeacher = false,
+}) {
   const [stdinText, setStdinText] = useState("홍길동");
   const [lines, setLines] = useState([]); // 출력 줄 목록 {type, text}
   const [status, setStatus] = useState("idle"); // idle | loading | running
@@ -291,7 +313,10 @@ export default function PythonRunner({ open, onClose, onAskQuestion, hasModalOpe
     setStatus("idle");
   }
 
-  // 모달이 열려 있으면 전체 화면 모드 강제 해제
+  // 2단을 달 수 있는 화면인가 — 프로젝트 목록과 반이 함께 있어야 합니다.
+  const canLink = !!(boards && classId && user);
+  // 모달이 열려 있으면 2단을 강제로 접습니다(모달 위로 화면을 다 덮으면
+  // 모달이 안 보입니다 — 지금까지 전체 화면이 그랬던 것과 같습니다).
   const effectiveFull = full && !hasModalOpen;
 
   return (
@@ -349,14 +374,28 @@ export default function PythonRunner({ open, onClose, onAskQuestion, hasModalOpe
               </svg>
             )}
           </button>
+          {/* 2단을 여닫는 단추. 예전의 '전체 화면'이 이 자리인데, 넓히는 것이
+              목적이 아니라 **프로젝트에 연계하는 것**이 목적이라 이름이 그것을
+              말합니다(넓어지는 것은 그러느라 따라오는 일입니다). */}
+          {/* 연계할 프로젝트가 없는 화면(질문방)에서는 지금까지대로 '전체
+              화면'입니다 — 이름만 갈릴 뿐 넓어지는 것은 같습니다. 여기서
+              단추를 아예 빼면 그 화면이 넓게 쓰던 길을 잃습니다. */}
           <button
             className="btn-ghost"
             style={{ visibility: hasModalOpen ? "hidden" : "visible" }}
             onClick={() => setFull(!full)}
-            title={full ? "원래 크기로" : "전체 화면"}
+            title={
+              !canLink
+                ? full ? "원래 크기로" : "전체 화면"
+                : full
+                  ? "실행기만 보기 — 프로젝트 칸을 접습니다"
+                  : "프로젝트 연계 — 짠 코드를 프로젝트 활동으로 보낼 수 있습니다"
+            }
             tabIndex={hasModalOpen ? -1 : 0}
           >
-            {full ? "🗗 축소" : "⛶ 전체 화면"}
+            {full
+              ? canLink ? "🗗 실행기만" : "🗗 축소"
+              : canLink ? "⛶ 프로젝트 연계" : "⛶ 전체 화면"}
           </button>
           <button className="btn-close" onClick={onClose} aria-label="닫기">
             ×
@@ -433,6 +472,21 @@ export default function PythonRunner({ open, onClose, onAskQuestion, hasModalOpe
             )}
           </div>
         </div>
+
+        {/* 2단 — 프로젝트 연계 칸. 열려 있을 때만 그립니다(접힌 동안 프로젝트
+            목록을 훑거나 반 문서를 들여다볼 이유가 없습니다). */}
+        {effectiveFull && (
+          <PyProjectPanel
+            classId={classId}
+            className={className}
+            boards={boards}
+            pyTarget={pyTarget}
+            user={user}
+            isTeacher={isTeacher}
+            getCode={() => viewRef.current?.state.doc.toString() ?? ""}
+            getLines={() => lines}
+          />
+        )}
       </div>
     </aside>
   );

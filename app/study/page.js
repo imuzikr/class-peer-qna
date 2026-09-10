@@ -1322,6 +1322,13 @@ function StudyPageInner() {
           setAskCode(code);
           setAskKeyword(null);
         }}
+        // 2단(프로젝트 연계) — 전부 이 화면이 이미 구독해 둔 값입니다
+        classId={classId}
+        className={currentClass?.name ?? ""}
+        boards={boards}
+        pyTarget={currentClass?.pyTarget ?? null}
+        user={user}
+        isTeacher={admin}
         hasModalOpen={cardModalOpen || classManagerOpen || creatingProject || attendanceOpen || seatSetupOpen || (askKeyword !== null || askCode !== null)}
       />
 

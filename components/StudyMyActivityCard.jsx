@@ -30,6 +30,7 @@ import { useEntryCast } from "@/lib/useEntryCast";
 import { sanitizeHtml, stripHtml, htmlHasImage } from "@/lib/html";
 import {
   parseActivitySections,
+  buildActivityHtml,
   isActivityLocked,
   boardMaterials,
   materialLabel,
@@ -131,13 +132,12 @@ export default function StudyMyActivityCard({
   }
 
   function buildPayload() {
-    const htmlToSave = activities
-      .map((act, i) => {
-        const t = activityTitles[i] ?? act;
-        const c = sanitizeHtml(activityContents[i] ?? "");
-        return `<div class="activity-section"><h4 class="activity-title">${t}</h4>${c}</div>`;
-      })
-      .join("");
+    // 짜는 자리는 lib/activities.js 한 곳입니다 — 실행기의 '활동으로 보내기'가
+    // 같은 카드를 다시 쓰므로, 두 곳이 다른 모양을 만들면 되읽을 때 어긋납니다.
+    const htmlToSave = buildActivityHtml(
+      activities.map((act, i) => activityTitles[i] ?? act),
+      activityContents
+    );
     const hasContent = activityContents.some((c) => {
       const sc = sanitizeHtml(c ?? "");
       return stripHtml(sc).trim().length > 0 || htmlHasImage(sc);
