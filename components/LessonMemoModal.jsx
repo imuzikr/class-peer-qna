@@ -76,6 +76,9 @@ import {
   updateLessonMemo,
   deleteLessonMemo,
   lessonMemoDate,
+  lessonMemoProgress,
+  LESSON_TOPIC_MAX,
+  LESSON_PAGES_MAX,
   todayDateKey,
   formatTime,
 } from "@/lib/store";
@@ -84,6 +87,20 @@ import {
 // 들어가므로, 예전처럼 잘라 내지 않고 넘으면 저장을 막고 알려 줍니다 —
 // HTML을 가운데서 자르면 태그가 끊겨 글이 망가집니다.
 const MAX_LEN = 2000;
+
+// 진도 줄 — `조건문 · p.112~119`. 지난 메모 패널과 달력이 함께 씁니다.
+// 주제와 페이지를 **다른 짙기로** 둡니다: 훑을 때 눈이 짚는 것은 주제이고,
+// 페이지는 그 옆의 딸림값입니다.
+function MemoProgressLine({ memo }) {
+  const prog = lessonMemoProgress(memo);
+  if (!prog) return null;
+  return (
+    <p className="memo-prog-line">
+      {prog.topic && <b>{prog.topic}</b>}
+      {prog.pages && <span>{prog.pages}</span>}
+    </p>
+  );
+}
 
 // 서식만 있고 글자는 없는 상태('<div><br></div>')를 빈 메모로 봅니다.
 function memoEmpty(html) {
@@ -127,6 +144,30 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
   // '메모'라, 그쪽은 지금도 필요할 때만 읽습니다(아래 두 구독).
   const [myClasses, setMyClasses] = useState([]);
   const [otherMemos, setOtherMemos] = useState({});
+
+  // ── 진도 칸 ────────────────────────────────────────────────
+  // 수업 메모는 진도만 적는 자리가 아닙니다('오늘 3모둠 분위기가…'). 그래서
+  // 주제·페이지 두 칸을 늘 띄우지 않고 **켤 때만** 내놓습니다. 진도가 아닌
+  // 메모를 적을 때 쓸모없는 빈 칸 둘을 보지 않게.
+  // 켜 둔 상태는 기억합니다 — 진도를 적는 선생님은 차시마다 적으므로, 열
+  // 때마다 다시 누르게 하면 그 자체가 일이 됩니다(자리표 '선생님 보기'를
+  // localStorage에 기억하는 것과 같은 생각).
+  const [progressOn, setProgressOn] = useState(false);
+  const [topic, setTopic] = useState("");
+  const [pages, setPages] = useState("");
+
+  useEffect(() => {
+    try {
+      setProgressOn(localStorage.getItem("memo_progress_on") === "1");
+    } catch { /* 사생활 보호 모드 등 — 꺼진 채로 시작합니다 */ }
+  }, []);
+  function toggleProgress() {
+    setProgressOn((v) => {
+      const next = !v;
+      try { localStorage.setItem("memo_progress_on", next ? "1" : "0"); } catch {}
+      return next;
+    });
+  }
 
   useEffect(() => {
     if (!classId) { setMemos([]); return; }
@@ -289,8 +330,10 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
     if (memoEmpty(body) || tooLong || busy || !canWrite) return;
     setBusy(true);
     try {
-      await addLessonMemo(writeClassId, user, body, date);
+      await addLessonMemo(writeClassId, user, body, date, { topic, pages });
       setText("");
+      setTopic("");
+      setPages("");
       setWriteKey((k) => k + 1); // 쓴 것을 지우려면 에디터를 다시 세웁니다
       // 날짜는 오늘로 되돌립니다 — 지난 수업 것을 하나 적고 나서 다음 메모가
       // 그 날짜에 눌러앉아 있으면 알아채기 어렵습니다.
@@ -335,7 +378,9 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
           <button className="btn-close" onClick={onClose} aria-label="닫기">×</button>
         </div>
 
-        <label className="notes-date-row">
+        {/* 날짜 줄 오른쪽 끝에 '진도' 토글 — 날짜·주제·페이지는 '이 메모가
+            어느 수업의 일인가'를 말하는 한 묶음이라 같은 줄에서 켭니다. */}
+        <div className="notes-date-row memo-date-row">
           <span>날짜</span>
           <input
             type="date"
@@ -344,7 +389,45 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
             onChange={(e) => setDate(e.target.value)}
             max={todayDateKey()}
           />
-        </label>
+          <button
+            type="button"
+            className={`memo-prog-toggle${progressOn ? " on" : ""}`}
+            onClick={toggleProgress}
+            aria-pressed={progressOn}
+            title={
+              progressOn
+                ? "주제·페이지 칸을 접습니다"
+                : "수업 진도를 함께 적습니다 (주제 · 페이지)"
+            }
+          >
+            진도
+          </button>
+        </div>
+
+        {progressOn && (
+          <div className="memo-prog-row">
+            <label className="memo-prog-field">
+              <span>주제</span>
+              <input
+                type="text"
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
+                placeholder="조건문"
+                maxLength={LESSON_TOPIC_MAX}
+              />
+            </label>
+            <label className="memo-prog-field memo-prog-field--pages">
+              <span>페이지</span>
+              <input
+                type="text"
+                value={pages}
+                onChange={(e) => setPages(e.target.value)}
+                placeholder="112~119"
+                maxLength={LESSON_PAGES_MAX}
+              />
+            </label>
+          </div>
+        )}
 
         <RichTextEditor
           key={writeKey}
@@ -363,7 +446,12 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
               ? "보관된 반이라 메모를 적을 수 없어요 — 다른 반을 골라 주세요"
               : tooLong
                 ? `서식을 포함해 ${text.length}자 — ${MAX_LEN}자까지 저장돼요`
-                : "Ctrl(⌘)+Enter로도 저장돼요"}
+                : /* 주제·페이지만 채우고 저장할 수는 없습니다 — 보안 규칙이
+                     본문을 요구합니다. 눌러 보고서야 알게 하지 않으려고
+                     저장이 잠긴 까닭을 여기서 밝힙니다. */
+                  (topic.trim() || pages.trim()) && memoEmpty(text)
+                  ? "수업 내용도 한 줄 적어야 저장돼요"
+                  : "Ctrl(⌘)+Enter로도 저장돼요"}
           </span>
           <button
             type="button"
@@ -468,7 +556,7 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
 // 두지 않으면 반을 바꿀 때마다 '아직 적어 둔 메모가 없어요'가 한 번 스칩니다
 // (CLAUDE.md '아직 모름과 없음을 가릅니다'와 같은 함정).
 function MemoClassPanel({ classId, name, memos, readOnly, onClose }) {
-  const [editing, setEditing] = useState(null); // { id, text, date }
+  const [editing, setEditing] = useState(null); // { id, text, date, topic, pages }
   const [confirmDelete, setConfirmDelete] = useState(null); // memoId
 
   // 반을 바꾸면 고치던 것·지우려던 것을 놓습니다 — 앞 반의 메모 id를 든 채로
@@ -481,7 +569,10 @@ function MemoClassPanel({ classId, name, memos, readOnly, onClose }) {
   async function handleEditSave() {
     const body = editing?.text.trim() ?? "";
     if (memoEmpty(body) || body.length > MAX_LEN) return;
-    await updateLessonMemo(classId, editing.id, body, editing.date);
+    await updateLessonMemo(classId, editing.id, body, editing.date, {
+      topic: editing.topic,
+      pages: editing.pages,
+    });
     setEditing(null);
   }
 
@@ -547,6 +638,31 @@ function MemoClassPanel({ classId, name, memos, readOnly, onClose }) {
                         max={todayDateKey()}
                       />
                     </label>
+                    {/* 진도 칸은 고칠 때 **늘 보여 줍니다** — 쓰는 칸과 달리
+                        여기는 이미 있는 값을 고치러 온 자리라, 접어 두면
+                        주제가 적힌 메모인지 아닌지 열어 봐야 압니다. */}
+                    <div className="memo-prog-row">
+                      <label className="memo-prog-field">
+                        <span>주제</span>
+                        <input
+                          type="text"
+                          value={editing.topic}
+                          onChange={(e) => setEditing({ ...editing, topic: e.target.value })}
+                          placeholder="비워 둬도 돼요"
+                          maxLength={LESSON_TOPIC_MAX}
+                        />
+                      </label>
+                      <label className="memo-prog-field memo-prog-field--pages">
+                        <span>페이지</span>
+                        <input
+                          type="text"
+                          value={editing.pages}
+                          onChange={(e) => setEditing({ ...editing, pages: e.target.value })}
+                          placeholder="112~119"
+                          maxLength={LESSON_PAGES_MAX}
+                        />
+                      </label>
+                    </div>
                     <RichTextEditor
                       key={m.id}
                       className="memo-rte memo-rte--sm"
@@ -586,7 +702,13 @@ function MemoClassPanel({ classId, name, memos, readOnly, onClose }) {
                             type="button"
                             className="memo-mini-btn"
                             onClick={() =>
-                              setEditing({ id: m.id, text: m.text, date: lessonMemoDate(m) })
+                              setEditing({
+                                id: m.id,
+                                text: m.text,
+                                date: lessonMemoDate(m),
+                                topic: m.topic ?? "",
+                                pages: m.pages ?? "",
+                              })
                             }
                           >
                             수정
@@ -620,6 +742,10 @@ function MemoClassPanel({ classId, name, memos, readOnly, onClose }) {
                         </span>
                       )}
                     </div>
+                    {/* 진도 줄 — 주제·페이지를 적은 메모에만 섭니다.
+                        진도 칸이 없는 예전 메모는 아무것도 안 그립니다
+                        (`lessonMemoProgress`가 null을 돌려줍니다). */}
+                    <MemoProgressLine memo={m} />
                     {/* 서식이 붙기 전 메모는 순수 텍스트라 richHtml이
                         줄바꿈만 살려 내보냅니다(lib/html.js).
                         체크 목록의 네모는 **여기서** 켜고 끕니다 — 할 일을
@@ -685,6 +811,7 @@ function MemoCalendarPanel({ byDate, nameOfClass, archivedClassIds, currentClass
   const [draftKey, setDraftKey] = useState(0); // 저장 뒤 에디터를 비우려고
   const [editingId, setEditingId] = useState("");
   const [editText, setEditText] = useState("");
+  const [editProg, setEditProg] = useState({ topic: "", pages: "" });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -753,9 +880,10 @@ function MemoCalendarPanel({ byDate, nameOfClass, archivedClassIds, currentClass
     try {
       // 날짜는 그대로 둡니다 — 달력에서 고른 그 날짜의 메모라, 여기서
       // 날짜를 바꾸면 방금 보던 목록에서 사라져 어디로 갔는지 알 수 없습니다.
-      await updateLessonMemo(pickedClass, editingId, body, picked);
+      await updateLessonMemo(pickedClass, editingId, body, picked, editProg);
       setEditingId("");
       setEditText("");
+      setEditProg({ topic: "", pages: "" });
     } catch (e) {
       setError(`저장하지 못했어요: ${e?.message ?? "알 수 없는 오류"}`);
     } finally {
@@ -916,6 +1044,31 @@ function MemoCalendarPanel({ byDate, nameOfClass, archivedClassIds, currentClass
                 if (editingId === m.id) {
                   return (
                     <li key={m.id} className="memo-cal-editing">
+                      {/* 진도 칸 — 지난 메모 패널의 고치는 폼과 같습니다.
+                          고칠 때는 늘 보여 줍니다(이미 있는 값을 고치러 온
+                          자리라 접어 두면 열어 봐야 압니다). */}
+                      <div className="memo-prog-row">
+                        <label className="memo-prog-field">
+                          <span>주제</span>
+                          <input
+                            type="text"
+                            value={editProg.topic}
+                            onChange={(e) => setEditProg((v) => ({ ...v, topic: e.target.value }))}
+                            placeholder="비워 둬도 돼요"
+                            maxLength={LESSON_TOPIC_MAX}
+                          />
+                        </label>
+                        <label className="memo-prog-field memo-prog-field--pages">
+                          <span>페이지</span>
+                          <input
+                            type="text"
+                            value={editProg.pages}
+                            onChange={(e) => setEditProg((v) => ({ ...v, pages: e.target.value }))}
+                            placeholder="112~119"
+                            maxLength={LESSON_PAGES_MAX}
+                          />
+                        </label>
+                      </div>
                       <RichTextEditor
                         key={m.id}
                         className="memo-rte memo-rte--sm"
@@ -964,11 +1117,17 @@ function MemoCalendarPanel({ byDate, nameOfClass, archivedClassIds, currentClass
                       <button
                         type="button"
                         className="memo-mini-btn memo-cal-edit"
-                        onClick={() => { setEditingId(m.id); setEditText(m.text); setPickedMemo(""); }}
+                        onClick={() => {
+                          setEditingId(m.id);
+                          setEditText(m.text);
+                          setEditProg({ topic: m.topic ?? "", pages: m.pages ?? "" });
+                          setPickedMemo("");
+                        }}
                       >
                         수정
                       </button>
                     )}
+                    {open && <MemoProgressLine memo={m} />}
                     {open && (
                       <div
                         className="memo-cal-memo-body"

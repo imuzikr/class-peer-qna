@@ -1045,6 +1045,100 @@ button.footer-link:hover {
   width: 26px;
   height: 26px;
 }
+/* ── 진도 칸 (주제 · 페이지) ────────────────────────────────
+   수업 메모는 진도만 적는 자리가 아니라, 두 칸을 늘 띄우지 않고 이 토글로
+   켤 때만 내놓습니다. 켠 상태는 localStorage에 기억합니다. */
+.memo-date-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+/* 토글은 날짜 줄 오른쪽 끝으로 — 날짜·주제·페이지가 '어느 수업의 일인가'를
+   말하는 한 묶음이라 같은 줄에서 켭니다. */
+.memo-prog-toggle {
+  margin-left: auto;
+  padding: 5px 13px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-deep, #f7f5f0);
+  color: var(--text-sub);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.14s, border-color 0.14s, color 0.14s;
+}
+.memo-prog-toggle:hover {
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+/* 켜짐은 채운 색으로 — 이 줄에서 이것만 상태를 가진 단추라, 반 고르기
+   알약의 `.on`과 같은 모양으로 둡니다. */
+.memo-prog-toggle.on {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+/* 주제가 넓고 페이지가 좁습니다 — 주제는 '조건문과 반복문 되짚기'처럼
+   길어지고, 페이지는 '112~119' 여덟 글자면 넉넉합니다. */
+.memo-prog-row {
+  display: grid;
+  grid-template-columns: 1fr 120px;
+  gap: 8px;
+  margin: 8px 0 10px;
+}
+.memo-prog-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.memo-prog-field > span {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.memo-prog-field > input {
+  min-width: 0;
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+}
+/* 좁은 패널(320px) 안에서는 두 칸을 위아래로 — 나란히 두면 페이지 칸에
+   '112~119'가 접힙니다. */
+@media (max-width: 768px) {
+  .memo-prog-row { grid-template-columns: 1fr; }
+}
+.memo-side-panel .memo-prog-row {
+  grid-template-columns: 1fr;
+  gap: 6px;
+  margin: 8px 0;
+}
+
+/* 읽는 자리의 진도 한 줄 — 주제는 짙게, 페이지는 딸림값으로 옅게.
+   훑을 때 눈이 짚는 것은 주제입니다. */
+.memo-prog-line {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 2px 0 6px;
+  font-size: 13px;
+}
+.memo-prog-line b {
+  font-weight: 800;
+  color: var(--primary-dark, #c15a2a);
+}
+.memo-prog-line span {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+
 .memo-foot {
   display: flex;
   align-items: center;
