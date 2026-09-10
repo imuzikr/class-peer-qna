@@ -14,7 +14,7 @@ import {
 import { normalizeSeats } from "@/lib/seats";
 import { getCurrentUser } from "@/lib/user";
 import StudentNotesThread from "./StudentNotesThread";
-import StudentToolsModal from "./StudentToolsModal";
+import StudentToolsPopover from "./StudentToolsPopover";
 import { IconMyPost } from "./StatusIcons";
 
 const DEFAULT_GROUP_COLORS = ["#2563eb", "#16a34a", "#f97316", "#9333ea", "#dc2626", "#0891b2"];
@@ -95,13 +95,16 @@ function StudentCard({
         }
         role={clickable ? "button" : undefined}
         tabIndex={clickable ? 0 : undefined}
-        onClick={clickable ? () => onOpenTools(d) : undefined}
+        /* 누른 카드(e.currentTarget)를 함께 넘깁니다 — 과일·누가기록 창이
+           모달이 아니라 **이 카드 옆에 붙는 팝오버**라, 어디에 뜰지 정하려면
+           누른 카드가 어디인지 알아야 합니다. */
+        onClick={clickable ? (e) => onOpenTools(d, e.currentTarget) : undefined}
         onKeyDown={
           clickable
             ? (e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
-                  onOpenTools(d);
+                  onOpenTools(d, e.currentTarget);
                 }
               }
             : undefined
@@ -167,7 +170,10 @@ export default function AttendanceBoard({
   const [viewMode, setViewMode] = useState("seat");
   const [dragIndex, setDragIndex] = useState(null);
   const [notesFor, setNotesFor] = useState(null); // 누가기록 슬라이드 패널 대상
-  const [toolsFor, setToolsFor] = useState(null); // 카드 클릭 → 과일/누가기록 선택 모달
+  // 카드 클릭 → 과일/누가기록 팝오버. `anchor`는 누른 카드로, 창이 그 옆에
+  // 붙습니다(화면 한가운데 뜨는 모달이 아닙니다).
+  const [toolsFor, setToolsFor] = useState(null);
+  const [toolsAt, setToolsAt] = useState(null);
   const notesPanelRef = useRef(null);
   const [seats, setSeats] = useState(() =>
     normalizeSeats(dailySeatLayout?.seats ?? seatLayout?.seats ?? [], roster)
@@ -253,19 +259,20 @@ export default function AttendanceBoard({
     notesPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [notesFor?.uid]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 선택 모달에서 '누가기록 열기'를 고르면 모달을 닫고 슬라이드 패널을 엽니다.
+  // 팝오버에서 '누가기록 열기'를 고르면 팝오버를 닫고 슬라이드 패널을 엽니다.
   function openNotes(d) {
     setToolsFor(null);
     setNotesFor({ uid: d.uid, name: d.name, emoji: d.emoji ?? "🙂" });
   }
 
-  // 카드 클릭 → 과일/누가기록 선택 모달. 교사(onAward가 있을 때)만 열립니다.
-  function openTools(d) {
+  // 카드 클릭 → 과일/누가기록 팝오버. 교사(onAward가 있을 때)만 열립니다.
+  function openTools(d, el = null) {
     setToolsFor(d);
+    setToolsAt(el);
   }
 
-  // 과일을 주면 목록(roster)이 갱신돼 내려오므로, 열려 있는 모달의 숫자도
-  // 최신 값으로 따라가게 합니다(모달이 처음 열릴 때 찍힌 값에 머무르지 않게).
+  // 과일을 주면 목록(roster)이 갱신돼 내려오므로, 열려 있는 창의 숫자도
+  // 최신 값으로 따라가게 합니다(창이 처음 열릴 때 찍힌 값에 머무르지 않게).
   const toolsStudent = toolsFor
     ? { ...toolsFor, count: byUid.get(toolsFor.uid)?.count ?? toolsFor.count ?? 0 }
     : null;
@@ -431,11 +438,12 @@ export default function AttendanceBoard({
       )}
       </div>
 
-      {/* ── 카드 클릭 → 과일 주기 / 누가기록 선택 ── */}
+      {/* ── 카드 클릭 → 과일 주기 / 누가기록 (누른 카드 옆 팝오버) ── */}
       {toolsStudent && onAward && (
-        <StudentToolsModal
+        <StudentToolsPopover
           student={toolsStudent}
           classId={classId}
+          anchor={toolsAt}
           onAward={onAward}
           onOpenNotes={openNotes}
           onClose={() => setToolsFor(null)}

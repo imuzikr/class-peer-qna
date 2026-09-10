@@ -7,8 +7,8 @@
 // 건지 눈으로 찾기 어려웠습니다. 여기서는 참여 전광판과 같은 자리표에
 // 손든 학생을 🖐️로 표시해, 앉은 자리를 보고 바로 찾을 수 있게 합니다.
 //
-// 자리를 누르면 참여 전광판과 똑같이 과일 주기·누가기록 모달이 열립니다
-// (StudentToolsModal을 공유). 자리 배치는 참여 전광판과 같은 문서를 보되
+// 자리를 누르면 참여 전광판과 똑같이 과일 주기·누가기록 창이 그 자리 옆에
+// 뜹니다(StudentToolsPopover를 공유). 자리 배치는 참여 전광판과 같은 문서를 보되
 // 여기서는 옮기지 않습니다 — 자리 바꾸기는 전광판·출석 관리에서 합니다.
 // =============================================================
 import { useEffect, useMemo, useState } from "react";
@@ -27,7 +27,7 @@ import {
 import { normalizeSeats } from "@/lib/seats";
 import { useTodayRewardCounts } from "@/lib/useTodayRewards";
 import StudentNotesThread from "./StudentNotesThread";
-import StudentToolsModal from "./StudentToolsModal";
+import StudentToolsPopover from "./StudentToolsPopover";
 import { IconMyPost } from "./StatusIcons";
 
 // 자리표 그리기만 담당 — 데이터 구독은 아래 컨테이너가 합니다.
@@ -44,7 +44,7 @@ import { IconMyPost } from "./StatusIcons";
 // 🍊 뱃지는 이 값으로 그립니다 — 누적 총계(roster[].count)가 아닙니다.
 // 자리표는 수업 중에 보는 화면이라 학기 누적이 뜨면 그날의 움직임이 묻히고,
 // 숫자가 커지기만 해서 오늘 누가 받았는지 읽을 수 없기 때문입니다. 누적은
-// 자리를 눌러 여는 과일 주기 모달에 그대로 남아 있습니다(안 넘기면 뱃지 없음).
+// 자리를 눌러 여는 과일 주기 창에 그대로 남아 있습니다(안 넘기면 뱃지 없음).
 // presentUids: 오늘 출석한 학생 uid 집합. null이면 아직 출석을 확인하기
 // 전이라 자리를 모두 연한 회색으로 둡니다(출석/결석을 섣불리 단정하지
 // 않으려고). 집합이 오면 그 안에 있으면 연한 초록(출석), 없으면 연한
@@ -76,7 +76,10 @@ export function SeatCell({
     <button
       type="button"
       className={`attend-seat attend-seat--pick attend-seat--${att}${raised ? " attend-seat--raised" : ""}${top ? " attend-seat--top" : ""}`}
-      onClick={() => onPick?.(s)}
+      /* 누른 칸(e.currentTarget)을 함께 넘깁니다 — 과일·누가기록 창이 모달이
+         아니라 **이 자리 옆에 붙는 팝오버**라, 어디에 뜰지 정하려면 누른
+         칸이 어디인지 알아야 합니다. */
+      onClick={(e) => onPick?.(s, e.currentTarget)}
       title={`${s.name}${s.studentId ? ` · ${s.studentId}` : ""}${attLabel}${liveLabel}${notingLabel}${raised ? " · 질문 있어요" : ""}${todayCount > 0 ? ` · 오늘 과일 ${todayCount}개` : ""}${top ? " · 오늘 과일 1등" : ""} — 눌러서 과일 주기·누가기록${draggable ? ", 끌어서 자리 이동" : ""}`}
       draggable={draggable}
       onDragStart={draggable ? (e) => { onDragStart(index); e.dataTransfer.effectAllowed = "move"; } : undefined}
@@ -175,8 +178,16 @@ export default function QuestionSeatModal({ classId, onClose }) {
   const [seatLayout, setSeatLayout] = useState(null);
   const [dailySeatLayout, setDailySeatLayout] = useState(null);
   const [raisedUids, setRaisedUids] = useState(() => new Set());
+  // 자리 클릭 → 과일/누가기록 팝오버. `toolsAt`은 누른 자리 칸으로, 창이 그
+  // 옆에 붙습니다(자리표를 덮는 모달이 아닙니다).
   const [toolsFor, setToolsFor] = useState(null);
+  const [toolsAt, setToolsAt] = useState(null);
   const [notesFor, setNotesFor] = useState(null);
+
+  function openTools(s, el = null) {
+    setToolsFor(s);
+    setToolsAt(el);
+  }
 
   const todayLayoutId = dailySeatLayoutId(todayDateKey());
 
@@ -284,7 +295,7 @@ export default function QuestionSeatModal({ classId, onClose }) {
               raisedUids={raisedUids}
               raisedCount={raisedCount}
               todayCountByUid={todayCountByUid}
-              onPick={setToolsFor}
+              onPick={openTools}
             />
           )}
         </div>
@@ -313,9 +324,10 @@ export default function QuestionSeatModal({ classId, onClose }) {
       </div>
 
       {toolsStudent && (
-        <StudentToolsModal
+        <StudentToolsPopover
           student={toolsStudent}
           classId={classId}
+          anchor={toolsAt}
           onAward={handleAward}
           onOpenNotes={openNotes}
           onClose={() => setToolsFor(null)}

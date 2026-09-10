@@ -7,7 +7,7 @@
 // 맞게 축소해 보여줍니다. 이름을 알파벳/학번 순으로 훑어 찾던 예전 목록은
 // 학생 수가 많아지면 특정 학생을 찾기 어려웠는데, 자리표는 교실에서 보이는
 // 위치 그대로라 눈으로 바로 찾을 수 있습니다. 자리를 누르면 참여
-// 전광판과 똑같이 과일 주기·누가기록 선택 모달이 열립니다.
+// 전광판과 똑같이 과일 주기·누가기록 창이 그 자리 옆에 뜹니다.
 //
 // 참여 전광판의 '자리표 보기'처럼 드래그로 자리를 바꿀 수도 있습니다 —
 // 다만 여기서 옮기면 그 자리가 기본 자리표(seatLayouts/default)로 곧장
@@ -30,7 +30,7 @@ import { normalizeSeats } from "@/lib/seats";
 import { useTodayRewardCounts } from "@/lib/useTodayRewards";
 import { SeatPickGrid } from "./QuestionSeatModal";
 import RewardTally from "./RewardTally";
-import StudentToolsModal from "./StudentToolsModal";
+import StudentToolsPopover from "./StudentToolsPopover";
 import StudentNotesModal from "./StudentNotesModal";
 import SeatViewToggle from "./SeatViewToggle";
 import { useSeatView } from "@/lib/seatView";
@@ -57,7 +57,10 @@ export default function StudyRewardPanel({
   onSaveGroups,
 }) {
   const [notesFor, setNotesFor] = useState(null); // 누가기록 모달 대상 학생(교사만)
-  const [toolsFor, setToolsFor] = useState(null); // 자리 클릭 → 과일/누가기록 선택 모달
+  // 자리 클릭 → 과일/누가기록 팝오버. `toolsAt`은 누른 자리 칸으로, 창이 그
+  // 옆에 붙습니다(자리표를 덮는 모달이 아닙니다).
+  const [toolsFor, setToolsFor] = useState(null);
+  const [toolsAt, setToolsAt] = useState(null);
   const [collapsed, setCollapsed] = useState(false);
   const [raisedUids, setRaisedUids] = useState(() => new Set());
   const [dragIndex, setDragIndex] = useState(null);
@@ -69,7 +72,7 @@ export default function StudyRewardPanel({
   // 자리표를 어느 쪽에서 보는가 — 자리표가 나오는 네 화면이 같은 값을
   // 함께 씁니다(lib/seatView.js). 한 화면에서 뒤집으면 나머지도 따라옵니다.
   const [teacherView, toggleSeatView] = useSeatView();
-  // 자리 칸의 🍊 뱃지는 오늘 받은 개수입니다(누적 총계는 과일 주기 모달에).
+  // 자리 칸의 🍊 뱃지는 오늘 받은 개수입니다(누적 총계는 과일 주기 창에).
   const todayCountByUid = useTodayRewardCounts(classId);
 
   // 접힘 상태 복원 — 개인 화면 설정이라 localStorage에 저장
@@ -228,13 +231,18 @@ export default function StudyRewardPanel({
     maxRewardCount > 0 ? roster.filter((s) => todayOf(s.uid) === maxRewardCount).map((s) => s.uid) : []
   );
 
+  function openTools(student, el = null) {
+    setToolsFor(student);
+    setToolsAt(el);
+  }
+
   function openNotes(student) {
     setToolsFor(null);
     setNotesFor({ uid: student.uid, name: student.name, emoji: student.emoji ?? "🙂" });
   }
 
-  // 과일을 주면 roster가 갱신돼 내려오므로, 열려 있는 모달의 숫자도
-  // 최신 값으로 따라가게 합니다(모달이 처음 열릴 때 찍힌 값에 머무르지 않게).
+  // 과일을 주면 roster가 갱신돼 내려오므로, 열려 있는 창의 숫자도
+  // 최신 값으로 따라가게 합니다(창이 처음 열릴 때 찍힌 값에 머무르지 않게).
   const toolsStudent = toolsFor
     ? { ...toolsFor, count: byUid.get(toolsFor.uid)?.count ?? toolsFor.count ?? 0 }
     : null;
@@ -297,7 +305,7 @@ export default function StudyRewardPanel({
           byUid={byUid}
           raisedUids={raisedUids}
           raisedCount={raisedCount}
-          onPick={setToolsFor}
+          onPick={openTools}
           onDragStart={setDragIndex}
           onDragEnd={() => setDragIndex(null)}
           onDropTo={(toIndex) => moveSeat(dragIndex, toIndex)}
@@ -334,7 +342,7 @@ export default function StudyRewardPanel({
               byUid={byUid}
               raisedUids={raisedUids}
               raisedCount={raisedCount}
-              onPick={setToolsFor}
+              onPick={openTools}
               onDragStart={setDragIndex}
               onDragEnd={() => setDragIndex(null)}
               onDropTo={(toIndex) => moveSeat(dragIndex, toIndex)}
@@ -476,9 +484,10 @@ export default function StudyRewardPanel({
       )}
 
       {toolsStudent && (
-        <StudentToolsModal
+        <StudentToolsPopover
           student={toolsStudent}
           classId={classId}
+          anchor={toolsAt}
           onAward={onAward}
           onOpenNotes={openNotes}
           onClose={() => setToolsFor(null)}

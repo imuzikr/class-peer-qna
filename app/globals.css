@@ -9972,20 +9972,65 @@ pre code {
   color: var(--primary-dark);
 }
 
-/* ── 카드 클릭 시 뜨는 과일/누가기록 선택 모달 ── */
-/* 전광판(모달) 위에 겹쳐 뜨므로 배경보다 한 단계 위로 올립니다 */
-.attend-tools-backdrop {
-  z-index: 120;
+/* ── 자리를 누르면 그 옆에 뜨는 과일/누가기록 창 ──
+   **모달이 아니라 팝오버입니다**(궁금한 순간의 `.tally-pop`과 같은 성격) —
+   뒤를 덮지 않고, 누른 자리 옆에 붙고, 바깥을 누르거나 Esc·×로 닫힙니다.
+   자리표를 덮지 않아야 다음에 누를 학생이 화면에 그대로 남습니다.
+
+   `position: fixed`가 핵심입니다: 자리표가 구르는 패널 안에 있을 때
+   (수업 중 자리표·'멋진 순간') 절대 배치로 넣으면 잘립니다. 자리는
+   컴포넌트가 인라인으로 줍니다(`lib/popover.js`).
+   z-index는 전광판·손들기 자리 확인이 **모달 안**이라 그 위로 올립니다. */
+.attend-tools-pop {
+  position: fixed;
+  z-index: 320;
+  width: 300px;
+  padding: 10px 12px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(46, 36, 26, 0.16);
+  /* 과일 흐름을 펼치면 아래로 자랍니다 — 화면 밖으로 나가는 대신 안에서
+     구르게 합니다(높이는 컴포넌트가 인라인으로 정합니다). */
+  overflow-y: auto;
 }
-.modal.attend-tools-modal {
-  max-width: 380px;
-  width: 100%;
-}
-.attend-tools-modal .modal-head h3 {
+.attend-tools-pop-head {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 17px;
+  margin-bottom: 10px;
+}
+.attend-tools-pop-head strong {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 14.5px;
+  color: var(--dark);
+}
+.attend-tools-pop-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* 학번은 줄어들지 않습니다 — 이름이 길면 이름만 접힙니다 */
+.attend-tools-pop-head .attend-tools-no {
+  flex-shrink: 0;
+}
+/* 창이 작아 모달 머리줄만 한 여백을 둘 자리가 없습니다 */
+.attend-tools-pop-head .btn-close {
+  flex-shrink: 0;
+  margin: -2px -4px 0 0;
+}
+/* 안쪽 상자를 겹치지 않습니다 — 이미 테두리 있는 작은 창이라 상자 안에
+   상자가 되면 가로 폭이 두 겹 여백만큼 줄어듭니다. 과일 흐름 아래의
+   실선(`.attend-tools-section .rwtrend`)은 그대로 살려 둡니다. */
+.attend-tools-pop .attend-tools-section {
+  padding: 0;
+  border: none;
+  background: none;
 }
 .attend-tools-no {
   font-family: var(--font-mono);

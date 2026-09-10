@@ -4,7 +4,7 @@
 // 궁금한 순간 — 반 전체가 지금까지 받은 과일을 한눈에
 // -------------------------------------------------------------
 // '멋진 순간' 자리표의 🍊 뱃지는 **오늘** 받은 개수입니다. 누가 얼마나
-// 쌓아 왔는지는 자리를 하나씩 눌러 과일 주기 모달을 열어야 알 수 있었습니다.
+// 쌓아 왔는지는 자리를 하나씩 눌러 과일 주기 창을 열어야 알 수 있었습니다.
 // 이 패널은 누적 총계를 많이 받은 순으로 가로 막대에 늘어놓습니다.
 //
 // [읽기] 열었을 때만 구독합니다. 닫아 두면 한 건도 읽지 않습니다 — 늘 보는
@@ -19,7 +19,8 @@
 // 달리하면 색이 곧 순위가 되어, 한 명이 앞지를 때마다 화면 전체가 다시
 // 칠해집니다. 길이가 이미 크기를 말하므로 색은 거들지 않습니다.
 // =============================================================
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { usePopoverAnchor, usePopoverDismiss } from "@/lib/popover";
 import { subscribeClassRewards } from "@/lib/store";
 import StudentRewardTrend from "./StudentRewardTrend";
 
@@ -31,7 +32,7 @@ const OPEN_KEY = "rewardTallyOpen";
 export default function RewardTally({ classId = null, roster = [], embedded = false }) {
   const [open, setOpen] = useState(embedded);
   const [rewards, setRewards] = useState([]);
-  // 누른 줄의 이력을 그 옆에 띄웁니다 — { row, x, y }
+  // 누른 줄의 이력을 그 옆에 띄웁니다 — { row, el }
   // (모달이 아니라 **팝오버**입니다: 뒤를 막지 않고, 누른 것 옆에 붙고,
   //  바깥을 누르면 닫힙니다.)
   const [picked, setPicked] = useState(null);
@@ -63,40 +64,19 @@ export default function RewardTally({ classId = null, roster = [], embedded = fa
   // 줄 안에 절대 배치로 넣으면 목록 밖으로 나가는 부분이 잘립니다.
   const popRef = useRef(null);
 
+  // 자리 잡기와 닫기는 자리표의 과일 창과 **같은 것**을 씁니다
+  // (`lib/popover.js`) — 화면마다 따로 적으면 어떤 팝오버는 화면 밖으로
+  // 나가고 어떤 것은 Esc가 안 듣습니다. `.reward-tally-row`를 걸러 두는 것은
+  // '다른 줄로 옮겨 가는 중'을 바깥으로 읽지 않게 하려는 것입니다.
+  // 누른 줄(el)을 들고 있다가 그 옆에 세웁니다 — 목록이 구르면 창도 따라
+  // 갑니다(열 때 한 번만 재면 줄과 창이 어긋납니다).
   function openFor(row, el) {
-    const r = el.getBoundingClientRect();
-    const W = 300;
-    const H = 260;
-    const GAP = 10;
-    // 오른쪽에 자리가 있으면 오른쪽, 없으면 왼쪽 — 이 패널은 화면 왼쪽 끝에
-    // 붙어 있을 때가 많아 대개 오른쪽으로 섭니다.
-    const right = r.right + GAP;
-    const x = right + W <= window.innerWidth - 8 ? right : Math.max(8, r.left - GAP - W);
-    // 줄 높이에 맞춰 띄우되 화면 아래로 넘치면 위로 끌어올립니다.
-    const y = Math.min(Math.max(8, r.top - 8), Math.max(8, window.innerHeight - H - 8));
-    setPicked({ row, x, y });
+    setPicked({ row, el });
   }
 
-  // 바깥을 누르거나 Esc면 닫힙니다(팝오버의 성격 — 모달과 달리 뒤를 막지
-  // 않습니다). `isConnected` 한 줄은 이 앱의 약속입니다: 누르는 순간 스스로
-  // 사라지는 것이 안에 있으면 그 노드가 문서에서 떨어져 나가 `contains`가
-  // false가 되고, '바깥을 눌렀다'로 잘못 읽힙니다(CLAUDE.md 참고).
-  useEffect(() => {
-    if (!picked) return undefined;
-    function onDown(e) {
-      if (!e.target.isConnected) return;
-      if (popRef.current?.contains(e.target)) return;
-      if (e.target.closest?.(".reward-tally-row")) return; // 다른 줄로 옮겨 가는 중
-      setPicked(null);
-    }
-    function onKey(e) { if (e.key === "Escape") setPicked(null); }
-    document.addEventListener("pointerdown", onDown);
-    window.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("pointerdown", onDown);
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [picked]);
+  const pos = usePopoverAnchor(picked?.el ?? null, { w: 300, h: 260 });
+  const closePop = useCallback(() => setPicked(null), []);
+  usePopoverDismiss(!!picked, popRef, closePop, ".reward-tally-row");
 
   const rows = useMemo(() => {
     const countByUid = new Map(rewards.map((r) => [r.uid, r.count ?? 0]));
@@ -193,7 +173,7 @@ export default function RewardTally({ classId = null, roster = [], embedded = fa
         <div
           ref={popRef}
           className="tally-pop"
-          style={{ left: picked.x, top: picked.y }}
+          style={{ left: pos.x, top: pos.y }}
           role="dialog"
           aria-label={`${picked.row.name} 과일 받은 흐름`}
         >

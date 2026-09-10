@@ -30,7 +30,7 @@ import SeatViewToggle from "./SeatViewToggle";
 import { useSeatView } from "@/lib/seatView";
 import { useTodayRewardCounts } from "@/lib/useTodayRewards";
 import RewardTally from "./RewardTally";
-import StudentToolsModal from "./StudentToolsModal";
+import StudentToolsPopover from "./StudentToolsPopover";
 import StudentNotesModal from "./StudentNotesModal";
 import { IconChair } from "./StatusIcons";
 
@@ -66,7 +66,10 @@ export default function LessonSeatPanel({
   const [ownRaised, setOwnRaised] = useState(() => new Set());
   const raisedUids = raisedUidsProp ?? ownRaised;
   const [dragIndex, setDragIndex] = useState(null);
+  // 자리 클릭 → 과일/누가기록 팝오버. `toolsAt`은 누른 자리 칸으로, 창이 그
+  // 옆에 붙습니다(자리표를 덮는 모달이 아닙니다).
   const [toolsFor, setToolsFor] = useState(null);
+  const [toolsAt, setToolsAt] = useState(null);
   const [notesFor, setNotesFor] = useState(null);
   const [seats, setSeats] = useState(() =>
     normalizeSeats(dailySeatLayout?.seats ?? seatLayout?.seats ?? [], roster)
@@ -103,7 +106,7 @@ export default function LessonSeatPanel({
   }, [dailySeatLayout?.updatedAt, seatLayout?.updatedAt, roster]);
 
   const byUid = useMemo(() => new Map(roster.map((s) => [s.uid, s])), [roster]);
-  // 자리 칸의 🍊 뱃지는 오늘 받은 개수(누적 총계는 과일 주기 모달에).
+  // 자리 칸의 🍊 뱃지는 오늘 받은 개수(누적 총계는 과일 주기 창에).
   const todayCountByUid = useTodayRewardCounts(classId);
   const presenceByUid = useMemo(() => new Map(presence.map((p) => [p.uid, p])), [presence]);
   const raisedCount = roster.filter((s) => raisedUids.has(s.uid)).length;
@@ -234,13 +237,18 @@ export default function LessonSeatPanel({
     await onSaveSeats?.(next, getCurrentUser());
   }
 
+  function openTools(student, el = null) {
+    setToolsFor(student);
+    setToolsAt(el);
+  }
+
   function openNotes(student) {
     setToolsFor(null);
     setNotesFor({ uid: student.uid, name: student.name, emoji: student.emoji ?? "🙂" });
   }
 
-  // 과일을 주면 roster가 갱신돼 내려오므로, 열려 있는 모달의 숫자도 최신
-  // 값으로 따라가게 합니다(모달이 처음 열릴 때 찍힌 값에 머무르지 않게).
+  // 과일을 주면 roster가 갱신돼 내려오므로, 열려 있는 창의 숫자도 최신
+  // 값으로 따라가게 합니다(창이 처음 열릴 때 찍힌 값에 머무르지 않게).
   const toolsStudent = toolsFor
     ? { ...toolsFor, count: byUid.get(toolsFor.uid)?.count ?? toolsFor.count ?? 0 }
     : null;
@@ -321,7 +329,7 @@ export default function LessonSeatPanel({
                         live={liveState.get(s.uid) ?? null}
                         noting={notingUids.has(s.uid)}
                         todayCount={todayCountByUid.get(s.uid) ?? 0}
-                        onPick={onAward ? setToolsFor : undefined}
+                        onPick={onAward ? openTools : undefined}
                       />
                     ))
                   )}
@@ -337,7 +345,7 @@ export default function LessonSeatPanel({
           byUid={byUid}
           raisedUids={raisedUids}
           raisedCount={raisedCount}
-          onPick={onAward ? setToolsFor : () => {}}
+          onPick={onAward ? openTools : () => {}}
           onDragStart={setDragIndex}
           onDragEnd={() => setDragIndex(null)}
           onDropTo={(toIndex) => moveSeat(dragIndex, toIndex)}
@@ -351,9 +359,10 @@ export default function LessonSeatPanel({
       </div>
 
       {toolsStudent && onAward && (
-        <StudentToolsModal
+        <StudentToolsPopover
           student={toolsStudent}
           classId={classId}
+          anchor={toolsAt}
           onAward={onAward}
           onOpenNotes={openNotes}
           onClose={() => setToolsFor(null)}
