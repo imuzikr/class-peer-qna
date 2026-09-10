@@ -112,6 +112,16 @@ export default function PythonRunner({ open, onClose, onAskQuestion, hasModalOpe
   useEffect(() => {
     if (!open || hasModalOpen) return;
     function onDown(e) {
+      // [누른 것이 이미 사라졌으면 닫지 않습니다]
+      // 자동 완성 목록이 그렇습니다. 항목을 누르면 CodeMirror가 **이
+      // mousedown이 document까지 올라오기 전에** 완성을 넣고 목록을 통째로
+      // DOM에서 걷어 냅니다. 그래서 우리 차례가 왔을 때 e.target(그 <li>)은
+      // 문서에서 떨어져 나간 상태이고, 떨어진 노드는 어느 것에도 안 담기므로
+      // `panel.contains(...)`가 false — '바깥을 눌렀다'로 읽혀 실행기가
+      // 닫혔습니다(키보드 Enter로 고르면 mousedown이 없어 멀쩡했습니다).
+      // 누르는 순간 사라진 것은 '바깥'이 아니라 **그것을 없앤 쪽의 일**이라,
+      // 어디였는지 따질 것 없이 그냥 지나갑니다.
+      if (!e.target.isConnected) return;
       if (panelRef.current?.contains(e.target)) return;
       if (e.target.closest?.("[data-py-toggle]")) return;
       // 실행기 바깥이어도 **위에 떠 있는 것**을 누른 것이면 닫지 않습니다.
