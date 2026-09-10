@@ -6,8 +6,8 @@
 // - 코드 에디터: CodeMirror — 줄 번호, 문법 강조, 괄호 자동 닫기,
 //   자동 완성(Tab 또는 Enter로 채택), 파이썬 자동 들여쓰기
 // - 실행 단축키: Ctrl+Enter (Mac: Cmd+Enter)
-// - 패널 왼쪽 가장자리를 드래그하면 너비 조절, ⛶ 버튼으로 전체 화면
-//   (전체 화면에서는 에디터 | 입력·출력이 좌우로 나뉩니다)
+// - 패널 왼쪽 가장자리를 드래그하면 너비 조절
+// - ⛶ '프로젝트 연계'로 2단을 엽니다 (에디터 | 입출력 | 프로젝트)
 // - 실행 엔진: Pyodide(WebAssembly)를 Web Worker에서 실행, 15초 제한
 // =============================================================
 import { useEffect, useRef, useState } from "react";
@@ -99,8 +99,9 @@ function samplePlaceholder() {
 //        프로젝트 패널이 한 칸 더 열립니다. 짠 코드를 프로젝트의 활동 칸으로
 //        곧바로 보낼 수 있고, 교사는 거기서 보낼 곳을 정하거나 프로젝트·활동을
 //        새로 만듭니다.
-// 2단은 예전 '전체 화면'이 하던 일(에디터 ｜ 입출력 좌우 배치)을 그대로
-// 하면서 칸이 하나 더 붙은 것이라, 넓게 쓰던 자리를 잃지 않습니다.
+// 넓히기만 하던 예전 '전체 화면'은 없앴습니다 — 넓어지는 것은 프로젝트 칸을
+// 놓느라 따라오는 일이지 그 자체가 모드일 이유가 없었습니다. 그래서 연계할
+// 프로젝트가 없는 화면(질문방)에는 이 단추가 아예 없습니다.
 export default function PythonRunner({
   open,
   onClose,
@@ -120,7 +121,7 @@ export default function PythonRunner({
   const [status, setStatus] = useState("idle"); // idle | loading | running
   const [copied, setCopied] = useState(false);
   const [width, setWidth] = useState(440); // 패널 너비 (드래그로 조절)
-  const [full, setFull] = useState(false); // 전체 화면 여부
+  const [linked, setLinked] = useState(false); // 2단(프로젝트 연계)이 열려 있나
   const [dragging, setDragging] = useState(false);
   const editorHostRef = useRef(null);
   const viewRef = useRef(null);
@@ -314,21 +315,23 @@ export default function PythonRunner({
   }
 
   // 2단을 달 수 있는 화면인가 — 프로젝트 목록과 반이 함께 있어야 합니다.
+  // 아니면 단추 자체가 없습니다. 예전에는 이 자리가 '전체 화면'이라 연계할
+  // 것이 없어도 넓히기는 했는데, 넓히기만 하는 모드는 따로 둘 이유가
+  // 없어졌습니다(넓어지는 것은 프로젝트 칸을 놓느라 따라오는 일입니다).
   const canLink = !!(boards && classId && user);
-  // 모달이 열려 있으면 2단을 강제로 접습니다(모달 위로 화면을 다 덮으면
-  // 모달이 안 보입니다 — 지금까지 전체 화면이 그랬던 것과 같습니다).
-  const effectiveFull = full && !hasModalOpen;
+  // 모달이 열려 있으면 2단을 접습니다 — 화면을 다 덮으면 모달이 안 보입니다.
+  const linkedOpen = linked && canLink && !hasModalOpen;
 
   return (
     <aside
       ref={panelRef}
-      className={`py-panel ${open ? "open" : ""} ${effectiveFull ? "full" : ""} ${
+      className={`py-panel ${open ? "open" : ""} ${linkedOpen ? "linked" : ""} ${
         dragging ? "dragging" : ""
       }`}
-      style={effectiveFull ? undefined : { width }}
+      style={linkedOpen ? undefined : { width }}
     >
-      {/* 왼쪽 가장자리 크기 조절 핸들 — 전체 화면이나 모달 위에 떠 있을 때는 숨김 */}
-      {!effectiveFull && !hasModalOpen && (
+      {/* 왼쪽 가장자리 크기 조절 핸들 — 2단이나 모달 위에 떠 있을 때는 숨김 */}
+      {!linkedOpen && !hasModalOpen && (
         <div className="py-resizer" onMouseDown={startResize} />
       )}
 
@@ -336,7 +339,7 @@ export default function PythonRunner({
         <h3><IconPythonRunner size={26} /> 파이썬 실행기</h3>
         <div className="py-head-actions">
           {/* 지우개 — 복사하기 왼쪽. 둘 다 '지금 쓴 코드'에 대한 일이라
-              나란히 두고, 화면을 여닫는 단추(전체 화면·닫기)와는 갈라 둡니다. */}
+              나란히 두고, 화면을 여닫는 단추(프로젝트 연계·닫기)와는 갈라 둡니다. */}
           <button
             className="py-copy-btn py-clear-btn"
             onClick={clearCode}
@@ -374,36 +377,30 @@ export default function PythonRunner({
               </svg>
             )}
           </button>
-          {/* 2단을 여닫는 단추. 예전의 '전체 화면'이 이 자리인데, 넓히는 것이
-              목적이 아니라 **프로젝트에 연계하는 것**이 목적이라 이름이 그것을
-              말합니다(넓어지는 것은 그러느라 따라오는 일입니다). */}
-          {/* 연계할 프로젝트가 없는 화면(질문방)에서는 지금까지대로 '전체
-              화면'입니다 — 이름만 갈릴 뿐 넓어지는 것은 같습니다. 여기서
-              단추를 아예 빼면 그 화면이 넓게 쓰던 길을 잃습니다. */}
-          <button
-            className="btn-ghost"
-            style={{ visibility: hasModalOpen ? "hidden" : "visible" }}
-            onClick={() => setFull(!full)}
-            title={
-              !canLink
-                ? full ? "원래 크기로" : "전체 화면"
-                : full
+          {/* 2단을 여닫는 단추. 연계할 프로젝트가 없는 화면(질문방)에는
+              아예 없습니다 — 열어 봐야 빈 칸이 서는 자리입니다. */}
+          {canLink && (
+            <button
+              className="btn-ghost"
+              style={{ visibility: hasModalOpen ? "hidden" : "visible" }}
+              onClick={() => setLinked((v) => !v)}
+              title={
+                linked
                   ? "실행기만 보기 — 프로젝트 칸을 접습니다"
                   : "프로젝트 연계 — 짠 코드를 프로젝트 활동으로 보낼 수 있습니다"
-            }
-            tabIndex={hasModalOpen ? -1 : 0}
-          >
-            {full
-              ? canLink ? "🗗 실행기만" : "🗗 축소"
-              : canLink ? "⛶ 프로젝트 연계" : "⛶ 전체 화면"}
-          </button>
+              }
+              tabIndex={hasModalOpen ? -1 : 0}
+            >
+              {linked ? "🗗 실행기만" : "⛶ 프로젝트 연계"}
+            </button>
+          )}
           <button className="btn-close" onClick={onClose} aria-label="닫기">
             ×
           </button>
         </div>
       </div>
 
-      {/* 본문: 보통은 세로 배치, 전체 화면에서는 좌(에디터)/우(입출력) */}
+      {/* 본문: 1단은 세로 배치, 2단에서는 에디터 ｜ 입출력 ｜ 프로젝트 */}
       <div className="py-body">
         <div className="py-left">
           <div className="py-editor" ref={editorHostRef} />
@@ -475,7 +472,7 @@ export default function PythonRunner({
 
         {/* 2단 — 프로젝트 연계 칸. 열려 있을 때만 그립니다(접힌 동안 프로젝트
             목록을 훑거나 반 문서를 들여다볼 이유가 없습니다). */}
-        {effectiveFull && (
+        {linkedOpen && (
           <PyProjectPanel
             classId={classId}
             className={className}

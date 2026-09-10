@@ -4507,7 +4507,7 @@ pre code {
 
 /* 2단 — 프로젝트 연계. 예전 '전체 화면'과 같은 폭이고, 그 안에 프로젝트
    칸이 하나 더 섭니다(에디터 ｜ 입출력 ｜ 프로젝트). */
-.py-panel.full {
+.py-panel.linked {
   width: 100vw !important;
   max-width: 100vw;
 }
@@ -4622,7 +4622,7 @@ pre code {
 /* 좁은 화면에서는 세 칸이 세로로 풀립니다(1024px 밑에서 300px을 떼면
    에디터가 못 씁니다). 그때는 프로젝트 칸이 맨 아래에 옵니다. */
 @media (max-width: 1024px) {
-  .py-panel.full .py-body { flex-direction: column; }
+  .py-panel.linked .py-body { flex-direction: column; }
   .py-project {
     flex: 0 0 auto;
     padding-left: 0;
@@ -4704,27 +4704,27 @@ pre code {
   min-height: 0;
 }
 
-.py-panel.full .py-body {
+.py-panel.linked .py-body {
   flex-direction: row;
   gap: 16px;
 }
 
-.py-panel.full .py-left {
+.py-panel.linked .py-left {
   flex: 1.2;
   min-width: 0;
   display: flex;
   flex-direction: column;
 }
 
-.py-panel.full .py-left .py-editor {
+.py-panel.linked .py-left .py-editor {
   flex: 1;
 }
 
-.py-panel.full .py-left .cm-editor {
+.py-panel.linked .py-left .cm-editor {
   height: 100%;
 }
 
-.py-panel.full .py-right {
+.py-panel.linked .py-right {
   flex: 1;
   min-width: 0;
 }
