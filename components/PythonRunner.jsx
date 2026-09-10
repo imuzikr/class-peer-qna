@@ -7,7 +7,7 @@
 //   자동 완성(Tab 또는 Enter로 채택), 파이썬 자동 들여쓰기
 // - 실행 단축키: Ctrl+Enter (Mac: Cmd+Enter)
 // - 패널 왼쪽 가장자리를 드래그하면 너비 조절
-// - ⛶ '프로젝트 연계'로 2단을 엽니다 (에디터 | 입출력 | 프로젝트)
+// - ⛶ '프로젝트 연계'로 2단을 엽니다 (서랍이 프로젝트 칸만큼 더 벌어짐)
 // - 실행 엔진: Pyodide(WebAssembly)를 Web Worker에서 실행, 15초 제한
 // =============================================================
 import { useEffect, useRef, useState } from "react";
@@ -23,6 +23,9 @@ import PyProjectPanel from "./PyProjectPanel";
 const PYODIDE_VERSION = "0.26.4";
 const TIMEOUT_MS = 15000;
 const MIN_WIDTH = 340;
+// 2단이 열릴 때 서랍이 더 벌어지는 폭 — 프로젝트 칸 300px + 사이 여백 16px.
+// `.py-project`의 flex-basis와 `.py-main`의 gap을 고치면 이 값도 함께 고치세요.
+const LINK_W = 316;
 
 // Web Worker 안에서 실행될 코드 (문자열로 만들어 Blob으로 생성)
 const WORKER_SOURCE = `
@@ -95,10 +98,11 @@ function samplePlaceholder() {
 
 // 2단 서랍입니다.
 //  1단 — 실행기만(지금까지의 모습).
-//  2단 — '프로젝트 연계'를 누르면 폭이 화면 가득으로 벌어지며 오른쪽에
-//        프로젝트 패널이 한 칸 더 열립니다. 짠 코드를 프로젝트의 활동 칸으로
-//        곧바로 보낼 수 있고, 교사는 거기서 보낼 곳을 정하거나 프로젝트·활동을
-//        새로 만듭니다.
+//  2단 — '프로젝트 연계'를 누르면 서랍이 **프로젝트 칸만큼만 더 벌어지고**
+//        오른쪽에 그 칸이 섭니다. 짠 코드를 프로젝트의 활동 칸으로 곧바로
+//        보낼 수 있고, 교사는 거기서 보낼 곳을 정하거나 프로젝트·활동을
+//        새로 만듭니다. **화면을 덮지 않습니다** — 2단은 서랍이 한 칸 더
+//        열리는 것이지 전체 화면이 아닙니다.
 // 넓히기만 하던 예전 '전체 화면'은 없앴습니다 — 넓어지는 것은 프로젝트 칸을
 // 놓느라 따라오는 일이지 그 자체가 모드일 이유가 없었습니다. 그래서 연계할
 // 프로젝트가 없는 화면(질문방)에는 이 단추가 아예 없습니다.
@@ -211,9 +215,13 @@ export default function PythonRunner({
     document.body.style.userSelect = "none";
 
     function onMove(ev) {
+      // 끌어서 정하는 것은 **패널 전체 폭**이지만 state에 담는 것은
+      // 에디터·입출력 칸의 폭이라, 2단이면 프로젝트 칸만큼 빼고 담습니다.
+      const total = window.innerWidth - ev.clientX;
+      const extra = linkedOpen ? LINK_W : 0;
       const w = Math.min(
-        Math.max(window.innerWidth - ev.clientX, MIN_WIDTH),
-        Math.round(window.innerWidth * 0.95)
+        Math.max(total - extra, MIN_WIDTH),
+        Math.round(window.innerWidth * 0.95) - extra
       );
       setWidth(w);
     }
@@ -328,10 +336,10 @@ export default function PythonRunner({
       className={`py-panel ${open ? "open" : ""} ${linkedOpen ? "linked" : ""} ${
         dragging ? "dragging" : ""
       }`}
-      style={linkedOpen ? undefined : { width }}
+      style={{ width: linkedOpen ? width + LINK_W : width }}
     >
-      {/* 왼쪽 가장자리 크기 조절 핸들 — 2단이나 모달 위에 떠 있을 때는 숨김 */}
-      {!linkedOpen && !hasModalOpen && (
+      {/* 왼쪽 가장자리 크기 조절 핸들 — 모달 위에 떠 있을 때만 숨김 */}
+      {!hasModalOpen && (
         <div className="py-resizer" onMouseDown={startResize} />
       )}
 
@@ -400,7 +408,10 @@ export default function PythonRunner({
         </div>
       </div>
 
-      {/* 본문: 1단은 세로 배치, 2단에서는 에디터 ｜ 입출력 ｜ 프로젝트 */}
+      {/* 1단은 이 안이 세로로 쌓이고(에디터 위, 입출력 아래), 2단이면 그
+          묶음 오른쪽에 프로젝트 칸이 한 칸 더 섭니다. 본문 배치는 두 단이
+          같습니다 — 2단도 화면을 덮지 않는 서랍이라 좌우로 가를 폭이 없습니다. */}
+      <div className="py-main">
       <div className="py-body">
         <div className="py-left">
           <div className="py-editor" ref={editorHostRef} />
@@ -469,6 +480,7 @@ export default function PythonRunner({
             )}
           </div>
         </div>
+      </div>
 
         {/* 2단 — 프로젝트 연계 칸. 열려 있을 때만 그립니다(접힌 동안 프로젝트
             목록을 훑거나 반 문서를 들여다볼 이유가 없습니다). */}

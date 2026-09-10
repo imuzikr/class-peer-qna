@@ -4505,11 +4505,16 @@ pre code {
   transition: none;
 }
 
-/* 2단 — 프로젝트 연계. 예전 '전체 화면'과 같은 폭이고, 그 안에 프로젝트
-   칸이 하나 더 섭니다(에디터 ｜ 입출력 ｜ 프로젝트). */
-.py-panel.linked {
-  width: 100vw !important;
-  max-width: 100vw;
+/* 2단 — 프로젝트 연계.
+   **화면을 덮지 않습니다.** 서랍이 프로젝트 칸 너비(--py-link-w)만큼 한 칸
+   더 열릴 뿐입니다 — 폭은 컴포넌트가 인라인으로 줍니다(1단 폭 + 그만큼).
+   예전에는 여기서 100vw로 벌려 화면을 통째로 덮었는데, 그건 없앤 '전체
+   화면'이 하던 일이라 2단이 그것을 물려받을 이유가 없습니다. */
+.py-main {
+  display: flex;
+  gap: 16px;
+  flex: 1;
+  min-height: 0;
 }
 
 /* 프로젝트 연계 칸 — 세 칸 중 가장 오른쪽, 폭은 고정입니다.
@@ -4622,7 +4627,7 @@ pre code {
 /* 좁은 화면에서는 세 칸이 세로로 풀립니다(1024px 밑에서 300px을 떼면
    에디터가 못 씁니다). 그때는 프로젝트 칸이 맨 아래에 옵니다. */
 @media (max-width: 1024px) {
-  .py-panel.linked .py-body { flex-direction: column; }
+  .py-main { flex-direction: column; }
   .py-project {
     flex: 0 0 auto;
     padding-left: 0;
@@ -4702,31 +4707,6 @@ pre code {
   gap: 10px;
   flex: 1;
   min-height: 0;
-}
-
-.py-panel.linked .py-body {
-  flex-direction: row;
-  gap: 16px;
-}
-
-.py-panel.linked .py-left {
-  flex: 1.2;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.py-panel.linked .py-left .py-editor {
-  flex: 1;
-}
-
-.py-panel.linked .py-left .cm-editor {
-  height: 100%;
-}
-
-.py-panel.linked .py-right {
-  flex: 1;
-  min-width: 0;
 }
 
 .py-head h3 {
