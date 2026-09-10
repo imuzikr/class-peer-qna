@@ -1412,7 +1412,14 @@ button.footer-link:hover {
    — 한쪽만 고치면 같은 창의 두 자리에서 저장 단추가 다르게 보입니다. */
 .memo-edit-actions {
   justify-content: flex-end; /* 왼쪽에 붙어 오른쪽이 160px 비어 있었습니다 */
-  margin-top: 2px;
+  /* 쓰는 칸과 단추 사이 — **두 패널 모두 12px**입니다. 2px일 때는 저장이
+     입력칸에 달라붙어 칸의 일부처럼 보였습니다. 달력 패널은 부모
+     (`.memo-cal-editing`)가 flex 세로 gap 6px을 이미 주므로 아래에서 6px만
+     더합니다 — 여기 값을 고치면 그쪽도 함께 고쳐 둘을 같게 두세요. */
+  margin-top: 12px;
+}
+.memo-cal-editing .memo-edit-actions {
+  margin-top: 6px; /* + 부모 gap 6px = 12px */
 }
 /* `.btn-primary`에는 `line-height`가 없어 `normal`(12.5px 글자에 약 17px)을
    물려받습니다 — 옆의 `.btn-ghost`는 `line-height: 1`이라 저장이 2.5px 더
