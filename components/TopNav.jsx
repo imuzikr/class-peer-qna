@@ -50,6 +50,7 @@ export default function TopNav({ active, onPython, pyActive = false }) {
   const [directory, setDirectory] = useState([]);
   const [fruitTotal, setFruitTotal] = useState(0);
   const [memberships, setMemberships] = useState([]);
+  const [membershipsLoaded, setMembershipsLoaded] = useState(false);
   const [sessionClassId, setSessionClassId] = useState(null);
   const [fruitOpen, setFruitOpen] = useState(false); // 과일 뱃지 → 받은 흐름 모달
   // 수업 노트 서랍이 열려 있는지 — 열리면 발표 화면이 그만큼 좁아집니다
@@ -63,12 +64,22 @@ export default function TopNav({ active, onPython, pyActive = false }) {
   }, [isStrictAdmin]);
 
   // 학생 소속 반 구독 — 공부방 화면과 동일한 기준으로 "지금 보는 반"을 정하기 위함
+  //
+  // `membershipsLoaded`는 **이번 구독의 첫 답이 왔는가**입니다. 구독을 다시
+  // 걸 때마다 거짓으로 되돌립니다 — 아래에서 '아직 안 왔다'와 '정말 반이
+  // 없다'를 가르는 데 씁니다. 물어볼 것이 없는 쪽(교사·비로그인·데모)은
+  // 곧바로 참입니다.
   useEffect(() => {
     if (!isFirebaseConfigured || admin || !user?.uid) {
       setMemberships([]);
+      setMembershipsLoaded(true);
       return;
     }
-    return subscribeMyMemberships(user.uid, setMemberships);
+    setMembershipsLoaded(false);
+    return subscribeMyMemberships(user.uid, (list) => {
+      setMemberships(list);
+      setMembershipsLoaded(true);
+    });
   }, [admin, user?.uid]);
 
   // 공부방에서 세션에 기억해 둔 반 id — 공부방 화면과 같은 값을 봐야
@@ -81,11 +92,28 @@ export default function TopNav({ active, onPython, pyActive = false }) {
   }, []);
 
   // 학생만 "지금 보고 있는 반"에서 받은 과일 개수를 구독 — 프로필 옆 뱃지 표시용
+  //
+  // [답을 기다리는 동안은 알던 반을 붙듭니다]
+  // `memberships`는 `[]`로 시작하고, 구독을 다시 걸 때도 잠깐 빕니다. 그 빈
+  // 값을 그대로 쓰면 `activeClassId`가 `null`로 떨어지고, 이 값에 걸려 있는
+  // 것들이 함께 사라집니다 — 특히 **수업 노트 서랍**이 언마운트되어 학생이
+  // 쓰던 화면이 없어졌다 다시 나타나고, 아직 자동 저장(2초)이 안 된 글자가
+  // 날아갑니다. 빈 배열은 '반이 없다'가 아니라 '아직 안 왔다'일 수 있습니다
+  // (프로젝트 문서 '첫 화면' 절의 그 함정).
+  //
+  // **놓는 조건은 '첫 답이 왔는데도 비어 있을 때'**입니다. 붙들기만 하면
+  // 교사가 반 편성에서 그 학생을 뺐을 때 없는 반을 계속 가리킵니다(규칙이
+  // 막아 읽기가 조용히 실패합니다). 그래서 둘을 함께 봅니다 —
+  // 답을 기다리는 중이면 붙들고, 답이 왔는데 비었으면 놓습니다.
   const membershipIds = memberships.map((m) => m.classId);
-  const activeClassId =
+  const resolvedClassId =
     sessionClassId && membershipIds.includes(sessionClassId)
       ? sessionClassId
       : membershipIds[0] ?? null;
+  const lastClassIdRef = useRef(null);
+  if (resolvedClassId) lastClassIdRef.current = resolvedClassId;
+  else if (membershipsLoaded) lastClassIdRef.current = null;
+  const activeClassId = resolvedClassId ?? lastClassIdRef.current;
   useEffect(() => {
     if (!isFirebaseConfigured || admin || !activeClassId || !user?.uid) {
       setFruitTotal(0);
