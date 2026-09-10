@@ -19,8 +19,9 @@
 // 달리하면 색이 곧 순위가 되어, 한 명이 앞지를 때마다 화면 전체가 다시
 // 칠해집니다. 길이가 이미 크기를 말하므로 색은 거들지 않습니다.
 // =============================================================
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { subscribeClassRewards } from "@/lib/store";
+import StudentRewardTrend from "./StudentRewardTrend";
 
 const OPEN_KEY = "rewardTallyOpen";
 
@@ -30,6 +31,10 @@ const OPEN_KEY = "rewardTallyOpen";
 export default function RewardTally({ classId = null, roster = [], embedded = false }) {
   const [open, setOpen] = useState(embedded);
   const [rewards, setRewards] = useState([]);
+  // 누른 줄의 이력을 그 옆에 띄웁니다 — { row, x, y }
+  // (모달이 아니라 **팝오버**입니다: 뒤를 막지 않고, 누른 것 옆에 붙고,
+  //  바깥을 누르면 닫힙니다.)
+  const [picked, setPicked] = useState(null);
 
   // 펼침 상태 복원 — 개인 화면 설정이라 localStorage에 둡니다('멋진 순간'
   // 패널의 접힘과 같은 방식). 끼워 넣은 모습에서는 접는 개념이 없어 건너뜁니다.
@@ -48,6 +53,50 @@ export default function RewardTally({ classId = null, roster = [], embedded = fa
     if (!open || !classId) { setRewards([]); return; }
     return subscribeClassRewards(classId, setRewards);
   }, [open, classId]);
+
+  // 접으면 열어 둔 팝오버도 함께 닫습니다 — 패널이 사라졌는데 그 옆에
+  // 작은 창만 떠 있으면 무엇에 딸린 것인지 알 수 없습니다.
+  useEffect(() => { if (!open) setPicked(null); }, [open]);
+
+  // ── 이력 팝오버 ──────────────────────────────────────────
+  // **`position: fixed`로 띄웁니다.** 목록이 `max-height: 320px`로 구르므로,
+  // 줄 안에 절대 배치로 넣으면 목록 밖으로 나가는 부분이 잘립니다.
+  const popRef = useRef(null);
+
+  function openFor(row, el) {
+    const r = el.getBoundingClientRect();
+    const W = 300;
+    const H = 260;
+    const GAP = 10;
+    // 오른쪽에 자리가 있으면 오른쪽, 없으면 왼쪽 — 이 패널은 화면 왼쪽 끝에
+    // 붙어 있을 때가 많아 대개 오른쪽으로 섭니다.
+    const right = r.right + GAP;
+    const x = right + W <= window.innerWidth - 8 ? right : Math.max(8, r.left - GAP - W);
+    // 줄 높이에 맞춰 띄우되 화면 아래로 넘치면 위로 끌어올립니다.
+    const y = Math.min(Math.max(8, r.top - 8), Math.max(8, window.innerHeight - H - 8));
+    setPicked({ row, x, y });
+  }
+
+  // 바깥을 누르거나 Esc면 닫힙니다(팝오버의 성격 — 모달과 달리 뒤를 막지
+  // 않습니다). `isConnected` 한 줄은 이 앱의 약속입니다: 누르는 순간 스스로
+  // 사라지는 것이 안에 있으면 그 노드가 문서에서 떨어져 나가 `contains`가
+  // false가 되고, '바깥을 눌렀다'로 잘못 읽힙니다(CLAUDE.md 참고).
+  useEffect(() => {
+    if (!picked) return undefined;
+    function onDown(e) {
+      if (!e.target.isConnected) return;
+      if (popRef.current?.contains(e.target)) return;
+      if (e.target.closest?.(".reward-tally-row")) return; // 다른 줄로 옮겨 가는 중
+      setPicked(null);
+    }
+    function onKey(e) { if (e.key === "Escape") setPicked(null); }
+    document.addEventListener("pointerdown", onDown);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onDown);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [picked]);
 
   const rows = useMemo(() => {
     const countByUid = new Map(rewards.map((r) => [r.uid, r.count ?? 0]));
@@ -105,30 +154,74 @@ export default function RewardTally({ classId = null, roster = [], embedded = fa
               </p>
               <ol className="reward-tally-list">
                 {rows.map((r) => (
-                  <li
-                    key={r.uid}
-                    className="reward-tally-row"
-                    title={`${r.studentId ? `${r.studentId} ` : ""}${r.name} — 과일 ${r.count}개`}
-                  >
-                    <span className="reward-tally-name">{r.name}</span>
-                    <span className="reward-tally-track">
-                      {r.count > 0 && (
-                        <span
-                          className="reward-tally-fill"
-                          style={{ width: `${Math.max(4, (r.count / max) * 100)}%` }}
-                        />
-                      )}
-                    </span>
-                    <span
-                      className={`reward-tally-val${r.count === 0 ? " zero" : ""}`}
+                  <li key={r.uid}>
+                    {/* 줄 전체가 단추입니다 — 막대만 누르게 하면 과일이 적은
+                        학생일수록 누를 곳이 좁아집니다(0개면 아예 없습니다). */}
+                    <button
+                      type="button"
+                      className={`reward-tally-row${picked?.row.uid === r.uid ? " on" : ""}`}
+                      onClick={(e) => openFor(r, e.currentTarget)}
+                      aria-expanded={picked?.row.uid === r.uid}
+                      title={`${r.studentId ? `${r.studentId} ` : ""}${r.name} — 과일 ${r.count}개 · 눌러서 받은 흐름 보기`}
                     >
-                      {r.count}
-                    </span>
+                      <span className="reward-tally-name">{r.name}</span>
+                      <span className="reward-tally-track">
+                        {r.count > 0 && (
+                          <span
+                            className="reward-tally-fill"
+                            style={{ width: `${Math.max(4, (r.count / max) * 100)}%` }}
+                          />
+                        )}
+                      </span>
+                      <span
+                        className={`reward-tally-val${r.count === 0 ? " zero" : ""}`}
+                      >
+                        {r.count}
+                      </span>
+                    </button>
                   </li>
                 ))}
               </ol>
             </>
           )}
+        </div>
+      )}
+
+      {/* 이력 팝오버 — 누른 줄 옆. 모달이 아니라 뒤가 그대로 살아 있어,
+          다른 줄을 바로 눌러 옮겨 갈 수 있습니다. */}
+      {picked && (
+        <div
+          ref={popRef}
+          className="tally-pop"
+          style={{ left: picked.x, top: picked.y }}
+          role="dialog"
+          aria-label={`${picked.row.name} 과일 받은 흐름`}
+        >
+          <div className="tally-pop-head">
+            <strong>
+              {picked.row.studentId && <em>{picked.row.studentId}</em>}
+              {picked.row.name}
+            </strong>
+            <span className="tally-pop-count">🍊 {picked.row.count}</span>
+            <button
+              type="button"
+              className="btn-close"
+              onClick={() => setPicked(null)}
+              aria-label="닫기"
+            >
+              ×
+            </button>
+          </div>
+          {/* 접는 단추도 제목도 없이 흐름만 — 위 머리줄이 누구인지와 몇 개인지를
+              이미 말합니다(`bare`·`flush`·`showToggle={false}`). */}
+          <StudentRewardTrend
+            studentUid={picked.row.uid}
+            classId={classId}
+            defaultOpen
+            bare
+            flush
+            showToggle={false}
+          />
         </div>
       )}
     </div>

@@ -7650,11 +7650,66 @@ pre code {
   margin: 0;
   padding: 0;
 }
+/* 줄 전체가 단추입니다 — 눌러서 그 학생의 이력 팝오버를 엽니다. 막대만
+   누르게 하면 과일이 적은 학생일수록 누를 곳이 좁아집니다(0개면 없습니다). */
 .reward-tally-row {
   display: flex;
   align-items: center;
   gap: 6px;
   min-height: 18px;
+  width: 100%;
+  padding: 1px 2px;
+  border: none;
+  border-radius: 5px;
+  background: none;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.reward-tally-row:hover { background: var(--bg-deep, #f5f4ef); }
+.reward-tally-row.on { background: var(--neutral); }
+
+/* ── 이력 팝오버 ──────────────────────────────────────────
+   모달이 아닙니다 — 뒤를 덮지 않고, 누른 줄 옆에 붙고, 바깥을 누르거나
+   Esc·×로 닫힙니다. **`position: fixed`인 것이 핵심입니다**: 목록이
+   `max-height: 320px`로 구르므로 줄 안에 절대 배치로 넣으면 목록 밖으로
+   나가는 부분이 잘립니다. 자리는 컴포넌트가 인라인으로 줍니다. */
+.tally-pop {
+  position: fixed;
+  z-index: 320;
+  width: 300px;
+  padding: 10px 12px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(46, 36, 26, 0.16);
+}
+.tally-pop-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.tally-pop-head strong {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13.5px;
+  color: var(--dark);
+}
+.tally-pop-head strong em {
+  margin-right: 5px;
+  font-style: normal;
+  font-weight: 600;
+  color: var(--text-sub);
+}
+.tally-pop-count {
+  flex-shrink: 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-sub);
 }
 .reward-tally-name {
   flex: 0 0 52px;
