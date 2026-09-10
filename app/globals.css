@@ -4493,7 +4493,10 @@ pre code {
   gap: 10px;
   z-index: 105; /* 모달(100) 위, peek(110) 아래 */
   transform: translateX(105%);
-  transition: transform 0.25s ease;
+  /* 처음 열릴 때의 미끄러짐(transform)과 **2단이 여닫힐 때의 폭**을 같은
+     길이·같은 곡선으로 굴립니다 — 한 서랍이 두 가지 속도로 움직이면 2단이
+     따로 노는 것처럼 보입니다. 끄는 중에는 `.dragging`이 이걸 통째로 끕니다. */
+  transition: transform 0.25s ease, width 0.25s ease;
 }
 
 .py-panel.open {
@@ -4515,6 +4518,17 @@ pre code {
   gap: 16px;
   flex: 1;
   min-height: 0;
+  /* 폭이 벌어지는 동안 프로젝트 칸이 **가려졌다 드러납니다**. 이게 없으면
+     칸이 처음부터 제자리에 있고 대신 에디터가 짜부라졌다 돌아와, 여는
+     내내 코드가 출렁입니다. */
+  overflow: hidden;
+}
+
+/* 2단이 여닫히는 동안 에디터·입출력 칸이 제 폭을 지킵니다 — `flex: 1`만
+   두면 전환 중에는 아직 좁은 패널을 프로젝트 칸(안 줄어듦)과 나눠 가지느라
+   그만큼 줄어듭니다. `--py-body-w`는 컴포넌트가 인라인으로 줍니다. */
+.py-panel.linked .py-body {
+  min-width: var(--py-body-w, 0);
 }
 
 /* 프로젝트 연계 칸 — 세 칸 중 가장 오른쪽, 폭은 고정입니다.
@@ -4627,7 +4641,9 @@ pre code {
 /* 좁은 화면에서는 세 칸이 세로로 풀립니다(1024px 밑에서 300px을 떼면
    에디터가 못 씁니다). 그때는 프로젝트 칸이 맨 아래에 옵니다. */
 @media (max-width: 1024px) {
-  .py-main { flex-direction: column; }
+  .py-main { flex-direction: column; overflow: visible; }
+  /* 세로로 풀리면 지킬 폭이 없습니다 — 그대로 두면 가로로 넘칩니다. */
+  .py-panel.linked .py-body { min-width: 0; }
   .py-project {
     flex: 0 0 auto;
     padding-left: 0;
@@ -4699,6 +4715,11 @@ pre code {
   gap: 10px;
   flex: 1;
   min-height: 0;
+  /* flex 항목의 기본값 `min-width: auto`는 **내용보다 좁아지기를 거부**합니다.
+     세로로 쌓기만 하던 때는 부모가 열이라 티가 안 났는데, `.py-main`으로
+     감싸 가로줄이 되자 이 칸이 부모보다 13px 넓어져 잘렸습니다(실측
+     403 대 416). 0으로 풀어 두면 부모 폭을 그대로 따릅니다. */
+  min-width: 0;
 }
 
 .py-right {

@@ -26,6 +26,9 @@ const MIN_WIDTH = 340;
 // 2단이 열릴 때 서랍이 더 벌어지는 폭 — 프로젝트 칸 300px + 사이 여백 16px.
 // `.py-project`의 flex-basis와 `.py-main`의 gap을 고치면 이 값도 함께 고치세요.
 const LINK_W = 316;
+// 서랍이 여닫히는 시간 — `.py-panel`의 transition과 **같아야** 합니다.
+// 닫을 때 프로젝트 칸을 이만큼 더 남겨 두는 데 씁니다.
+const SLIDE_MS = 250;
 
 // Web Worker 안에서 실행될 코드 (문자열로 만들어 Blob으로 생성)
 const WORKER_SOURCE = `
@@ -330,13 +333,37 @@ export default function PythonRunner({
   // 모달이 열려 있으면 2단을 접습니다 — 화면을 다 덮으면 모달이 안 보입니다.
   const linkedOpen = linked && canLink && !hasModalOpen;
 
+  // [닫을 때도 부드럽게] 칸을 곧바로 걷어 내면 내용이 먼저 사라지고 폭이
+  // 뒤늦게 줄어, 닫히는 것이 아니라 '사라졌다가 줄어드는' 두 동작으로
+  // 보입니다. 폭이 다 줄 때까지 그려 두었다가 그 뒤에 걷어 냅니다.
+  //
+  // **`.linked` 클래스도 이 값을 따릅니다**(`linkedOpen`이 아니라). 클래스가
+  // 먼저 빠지면 에디터 칸을 붙들던 `min-width`가 함께 풀려, 닫히는 내내
+  // 코드 칸이 403 → 90px로 짜부라집니다(실측). 폭만 `linkedOpen`을 봅니다 —
+  // 그래야 좁은 쪽으로 굴러갑니다.
+  const [linkRendered, setLinkRendered] = useState(false);
+  useEffect(() => {
+    if (linkedOpen) {
+      setLinkRendered(true);
+      return;
+    }
+    const t = setTimeout(() => setLinkRendered(false), SLIDE_MS);
+    return () => clearTimeout(t);
+  }, [linkedOpen]);
+
   return (
     <aside
       ref={panelRef}
-      className={`py-panel ${open ? "open" : ""} ${linkedOpen ? "linked" : ""} ${
+      className={`py-panel ${open ? "open" : ""} ${linkRendered ? "linked" : ""} ${
         dragging ? "dragging" : ""
       }`}
-      style={{ width: linkedOpen ? width + LINK_W : width }}
+      style={{
+        width: linkedOpen ? width + LINK_W : width,
+        // 전환 중에 에디터 칸이 짜부라지지 않게 1단에서의 제 폭을 알려 줍니다.
+        // 37 = 좌우 여백 18+18 + 왼쪽 테두리 1(`.py-panel`은 border-box라
+        // 셋을 다 뺀 것이 속 폭입니다 — 실측 440 → 403).
+        "--py-body-w": `${width - 37}px`,
+      }}
     >
       {/* 왼쪽 가장자리 크기 조절 핸들 — 모달 위에 떠 있을 때만 숨김 */}
       {!hasModalOpen && (
@@ -484,7 +511,7 @@ export default function PythonRunner({
 
         {/* 2단 — 프로젝트 연계 칸. 열려 있을 때만 그립니다(접힌 동안 프로젝트
             목록을 훑거나 반 문서를 들여다볼 이유가 없습니다). */}
-        {linkedOpen && (
+        {linkRendered && (
           <PyProjectPanel
             classId={classId}
             className={className}
