@@ -25,7 +25,12 @@ import { useEffect, useMemo, useState } from "react";
 import { backdropClose } from "@/lib/modal";
 import SeatViewToggle from "./SeatViewToggle";
 import { useSeatView } from "@/lib/seatView";
-import { subscribeClassNoteCounts } from "@/lib/store";
+import {
+  subscribeClassNoteCounts,
+  subscribeClasses,
+  subscribeClassMembers,
+  fetchClassRosterProfiles,
+} from "@/lib/store";
 import StudentNotesModal from "./StudentNotesModal";
 import CornellNotesPanel from "./CornellNotesPanel";
 import { IconMyPost, IconRecord } from "./StatusIcons";
@@ -44,14 +49,62 @@ export default function ClassNotesManagerModal({
   // 카드를 늘어놓는 쪽 — 자리표와 같은 값을 함께 씁니다(lib/seatView.js).
   const [teacherView, toggleSeatView] = useSeatView();
 
+  // ── 반 고르기 ───────────────────────────────────────────────
+  // 이 창은 '지금 이 반'의 맥락에서 열리지만, 교사가 실제로 하는 일은
+  // '오늘 세 반 중 누가 노트를 썼나'를 훑는 것입니다. 예전에는 반 이름
+  // 배지뿐이라 옆 반을 보려면 창을 닫고 화면에서 반을 바꾼 뒤 다시 열어야
+  // 했습니다. 머리말의 고르개로 창 안에서 바꿉니다.
+  const [pickedId, setPickedId] = useState(classId);
+  const [myClasses, setMyClasses] = useState([]);
+  // 다른 반을 고른 동안의 명단. **`null`은 '아직 안 왔다'**, `[]`는 '없다'
+  // 입니다 — 갈라 두지 않으면 반을 바꿀 때마다 '입장한 학생이 없어요'가
+  // 한 번 스칩니다(CLAUDE.md '첫 화면' 절의 그 함정).
+  const [otherRoster, setOtherRoster] = useState(null);
+
+  // 화면에서 반을 바꾸면 창도 따라갑니다 — 안 그러면 머리말은 새 반인데
+  // 목록은 앞 반이라 어느 반을 보는 중인지 어긋납니다.
+  useEffect(() => { setPickedId(classId); }, [classId]);
+
   useEffect(() => {
-    if (!classId) { setCounts({}); return; }
-    return subscribeClassNoteCounts(classId, setCounts);
-  }, [classId]);
+    if (!user?.uid) return undefined;
+    return subscribeClasses((list) =>
+      setMyClasses(list.filter((c) => c.createdBy === user.uid))
+    );
+  }, [user?.uid]);
+
+  // 지금 보는 반이 창을 연 그 반인가. 그렇다면 **페이지가 이미 만들어 둔
+  // 명단을 그대로 씁니다** — 흔한 경우라 여기서 읽는 문서가 하나도 없습니다.
+  const isHome = pickedId === classId;
+
+  // 옆 반을 고른 동안만 그 반 명단을 만듭니다(소속 → 이름·학번).
+  // `subscribeUserDirectory`(users 통째로)를 안 쓰는 까닭: 여기 필요한 것은
+  // 그 반 학생 스물몇 명뿐이라, uid를 아는 사람만 한 건씩 읽는 편이 좁습니다.
+  useEffect(() => {
+    if (isHome || !pickedId) { setOtherRoster(null); return undefined; }
+    let alive = true;
+    setOtherRoster(null);
+    const unsub = subscribeClassMembers(pickedId, async (uids) => {
+      const list = await fetchClassRosterProfiles(uids);
+      if (alive) setOtherRoster(list);
+    });
+    return () => { alive = false; unsub(); };
+  }, [pickedId, isHome]);
+
+  const shownRoster = isHome ? roster : otherRoster ?? [];
+  const rosterLoading = !isHome && otherRoster === null;
+
+  // 반을 바꾸면 열어 둔 학생 창을 닫습니다 — 앞 반 학생이 그대로 남으면
+  // 새 반 맥락에서 남의 반 기록을 보게 됩니다.
+  useEffect(() => { setSelected(null); }, [pickedId]);
+
+  useEffect(() => {
+    if (!pickedId) { setCounts({}); return; }
+    return subscribeClassNoteCounts(pickedId, setCounts);
+  }, [pickedId]);
 
   // 학번순 — 자리표·명단과 같은 기준이라 눈으로 찾기 쉽습니다.
   const students = useMemo(() => {
-    const list = [...roster].sort((a, b) => {
+    const list = [...shownRoster].sort((a, b) => {
       if (!a.studentId && !b.studentId) return (a.name || "").localeCompare(b.name || "", "ko");
       if (!a.studentId) return 1;
       if (!b.studentId) return -1;
@@ -64,9 +117,9 @@ export default function ClassNotesManagerModal({
     // 돌리면 (ㄱ) 목록이 길 때 안쪽 스크롤이 거꾸로 되고, (ㄴ) 마지막 줄의
     // 남는 자리가 첫 줄 왼쪽에 생겨 어색합니다.
     return teacherView ? [...shown].reverse() : shown;
-  }, [roster, counts, onlyEmpty, teacherView]);
+  }, [shownRoster, counts, onlyEmpty, teacherView]);
 
-  const withNotes = roster.filter((s) => counts[s.uid] > 0).length;
+  const withNotes = shownRoster.filter((s) => counts[s.uid] > 0).length;
 
   return (
     <>
@@ -81,7 +134,24 @@ export default function ClassNotesManagerModal({
           <div className="modal-head">
             <h3 className="head-icon">
               <IconMyPost size={20} /> 기록 관리
-              {className && <span className="notes-student">{className}</span>}
+              {/* 고를 반이 하나뿐이면 지금까지처럼 이름 배지입니다 — 한 줄짜리
+                  고르개는 누를 것이 없는데 눌러 보게 만듭니다(책방 머리말의
+                  반 고르개와 같은 판정·같은 클래스). */}
+              {myClasses.length > 1 ? (
+                <select
+                  className="study-class-select notes-mgr-class"
+                  value={pickedId ?? ""}
+                  onChange={(e) => setPickedId(e.target.value)}
+                  title="반을 바꾸면 그 반의 기록을 봅니다"
+                  aria-label="반 고르기"
+                >
+                  {myClasses.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              ) : (
+                className && <span className="notes-student">{className}</span>
+              )}
             </h3>
             <button className="btn-close" onClick={onClose} aria-label="닫기">×</button>
           </div>
@@ -108,16 +178,20 @@ export default function ClassNotesManagerModal({
             </button>
           </div>
 
-          {tab === "cornell" ? (
-            <CornellNotesPanel classId={classId} roster={roster} user={user} />
-          ) : roster.length === 0 ? (
+          {/* 옆 반 명단을 받아 오는 동안 — 빈 배열로 그리면 '입장한 학생이
+              없어요'가 한 번 스칩니다(위 `otherRoster` 주석 참고). */}
+          {rosterLoading ? (
+            <p className="empty-note">명단을 불러오는 중이에요…</p>
+          ) : tab === "cornell" ? (
+            <CornellNotesPanel classId={pickedId} roster={shownRoster} user={user} />
+          ) : shownRoster.length === 0 ? (
             <p className="empty-note">아직 이 반에 입장한 학생이 없어요.</p>
           ) : (
             <>
               <div className="notes-mgr-bar">
                 <span className="notes-mgr-summary">
                   기록 있음 <strong>{withNotes}</strong> · 아직 없음{" "}
-                  <strong>{roster.length - withNotes}</strong>
+                  <strong>{shownRoster.length - withNotes}</strong>
                 </span>
                 {/* 이 화면을 여는 가장 흔한 이유가 '누구를 아직 못 남겼나'라
                     그 추리기를 버튼 하나로 둡니다. */}
@@ -181,7 +255,7 @@ export default function ClassNotesManagerModal({
             name: selected.name,
             emoji: selected.emoji ?? "🙂",
           }}
-          classId={classId}
+          classId={pickedId}
           onBack={() => setSelected(null)}
           onClose={() => setSelected(null)}
         />

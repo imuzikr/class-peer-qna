@@ -11149,6 +11149,14 @@ a.lesson-board-file-name { text-decoration: underline; }
   align-items: center;
   gap: 8px;
 }
+/* 기록 관리 머리말의 반 고르개 — 책방 머리말의 것(.study-class-select)을
+   그대로 씁니다. 창 머리 높이가 이 컨트롤로 잡히므로(실측 33px) 크기를
+   건드리면 제목 줄이 함께 움직입니다. 창이 804px이라 240px까지 갈 일은
+   없지만, 이름이 아주 긴 반 하나가 ×를 밀어내지 않게 조금 좁혀 둡니다. */
+.notes-mgr-class {
+  max-width: 200px;
+}
+
 .notes-student {
   font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
   font-weight: 700;
