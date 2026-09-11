@@ -34,6 +34,9 @@ import {
   subscribeStudySeatLayout,
   saveStudySeatLayout,
   subscribeStudyGroupAssignment,
+  subscribeClass,
+  setClassTask,
+  classTaskOf,
   dailySeatLayoutId,
   todayDateKey,
   PRESENCE_STALE_MS,
@@ -184,6 +187,49 @@ export default function LessonMode({
     if (!classId) { setGroupAssignment(null); return; }
     return subscribeStudyGroupAssignment(classId, setGroupAssignment);
   }, [classId]);
+
+  // ── 활동 내보내기 ──────────────────────────────────────────
+  // 배포한 활동은 반 문서의 `task` 한 필드에 적힙니다(`lib/store.js` 설명
+  // 참고 — 방송 문서에 두면 일시정지마다 사라집니다). 여기서는 '지금 무엇을
+  // 내보내는 중인가'를 보여 주려고 그 문서 **하나**를 구독합니다.
+  const [cls, setCls] = useState(null);
+  useEffect(() => {
+    if (!classId) { setCls(null); return; }
+    return subscribeClass(classId, setCls);
+  }, [classId]);
+  const task = classTaskOf(cls);
+  const taskActIndex = task?.boardId === board?.id ? task.actIndex : null;
+  const [pushBusy, setPushBusy] = useState(false);
+  const [pushPick, setPushPick] = useState(0);
+
+  // 내보내기는 **열기까지 함께** 합니다 — 잠긴 활동을 내보내면 학생 화면에
+  // 칸만 뜨고 못 쓰는데, 교사가 그 단추를 누르는 순간의 뜻은 '지금 이걸
+  // 쓰세요'입니다. 자물쇠 줄은 그대로 남아 따로 잠글 수 있습니다.
+  async function pushActivity(i) {
+    if (!board || pushBusy) return;
+    setPushBusy(true);
+    setActError("");
+    try {
+      if (isActivityLocked(board, i)) await toggleActLock(i, false);
+      await setClassTask(classId, { boardId: board.id, actIndex: i });
+    } catch (e) {
+      setActError(`활동을 내보내지 못했어요: ${e?.message ?? "알 수 없는 오류"}`);
+    } finally {
+      setPushBusy(false);
+    }
+  }
+
+  async function stopPush() {
+    if (pushBusy) return;
+    setPushBusy(true);
+    try {
+      await setClassTask(classId, null);
+    } catch (e) {
+      setActError(`내보내기를 멈추지 못했어요: ${e?.message ?? "알 수 없는 오류"}`);
+    } finally {
+      setPushBusy(false);
+    }
+  }
 
   // 활동 하나의 잠금을 켜고 끕니다(전광판의 자물쇠 버튼).
   async function toggleActLock(i, locked) {
@@ -1019,6 +1065,60 @@ export default function LessonMode({
                         </button>
                       );
                     })}
+                  </div>
+                  {/* ── 활동 내보내기 ──
+                      위 줄이 '쓸 수 있게 열어 두는' 것이라면, 이 줄은 '지금
+                      이걸 쓰세요'라고 학생 화면으로 보내는 것입니다. 누르면
+                      그 반 학생의 수업 노트 서랍에 활동 탭이 서고 저절로
+                      열립니다. 활동이 몇 개든 줄 하나로 끝나게 고르개를
+                      씁니다 — 활동마다 단추를 두면 자물쇠 줄과 나란히 두
+                      줄이 되어 무엇이 무엇인지 흐려집니다. */}
+                  <div className="lesson-push-row">
+                    {taskActIndex == null ? (
+                      <>
+                        <span className="lesson-push-label">학생에게 내보내기</span>
+                        <select
+                          className="lesson-push-pick"
+                          value={pushPick}
+                          onChange={(e) => setPushPick(Number(e.target.value))}
+                          aria-label="내보낼 활동"
+                        >
+                          {boardActs.map((a, i) => (
+                            <option key={`${a}-${i}`} value={i}>
+                              활동 {i + 1}. {a}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          className="lesson-push-btn"
+                          onClick={() => pushActivity(pushPick)}
+                          disabled={pushBusy}
+                          title="이 활동을 학생 화면으로 보냅니다 — 잠겨 있으면 함께 열립니다"
+                        >
+                          내보내기
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <span className="lesson-push-live">
+                          <span className="broadcast-live-dot" aria-hidden="true" />
+                          활동 {taskActIndex + 1} 내보내는 중
+                        </span>
+                        <span className="lesson-push-name">
+                          {boardActs[taskActIndex] ?? ""}
+                        </span>
+                        <button
+                          type="button"
+                          className="lesson-push-btn lesson-push-btn--stop"
+                          onClick={stopPush}
+                          disabled={pushBusy}
+                          title="학생 화면에서 활동 탭을 내립니다 — 쓴 글은 그대로 남습니다"
+                        >
+                          그만 보내기
+                        </button>
+                      </>
+                    )}
                   </div>
                   {actError && <p className="form-error" role="alert">{actError}</p>}
                 </section>

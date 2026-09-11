@@ -39,6 +39,7 @@ import {
 } from "@/lib/store";
 import RichTextEditor from "./RichTextEditor";
 import CornellNoteSheet from "./CornellNoteSheet";
+import LessonTaskPanel from "./LessonTaskPanel";
 import {
   blocksOf,
   emptyBlock,
@@ -68,9 +69,17 @@ export default function CornellNoteDrawer({
   boardTitle = "",
   onOpenChange = null, // 열림 상태를 위로 — 발표 화면이 그만큼 좁아집니다
   onType = null,       // 타이핑 신호 — 전광판의 ✍️ 표시로 이어집니다
+  // 선생님이 내보낸 활동(반 문서의 `task`). 있으면 탭이 서고, 새로 내보낸
+  // 것이면 서랍이 저절로 열립니다. 상단바가 이미 구독해 둔 값을 받습니다.
+  task = null,
 }) {
   const [open, setOpen] = useState(false);
+  // 탭 — 'note'(수업 노트) | 'task'(선생님이 내보낸 활동).
+  // 활동이 없는 날에는 탭 줄을 아예 안 그립니다(지금까지와 같은 모습).
+  const [tab, setTab] = useState("note");
   const [viewerOpen, setViewerOpen] = useState(false); // 크게 보기 창
+  // 활동 탭의 '크게 쓰기' 창이 떠 있는가 — Esc를 비켜 주는 데 씁니다.
+  const [taskWriting, setTaskWriting] = useState(false);
   const [note, setNote] = useState(null);        // 서버에서 온 문서
   const [loaded, setLoaded] = useState(false);
   // 제목(주제) — 코넬 노트 맨 위 칸. 문서에는 lessonTitle로 저장합니다
@@ -133,6 +142,22 @@ export default function CornellNoteDrawer({
   }
 
   useEffect(() => { onOpenChange?.(open); }, [open, onOpenChange]);
+
+  // ── 활동이 새로 내보내졌을 때 ──
+  // 배포는 '지금 이걸 쓰세요'라는 말이라, 서랍이 닫혀 있으면 열고 활동 탭을
+  // 켭니다. 같은 활동을 두 번 내보낼 수도 있어 `boardId`·`actIndex`가 아니라
+  // **배포한 시각**을 견줍니다.
+  const seenTaskRef = useRef(0);
+  useEffect(() => {
+    if (!task?.at || task.at <= seenTaskRef.current) return;
+    seenTaskRef.current = task.at;
+    setTab("task");
+    setOpen(true);
+    try { localStorage.setItem(OPEN_KEY, "1"); } catch {}
+  }, [task?.at]);
+
+  // 활동이 내려가면 노트로 돌아옵니다 — 빈 탭에 남아 있을 이유가 없습니다.
+  useEffect(() => { if (!task) setTab("note"); }, [task]);
 
   useEffect(() => {
     if (!classId || !user?.uid) { setLoaded(true); return; }
@@ -287,11 +312,12 @@ export default function CornellNoteDrawer({
   }, [flush]);
 
   // Esc는 서랍만 닫습니다 — 발표 오버레이는 학생이 닫을 수 없어야 합니다.
-  // 크게 보기 창이 떠 있으면 그쪽이 먼저 Esc를 씁니다(같은 window에 걸린
+  // 위에 뜬 창이 있으면 그쪽이 먼저 Esc를 씁니다(같은 window에 걸린
   // 리스너끼리는 stopPropagation이 안 통해, 여기서 아예 비켜 줍니다 —
-  // 안 그러면 Esc 한 번에 창과 서랍이 함께 닫힙니다).
+  // 안 그러면 Esc 한 번에 창과 서랍이 함께 닫힙니다). 노트 크게 보기와
+  // 활동 크게 쓰기 둘 다 해당합니다.
   useEffect(() => {
-    if (!open || viewerOpen) return;
+    if (!open || viewerOpen || taskWriting) return;
     function onKey(e) {
       if (e.key === "Escape") { e.stopPropagation(); toggle(); }
     }
@@ -371,14 +397,16 @@ export default function CornellNoteDrawer({
         type="button"
         className={`cornell-handle${open ? " open" : ""}${
           !open && unreadCount > 0 ? " has-feedback" : ""
-        }`}
+        }${!open && task ? " has-task" : ""}`}
         onClick={toggle}
         title={
           open
             ? "수업 노트 닫기 (Esc)"
-            : unreadCount > 0
-              ? `선생님이 한 마디를 남겼어요 (${unreadCount}개)`
-              : "수업 노트 — 코넬 노트로 필기해요"
+            : task
+              ? "선생님이 활동을 내보냈어요 — 눌러서 쓰기"
+              : unreadCount > 0
+                ? `선생님이 한 마디를 남겼어요 (${unreadCount}개)`
+                : "수업 노트 — 코넬 노트로 필기해요"
         }
         aria-label={
           open
@@ -397,7 +425,11 @@ export default function CornellNoteDrawer({
         <span className="cornell-handle-label">수업 노트</span>
         {/* 숫자가 있으면 숫자를, 없으면 '오늘 쓴 게 있다'는 점만.
             열려 있으면 둘 다 뺍니다 — 안이 이미 다 보입니다. */}
-        {open ? null : unreadCount > 0 ? (
+        {/* 활동이 내보내졌으면 그것이 먼저입니다 — 지금 해야 할 일이라
+            지난 한 마디보다 급합니다. */}
+        {open ? null : task ? (
+          <span className="cornell-handle-badge cornell-handle-badge--task">활동</span>
+        ) : unreadCount > 0 ? (
           <span className="cornell-handle-badge">{unreadCount}</span>
         ) : filled > 0 ? (
           <span className="cornell-handle-dot" aria-hidden="true" />
@@ -420,7 +452,41 @@ export default function CornellNoteDrawer({
             </button>
           </header>
 
-          {!loaded ? (
+          {/* 탭 — 활동이 내보내졌을 때만. 평소에는 지금까지와 똑같이
+              노트 하나이고 이 줄이 아예 없습니다. */}
+          {task && (
+            <div className="dash-view-tabs cornell-tabs" role="tablist">
+              <button
+                type="button"
+                role="tab"
+                className={`dash-view-tab${tab === "note" ? " on" : ""}`}
+                aria-selected={tab === "note"}
+                onClick={() => setTab("note")}
+              >
+                수업 노트
+              </button>
+              <button
+                type="button"
+                role="tab"
+                className={`dash-view-tab${tab === "task" ? " on" : ""}`}
+                aria-selected={tab === "task"}
+                onClick={() => setTab("task")}
+              >
+                활동
+              </button>
+            </div>
+          )}
+
+          {task && tab === "task" ? (
+            <div className="cornell-body">
+              <LessonTaskPanel
+                task={task}
+                user={user}
+                onType={onType}
+                onWritingChange={setTaskWriting}
+              />
+            </div>
+          ) : !loaded ? (
             <p className="cornell-empty">불러오는 중이에요…</p>
           ) : (
             <div className="cornell-body">
@@ -674,7 +740,7 @@ export default function CornellNoteDrawer({
               **글자는 '저장'으로 고정하고 색만 바뀝니다**(활성 주황 /
               비활성 회색). 저장·저장 중…·저장됨으로 휙휙 바뀌면 눈이 자꾸
               그리로 끌리고, 잠깐 스치는 '저장 중…'은 오류처럼 보입니다. */}
-          {loaded && (
+          {loaded && !(task && tab === "task") && (
             <footer className="cornell-foot">
               <button
                 type="button"

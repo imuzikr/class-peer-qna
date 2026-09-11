@@ -20,6 +20,7 @@ import {
   subscribeBroadcast,
   subscribeClassMembers,
   subscribeClass,
+  classTaskOf,
   fetchClass,
   stopBroadcast,
   reportPresence,
@@ -431,6 +432,9 @@ export default function TopNav({ active, onPython, pyActive = false }) {
         boardTitle={broadcast?.boardTitle ?? ""}
         onOpenChange={setNoteOpen}
         onType={markNoting}
+        /* 선생님이 내보낸 활동 — 전광판 때문에 이미 구독해 둔 반 문서에서
+           그대로 읽습니다(새로 읽는 문서가 없습니다). */
+        task={classTaskOf(marqueeClass)}
       />
     )}
 

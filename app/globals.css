@@ -25418,3 +25418,182 @@ ul.checklist > li.done {
   font-size: 12.5px;
   color: var(--text);
 }
+
+/* ══════════════════════════════════════════════════════════════
+   수업 중 활동 내보내기 — 교사 줄 · 학생 서랍의 활동 탭
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── 교사: 수업 모드 '활동 열기' 아래의 내보내기 줄 ──
+   위 줄이 '쓸 수 있게 열어 두는' 것이고, 이 줄은 '지금 이걸 쓰세요'라고
+   보내는 것입니다. 활동이 몇 개든 한 줄로 끝나도록 고르개를 씁니다. */
+.lesson-push-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.lesson-push-label {
+  flex-shrink: 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.lesson-push-pick {
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+}
+/* 같은 줄에 서는 것들은 높이를 하나로 — 세로 padding으로 저마다 정하면
+   글자 크기가 다른 만큼 줄이 들쭉날쭉해집니다(출석 관리 줄과 같은 생각). */
+.lesson-push-btn {
+  flex-shrink: 0;
+  height: 30px;
+  padding: 0 14px;
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-btn);
+  background: var(--primary);
+  color: #fff;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.lesson-push-btn:disabled { opacity: 0.5; cursor: default; }
+.lesson-push-btn--stop {
+  background: none;
+  border-color: var(--border);
+  color: var(--text-sub);
+}
+.lesson-push-btn--stop:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+/* 내보내는 중 — 방송 중임을 알리는 점을 그대로 씁니다(같은 뜻의 신호가
+   화면마다 다른 모양이면 두 번 익혀야 합니다). */
+.lesson-push-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--primary-dark);
+}
+.lesson-push-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12.5px;
+  color: var(--text-sub);
+}
+
+/* ── 학생: 서랍의 탭 줄 ──
+   노트 크게 보기 창의 탭(`.dash-view-tabs`)과 같은 것을 씁니다 — 학생이
+   '내가 쓴 것을 고르는 줄'로 이미 익힌 모양입니다. */
+.cornell-tabs {
+  margin: 0 14px 10px;
+  align-self: flex-start;
+}
+
+/* ── 학생: 활동 탭 ── */
+.ltask {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ltask-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+}
+.ltask-tag {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--primary-dark);
+}
+.ltask-name {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--dark);
+}
+.ltask-board { font-size: 12px; color: var(--text-sub); }
+.ltask-guide {
+  margin: 4px 0 0;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--text-sub);
+}
+.ltask-blocked {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--bg-deep);
+  font-size: 12.5px;
+  color: var(--text-sub);
+}
+/* 지금까지 쓴 것 — 누르면 큰 창입니다(공부방 카드의 미리보기와 같은 자리).
+   button이 아니라 div인 이유도 같습니다: 학생 글에 블록 요소가 들어 있어
+   button 안에 넣으면 유효하지 않은 중첩이 됩니다. */
+.ltask-preview {
+  min-height: 90px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+  cursor: text;
+}
+.ltask-preview:hover { border-color: var(--primary); }
+.ltask-preview-body { font-size: 13.5px; line-height: 1.7; }
+.ltask-preview-empty {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-faint);
+}
+.ltask-write { width: 100%; }
+.ltask-note {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--text-faint);
+}
+
+/* 큰 창 — 서랍(3001) 위에 떠야 합니다. 노트 크게 보기 창과 같은 층입니다. */
+.ltask-backdrop { z-index: 3010; }
+.modal.ltask-modal {
+  max-width: 760px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ltask-rte { min-height: 320px; }
+.ltask-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.ltask-status { font-size: 12px; color: var(--text-faint); }
+
+/* 손잡이 배지 — '활동'은 지금 해야 할 일이라 채운 색으로 둡니다
+   (안 읽은 한 마디 배지는 흰 바탕이라 서로 갈립니다). */
+.cornell-handle-badge--task {
+  background: var(--primary-dark);
+  color: #fff;
+  padding: 0 7px;
+}
