@@ -1214,7 +1214,7 @@ button.footer-link:hover {
    길어지고, 페이지는 '112~119' 여덟 글자면 넉넉합니다. */
 .memo-prog-row {
   display: grid;
-  grid-template-columns: 1fr 120px;
+  grid-template-columns: 1fr 186px;
   gap: 8px;
   margin: 8px 0 10px;
 }
@@ -1238,6 +1238,24 @@ button.footer-link:hover {
   border-radius: 8px;
   font-family: inherit;
   font-size: 13px;
+}
+/* 페이지는 한 묶음 안에 칸 둘 — `페이지 [112] ~ [119]`.
+   두 칸이 **같은 폭**이라야 '시작과 끝'으로 읽힙니다(한쪽이 넓으면 그쪽이
+   주된 값처럼 보입니다). 가운데 물결은 글자만큼만 차지합니다. */
+.memo-prog-pages > input {
+  flex: 1 1 0;
+  text-align: center;
+}
+.memo-prog-pages > em {
+  flex-shrink: 0;
+  font-style: normal;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+/* 옆 패널(320px 안팎)의 고치는 폼에서는 위아래로 풉니다 — 주제 칸이
+   80px까지 줄어 두어 글자밖에 안 보입니다(실측). */
+.memo-side-panel .memo-prog-row {
+  grid-template-columns: 1fr;
 }
 /* 좁은 패널(320px) 안에서는 두 칸을 위아래로 — 나란히 두면 페이지 칸에
    '112~119'가 접힙니다. */

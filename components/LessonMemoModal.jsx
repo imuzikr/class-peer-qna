@@ -77,8 +77,9 @@ import {
   deleteLessonMemo,
   lessonMemoDate,
   lessonMemoProgress,
+  lessonMemoPages,
   LESSON_TOPIC_MAX,
-  LESSON_PAGES_MAX,
+  LESSON_PAGE_MAX,
   todayDateKey,
   formatTime,
 } from "@/lib/store";
@@ -100,6 +101,63 @@ function MemoProgressLine({ memo }) {
       {prog.pages && <span>{prog.pages}</span>}
     </p>
   );
+}
+
+// 진도 세 칸 — 주제 · 시작 페이지 · 마지막 페이지.
+// **쓰는 칸과 고치는 폼 둘(지난 메모 · 달력)이 같은 것을 씁니다** — 세 곳에
+// 따로 적으면 칸을 하나 더할 때 한 곳을 빠뜨립니다.
+//
+// 페이지는 **한 묶음 안에 칸 둘**입니다(`페이지 [112] ~ [119]`). 칸마다
+// '시작 페이지'·'마지막 페이지' 이름표를 세우면 좁은 패널에서 이름표가
+// 글자 칸보다 넓어집니다 — 대신 가운데 물결이 어느 쪽이 시작인지 말하고,
+// 이름은 placeholder·title·aria-label로 남깁니다.
+// **한쪽만 적어도 되고 둘 다 비어도 됩니다** — '112쪽부터'만 아는 날도,
+// '119쪽까지'만 정해 둔 날도 있습니다.
+function ProgressFields({ topic, from, to, onTopic, onFrom, onTo }) {
+  return (
+    <div className="memo-prog-row">
+      <label className="memo-prog-field">
+        <span>주제</span>
+        <input
+          type="text"
+          value={topic}
+          onChange={(e) => onTopic(e.target.value)}
+          placeholder="조건문"
+          maxLength={LESSON_TOPIC_MAX}
+        />
+      </label>
+      <div className="memo-prog-field memo-prog-pages">
+        <span>페이지</span>
+        <input
+          type="text"
+          value={from}
+          onChange={(e) => onFrom(e.target.value)}
+          placeholder="112"
+          title="시작 페이지 — 비워 둬도 됩니다"
+          aria-label="시작 페이지"
+          maxLength={LESSON_PAGE_MAX}
+        />
+        <em aria-hidden="true">~</em>
+        <input
+          type="text"
+          value={to}
+          onChange={(e) => onTo(e.target.value)}
+          placeholder="119"
+          title="마지막 페이지 — 비워 둬도 됩니다"
+          aria-label="마지막 페이지"
+          maxLength={LESSON_PAGE_MAX}
+        />
+      </div>
+    </div>
+  );
+}
+
+// 고치기 폼에 넣을 페이지 두 칸. 옛 메모는 `pages` 한 칸에 '112~119'처럼
+// 적혀 있어 `lessonMemoPages`가 갈라 줍니다 — 고쳐 저장하면 그때 두 칸으로
+// 옮겨 갑니다(자료를 미리 옮기는 일이 없습니다).
+function pageEdits(memo) {
+  const { from, to } = lessonMemoPages(memo);
+  return { pageFrom: from, pageTo: to };
 }
 
 // 서식만 있고 글자는 없는 상태('<div><br></div>')를 빈 메모로 봅니다.
@@ -154,7 +212,8 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
   // localStorage에 기억하는 것과 같은 생각).
   const [progressOn, setProgressOn] = useState(false);
   const [topic, setTopic] = useState("");
-  const [pages, setPages] = useState("");
+  const [pageFrom, setPageFrom] = useState("");
+  const [pageTo, setPageTo] = useState("");
 
   useEffect(() => {
     try {
@@ -330,10 +389,11 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
     if (memoEmpty(body) || tooLong || busy || !canWrite) return;
     setBusy(true);
     try {
-      await addLessonMemo(writeClassId, user, body, date, { topic, pages });
+      await addLessonMemo(writeClassId, user, body, date, { topic, pageFrom, pageTo });
       setText("");
       setTopic("");
-      setPages("");
+      setPageFrom("");
+      setPageTo("");
       setWriteKey((k) => k + 1); // 쓴 것을 지우려면 에디터를 다시 세웁니다
       // 날짜는 오늘로 되돌립니다 — 지난 수업 것을 하나 적고 나서 다음 메모가
       // 그 날짜에 눌러앉아 있으면 알아채기 어렵습니다.
@@ -390,28 +450,14 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
         </div>
 
         {progressOn && (
-          <div className="memo-prog-row">
-            <label className="memo-prog-field">
-              <span>주제</span>
-              <input
-                type="text"
-                value={topic}
-                onChange={(e) => setTopic(e.target.value)}
-                placeholder="조건문"
-                maxLength={LESSON_TOPIC_MAX}
-              />
-            </label>
-            <label className="memo-prog-field memo-prog-field--pages">
-              <span>페이지</span>
-              <input
-                type="text"
-                value={pages}
-                onChange={(e) => setPages(e.target.value)}
-                placeholder="112~119"
-                maxLength={LESSON_PAGES_MAX}
-              />
-            </label>
-          </div>
+          <ProgressFields
+            topic={topic}
+            from={pageFrom}
+            to={pageTo}
+            onTopic={setTopic}
+            onFrom={setPageFrom}
+            onTo={setPageTo}
+          />
         )}
 
         <RichTextEditor
@@ -434,7 +480,7 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
                 : /* 주제·페이지만 채우고 저장할 수는 없습니다 — 보안 규칙이
                      본문을 요구합니다. 눌러 보고서야 알게 하지 않으려고
                      저장이 잠긴 까닭을 여기서 밝힙니다. */
-                  (topic.trim() || pages.trim()) && memoEmpty(text)
+                  (topic.trim() || pageFrom.trim() || pageTo.trim()) && memoEmpty(text)
                   ? "수업 내용도 한 줄 적어야 저장돼요"
                   : "Ctrl(⌘)+Enter로도 저장돼요"}
           </span>
@@ -561,7 +607,7 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
 // 두지 않으면 반을 바꿀 때마다 '아직 적어 둔 메모가 없어요'가 한 번 스칩니다
 // (CLAUDE.md '아직 모름과 없음을 가릅니다'와 같은 함정).
 function MemoClassPanel({ classId, name, memos, readOnly, onClose }) {
-  const [editing, setEditing] = useState(null); // { id, text, date, topic, pages }
+  const [editing, setEditing] = useState(null); // { id, text, date, topic, pageFrom, pageTo }
   const [confirmDelete, setConfirmDelete] = useState(null); // memoId
   // '진도 보기' — 주제·페이지를 적어 둔 메모만 남깁니다. 한 반의 목록에는
   // 그날그날의 메모('3모둠 분위기가…')와 진도가 섞여 있어, 학기 흐름을
@@ -592,7 +638,8 @@ function MemoClassPanel({ classId, name, memos, readOnly, onClose }) {
     if (memoEmpty(body) || body.length > MAX_LEN) return;
     await updateLessonMemo(classId, editing.id, body, editing.date, {
       topic: editing.topic,
-      pages: editing.pages,
+      pageFrom: editing.pageFrom,
+      pageTo: editing.pageTo,
     });
     setEditing(null);
   }
@@ -685,28 +732,14 @@ function MemoClassPanel({ classId, name, memos, readOnly, onClose }) {
                     {/* 진도 칸은 고칠 때 **늘 보여 줍니다** — 쓰는 칸과 달리
                         여기는 이미 있는 값을 고치러 온 자리라, 접어 두면
                         주제가 적힌 메모인지 아닌지 열어 봐야 압니다. */}
-                    <div className="memo-prog-row">
-                      <label className="memo-prog-field">
-                        <span>주제</span>
-                        <input
-                          type="text"
-                          value={editing.topic}
-                          onChange={(e) => setEditing({ ...editing, topic: e.target.value })}
-                          placeholder="비워 둬도 돼요"
-                          maxLength={LESSON_TOPIC_MAX}
-                        />
-                      </label>
-                      <label className="memo-prog-field memo-prog-field--pages">
-                        <span>페이지</span>
-                        <input
-                          type="text"
-                          value={editing.pages}
-                          onChange={(e) => setEditing({ ...editing, pages: e.target.value })}
-                          placeholder="112~119"
-                          maxLength={LESSON_PAGES_MAX}
-                        />
-                      </label>
-                    </div>
+                    <ProgressFields
+                      topic={editing.topic}
+                      from={editing.pageFrom}
+                      to={editing.pageTo}
+                      onTopic={(v) => setEditing({ ...editing, topic: v })}
+                      onFrom={(v) => setEditing({ ...editing, pageFrom: v })}
+                      onTo={(v) => setEditing({ ...editing, pageTo: v })}
+                    />
                     <RichTextEditor
                       key={m.id}
                       className="memo-rte memo-rte--sm"
@@ -751,7 +784,8 @@ function MemoClassPanel({ classId, name, memos, readOnly, onClose }) {
                                 text: m.text,
                                 date: lessonMemoDate(m),
                                 topic: m.topic ?? "",
-                                pages: m.pages ?? "",
+                                // 옛 메모는 '112~119' 한 칸이라 갈라 읽습니다
+                                ...pageEdits(m),
                               })
                             }
                           >
@@ -855,7 +889,7 @@ function MemoCalendarPanel({ byDate, nameOfClass, archivedClassIds, currentClass
   const [draftKey, setDraftKey] = useState(0); // 저장 뒤 에디터를 비우려고
   const [editingId, setEditingId] = useState("");
   const [editText, setEditText] = useState("");
-  const [editProg, setEditProg] = useState({ topic: "", pages: "" });
+  const [editProg, setEditProg] = useState({ topic: "", pageFrom: "", pageTo: "" });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -927,7 +961,7 @@ function MemoCalendarPanel({ byDate, nameOfClass, archivedClassIds, currentClass
       await updateLessonMemo(pickedClass, editingId, body, picked, editProg);
       setEditingId("");
       setEditText("");
-      setEditProg({ topic: "", pages: "" });
+      setEditProg({ topic: "", pageFrom: "", pageTo: "" });
     } catch (e) {
       setError(`저장하지 못했어요: ${e?.message ?? "알 수 없는 오류"}`);
     } finally {
@@ -1091,28 +1125,14 @@ function MemoCalendarPanel({ byDate, nameOfClass, archivedClassIds, currentClass
                       {/* 진도 칸 — 지난 메모 패널의 고치는 폼과 같습니다.
                           고칠 때는 늘 보여 줍니다(이미 있는 값을 고치러 온
                           자리라 접어 두면 열어 봐야 압니다). */}
-                      <div className="memo-prog-row">
-                        <label className="memo-prog-field">
-                          <span>주제</span>
-                          <input
-                            type="text"
-                            value={editProg.topic}
-                            onChange={(e) => setEditProg((v) => ({ ...v, topic: e.target.value }))}
-                            placeholder="비워 둬도 돼요"
-                            maxLength={LESSON_TOPIC_MAX}
-                          />
-                        </label>
-                        <label className="memo-prog-field memo-prog-field--pages">
-                          <span>페이지</span>
-                          <input
-                            type="text"
-                            value={editProg.pages}
-                            onChange={(e) => setEditProg((v) => ({ ...v, pages: e.target.value }))}
-                            placeholder="112~119"
-                            maxLength={LESSON_PAGES_MAX}
-                          />
-                        </label>
-                      </div>
+                      <ProgressFields
+                        topic={editProg.topic}
+                        from={editProg.pageFrom}
+                        to={editProg.pageTo}
+                        onTopic={(v) => setEditProg((p) => ({ ...p, topic: v }))}
+                        onFrom={(v) => setEditProg((p) => ({ ...p, pageFrom: v }))}
+                        onTo={(v) => setEditProg((p) => ({ ...p, pageTo: v }))}
+                      />
                       <RichTextEditor
                         key={m.id}
                         className="memo-rte memo-rte--sm"
@@ -1164,7 +1184,7 @@ function MemoCalendarPanel({ byDate, nameOfClass, archivedClassIds, currentClass
                         onClick={() => {
                           setEditingId(m.id);
                           setEditText(m.text);
-                          setEditProg({ topic: m.topic ?? "", pages: m.pages ?? "" });
+                          setEditProg({ topic: m.topic ?? "", ...pageEdits(m) });
                           setPickedMemo("");
                         }}
                       >
