@@ -74,12 +74,10 @@ export default function CornellNoteDrawer({
   task = null,
 }) {
   const [open, setOpen] = useState(false);
-  // 탭 — 'note'(수업 노트) | 'task'(선생님이 내보낸 활동).
+  // 탭 — 'note'(수업 노트) | 'task'(오늘의 활동).
   // 활동이 없는 날에는 탭 줄을 아예 안 그립니다(지금까지와 같은 모습).
   const [tab, setTab] = useState("note");
   const [viewerOpen, setViewerOpen] = useState(false); // 크게 보기 창
-  // 활동 탭의 '크게 쓰기' 창이 떠 있는가 — Esc를 비켜 주는 데 씁니다.
-  const [taskWriting, setTaskWriting] = useState(false);
   const [note, setNote] = useState(null);        // 서버에서 온 문서
   const [loaded, setLoaded] = useState(false);
   // 제목(주제) — 코넬 노트 맨 위 칸. 문서에는 lessonTitle로 저장합니다
@@ -143,10 +141,10 @@ export default function CornellNoteDrawer({
 
   useEffect(() => { onOpenChange?.(open); }, [open, onOpenChange]);
 
-  // ── 활동이 새로 내보내졌을 때 ──
-  // 배포는 '지금 이걸 쓰세요'라는 말이라, 서랍이 닫혀 있으면 열고 활동 탭을
-  // 켭니다. 같은 활동을 두 번 내보낼 수도 있어 `boardId`·`actIndex`가 아니라
-  // **배포한 시각**을 견줍니다.
+  // ── 활동이 새로 도착했을 때 ──
+  // 그 순간의 뜻이 '지금 이걸 쓰세요'라, 서랍이 닫혀 있으면 열고 활동 탭을
+  // 켭니다. 같은 활동을 두 번 보낼 수도 있어 `boardId`·`actIndex`가 아니라
+  // **보낸 시각**을 견줍니다.
   const seenTaskRef = useRef(0);
   useEffect(() => {
     if (!task?.at || task.at <= seenTaskRef.current) return;
@@ -314,10 +312,9 @@ export default function CornellNoteDrawer({
   // Esc는 서랍만 닫습니다 — 발표 오버레이는 학생이 닫을 수 없어야 합니다.
   // 위에 뜬 창이 있으면 그쪽이 먼저 Esc를 씁니다(같은 window에 걸린
   // 리스너끼리는 stopPropagation이 안 통해, 여기서 아예 비켜 줍니다 —
-  // 안 그러면 Esc 한 번에 창과 서랍이 함께 닫힙니다). 노트 크게 보기와
-  // 활동 크게 쓰기 둘 다 해당합니다.
+  // 안 그러면 Esc 한 번에 창과 서랍이 함께 닫힙니다).
   useEffect(() => {
-    if (!open || viewerOpen || taskWriting) return;
+    if (!open || viewerOpen) return;
     function onKey(e) {
       if (e.key === "Escape") { e.stopPropagation(); toggle(); }
     }
@@ -397,13 +394,13 @@ export default function CornellNoteDrawer({
         type="button"
         className={`cornell-handle${open ? " open" : ""}${
           !open && unreadCount > 0 ? " has-feedback" : ""
-        }${!open && task ? " has-task" : ""}`}
+        }`}
         onClick={toggle}
         title={
           open
             ? "수업 노트 닫기 (Esc)"
             : task
-              ? "선생님이 활동을 내보냈어요 — 눌러서 쓰기"
+              ? "오늘의 활동이 있어요 — 눌러서 쓰기"
               : unreadCount > 0
                 ? `선생님이 한 마디를 남겼어요 (${unreadCount}개)`
                 : "수업 노트 — 코넬 노트로 필기해요"
@@ -424,12 +421,11 @@ export default function CornellNoteDrawer({
         </span>
         <span className="cornell-handle-label">수업 노트</span>
         {/* 숫자가 있으면 숫자를, 없으면 '오늘 쓴 게 있다'는 점만.
-            열려 있으면 둘 다 뺍니다 — 안이 이미 다 보입니다. */}
-        {/* 활동이 내보내졌으면 그것이 먼저입니다 — 지금 해야 할 일이라
-            지난 한 마디보다 급합니다. */}
-        {open ? null : task ? (
-          <span className="cornell-handle-badge cornell-handle-badge--task">활동</span>
-        ) : unreadCount > 0 ? (
+            열려 있으면 둘 다 뺍니다 — 안이 이미 다 보입니다.
+            활동이 왔다는 표시는 따로 두지 않습니다 — 올 때 서랍이 저절로
+            열리므로 손잡이에 뜰 새가 없고, 세로쓰기 손잡이에서는 글자가
+            한 자만 보여 무슨 말인지 알 수 없었습니다. */}
+        {open ? null : unreadCount > 0 ? (
           <span className="cornell-handle-badge">{unreadCount}</span>
         ) : filled > 0 ? (
           <span className="cornell-handle-dot" aria-hidden="true" />
@@ -472,24 +468,24 @@ export default function CornellNoteDrawer({
                 aria-selected={tab === "task"}
                 onClick={() => setTab("task")}
               >
-                활동
+                오늘의 활동
               </button>
             </div>
           )}
 
-          {task && tab === "task" ? (
-            <div className="cornell-body">
-              <LessonTaskPanel
-                task={task}
-                user={user}
-                onType={onType}
-                onWritingChange={setTaskWriting}
-              />
+          {/* 두 탭을 함께 그려 두고 **감춰만 둡니다**(KWLS 노트 탭과 같은
+              방식). 탭을 오갈 때마다 지웠다 만들면 그때마다 프로젝트와 카드를
+              다시 읽고, 쓰던 칸도 새로 마운트되어 커서가 튑니다. */}
+          {task && (
+            <div className="cornell-body" hidden={tab !== "task"}>
+              <LessonTaskPanel task={task} user={user} onType={onType} />
             </div>
-          ) : !loaded ? (
-            <p className="cornell-empty">불러오는 중이에요…</p>
+          )}
+
+          {!loaded ? (
+            tab === "task" ? null : <p className="cornell-empty">불러오는 중이에요…</p>
           ) : (
-            <div className="cornell-body">
+            <div className="cornell-body" hidden={!!task && tab === "task"}>
               {/* 지난 노트에 달린 한 마디 — 선생님은 수업이 끝난 뒤에 쓰므로
                   대부분 '어제 것'입니다. 여기가 없으면 학생은 리포트에
                   들어가 그 날짜를 펼쳐 봐야만 알게 됩니다.
