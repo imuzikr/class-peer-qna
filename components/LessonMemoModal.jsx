@@ -471,30 +471,50 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
           placeholder="수업 중 기억해 둘 것을 적어 주세요. 학생에게는 보이지 않아요."
         />
 
+        {/* 쓰는 칸 바로 아래 줄 — 왼쪽 끝에 '진도', 오른쪽 끝에 '저장'과
+            안내 한 줄. 진도는 **쓰는 칸을 늘리는 단추**라 그 칸 옆에 있어야
+            합니다(반 고르는 줄에 뒀을 때는 '캘린더 보기' 옆이라 옆 패널을
+            여는 단추처럼 보였습니다). 안내는 '저장' 다음입니다 — 눈이
+            단추를 먼저 짚고 그 뒤에 곁말을 읽습니다. */}
         <div className="memo-foot">
-          <span className={`memo-hint${tooLong || writeArchived ? " over" : ""}`}>
-            {writeArchived
-              ? "보관된 반이라 메모를 적을 수 없어요 — 다른 반을 골라 주세요"
-              : tooLong
-                ? `서식을 포함해 ${text.length}자 — ${MAX_LEN}자까지 저장돼요`
-                : /* 주제·페이지만 채우고 저장할 수는 없습니다 — 보안 규칙이
-                     본문을 요구합니다. 눌러 보고서야 알게 하지 않으려고
-                     저장이 잠긴 까닭을 여기서 밝힙니다. */
-                  (topic.trim() || pageFrom.trim() || pageTo.trim()) && memoEmpty(text)
-                  ? "수업 내용도 한 줄 적어야 저장돼요"
-                  : "Ctrl(⌘)+Enter로도 저장돼요"}
-          </span>
           <button
             type="button"
-            className="btn-primary memo-save"
-            onClick={handleSave}
-            disabled={busy || memoEmpty(text) || tooLong || !canWrite}
+            className={`memo-cal-btn memo-prog-toggle${progressOn ? " on" : ""}`}
+            onClick={toggleProgress}
+            aria-pressed={progressOn}
             title={
-              writeClassName ? `‘${writeClassName}’에 저장합니다` : undefined
+              progressOn
+                ? "주제·페이지 칸을 접습니다"
+                : "수업 진도를 함께 적습니다 (주제 · 페이지)"
             }
           >
-            {busy ? "저장 중…" : "저장"}
+            진도
           </button>
+          <span className="memo-foot-right">
+            <button
+              type="button"
+              className="btn-primary memo-save"
+              onClick={handleSave}
+              disabled={busy || memoEmpty(text) || tooLong || !canWrite}
+              title={
+                writeClassName ? `‘${writeClassName}’에 저장합니다` : undefined
+              }
+            >
+              {busy ? "저장 중…" : "저장"}
+            </button>
+            <span className={`memo-hint${tooLong || writeArchived ? " over" : ""}`}>
+              {writeArchived
+                ? "보관된 반이라 메모를 적을 수 없어요 — 다른 반을 골라 주세요"
+                : tooLong
+                  ? `서식을 포함해 ${text.length}자 — ${MAX_LEN}자까지 저장돼요`
+                  : /* 주제·페이지만 채우고 저장할 수는 없습니다 — 보안 규칙이
+                       본문을 요구합니다. 눌러 보고서야 알게 하지 않으려고
+                       저장이 잠긴 까닭을 여기서 밝힙니다. */
+                    (topic.trim() || pageFrom.trim() || pageTo.trim()) && memoEmpty(text)
+                    ? "수업 내용도 한 줄 적어야 저장돼요"
+                    : "Ctrl(⌘)+Enter로도 저장돼요"}
+            </span>
+          </span>
         </div>
 
         {/* 지난 메모 — 반 버튼 줄입니다. 누르면 그 반의 목록이 옆 패널로
@@ -504,27 +524,12 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
             {/* 이름을 '지난 메모'에서 바꿨습니다 — 이 줄은 이제 보기만
                 하는 자리가 아니라 '어느 반에 적을까'를 고르는 자리입니다. */}
             <span className="memo-history-label">반 고르기</span>
-            {/* 토글 둘이 나란히 섭니다 — '진도'(쓰는 칸을 늘림) ·
-                '캘린더 보기'(옆 패널을 엶). 둘 다 누르면 상태가 바뀌는
-                단추라 크기·모양을 하나로 둡니다(`.memo-cal-btn` 규칙을
-                함께 씁니다). 진도가 날짜 줄에 혼자 있던 때는 알약이었는데,
-                켜고 끄는 단추가 창 안에 흩어져 있어 찾기 어려웠습니다. */}
             <span className="memo-head-btns">
-              <button
-                type="button"
-                className={`memo-cal-btn memo-prog-toggle${progressOn ? " on" : ""}`}
-                onClick={toggleProgress}
-                aria-pressed={progressOn}
-                title={
-                  progressOn
-                    ? "주제·페이지 칸을 접습니다"
-                    : "수업 진도를 함께 적습니다 (주제 · 페이지)"
-                }
-              >
-                진도
-              </button>
-              {/* 달력도 같은 자리(옆 패널)에 섭니다 — 그래서 한 번에 하나만
-                  열립니다. 켤 때만 다른 반의 메모까지 읽습니다(위 구독 참고). */}
+              {/* 달력은 옆 패널을 엽니다 — 지난 메모 패널과 같은 자리라
+                  한 번에 하나만 열립니다. 켤 때만 다른 반의 메모까지
+                  읽습니다(위 구독 참고).
+                  '진도'는 쓰는 칸 아래 줄로 옮겼습니다 — 그 단추가 늘리는
+                  것이 쓰는 칸이라, 여기 두면 옆 패널을 여는 단추로 읽힙니다. */}
               <button
                 type="button"
                 className={`memo-cal-btn${calendarOn ? " on" : ""}`}
