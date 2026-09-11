@@ -1205,30 +1205,11 @@ button.footer-link:hover {
 }
 /* 토글은 날짜 줄 오른쪽 끝으로 — 날짜·주제·페이지가 '어느 수업의 일인가'를
    말하는 한 묶음이라 같은 줄에서 켭니다. */
-.memo-prog-toggle {
-  margin-left: auto;
-  padding: 5px 13px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--bg-deep, #f7f5f0);
-  color: var(--text-sub);
-  font-family: inherit;
-  font-size: 12.5px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background 0.14s, border-color 0.14s, color 0.14s;
-}
-.memo-prog-toggle:hover {
-  border-color: var(--primary);
-  color: var(--primary-dark);
-}
-/* 켜짐은 채운 색으로 — 이 줄에서 이것만 상태를 가진 단추라, 반 고르기
-   알약의 `.on`과 같은 모양으로 둡니다. */
-.memo-prog-toggle.on {
-  background: var(--primary);
-  border-color: var(--primary);
-  color: #fff;
-}
+/* 진도 토글은 **캘린더 보기 단추와 같은 것**입니다 — 크기도 모양도.
+   `.memo-cal-btn`을 함께 달아 주므로 여기에는 따로 적을 것이 없습니다
+   (한쪽만 고치면 나란히 선 두 단추의 높이가 어긋납니다).
+   한때 날짜 줄 오른쪽 끝에 알약으로 혼자 있었는데, 켜고 끄는 단추가 창
+   안에 흩어져 있어 찾기 어려웠습니다. */
 /* 주제가 넓고 페이지가 좁습니다 — 주제는 '조건문과 반복문 되짚기'처럼
    길어지고, 페이지는 '112~119' 여덟 글자면 넉넉합니다. */
 .memo-prog-row {
@@ -1388,6 +1369,12 @@ button.footer-link:hover {
 }
 .memo-cal-btn:hover { background: var(--primary-light); }
 .memo-cal-btn.on { background: var(--primary-light); }
+/* 토글 둘이 나란히 — 진도 · 캘린더 보기 */
+.memo-head-btns {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 
 /* ── 반 버튼 줄 ──
    내가 맡은 반이 알약으로 섭니다. 누르면 그 반의 지난 메모가 옆 패널로
@@ -1484,6 +1471,35 @@ button.footer-link:hover {
   gap: 10px;
   padding: 14px 16px 10px;
   border-bottom: 1px solid var(--border);
+}
+/* 진도 보기 — 목록을 '주제·페이지가 있는 것'만으로 좁힙니다.
+   머리줄의 `justify-content: space-between`이 반 이름과 × 사이를 벌리므로,
+   이 단추는 `margin-left: auto`로 × 바로 왼쪽에 붙습니다.
+   위 머리말의 진도 토글보다 작습니다 — 저기는 '쓰는 칸을 늘리는' 단추라
+   저장 단추와 같은 줄에서 크기를 맞춘 것이고, 여기는 보고 있는 목록을
+   좁히는 작은 손잡이입니다. */
+.memo-prog-filter {
+  flex-shrink: 0;
+  margin-left: auto;
+  padding: 4px 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: none;
+  color: var(--text-sub);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.14s, border-color 0.14s, color 0.14s;
+}
+.memo-prog-filter:hover {
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+.memo-prog-filter.on {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary-dark);
 }
 .memo-side-panel-head h4 {
   display: flex;

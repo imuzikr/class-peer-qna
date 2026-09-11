@@ -378,8 +378,6 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
           <button className="btn-close" onClick={onClose} aria-label="닫기">×</button>
         </div>
 
-        {/* 날짜 줄 오른쪽 끝에 '진도' 토글 — 날짜·주제·페이지는 '이 메모가
-            어느 수업의 일인가'를 말하는 한 묶음이라 같은 줄에서 켭니다. */}
         <div className="notes-date-row memo-date-row">
           <span>날짜</span>
           <input
@@ -389,19 +387,6 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
             onChange={(e) => setDate(e.target.value)}
             max={todayDateKey()}
           />
-          <button
-            type="button"
-            className={`memo-prog-toggle${progressOn ? " on" : ""}`}
-            onClick={toggleProgress}
-            aria-pressed={progressOn}
-            title={
-              progressOn
-                ? "주제·페이지 칸을 접습니다"
-                : "수업 진도를 함께 적습니다 (주제 · 페이지)"
-            }
-          >
-            진도
-          </button>
         </div>
 
         {progressOn && (
@@ -473,18 +458,38 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
             {/* 이름을 '지난 메모'에서 바꿨습니다 — 이 줄은 이제 보기만
                 하는 자리가 아니라 '어느 반에 적을까'를 고르는 자리입니다. */}
             <span className="memo-history-label">반 고르기</span>
-            {/* 달력도 같은 자리(옆 패널)에 섭니다 — 그래서 한 번에 하나만
-                열립니다. 켤 때만 다른 반의 메모까지 읽습니다(위 구독 참고). */}
-            <button
-              type="button"
-              className={`memo-cal-btn${calendarOn ? " on" : ""}`}
-              onClick={() => setHistoryView((v) => (v === "calendar" ? null : "calendar"))}
-              aria-pressed={calendarOn}
-              aria-expanded={calendarOn}
-              title="메모가 있는 날짜를 달력에서 봅니다 — 내가 맡은 반을 모두 모아서"
-            >
-              캘린더 보기
-            </button>
+            {/* 토글 둘이 나란히 섭니다 — '진도'(쓰는 칸을 늘림) ·
+                '캘린더 보기'(옆 패널을 엶). 둘 다 누르면 상태가 바뀌는
+                단추라 크기·모양을 하나로 둡니다(`.memo-cal-btn` 규칙을
+                함께 씁니다). 진도가 날짜 줄에 혼자 있던 때는 알약이었는데,
+                켜고 끄는 단추가 창 안에 흩어져 있어 찾기 어려웠습니다. */}
+            <span className="memo-head-btns">
+              <button
+                type="button"
+                className={`memo-cal-btn memo-prog-toggle${progressOn ? " on" : ""}`}
+                onClick={toggleProgress}
+                aria-pressed={progressOn}
+                title={
+                  progressOn
+                    ? "주제·페이지 칸을 접습니다"
+                    : "수업 진도를 함께 적습니다 (주제 · 페이지)"
+                }
+              >
+                진도
+              </button>
+              {/* 달력도 같은 자리(옆 패널)에 섭니다 — 그래서 한 번에 하나만
+                  열립니다. 켤 때만 다른 반의 메모까지 읽습니다(위 구독 참고). */}
+              <button
+                type="button"
+                className={`memo-cal-btn${calendarOn ? " on" : ""}`}
+                onClick={() => setHistoryView((v) => (v === "calendar" ? null : "calendar"))}
+                aria-pressed={calendarOn}
+                aria-expanded={calendarOn}
+                title="메모가 있는 날짜를 달력에서 봅니다 — 내가 맡은 반을 모두 모아서"
+              >
+                캘린더 보기
+              </button>
+            </span>
           </div>
 
           <div className="memo-class-row">
@@ -558,13 +563,29 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
 function MemoClassPanel({ classId, name, memos, readOnly, onClose }) {
   const [editing, setEditing] = useState(null); // { id, text, date, topic, pages }
   const [confirmDelete, setConfirmDelete] = useState(null); // memoId
+  // '진도 보기' — 주제·페이지를 적어 둔 메모만 남깁니다. 한 반의 목록에는
+  // 그날그날의 메모('3모둠 분위기가…')와 진도가 섞여 있어, 학기 흐름을
+  // 훑으려면 눈으로 걸러 내야 했습니다.
+  const [progOnly, setProgOnly] = useState(false);
 
   // 반을 바꾸면 고치던 것·지우려던 것을 놓습니다 — 앞 반의 메모 id를 든 채로
   // 저장을 누르면 이 반에 없는 문서를 고치게 됩니다.
+  // **거르기는 그대로 둡니다** — 교사가 이 단추를 누르는 까닭이 '반마다
+  // 진도가 어디까지 나갔나'를 훑는 것이라, 반을 옮길 때마다 꺼지면 매번
+  // 다시 눌러야 합니다.
   useEffect(() => {
     setEditing(null);
     setConfirmDelete(null);
   }, [classId]);
+
+  // 판정은 `lessonMemoProgress` 한 곳을 그대로 씁니다 — 목록에 진도 줄을
+  // 그리는 기준과 거르는 기준이 다르면, 걸러 낸 목록에 줄이 없는 메모가
+  // 섞이거나 그 반대가 됩니다.
+  const shown = memos === null
+    ? null
+    : progOnly
+      ? memos.filter((m) => lessonMemoProgress(m))
+      : memos;
 
   async function handleEditSave() {
     const body = editing?.text.trim() ?? "";
@@ -609,22 +630,45 @@ function MemoClassPanel({ classId, name, memos, readOnly, onClose }) {
         <h4>
           {name}
           {/* 건수는 여기에만 있습니다 — 버튼 줄에 적으려면 반마다 메모를
-              미리 읽어야 합니다(파일 맨 위 설명 참고). */}
-          {memos?.length > 0 && <em className="memo-panel-count">{memos.length}건</em>}
+              미리 읽어야 합니다(파일 맨 위 설명 참고).
+              거르는 중이면 **보이는 만큼**을 셉니다. 전체 건수를 그대로 두면
+              목록에 넉 줄인데 머리에는 '12건'이라 적혀 고장으로 보입니다. */}
+          {shown?.length > 0 && <em className="memo-panel-count">{shown.length}건</em>}
         </h4>
+        {/* 진도 보기 — 새로 읽는 문서가 없습니다. 이미 받아 둔 목록에서
+            주제·페이지가 있는 것만 골라 그립니다. */}
+        <button
+          type="button"
+          className={`memo-prog-filter${progOnly ? " on" : ""}`}
+          onClick={() => setProgOnly((v) => !v)}
+          aria-pressed={progOnly}
+          title={
+            progOnly
+              ? "메모까지 모두 봅니다"
+              : "주제·페이지를 적어 둔 메모만 봅니다"
+          }
+        >
+          진도 보기
+        </button>
         <button type="button" className="btn-close" onClick={onClose} aria-label="지난 메모 닫기">×</button>
       </div>
 
       <div className="memo-side-panel-body">
         {readOnly && <p className="memo-cal-readonly">보관된 반이라 고치거나 지울 수 없어요.</p>}
 
-        {memos === null ? (
+        {shown === null ? (
           <p className="memo-empty">불러오는 중이에요…</p>
-        ) : memos.length === 0 ? (
-          <p className="memo-empty">아직 적어 둔 메모가 없어요.</p>
+        ) : shown.length === 0 ? (
+          /* 걸러서 빈 것과 원래 빈 것은 다른 말입니다 — '없어요'만 적으면
+             단추를 켜 둔 줄 모르고 메모가 사라졌다고 읽습니다. */
+          <p className="memo-empty">
+            {progOnly
+              ? "진도를 적어 둔 메모가 없어요."
+              : "아직 적어 둔 메모가 없어요."}
+          </p>
         ) : (
           <ul className="memo-list">
-            {memos.map((m) => (
+            {shown.map((m) => (
               <li key={m.id} className="memo-item">
                 {editing?.id === m.id ? (
                   <>
