@@ -384,6 +384,18 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
   const writeArchived = archivedClassIds.has(writeClassId);
   const canWrite = !!writeClassId && !writeArchived;
 
+  // 저장이 막힌 까닭 — 없으면 `null`이고 그 줄에 아무것도 안 그립니다.
+  // 눌러 보고서야 실패를 알게 하지 않으려고 미리 적어 두는 자리입니다.
+  const blockReason = writeArchived
+    ? "보관된 반이라 메모를 적을 수 없어요 — 다른 반을 골라 주세요"
+    : tooLong
+      ? `서식을 포함해 ${text.length}자 — ${MAX_LEN}자까지 저장돼요`
+      : // 주제·페이지만 채우고 저장할 수는 없습니다 — 보안 규칙이 본문을
+        // 요구합니다.
+        (topic.trim() || pageFrom.trim() || pageTo.trim()) && memoEmpty(text)
+        ? "수업 내용도 한 줄 적어야 저장돼요"
+        : null;
+
   async function handleSave() {
     const body = text.trim();
     if (memoEmpty(body) || tooLong || busy || !canWrite) return;
@@ -471,11 +483,14 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
           placeholder="수업 중 기억해 둘 것을 적어 주세요. 학생에게는 보이지 않아요."
         />
 
-        {/* 쓰는 칸 바로 아래 줄 — 왼쪽 끝에 '진도', 오른쪽 끝에 '저장'과
-            안내 한 줄. 진도는 **쓰는 칸을 늘리는 단추**라 그 칸 옆에 있어야
-            합니다(반 고르는 줄에 뒀을 때는 '캘린더 보기' 옆이라 옆 패널을
-            여는 단추처럼 보였습니다). 안내는 '저장' 다음입니다 — 눈이
-            단추를 먼저 짚고 그 뒤에 곁말을 읽습니다. */}
+        {/* 쓰는 칸 바로 아래 줄 — 왼쪽 끝에 '진도', 오른쪽 끝에 '저장'.
+            진도는 **쓰는 칸을 늘리는 단추**라 그 칸 옆에 있어야 합니다
+            (반 고르는 줄에 뒀을 때는 '캘린더 보기' 옆이라 옆 패널을 여는
+            단추처럼 보였습니다).
+            **평소에는 이 줄에 글자가 없습니다.** 한때 'Ctrl+Enter로도
+            저장돼요'가 늘 떠 있었는데, 한 번 읽으면 그만인 말이 창을 열
+            때마다 자리를 차지했습니다. 그 자리는 이제 **저장이 막혔을 때
+            그 까닭만** 씁니다 — 늘 있는 글이 아니라야 떴을 때 눈에 띕니다. */}
         <div className="memo-foot">
           <button
             type="button"
@@ -490,31 +505,22 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
           >
             진도
           </button>
-          <span className="memo-foot-right">
-            <button
-              type="button"
-              className="btn-primary memo-save"
-              onClick={handleSave}
-              disabled={busy || memoEmpty(text) || tooLong || !canWrite}
-              title={
-                writeClassName ? `‘${writeClassName}’에 저장합니다` : undefined
-              }
-            >
-              {busy ? "저장 중…" : "저장"}
-            </button>
+          {blockReason && (
             <span className={`memo-hint${tooLong || writeArchived ? " over" : ""}`}>
-              {writeArchived
-                ? "보관된 반이라 메모를 적을 수 없어요 — 다른 반을 골라 주세요"
-                : tooLong
-                  ? `서식을 포함해 ${text.length}자 — ${MAX_LEN}자까지 저장돼요`
-                  : /* 주제·페이지만 채우고 저장할 수는 없습니다 — 보안 규칙이
-                       본문을 요구합니다. 눌러 보고서야 알게 하지 않으려고
-                       저장이 잠긴 까닭을 여기서 밝힙니다. */
-                    (topic.trim() || pageFrom.trim() || pageTo.trim()) && memoEmpty(text)
-                    ? "수업 내용도 한 줄 적어야 저장돼요"
-                    : "Ctrl(⌘)+Enter로도 저장돼요"}
+              {blockReason}
             </span>
-          </span>
+          )}
+          <button
+            type="button"
+            className="btn-primary memo-save"
+            onClick={handleSave}
+            disabled={busy || memoEmpty(text) || tooLong || !canWrite}
+            title={
+              writeClassName ? `‘${writeClassName}’에 저장합니다` : undefined
+            }
+          >
+            {busy ? "저장 중…" : "저장"}
+          </button>
         </div>
 
         {/* 지난 메모 — 반 버튼 줄입니다. 누르면 그 반의 목록이 옆 패널로

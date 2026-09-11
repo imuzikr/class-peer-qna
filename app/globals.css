@@ -1295,15 +1295,10 @@ button.footer-link:hover {
   gap: 10px;
   margin-top: 8px;
 }
-/* 오른쪽 끝 묶음 — '저장'이 앞, 안내 한 줄이 뒤입니다. 왼쪽 끝의 '진도'와
-   양끝으로 갈라 섭니다(`.memo-foot`이 space-between). */
-.memo-foot-right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
+/* 저장이 막힌 까닭 — 평소에는 아예 없는 줄입니다(있을 때만 그립니다).
+   왼쪽 끝 '진도'와 오른쪽 끝 '저장' 사이에 섭니다. */
 .memo-hint {
+  min-width: 0;
   font-size: 11.5px;
   color: var(--text-sub);
 }
