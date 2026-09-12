@@ -8655,8 +8655,8 @@ pre code {
   color: var(--dark);
   margin: 0 0 14px;
 }
-/* 활동 열기 — 슬라이드와 수업 목표 사이. 수업 중 가장 자주 누르는 버튼이라
-   슬라이드 바로 아래, 손이 가는 자리에 가로로 늘어놓습니다. */
+/* 학생에게 내보내기 — 슬라이드와 수업 목표 사이. 수업 중 가장 자주 누르는
+   버튼이라 슬라이드 바로 아래, 손이 가는 자리에 가로로 늘어놓습니다. */
 .lesson-locks {
   margin-top: 48px;
 }
@@ -8665,36 +8665,135 @@ pre code {
   flex-wrap: wrap;
   gap: 10px;
 }
-.lesson-lock-btn {
+/* 칩 하나에 누르는 자리가 **둘**입니다 — 몸통은 내보내기, 오른쪽 끝의 작은
+   자물쇠는 열고 닫기만. 그래서 단추 안에 단추를 넣을 수 없어 껍데기가 감싸는
+   구조이고, 테두리·바탕은 껍데기가 갖습니다. */
+.lesson-act-chip {
   display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 10px 18px;
+  align-items: stretch;
   border-radius: 999px;
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+  overflow: hidden;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
   /* 열림 — 학생이 지금 쓸 수 있는 상태 */
   background: var(--primary-light);
   border: 1px solid #efc19a;
-  color: var(--primary-dark, #c15a2a);
 }
-.lesson-lock-btn:hover:not(:disabled) {
+.lesson-act-chip:hover {
   border-color: var(--primary);
 }
-/* 잠김 — 아직 열어 주지 않음 */
-.lesson-lock-btn.locked {
+/* 잠김 — 아직 열어 주지 않음(눌러 보내면 함께 열립니다) */
+.lesson-act-chip.locked {
   background: var(--neutral);
   border-color: var(--border);
+}
+/* 지금 나가 있는 칩 — 방송 중임을 알리는 점을 그대로 쓰고, 테두리를 한 겹
+   덧대 멀리서도 어느 것이 나가 있는지 보이게 합니다. */
+.lesson-act-chip.live {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary-light);
+}
+.lesson-act-send {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 9px 10px 18px;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--primary-dark, #c15a2a);
+  cursor: pointer;
+}
+.lesson-act-chip.locked .lesson-act-send {
   color: var(--text-sub);
 }
-.lesson-lock-btn:disabled {
+.lesson-act-send:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+/* 자물쇠는 곁딸린 자리라 몸통보다 좁습니다. 가르는 선이 있어야 '같은 칩이지만
+   다른 일'이 눈에 들어옵니다. */
+.lesson-act-lock {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 13px 0 8px;
+  border: 0;
+  border-left: 1px solid rgba(0, 0, 0, 0.09);
+  background: none;
+  cursor: pointer;
+}
+.lesson-act-lock:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.05);
+}
+.lesson-act-lock:disabled {
   opacity: 0.55;
   cursor: default;
 }
 .lesson-lock-icon { flex-shrink: 0; }
+/* ── 책방 독서 활동 — 활동 칩 한 줄, 고르면 그 아래로 단계 칩 한 줄 ── */
+.lesson-book-push {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.lesson-push-sub {
+  margin-bottom: 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.lesson-book-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 260px;
+  padding: 8px 15px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.lesson-book-chip:hover {
+  border-color: var(--primary);
+}
+/* 고른 활동 — 아래 단계 줄이 이 활동의 것임을 말합니다 */
+.lesson-book-chip.on {
+  background: var(--dark);
+  border-color: var(--dark);
+  color: #fff;
+}
+.lesson-book-kind {
+  flex-shrink: 0;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--text-faint);
+}
+.lesson-book-chip.on .lesson-book-kind {
+  color: rgba(255, 255, 255, 0.72);
+}
+.lesson-book-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* 단계 칩은 활동 칩보다 한 단계 작습니다 — 여덟 개가 서는 줄이라서요 */
+.lesson-step-row {
+  margin-top: 10px;
+  gap: 8px;
+}
+.lesson-step-chip .lesson-act-send {
+  padding: 8px 8px 8px 14px;
+  font-size: 13px;
+}
+.lesson-step-chip .lesson-act-lock {
+  padding: 0 11px 0 7px;
+}
 /* 이 반만 프로젝트 연결이 비어 있을 때의 한 줄 안내 — '활동 열기' 자리를
    대신하므로 카드가 아니라 얇은 줄로 둡니다(있어야 할 것이 없는 이유만 알림) */
 .lesson-link-hint {
@@ -25432,9 +25531,10 @@ ul.checklist > li.done {
    수업 중 활동 내보내기 — 교사 줄 · 학생 서랍의 활동 탭
    ══════════════════════════════════════════════════════════════ */
 
-/* ── 교사: 수업 모드 '활동 열기' 아래의 내보내기 줄 ──
-   위 줄이 '쓸 수 있게 열어 두는' 것이고, 이 줄은 '지금 이걸 쓰세요'라고
-   보내는 것입니다. 활동이 몇 개든 한 줄로 끝나도록 고르개를 씁니다. */
+/* ── 교사: 칩 줄 아래의 '지금 무엇이 나가 있나' 한 줄 ──
+   보내는 것은 칩이고, 이 줄은 나가 있는 것의 이름을 적고 거두는 자리입니다.
+   나가 있는 것이 이 화면에 안 보이는 칩일 수 있어(다른 프로젝트의 활동, 안
+   고른 독서 활동) 이름이 필요합니다. */
 .lesson-push-row {
   display: flex;
   align-items: center;
@@ -25442,24 +25542,6 @@ ul.checklist > li.done {
   margin-top: 10px;
   padding-top: 10px;
   border-top: 1px solid var(--border);
-}
-.lesson-push-label {
-  flex-shrink: 0;
-  font-size: 12.5px;
-  font-weight: 700;
-  color: var(--text-sub);
-}
-.lesson-push-pick {
-  flex: 1;
-  min-width: 0;
-  height: 30px;
-  padding: 0 8px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: #fff;
-  font-family: inherit;
-  font-size: 13px;
-  color: var(--text);
 }
 /* 같은 줄에 서는 것들은 높이를 하나로 — 세로 padding으로 저마다 정하면
    글자 크기가 다른 만큼 줄이 들쭉날쭉해집니다(출석 관리 줄과 같은 생각). */

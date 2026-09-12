@@ -209,10 +209,10 @@ export default function LessonMode({
   const taskActIndex =
     task?.kind === "study" && task.boardId === board?.id ? task.actIndex : null;
   const [pushBusy, setPushBusy] = useState(false);
-  // 고른 대상 — `s:<활동 자리>`(공부방) 또는 `b:<활동 id>`(책방)
-  const [pushPick, setPushPick] = useState("s:0");
-  // 책방 단계 — 위에서 독서 활동을 골랐을 때만 씁니다
-  const [pushStep, setPushStep] = useState("");
+  // 고른 독서 활동 — 단계 칩을 그 활동 것으로 채웁니다. 아직 아무것도 안
+  // 골랐으면 **지금 내보내는 중인 활동**을 봅니다(수업 모드를 다시 열어도
+  // 이어서 다음 단계를 누를 수 있게).
+  const [pickBook, setPickBook] = useState(null);
 
   // 반의 독서 활동 목록 — **한 번만** 읽습니다(구독 아님). 수업 모드가 떠
   // 있는 내내 연결을 살려 둘 만한 자리가 아닙니다. 잠긴 활동은 아예 안
@@ -234,18 +234,13 @@ export default function LessonMode({
     return () => { alive = false; };
   }, [classId]);
 
-  const pickedBook =
-    pushPick.startsWith("b:")
-      ? (bookActs ?? []).find((a) => a.id === pushPick.slice(2)) ?? null
-      : null;
+  const bookPickId = pickBook ?? (task?.kind === "book" ? task.activityId : null);
+  const pickedBook = bookPickId
+    ? (bookActs ?? []).find((a) => a.id === bookPickId) ?? null
+    : null;
   // 고른 활동에서 보낼 수 있는 칸들 — 곁텍스트는 여덟 단계, RAFT는 네 요소와
-  // 글쓰기. 고르개는 하나이고 목록만 갈립니다.
+  // 글쓰기. 줄 하나에 칩으로 늘어놓습니다.
   const pickedSteps = bookPushSteps(pickedBook);
-  // 활동을 바꾸면 앞 종류의 칸 이름이 남아 있을 수 있습니다(곁텍스트의 '표지'를
-  // 고른 채 RAFT로 옮기는 경우) — 그때는 그 활동의 첫 칸으로 봅니다.
-  const stepPick = pickedSteps.some((s) => s.key === pushStep)
-    ? pushStep
-    : pickedSteps[0]?.key ?? "";
   // 지금 내보내는 중인 책방 단계 — 머리줄에 이름을 적는 데 씁니다
   const taskBook =
     task?.kind === "book"
@@ -315,7 +310,28 @@ export default function LessonMode({
     }
   }
 
-  // 활동 하나의 잠금을 켜고 끕니다(전광판의 자물쇠 버튼).
+  // 곁텍스트 단계의 잠금만 켜고 끕니다 — **내보내지 않고**. 칩 안의 작은
+  // 자물쇠가 부르는 자리라, 공부방 활동 칩의 자물쇠와 같은 일을 합니다.
+  // RAFT는 단계 잠금이 없어 그 칩에는 자물쇠가 아예 안 섭니다.
+  async function toggleSectionLock(activity, sectionKey, locked) {
+    if (!activity || lockBusy) return;
+    setLockBusy(true);
+    setActError("");
+    try {
+      const next = sectionLocksWith(activity, sectionKey, locked);
+      await updateBookActivity(activity.id, { sectionLocks: next });
+      // 목록은 한 번 읽고 마는 값이라 서버가 다시 알려 주지 않습니다.
+      setBookActs((prev) =>
+        (prev ?? []).map((a) => (a.id === activity.id ? { ...a, sectionLocks: next } : a))
+      );
+    } catch (e) {
+      setActError(`단계 잠금을 바꾸지 못했어요: ${e?.message ?? "알 수 없는 오류"}`);
+    } finally {
+      setLockBusy(false);
+    }
+  }
+
+  // 활동 하나의 잠금을 켜고 끕니다(칩 안의 자물쇠 버튼).
   async function toggleActLock(i, locked) {
     if (!board || lockBusy) return;
     setLockBusy(true);
@@ -1113,137 +1129,179 @@ export default function LessonMode({
         ) : (
           <div className="lesson-lower">
             <div className="lesson-lower-main">
-              {/* 연결된 보드의 활동을 하나씩 열어 줍니다. 누르는 즉시 학생
-                  카드의 그 활동 입력칸이 열리고/닫힙니다(보드 문서의
-                  activityLocks 하나만 보고 판정하므로 화면끼리 따로 놀 일이
-                  없습니다). 전광판은 결과만 보는 자리입니다. */}
-              {board && boardActs.length > 0 && (
+              {/* ── 학생에게 내보내기 ──
+                  칩 하나가 '지금 이걸 쓰세요'입니다 — 누르면 그 반 학생의
+                  수업 노트 서랍에 활동 탭이 서고 저절로 열립니다. 잠겨 있으면
+                  함께 열립니다(누르는 순간의 뜻이 '지금 이걸 쓰세요'라, 칸만
+                  뜨고 못 쓰면 안 됩니다).
+
+                  예전에는 '활동 열기' 칩 줄 아래에 고르개 둘 + 단추 하나짜리
+                  내보내기 줄이 따로 있었습니다. 활동을 여는 일이 곧 내보내는
+                  일이 되면서 두 줄이 같은 것을 두 번 묻게 되어, 칩 하나로
+                  합쳤습니다 — **몸통은 내보내기, 칩 안의 작은 자물쇠는 열고
+                  닫기만**. 잘못 짚어도 자물쇠 쪽 결과는 '열림/잠김'이라
+                  가볍습니다.
+
+                  독서 활동도 같은 모양입니다 — 활동 칩을 누르면 그 아래로
+                  단계 칩이 서고, 단계를 누르면 그것이 나갑니다. */}
+              {((board && boardActs.length > 0) || (bookActs ?? []).length > 0) && (
                 <section className="lesson-card lesson-locks">
                   <div className="lesson-card-head">
-                    <h2>활동 열기</h2>
-                    <small>누르면 학생이 그 활동을 쓸 수 있어요</small>
+                    <h2>학생에게 내보내기</h2>
+                    <small>누르면 학생 화면에 바로 떠요 — 잠긴 것은 함께 열립니다</small>
                   </div>
-                  <div className="lesson-lock-row">
-                    {boardActs.map((a, i) => {
-                      const locked = isActivityLocked(board, i);
-                      return (
-                        <button
-                          key={`${a}-${i}`}
-                          type="button"
-                          className={`lesson-lock-btn${locked ? " locked" : ""}`}
-                          onClick={() => toggleActLock(i, !locked)}
-                          disabled={lockBusy}
-                          title={`${a} — ${locked ? "눌러서 열기" : "눌러서 잠그기"}`}
-                          aria-pressed={!locked}
-                        >
-                          {/* 자물쇠 그림 = 지금 상태(닫힘/열림), 툴팁 =
-                              누르면 할 일. 이모지였을 때는 두 그림의 굵기와
-                              색이 기기마다 달라 화면에 띄우면 구별이 어려웠고,
-                              고리가 열린 쪽이 오히려 작아 보였습니다. */}
-                          <IconLockState
-                            locked={locked}
-                            size={17}
-                            className="lesson-lock-icon"
-                          />
-                          활동 {i + 1}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {/* ── 활동 내보내기 ──
-                      위 줄이 '쓸 수 있게 열어 두는' 것이라면, 이 줄은 '지금
-                      이걸 쓰세요'라고 학생 화면으로 보내는 것입니다. 누르면
-                      그 반 학생의 수업 노트 서랍에 활동 탭이 서고 저절로
-                      열립니다. 활동이 몇 개든 줄 하나로 끝나게 고르개를
-                      씁니다 — 활동마다 단추를 두면 자물쇠 줄과 나란히 두
-                      줄이 되어 무엇이 무엇인지 흐려집니다. */}
-                  {/* 고르개는 **둘**입니다 — 무엇을(공부방 활동 ｜ 독서 활동),
-                      그리고 독서 활동을 골랐을 때만 어느 단계를. 파이썬
-                      실행기에서 프로젝트와 활동을 나란히 고르는 그 모양입니다.
-                      공부방 활동을 고르면 둘째 고르개가 아예 없습니다 —
-                      고를 것이 없는 칸이 비어 서 있으면 고장으로 보입니다. */}
-                  <div className="lesson-push-row">
-                    {task == null ? (
-                      <>
-                        <span className="lesson-push-label">학생에게 내보내기</span>
-                        <select
-                          className="lesson-push-pick"
-                          value={pushPick}
-                          onChange={(e) => setPushPick(e.target.value)}
-                          aria-label="내보낼 것"
-                        >
-                          <optgroup label="이 수업의 프로젝트">
-                            {boardActs.map((a, i) => (
-                              <option key={`s-${a}-${i}`} value={`s:${i}`}>
-                                활동 {i + 1}. {a}
-                              </option>
-                            ))}
-                          </optgroup>
-                          {(bookActs ?? []).length > 0 && (
-                            <optgroup label="책방 독서 활동">
-                              {bookActs.map((a) => (
-                                <option key={`b-${a.id}`} value={`b:${a.id}`}>
-                                  [{bookKindLabel(a)}] {a.title || a.topic || "이름 없는 활동"}
-                                </option>
-                              ))}
-                            </optgroup>
-                          )}
-                        </select>
-                        {pickedBook && (
-                          <select
-                            className="lesson-push-pick"
-                            value={stepPick}
-                            onChange={(e) => setPushStep(e.target.value)}
-                            aria-label="내보낼 단계"
+
+                  {board && boardActs.length > 0 && (
+                    <div className="lesson-lock-row">
+                      {boardActs.map((a, i) => {
+                        const locked = isActivityLocked(board, i);
+                        const live = taskActIndex === i;
+                        return (
+                          <span
+                            key={`${a}-${i}`}
+                            className={`lesson-act-chip${locked ? " locked" : ""}${live ? " live" : ""}`}
                           >
-                            {pickedSteps.map((s, i) => (
-                              <option key={s.key} value={s.key}>
-                                {i + 1}. {s.ko}
-                              </option>
-                            ))}
-                          </select>
-                        )}
-                        <button
-                          type="button"
-                          className="lesson-push-btn"
-                          onClick={() =>
-                            pickedBook
-                              ? pushBookStep(pickedBook, stepPick)
-                              : pushActivity(Number(pushPick.slice(2)) || 0)
-                          }
-                          disabled={pushBusy}
-                          title="학생 화면으로 보냅니다 — 잠겨 있으면 함께 열립니다"
-                        >
-                          내보내기
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <span className="lesson-push-live">
-                          <span className="broadcast-live-dot" aria-hidden="true" />
-                          {task.kind === "book"
-                            ? `${taskBook?.step?.ko ?? "이 칸"} 내보내는 중`
-                            : `활동 ${(taskActIndex ?? task.actIndex) + 1} 내보내는 중`}
-                        </span>
-                        <span className="lesson-push-name">
-                          {task.kind === "book"
-                            ? taskBook?.activity?.title ?? ""
-                            : taskActIndex == null
-                              ? "다른 프로젝트의 활동"
-                              : boardActs[taskActIndex] ?? ""}
-                        </span>
-                        <button
-                          type="button"
-                          className="lesson-push-btn lesson-push-btn--stop"
-                          onClick={stopPush}
-                          disabled={pushBusy}
-                          title="학생 화면에서 활동 탭을 내립니다 — 쓴 글은 그대로 남습니다"
-                        >
-                          그만 보내기
-                        </button>
-                      </>
-                    )}
-                  </div>
+                            <button
+                              type="button"
+                              className="lesson-act-send"
+                              onClick={() => pushActivity(i)}
+                              disabled={pushBusy}
+                              title={`${a} — 학생 화면으로 보내기${locked ? " (잠긴 활동은 함께 열려요)" : ""}`}
+                            >
+                              {live && (
+                                <span className="broadcast-live-dot" aria-hidden="true" />
+                              )}
+                              활동 {i + 1}
+                            </button>
+                            {/* 자물쇠 그림 = 지금 상태(닫힘/열림), 툴팁 =
+                                누르면 할 일. 이모지였을 때는 두 그림의 굵기와
+                                색이 기기마다 달라 화면에 띄우면 구별이
+                                어려웠고, 고리가 열린 쪽이 오히려 작아
+                                보였습니다. */}
+                            <button
+                              type="button"
+                              className="lesson-act-lock"
+                              onClick={() => toggleActLock(i, !locked)}
+                              disabled={lockBusy}
+                              title={`${a} — ${locked ? "눌러서 열기" : "눌러서 잠그기"} (보내지는 않아요)`}
+                              aria-pressed={!locked}
+                            >
+                              <IconLockState
+                                locked={locked}
+                                size={15}
+                                className="lesson-lock-icon"
+                              />
+                            </button>
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {(bookActs ?? []).length > 0 && (
+                    <div className="lesson-book-push">
+                      <div className="lesson-push-sub">책방 독서 활동</div>
+                      <div className="lesson-lock-row">
+                        {bookActs.map((a) => {
+                          const on = pickedBook?.id === a.id;
+                          return (
+                            <button
+                              key={`b-${a.id}`}
+                              type="button"
+                              className={`lesson-book-chip${on ? " on" : ""}`}
+                              onClick={() => setPickBook(a.id)}
+                              title={`${a.title || a.topic || "이름 없는 활동"} — 단계를 고릅니다`}
+                              aria-pressed={on}
+                            >
+                              <span className="lesson-book-kind">{bookKindLabel(a)}</span>
+                              <span className="lesson-book-name">
+                                {a.title || a.topic || "이름 없는 활동"}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {pickedBook && (
+                        <div className="lesson-lock-row lesson-step-row">
+                          {pickedSteps.map((s, i) => {
+                            // 단계 잠금은 곁텍스트에만 있습니다 — RAFT 칩에는
+                            // 자물쇠가 아예 안 섭니다(없던 개념을 만들지 않게).
+                            const hasLock = pickedBook.type === "paratext";
+                            const locked = hasLock && isSectionLocked(pickedBook, s.key);
+                            const live =
+                              task?.kind === "book" &&
+                              task.activityId === pickedBook.id &&
+                              task.sectionKey === s.key;
+                            return (
+                              <span
+                                key={s.key}
+                                className={`lesson-act-chip lesson-step-chip${locked ? " locked" : ""}${live ? " live" : ""}`}
+                              >
+                                <button
+                                  type="button"
+                                  className="lesson-act-send"
+                                  onClick={() => pushBookStep(pickedBook, s.key)}
+                                  disabled={pushBusy}
+                                  title={`${s.ko} — 학생 화면으로 보내기${locked ? " (잠긴 단계는 함께 열려요)" : ""}`}
+                                >
+                                  {live && (
+                                    <span className="broadcast-live-dot" aria-hidden="true" />
+                                  )}
+                                  {i + 1}. {s.ko}
+                                </button>
+                                {hasLock && (
+                                  <button
+                                    type="button"
+                                    className="lesson-act-lock"
+                                    onClick={() => toggleSectionLock(pickedBook, s.key, !locked)}
+                                    disabled={lockBusy}
+                                    title={`${s.ko} — ${locked ? "눌러서 열기" : "눌러서 잠그기"} (보내지는 않아요)`}
+                                    aria-pressed={!locked}
+                                  >
+                                    <IconLockState
+                                      locked={locked}
+                                      size={15}
+                                      className="lesson-lock-icon"
+                                    />
+                                  </button>
+                                )}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 무엇이 나가 있는지 한 줄로 — 보낸 것이 지금 이 화면에
+                      안 보이는 칩일 수 있어(다른 프로젝트의 활동, 안 고른
+                      독서 활동) 이름을 적어 둡니다. 거두는 길도 여기뿐입니다. */}
+                  {task != null && (
+                    <div className="lesson-push-row">
+                      <span className="lesson-push-live">
+                        <span className="broadcast-live-dot" aria-hidden="true" />
+                        {task.kind === "book"
+                          ? `${taskBook?.step?.ko ?? "이 칸"} 내보내는 중`
+                          : `활동 ${(taskActIndex ?? task.actIndex) + 1} 내보내는 중`}
+                      </span>
+                      <span className="lesson-push-name">
+                        {task.kind === "book"
+                          ? taskBook?.activity?.title ?? ""
+                          : taskActIndex == null
+                            ? "다른 프로젝트의 활동"
+                            : boardActs[taskActIndex] ?? ""}
+                      </span>
+                      <button
+                        type="button"
+                        className="lesson-push-btn lesson-push-btn--stop"
+                        onClick={stopPush}
+                        disabled={pushBusy}
+                        title="학생 화면에서 활동 탭을 내립니다 — 쓴 글은 그대로 남습니다"
+                      >
+                        그만 보내기
+                      </button>
+                    </div>
+                  )}
                   {actError && <p className="form-error" role="alert">{actError}</p>}
                 </section>
               )}
