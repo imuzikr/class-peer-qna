@@ -55,7 +55,7 @@
 // 저장되는 값은 HTML 문자열입니다. 서식이 붙기 전에 적은 메모는 순수
 // 텍스트로 남아 있어, 읽을 때 richHtml()이 둘을 함께 다룹니다.
 // =============================================================
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { backdropClose } from "@/lib/modal";
 import RichTextEditor from "./RichTextEditor";
 import { IconMyPost } from "./StatusIcons";
@@ -610,6 +610,90 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
   );
 }
 
+// ── 표 얼굴 ────────────────────────────────────────────
+// 같은 목록을 **날짜 · 주제 · 페이지 · 내용** 네 열로 봅니다. 목록 얼굴이
+// 이미 이 넷을 다 보여 주므로 표가 새로 주는 것은 **열 정렬** 하나입니다 —
+// 페이지가 세로로 줄을 서면 '지난 시간 119까지 했으니 오늘은 120부터'를 눈으로
+// 한 번에 잇습니다. 카드 목록은 주제 길이에 따라 페이지가 매 줄 다른 자리에
+// 있어 그걸 못 합니다.
+//
+// **읽는 문서가 늘지 않습니다** — 패널이 이미 받아 둔 배열을 다시 펴는 것뿐
+// 입니다(책방 '전체 보기'의 격자 / 낱말 구름과 같은 생각).
+//
+// [차례가 목록과 반대입니다]
+// 목록은 최신순인데(`sortLessonMemos`) 표는 **오래된 것이 위**입니다. 표에서
+// 보려는 것은 학기 흐름이라 위에서 아래로 시간이 흘러야 페이지가 이어집니다.
+// 이미 날짜·시각 두 겹으로 정렬된 배열이라 **뒤집기만 하면** 두 겹이 그대로
+// 오름차순이 됩니다(정렬을 다시 짜면 두 얼굴의 차례가 어긋날 자리가 생깁니다).
+//
+// [내용은 한 줄 미리보기입니다]
+// 메모 본문은 목록·체크 줄이 든 HTML이라 칸에 그대로 넣으면 행 높이가
+// 제각각이 되어, 표의 값인 줄 맞춤이 무너집니다. 그래서 표는 **훑는 얼굴**이고
+// 손대는 일(체크·수정·삭제)은 목록 얼굴에 둡니다 — 행을 누르면 목록으로
+// 돌아가 그 메모를 짚어 줍니다.
+function MemoProgressTable({ memos, onPickRow }) {
+  // 이미 '날짜 내림차순 → 같은 날이면 시각 내림차순'으로 정렬된 배열이라
+  // 뒤집으면 두 겹이 그대로 오름차순이 됩니다.
+  const rows = useMemo(() => [...memos].reverse(), [memos]);
+
+  return (
+    <div className="memo-table-wrap">
+      <table className="memo-table">
+        {/* 폭을 못 박습니다(`table-layout: fixed`와 짝) — 내용에 맡기면 주제가
+            긴 행 하나 때문에 페이지 열이 밀려, 줄을 맞추려고 만든 표에서
+            정작 페이지가 세로로 안 섭니다. */}
+        <colgroup>
+          <col className="memo-col-date" />
+          <col className="memo-col-topic" />
+          <col className="memo-col-pages" />
+          <col />
+        </colgroup>
+        <thead>
+          <tr>
+            <th scope="col">날짜</th>
+            <th scope="col">주제</th>
+            <th scope="col">페이지</th>
+            <th scope="col">내용</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((m) => {
+            const prog = lessonMemoProgress(m);
+            return (
+              <tr
+                key={m.id}
+                /* `role="button"`을 주지 마세요 — 행이 표에서 빠져나와,
+                   읽어 주는 기기에서 '몇 행 몇 열'이 사라집니다. 행은 행인
+                   채로 두고 누를 수만 있게 합니다. */
+                tabIndex={0}
+                onClick={() => onPickRow(m.id)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onPickRow(m.id);
+                  }
+                }}
+                title="목록에서 이 메모를 봅니다"
+              >
+                <td className="memo-td-date">{lessonMemoDate(m)}</td>
+                {/* 진도를 안 적은 메모는 두 칸이 빕니다. 아주 빈 칸으로 두면
+                    표가 고장 난 것처럼 보여 옅은 붙임표를 둡니다. */}
+                <td className="memo-td-topic">
+                  {prog?.topic || <span className="memo-td-none">–</span>}
+                </td>
+                <td className="memo-td-pages">
+                  {prog?.pages || <span className="memo-td-none">–</span>}
+                </td>
+                <td className="memo-td-text">{memoPreview(m.text)}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 // ── 한 반의 지난 메모 패널 ──────────────────────────────
 // 예전에 모달 안에 펼치던 목록 그대로입니다(.memo-list·.memo-item) — 자리만
 // 옆 패널로 옮겼습니다. 고치고 지우는 것도 여기서 합니다.
@@ -624,16 +708,42 @@ function MemoClassPanel({ classId, name, memos, readOnly, onClose }) {
   // 그날그날의 메모('3모둠 분위기가…')와 진도가 섞여 있어, 학기 흐름을
   // 훑으려면 눈으로 걸러 내야 했습니다.
   const [progOnly, setProgOnly] = useState(false);
+  // 목록 / 표 — 같은 자료를 보는 방법만 바뀝니다(읽는 문서는 그대로).
+  const [view, setView] = useState("list");
+  // 표에서 행을 누르면 목록으로 돌아가 그 메모를 짚어 줍니다.
+  // 같은 행을 다시 눌러도 다시 짚이도록 번호를 함께 듭니다 — 같은 값이면
+  // 상태가 안 바뀌어 타이머가 다시 안 걸립니다(책방 `.consonant-cell.flash`와
+  // 같은 함정).
+  const [focus, setFocus] = useState(null); // { id, n }
+  const focusRef = useRef(null);
+  const seqRef = useRef(0);
 
   // 반을 바꾸면 고치던 것·지우려던 것을 놓습니다 — 앞 반의 메모 id를 든 채로
-  // 저장을 누르면 이 반에 없는 문서를 고치게 됩니다.
-  // **거르기는 그대로 둡니다** — 교사가 이 단추를 누르는 까닭이 '반마다
-  // 진도가 어디까지 나갔나'를 훑는 것이라, 반을 옮길 때마다 꺼지면 매번
-  // 다시 눌러야 합니다.
+  // 저장을 누르면 이 반에 없는 문서를 고치게 됩니다. 짚어 둔 것도 함께
+  // 놓습니다(앞 반의 메모 id라 이 반에는 없습니다).
+  // **거르기와 보는 방법은 그대로 둡니다** — 교사가 이 둘을 고르는 까닭이
+  // '반마다 진도가 어디까지 나갔나'를 훑는 것이라, 반을 옮길 때마다 되돌아가면
+  // 매번 다시 눌러야 합니다.
   useEffect(() => {
     setEditing(null);
     setConfirmDelete(null);
+    setFocus(null);
   }, [classId]);
+
+  // 짚은 메모로 데려다 줍니다. 표에서 목록으로 건너온 참이라 그 메모가
+  // 목록 한참 아래에 있을 수 있습니다.
+  useEffect(() => {
+    if (!focus || view !== "list") return;
+    focusRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+    const t = setTimeout(() => setFocus(null), 1600);
+    return () => clearTimeout(t);
+  }, [focus, view]);
+
+  function pickRow(id) {
+    seqRef.current += 1;
+    setView("list");
+    setFocus({ id, n: seqRef.current });
+  }
 
   // 판정은 `lessonMemoProgress` 한 곳을 그대로 씁니다 — 목록에 진도 줄을
   // 그리는 기준과 거르는 기준이 다르면, 걸러 낸 목록에 줄이 없는 메모가
@@ -680,7 +790,10 @@ function MemoClassPanel({ classId, name, memos, readOnly, onClose }) {
 
   return (
     <aside
-      className="memo-side-panel memo-class-panel"
+      /* 표 얼굴에서만 패널이 넓어집니다 — 네 열을 320px에 넣으면 내용 열에
+         한글 예닐곱 자밖에 안 들어가, 그 열을 두려고 만든 표가 빈 열을
+         하나 갖게 됩니다(실측: 320 − 안쪽 여백 32 = 288px). */
+      className={`memo-side-panel memo-class-panel${view === "table" ? " memo-side-panel--wide" : ""}`}
       onClick={(e) => e.stopPropagation()}
       aria-label={`${name} 지난 메모`}
     >
@@ -693,8 +806,46 @@ function MemoClassPanel({ classId, name, memos, readOnly, onClose }) {
               목록에 넉 줄인데 머리에는 '12건'이라 적혀 고장으로 보입니다. */}
           {shown?.length > 0 && <em className="memo-panel-count">{shown.length}건</em>}
         </h4>
+        <button type="button" className="btn-close" onClick={onClose} aria-label="지난 메모 닫기">×</button>
+      </div>
+
+      {/* 머리줄 **아래 제 줄**입니다 — 노트 크게 보기 창(.cornell-view-tabs)과
+          같은 자리. 반 이름·건수·알약·거르기·×를 한 줄에 넣으면 좁은 얼굴
+          (320px)에서 350px이 필요해 넘칩니다(실측). 넓은 표 얼굴에 맞춰 한
+          줄로 두면 목록 얼굴에서만 깨지므로, 두 얼굴 모두에서 버티는 쪽으로
+          갈라 둡니다. */}
+      <div className="memo-panel-tools">
+        {/* 목록 / 표 — '다른 화면으로 간다'가 아니라 '같은 것을 달리 본다'라
+            책방 전체 보기(격자 / 낱말 구름)와 같은 알약을 씁니다.
+            **캘린더 보기 옆이 아니라 여기**인 까닭: 표는 한 반 것이어야 뜻이
+            있는데, 저 줄에 두면 어느 반의 표인지가 흐립니다(캘린더는 여러 반을
+            모으는 화면이라 반 맥락이 없어도 됩니다). 이 패널은 그 자체가 한
+            반이라 그 물음이 아예 안 생깁니다. */}
+        <div className="dash-view-tabs memo-view-tabs" role="tablist" aria-label="보는 방법">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={view === "list"}
+            className={`dash-view-tab${view === "list" ? " on" : ""}`}
+            onClick={() => setView("list")}
+            title="메모를 한 건씩 펼쳐 봅니다 — 고치고 지우는 것도 여기서"
+          >
+            목록
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={view === "table"}
+            className={`dash-view-tab${view === "table" ? " on" : ""}`}
+            onClick={() => setView("table")}
+            title="날짜 · 주제 · 페이지 · 내용 네 열로 훑습니다"
+          >
+            표
+          </button>
+        </div>
         {/* 진도 보기 — 새로 읽는 문서가 없습니다. 이미 받아 둔 목록에서
-            주제·페이지가 있는 것만 골라 그립니다. */}
+            주제·페이지가 있는 것만 골라 그립니다. 두 얼굴에 함께 걸립니다 —
+            표에서 켜면 그것이 곧 '진도 표'입니다. */}
         <button
           type="button"
           className={`memo-prog-filter${progOnly ? " on" : ""}`}
@@ -708,7 +859,6 @@ function MemoClassPanel({ classId, name, memos, readOnly, onClose }) {
         >
           진도 보기
         </button>
-        <button type="button" className="btn-close" onClick={onClose} aria-label="지난 메모 닫기">×</button>
       </div>
 
       <div className="memo-side-panel-body">
@@ -724,10 +874,18 @@ function MemoClassPanel({ classId, name, memos, readOnly, onClose }) {
               ? "진도를 적어 둔 메모가 없어요."
               : "아직 적어 둔 메모가 없어요."}
           </p>
+        ) : view === "table" ? (
+          <MemoProgressTable memos={shown} onPickRow={pickRow} />
         ) : (
           <ul className="memo-list">
             {shown.map((m) => (
-              <li key={m.id} className="memo-item">
+              <li
+                key={m.id}
+                /* 표에서 건너온 메모를 잠깐 짚어 줍니다 — 목록 한참 아래에
+                   있을 수 있어, 데려다 놓기만 하면 어느 것이었는지 모릅니다. */
+                ref={focus?.id === m.id ? focusRef : null}
+                className={`memo-item${focus?.id === m.id ? " flash" : ""}`}
+              >
                 {editing?.id === m.id ? (
                   <>
                     <label className="notes-date-row">
