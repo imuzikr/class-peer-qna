@@ -37,6 +37,8 @@ import {
   subscribeClass,
   setClassTask,
   classTaskOf,
+  fetchBookActivities,
+  updateBookActivity,
   dailySeatLayoutId,
   todayDateKey,
   PRESENCE_STALE_MS,
@@ -52,6 +54,11 @@ import {
   isMaterialImage,
   materialSizeLimit,
 } from "@/lib/activities";
+import {
+  PARATEXT_SECTIONS,
+  isSectionLocked,
+  sectionLocksWith,
+} from "@/lib/paratext";
 import { uploadImage, uploadFile } from "@/lib/storageUpload";
 import { formatFileSize } from "@/lib/image";
 import { getCurrentUser } from "@/lib/user";
@@ -198,9 +205,44 @@ export default function LessonMode({
     return subscribeClass(classId, setCls);
   }, [classId]);
   const task = classTaskOf(cls);
-  const taskActIndex = task?.boardId === board?.id ? task.actIndex : null;
+  const taskActIndex =
+    task?.kind === "study" && task.boardId === board?.id ? task.actIndex : null;
   const [pushBusy, setPushBusy] = useState(false);
-  const [pushPick, setPushPick] = useState(0);
+  // 고른 대상 — `s:<활동 자리>`(공부방) 또는 `b:<활동 id>`(책방)
+  const [pushPick, setPushPick] = useState("s:0");
+  // 책방 단계 — 위에서 독서 활동을 골랐을 때만 씁니다
+  const [pushStep, setPushStep] = useState(PARATEXT_SECTIONS[0].key);
+
+  // 반의 독서 활동 목록 — **한 번만** 읽습니다(구독 아님). 수업 모드가 떠
+  // 있는 내내 연결을 살려 둘 만한 자리가 아닙니다. 잠긴 활동은 아예 안
+  // 세웁니다 — 보내 봐야 규칙이 학생 저장을 거부합니다. 지운 것도 뺍니다.
+  const [bookActs, setBookActs] = useState(null); // null = 아직 안 읽음
+  useEffect(() => {
+    if (!classId) { setBookActs([]); return undefined; }
+    let alive = true;
+    fetchBookActivities(classId)
+      .then((list) => {
+        if (!alive) return;
+        setBookActs(
+          list.filter((a) => a.type === "paratext" && !a.deleted && a.locked !== true)
+        );
+      })
+      .catch(() => { if (alive) setBookActs([]); });
+    return () => { alive = false; };
+  }, [classId]);
+
+  const pickedBook =
+    pushPick.startsWith("b:")
+      ? (bookActs ?? []).find((a) => a.id === pushPick.slice(2)) ?? null
+      : null;
+  // 지금 내보내는 중인 책방 단계 — 머리줄에 이름을 적는 데 씁니다
+  const taskBook =
+    task?.kind === "book"
+      ? {
+          activity: (bookActs ?? []).find((a) => a.id === task.activityId) ?? null,
+          section: PARATEXT_SECTIONS.find((s) => s.key === task.sectionKey) ?? null,
+        }
+      : null;
 
   // 내보내기는 **열기까지 함께** 합니다 — 잠긴 활동을 내보내면 학생 화면에
   // 칸만 뜨고 못 쓰는데, 교사가 그 단추를 누르는 순간의 뜻은 '지금 이걸
@@ -211,9 +253,35 @@ export default function LessonMode({
     setActError("");
     try {
       if (isActivityLocked(board, i)) await toggleActLock(i, false);
-      await setClassTask(classId, { boardId: board.id, actIndex: i });
+      await setClassTask(classId, { kind: "study", boardId: board.id, actIndex: i });
     } catch (e) {
       setActError(`활동을 내보내지 못했어요: ${e?.message ?? "알 수 없는 오류"}`);
+    } finally {
+      setPushBusy(false);
+    }
+  }
+
+  // 책방 — 독서 활동의 단계 하나를 보냅니다. 잠긴 단계는 **함께 엽니다**
+  // (공부방 활동과 같은 이유 — 누르는 순간의 뜻이 '지금 이걸 쓰세요'입니다).
+  // 활동 전체 잠금은 다릅니다: 그건 '수업 끝'이라 규칙이 저장을 막으므로
+  // 위 목록에서 아예 빼 두었습니다.
+  async function pushBookStep(activity, sectionKey) {
+    if (!activity || pushBusy) return;
+    setPushBusy(true);
+    setActError("");
+    try {
+      if (isSectionLocked(activity, sectionKey)) {
+        const next = sectionLocksWith(activity, sectionKey, false);
+        await updateBookActivity(activity.id, { sectionLocks: next });
+        // 방금 연 것을 손에 들고 있어야 이어서 보낼 때 또 열지 않습니다
+        // (목록은 한 번 읽고 마는 값이라 서버가 다시 알려 주지 않습니다).
+        setBookActs((prev) =>
+          (prev ?? []).map((a) => (a.id === activity.id ? { ...a, sectionLocks: next } : a))
+        );
+      }
+      await setClassTask(classId, { kind: "book", activityId: activity.id, sectionKey });
+    } catch (e) {
+      setActError(`독서 활동을 내보내지 못했어요: ${e?.message ?? "알 수 없는 오류"}`);
     } finally {
       setPushBusy(false);
     }
@@ -1073,28 +1141,62 @@ export default function LessonMode({
                       열립니다. 활동이 몇 개든 줄 하나로 끝나게 고르개를
                       씁니다 — 활동마다 단추를 두면 자물쇠 줄과 나란히 두
                       줄이 되어 무엇이 무엇인지 흐려집니다. */}
+                  {/* 고르개는 **둘**입니다 — 무엇을(공부방 활동 ｜ 독서 활동),
+                      그리고 독서 활동을 골랐을 때만 어느 단계를. 파이썬
+                      실행기에서 프로젝트와 활동을 나란히 고르는 그 모양입니다.
+                      공부방 활동을 고르면 둘째 고르개가 아예 없습니다 —
+                      고를 것이 없는 칸이 비어 서 있으면 고장으로 보입니다. */}
                   <div className="lesson-push-row">
-                    {taskActIndex == null ? (
+                    {task == null ? (
                       <>
                         <span className="lesson-push-label">학생에게 내보내기</span>
                         <select
                           className="lesson-push-pick"
                           value={pushPick}
-                          onChange={(e) => setPushPick(Number(e.target.value))}
-                          aria-label="내보낼 활동"
+                          onChange={(e) => setPushPick(e.target.value)}
+                          aria-label="내보낼 것"
                         >
-                          {boardActs.map((a, i) => (
-                            <option key={`${a}-${i}`} value={i}>
-                              활동 {i + 1}. {a}
-                            </option>
-                          ))}
+                          <optgroup label="이 수업의 프로젝트">
+                            {boardActs.map((a, i) => (
+                              <option key={`s-${a}-${i}`} value={`s:${i}`}>
+                                활동 {i + 1}. {a}
+                              </option>
+                            ))}
+                          </optgroup>
+                          {(bookActs ?? []).length > 0 && (
+                            <optgroup label="책방 — 곁텍스트 읽기">
+                              {bookActs.map((a) => (
+                                <option key={`b-${a.id}`} value={`b:${a.id}`}>
+                                  {a.title || a.topic || "이름 없는 활동"}
+                                </option>
+                              ))}
+                            </optgroup>
+                          )}
                         </select>
+                        {pickedBook && (
+                          <select
+                            className="lesson-push-pick"
+                            value={pushStep}
+                            onChange={(e) => setPushStep(e.target.value)}
+                            aria-label="내보낼 단계"
+                          >
+                            {PARATEXT_SECTIONS.map((s, i) => (
+                              <option key={s.key} value={s.key}>
+                                {i + 1}. {s.ko}
+                              </option>
+                            ))}
+                          </select>
+                        )}
                         <button
                           type="button"
                           className="lesson-push-btn"
-                          onClick={() => pushActivity(pushPick)}
+                          onClick={() =>
+                            pickedBook
+                              ? pushBookStep(pickedBook, pushStep)
+                              : pushActivity(Number(pushPick.slice(2)) || 0)
+                          }
                           disabled={pushBusy}
-                          title="이 활동을 학생 화면으로 보냅니다 — 잠겨 있으면 함께 열립니다"
+                          title="학생 화면으로 보냅니다 — 잠겨 있으면 함께 열립니다"
                         >
                           내보내기
                         </button>
@@ -1103,10 +1205,16 @@ export default function LessonMode({
                       <>
                         <span className="lesson-push-live">
                           <span className="broadcast-live-dot" aria-hidden="true" />
-                          활동 {taskActIndex + 1} 내보내는 중
+                          {task.kind === "book"
+                            ? `${taskBook?.section?.ko ?? "단계"} 내보내는 중`
+                            : `활동 ${(taskActIndex ?? task.actIndex) + 1} 내보내는 중`}
                         </span>
                         <span className="lesson-push-name">
-                          {boardActs[taskActIndex] ?? ""}
+                          {task.kind === "book"
+                            ? taskBook?.activity?.title ?? ""
+                            : taskActIndex == null
+                              ? "다른 프로젝트의 활동"
+                              : boardActs[taskActIndex] ?? ""}
                         </span>
                         <button
                           type="button"

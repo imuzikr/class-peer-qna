@@ -40,6 +40,7 @@ import {
 import RichTextEditor from "./RichTextEditor";
 import CornellNoteSheet from "./CornellNoteSheet";
 import LessonTaskPanel from "./LessonTaskPanel";
+import LessonParatextPanel from "./LessonParatextPanel";
 import {
   blocksOf,
   emptyBlock,
@@ -478,7 +479,14 @@ export default function CornellNoteDrawer({
               다시 읽고, 쓰던 칸도 새로 마운트되어 커서가 튑니다. */}
           {task && (
             <div className="cornell-body" hidden={tab !== "task"}>
-              <LessonTaskPanel task={task} user={user} onType={onType} />
+              {/* 공부방 활동과 책방 단계는 저장되는 자리가 아예 달라
+                  (카드 한 장 ↔ 그 활동의 내 기록) 칸을 따로 둡니다. 같은
+                  껍데기에 억지로 담으면 어느 쪽 규칙을 따르는지 흐려집니다. */}
+              {task.kind === "book" ? (
+                <LessonParatextPanel task={task} user={user} onType={onType} />
+              ) : (
+                <LessonTaskPanel task={task} user={user} onType={onType} />
+              )}
             </div>
           )}
 
