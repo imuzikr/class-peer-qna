@@ -238,7 +238,11 @@ export default function LessonTaskPanel({ task, user, onType }) {
     <div className="ltask">
       <section className="ltask-head">
         <span className="ltask-tag">오늘의 활동 {idx + 1}</span>
-        {showName && <strong className="ltask-name">{actName}</strong>}
+        {/* 이름은 아래 활동 줄이 말합니다 — 그 줄이 안 서는 때(잠김·모둠)
+            에만 여기에 적습니다. 둘 다 적으면 같은 말이 두 줄입니다. */}
+        {showName && (locked || isGroup) && (
+          <strong className="ltask-name">{actName}</strong>
+        )}
         <span className="ltask-board">{board.title ?? ""}</span>
         {board.description && <p className="ltask-guide">{board.description}</p>}
       </section>
@@ -270,12 +274,51 @@ export default function LessonTaskPanel({ task, user, onType }) {
           const open = on || openIdx.has(i);
           const text = secs[i]?.content ?? "";
           const label = String(name ?? "").trim() || `활동 ${i + 1}`;
-          if (open) {
-            return (
-              <section key={i} className={`ltask-step${on ? " on" : ""}`}>
-                {!on && <span className="ltask-step-name">{i + 1}. {label}</span>}
-                {/* 쓰는 칸 — 에디터는 비제어라 마운트 때 한 번만 읽습니다.
-                    프로젝트가 바뀌면 열쇠가 바뀌어 그 칸의 글로 갈아 끼웁니다. */}
+          const line = peek(text);
+          return (
+            <section key={i} className={`ltask-step${on ? " on" : ""}`}>
+              {/* 칸마다 이름 줄이 섭니다 — 없으면 어느 칸의 글쓰기인지
+                  알 수 없습니다(접힌 줄 바로 아래 선 칸이 그 줄의 것처럼
+                  보였습니다). 보낸 활동은 늘 펼쳐지므로 누를 수 없는 줄이고,
+                  나머지는 이 줄로 **펴고 접습니다** — 편 것을 다시 못 접으면
+                  하나씩 펴 볼수록 서랍이 길어지기만 합니다. */}
+              {on ? (
+                <div className="ltask-fold open now">
+                  <span className="ltask-fold-no">{i + 1}</span>
+                  <span className="ltask-fold-name">{label}</span>
+                  <span className="broadcast-live-dot" aria-hidden="true" />
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className={`ltask-fold${open ? " open" : ""}`}
+                  onClick={() => {
+                    // 접기 전에 남은 글을 씁니다 — 접으면 쓰던 칸이 사라지고,
+                    // 곧바로 다시 펴면 아직 저장 안 된 글이 없는 셈이 됩니다.
+                    if (open) save();
+                    setOpenIdx((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(i)) next.delete(i);
+                      else next.add(i);
+                      return next;
+                    });
+                  }}
+                  title={open ? "눌러서 접기" : "눌러서 펴고 고치기"}
+                >
+                  <span className="ltask-fold-no">{i + 1}</span>
+                  <span className="ltask-fold-name">{label}</span>
+                  {/* 편 상태에서는 글이 바로 아래 있으므로 미리보기를 안 답니다 */}
+                  {!open && (
+                    <span className={`ltask-fold-peek${line ? "" : " empty"}`}>
+                      {line || "아직 안 썼어요"}
+                    </span>
+                  )}
+                  <span className="ltask-fold-caret" aria-hidden="true">▸</span>
+                </button>
+              )}
+              {/* 쓰는 칸 — 에디터는 비제어라 마운트 때 한 번만 읽습니다.
+                  프로젝트가 바뀌면 열쇠가 바뀌어 그 칸의 글로 갈아 끼웁니다. */}
+              {open && (
                 <RichTextEditor
                   key={`ltask-${boardId}-${i}`}
                   className="ltask-rte"
@@ -284,25 +327,8 @@ export default function LessonTaskPanel({ task, user, onType }) {
                   onChange={(html) => onDraft(i, html)}
                   placeholder="여기에 답을 써 주세요."
                 />
-              </section>
-            );
-          }
-          const line = peek(text);
-          return (
-            <button
-              key={i}
-              type="button"
-              className="ltask-fold"
-              onClick={() => setOpenIdx((prev) => new Set(prev).add(i))}
-              title="눌러서 펴고 고치기"
-            >
-              <span className="ltask-fold-no">{i + 1}</span>
-              <span className="ltask-fold-name">{label}</span>
-              <span className={`ltask-fold-peek${line ? "" : " empty"}`}>
-                {line || "아직 안 썼어요"}
-              </span>
-              <span className="ltask-fold-caret" aria-hidden="true">▸</span>
-            </button>
+              )}
+            </section>
           );
         })}
 

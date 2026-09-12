@@ -242,7 +242,11 @@ export default function LessonBookTaskPanel({ task, user, onType }) {
       <>
         <section className="ltask-head">
           <span className="ltask-tag">오늘의 활동 · {stepNo}단계</span>
-          <strong className="ltask-name">{current?.ko ?? "단계"}</strong>
+          {/* 이름은 아래 단계 줄이 말합니다 — 그 줄이 안 서는 때(잠김)에만
+              여기에 적습니다. 둘 다 적으면 같은 말이 두 줄입니다. */}
+          {(locked || stepLocked) && (
+            <strong className="ltask-name">{current?.ko ?? "단계"}</strong>
+          )}
           <span className="ltask-board">{actName}</span>
           {current?.prompt && <p className="ltask-guide">{current.prompt}</p>}
         </section>
@@ -255,36 +259,55 @@ export default function LessonBookTaskPanel({ task, user, onType }) {
 
         {/* 열린 단계만 차례대로. 보낸 것은 펼치고 나머지는 접습니다 —
             누르면 그 자리에서 펴져 앞서 쓴 것을 고칠 수 있습니다. */}
-        {openSections.map((s, i) => {
+        {openSections.map((s) => {
           const on = s.key === sectionKey;
           const open = on || openKeys.has(s.key);
           const no = PARATEXT_SECTIONS.findIndex((x) => x.key === s.key) + 1;
-          if (open) {
-            return (
-              <section key={s.key} className={`ltask-step${on ? " on" : ""}`}>
-                {!on && <span className="ltask-step-name">{no}. {s.ko}</span>}
+          const text = peek(answers, s.fields);
+          return (
+            <section key={s.key} className={`ltask-step${on ? " on" : ""}`}>
+              {/* 단계마다 이름 줄이 섭니다 — 없으면 어느 단계의 칸인지 알 수
+                  없습니다(접힌 줄 바로 아래 선 칸이 그 줄의 것처럼 보였습니다).
+                  보낸 단계는 늘 펼쳐지므로 누를 수 없는 줄이고, 나머지는 이
+                  줄로 **펴고 접습니다** — 편 것을 다시 못 접으면 하나씩 펴
+                  볼수록 서랍이 길어지기만 합니다. */}
+              {on ? (
+                <div className="ltask-fold open now">
+                  <span className="ltask-fold-no">{no}</span>
+                  <span className="ltask-fold-name">{s.ko}</span>
+                  <span className="broadcast-live-dot" aria-hidden="true" />
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className={`ltask-fold${open ? " open" : ""}`}
+                  onClick={() =>
+                    setOpenKeys((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(s.key)) next.delete(s.key);
+                      else next.add(s.key);
+                      return next;
+                    })
+                  }
+                  title={open ? "눌러서 접기" : "눌러서 펴고 고치기"}
+                >
+                  <span className="ltask-fold-no">{no}</span>
+                  <span className="ltask-fold-name">{s.ko}</span>
+                  {/* 편 상태에서는 글이 바로 아래 있으므로 미리보기를 안 답니다 */}
+                  {!open && (
+                    <span className={`ltask-fold-peek${text ? "" : " empty"}`}>
+                      {text || "아직 안 썼어요"}
+                    </span>
+                  )}
+                  <span className="ltask-fold-caret" aria-hidden="true">▸</span>
+                </button>
+              )}
+              {open && (
                 <div className="paratext-fields">
                   {s.fields.map((f) => field(f, on && f === s.fields[0]))}
                 </div>
-              </section>
-            );
-          }
-          const text = peek(answers, s.fields);
-          return (
-            <button
-              key={s.key}
-              type="button"
-              className="ltask-fold"
-              onClick={() => setOpenKeys((prev) => new Set(prev).add(s.key))}
-              title="눌러서 펴고 고치기"
-            >
-              <span className="ltask-fold-no">{no}</span>
-              <span className="ltask-fold-name">{s.ko}</span>
-              <span className={`ltask-fold-peek${text ? "" : " empty"}`}>
-                {text || "아직 안 썼어요"}
-              </span>
-              <span className="ltask-fold-caret" aria-hidden="true">▸</span>
-            </button>
+              )}
+            </section>
           );
         })}
         {openSections.length === 0 && !locked && (

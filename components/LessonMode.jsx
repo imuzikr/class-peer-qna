@@ -71,7 +71,6 @@ import ClassNoticeButton from "./ClassNoticeButton";
 import NotificationBell from "./NotificationBell";
 import { isFirebaseConfigured } from "@/lib/firebase";
 import UploadProgress from "./UploadProgress";
-import { IconLockState } from "./StatusIcons";
 
 export default function LessonMode({
   lesson,
@@ -1134,7 +1133,7 @@ export default function LessonMode({
                 <section className="lesson-card lesson-locks">
                   <div className="lesson-card-head">
                     <h2>학생에게 내보내기</h2>
-                    <small>누르면 학생 화면에 바로 떠요 — 잠긴 것은 함께 열립니다</small>
+                    <small>누르면 학생 화면에 바로 떠요 — 살구빛이 지금까지 내보낸 것</small>
                   </div>
 
                   {board && boardActs.length > 0 && (
@@ -1151,20 +1150,14 @@ export default function LessonMode({
                             disabled={pushBusy}
                             title={`${a} — 학생 화면으로 보내기${locked ? " (잠긴 활동은 함께 열려요)" : ""}`}
                           >
-                            {/* 나가 있는 칩은 방송 점, 나머지는 자물쇠 그림으로
-                                지금 상태(닫힘/열림)를 말합니다. 나가 있다는 것은
-                                곧 열렸다는 뜻이라 둘을 함께 달지 않습니다.
-                                이모지였을 때는 두 그림의 굵기와 색이 기기마다
-                                달라 화면에 띄우면 구별이 어려웠고, 고리가 열린
-                                쪽이 오히려 작아 보였습니다. */}
-                            {live ? (
+                            {/* **자물쇠를 달지 마세요.** 이 줄에서 알아야 할
+                                것은 '어디까지 내보냈나'뿐이고 그건 칩 색이
+                                이미 말합니다 — 살구빛이 내보낸 것, 회색이
+                                아직입니다. 자물쇠를 더하면 칩마다 그림이
+                                하나씩 붙어 정작 지금 나가 있는 칩의 점이
+                                묻힙니다. */}
+                            {live && (
                               <span className="broadcast-live-dot" aria-hidden="true" />
-                            ) : (
-                              <IconLockState
-                                locked={locked}
-                                size={16}
-                                className="lesson-lock-icon"
-                              />
                             )}
                             활동 {i + 1}
                           </button>
@@ -1199,10 +1192,11 @@ export default function LessonMode({
                       {pickedBook && (
                         <div className="lesson-lock-row lesson-step-row">
                           {pickedSteps.map((s, i) => {
-                            // 단계 잠금은 곁텍스트에만 있습니다 — RAFT 칩에는
-                            // 자물쇠가 아예 안 섭니다(없던 개념을 만들지 않게).
-                            const hasLock = pickedBook.type === "paratext";
-                            const locked = hasLock && isSectionLocked(pickedBook, s.key);
+                            // 단계 잠금은 곁텍스트에만 있습니다 — RAFT는 네 칸
+                            // 어느 것도 잠기지 않아 늘 '열림' 색입니다.
+                            const locked =
+                              pickedBook.type === "paratext" &&
+                              isSectionLocked(pickedBook, s.key);
                             const live =
                               task?.kind === "book" &&
                               task.activityId === pickedBook.id &&
@@ -1216,16 +1210,8 @@ export default function LessonMode({
                                 disabled={pushBusy}
                                 title={`${s.ko} — 학생 화면으로 보내기${locked ? " (잠긴 단계는 함께 열려요)" : ""}`}
                               >
-                                {live ? (
+                                {live && (
                                   <span className="broadcast-live-dot" aria-hidden="true" />
-                                ) : (
-                                  hasLock && (
-                                    <IconLockState
-                                      locked={locked}
-                                      size={15}
-                                      className="lesson-lock-icon"
-                                    />
-                                  )
                                 )}
                                 {i + 1}. {s.ko}
                               </button>

@@ -25686,15 +25686,29 @@ ul.checklist > li.done {
 }
 .ltask-fold-peek.empty { color: var(--text-faint); }
 .ltask-fold-caret { flex: none; color: var(--text-faint); }
-
-/* 펼친 단계 — 보낸 것이 아니면 어느 단계인지 이름을 한 줄 답니다
-   (보낸 단계는 위 머리말이 이미 말합니다). */
-.ltask-step { display: flex; flex-direction: column; gap: 8px; }
-.ltask-step-name {
-  font-size: 12.5px;
-  font-weight: 700;
-  color: var(--text-sub);
+/* 편 상태 — 같은 줄이 그대로 '접기'가 됩니다. 여닫는 자리가 늘 같은 곳이라야
+   손이 기억합니다(수업 노트 서랍의 손잡이와 같은 생각). 화살표가 아래를
+   가리켜 지금 펴져 있음을 말하고, 미리보기가 빠진 자리는 이름이 채웁니다. */
+.ltask-fold.open {
+  background: var(--neutral);
+  border-color: transparent;
 }
+.ltask-fold.open .ltask-fold-name { flex: 1; min-width: 0; }
+.ltask-fold.open .ltask-fold-caret { transform: rotate(90deg); }
+/* 지금 보낸 칸의 이름 줄 — 누르는 자리가 아닙니다(늘 펼쳐져 있습니다).
+   방송 점을 달아 이 칸이 지금 하라고 온 것임을 말합니다. */
+.ltask-fold.now {
+  background: var(--primary-light);
+  color: var(--primary-dark, #c15a2a);
+  cursor: default;
+}
+.ltask-fold.now .ltask-fold-no {
+  background: var(--primary);
+  color: #fff;
+}
+
+/* 펼친 단계 — 여는 줄과 쓰는 칸을 한 묶음으로 둡니다. */
+.ltask-step { display: flex; flex-direction: column; gap: 8px; }
 /* RAFT 문장은 책방 화면과 같은 규칙(.raft-sentence)을 그대로 쓰고,
    서랍에서만 위아래 여백을 줄입니다. */
 .ltask .raft-sentence { margin: 0; font-size: 13px; }
