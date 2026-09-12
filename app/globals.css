@@ -25579,3 +25579,68 @@ ul.checklist > li.done {
   font-size: 11.5px;
   color: var(--text-faint);
 }
+
+/* ── 서랍의 책방 활동 ──
+   서랍에는 학생이 쓸 수 있는 것이 다 있고, 보내기는 그중 하나로 눈을
+   맞춥니다. 그래서 '보낸 칸'을 색이 아니라 **테두리와 바탕**으로 짚습니다 —
+   글자색까지 건드리면 나머지 칸이 못 쓰는 것처럼 보입니다. */
+.ltask-field--on textarea {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+
+/* 곁텍스트 — 접힌 단계 한 줄. 누르면 그 자리에서 펴져 고칠 수 있습니다. */
+.ltask-fold {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  font-family: inherit;
+  font-size: 12.5px;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+.ltask-fold:hover { border-color: var(--primary); }
+.ltask-fold-no {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--neutral);
+  color: var(--text-sub);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 18px;
+  text-align: center;
+}
+.ltask-fold-name { flex: none; font-weight: 700; }
+/* 미리보기는 **한 줄로 자릅니다** — 접어 둔 뜻이 길이를 줄이는 것이라,
+   여기서 두 줄이 되면 줄마다 높이가 달라져 목록이 들쭉날쭉해집니다. */
+.ltask-fold-peek {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--text-sub);
+}
+.ltask-fold-peek.empty { color: var(--text-faint); }
+.ltask-fold-caret { flex: none; color: var(--text-faint); }
+
+/* 펼친 단계 — 보낸 것이 아니면 어느 단계인지 이름을 한 줄 답니다
+   (보낸 단계는 위 머리말이 이미 말합니다). */
+.ltask-step { display: flex; flex-direction: column; gap: 8px; }
+.ltask-step-name {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+/* RAFT 문장은 책방 화면과 같은 규칙(.raft-sentence)을 그대로 쓰고,
+   서랍에서만 위아래 여백을 줄입니다. */
+.ltask .raft-sentence { margin: 0; font-size: 13px; }
+.ltask-chips { margin-top: -2px; }

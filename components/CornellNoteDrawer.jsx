@@ -40,7 +40,7 @@ import {
 import RichTextEditor from "./RichTextEditor";
 import CornellNoteSheet from "./CornellNoteSheet";
 import LessonTaskPanel from "./LessonTaskPanel";
-import LessonParatextPanel from "./LessonParatextPanel";
+import LessonBookTaskPanel from "./LessonBookTaskPanel";
 import {
   blocksOf,
   emptyBlock,
@@ -483,7 +483,7 @@ export default function CornellNoteDrawer({
                   (카드 한 장 ↔ 그 활동의 내 기록) 칸을 따로 둡니다. 같은
                   껍데기에 억지로 담으면 어느 쪽 규칙을 따르는지 흐려집니다. */}
               {task.kind === "book" ? (
-                <LessonParatextPanel task={task} user={user} onType={onType} />
+                <LessonBookTaskPanel task={task} user={user} onType={onType} />
               ) : (
                 <LessonTaskPanel task={task} user={user} onType={onType} />
               )}

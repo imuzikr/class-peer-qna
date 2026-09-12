@@ -54,11 +54,12 @@ import {
   isMaterialImage,
   materialSizeLimit,
 } from "@/lib/activities";
+import { isSectionLocked, sectionLocksWith } from "@/lib/paratext";
 import {
-  PARATEXT_SECTIONS,
-  isSectionLocked,
-  sectionLocksWith,
-} from "@/lib/paratext";
+  bookPushSteps,
+  isPushableBookActivity,
+  bookKindLabel,
+} from "@/lib/bookPush";
 import { uploadImage, uploadFile } from "@/lib/storageUpload";
 import { formatFileSize } from "@/lib/image";
 import { getCurrentUser } from "@/lib/user";
@@ -211,11 +212,13 @@ export default function LessonMode({
   // 고른 대상 — `s:<활동 자리>`(공부방) 또는 `b:<활동 id>`(책방)
   const [pushPick, setPushPick] = useState("s:0");
   // 책방 단계 — 위에서 독서 활동을 골랐을 때만 씁니다
-  const [pushStep, setPushStep] = useState(PARATEXT_SECTIONS[0].key);
+  const [pushStep, setPushStep] = useState("");
 
   // 반의 독서 활동 목록 — **한 번만** 읽습니다(구독 아님). 수업 모드가 떠
   // 있는 내내 연결을 살려 둘 만한 자리가 아닙니다. 잠긴 활동은 아예 안
   // 세웁니다 — 보내 봐야 규칙이 학생 저장을 거부합니다. 지운 것도 뺍니다.
+  // 지금 보낼 수 있는 것은 곁텍스트 읽기와 RAFT 글쓰기입니다(닿소리는 판이
+  // 열네 칸 격자라 서랍 폭에 안 들어갑니다).
   const [bookActs, setBookActs] = useState(null); // null = 아직 안 읽음
   useEffect(() => {
     if (!classId) { setBookActs([]); return undefined; }
@@ -224,7 +227,7 @@ export default function LessonMode({
       .then((list) => {
         if (!alive) return;
         setBookActs(
-          list.filter((a) => a.type === "paratext" && !a.deleted && a.locked !== true)
+          list.filter(isPushableBookActivity)
         );
       })
       .catch(() => { if (alive) setBookActs([]); });
@@ -235,13 +238,24 @@ export default function LessonMode({
     pushPick.startsWith("b:")
       ? (bookActs ?? []).find((a) => a.id === pushPick.slice(2)) ?? null
       : null;
+  // 고른 활동에서 보낼 수 있는 칸들 — 곁텍스트는 여덟 단계, RAFT는 네 요소와
+  // 글쓰기. 고르개는 하나이고 목록만 갈립니다.
+  const pickedSteps = bookPushSteps(pickedBook);
+  // 활동을 바꾸면 앞 종류의 칸 이름이 남아 있을 수 있습니다(곁텍스트의 '표지'를
+  // 고른 채 RAFT로 옮기는 경우) — 그때는 그 활동의 첫 칸으로 봅니다.
+  const stepPick = pickedSteps.some((s) => s.key === pushStep)
+    ? pushStep
+    : pickedSteps[0]?.key ?? "";
   // 지금 내보내는 중인 책방 단계 — 머리줄에 이름을 적는 데 씁니다
   const taskBook =
     task?.kind === "book"
-      ? {
-          activity: (bookActs ?? []).find((a) => a.id === task.activityId) ?? null,
-          section: PARATEXT_SECTIONS.find((s) => s.key === task.sectionKey) ?? null,
-        }
+      ? (() => {
+          const a = (bookActs ?? []).find((x) => x.id === task.activityId) ?? null;
+          return {
+            activity: a,
+            step: bookPushSteps(a).find((s) => s.key === task.sectionKey) ?? null,
+          };
+        })()
       : null;
 
   // 내보내기는 **열기까지 함께** 합니다 — 잠긴 활동을 내보내면 학생 화면에
@@ -270,7 +284,9 @@ export default function LessonMode({
     setPushBusy(true);
     setActError("");
     try {
-      if (isSectionLocked(activity, sectionKey)) {
+      // 단계 잠금은 곁텍스트에만 있습니다. RAFT는 네 칸 어느 것도 잠기지
+      // 않아 열 것이 없고, 잠금 맵을 써 넣으면 없던 개념이 문서에 생깁니다.
+      if (activity.type === "paratext" && isSectionLocked(activity, sectionKey)) {
         const next = sectionLocksWith(activity, sectionKey, false);
         await updateBookActivity(activity.id, { sectionLocks: next });
         // 방금 연 것을 손에 들고 있어야 이어서 보낼 때 또 열지 않습니다
@@ -1164,10 +1180,10 @@ export default function LessonMode({
                             ))}
                           </optgroup>
                           {(bookActs ?? []).length > 0 && (
-                            <optgroup label="책방 — 곁텍스트 읽기">
+                            <optgroup label="책방 독서 활동">
                               {bookActs.map((a) => (
                                 <option key={`b-${a.id}`} value={`b:${a.id}`}>
-                                  {a.title || a.topic || "이름 없는 활동"}
+                                  [{bookKindLabel(a)}] {a.title || a.topic || "이름 없는 활동"}
                                 </option>
                               ))}
                             </optgroup>
@@ -1176,11 +1192,11 @@ export default function LessonMode({
                         {pickedBook && (
                           <select
                             className="lesson-push-pick"
-                            value={pushStep}
+                            value={stepPick}
                             onChange={(e) => setPushStep(e.target.value)}
                             aria-label="내보낼 단계"
                           >
-                            {PARATEXT_SECTIONS.map((s, i) => (
+                            {pickedSteps.map((s, i) => (
                               <option key={s.key} value={s.key}>
                                 {i + 1}. {s.ko}
                               </option>
@@ -1192,7 +1208,7 @@ export default function LessonMode({
                           className="lesson-push-btn"
                           onClick={() =>
                             pickedBook
-                              ? pushBookStep(pickedBook, pushStep)
+                              ? pushBookStep(pickedBook, stepPick)
                               : pushActivity(Number(pushPick.slice(2)) || 0)
                           }
                           disabled={pushBusy}
@@ -1206,7 +1222,7 @@ export default function LessonMode({
                         <span className="lesson-push-live">
                           <span className="broadcast-live-dot" aria-hidden="true" />
                           {task.kind === "book"
-                            ? `${taskBook?.section?.ko ?? "단계"} 내보내는 중`
+                            ? `${taskBook?.step?.ko ?? "이 칸"} 내보내는 중`
                             : `활동 ${(taskActIndex ?? task.actIndex) + 1} 내보내는 중`}
                         </span>
                         <span className="lesson-push-name">
