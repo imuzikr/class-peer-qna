@@ -8665,26 +8665,34 @@ pre code {
   flex-wrap: wrap;
   gap: 10px;
 }
-/* 칩 하나에 누르는 자리가 **둘**입니다 — 몸통은 내보내기, 오른쪽 끝의 작은
-   자물쇠는 열고 닫기만. 그래서 단추 안에 단추를 넣을 수 없어 껍데기가 감싸는
-   구조이고, 테두리·바탕은 껍데기가 갖습니다. */
+/* 칩 하나가 곧 '내보내기'입니다 — 누르는 자리는 하나뿐. 안의 자물쇠는 지금
+   상태를 말하는 그림일 뿐이라, 누르는 자리를 따로 두지 않습니다(수업의 흐름이
+   '처음엔 잠김 → 내보내면 열림' 하나뿐이고, 다시 잠그는 일은 수업이 다 끝난 뒤
+   활동 설정에서 합니다). */
 .lesson-act-chip {
   display: inline-flex;
-  align-items: stretch;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 18px;
   border-radius: 999px;
-  overflow: hidden;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
   transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
   /* 열림 — 학생이 지금 쓸 수 있는 상태 */
   background: var(--primary-light);
   border: 1px solid #efc19a;
+  color: var(--primary-dark, #c15a2a);
 }
-.lesson-act-chip:hover {
+.lesson-act-chip:hover:not(:disabled) {
   border-color: var(--primary);
 }
 /* 잠김 — 아직 열어 주지 않음(눌러 보내면 함께 열립니다) */
 .lesson-act-chip.locked {
   background: var(--neutral);
   border-color: var(--border);
+  color: var(--text-sub);
 }
 /* 지금 나가 있는 칩 — 방송 중임을 알리는 점을 그대로 쓰고, 테두리를 한 겹
    덧대 멀리서도 어느 것이 나가 있는지 보이게 합니다. */
@@ -8692,41 +8700,7 @@ pre code {
   border-color: var(--primary);
   box-shadow: 0 0 0 2px var(--primary-light);
 }
-.lesson-act-send {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 10px 9px 10px 18px;
-  border: 0;
-  background: none;
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--primary-dark, #c15a2a);
-  cursor: pointer;
-}
-.lesson-act-chip.locked .lesson-act-send {
-  color: var(--text-sub);
-}
-.lesson-act-send:disabled {
-  opacity: 0.55;
-  cursor: default;
-}
-/* 자물쇠는 곁딸린 자리라 몸통보다 좁습니다. 가르는 선이 있어야 '같은 칩이지만
-   다른 일'이 눈에 들어옵니다. */
-.lesson-act-lock {
-  display: inline-flex;
-  align-items: center;
-  padding: 0 13px 0 8px;
-  border: 0;
-  border-left: 1px solid rgba(0, 0, 0, 0.09);
-  background: none;
-  cursor: pointer;
-}
-.lesson-act-lock:hover:not(:disabled) {
-  background: rgba(0, 0, 0, 0.05);
-}
-.lesson-act-lock:disabled {
+.lesson-act-chip:disabled {
   opacity: 0.55;
   cursor: default;
 }
@@ -8787,12 +8761,9 @@ pre code {
   margin-top: 10px;
   gap: 8px;
 }
-.lesson-step-chip .lesson-act-send {
-  padding: 8px 8px 8px 14px;
+.lesson-step-chip {
+  padding: 8px 14px;
   font-size: 13px;
-}
-.lesson-step-chip .lesson-act-lock {
-  padding: 0 11px 0 7px;
 }
 /* 이 반만 프로젝트 연결이 비어 있을 때의 한 줄 안내 — '활동 열기' 자리를
    대신하므로 카드가 아니라 얇은 줄로 둡니다(있어야 할 것이 없는 이유만 알림) */

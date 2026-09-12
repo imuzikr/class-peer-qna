@@ -310,28 +310,10 @@ export default function LessonMode({
     }
   }
 
-  // 곁텍스트 단계의 잠금만 켜고 끕니다 — **내보내지 않고**. 칩 안의 작은
-  // 자물쇠가 부르는 자리라, 공부방 활동 칩의 자물쇠와 같은 일을 합니다.
-  // RAFT는 단계 잠금이 없어 그 칩에는 자물쇠가 아예 안 섭니다.
-  async function toggleSectionLock(activity, sectionKey, locked) {
-    if (!activity || lockBusy) return;
-    setLockBusy(true);
-    setActError("");
-    try {
-      const next = sectionLocksWith(activity, sectionKey, locked);
-      await updateBookActivity(activity.id, { sectionLocks: next });
-      // 목록은 한 번 읽고 마는 값이라 서버가 다시 알려 주지 않습니다.
-      setBookActs((prev) =>
-        (prev ?? []).map((a) => (a.id === activity.id ? { ...a, sectionLocks: next } : a))
-      );
-    } catch (e) {
-      setActError(`단계 잠금을 바꾸지 못했어요: ${e?.message ?? "알 수 없는 오류"}`);
-    } finally {
-      setLockBusy(false);
-    }
-  }
-
-  // 활동 하나의 잠금을 켜고 끕니다(칩 안의 자물쇠 버튼).
+  // 활동 하나의 잠금을 켜고 끕니다. 수업 모드에서 부르는 곳은 내보내기 하나
+  // 뿐입니다(잠긴 활동을 보내면서 여는 자리) — 칩에 있는 자물쇠는 지금 상태를
+  // 말하는 그림일 뿐, 누르는 자리가 아닙니다. 다시 잠그는 일은 수업이 다 끝난
+  // 뒤 활동 설정에서 합니다.
   async function toggleActLock(i, locked) {
     if (!board || lockBusy) return;
     setLockBusy(true);
@@ -1138,9 +1120,13 @@ export default function LessonMode({
                   예전에는 '활동 열기' 칩 줄 아래에 고르개 둘 + 단추 하나짜리
                   내보내기 줄이 따로 있었습니다. 활동을 여는 일이 곧 내보내는
                   일이 되면서 두 줄이 같은 것을 두 번 묻게 되어, 칩 하나로
-                  합쳤습니다 — **몸통은 내보내기, 칩 안의 작은 자물쇠는 열고
-                  닫기만**. 잘못 짚어도 자물쇠 쪽 결과는 '열림/잠김'이라
-                  가볍습니다.
+                  합쳤습니다.
+
+                  **칩 안의 자물쇠는 그림일 뿐, 누르는 자리가 아닙니다.**
+                  수업의 흐름은 '처음엔 잠김 → 내보내면 열림' 하나뿐이고,
+                  다시 잠그는 일은 수업이 다 끝난 뒤 활동 전체를 잠글 때
+                  합니다(활동 설정의 잠금 토글). 누르는 자리가 둘이면 열려고
+                  누른 손이 학생 화면 스물몇 대를 바꿉니다.
 
                   독서 활동도 같은 모양입니다 — 활동 칩을 누르면 그 아래로
                   단계 칩이 서고, 단계를 누르면 그것이 나갑니다. */}
@@ -1157,42 +1143,31 @@ export default function LessonMode({
                         const locked = isActivityLocked(board, i);
                         const live = taskActIndex === i;
                         return (
-                          <span
+                          <button
                             key={`${a}-${i}`}
+                            type="button"
                             className={`lesson-act-chip${locked ? " locked" : ""}${live ? " live" : ""}`}
+                            onClick={() => pushActivity(i)}
+                            disabled={pushBusy}
+                            title={`${a} — 학생 화면으로 보내기${locked ? " (잠긴 활동은 함께 열려요)" : ""}`}
                           >
-                            <button
-                              type="button"
-                              className="lesson-act-send"
-                              onClick={() => pushActivity(i)}
-                              disabled={pushBusy}
-                              title={`${a} — 학생 화면으로 보내기${locked ? " (잠긴 활동은 함께 열려요)" : ""}`}
-                            >
-                              {live && (
-                                <span className="broadcast-live-dot" aria-hidden="true" />
-                              )}
-                              활동 {i + 1}
-                            </button>
-                            {/* 자물쇠 그림 = 지금 상태(닫힘/열림), 툴팁 =
-                                누르면 할 일. 이모지였을 때는 두 그림의 굵기와
-                                색이 기기마다 달라 화면에 띄우면 구별이
-                                어려웠고, 고리가 열린 쪽이 오히려 작아
-                                보였습니다. */}
-                            <button
-                              type="button"
-                              className="lesson-act-lock"
-                              onClick={() => toggleActLock(i, !locked)}
-                              disabled={lockBusy}
-                              title={`${a} — ${locked ? "눌러서 열기" : "눌러서 잠그기"} (보내지는 않아요)`}
-                              aria-pressed={!locked}
-                            >
+                            {/* 나가 있는 칩은 방송 점, 나머지는 자물쇠 그림으로
+                                지금 상태(닫힘/열림)를 말합니다. 나가 있다는 것은
+                                곧 열렸다는 뜻이라 둘을 함께 달지 않습니다.
+                                이모지였을 때는 두 그림의 굵기와 색이 기기마다
+                                달라 화면에 띄우면 구별이 어려웠고, 고리가 열린
+                                쪽이 오히려 작아 보였습니다. */}
+                            {live ? (
+                              <span className="broadcast-live-dot" aria-hidden="true" />
+                            ) : (
                               <IconLockState
                                 locked={locked}
-                                size={15}
+                                size={16}
                                 className="lesson-lock-icon"
                               />
-                            </button>
-                          </span>
+                            )}
+                            활동 {i + 1}
+                          </button>
                         );
                       })}
                     </div>
@@ -1233,39 +1208,27 @@ export default function LessonMode({
                               task.activityId === pickedBook.id &&
                               task.sectionKey === s.key;
                             return (
-                              <span
+                              <button
                                 key={s.key}
+                                type="button"
                                 className={`lesson-act-chip lesson-step-chip${locked ? " locked" : ""}${live ? " live" : ""}`}
+                                onClick={() => pushBookStep(pickedBook, s.key)}
+                                disabled={pushBusy}
+                                title={`${s.ko} — 학생 화면으로 보내기${locked ? " (잠긴 단계는 함께 열려요)" : ""}`}
                               >
-                                <button
-                                  type="button"
-                                  className="lesson-act-send"
-                                  onClick={() => pushBookStep(pickedBook, s.key)}
-                                  disabled={pushBusy}
-                                  title={`${s.ko} — 학생 화면으로 보내기${locked ? " (잠긴 단계는 함께 열려요)" : ""}`}
-                                >
-                                  {live && (
-                                    <span className="broadcast-live-dot" aria-hidden="true" />
-                                  )}
-                                  {i + 1}. {s.ko}
-                                </button>
-                                {hasLock && (
-                                  <button
-                                    type="button"
-                                    className="lesson-act-lock"
-                                    onClick={() => toggleSectionLock(pickedBook, s.key, !locked)}
-                                    disabled={lockBusy}
-                                    title={`${s.ko} — ${locked ? "눌러서 열기" : "눌러서 잠그기"} (보내지는 않아요)`}
-                                    aria-pressed={!locked}
-                                  >
+                                {live ? (
+                                  <span className="broadcast-live-dot" aria-hidden="true" />
+                                ) : (
+                                  hasLock && (
                                     <IconLockState
                                       locked={locked}
                                       size={15}
                                       className="lesson-lock-icon"
                                     />
-                                  </button>
+                                  )
                                 )}
-                              </span>
+                                {i + 1}. {s.ko}
+                              </button>
                             );
                           })}
                         </div>
