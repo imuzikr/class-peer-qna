@@ -29,7 +29,7 @@
 // 활동 1건 + 내 기록 1건. 내보낸 것이 바뀔 때만 다시 읽습니다. 앞 칸을
 // 함께 그리는 데 드는 읽기는 **없습니다** — 답이 한 문서에 다 들어 있습니다.
 // =============================================================
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { fetchBookActivity, fetchMyBookEntry, saveParatextEntry } from "@/lib/store";
 import { PARATEXT_SECTIONS, isSectionLocked } from "@/lib/paratext";
 import {
@@ -183,26 +183,32 @@ export default function LessonBookTaskPanel({ task, user, onType }) {
   // 렌더마다 새것이 되어 React가 칸을 지웠다 다시 만들고, 글자를 칠 때마다
   // 커서를 잃습니다. 아래 두 몸통(ParatextBody·RaftBody)도 같은 이유로
   // `<X />`가 아니라 `X()`로 부릅니다.
-  function field(f, on) {
+  // `after`는 그 칸 **바로 아래**에 붙는 것(형식 칩 줄). 라벨 안이 아니라
+  // 형제로 두는 것은, 라벨 안의 단추를 누르면 브라우저가 그 라벨의 글자 칸으로
+  // 초점을 옮기려 들기 때문입니다.
+  function field(f, on, after = null) {
     return (
-      <label key={f.key} className={`paratext-field${on ? " ltask-field--on" : ""}`}>
-        {f.label && (
-          <span>
-            {f.label}
-            {f.optional && <em className="book-optional">선택</em>}
-          </span>
-        )}
-        {/* 서랍은 세로로 구르므로 칸 높이는 최소만 잡습니다 — 칸이 다섯인
-            단계(제목)에서 넉넉히 잡으면 한 화면에 하나도 안 들어옵니다. */}
-        <textarea
-          rows={f.rows ?? Math.max(f.lines ?? 2, 2)}
-          value={answers[f.key] ?? ""}
-          onChange={(e) => edit(f.key, e.target.value)}
-          placeholder={f.placeholder}
-          disabled={!canWrite}
-          autoFocus={on && canWrite}
-        />
-      </label>
+      <Fragment key={f.key}>
+        <label className={`paratext-field${on ? " ltask-field--on" : ""}`}>
+          {f.label && (
+            <span>
+              {f.label}
+              {f.optional && <em className="book-optional">선택</em>}
+            </span>
+          )}
+          {/* 서랍은 세로로 구르므로 칸 높이는 최소만 잡습니다 — 칸이 다섯인
+              단계(제목)에서 넉넉히 잡으면 한 화면에 하나도 안 들어옵니다. */}
+          <textarea
+            rows={f.rows ?? Math.max(f.lines ?? 2, 2)}
+            value={answers[f.key] ?? ""}
+            onChange={(e) => edit(f.key, e.target.value)}
+            placeholder={f.placeholder}
+            disabled={!canWrite}
+            autoFocus={on && canWrite}
+          />
+        </label>
+        {after}
+      </Fragment>
     );
   }
 
@@ -330,26 +336,33 @@ export default function LessonBookTaskPanel({ task, user, onType }) {
                     placeholder: c.placeholder,
                     rows: 2,
                   },
-                  c.key === sectionKey
+                  c.key === sectionKey,
+                  // 형식은 학생이 가장 떠올리기 어려워하는 칸이라, 책방 화면처럼
+                  // 자주 쓰는 것을 눌러 넣게 둡니다. **그 칸 바로 아래**에 —
+                  // 네 칸을 다 지나 맨 밑에 두면 무엇을 고르는 칩인지 알 수
+                  // 없습니다(책방 화면도 형식 칸 아래입니다).
+                  //
+                  // **어느 칸이 나가 있든 늘 섭니다.** 한때 형식을 보냈을 때만
+                  // 그렸는데, 형식을 정한 뒤 선생님이 주제를 보내면 칩이
+                  // 사라져 다른 형식으로 바꿀 길이 없어졌습니다. 고른 뒤에도
+                  // 그대로 두어 눌러서 바꿀 수 있게 합니다.
+                  c.key === "format" && canWrite ? (
+                    <div className="raft-chips ltask-chips">
+                      {RAFT_FORMATS.map((f) => (
+                        <button
+                          key={f}
+                          type="button"
+                          className={`raft-chip${answers.format === f ? " on" : ""}`}
+                          onClick={() => edit("format", f)}
+                        >
+                          {f}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null
                 )
               )}
             </div>
-            {/* 형식은 학생이 가장 떠올리기 어려워하는 칸이라, 책방 화면처럼
-                자주 쓰는 것을 눌러 넣게 둡니다. */}
-            {sectionKey === "format" && canWrite && (
-              <div className="raft-chips ltask-chips">
-                {RAFT_FORMATS.map((f) => (
-                  <button
-                    key={f}
-                    type="button"
-                    className={`raft-chip${answers.format === f ? " on" : ""}`}
-                    onClick={() => edit("format", f)}
-                  >
-                    {f}
-                  </button>
-                ))}
-              </div>
-            )}
           </>
         )}
       </>

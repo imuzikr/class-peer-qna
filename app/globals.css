@@ -25696,4 +25696,6 @@ ul.checklist > li.done {
 /* RAFT 문장은 책방 화면과 같은 규칙(.raft-sentence)을 그대로 쓰고,
    서랍에서만 위아래 여백을 줄입니다. */
 .ltask .raft-sentence { margin: 0; font-size: 13px; }
-.ltask-chips { margin-top: -2px; }
+/* 형식 칩 줄 — 그 칸 바로 아래에 붙습니다. 칸 사이 간격(9px)을 그대로 두면
+   위아래가 똑같이 떨어져 어느 칸에 딸린 줄인지 흐려집니다. */
+.ltask-chips { margin-top: -4px; }
