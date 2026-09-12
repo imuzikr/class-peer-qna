@@ -25563,8 +25563,10 @@ ul.checklist > li.done {
 /* ── 학생: 서랍의 탭 줄 ──
    노트 크게 보기 창의 탭(`.dash-view-tabs`)과 같은 것을 씁니다 — 학생이
    '내가 쓴 것을 고르는 줄'로 이미 익힌 모양입니다. */
+/* 머리줄 밑줄에 바로 붙으면 제목의 딸린 줄처럼 보입니다 — 탭은 아래 내용을
+   고르는 줄이라 그 사이를 띄워 둡니다. */
 .cornell-tabs {
-  margin: 0 14px 10px;
+  margin: 12px 14px 10px;
   align-self: flex-start;
 }
 
