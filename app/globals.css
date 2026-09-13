@@ -14019,7 +14019,12 @@ a.lesson-board-file-name { text-decoration: underline; }
   font-size: 11.5px;
   color: var(--text-sub);
 }
-/* 교실 앞쪽이 어디인지 알려 주는 표시 — 자리표를 실제 교실과 맞춰 읽도록 */
+/* 교실 앞쪽이 어디인지 알려 주는 표시 — 자리표를 실제 교실과 맞춰 읽도록.
+   **지금 쓰는 곳은 학생의 '자리 배치' 창(`MySeatModal`) 하나뿐입니다.**
+   교사 자리표들(`SeatPickGrid`)에서는 걷어 냈습니다 — 그 머리줄의
+   '학생 보기 / 선생님 보기' 단추가 이미 방향을 글자로 말해, 같은 뜻이 둘이면
+   자리만 먹고 판이 그만큼 내려앉습니다. 학생 창에는 그 단추가 없어(학생은 늘
+   앉은 자리에서 봅니다) 여기서는 이 표시가 방향을 말하는 유일한 것입니다. */
 .attend-seatmap-board {
   flex: 1;
   padding: 6px 0;
@@ -14031,27 +14036,7 @@ a.lesson-board-file-name { text-decoration: underline; }
   text-align: center;
   letter-spacing: 0.3em;
 }
-/* 칠판이 서는 띠 — 머리줄이 아니라 **판 위아래에 제 줄로** 둡니다.
-   '학생 보기'는 학생이 앉아 칠판을 보는 방향이라 판 위, '선생님 보기'는
-   교탁에서 뒤돌아본 방향이라 판 **아래**입니다(`--below`). 머리줄에 두면
-   같은 줄의 안내문·보기 단추·손바닥 뱃지가 폭을 나눠 가져 70px 알약으로
-   쪼그라드는데 아래로 내려가면 줄을 통째로 써서, 같은 표시가 방향에 따라
-   두 얼굴이 됩니다. `flex`로 감싸는 까닭은 `.attend-seatmap-board`가
-   `flex: 1`로 폭을 받기 때문입니다. */
-.attend-seatmap-band {
-  display: flex;
-  margin-bottom: 12px;
-}
-.attend-seatmap-band--below {
-  margin-bottom: 0;
-  margin-top: 12px;
-}
-.attend-seatmap--compact .attend-seatmap-band { margin-bottom: 8px; }
-.attend-seatmap--compact .attend-seatmap-band--below {
-  margin-bottom: 0;
-  margin-top: 8px;
-}
-/* 칠판이 띠로 빠진 머리줄의 그 자리를 대신 채웁니다 — 손바닥 뱃지를 오른쪽
+/* 칠판이 서던 머리줄의 그 자리를 대신 채웁니다 — 손바닥 뱃지를 오른쪽
    끝으로 밀어내던 칸이라, 비워 두지 않으면 뱃지가 줄 가운데로 들어옵니다
    (빈 칸이라 배경도 글자도 없습니다). */
 .attend-seatmap-gap {
