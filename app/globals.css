@@ -8970,6 +8970,12 @@ pre code {
    자리 확인 모달과 함께 쓰는 컴포넌트라 그쪽 것은 건드리지 않으려고
    이 패널 안으로만 좁혀 감춥니다. */
 .lesson-seat-panel .attend-seatmap-head .attend-seatmap-hands { display: none; }
+/* 그러고 나면 이 패널에서는 그 머리줄에 그릴 것이 하나도 남지 않습니다 —
+   손바닥 뱃지는 위 줄이 감추고, 칠판은 판 위아래의 제 띠로 빠졌습니다.
+   높이 0짜리 빈 줄에 아래 여백 8px만 남아 칠판 띠를 그만큼 밀어내므로
+   줄째로 접습니다. **이 패널의 자리표 머리줄에 설 것을 새로 넘긴다면
+   (`headTrail` 등) 이 줄을 함께 지우세요** — 안 그러면 조용히 안 보입니다. */
+.lesson-seat-panel .attend-seatmap-head { display: none; }
 .lesson-seat-tabs {
   flex: 1;
   display: flex;
@@ -13977,6 +13983,32 @@ a.lesson-board-file-name { text-decoration: underline; }
   font-weight: 800;
   text-align: center;
   letter-spacing: 0.3em;
+}
+/* 칠판이 서는 띠 — 머리줄이 아니라 **판 위아래에 제 줄로** 둡니다.
+   '학생 보기'는 학생이 앉아 칠판을 보는 방향이라 판 위, '선생님 보기'는
+   교탁에서 뒤돌아본 방향이라 판 **아래**입니다(`--below`). 머리줄에 두면
+   같은 줄의 안내문·보기 단추·손바닥 뱃지가 폭을 나눠 가져 70px 알약으로
+   쪼그라드는데 아래로 내려가면 줄을 통째로 써서, 같은 표시가 방향에 따라
+   두 얼굴이 됩니다. `flex`로 감싸는 까닭은 `.attend-seatmap-board`가
+   `flex: 1`로 폭을 받기 때문입니다. */
+.attend-seatmap-band {
+  display: flex;
+  margin-bottom: 12px;
+}
+.attend-seatmap-band--below {
+  margin-bottom: 0;
+  margin-top: 12px;
+}
+.attend-seatmap--compact .attend-seatmap-band { margin-bottom: 8px; }
+.attend-seatmap--compact .attend-seatmap-band--below {
+  margin-bottom: 0;
+  margin-top: 8px;
+}
+/* 칠판이 띠로 빠진 머리줄의 그 자리를 대신 채웁니다 — 손바닥 뱃지를 오른쪽
+   끝으로 밀어내던 칸이라, 비워 두지 않으면 뱃지가 줄 가운데로 들어옵니다
+   (빈 칸이라 배경도 글자도 없습니다). */
+.attend-seatmap-gap {
+  flex: 1;
 }
 .attend-seatmap-hands {
   flex-shrink: 0;

@@ -25,7 +25,9 @@ import {
   todayDateKey,
 } from "@/lib/store";
 import { normalizeSeats } from "@/lib/seats";
+import { useSeatView } from "@/lib/seatView";
 import { useTodayRewardCounts } from "@/lib/useTodayRewards";
+import SeatViewToggle from "./SeatViewToggle";
 import StudentNotesThread from "./StudentNotesThread";
 import StudentToolsPopover from "./StudentToolsPopover";
 import { IconMyPost } from "./StatusIcons";
@@ -116,6 +118,11 @@ export function SeatPickGrid({
   seats, byUid, raisedUids, raisedCount, onPick, compact = false,
   onDragStart, onDragEnd, onDropTo, topUids = null, presentUids = null,
   liveState = null, notingUids = null, headLead = null, todayCountByUid = null,
+  // 머리줄에서 손바닥 뱃지 **바로 왼쪽**에 끼우는 것 — 지금은 보기 방향 단추가
+  // 여기 섭니다. `headLead`(줄 맨 앞)와 달리 '칠판' 표시를 밀어내지 않아,
+  // 칠판을 그대로 두고도 단추를 얹을 수 있습니다. 자리도 패널·확대 창의
+  // 그것과 같습니다(뱃지 왼쪽) — 같은 단추를 화면마다 다른 데서 찾지 않게.
+  headTrail = null,
   // 선생님 자리에서 본 배치 — 자리표를 통째로 180도 돌립니다.
   // 자리 순서를 뒤집는 대신 그림을 돌리는 이유: 자리는 빈 칸이 섞인 격자라
   // 배열을 뒤집으면 빈 칸이 엉뚱한 곳으로 갑니다. 그림을 돌리면 빈 칸까지
@@ -123,17 +130,37 @@ export function SeatPickGrid({
   flipped = false,
 }) {
   const draggable = !!(onDragStart && onDragEnd && onDropTo);
+  // '칠판'은 교실 앞쪽이 어디인지 알려 주는 표시라 **판이 돌면 함께 돌아야**
+  // 합니다. 학생 보기는 학생이 앉아 칠판을 보는 방향이라 칠판이 위, 선생님
+  // 보기는 교탁에서 뒤돌아본 방향이라 칠판이 **아래**입니다. 위에 못 박아
+  // 두면 돌린 순간 앞뒤를 거꾸로 알려 줍니다(`headLead`를 준 화면은 애초에
+  // 칠판을 안 그립니다 — 옮길 것도 없습니다).
+  //
+  // **머리줄이 아니라 제 띠로** 둡니다. 머리줄에 두면 같은 줄의 안내문·보기
+  // 단추·손바닥 뱃지가 폭을 나눠 가져 70px짜리 알약으로 쪼그라드는데, 아래로
+  // 내려가면 줄을 통째로 써서 띠가 됩니다 — 같은 표시가 방향에 따라 두 얼굴이
+  // 됩니다. 어느 쪽이든 판과 같은 폭의 띠 하나입니다.
+  const board = headLead ? null : (
+    <div className={`attend-seatmap-band${flipped ? " attend-seatmap-band--below" : ""}`}>
+      <span className="attend-seatmap-board">칠판</span>
+    </div>
+  );
   return (
     <div className={`attend-seatmap${compact ? " attend-seatmap--compact" : ""}`}>
       <div className="attend-seatmap-head">
-        {headLead ?? <span className="attend-seatmap-board">칠판</span>}
+        {/* 칠판이 띠로 빠진 자리는 비워 둡니다 — `flex: 1`로 남는 폭을 받아
+            손바닥 뱃지를 오른쪽 끝으로 밀어내던 칸이라, 빼 버리면 뱃지가
+            줄 가운데로 들어옵니다. */}
+        {headLead ?? <span className="attend-seatmap-gap" />}
         {!compact && (
           <span className="attend-seatmap-hint">자리를 누르면 과일·누가기록을 열 수 있어요</span>
         )}
+        {headTrail}
         <span className={`attend-seatmap-hands${raisedCount > 0 ? " on" : ""}`}>
           🖐️ {compact ? raisedCount : `질문 ${raisedCount}`}
         </span>
       </div>
+      {!flipped && board}
       <div className={`attend-seatmap-grid${flipped ? " attend-seatmap-grid--flipped" : ""}`}>
         {seats.map((uid, i) => {
           const s = uid ? byUid.get(uid) : null;
@@ -167,6 +194,7 @@ export function SeatPickGrid({
           );
         })}
       </div>
+      {flipped && board}
     </div>
   );
 }
@@ -183,6 +211,12 @@ export default function QuestionSeatModal({ classId, onClose }) {
   const [toolsFor, setToolsFor] = useState(null);
   const [toolsAt, setToolsAt] = useState(null);
   const [notesFor, setNotesFor] = useState(null);
+  // 어느 쪽에서 본 배치인가 — '멋진 순간' 패널·확대 창·수업 중 자리표와
+  // **같은 값 하나**를 나눠 씁니다(lib/seatView.js). 이 창만 이 값을 안 봐서
+  // 늘 학생 보기로 떴고, 패널에서 선생님 보기로 돌려 둔 채 손든 학생을 찾으면
+  // 교실의 반대쪽을 보게 됐습니다 — 자리로 사람을 찾으려고 여는 창이라
+  // 방향이 어긋나면 이 창의 쓸모 자체가 없어집니다.
+  const [teacherView, toggleSeatView] = useSeatView();
 
   function openTools(s, el = null) {
     setToolsFor(s);
@@ -296,6 +330,10 @@ export default function QuestionSeatModal({ classId, onClose }) {
               raisedCount={raisedCount}
               todayCountByUid={todayCountByUid}
               onPick={openTools}
+              headTrail={
+                <SeatViewToggle teacherView={teacherView} onToggle={toggleSeatView} />
+              }
+              flipped={teacherView}
             />
           )}
         </div>
