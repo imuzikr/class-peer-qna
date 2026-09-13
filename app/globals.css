@@ -11856,9 +11856,20 @@ a.lesson-board-file-name { text-decoration: underline; }
   width: min(760px, 94vw);
   max-width: 760px;
 }
-/* 확대 모달 머리줄 — 칠판 표시도 안내문도 두지 않고 손바닥 뱃지만 오른쪽에.
-   빈 span이 그 자리를 채워 뱃지를 끝으로 밀어냅니다. */
-.reward-zoom-lead { flex: 1; }
+/* 확대 모달 머리줄 — 칠판 표시도 안내문도 두지 않고, 오른쪽 끝에 보기 방향
+   단추 · 손바닥 뱃지 둘만 섭니다. 이 칸이 `flex: 1`로 남는 폭을 다 받고
+   안에서 오른쪽으로 붙여, 단추가 **뱃지 바로 왼쪽**에 옵니다 — 패널 머리줄
+   (`.reward-seat-head-btns`)의 차례와 같은 자리입니다. 왼쪽 끝에 두면 같은
+   단추를 화면마다 다른 데서 찾게 됩니다.
+   **`aria-hidden`을 다시 붙이지 마세요** — 빈 칸이던 시절의 흔적인데, 안에
+   누를 수 있는 단추가 생긴 뒤로는 읽어 주는 기기에서 그 단추가 통째로
+   사라집니다(숨긴 것 안의 초점 요소). */
+.reward-zoom-lead {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
 .reward-zoom-modal .attend-seatmap-hint { display: none; }
 /* 학생이 자기 과일 흐름을 여는 모달 — 내용이 막대 하나뿐이라 좁게 */
 .fruit-trend-modal {

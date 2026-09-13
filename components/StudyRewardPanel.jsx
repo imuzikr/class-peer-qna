@@ -335,8 +335,18 @@ export default function StudyRewardPanel({
               </button>
             </div>
             <SeatPickGrid
-              headLead={<span className="reward-zoom-lead" aria-hidden="true" />}
-              /* 크게 보기도 같은 방향으로 — 한 자리표가 두 얼굴이면 안 됩니다 */
+              /* 크게 보기에서도 방향을 바꿉니다. 예전에는 이 자리가 뱃지를
+                 오른쪽으로 밀어내는 빈 칸이라, 방향을 돌리려면 창을 닫고
+                 패널 머리줄까지 갔다가 다시 열어야 했습니다 — 교실에 띄워
+                 놓고 보는 화면이라 방향을 바로잡고 싶은 순간이 여기입니다.
+                 패널과 같은 값을 쓰므로(`teacherView` 하나) 여기서 돌리면
+                 뒤의 패널도 함께 돌아갑니다 — 한 자리표가 두 얼굴이면
+                 안 됩니다. */
+              headLead={
+                <span className="reward-zoom-lead">
+                  <SeatViewToggle teacherView={teacherView} onToggle={toggleSeatView} />
+                </span>
+              }
               flipped={teacherView}
               seats={seats}
               byUid={byUid}
