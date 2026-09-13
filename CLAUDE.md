@@ -1677,6 +1677,28 @@ Firebase 미설정 시 자동으로 **데모 모드**로 동작 (새로고침 �
 - **글이 뿌려지는 자리를 새로 만들면 이 두 규칙에 선택자를 더하세요.**
   안 그러면 그 화면에서만 서식이 풀립니다.
 
+### 스크롤 칸 안의 `.sr-only`는 위치 기준을 함께 줘야 합니다
+
+- `.sr-only`는 `position: absolute`입니다. **조상 중에 위치 기준(`relative`)이
+  하나도 없으면 기준이 문서 전체가 되어**, 그 요소를 품은 칸의 `overflow`에
+  잘리지 않고 문서 바깥으로 삐져나갑니다. 눈에는 안 보이는데 **문서 높이만
+  늘어나** 페이지에 세로 스크롤바가 하나 더 생깁니다.
+- 실제로 겪은 것: `/admin`의 과일 지급 격자(`.crtrend-scroll`) 안
+  `<caption class="sr-only">`이 학생 26명짜리 표에서 **851px**을 넘겨,
+  화면 높이에 못 박아 둔 대시보드(`.admin-shell`, 100vh)에 페이지 스크롤바가
+  생겼습니다. 교사 화면에 막대가 셋(카드 안 · 본문 · 페이지)으로 보였습니다.
+- **찾는 법**은 '가장 아래까지 뻗은 요소'를 짚는 것입니다. 껍데기 높이가
+  화면과 같은데 문서가 넘치면, 넘치는 것은 껍데기 **바깥**에 있습니다.
+
+  ```js
+  let m=0,w=null;for(const e of document.querySelectorAll('body *')){
+    const b=e.getBoundingClientRect().bottom+scrollY; if(b>m){m=b;w=e} }
+  console.log(Math.round(m), w.tagName, w.className)
+  ```
+- 고치는 법은 **감싼 칸에 `position: relative`** 한 줄입니다. 껍데기에
+  `overflow: hidden`을 둘러 덮지 마세요 — 증상만 가리고 진짜 넘치는 것은
+  그대로 남습니다.
+
 ### 안내·예시 글자는 `--text-faint`
 
 글자 짙기는 세 단계입니다 — 본문 `--text` · 딸림글 `--text-sub` · **안내·예시

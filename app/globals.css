@@ -11873,7 +11873,19 @@ a.lesson-board-file-name { text-decoration: underline; }
   color: var(--text-sub);
   font-variant-numeric: tabular-nums;
 }
+/* `position: relative`가 **꼭 있어야 합니다.** 이 표에는 읽어 주는 기기용
+   제목이 `<caption class="sr-only">`로 들어 있는데, `.sr-only`는
+   `position: absolute`입니다. 조상 중에 위치 기준이 하나도 없으면 그 캡션의
+   기준이 **문서 전체**가 되어, 이 칸의 `overflow`에도 대시보드 본문의
+   `overflow`에도 잘리지 않고 문서 바깥으로 삐져나갑니다.
+   그러면 화면 높이에 못 박아 둔 대시보드(`.admin-shell`, 100vh)인데도
+   **페이지 전체에 세로 스크롤바가 하나 더 생깁니다** — 학생이 스물여섯 명인
+   반에서 851px이 넘쳤습니다(실측). 교사 화면에 막대가 셋으로 보이던 원인이
+   이것이었습니다.
+   기준을 여기로 잡아 두면 캡션이 이 칸 안에 머물러 그대로 잘립니다.
+   **스크롤 칸 안에 `.sr-only`를 둘 때는 늘 이 짝을 확인하세요.** */
 .crtrend-scroll {
+  position: relative;
   overflow-x: auto;
   margin-top: 4px;
 }
