@@ -149,7 +149,16 @@ export default function QuestionSignalButton({
   }
 
   // 훅을 모두 지나온 자리입니다(구독은 계속 돌아야 손들면 바로 나타납니다).
-  if (isTeacher && !active) return null;
+  //
+  // 손이 없으면 **보이지는 않되 자리는 비워 둡니다**(빈 상자 하나). 위 설명대로
+  // 그림을 안 그리는 것은 그대로인데, 통째로 없애면 손이 오르내릴 때마다 오른쪽
+  // 묶음의 폭이 28px씩 달라지고 그 왼쪽에 붙어 있는 **전광판이 그만큼 밀립니다**
+  // — 수업 중에 읽고 있던 한 줄이 움직입니다. 상자 크기는 `.question-signal-btn`
+  // 과 같은 28px 고정이라(인원수를 숫자로 안 달아 늘 같은 크기입니다) 정확히
+  // 맞아떨어집니다. 학생 쪽은 손바닥이 늘 있어 이 갈래를 안 지납니다.
+  if (isTeacher && !active) {
+    return <span className="question-signal-hold" aria-hidden="true" />;
+  }
 
   return (
     <div className="question-signal-wrap" ref={wrapRef}>

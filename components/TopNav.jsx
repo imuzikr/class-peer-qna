@@ -408,6 +408,13 @@ export default function TopNav({ active, onPython, pyActive = false }) {
           반씩 나눠 가져, 문구가 그 사이 가운데에 섭니다. */}
       <span className="topbar-tagline">작은 변화로 시작하는 성장의 기록</span>
 
+      {/* 남는 가로를 통째로 받는 빈 칸 — 전광판과 사용자 영역을 오른쪽 끝으로
+          밀어냅니다(전광판은 오른쪽 정렬). `margin-left: auto`로 하지 않은
+          까닭: 그 자동 여백은 **전광판이 없을 때**(글이 없는 학생 화면, 반을
+          아직 안 고른 교사) 함께 사라져 사용자 영역이 이동 메뉴 옆에 붙습니다.
+          늘 있는 빈 칸 하나면 전광판이 있든 없든 오른쪽 끝이 지켜집니다. */}
+      <span className="topbar-gap" aria-hidden="true" />
+
       {/* 전광판 — 문구 오른쪽, 사용자 영역 앞. 문구를 왼쪽으로 당기고
           (margin-left를 풀고) 남는 가로를 이 칸이 받습니다. */}
       <ClassMarquee cls={marqueeClass} isTeacher={admin} />
