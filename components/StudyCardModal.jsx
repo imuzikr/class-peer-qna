@@ -20,6 +20,7 @@ import {
   parseActivitySections,
   isActivityLocked,
   DONE_MIN_CHARS,
+  isTeacherAuthoredCard,
 } from "@/lib/activities";
 import { formatFileSize } from "@/lib/image";
 import { uploadImage, uploadFile, uploadDataUrl } from "@/lib/storageUpload";
@@ -49,8 +50,8 @@ export default function StudyCardModal({
     ? [board.keyword]
     : [];
   const linked = boardKeywords.length > 0;
-  const isTeacherCard =
-    card?.authorId?.startsWith?.("teacher_") || card?.authorName === "선생님";
+  // 판정은 `isTeacherAuthoredCard` 한 곳(같은 식을 베껴 두지 마세요)
+  const isTeacherCard = isTeacherAuthoredCard(card);
   // 학생에겐 익명 닉네임만, 교사에겐 디렉터리의 실명을 표시 (교사 카드는 "선생님")
   const cardDisplayName = card
     ? (isTeacher(getCurrentUser()) && !isTeacherCard

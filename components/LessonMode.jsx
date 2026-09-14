@@ -53,6 +53,7 @@ import {
   MATERIAL_ACCEPT,
   isMaterialImage,
   materialSizeLimit,
+  isTeacherAuthoredCard,
 } from "@/lib/activities";
 import { isSectionLocked, sectionLocksWith } from "@/lib/paratext";
 import {
@@ -414,7 +415,12 @@ export default function LessonMode({
   async function saveBoardActs(next, locksOverride = null) {
     if (!board) return false;
     setActError("");
-    const studentCards = boardCards.filter((c) => !c.authorId?.startsWith("teacher_"));
+    // 교사 카드(안내·예시)는 빼고 봅니다. 예전에는 "teacher_" 접두만 봤는데
+    // 그건 데모 모드의 uid 규칙이라 **실서비스 교사 uid는 안 걸립니다** —
+    // 프로젝트를 만들 때 깔리는 안내 카드의 본문이 활동 이름을 담고 있어
+    // '학생이 이미 쓴 내용'으로 잡혔고, 그 결과 아무도 안 썼는데도 교사가
+    // 활동 목록을 영영 못 고쳤습니다.
+    const studentCards = boardCards.filter((c) => !isTeacherAuthoredCard(c));
     // 학생이 이미 쓴 내용을 활동 틀로 덮어쓰면 안 됩니다. 텍스트 없이
     // 붙여넣은 이미지만 있는 카드도 '이미 쓴 내용'입니다 — stripHtml만 보면
     // <img>만 있는 카드가 빈 카드로 보여, 그 이미지를 덮어써 버릴 뻔했습니다.

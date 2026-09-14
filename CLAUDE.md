@@ -228,6 +228,31 @@ Firebase 미설정 시 자동으로 **데모 모드**로 동작 (새로고침 �
     요구해 교사가 대신 못 만듦). 화면에서는 명단 기준으로 '빈 자리'를 미리
     깔아 두어(`StudyProjectView`의 seats) 카드가 이미 있는 것처럼 보입니다.
   - (데모 모드 mock은 평면 배열 `mock.studyCards`로 흉내 — Firebase는 서브컬렉션)
+  - **교사 '안내' 카드** — 프로젝트를 만들 때 한 장 같이 깔립니다
+    (`StudyProjectForm`이 `buildActivityTemplate(acts)`로 활동 틀을 채워 둡니다).
+    격자 맨 앞자리에 서서 예시·자료 노릇을 하고, 교사는 설정(⚙)의
+    '＋ 카드 추가'로 언제든 더 만들 수 있습니다. 교사 카드만 **자동 ID**라
+    한 프로젝트에 여러 장이 될 수 있습니다(학생은 문서 ID = uid로 한 장).
+    - **판정은 `lib/activities.js`의 `isTeacherAuthoredCard` 한 곳입니다.**
+      `authorId`가 `teacher_`로 시작하거나 `authorName === "선생님"`인지를
+      봅니다 — 앞의 것은 **데모 모드의 uid 규칙**이라, 실서비스 교사 uid는
+      평범한 Firebase uid입니다. 그래서 **접두만 보면 실서비스에서 통째로
+      샙니다.** 이름 쪽이 실제로 걸리는 조건이고, 교사 표시 이름은
+      `lib/auth.js`가 프로필을 '선생님'으로 교정해 늘 이 값입니다.
+    - **같은 식을 다른 파일에 베껴 쓰지 마세요.** 실제로 다섯 군데에 복제돼
+      있었고 그중 넷이 접두만 봐서 실서비스에서 안내 카드가 학생으로
+      세어졌습니다 — `LessonMode`(활동 편집 차단) · `/admin`의
+      `classParticipantIds`·`classCards` · `StudyRoomStats`의 제출률.
+    - 그중 `LessonMode`는 **눈에 보이는 고장**이었습니다: 활동을 바꾸기 전에
+      '학생이 이미 쓴 내용'이 있는지 보는데, 안내 카드 본문이 활동 이름을
+      담고 있어 늘 걸렸습니다. 그래서 **아무도 안 썼는데도 교사가 활동
+      목록을 영영 못 고쳤습니다.**
+    - KWLS 기록은 `userId`만 있고 작성자 이름이 없어 그쪽은 접두로만 봅니다
+      (`StudyRoomStats`의 `isStudent`) — 교사는 KWLS를 안 써서 걸릴 일이
+      없는 자리입니다.
+    - 화면에는 **'안내' 배지**(`.study-card-guide`)를 답니다. 집계에서 빠지는
+      것과 **화면에서 그렇게 보이는 것은 별개**라, 이름('선생님')만 있으면
+      학생 카드 격자에서 '선생님이 카드를 냈다'로 읽힙니다(실제 오류 신고).
 - `kwl` — **KWLS 기록** (classId, userId, date, answers{know,want,learned,still}
   + 옛 K/W/L/S 필드) — 문서 ID 고정 upsert (append 아님)
   - 공부방 하루 성찰: ID = `uid_classId_date`

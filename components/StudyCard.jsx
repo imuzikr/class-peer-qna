@@ -2,7 +2,7 @@
 
 import { formatTime, getDirectoryUser } from "@/lib/store";
 import { stripHtml } from "@/lib/html";
-import { cardActivitySummary } from "@/lib/activities";
+import { cardActivitySummary, isTeacherAuthoredCard } from "@/lib/activities";
 import { IconTeacher, IconGroup } from "./StatusIcons";
 import { nextFruit } from "./RewardFruits";
 
@@ -30,9 +30,10 @@ export default function StudyCard({
 }) {
   // 모둠 카드 — 모둠명 + 구성원(대표 👑)을 헤더에 표시
   const isGroupCard = !!card.groupId;
-  // 교사 카드: 데모는 "teacher_" 접두, 실서비스는 작성자명이 "선생님"(예약어)
-  const isTeacherCard =
-    card.authorId?.startsWith?.("teacher_") || card.authorName === "선생님";
+  // 교사 카드 판정은 `isTeacherAuthoredCard` 한 곳입니다 — 여기에 같은 식을
+  // 베껴 두면 한쪽만 고쳤을 때 이 카드가 화면에서는 안내 카드인데 집계에서는
+  // 학생 카드로 잡힙니다(실제로 그렇게 새던 자리가 넷 있었습니다).
+  const isTeacherCard = isTeacherAuthoredCard(card);
   // 학생에게는 익명 닉네임만, 교사에게는 디렉터리의 실명·학번을 보여줍니다.
   // (교사 본인 카드는 실명 대신 항상 "선생님")
   const dirUser = isTeacher && !isTeacherCard ? getDirectoryUser(card.authorId) : null;
@@ -84,6 +85,16 @@ export default function StudyCard({
             <strong>{displayName}</strong>
           )}
         </div>
+        {/* '안내' 배지 — 이 카드는 학생 제출물이 아니라 교사가 깔아 둔
+            예시·자료입니다. 이름('선생님')만으로는 학생 카드 격자에서
+            '선생님이 카드를 냈다'로 읽혀, 실제로 오류 신고가 있었습니다.
+            집계에서 빠지는 것과 화면에서 그렇게 보이는 것은 별개라 배지로
+            적어 둡니다. */}
+        {isTeacherCard && !isGroupCard && (
+          <span className="study-card-guide" title="교사가 올린 예시·자료 카드 — 학생 제출·통계에는 들어가지 않습니다">
+            안내
+          </span>
+        )}
         {attachCount > 0 && (
           <span className="study-card-attach-count" aria-label={`첨부 파일 ${attachCount}개`}>
             📎{attachCount}

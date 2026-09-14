@@ -5,6 +5,10 @@
 // 공부방 카드는 "보드당 학생 1개"가 보장되므로, 제출 카드 수를
 // (보드 수 × 참여 학생 수)로 나누면 의미 있는 제출률이 됩니다.
 // =============================================================
+import { isTeacherAuthoredCard } from "@/lib/activities";
+
+// KWL 기록은 uid만 있어(작성자 이름이 없음) 접두로만 봅니다 — 교사는 KWLS를
+// 쓰지 않아 실제로 걸릴 일이 없는 자리입니다.
 function isStudent(id) {
   return id && !String(id).startsWith("teacher_");
 }
@@ -38,7 +42,11 @@ export default function StudyRoomStats({ classes = [], boards = [], cardsByBoard
   });
 
   const rows = [...boardsByClass.entries()].map(([cid, classBoards]) => {
-    const cards = classBoards.flatMap((b) => (cardsByBoard[b.id] ?? []).filter((c) => isStudent(c.authorId)));
+    // 카드는 작성자 이름이 있으므로 공용 판정을 씁니다 — 접두만 보면
+    // 실서비스에서 교사 안내 카드가 제출자로 세어져 제출률이 부풀려집니다.
+    const cards = classBoards.flatMap((b) =>
+      (cardsByBoard[b.id] ?? []).filter((c) => c.authorId && !isTeacherAuthoredCard(c))
+    );
     const submitters = new Set(cards.map((c) => c.authorId));
     const kwlEntries = kwlByClass.get(cid) ?? [];
     const kwlAuthors = new Set(kwlEntries.map((e) => e.userId));

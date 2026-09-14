@@ -26,6 +26,7 @@ import {
   dismissWithdrawalRequest,
 } from "@/lib/store";
 import { isFirebaseConfigured } from "@/lib/firebase";
+import { isTeacherAuthoredCard } from "@/lib/activities";
 import { isAdmin, isTeacher } from "@/lib/user";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import AuthGate from "@/components/AuthGate";
@@ -718,8 +719,10 @@ function AdminDashboardPageInner() {
     myBoards
       .filter((b) => b.classId === selectedClassId && b.type !== "notice")
       .forEach((b) =>
+        // 교사 안내 카드는 참여자가 아닙니다. "teacher_" 접두만 보면 데모
+        // 모드에서만 걸러지고 실서비스에서는 교사가 학생 명부에 섞입니다.
         (cardsByBoard[b.id] ?? []).forEach((c) => {
-          if (c.authorId && !c.authorId.startsWith("teacher_")) ids.add(c.authorId);
+          if (c.authorId && !isTeacherAuthoredCard(c)) ids.add(c.authorId);
         })
       );
     allKwl
@@ -750,7 +753,7 @@ function AdminDashboardPageInner() {
     return myBoards
       .filter((b) => b.classId === selectedClassId && b.type !== "notice")
       .flatMap((b) => cardsByBoard[b.id] ?? [])
-      .filter((c) => c.authorId && !c.authorId.startsWith("teacher_"));
+      .filter((c) => c.authorId && !isTeacherAuthoredCard(c));
   }, [selectedClassId, myBoards, cardsByBoard]);
   const classKwl = useMemo(
     () => (selectedClassId ? allKwl.filter((e) => e.classId === selectedClassId) : []),

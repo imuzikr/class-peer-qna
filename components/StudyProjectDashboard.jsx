@@ -23,7 +23,7 @@ import {
   purgeStudyBoard,
   toDate,
 } from "@/lib/store";
-import { cardActivitySummary, isActivityLocked } from "@/lib/activities";
+import { cardActivitySummary, isActivityLocked, isTeacherAuthoredCard } from "@/lib/activities";
 import { IconLock, IconIndividual, IconGroup } from "./StatusIcons";
 import ConfirmModal from "./ConfirmModal";
 
@@ -328,9 +328,9 @@ function ProjectCard({
   }, [board.id, isGroup, isTeacher, shared, user?.uid]);
 
   // 교사: 활동을 하나라도 제출한 학생 수 / 학생: 내 카드의 활동 진행
-  const studentCards = cards.filter(
-    (c) => !(c.authorId?.startsWith?.("teacher_") || c.authorName === "선생님")
-  );
+  // 판정은 `isTeacherAuthoredCard` 한 곳 — 같은 식을 베껴 두면 한쪽만 고쳤을 때
+  // 교사 안내 카드가 화면마다 다르게 세어집니다.
+  const studentCards = cards.filter((c) => !isTeacherAuthoredCard(c));
   const myCard = user
     ? cards.find((c) =>
         isGroup ? c.memberUids?.includes(user.uid) : c.authorId === user.uid

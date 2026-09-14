@@ -16202,6 +16202,24 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
   font-weight: 600;
   color: var(--text-sub);
 }
+/* '안내' 배지 — 교사가 깔아 둔 예시·자료 카드. 학생 카드 격자에서 이름
+   ('선생님')만으로는 '선생님이 카드를 냈다'로 읽혀 실제로 오류 신고가
+   있었습니다. 집계에서 빠지는 것과 **화면에서 그렇게 보이는 것은 별개**라
+   한 글자 자리를 내어 적어 둡니다.
+   눈에 띄되 튀지 않게 연한 회색 알약입니다 — 상태를 말하는 자리가 아니라
+   '이건 학생 것이 아니다'만 알리는 이름표라, 살구색(강조)을 쓰지 않습니다.
+   시각(`.study-card-time`) 왼쪽에 서므로 `flex-shrink: 0`으로 붙들어
+   둡니다(이름이 길 때 이 배지부터 찌그러지지 않게). */
+.study-card-guide {
+  flex-shrink: 0;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--neutral);
+  color: var(--text-sub);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.45;
+}
 .study-card-meta-group {
   display: flex;
   flex-direction: column;
