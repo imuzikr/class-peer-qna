@@ -20002,6 +20002,40 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
 }
 .dash-grid { flex: 1; min-width: 0; }
 
+/* ── 개별 활동 — 판이 없는 학생 알림 (교사, 왼쪽 목록 맨 위) ──
+   활동을 시작한 뒤 반에 들어온 학생입니다. 드물게 일어나는 일이라 **눈에는
+   띄되 목록을 밀어내지 않게** 옅은 살구 상자 하나로 둡니다 — 학생 카드와
+   같은 폭·같은 모서리라 목록의 한 줄처럼 읽힙니다. */
+.book-rail-missing {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--primary-light);
+  border-radius: 10px;
+  background: #fdf6ef;
+}
+.book-rail-missing-head {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--text);
+}
+/* 이름은 딸림글 — 몇 명인지가 먼저 읽히고, 누구인지는 그다음입니다 */
+.book-rail-missing-names {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-sub);
+  line-height: 1.5;
+}
+.book-rail-missing .btn-ghost {
+  justify-content: center;
+  width: 100%;
+}
+
 /* ── 잔디 보기 — 세로 닿소리 14줄 × 가로 학생 ──
    전광판(`.progress-grass`·`.grass-*`)의 격자를 그대로 가져다 **모달이 아니라
    이 자리에** 그립니다. 세 화면(공부방 전광판 · 책방 전광판 · 여기)이 같은

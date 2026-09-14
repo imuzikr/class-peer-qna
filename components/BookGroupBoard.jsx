@@ -76,6 +76,93 @@ export default function BookGroupBoard({
     [groups, user?.uid]
   );
 
+  // ── 개별 활동 — 판이 없는 학생 ──────────────────────────────
+  // 판은 **활동을 만들 때의 명단으로 한 번에** 찍힙니다(createBookActivity의
+  // soloRows). 그래서 활동을 시작한 뒤에 반에 들어온 학생은 판이 없어 낱말을
+  // 넣을 자리가 없습니다 — 학기 중에 전학·가입이 있으면 실제로 생깁니다.
+  //
+  // **저절로 만들지 않습니다.** 교사가 이 화면을 열 때마다 쓰기가 일어나고,
+  // 반 편성을 손보는 동안 빈 판이 조용히 쌓입니다. 드물게 일어나는 일이라
+  // 교사가 보고 누르는 편이 '언제 무엇이 생겼는지'가 분명합니다.
+  //
+  // `groups`는 이미 `retired`를 걸러 온 목록이라(subscribeBookGroups) 여기서
+  // 다시 거르지 않습니다.
+  const soloMissing = useMemo(() => {
+    if (!isTeacher || !perStudent) return [];
+    const seated = new Set();
+    groups.forEach((g) => {
+      (g.memberUids ?? []).forEach((u) => { if (u) seated.add(u); });
+      (g.members ?? []).forEach((m) => { if (m?.uid) seated.add(m.uid); });
+    });
+    return roster.filter((s) => s?.uid && !seated.has(s.uid));
+  }, [isTeacher, perStudent, groups, roster]);
+
+  // 없는 판만 뒤에 더합니다. `composeBookGroups`는 **넘긴 목록에 없는 모둠을
+  // 물립니다**(retired) — 지금 있는 판을 그대로 함께 실어 보내야 멀쩡한 판이
+  // 사라지지 않습니다. 낱말은 판(groups/{id}/words)에 딸려 있어 그대로입니다.
+  async function handleAddSoloBoards() {
+    if (busy || soloMissing.length === 0) return;
+    setBusy(true);
+    try {
+      let next = groups.reduce((m, g) => Math.max(m, g.groupIndex ?? 0), 0);
+      const rows = [
+        ...groups.map((g) => ({
+          index: g.groupIndex,
+          name: g.groupName || "",
+          memberUids: g.memberUids ?? [],
+          members: g.members ?? [],
+          leaderUid: g.leaderUid ?? null,
+        })),
+        // 판 이름은 학생 이름 — 만들 때와 같은 모양입니다(createBookActivity)
+        ...soloMissing.map((s) => ({
+          index: ++next,
+          name: s.name || "학생",
+          memberUids: [s.uid],
+          members: [{
+            uid: s.uid,
+            name: s.name || "학생",
+            studentId: s.studentId ?? null,
+            emoji: s.emoji ?? "🙂",
+          }],
+          leaderUid: null,
+        })),
+      ];
+      await composeBookGroups(user, activity.id, rows, {
+        groupSetName: groups[0]?.groupSetName || activity.groupSetName || "개별 활동",
+      });
+      onToast?.(`판 ${soloMissing.length}개를 만들었어요.`);
+    } catch (e) {
+      console.warn("[책방] 학생 판을 만들지 못했어요:", e?.code, e?.message);
+      onToast?.("판을 만들지 못했어요. 잠시 뒤 다시 눌러 주세요.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // 왼쪽 목록 맨 위와 '판이 하나도 없을 때' 두 곳에 같은 것을 답니다 —
+  // 활동을 만든 뒤에 반이 통째로 들어온 경우에는 판이 0개라 목록 자체가
+  // 안 그려지는데, 그때야말로 이 단추가 필요합니다.
+  const soloMissingRow =
+    soloMissing.length > 0 ? (
+      <div className="book-rail-missing">
+        <p className="book-rail-missing-head">
+          <strong>판이 없는 학생 {soloMissing.length}명</strong>
+          <span className="book-rail-missing-names">
+            {soloMissing.map((s) => s.name).join(" · ")}
+          </span>
+        </p>
+        <button
+          type="button"
+          className="btn-ghost"
+          onClick={handleAddSoloBoards}
+          disabled={busy}
+          title="활동을 시작한 뒤 반에 들어온 학생입니다 — 눌러서 판을 만들어 주세요"
+        >
+          {busy ? "만드는 중…" : `판 ${soloMissing.length}개 만들기`}
+        </button>
+      </div>
+    ) : null;
+
   // ── 결석 표시 ────────────────────────────────────────────────
   // 기준일은 '오늘'이 아니라 '활동을 연 날'입니다. 오늘 출석으로 판단하면
   // 지난주에 한 활동을 오늘 열어 봤을 때 엉뚱한 사람이 결석으로 찍힙니다.
@@ -276,15 +363,19 @@ export default function BookGroupBoard({
       {head}
 
       {groups.length === 0 ? (
-        <p className="empty-note">
-          {perStudent
-            ? "학생 판이 아직 없어요. 반에 학생이 있는지 확인해 주세요."
-            : "아직 모둠이 없어요. ‘모둠 구성’으로 모둠을 만들어 주세요."}
-        </p>
+        <>
+          <p className="empty-note">
+            {perStudent
+              ? "학생 판이 아직 없어요. 반에 학생이 있는지 확인해 주세요."
+              : "아직 모둠이 없어요. ‘모둠 구성’으로 모둠을 만들어 주세요."}
+          </p>
+          {soloMissingRow}
+        </>
       ) : (
         <div className="book-workspace">
           {/* 왼쪽 — 모둠 목록(개별 활동이면 학생 목록) */}
           <aside className="book-group-rail">
+            {soloMissingRow}
             {groups.map((g) => {
               // 모둠에 저장된 members는 배정 당시 스냅샷이라, 반에서 빠진
               // (탈퇴 처리된) 학생도 그대로 남아 보였습니다 — 교사 화면의
