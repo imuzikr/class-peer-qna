@@ -14783,6 +14783,10 @@ button.study-cal-cell.has-record:not(:disabled):hover {
 }
 .study-project-card {
   display: flex;
+  /* 세로로 쌓습니다 — 아래에 '편집' 줄(.study-project-actions)이 붙기
+     때문입니다. 여는 단추가 `flex: 1`이라 학생 카드(그 줄이 없는 카드)의
+     모습은 가로였을 때와 그대로입니다. */
+  flex-direction: column;
   background: var(--card-bg);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -14812,6 +14816,46 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   transition: background 0.15s;
 }
 .study-project-open:hover { background: var(--primary-light); }
+/* 카드 아래 '편집' 줄 (교사만) — 책방 활동 카드의 같은 줄
+   (`.book-activity-actions`)과 **같은 모양**입니다: 여는 단추 아래에 선으로
+   갈라 오른쪽 끝에 답니다. 카드 전체가 '열기' 버튼이라 그 안에 단추를 둘 수
+   없어(버튼 안의 버튼) 형제로 세웁니다. */
+.study-project-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-deep);
+}
+.study-project-actions .btn-ghost { padding: 4px 10px; font-size: 12px; }
+
+/* ── 프로젝트 편집 창 (StudyProjectEditModal) ──
+   만들기 창은 빈 칸에 placeholder로 무슨 칸인지 말하지만, 여기는 값이 이미
+   차 있는 자리라 placeholder가 안 보입니다 — 이름표를 답니다. */
+.study-edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.study-edit-label {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+/* 이름표 옆 딸림글 — 읽을 것이 아니라 참고할 것이라 한 단계 옅게 */
+.study-edit-label small {
+  margin-left: 6px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-faint);
+}
+.study-edit-note {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-faint);
+  line-height: 1.5;
+}
 .study-project-badges {
   display: flex;
   flex-wrap: wrap;

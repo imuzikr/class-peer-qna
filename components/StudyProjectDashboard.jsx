@@ -26,6 +26,7 @@ import {
 import { cardActivitySummary, isActivityLocked, isTeacherAuthoredCard } from "@/lib/activities";
 import { IconLock, IconIndividual, IconGroup } from "./StatusIcons";
 import ConfirmModal from "./ConfirmModal";
+import StudyProjectEditModal from "./StudyProjectEditModal";
 
 function dateLabel(value) {
   const d = value ? toDate(value) : null;
@@ -58,6 +59,8 @@ export default function StudyProjectDashboard({
   // 휴지통 비우기 — 여러 개를 한 번에 지우는 자리라 줄 안이 아니라 창으로
   // 묻습니다(책방 휴지통과 같은 모양).
   const [confirmEmpty, setConfirmEmpty] = useState(false);
+  // 편집할 프로젝트(없으면 null) — 카드의 '편집'이 채웁니다.
+  const [editing, setEditing] = useState(null);
 
   const projects = boards.filter((b) => b.type !== "notice");
   const canManage = isTeacher && !readOnly;
@@ -162,6 +165,8 @@ export default function StudyProjectDashboard({
               isTeacher={isTeacher}
               rosterCount={roster.length}
               onOpen={() => onOpen?.(board)}
+              canEdit={canManage}
+              onEdit={() => setEditing(board)}
               draggable={canManage}
               isDragging={draggingId === board.id}
               onDragStart={() => setDraggingId(board.id)}
@@ -292,6 +297,12 @@ export default function StudyProjectDashboard({
           onClose={() => setConfirmEmpty(false)}
         />
       )}
+
+      {/* 프로젝트 편집 — 제목·활동 안내. 저장하면 구독이 알아서 다시 그리므로
+          여기서 목록을 손보지 않습니다. */}
+      {editing && (
+        <StudyProjectEditModal board={editing} onClose={() => setEditing(null)} />
+      )}
     </div>
   );
 }
@@ -304,6 +315,8 @@ function ProjectCard({
   isTeacher,
   rosterCount,
   onOpen,
+  canEdit = false,
+  onEdit,
   draggable,
   isDragging,
   onDragStart,
@@ -461,6 +474,17 @@ function ProjectCard({
           {board.createdAt && ` · ${dateLabel(board.createdAt)}`}
         </span>
       </button>
+
+      {/* 편집 — 카드 전체가 '열기' 버튼이라 그 **안에** 둘 수 없습니다
+          (버튼 안의 버튼). 책방 활동 카드와 같이 여는 단추 아래 제 줄에
+          둡니다(`.book-activity-actions`와 같은 모양). */}
+      {canEdit && (
+        <div className="study-project-actions">
+          <button type="button" className="btn-ghost" onClick={onEdit} title="제목·활동 안내 편집">
+            편집
+          </button>
+        </div>
+      )}
     </article>
   );
 }
