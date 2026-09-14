@@ -127,9 +127,28 @@ function pickCodeEl(area) {
   return all.length ? all[all.length - 1] : null;
 }
 
-// input()을 쓰는 코드인가 — 쓰면 입력값 칸을 먼저 띄웁니다.
+// input()을 쓰는 코드인가 — 쓰면 입력값 칸이 뜹니다.
 // 서랍이 380px이라 그 칸을 늘 세워 두면 그만큼 쓰는 자리가 줄어듭니다.
 const USES_INPUT = /\binput\s*\(/;
+
+// 이 칸의 **코드 블록**에 input()이 있나 — 입력값 칸을 띄울지 정합니다.
+// -------------------------------------------------------------
+// **글자를 칠 때마다 도는 판정**이라 DOMParser를 쓰지 않고 문자열로 훑습니다
+// (코드 블록은 `<pre>`로만 저장되므로 이 정도로 충분하고, 26명이 동시에 치는
+// 자리라 한 번이 싼 편이 낫습니다).
+// 코드 블록 **안만** 봅니다 — 설명 글에 'input()으로 값을 받아요'라고 적어도
+// 칸이 뜨면 안 됩니다. 붙여 둔 실행 결과 블록도 뺍니다(거기 찍힌 지난 출력에
+// 그 글자가 남아 있을 수 있습니다).
+function codeUsesInput(html) {
+  const s = String(html ?? "");
+  const re = /<pre\b([^>]*)>([\s\S]*?)<\/pre>/gi;
+  let m;
+  while ((m = re.exec(s))) {
+    if (/py-result/.test(m[1])) continue;
+    if (USES_INPUT.test(m[2])) return true;
+  }
+  return false;
+}
 
 // 줄 전체에 **공통으로** 있는 들여쓰기를 걷어 냅니다(파이썬 textwrap.dedent).
 // -------------------------------------------------------------
@@ -280,6 +299,17 @@ export default function LessonTaskPanel({ task, user, onType }) {
     pendingRef.current = { t, drafts };
     setStatus("idle");
     onType?.();
+    // `input(`을 치는 즉시 입력값 칸이 뜨고, 지우면 사라집니다.
+    // 값이 안 바뀌면 **같은 Set을 그대로 돌려주어** 글자마다 다시 그리지
+    // 않습니다(이 함수는 키를 누를 때마다 돕니다).
+    setInputActs((prev) => {
+      const has = codeUsesInput(html);
+      if (has === prev.has(i)) return prev;
+      const next = new Set(prev);
+      if (has) next.add(i);
+      else next.delete(i);
+      return next;
+    });
     clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => { save(); }, SAVE_DELAY);
   }
@@ -292,8 +322,16 @@ export default function LessonTaskPanel({ task, user, onType }) {
   const [runAt, setRunAt] = useState(null);   // 결과를 보여 줄 활동 자리
   const [runLines, setRunLines] = useState([]);
   const [running, setRunning] = useState(false);
-  const [stdinFor, setStdinFor] = useState(null); // 입력값 칸을 띄운 활동 자리
-  const [stdin, setStdin] = useState("");
+  // 입력값 칸을 띄울 활동 자리 — **코드에 `input(`을 치는 즉시** 켜집니다.
+  // 예전에는 ▶ 실행을 한 번 눌러야 비로소 떴는데, 그 첫 누름은 아무것도
+  // 돌리지 않고 '아래 칸에 적고 다시 누르세요'만 말하는 헛걸음이었습니다.
+  // 값을 미리 적어 두는 방식이라는 것을 **코드를 치는 동안** 알려 주는 편이
+  // 낫습니다(그래야 실행이 늘 실행입니다).
+  const [inputActs, setInputActs] = useState(() => new Set());
+  // 입력값은 **활동 자리마다 따로** 둡니다. 칸이 여럿 펼쳐질 수 있어(열린
+  // 활동이 다 섭니다) 하나로 두면 한 칸에 친 값이 옆 칸 상자에도 그대로
+  // 나타나고, 돌릴 때 남의 값이 딸려 갑니다.
+  const [stdins, setStdins] = useState({});
   // 지금 출력 칸의 결과를 낸 코드 — 고쳐 놓고 다시 안 돌린 채 붙이면
   // 바뀐 코드에 지난 결과가 따라붙습니다(lib/pyShare.js의 그 함정).
   const ranCodeRef = useRef("");
@@ -312,20 +350,16 @@ export default function LessonTaskPanel({ task, user, onType }) {
       setRunLines([{ type: "info", text: "돌릴 코드 블록이 없어요 — 툴바의 </> 로 코드 블록을 만들어 주세요." }]);
       return;
     }
-    // input()을 쓰는데 입력값 칸이 아직 없으면, 돌리지 않고 먼저 띄웁니다.
-    // 그냥 돌리면 EOFError로 끝나는데, 그 칸이 화면에 없어 무엇을 하라는
-    // 말인지 알 수 없습니다.
-    if (USES_INPUT.test(code) && stdinFor !== i) {
-      setStdinFor(i);
-      setRunLines([{ type: "info", text: "이 코드는 input()으로 값을 받아요 — 아래 칸에 한 줄씩 적고 다시 눌러 주세요." }]);
-      return;
-    }
     setRunLines([]);
     // 견줄 때는 칸에 있는 그대로(`code`), 돌릴 때는 공통 들여쓰기를 걷은 것.
     ranCodeRef.current = code;
+    // **누르면 늘 돌아갑니다.** 입력값 칸은 코드를 치는 동안 이미 떠 있으므로
+    // '먼저 적고 다시 누르세요'로 한 번 되돌릴 이유가 없습니다. 칸을 비워 둔
+    // 채 돌리면 파이썬이 EOFError로 알려 주고(그 칸이 화면에 보입니다),
+    // 커서가 칸 밖이라 코드 블록을 못 짚는 경우는 `pickCodeEl`이 맡습니다.
     const how = runPython({
       code: dedent(code),
-      stdin: stdinFor === i ? stdin : "",
+      stdin: stdins[i] ?? "",
       onLine: addRunLine,
       onDone: (result) => {
         if (result) addRunLine("result", result);
@@ -379,14 +413,31 @@ export default function LessonTaskPanel({ task, user, onType }) {
   // 전에** 돌아, 붙들어 둔 원래 카드로 저장됩니다.
   useEffect(() => () => { save(); }, [boardId, save]);
 
-  // 프로젝트가 바뀌면 출력 칸을 비웁니다 — 앞 활동의 결과가 남아 있으면
-  // 새 활동의 코드가 낸 것처럼 보입니다.
+  // 프로젝트가 바뀌면 출력 칸과 입력값을 비웁니다 — 앞 활동의 결과가 남아
+  // 있으면 새 활동의 코드가 낸 것처럼 보이고, 입력값도 남의 것이 됩니다.
   useEffect(() => {
     setRunAt(null);
     setRunLines([]);
-    setStdinFor(null);
+    setStdins({});
     ranCodeRef.current = "";
   }, [boardId]);
+
+  // **이미 저장돼 있던 코드**에도 입력값 칸이 떠 있어야 합니다 — 어제 쓰다 만
+  // 활동을 오늘 다시 열었을 때, 한 글자 칠 때까지 칸이 없으면 '없는 기능'으로
+  // 보입니다. 카드를 받아 올 때와 저장 뒤에 한 번씩 훑습니다(`card.content`가
+  // 곧 그 두 순간입니다 — 글자마다 도는 것이 아닙니다).
+  useEffect(() => {
+    const secsNow = card ? parseActivitySections(card.content) : [];
+    const next = new Set();
+    secsNow.forEach((s, i) => { if (codeUsesInput(s?.content)) next.add(i); });
+    // 아직 저장 안 된 글에서 켜 둔 자리는 지키고, 저장된 것만 더합니다.
+    setInputActs((prev) => {
+      const merged = new Set(prev);
+      let changed = false;
+      next.forEach((i) => { if (!merged.has(i)) { merged.add(i); changed = true; } });
+      return changed ? merged : prev;
+    });
+  }, [card?.content, card?.id]);
 
   // 화면을 벗어나거나 탭을 닫을 때 마지막으로 한 번 더
   useEffect(() => {
@@ -499,6 +550,29 @@ export default function LessonTaskPanel({ task, user, onType }) {
                   placeholder="여기에 답을 써 주세요."
                 />
 
+                {/* 입력값 — **실행 줄보다 위**입니다. 코드를 치는 동안
+                    이미 떠 있는 칸이라, 채우고 나서 ▶ 실행을 누르는 차례가
+                    되어야 합니다(아래에 두면 누르고 나서야 눈에 띕니다).
+                    **코드에 `input(`이 보이는 즉시** 뜹니다(치는 동안
+                    켜지고, 지우면 사라집니다). 늘 세워 두지 않는 까닭은 서랍이
+                    380px이라 그만큼 쓰는 자리가 줄어들기 때문입니다.
+                    파이썬은 브라우저 안에서 한 번에 도는 것이라 실행 도중에
+                    키보드를 기다릴 수 없어, 값을 **미리** 적어 둡니다 —
+                    한 줄이 `input()` 한 번입니다. */}
+                {inputActs.has(i) && (
+                  <label className="ltask-stdin">
+                    <span>입력값 <em>한 줄에 하나씩 — 실행 전에 미리</em></span>
+                    <textarea
+                      rows={2}
+                      value={stdins[i] ?? ""}
+                      onChange={(e) =>
+                        setStdins((prev) => ({ ...prev, [i]: e.target.value }))
+                      }
+                      placeholder={"홍길동\n7"}
+                    />
+                  </label>
+                )}
+
                 {/* ── 파이썬 실행 줄 ──
                     코드 블록에 짠 것을 그 자리에서 돌려 보고, 원하면 결과를
                     칸에 붙입니다. **칸마다 한 줄**이라 어느 코드를 돌리는
@@ -542,20 +616,6 @@ export default function LessonTaskPanel({ task, user, onType }) {
                     </button>
                   )}
                 </div>
-
-                {/* input()을 쓰는 코드일 때만 — 늘 세워 두면 380px에서 쓰는
-                    자리가 그만큼 줄어듭니다. 한 줄이 input() 한 번입니다. */}
-                {stdinFor === i && (
-                  <label className="ltask-stdin">
-                    <span>입력값 <em>한 줄에 하나씩</em></span>
-                    <textarea
-                      rows={2}
-                      value={stdin}
-                      onChange={(e) => setStdin(e.target.value)}
-                      placeholder={"홍길동\n7"}
-                    />
-                  </label>
-                )}
 
                 {runAt === i && runLines.length > 0 && (
                   <div className="ltask-out" aria-live="polite">
