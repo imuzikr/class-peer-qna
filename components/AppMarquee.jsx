@@ -1,19 +1,23 @@
 "use client";
 
 // =============================================================
-// 전광판 (상단바) — 교사가 반 학생을 칭찬·격려하는 짧은 글
+// 전광판 (상단바) — 교사가 학생을 칭찬·격려하는 짧은 글
 // -------------------------------------------------------------
 // '이달의 주니어 개발자 10101 홍길동', '금주의 질문왕 20202 오길동'처럼
-// 반에 알리고 싶은 한 줄을 걸어 두는 자리입니다. 상단바는 다섯 화면에 모두
+// 알리고 싶은 한 줄을 걸어 두는 자리입니다. 상단바는 다섯 화면에 모두
 // 떠 있으므로, 학생이 어느 화면에 있든 눈에 들어옵니다.
 //
-// [왜 반 문서인가]
-// 글은 `classes/{cId}.marquee` 배열에 담깁니다. 새 컬렉션을 만들면 보안
-// 규칙을 새로 쓰고 시험을 돌려 배포해야 하는데, 반 문서는 읽기가 이미
-// 로그인 사용자에게 열려 있고 교사 수정에 필드 제한이 없어 **규칙을 한 줄도
-// 안 건드립니다**(파이썬 실행기의 `pyTarget`과 같은 길). 상단바가 읽는 것도
-// **문서 하나**뿐입니다 — `subscribeClasses`(학교의 반을 통째로)를 여기서
-// 쓰면 반이 늘수록 모든 화면이 그만큼 비싸집니다.
+// [배움나눔 전체에 하나입니다 — 반마다 따로가 아닙니다]
+// 한때 `classes/{cId}.marquee`에 담아 반마다 달랐는데, (ㄱ) 상단바는 반을
+// 고르지 않는 화면(질문방·리포트)에도 떠 있어 거기서는 아무것도 안 걸렸고,
+// (ㄴ) 교사가 반을 옮길 때마다 걸린 글이 갈려 '지금 무엇이 걸려 있나'를
+// 반마다 따로 기억해야 했습니다. 칭찬은 학교 전체에 알리는 것이라 한 자리에
+// 두고 모두가 같은 것을 봅니다. 자리는 `meta/marquee` — 규칙이 이미
+// 읽기 `signedIn()` · 쓰기 `isTeacher()`라 **한 줄도 안 건드렸습니다**.
+//
+// [제 구독을 스스로 겁니다]
+// 반이 없으니 위에서 내려 줄 것도 없습니다. 상단바에 한 번만 서므로
+// 리스너도 **문서 하나**뿐입니다(`subscribeAppMarquee`).
 //
 // [여러 개를 돌아가며]
 // 흐르는 글씨(marquee)로 하지 않았습니다 — 수업 중 화면 위에서 끊임없이
@@ -22,16 +26,26 @@
 // 움직임을 줄여 달라고 한 기기에서는 전환도 없이 글자만 갈립니다.
 // =============================================================
 import { useEffect, useRef, useState } from "react";
-import { marqueeOf, setClassMarquee, MARQUEE_MAX, MARQUEE_TEXT_MAX } from "@/lib/store";
+import {
+  marqueeOf,
+  setAppMarquee,
+  subscribeAppMarquee,
+  MARQUEE_MAX,
+  MARQUEE_TEXT_MAX,
+} from "@/lib/store";
 import { backdropClose } from "@/lib/modal";
 import { IconMyPost } from "./StatusIcons";
 
 const TURN_MS = 7000; // 한 글이 서 있는 시간
 
-export default function ClassMarquee({ cls, isTeacher = false }) {
-  const items = marqueeOf(cls);
+export default function AppMarquee({ isTeacher = false }) {
+  const [doc, setDoc] = useState(null);
   const [at, setAt] = useState(0);
   const [editOpen, setEditOpen] = useState(false);
+
+  useEffect(() => subscribeAppMarquee(setDoc), []);
+
+  const items = marqueeOf(doc);
 
   // 글이 줄거나 늘면 차례가 범위를 벗어날 수 있습니다(교사가 지운 직후).
   const safeAt = items.length ? at % items.length : 0;
@@ -45,25 +59,24 @@ export default function ClassMarquee({ cls, isTeacher = false }) {
   // 걸린 글이 없으면 교사에게만 '거는 자리'를 보여 줍니다. 학생 화면에는
   // 아무것도 안 그립니다 — 빈 상자가 상단바에 남아 있을 이유가 없습니다.
   if (items.length === 0 && !isTeacher) return null;
-  if (!cls?.id) return null;
 
   return (
-    <div className="class-marquee">
+    <div className="app-marquee">
       {/* 이모지를 안 답니다 — 이 줄에서 읽을 것은 학생 이름 하나뿐이라,
           앞에 그림이 붙으면 그만큼 글자가 밀리고 눈이 먼저 그림을 짚습니다.
           여기가 전광판이라는 것은 알약 바탕이 이미 말합니다. */}
       {items.length > 0 ? (
-        <p className="class-marquee-text" key={items[safeAt]?.id ?? safeAt} title={items[safeAt]?.text}>
+        <p className="app-marquee-text" key={items[safeAt]?.id ?? safeAt} title={items[safeAt]?.text}>
           {items[safeAt]?.text}
         </p>
       ) : (
-        <p className="class-marquee-text class-marquee-text--empty">
+        <p className="app-marquee-text app-marquee-text--empty">
           전광판이 비어 있어요
         </p>
       )}
       {/* 여러 개일 때만 몇 번째인지 점으로 — 하나뿐이면 셀 것이 없습니다 */}
       {items.length > 1 && (
-        <span className="class-marquee-dots" aria-hidden="true">
+        <span className="app-marquee-dots" aria-hidden="true">
           {items.map((m, i) => (
             <i key={m.id} className={i === safeAt ? "on" : ""} />
           ))}
@@ -72,7 +85,7 @@ export default function ClassMarquee({ cls, isTeacher = false }) {
       {isTeacher && (
         <button
           type="button"
-          className="class-marquee-edit"
+          className="app-marquee-edit"
           onClick={() => setEditOpen(true)}
           title="전광판에 걸 글 고치기"
           aria-label="전광판 고치기"
@@ -81,12 +94,7 @@ export default function ClassMarquee({ cls, isTeacher = false }) {
         </button>
       )}
       {editOpen && (
-        <MarqueeEditModal
-          classId={cls.id}
-          className={cls.name ?? ""}
-          items={items}
-          onClose={() => setEditOpen(false)}
-        />
+        <MarqueeEditModal items={items} onClose={() => setEditOpen(false)} />
       )}
     </div>
   );
@@ -95,7 +103,7 @@ export default function ClassMarquee({ cls, isTeacher = false }) {
 // ── 교사용 편집 창 ────────────────────────────────────────────
 // 글을 적어 더하고, 줄마다 지웁니다. **저장을 눌러야 반영됩니다** — 상단바에
 // 바로 걸리는 글이라, 적는 도중의 반쪽짜리 문장이 학생 화면에 뜨면 안 됩니다.
-function MarqueeEditModal({ classId, className, items, onClose }) {
+function MarqueeEditModal({ items, onClose }) {
   const [list, setList] = useState(items);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
@@ -120,7 +128,7 @@ function MarqueeEditModal({ classId, className, items, onClose }) {
     setBusy(true);
     setError("");
     try {
-      await setClassMarquee(classId, list);
+      await setAppMarquee(list);
       onClose();
     } catch (e) {
       setError(`저장하지 못했어요: ${e?.message ?? "알 수 없는 오류"}`);
@@ -141,14 +149,13 @@ function MarqueeEditModal({ classId, className, items, onClose }) {
         <div className="modal-head">
           <h3 className="head-icon">
             <IconMyPost size={20} /> 전광판
-            {className && <span className="notes-student">{className}</span>}
           </h3>
           <button className="btn-close" onClick={onClose} aria-label="닫기">×</button>
         </div>
 
         <p className="mq-hint">
-          이 반 학생의 상단바에 돌아가며 섭니다. 칭찬하고 싶은 일을 한 줄로
-          적어 주세요.
+          <strong>배움나눔 전체</strong>의 상단바에 돌아가며 섭니다(반마다
+          따로가 아닙니다). 칭찬하고 싶은 일을 한 줄로 적어 주세요.
         </p>
 
         <div className="mq-add">

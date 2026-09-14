@@ -38,7 +38,7 @@ import RoleManagerModal from "./RoleManagerModal";
 import PresentationOverlay from "./PresentationOverlay";
 import CornellNoteDrawer from "./CornellNoteDrawer";
 import RewardCelebration from "./RewardCelebration";
-import ClassMarquee from "./ClassMarquee";
+import AppMarquee from "./AppMarquee";
 import { useRewardCelebration } from "@/lib/useRewardCelebration";
 import { IconReport, IconPythonRunner, IconLogo, IconAnswer, IconBlackboard, IconBook, IconTeacher } from "./StatusIcons";
 
@@ -156,12 +156,16 @@ export default function TopNav({ active, onPython, pyActive = false }) {
     }
     return subscribeClassMembers(broadcastClassId, setNoticeMemberUids);
   }, [admin, broadcastClassId]);
-  // 전광판 — 지금 보고 있는 반의 문서 하나만 구독합니다(글이 그 안에
-  // 배열로 들어 있습니다). 교사는 마지막으로 고른 반, 학생은 소속 반.
-  const [marqueeClass, setMarqueeClass] = useState(null);
+  // 지금 보고 있는 반의 문서 하나 — '오늘의 활동'(`task`)이 여기 들어 있습니다.
+  // 교사는 마지막으로 고른 반, 학생은 소속 반.
+  //
+  // **전광판은 이제 여기서 안 읽습니다.** 반마다 따로였던 것을 배움나눔
+  // 전체에 하나로 옮겨(`meta/marquee`), `AppMarquee`가 제 구독을 스스로
+  // 겁니다 — 그래서 이 구독은 `task` 하나만을 위해 남습니다.
+  const [classDoc, setClassDoc] = useState(null);
   useEffect(() => {
-    if (!broadcastClassId) { setMarqueeClass(null); return; }
-    return subscribeClass(broadcastClassId, setMarqueeClass);
+    if (!broadcastClassId) { setClassDoc(null); return; }
+    return subscribeClass(broadcastClassId, setClassDoc);
   }, [broadcastClassId]);
 
   const [noticeClassName, setNoticeClassName] = useState("");
@@ -416,8 +420,10 @@ export default function TopNav({ active, onPython, pyActive = false }) {
       <span className="topbar-gap" aria-hidden="true" />
 
       {/* 전광판 — 문구 오른쪽, 사용자 영역 앞. 문구를 왼쪽으로 당기고
-          (margin-left를 풀고) 남는 가로를 이 칸이 받습니다. */}
-      <ClassMarquee cls={marqueeClass} isTeacher={admin} />
+          (margin-left를 풀고) 남는 가로를 이 칸이 받습니다.
+          반과 무관하므로 `broadcastClassId`에 걸지 않습니다 — 반을 아직 안
+          고른 교사, 질문방·리포트처럼 반이 없는 화면에도 그대로 섭니다. */}
+      <AppMarquee isTeacher={admin} />
     </header>
 
     {/* 학생 화면 — 교사가 방송 중이면 화면 전체를 강제로 덮습니다(학생은 닫을 수 없음) */}
@@ -439,9 +445,9 @@ export default function TopNav({ active, onPython, pyActive = false }) {
         boardTitle={broadcast?.boardTitle ?? ""}
         onOpenChange={setNoteOpen}
         onType={markNoting}
-        /* 선생님이 내보낸 활동 — 전광판 때문에 이미 구독해 둔 반 문서에서
-           그대로 읽습니다(새로 읽는 문서가 없습니다). */
-        task={classTaskOf(marqueeClass)}
+        /* 선생님이 내보낸 활동 — 위에서 구독해 둔 반 문서에서 그대로
+           읽습니다(이 구독이 곧 이것을 위한 것입니다). */
+        task={classTaskOf(classDoc)}
       />
     )}
 
