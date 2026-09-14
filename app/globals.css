@@ -20002,6 +20002,51 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
 }
 .dash-grid { flex: 1; min-width: 0; }
 
+/* ── 잔디 보기 — 세로 닿소리 14줄 × 가로 학생 ──
+   전광판(`.progress-grass`·`.grass-*`)의 격자를 그대로 가져다 **모달이 아니라
+   이 자리에** 그립니다. 세 화면(공부방 전광판 · 책방 전광판 · 여기)이 같은
+   격자를 써야 교사가 같은 것을 세 번 익히지 않습니다.
+
+   **뿌리 클래스는 `.dash-grass`입니다.** `.consonant-progress`나
+   `.book-progress`로 짓지 마세요 — 앞의 것은 활동 만들기 창들과 학생 카드의
+   진행 배지가 이미 쓰고 있고, 뒤의 것은 `-legend`·`-done`·`-sum`이 따로
+   있어 뿌리로 쓰면 그것들이 이 격자의 자식처럼 읽힙니다(책방 전광판이
+   `.bookboard`로 이름을 바꾼 것과 같은 까닭). */
+.dash-body--grass {
+  /* 가로가 인원만큼 늘어나므로 진행 패널을 접고 폭을 다 씁니다(구름과 같음) */
+  display: block;
+  overflow: hidden;
+}
+.dash-grass {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+/* 줄 이름표는 닿소리 한 글자뿐이라 책방 전광판(232px)만큼 넓을 까닭이
+   없습니다 — 글자 알약 17px + 진행률 38px + 사이 여백입니다. */
+.dash-grass .grass-act {
+  display: grid;
+  grid-template-columns: 17px 38px;
+  gap: 8px;
+  align-items: center;
+  width: 77px;
+  padding-right: 14px;
+}
+/* 진행률은 오른쪽 끝에 붙이고 숫자 폭을 고정합니다 — 자릿수가 달라도
+   (`0/26` · `12/26`) 열네 줄의 오른쪽 끝이 한 줄로 섭니다. */
+.dash-grass .grass-act-count {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+/* 이 격자는 모달이 아니라 대시보드 안이라 `.progress-scroll`의 68vh 제한이
+   필요 없습니다 — 남는 높이를 그대로 씁니다. */
+.dash-grass .progress-scroll {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+}
+
 /* ── 모둠 고르기 줄 (교사) — 곁텍스트·RAFT의 학생 카드를 모둠으로 좁히기 ──
    닿소리의 왼쪽 모둠 목록과 같은 일을 하되 한 줄입니다. 이 화면들은 카드
    격자가 주인공이라, 왼쪽에 판을 두면 카드가 좁아져 이름이 잘립니다. */

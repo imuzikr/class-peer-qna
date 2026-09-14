@@ -30,6 +30,7 @@ import {
 } from "@/lib/consonants";
 import { cloudWords, CLOUD_TOP_N } from "@/lib/wordCloud";
 import WordCloud from "./WordCloud";
+import ConsonantGrassView from "./ConsonantGrassView";
 
 // [학생 화면에 중계]
 // 학생은 보안 규칙상 '자기 모둠 낱말'만 읽을 수 있어서, 스스로는 반 전체
@@ -134,6 +135,45 @@ export default function ConsonantDashboard({
     [groups, wordsByGroup]
   );
 
+  // ── 학생별로 어느 칸을 채웠나 ──────────────────────────────
+  // '잔디' 보기(세로 닿소리 · 가로 학생)와 아래 doneCount가 함께 씁니다.
+  // 이 화면이 이미 구독해 둔 모둠·낱말로 세므로 **읽는 문서가 안 늡니다**.
+  //
+  // 차례는 **학번순**입니다 — 자리표·출석부·누가기록과 같은 기준이라 눈이
+  // 다시 헤매지 않습니다. 모둠끼리 붙여 세우면 색 띠는 고와지지만, 교사가
+  // 이 격자에서 찾는 것은 '누가 안 했나'라 이름으로 짚는 편이 빠릅니다.
+  const students = useMemo(() => {
+    const byUid = new Map();
+    groups.forEach((g) => {
+      const gname = g.groupName || `${g.groupIndex}모둠`;
+      const add = (uid, m = null) => {
+        if (!uid || byUid.has(uid)) return;
+        byUid.set(uid, {
+          uid,
+          name: m?.name || "이름 미설정",
+          studentId: m?.studentId ?? null,
+          groupIndex: g.groupIndex,
+          groupName: gname,
+          counts: Array(CELL_COUNT).fill(0),
+        });
+      };
+      (g.members ?? []).forEach((m) => add(m?.uid, m));
+      (g.memberUids ?? []).forEach((u) => add(u));
+    });
+    groups.forEach((g) => {
+      (wordsByGroup[g.id] ?? []).forEach((w) => {
+        // 반에서 빠진 학생이 남긴 낱말은 세지 않습니다('학생별 진행'과 같은 기준)
+        const s = w.authorId ? byUid.get(w.authorId) : null;
+        if (!s || !w.cellKey) return;
+        const i = Number(String(w.cellKey).slice(1)); // 'c3' → 3
+        if (Number.isInteger(i) && i >= 0 && i < CELL_COUNT) s.counts[i] += 1;
+      });
+    });
+    return [...byUid.values()].sort((a, b) =>
+      (a.studentId || a.name).localeCompare(b.studentId || b.name, "ko", { numeric: true })
+    );
+  }, [groups, wordsByGroup]);
+
   // 14칸을 다 채운 학생 수 — '이제 다음으로 넘어가도 되나'에 바로 답하는 값.
   //
   // 세는 단위는 낱말이 아니라 **칸**입니다. 한 칸에 낱말을 셋 넣어도 그 칸은
@@ -147,27 +187,19 @@ export default function ConsonantDashboard({
   // 내는 데 **추가로 읽는 문서가 없습니다**. 활동 목록 카드에 두지 않고 여기에
   // 둔 이유가 그것입니다 — 목록은 카드가 쌓이는 곳이라 카드마다 활동의 낱말을
   // 전부 읽으면 활동 수에 정비례해 무거워집니다.
+  //
+  // 위 `students`에서 바로 셉니다 — 같은 것을 두 번 훑지 않고, 무엇보다
+  // **'잔디'가 칠하는 기준과 여기 숫자가 어긋나지 않습니다**(둘 다 '한
+  // 칸이라도 낱말이 있나'). 따로 세면 한쪽만 고쳤을 때 격자는 다 찼는데
+  // 머리말은 덜 찼다고 말합니다.
   const doneCount = useMemo(() => {
-    const cells = new Map(); // uid → 채운 칸 집합
-    groups.forEach((g) => {
-      (g.members ?? []).forEach((m) => { if (m?.uid) cells.set(m.uid, new Set()); });
-      (g.memberUids ?? []).forEach((u) => { if (u && !cells.has(u)) cells.set(u, new Set()); });
-    });
-    groups.forEach((g) => {
-      (wordsByGroup[g.id] ?? []).forEach((w) => {
-        // 반에서 빠진 학생이 남긴 낱말은 세지 않습니다('학생별 진행'과 같은 기준)
-        if (w.authorId && w.cellKey && cells.has(w.authorId)) {
-          cells.get(w.authorId).add(w.cellKey);
-        }
-      });
-    });
-    const filled = [...cells.values()].map((c) => c.size);
+    const filled = students.map((s) => s.counts.filter((n) => n > 0).length);
     return {
       students: filled.length,
       done: filled.filter((n) => n >= CELL_COUNT).length,
       totalFilled: filled.reduce((a, b) => a + b, 0),
     };
-  }, [groups, wordsByGroup]);
+  }, [students]);
 
   // 반 전체가 지금까지 모은 낱말 수 (칸 수와 별개로 활동량을 보여 줍니다)
   const totalWords = useMemo(
@@ -204,7 +236,12 @@ export default function ConsonantDashboard({
       // 낱말 구름은 **고른 결과만** 실어 보냅니다. 학생 쪽에서 다시 고르게
       // 하면 정렬 기준(먼저 채운 순)에 쓰는 시각이 방송 문서에 없어서 교사
       // 화면과 다른 70개가 뽑힙니다 — 같은 화면이 두 얼굴이 됩니다.
-      view,
+      //
+      // **'잔디'는 중계하지 않고 격자로 내보냅니다.** 그 격자는 '누가 아직
+      // 안 했나'를 반 전체에 이름과 함께 내거는 것이라, 칠판에 띄우면 못 따라
+      // 온 학생이 그대로 드러납니다. 교사가 자기 화면에서 보라고 만든 자리라
+      // 학생 화면은 지금까지 보던 격자를 그대로 둡니다.
+      view: view === "grass" ? "grid" : view,
       cloud:
         view === "cloud"
           ? cloud.words.map((w) => ({
@@ -293,6 +330,19 @@ export default function ConsonantDashboard({
           >
             낱말 구름
           </button>
+          {/* 잔디 — 세로 닿소리, 가로 학생. 앞의 둘이 '무슨 낱말이 나왔나'라면
+              이것은 '누가 어디까지 채웠나'입니다. 학생 화면에는 중계하지
+              않습니다(아래 castPayload 참고). */}
+          <button
+            type="button"
+            role="tab"
+            aria-selected={view === "grass"}
+            className={`dash-view-tab${view === "grass" ? " on" : ""}`}
+            onClick={() => setView("grass")}
+            title="누가 어느 닿소리를 채웠는지 한 격자로 — 학생 화면에는 나가지 않습니다"
+          >
+            잔디
+          </button>
         </div>
         <div className="dash-head-actions">
           {canCast && (
@@ -328,7 +378,13 @@ export default function ConsonantDashboard({
         </span>
       </div>
 
-      {view === "cloud" ? (
+      {view === "grass" ? (
+        // 잔디는 가로가 인원만큼 늘어나므로 진행 패널을 접고 폭을 다 씁니다
+        // (구름과 같은 이유). 모달이 아니라 이 자리에 그대로 그립니다.
+        <div className="dash-body dash-body--grass">
+          <ConsonantGrassView students={students} />
+        </div>
+      ) : view === "cloud" ? (
         // 구름은 판을 넓게 쓸수록 낱말이 커집니다 — 진행 패널은 접어 두고
         // 가로를 다 씁니다(진행이 궁금하면 격자로 돌아갑니다).
         <div className="dash-body dash-body--cloud">
