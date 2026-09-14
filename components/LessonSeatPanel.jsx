@@ -32,7 +32,7 @@ import { useTodayRewardCounts } from "@/lib/useTodayRewards";
 import RewardTally from "./RewardTally";
 import StudentToolsPopover from "./StudentToolsPopover";
 import StudentNotesModal from "./StudentNotesModal";
-import { IconChair } from "./StatusIcons";
+import { IconChair, IconRecord } from "./StatusIcons";
 
 const GROUP_COLORS = ["#2563eb", "#16a34a", "#f97316", "#9333ea", "#dc2626", "#0891b2"];
 
@@ -53,14 +53,27 @@ export default function LessonSeatPanel({
   // 펼침도 부모가 쥘 수 있게 — 머리말의 손들기를 누르면 열려야 합니다.
   open: openProp = null,
   onOpenChange = null,
+  // 활동보기 — 지금 내보낸 활동에 학생들이 쓴 답(LessonAnswerPanel).
+  // 이것을 주면 탭 줄 맨 앞에 '활동보기'가 섭니다. 자리표가 없는 보기라
+  // 자리표 머리줄 안이 아니라 이 패널의 탭 줄에 답니다.
+  answerView = null,
+  // 보고 있는 탭도 부모가 쥘 수 있게 — 머리말의 손들기를 누르면 활동보기를
+  // 보던 중이라도 자리표로 돌아와야 '누가 들었나'가 보입니다.
+  view: viewProp = null,
+  onViewChange = null,
 }) {
   const [openState, setOpenState] = useState(false);
   const open = openProp ?? openState;
   const setOpen = onOpenChange ?? setOpenState;
-  // 'seat' 개별 보기 | 'group' 모둠 보기 | 'tally' 궁금한 순간
-  // 셋을 위아래로 쌓지 않고 한 자리에서 갈아 끼웁니다 — 수업 중에 보는
+  // 'answer' 활동보기 | 'seat' 개별 보기 | 'group' 모둠 보기 | 'tally' 궁금한 순간
+  // 넷을 위아래로 쌓지 않고 한 자리에서 갈아 끼웁니다 — 수업 중에 보는
   // 화면이라 세로로 길어지면 아래쪽은 스크롤해야 보입니다.
-  const [view, setView] = useState("seat");
+  // 탭 줄은 **한 줄에 넷**입니다. 활동보기를 바깥 탭으로 한 겹 더 두면 탭
+  // 줄이 위아래로 둘이 되는데, 어차피 한 자리에서 갈아 끼우는 넷이라 나란히
+  // 두는 편이 줄 하나를 아끼고 판이 그만큼 위로 올라옵니다.
+  const [viewState, setViewState] = useState("seat");
+  const view = viewProp ?? viewState;
+  const setView = onViewChange ?? setViewState;
   // 자리표를 보는 쪽 — 자리표가 나오는 네 화면이 같은 값을 함께 씁니다
   const [teacherView, toggleSeatView] = useSeatView();
   const [ownRaised, setOwnRaised] = useState(() => new Set());
@@ -164,8 +177,13 @@ export default function LessonSeatPanel({
   // '궁금한 순간'은 예전에도 교사(onAward가 있을 때)에게만 보였습니다 —
   // 탭으로 옮기면서 범위가 넓어지지 않도록 같은 조건을 답니다.
   const canTally = !!onAward;
+  const canAnswer = !!answerView;
   const activeView =
-    (view === "group" && !hasGroups) || (view === "tally" && !canTally) ? "seat" : view;
+    (view === "group" && !hasGroups) ||
+    (view === "tally" && !canTally) ||
+    (view === "answer" && !canAnswer)
+      ? "seat"
+      : view;
 
   // 자리표를 보고 있을 때만 잽니다(위 주석 참고). 이 자리에 두는 이유는
   // activeView가 여기서 만들어지기 때문입니다 — const를 선언 전에 읽으면
@@ -189,6 +207,8 @@ export default function LessonSeatPanel({
   // 보기라 그 안에 둘 수 없습니다. 밖으로 꺼내니 자리표는 원래의 칠판
   // 표시를 되찾아 위아래 방향도 다시 분명해집니다.
   const TABS = [
+    // 활동보기가 맨 앞입니다 — 활동을 내보낸 뒤 가장 자주 여는 자리라서요.
+    ...(canAnswer ? [{ key: "answer", label: "활동보기" }] : []),
     { key: "seat", label: "개별 보기" },
     { key: "group", label: "모둠 보기" },
     ...(canTally ? [{ key: "tally", label: "궁금한 순간" }] : []),
@@ -272,7 +292,15 @@ export default function LessonSeatPanel({
   return (
     <section className="lesson-seat-panel" aria-label="자리표">
       <div className="lesson-card-head">
-        <h2 className="head-icon"><IconChair size={19} /> 자리표</h2>
+        {/* 제목은 **보고 있는 탭**을 따릅니다. 넷은 서로 딸린 것이 아니라
+            나란한 보기라, 활동 답을 읽는 동안 '자리표'라고 적혀 있으면 무엇을
+            보는 중인지 화면이 거짓말을 합니다. 접혀 있을 때의 단추는 그대로
+            '자리표'입니다 — 선생님들이 그 이름으로 기억하는 자리입니다. */}
+        {activeView === "answer" ? (
+          <h2 className="head-icon"><IconRecord size={19} /> 활동보기</h2>
+        ) : (
+          <h2 className="head-icon"><IconChair size={19} /> 자리표</h2>
+        )}
         <button
           type="button"
           className="lesson-seat-collapse-btn"
@@ -283,11 +311,13 @@ export default function LessonSeatPanel({
         </button>
       </div>
       <p className="lesson-seat-hint">
-        {activeView === "seat"
-          ? "자리를 눌러 과일·누가기록 · 끌어서 자리 이동"
-          : activeView === "group"
-            ? "학생을 눌러 과일·누가기록 (자리 이동은 개별 보기에서)"
-            : "반 전체가 지금까지 받은 과일 — 많이 받은 순"}
+        {activeView === "answer"
+          ? "지금 내보낸 활동에 학생들이 쓴 답 — 이전/다음으로 한 명씩"
+          : activeView === "seat"
+            ? "자리를 눌러 과일·누가기록 · 끌어서 자리 이동"
+            : activeView === "group"
+              ? "학생을 눌러 과일·누가기록 (자리 이동은 개별 보기에서)"
+              : "반 전체가 지금까지 받은 과일 — 많이 받은 순"}
       </p>
       {viewTabs}
       {/* 세 보기의 키가 제각각입니다(25명 기준 자리표 726 · 모둠 535 ·
@@ -296,7 +326,11 @@ export default function LessonSeatPanel({
           가장 큰 보기의 키를 기억해 바닥으로 깔아 두면 탭만 갈릴 뿐 판은
           그대로 있습니다. */}
       <div className="lesson-seat-body" ref={bodyRef} style={bodyStyle}>
-      {roster.length === 0 ? (
+      {activeView === "answer" ? (
+        // 활동보기 — 빈 명단·책방 활동·다른 프로젝트 같은 경우의 안내도
+        // 그 안에서 스스로 적습니다(아래 명단 검사보다 앞에 두는 까닭).
+        answerView
+      ) : roster.length === 0 ? (
         <p className="lesson-note-empty">이 반에 입장한 학생이 없어요.</p>
       ) : activeView === "tally" ? (
         // 궁금한 순간 — 탭이 열려 있는 동안만 붙어 있으므로, 이 컴포넌트의

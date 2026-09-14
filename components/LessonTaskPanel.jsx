@@ -65,9 +65,26 @@ import RichTextEditor from "./RichTextEditor";
 
 const SAVE_DELAY = 1500;
 
-// 서랍이 좁아 서식은 수업 노트 필기 칸과 같은 넷으로 둡니다 — 한 서랍
-// 안에서 탭만 바꿔 오가는 자리라 툴바가 서로 다르면 다른 도구로 보입니다.
-const TASK_TOOLS = ["bold", "underline", "insertUnorderedList", "insertOrderedList"];
+// 서식은 수업 노트 필기 칸(CornellNoteDrawer의 NOTE_TOOLS)과 **같아야**
+// 합니다 — 한 서랍 안에서 탭만 바꿔 오가는 자리라 툴바가 서로 다르면 다른
+// 도구로 보입니다.
+//
+// [코드 블록이 여기 있는 까닭]
+// 이 칸이 저장되는 곳은 결국 공부방의 내 카드이고(buildActivityHtml), 그
+// 카드를 크게 쓰는 창은 처음부터 툴바 전체를 써 코드 블록이 있었습니다.
+// 여기만 빠져 있어, 수업 중에 서랍으로 답한 코드는 밋밋한 글이 되고 나중에
+// 공부방에서 열어 고쳐야 검은 블록이 되었습니다. 정화기가 `PRE`를 허용하고
+// (lib/html.js) 섹션을 되읽는 parseActivitySections도 그대로 통과시키므로
+// **저장 규칙도 자료 모양도 안 건드립니다**.
+// 서랍이 380px이라 코드가 가로로 넘칠 수 있는데, 공용 코드 블록 규칙에
+// `overflow-x: auto`가 이미 있어 그 칸만 옆으로 구릅니다.
+const TASK_TOOLS = [
+  "bold",
+  "underline",
+  "insertUnorderedList",
+  "insertOrderedList",
+  "codeBlock",
+];
 
 // 한 줄 미리보기 — 접힌 활동에 '무엇을 썼는지' 남깁니다.
 function peek(html) {

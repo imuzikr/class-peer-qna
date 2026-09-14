@@ -55,8 +55,16 @@ export default function TopNav({ active, onPython, pyActive = false }) {
   const [sessionClassId, setSessionClassId] = useState(null);
   const [fruitOpen, setFruitOpen] = useState(false); // 과일 뱃지 → 받은 흐름 모달
   // 수업 노트 서랍이 열려 있는지 — 열리면 발표 화면이 그만큼 좁아집니다
-  // (덮지 않고 밀어냅니다)
+  // (덮지 않고 밀어냅니다). `wide`는 서랍이 날개를 편 상태(노트 + 활동
+  // 두 칸)로, 그만큼 더 좁아집니다.
   const [noteOpen, setNoteOpen] = useState(false);
+  const [noteWide, setNoteWide] = useState(false);
+  // 서랍이 이 함수를 effect 의존성으로 들고 있어, 렌더마다 새로 만들면
+  // 그 effect가 매번 돕니다 — 한 번만 만들어 넘깁니다.
+  const handleNoteOpen = useCallback((open, wide) => {
+    setNoteOpen(open);
+    setNoteWide(!!wide);
+  }, []);
 
   // 관리자만 사용자 디렉터리를 구독(역할 관리·승인 대기 표시용)
   useEffect(() => {
@@ -428,7 +436,7 @@ export default function TopNav({ active, onPython, pyActive = false }) {
 
     {/* 학생 화면 — 교사가 방송 중이면 화면 전체를 강제로 덮습니다(학생은 닫을 수 없음) */}
     {!admin && broadcast && (
-      <PresentationOverlay broadcast={broadcast} noteOpen={noteOpen} />
+      <PresentationOverlay broadcast={broadcast} noteOpen={noteOpen} noteWide={noteWide} />
     )}
 
     {/* 수업 노트 서랍 — 오버레이의 '형제'이고, 방송 조건 바깥입니다.
@@ -443,7 +451,7 @@ export default function TopNav({ active, onPython, pyActive = false }) {
         lessonTitle={broadcast?.lessonTitle ?? ""}
         boardId={broadcast?.boardId ?? ""}
         boardTitle={broadcast?.boardTitle ?? ""}
-        onOpenChange={setNoteOpen}
+        onOpenChange={handleNoteOpen}
         onType={markNoting}
         /* 선생님이 내보낸 활동 — 위에서 구독해 둔 반 문서에서 그대로
            읽습니다(이 구독이 곧 이것을 위한 것입니다). */

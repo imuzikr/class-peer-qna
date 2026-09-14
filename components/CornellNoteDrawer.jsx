@@ -55,10 +55,20 @@ import { IconRecord } from "./StatusIcons";
 
 const SAVE_DELAY = 2000; // ms — 이만큼 입력이 없으면 저장
 const OPEN_KEY = "cornell-drawer-open";
+// 날개를 펼 수 없는 폭 — 서랍이 아래에서 올라오는 시트로 바뀌는 그 폭입니다
+// (globals.css의 `@media (max-width: 760px)`와 **같은 값이어야** 합니다).
+const NARROW_Q = "(max-width: 760px)";
 
-// 필기 칸에 붙이는 서식 — 수업 메모와 같은 넷.
-// 필기는 갈래를 늘어놓는 글이라 목록이 특히 쓰입니다.
-const NOTE_TOOLS = ["bold", "underline", "insertUnorderedList", "insertOrderedList"];
+// 필기 칸에 붙이는 서식 — 수업 메모와 같은 넷에 **코드 블록**을 더한 다섯.
+// 활동 탭(LessonTaskPanel의 TASK_TOOLS)과 같아야 합니다 — 한 서랍 안에서
+// 탭만 바꿔 오가는 자리라 툴바가 서로 다르면 다른 도구로 보입니다.
+const NOTE_TOOLS = [
+  "bold",
+  "underline",
+  "insertUnorderedList",
+  "insertOrderedList",
+  "codeBlock",
+];
 
 export default function CornellNoteDrawer({
   classId,
@@ -75,9 +85,14 @@ export default function CornellNoteDrawer({
   task = null,
 }) {
   const [open, setOpen] = useState(false);
-  // 탭 — 'note'(수업 노트) | 'task'(오늘의 활동).
-  // 활동이 없는 날에는 탭 줄을 아예 안 그립니다(지금까지와 같은 모습).
-  const [tab, setTab] = useState("note");
+  // 펼친 칸 — 'note'(수업 노트) · 'task'(오늘의 활동). **둘 다 켤 수 있습니다**
+  // (날개 펴기). 활동이 없는 날에는 탭 줄을 아예 안 그립니다(지금까지와 같은
+  // 모습) — 누를 수 없는 탭이 늘 서 있으면 '왜 안 눌리지'를 매번 겪습니다.
+  const [panes, setPanes] = useState(() => new Set(["note"]));
+  // 760px 아래에서는 서랍이 아래에서 올라오는 시트라 날개를 펼 자리가
+  // 없습니다. 이 값은 **보여 줄 칸을 고르는 데만** 쓰고 `panes`는 그대로
+  // 두어, 다시 넓히면 펴 두었던 그대로 돌아옵니다.
+  const [narrow, setNarrow] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false); // 크게 보기 창
   const [note, setNote] = useState(null);        // 서버에서 온 문서
   const [loaded, setLoaded] = useState(false);
@@ -140,23 +155,60 @@ export default function CornellNoteDrawer({
     if (!next) runSave();
   }
 
-  useEffect(() => { onOpenChange?.(open); }, [open, onOpenChange]);
+  // 창 폭 — 날개를 펼 수 있는 폭인지. CSS의 시트 전환과 같은 값을 봅니다.
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return undefined;
+    const mq = window.matchMedia(NARROW_Q);
+    const sync = () => setNarrow(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
+  // ── 어느 칸을 그릴 것인가 ──
+  // 좁은 화면에서는 하나만 남기는데, 남기는 쪽은 **활동**입니다 — 수업 중에
+  // 지금 내려온 것이 더 급하고, 노트는 탭을 눌러 언제든 돌아갑니다(글은
+  // 자동 저장이라 어느 쪽을 남겨도 날아가지 않습니다).
+  const hasTask = !!task;
+  const showTask = hasTask && panes.has("task");
+  // 활동이 없는 날에는 탭 줄이 없고 노트 하나뿐입니다 — `panes`가 무엇이든.
+  const wantNote = !hasTask || panes.has("note");
+  const showNote = wantNote && !(narrow && showTask);
+  // 날개를 편 상태 — 서랍이 두 칸 폭으로 벌어집니다.
+  const wide = showTask && showNote;
+
+  useEffect(() => { onOpenChange?.(open, wide); }, [open, wide, onOpenChange]);
+
+  // 탭은 '하나 고르기'가 아니라 **켜기/끄기**입니다. 마지막 한 칸은 끌 수
+  // 없습니다 — 둘 다 꺼지면 빈 서랍이 남습니다.
+  function togglePane(key) {
+    setPanes((prev) => {
+      if (narrow) return new Set([key]); // 좁은 화면 — 한 번에 하나만
+      if (!prev.has(key)) return new Set(prev).add(key);
+      if (prev.size <= 1) return prev;
+      const next = new Set(prev);
+      next.delete(key);
+      return next;
+    });
+  }
 
   // ── 활동이 새로 도착했을 때 ──
-  // 그 순간의 뜻이 '지금 이걸 쓰세요'라, 서랍이 닫혀 있으면 열고 활동 탭을
-  // 켭니다. 같은 활동을 두 번 보낼 수도 있어 `boardId`·`actIndex`가 아니라
+  // 그 순간의 뜻이 '지금 이걸 쓰세요'라, 서랍이 닫혀 있으면 열고 **활동 칸만**
+  // 켭니다. 폭이 380px 그대로라, 수업 중에 스물몇 대의 화면이 동시에
+  // 벌어지지 않습니다 — 필기가 필요한 학생은 노트 탭을 더 눌러 날개를 폅니다.
+  // 같은 활동을 두 번 보낼 수도 있어 `boardId`·`actIndex`가 아니라
   // **보낸 시각**을 견줍니다.
   const seenTaskRef = useRef(0);
   useEffect(() => {
     if (!task?.at || task.at <= seenTaskRef.current) return;
     seenTaskRef.current = task.at;
-    setTab("task");
+    setPanes(new Set(["task"]));
     setOpen(true);
     try { localStorage.setItem(OPEN_KEY, "1"); } catch {}
   }, [task?.at]);
 
   // 활동이 내려가면 노트로 돌아옵니다 — 빈 탭에 남아 있을 이유가 없습니다.
-  useEffect(() => { if (!task) setTab("note"); }, [task]);
+  useEffect(() => { if (!task) setPanes(new Set(["note"])); }, [task]);
 
   useEffect(() => {
     if (!classId || !user?.uid) { setLoaded(true); return; }
@@ -394,8 +446,8 @@ export default function CornellNoteDrawer({
       <button
         type="button"
         className={`cornell-handle${open ? " open" : ""}${
-          !open && unreadCount > 0 ? " has-feedback" : ""
-        }`}
+          open && wide ? " wide" : ""
+        }${!open && unreadCount > 0 ? " has-feedback" : ""}`}
         onClick={toggle}
         title={
           open
@@ -434,7 +486,10 @@ export default function CornellNoteDrawer({
       </button>
 
       {open && (
-        <aside className="cornell-drawer" aria-label="수업 노트">
+        <aside
+          className={`cornell-drawer${wide ? " wide" : ""}`}
+          aria-label="수업 노트"
+        >
           <header className="cornell-head">
             <strong className="head-icon"><IconRecord size={18} /> 수업 노트</strong>
             <span className="cornell-date">{date}</span>
@@ -450,50 +505,76 @@ export default function CornellNoteDrawer({
           </header>
 
           {/* 탭 — 활동이 내보내졌을 때만. 평소에는 지금까지와 똑같이
-              노트 하나이고 이 줄이 아예 없습니다. */}
+              노트 하나이고 이 줄이 아예 없습니다.
+
+              **이 줄만 켜기/끄기입니다.** 같은 모양(.dash-view-tabs)을 쓰는
+              다른 두 곳(닿소리 '전체 보기' · 노트 크게 보기)은 '하나 고르기'라,
+              여기서 동시 선택이 되게 하면 같은 생김새가 화면마다 다르게
+              움직입니다. 그래서 눌린 것이 분명히 보이는 제 모양을 씁니다
+              (role도 tab이 아니라 aria-pressed입니다 — 하는 일이 다릅니다). */}
           {task && (
-            <div className="dash-view-tabs cornell-tabs" role="tablist">
+            <div className="cornell-tabrow" role="group" aria-label="펼칠 칸 고르기">
               <button
                 type="button"
-                role="tab"
-                className={`dash-view-tab${tab === "note" ? " on" : ""}`}
-                aria-selected={tab === "note"}
-                onClick={() => setTab("note")}
+                className={`cornell-tab${showNote ? " on" : ""}`}
+                aria-pressed={showNote}
+                onClick={() => togglePane("note")}
+                title={
+                  narrow
+                    ? "수업 노트 보기 (좁은 화면에서는 한 번에 하나만 열려요)"
+                    : showNote && !wide
+                      ? "한 칸은 열려 있어야 해요"
+                      : showNote
+                        ? "수업 노트 접기"
+                        : "수업 노트도 함께 펼치기"
+                }
               >
+                <span className="cornell-tab-mark" aria-hidden="true">
+                  {showNote ? "✓" : ""}
+                </span>
                 수업 노트
               </button>
               <button
                 type="button"
-                role="tab"
-                className={`dash-view-tab${tab === "task" ? " on" : ""}`}
-                aria-selected={tab === "task"}
-                onClick={() => setTab("task")}
+                className={`cornell-tab${showTask ? " on" : ""}`}
+                aria-pressed={showTask}
+                onClick={() => togglePane("task")}
+                title={
+                  narrow
+                    ? "오늘의 활동 보기 (좁은 화면에서는 한 번에 하나만 열려요)"
+                    : showTask && !wide
+                      ? "한 칸은 열려 있어야 해요"
+                      : showTask
+                        ? "오늘의 활동 접기"
+                        : "오늘의 활동도 함께 펼치기"
+                }
               >
+                <span className="cornell-tab-mark" aria-hidden="true">
+                  {showTask ? "✓" : ""}
+                </span>
                 오늘의 활동
               </button>
             </div>
           )}
 
-          {/* 두 탭을 함께 그려 두고 **감춰만 둡니다**(KWLS 노트 탭과 같은
+          {/* 두 칸을 함께 그려 두고 **감춰만 둡니다**(KWLS 노트 탭과 같은
               방식). 탭을 오갈 때마다 지웠다 만들면 그때마다 프로젝트와 카드를
-              다시 읽고, 쓰던 칸도 새로 마운트되어 커서가 튑니다. */}
-          {task && (
-            <div className="cornell-body" hidden={tab !== "task"}>
-              {/* 공부방 활동과 책방 단계는 저장되는 자리가 아예 달라
-                  (카드 한 장 ↔ 그 활동의 내 기록) 칸을 따로 둡니다. 같은
-                  껍데기에 억지로 담으면 어느 쪽 규칙을 따르는지 흐려집니다. */}
-              {task.kind === "book" ? (
-                <LessonBookTaskPanel task={task} user={user} onType={onType} />
-              ) : (
-                <LessonTaskPanel task={task} user={user} onType={onType} />
-              )}
-            </div>
-          )}
+              다시 읽고, 쓰던 칸도 새로 마운트되어 커서가 튑니다.
 
+              [노트가 왼쪽, 활동이 오른쪽인 까닭]
+              서랍의 오른쪽 끝은 화면 가장자리에 붙박이라, 날개를 펴면 새로
+              생기는 자리는 **왼쪽**입니다. 활동이 내려와 오른쪽 380px을
+              차지한 채로 노트를 더 펴면, 노트가 왼쪽에 붙고 쓰던 활동 칸은
+              제자리에 그대로 남습니다. 탭 줄의 차례도 이 왼→오와 같습니다. */}
+          <div className={`cornell-panes${wide ? " wide" : ""}`}>
+            <section className="cornell-pane" hidden={!showNote}>
           {!loaded ? (
-            tab === "task" ? null : <p className="cornell-empty">불러오는 중이에요…</p>
+            <div className="cornell-body">
+              <p className="cornell-empty">불러오는 중이에요…</p>
+            </div>
           ) : (
-            <div className="cornell-body" hidden={!!task && tab === "task"}>
+            <>
+            <div className="cornell-body">
               {/* 지난 노트에 달린 한 마디 — 선생님은 수업이 끝난 뒤에 쓰므로
                   대부분 '어제 것'입니다. 여기가 없으면 학생은 리포트에
                   들어가 그 날짜를 펼쳐 봐야만 알게 됩니다.
@@ -732,19 +813,21 @@ export default function CornellNoteDrawer({
                 노트 전체 보기 →
               </button>
             </div>
-          )}
 
-          {/* 저장은 자동입니다(2초). 그래도 단추를 둡니다 — 자리를 뜰 때
-              '눌러서 끝냈다'는 감각이 필요하고, 기다리는 2초가 불안한 것도
-              자연스러운 일입니다.
-              자리는 **서랍 맨 아래 고정 줄**입니다. 머리말에 뒀을 때는 요약을
-              다 쓰고 손이 화면 꼭대기까지 올라가야 했고, 본문 안(요약 칸 바로
-              아래)에 뒀을 때는 노트가 길어지면 스크롤 밖으로 밀렸습니다.
-              여기는 쓰는 칸 아래이면서 늘 보입니다.
-              **글자는 '저장'으로 고정하고 색만 바뀝니다**(활성 주황 /
-              비활성 회색). 저장·저장 중…·저장됨으로 휙휙 바뀌면 눈이 자꾸
-              그리로 끌리고, 잠깐 스치는 '저장 중…'은 오류처럼 보입니다. */}
-          {loaded && !(task && tab === "task") && (
+            {/* 저장은 자동입니다(2초). 그래도 단추를 둡니다 — 자리를 뜰 때
+                '눌러서 끝냈다'는 감각이 필요하고, 기다리는 2초가 불안한 것도
+                자연스러운 일입니다.
+                자리는 **노트 칸 맨 아래 고정 줄**입니다. 머리말에 뒀을 때는
+                요약을 다 쓰고 손이 화면 꼭대기까지 올라가야 했고, 본문 안(요약
+                칸 바로 아래)에 뒀을 때는 노트가 길어지면 스크롤 밖으로
+                밀렸습니다. 여기는 쓰는 칸 아래이면서 늘 보입니다.
+                **서랍이 아니라 노트 칸 안입니다** — 날개를 펴면 옆에 활동
+                칸이 함께 서는데, 서랍 바닥에 두면 그 단추가 어느 칸을
+                저장하는지 흐려집니다(활동은 제 칸이 알아서 자동 저장합니다).
+                같은 이유로 이름도 '노트 저장'입니다.
+                **글자는 고정하고 색만 바뀝니다**(활성 주황 / 비활성 회색).
+                저장·저장 중…·저장됨으로 휙휙 바뀌면 눈이 자꾸 그리로 끌리고,
+                잠깐 스치는 '저장 중…'은 오류처럼 보입니다. */}
             <footer className="cornell-foot">
               <button
                 type="button"
@@ -755,10 +838,28 @@ export default function CornellNoteDrawer({
                   dirty ? "지금 저장 — 안 눌러도 2초 뒤 저절로 저장돼요" : "저장할 것이 없어요"
                 }
               >
-                저장
+                노트 저장
               </button>
             </footer>
+            </>
           )}
+            </section>
+
+            {task && (
+              <section className="cornell-pane" hidden={!showTask}>
+                <div className="cornell-body">
+                  {/* 공부방 활동과 책방 단계는 저장되는 자리가 아예 달라
+                      (카드 한 장 ↔ 그 활동의 내 기록) 칸을 따로 둡니다. 같은
+                      껍데기에 억지로 담으면 어느 쪽 규칙을 따르는지 흐려집니다. */}
+                  {task.kind === "book" ? (
+                    <LessonBookTaskPanel task={task} user={user} onType={onType} />
+                  ) : (
+                    <LessonTaskPanel task={task} user={user} onType={onType} />
+                  )}
+                </div>
+              </section>
+            )}
+          </div>
         </aside>
       )}
 

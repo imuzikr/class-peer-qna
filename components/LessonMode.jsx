@@ -67,6 +67,7 @@ import { getCurrentUser } from "@/lib/user";
 import AttendanceBoard from "./AttendanceBoard";
 import StudyProgressBoard, { cardProgress } from "./StudyProgressBoard";
 import LessonSeatPanel from "./LessonSeatPanel";
+import LessonAnswerPanel from "./LessonAnswerPanel";
 // 수업 화면이 상단바를 덮으므로, 상단바의 공지·알림을 여기에도 둡니다.
 import ClassNoticeButton from "./ClassNoticeButton";
 import NotificationBell from "./NotificationBell";
@@ -344,8 +345,11 @@ export default function LessonMode({
   }, [classId]);
   const raisedCount = roster.filter((s) => raisedUids.has(s.uid)).length;
   // 자리표 펼침도 여기서 쥡니다 — 머리말의 손들기를 누르면 자리표가 열려야
-  // 누가 들었는지 바로 보입니다.
+  // 누가 들었는지 바로 보입니다. 보고 있는 탭도 함께 쥡니다: 활동보기를 보던
+  // 중에 손들기를 누르면 **자리표 탭으로 돌아와야** 합니다(안 그러면 손들기를
+  // 눌렀는데 학생 답이 떠 있습니다).
   const [seatOpen, setSeatOpen] = useState(false);
+  const [seatView, setSeatView] = useState("seat");
 
   // 알림함은 내 uid로 구독합니다. 로그인 캐시는 인증이 풀린 뒤에 채워지므로
   // 그릴 때 바로 읽지 않고 마운트 뒤에 한 번 읽습니다(서버에서 그릴 때와
@@ -882,7 +886,7 @@ export default function LessonMode({
             <button
               type="button"
               className="lesson-hand-chip"
-              onClick={() => setSeatOpen(true)}
+              onClick={() => { setSeatView("seat"); setSeatOpen(true); }}
               title={
                 raisedCount > 0
                   ? `${raisedCount}명이 손을 들었어요 — 눌러서 자리표에서 확인`
@@ -1144,30 +1148,49 @@ export default function LessonMode({
                     <small>누르면 학생 화면에 바로 떠요 — 살구빛이 지금까지 내보낸 것</small>
                   </div>
 
+                  {/* ── 공부방 활동 — 세로로 쌓은 목록 ──
+                      예전에는 가로 칩 한 줄이라 `활동 1 … 활동 5`만 보이고
+                      활동 이름이 아예 안 떴습니다(칩이 `활동 {i+1}`만 찍었고,
+                      이름을 넣으면 다섯 개가 한 줄에 안 섰습니다). 그래서
+                      선생님이 무엇을 내보내는지 번호로만 짚어야 했습니다.
+                      세로로 쌓으면 한 줄이 통째로 한 활동이라 이름을 넉넉히
+                      적을 수 있습니다.
+                      **책방 쪽은 칩 줄 그대로 둡니다** — 곁텍스트 단계는
+                      이름이 짧고(표지·목차·머리말…) 여덟이라, 세로로 세우면
+                      이 카드만 유독 길어집니다. */}
                   {board && boardActs.length > 0 && (
-                    <div className="lesson-lock-row">
+                    <div className="lesson-act-list">
                       {boardActs.map((a, i) => {
                         const locked = isActivityLocked(board, i);
                         const live = taskActIndex === i;
+                        // 이름을 안 고친 활동은 배열에 기본값 `활동 N`이 그대로
+                        // 들어 있습니다. 그대로 그리면 `활동 1 · 활동 1`이라
+                        // 같은 말이 두 번이라, 그때는 이름 줄을 안 그립니다
+                        // (학생 서랍 머리말이 이미 쓰는 방식입니다).
+                        const name = String(a ?? "").trim();
+                        const named = name && name !== `활동 ${i + 1}`;
                         return (
                           <button
                             key={`${a}-${i}`}
                             type="button"
-                            className={`lesson-act-chip${locked ? " locked" : ""}${live ? " live" : ""}`}
+                            className={`lesson-act-item${locked ? " locked" : ""}${live ? " live" : ""}`}
                             onClick={() => pushActivity(i)}
                             disabled={pushBusy}
-                            title={`${a} — 학생 화면으로 보내기${locked ? " (잠긴 활동은 함께 열려요)" : ""}`}
+                            title={`${named ? name : `활동 ${i + 1}`} — 학생 화면으로 보내기${locked ? " (잠긴 활동은 함께 열려요)" : ""}`}
                           >
                             {/* **자물쇠를 달지 마세요.** 이 줄에서 알아야 할
-                                것은 '어디까지 내보냈나'뿐이고 그건 칩 색이
+                                것은 '어디까지 내보냈나'뿐이고 그건 줄 색이
                                 이미 말합니다 — 살구빛이 내보낸 것, 회색이
-                                아직입니다. 자물쇠를 더하면 칩마다 그림이
-                                하나씩 붙어 정작 지금 나가 있는 칩의 점이
+                                아직입니다. 자물쇠를 더하면 줄마다 그림이
+                                하나씩 붙어 정작 지금 나가 있는 줄의 점이
                                 묻힙니다. */}
-                            {live && (
-                              <span className="broadcast-live-dot" aria-hidden="true" />
-                            )}
-                            활동 {i + 1}
+                            <span className="lesson-act-item-no">
+                              {live && (
+                                <span className="broadcast-live-dot" aria-hidden="true" />
+                              )}
+                              활동 {i + 1}
+                            </span>
+                            {named && <span className="lesson-act-item-name">{name}</span>}
                           </button>
                         );
                       })}
@@ -1297,6 +1320,21 @@ export default function LessonMode({
                   raisedUids={raisedUids}
                   open={seatOpen}
                   onOpenChange={setSeatOpen}
+                  view={seatView}
+                  onViewChange={setSeatView}
+                  // 활동보기 — 지금 내보낸 활동에 학생들이 쓴 답. 이 화면이
+                  // 이미 구독해 둔 카드(boardCards)를 그대로 넘기므로 읽는
+                  // 문서가 하나도 안 늡니다. 책방 활동을 내보낸 중이면 그
+                  // 칸이 스스로 '책방에서 보세요'라고 적습니다.
+                  answerView={
+                    <LessonAnswerPanel
+                      task={task}
+                      taskActIndex={taskActIndex}
+                      boardActs={boardActs}
+                      cards={boardCards}
+                      roster={roster}
+                    />
+                  }
                   onSaveSeats={(seats, user) =>
                     saveStudySeatLayout(classId, todayLayoutId, seats, user, { date: todayDateKey() })
                   }

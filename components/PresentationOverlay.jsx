@@ -20,8 +20,15 @@ const KNOWN_MODES = ["consonant", "entry", "wall", "mindmap", "lesson", "carouse
 // 그만큼 좁힙니다(덮는 게 아니라 밀어냅니다). 서랍은 이 컴포넌트 밖에서
 // TopNav이 형제로 그립니다 — 안에 두면 슬라이드가 넘어갈 때마다 다시
 // 그려져 입력이 끊깁니다.
-export default function PresentationOverlay({ broadcast, noteOpen = false }) {
-  const shrink = noteOpen ? " broadcast-overlay--noted" : "";
+// noteWide — 서랍이 **날개를 편** 상태(노트 + 오늘의 활동 두 칸). 그만큼 더
+// 좁아집니다. 가려지는 것은 감수하는 손실입니다 — 필기하면서 답하려고 편
+// 것이라, 그 순간 학생이 보는 주인공은 슬라이드가 아니라 제 칸입니다.
+export default function PresentationOverlay({ broadcast, noteOpen = false, noteWide = false }) {
+  const shrink = noteOpen
+    ? noteWide
+      ? " broadcast-overlay--noted broadcast-overlay--noted2"
+      : " broadcast-overlay--noted"
+    : "";
   // [버전이 어긋났을 때]
   // 학생 브라우저에 이전 배포의 화면이 열린 채로 남아 있으면, 새로 생긴
   // 방송 종류를 못 알아봅니다. 그때 그냥 아래로 흘려보내면 빈 발표 카드가
