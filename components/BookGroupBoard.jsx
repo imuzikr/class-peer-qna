@@ -21,6 +21,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   subscribeBookGroups,
   subscribeGroupWords,
+  addSoloBookBoards,
   composeBookGroups,
   joinBookGroup,
   leaveBookGroup,
@@ -97,40 +98,19 @@ export default function BookGroupBoard({
     return roster.filter((s) => s?.uid && !seated.has(s.uid));
   }, [isTeacher, perStudent, groups, roster]);
 
-  // 없는 판만 뒤에 더합니다. `composeBookGroups`는 **넘긴 목록에 없는 모둠을
-  // 물립니다**(retired) — 지금 있는 판을 그대로 함께 실어 보내야 멀쩡한 판이
-  // 사라지지 않습니다. 낱말은 판(groups/{id}/words)에 딸려 있어 그대로입니다.
+  // 없는 판만 더합니다 — **있는 판은 손대지 않습니다**.
+  //
+  // `composeBookGroups`를 쓰지 않는 까닭은 `lib/store.js`의
+  // `addSoloBookBoards` 주석에 적어 두었습니다: 그 함수는 넘긴 목록이 곧
+  // 전부라 목록에 없는 판을 물리고 문서 id를 `group_{index}`로 가정해 쓰는데,
+  // `books:to-solo`로 옮긴 활동의 판은 id가 `solo_<uid>`라 멀쩡한 판이
+  // 통째로 물러납니다.
   async function handleAddSoloBoards() {
     if (busy || soloMissing.length === 0) return;
     setBusy(true);
     try {
-      let next = groups.reduce((m, g) => Math.max(m, g.groupIndex ?? 0), 0);
-      const rows = [
-        ...groups.map((g) => ({
-          index: g.groupIndex,
-          name: g.groupName || "",
-          memberUids: g.memberUids ?? [],
-          members: g.members ?? [],
-          leaderUid: g.leaderUid ?? null,
-        })),
-        // 판 이름은 학생 이름 — 만들 때와 같은 모양입니다(createBookActivity)
-        ...soloMissing.map((s) => ({
-          index: ++next,
-          name: s.name || "학생",
-          memberUids: [s.uid],
-          members: [{
-            uid: s.uid,
-            name: s.name || "학생",
-            studentId: s.studentId ?? null,
-            emoji: s.emoji ?? "🙂",
-          }],
-          leaderUid: null,
-        })),
-      ];
-      await composeBookGroups(user, activity.id, rows, {
-        groupSetName: groups[0]?.groupSetName || activity.groupSetName || "개별 활동",
-      });
-      onToast?.(`판 ${soloMissing.length}개를 만들었어요.`);
+      const n = await addSoloBookBoards(user, activity.id, soloMissing);
+      onToast?.(`판 ${n}개를 만들었어요.`);
     } catch (e) {
       console.warn("[책방] 학생 판을 만들지 못했어요:", e?.code, e?.message);
       onToast?.("판을 만들지 못했어요. 잠시 뒤 다시 눌러 주세요.");
