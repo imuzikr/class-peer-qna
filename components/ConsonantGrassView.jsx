@@ -86,21 +86,28 @@ export default function ConsonantGrassView({ students = [], onPickStudent = null
           {/* 이름 줄 — 세로쓰기. 세로로 구를 때 위에 붙어 있어야 어느 칸이
               누구인지 잃지 않습니다(sticky). */}
           <span className="grass-act grass-corner" aria-hidden="true" />
-          {students.map((s) => (
-            <button
-              key={s.uid}
-              type="button"
-              className="grass-name"
-              onClick={() => onPickStudent?.(s.uid)}
-              title={
-                `${s.studentId ? `${s.studentId} ` : ""}${s.name}` +
-                ` — ${(s.counts ?? []).filter((n) => n > 0).length}/${CELL_COUNT}칸` +
-                `${s.groupName ? ` · ${s.groupName}` : ""}`
-              }
-            >
-              {s.name}
-            </button>
-          ))}
+          {students.map((s) => {
+            const filled = (s.counts ?? []).filter((n) => n > 0).length;
+            const done = filled >= CELL_COUNT;
+            return (
+              <button
+                key={s.uid}
+                type="button"
+                // 14칸을 다 채운 학생은 이름 위에 붉은 점. 세로 줄을 하나씩
+                // 눈으로 훑지 않아도 '누가 끝냈나'가 이름 줄에서 바로 읽힙니다
+                // — 다 채운 줄은 초록이 열넷이라 옆줄과 잘 안 갈립니다.
+                className={`grass-name${done ? " is-done" : ""}`}
+                onClick={() => onPickStudent?.(s.uid)}
+                title={
+                  `${s.studentId ? `${s.studentId} ` : ""}${s.name}` +
+                  ` — ${filled}/${CELL_COUNT}칸${done ? " · 다 채움" : ""}` +
+                  `${s.groupName ? ` · ${s.groupName}` : ""}`
+                }
+              >
+                {s.name}
+              </button>
+            );
+          })}
 
           {CONSONANT_LABELS.map((label, i) => (
             <Fragment key={label}>

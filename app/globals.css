@@ -20073,6 +20073,41 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
+/* 14칸을 다 채운 학생은 이름 **위에** 붉은 점. 다 채운 줄은 초록이 열넷이라
+   옆줄과 잘 안 갈려서, '누가 끝냈나'가 이름 줄에서 바로 읽히게 합니다.
+   색·크기는 '모둠원별 진행'의 완료 점(`.dash-heat-cell.is-done`)과 **같은
+   값**이고, 색은 손들기 표시(`.question-signal-dot`)와도 같습니다 — 화면이
+   달라도 '여기 봐 달라'는 신호가 하나로 읽혀야 합니다.
+
+   **자리는 이 화면의 모든 이름이 비워 둡니다**(`.dash-grass .grass-name`의
+   padding-top). 점이 있는 이름에만 여백을 주면 그 이름만 10px 내려앉아,
+   스물몇 개가 늘어선 줄이 들쭉날쭉해집니다. 빈 자리는 다 채우기 전까지
+   아무것도 없을 뿐입니다.
+
+   **`.grass-name`에 직접 주지 마세요** — 책방 전광판(`BookProgressBoard`)이
+   같은 클래스를 씁니다. 거기는 '다 채움'이라는 개념 자체가 없어(줄마다 제
+   상태가 따로입니다) 점이 영영 안 붙는데 이름만 내려앉고 글자 자리가 10px
+   줄어듭니다.
+
+   **흰 테두리를 두르지 마세요.** 저 둘은 색칠한 칸 위에 얹히는 점이라 흰
+   고리가 '사이를 띄운 자리'로 읽히지만, 여기는 크림색 바탕(`--bg`) 위라
+   고리가 그대로 흰 무리로 보입니다.
+
+   **`position`을 건드리지 마세요.** `.grass-name`은 `sticky`라 그것만으로
+   이미 점의 기준입니다(sticky도 '자리를 잡은' 요소입니다). `relative`를
+   덧대면 sticky가 풀려 세로로 구를 때 이름 줄이 위에 안 붙습니다. */
+.dash-grass .grass-name { padding-top: 12px; }
+.dash-grass .grass-name.is-done::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  margin-left: -3.5px;
+  border-radius: 999px;
+  background: #e05a2f;
+}
 /* 이 격자는 모달이 아니라 대시보드 안이라 `.progress-scroll`의 68vh 제한이
    필요 없습니다 — 남는 높이를 그대로 씁니다. */
 .dash-grass .progress-scroll {
