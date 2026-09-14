@@ -32,7 +32,11 @@ import { useTodayRewardCounts } from "@/lib/useTodayRewards";
 import RewardTally from "./RewardTally";
 import StudentToolsPopover from "./StudentToolsPopover";
 import StudentNotesModal from "./StudentNotesModal";
-import { IconChair, IconRecord } from "./StatusIcons";
+import { IconChair } from "./StatusIcons";
+
+// 패널 이름 — 접힌 단추 · 펼친 머리말 · 읽어 주는 이름표가 **한 곳**을 봅니다.
+// 세 군데에 따로 적으면 한쪽만 고쳤을 때 같은 자리가 두 이름을 갖습니다.
+const PANEL_NAME = "우리는 공부중";
 
 const GROUP_COLORS = ["#2563eb", "#16a34a", "#f97316", "#9333ea", "#dc2626", "#0891b2"];
 
@@ -215,7 +219,7 @@ export default function LessonSeatPanel({
   ];
   const viewTabs = (
     <div className="lesson-seat-tabrow">
-      <span className="lesson-seat-tabs" role="tablist" aria-label="자리표 보기 방식">
+      <span className="lesson-seat-tabs" role="tablist" aria-label="보기 고르기">
         {TABS.map((t) => (
           <button
             key={t.key}
@@ -281,7 +285,7 @@ export default function LessonSeatPanel({
         onClick={() => setOpen(true)}
       >
         <IconChair size={18} className="lesson-seat-toggle-icon" />
-        자리표
+        {PANEL_NAME}
         {raisedCount > 0 && (
           <span className="lesson-seat-toggle-hand">🖐️ {raisedCount}</span>
         )}
@@ -290,22 +294,20 @@ export default function LessonSeatPanel({
   }
 
   return (
-    <section className="lesson-seat-panel" aria-label="자리표">
+    <section className="lesson-seat-panel" aria-label={PANEL_NAME}>
       <div className="lesson-card-head">
-        {/* 제목은 **보고 있는 탭**을 따릅니다. 넷은 서로 딸린 것이 아니라
-            나란한 보기라, 활동 답을 읽는 동안 '자리표'라고 적혀 있으면 무엇을
-            보는 중인지 화면이 거짓말을 합니다. 접혀 있을 때의 단추는 그대로
-            '자리표'입니다 — 선생님들이 그 이름으로 기억하는 자리입니다. */}
-        {activeView === "answer" ? (
-          <h2 className="head-icon"><IconRecord size={19} /> 활동보기</h2>
-        ) : (
-          <h2 className="head-icon"><IconChair size={19} /> 자리표</h2>
-        )}
+        {/* 이름이 `우리는 공부중`인 까닭: 이 패널은 이제 자리표 하나가 아니라
+            네 보기(활동보기·개별·모둠·궁금한 순간)를 갈아 끼우는 자리입니다.
+            '자리표'라고 적어 두면 활동 답을 읽는 동안 화면이 거짓말을 하고,
+            보고 있는 탭을 따라 제목을 바꾸면 접힌 단추와 이름이 어긋납니다.
+            넷을 함께 덮는 이름 하나면 둘 다 풀립니다 — 지금 무엇을 보는지는
+            바로 아래 딸림글이 말합니다. */}
+        <h2 className="head-icon"><IconChair size={19} /> {PANEL_NAME}</h2>
         <button
           type="button"
           className="lesson-seat-collapse-btn"
           onClick={() => setOpen(false)}
-          aria-label="자리표 접기"
+          aria-label={`${PANEL_NAME} 접기`}
         >
           접기
         </button>

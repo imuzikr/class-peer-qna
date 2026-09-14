@@ -889,8 +889,8 @@ export default function LessonMode({
               onClick={() => { setSeatView("seat"); setSeatOpen(true); }}
               title={
                 raisedCount > 0
-                  ? `${raisedCount}명이 손을 들었어요 — 눌러서 자리표에서 확인`
-                  : "손든 학생이 없어요 — 눌러서 자리표 열기"
+                  ? `${raisedCount}명이 손을 들었어요 — 눌러서 '우리는 공부중'에서 확인`
+                  : "손든 학생이 없어요 — 눌러서 '우리는 공부중' 열기"
               }
             >
               <span aria-hidden="true">🖐️</span>
@@ -900,7 +900,7 @@ export default function LessonMode({
                 <span className="lesson-hand-badge" aria-hidden="true">{raisedCount}</span>
               )}
               <span className="sr-only">
-                손든 학생 {raisedCount}명 — 자리표 열기
+                손든 학생 {raisedCount}명 — '우리는 공부중' 열기
               </span>
             </button>
             <ClassNoticeButton classId={classId} memberCount={roster.length} />
