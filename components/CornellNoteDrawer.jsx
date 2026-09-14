@@ -58,6 +58,10 @@ const OPEN_KEY = "cornell-drawer-open";
 // 날개를 펼 수 없는 폭 — 서랍이 아래에서 올라오는 시트로 바뀌는 그 폭입니다
 // (globals.css의 `@media (max-width: 760px)`와 **같은 값이어야** 합니다).
 const NARROW_Q = "(max-width: 760px)";
+// 미끄러지는 길이 — globals.css의 `--cornell-slide`와 **같은 값이어야** 합니다.
+// 닫을 때 서랍을 그만큼 더 그려 두었다가 걷어 내는 데 씁니다. 짧게 잡으면
+// 다 미끄러지기 전에 사라지고, 길게 잡으면 다 닫힌 자리에 빈 서랍이 남습니다.
+const SLIDE_MS = 250;
 
 // 필기 칸에 붙이는 서식 — 수업 메모와 같은 넷에 **코드 블록**을 더한 다섯.
 // 활동 탭(LessonTaskPanel의 TASK_TOOLS)과 같아야 합니다 — 한 서랍 안에서
@@ -93,6 +97,14 @@ export default function CornellNoteDrawer({
   // 없습니다. 이 값은 **보여 줄 칸을 고르는 데만** 쓰고 `panes`는 그대로
   // 두어, 다시 넓히면 펴 두었던 그대로 돌아옵니다.
   const [narrow, setNarrow] = useState(false);
+  // 여닫는 동안의 두 값 — 아래 '미끄러지며 여닫기' 절 참고.
+  // `rendered`는 서랍을 아직 그려 두는가, `slidIn`은 자리에 와 있는가.
+  const [rendered, setRendered] = useState(false);
+  const [slidIn, setSlidIn] = useState(false);
+  // 접히는 중이라 잠깐 더 그려 두는 칸('note' · 'task')
+  const [linger, setLinger] = useState(() => new Set());
+  const shownRef = useRef({ note: false, task: false });
+  const handleRef = useRef(null); // 닫을 때 초점을 되돌릴 곳
   const [viewerOpen, setViewerOpen] = useState(false); // 크게 보기 창
   const [note, setNote] = useState(null);        // 서버에서 온 문서
   const [loaded, setLoaded] = useState(false);
@@ -152,7 +164,14 @@ export default function CornellNoteDrawer({
     //  두 번 불려 저장도 두 번 나갑니다)
     // 닫을 때는 곧바로 저장합니다. flush가 아니라 runSave인 이유: 서랍은
     // 닫혀도 그대로 붙어 있어(open만 false) 단추 상태가 이어집니다.
-    if (!next) runSave();
+    if (!next) {
+      runSave();
+      // **닫으면 손잡이로 초점을 되돌립니다.** 미끄러지는 250ms 동안 서랍은
+      // 아직 DOM에 있는데 `aria-hidden`이라, 초점이 그 안(머리말의 × 등)에
+      // 남아 있으면 읽어 주는 기기에서 '없는 것'에 초점이 놓입니다. 키보드로
+      // 쓰는 사람에게도 사라진 단추보다 손잡이가 다음에 누를 자리입니다.
+      handleRef.current?.focus();
+    }
   }
 
   // 창 폭 — 날개를 펼 수 있는 폭인지. CSS의 시트 전환과 같은 값을 봅니다.
@@ -178,6 +197,53 @@ export default function CornellNoteDrawer({
   const wide = showTask && showNote;
 
   useEffect(() => { onOpenChange?.(open, wide); }, [open, wide, onOpenChange]);
+
+  // ── 미끄러지며 여닫기 ──────────────────────────────────────────
+  // `rendered`는 '아직 그려 두는가', `slidIn`은 '자리에 와 있는가'입니다.
+  // 둘을 가르는 까닭: 닫을 때 곧바로 걷어 내면 미끄러질 것이 없어져 그냥
+  // 사라지고, 열 때 처음부터 제자리에 그려 두면 브라우저가 시작값을 못 봐
+  // 전환이 아예 안 돕니다.
+  useEffect(() => {
+    if (!open) {
+      setSlidIn(false);
+      const t = setTimeout(() => setRendered(false), SLIDE_MS);
+      return () => clearTimeout(t);
+    }
+    setRendered(true);
+    // **다음 프레임에** 켭니다. 같은 프레임에 붙이면 브라우저가 '화면 밖'을
+    // 한 번도 그리지 않고 곧바로 끝 모습으로 넘어갑니다(전환 없음).
+    // 두 번 기다리는 것은 첫 프레임에 갓 붙은 요소의 기본값이 아직 잡히지
+    // 않을 때가 있어서입니다 — 한 번만으로는 이따금 건너뜁니다.
+    let inner = 0;
+    const outer = requestAnimationFrame(() => {
+      inner = requestAnimationFrame(() => setSlidIn(true));
+    });
+    return () => {
+      cancelAnimationFrame(outer);
+      cancelAnimationFrame(inner);
+    };
+  }, [open]);
+
+  // 접히는 칸은 **미끄러지는 동안 그대로 그려 둡니다.** 곧바로 감추면 글이
+  // 먼저 사라지고 빈 자리만 뒤늦게 줄어들어, 한 동작이 둘로 보입니다.
+  // 좁은 화면은 뺍니다 — 거기서는 칸이 폭을 나눠 가지므로(위 CSS) 두 칸이
+  // 잠깐 함께 그려지면 반씩 줄었다 돌아오는 것이 그대로 보입니다.
+  useEffect(() => {
+    const prev = shownRef.current;
+    shownRef.current = { note: showNote, task: showTask };
+    if (narrow) return undefined;
+    const gone = [];
+    if (prev.note && !showNote) gone.push("note");
+    if (prev.task && !showTask) gone.push("task");
+    if (gone.length === 0) return undefined;
+    setLinger(new Set(gone));
+    const t = setTimeout(() => setLinger(new Set()), SLIDE_MS);
+    return () => clearTimeout(t);
+  }, [showNote, showTask, narrow]);
+
+  // 그릴 것인가 — '켜져 있다' 또는 '접히는 중이다'
+  const drawNote = showNote || linger.has("note");
+  const drawTask = showTask || linger.has("task");
 
   // 탭은 '하나 고르기'가 아니라 **켜기/끄기**입니다. 마지막 한 칸은 끌 수
   // 없습니다 — 둘 다 꺼지면 빈 서랍이 남습니다.
@@ -443,11 +509,20 @@ export default function CornellNoteDrawer({
           ×와 Esc뿐이었습니다.
           바깥을 눌러 닫지는 않습니다 — 수업 중에 슬라이드를 한 번 볼 때마다
           닫혀 쓰던 흐름이 끊깁니다(글은 자동 저장이라 날아가진 않지만). */}
+      {/* [모습은 `slidIn`, 뜻은 `open`]
+          손잡이가 서 있는 자리는 서랍 가장자리라, **서랍이 움직이기
+          시작하는 바로 그 순간** 함께 움직여야 둘이 붙어 다닙니다.
+          `open`으로 걸면 한 프레임 앞서 출발합니다 — 그 값은 렌더에서
+          바뀌는데 서랍의 `slidIn`은 그 뒤 effect에서 바뀌기 때문입니다
+          (실측: 여는 동안 손잡이가 서랍 모서리보다 최대 100px 앞섬).
+          그래서 자리·화살표·배지는 `slidIn`을 보고, 읽어 주는 기기에
+          전하는 값(`aria-expanded`·이름)은 그대로 `open`을 봅니다. */}
       <button
         type="button"
-        className={`cornell-handle${open ? " open" : ""}${
-          open && wide ? " wide" : ""
-        }${!open && unreadCount > 0 ? " has-feedback" : ""}`}
+        ref={handleRef}
+        className={`cornell-handle${slidIn ? " open" : ""}${
+          slidIn && wide ? " wide" : ""
+        }${!slidIn && unreadCount > 0 ? " has-feedback" : ""}`}
         onClick={toggle}
         title={
           open
@@ -470,7 +545,7 @@ export default function CornellNoteDrawer({
         {/* 여는 쪽인지 닫는 쪽인지 — 화살표 방향으로만 알립니다.
             글자를 '닫기'로 바꾸면 같은 자리의 같은 것으로 안 보입니다. */}
         <span className="cornell-handle-caret" aria-hidden="true">
-          {open ? "›" : "‹"}
+          {slidIn ? "›" : "‹"}
         </span>
         <span className="cornell-handle-label">수업 노트</span>
         {/* 숫자가 있으면 숫자를, 없으면 '오늘 쓴 게 있다'는 점만.
@@ -478,17 +553,24 @@ export default function CornellNoteDrawer({
             활동이 왔다는 표시는 따로 두지 않습니다 — 올 때 서랍이 저절로
             열리므로 손잡이에 뜰 새가 없고, 세로쓰기 손잡이에서는 글자가
             한 자만 보여 무슨 말인지 알 수 없었습니다. */}
-        {open ? null : unreadCount > 0 ? (
+        {slidIn ? null : unreadCount > 0 ? (
           <span className="cornell-handle-badge">{unreadCount}</span>
         ) : filled > 0 ? (
           <span className="cornell-handle-dot" aria-hidden="true" />
         ) : null}
       </button>
 
-      {open && (
+      {/* 닫은 뒤에도 **미끄러지는 동안은 그대로 그려 둡니다**(`rendered`).
+          곧바로 걷어 내면 미끄러질 것이 없어져 그냥 사라집니다.
+          `aria-hidden`을 함께 두는 까닭: 눈에는 화면 밖으로 나갔는데 읽어
+          주는 기기에는 250ms 동안 그대로 남아 있으면 안 됩니다. */}
+      {rendered && (
         <aside
-          className={`cornell-drawer${wide ? " wide" : ""}`}
+          className={`cornell-drawer${slidIn ? " shown" : ""}${
+            wide ? " wide" : ""
+          }`}
           aria-label="수업 노트"
+          aria-hidden={!open}
         >
           <header className="cornell-head">
             <strong className="head-icon"><IconRecord size={18} /> 수업 노트</strong>
@@ -567,7 +649,7 @@ export default function CornellNoteDrawer({
               차지한 채로 노트를 더 펴면, 노트가 왼쪽에 붙고 쓰던 활동 칸은
               제자리에 그대로 남습니다. 탭 줄의 차례도 이 왼→오와 같습니다. */}
           <div className={`cornell-panes${wide ? " wide" : ""}`}>
-            <section className="cornell-pane" hidden={!showNote}>
+            <section className="cornell-pane" hidden={!drawNote}>
           {!loaded ? (
             <div className="cornell-body">
               <p className="cornell-empty">불러오는 중이에요…</p>
@@ -846,7 +928,7 @@ export default function CornellNoteDrawer({
             </section>
 
             {task && (
-              <section className="cornell-pane" hidden={!showTask}>
+              <section className="cornell-pane" hidden={!drawTask}>
                 <div className="cornell-body">
                   {/* 공부방 활동과 책방 단계는 저장되는 자리가 아예 달라
                       (카드 한 장 ↔ 그 활동의 내 기록) 칸을 따로 둡니다. 같은
