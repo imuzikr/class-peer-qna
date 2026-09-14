@@ -49,7 +49,9 @@ export default function ConsonantDashboard({
   const [groups, setGroups] = useState([]);
   const [wordsByGroup, setWordsByGroup] = useState({});
   const [zoomSlot, setZoomSlot] = useState(null); // 크게 보기 모달
-  // 같은 집계의 두 얼굴 — 격자(첫 글자로 나뉜 자리) / 낱말 구름(낱말만)
+  // 같은 집계의 세 얼굴 — 잔디(누가 어디까지) / 격자(첫 글자로 나뉜 자리) /
+  // 낱말 구름(낱말만). 탭이 선 차례와 **처음 여는 얼굴은 별개**입니다 —
+  // 잔디가 맨 앞이지만 처음에는 격자가 열립니다(아래 'grid').
   const [view, setView] = useState("grid");
 
   useEffect(() => subscribeBookGroups(activity.id, setGroups), [activity.id]);
@@ -309,9 +311,24 @@ export default function ConsonantDashboard({
         )}
         {/* 제목 바로 뒤 — 수업 중에 관찰한 것을 적으러 화면을 옮기지 않게 */}
         {classTools}
-        {/* 격자 / 낱말 구름 — 같은 집계를 보는 방법만 바뀝니다(읽기는 그대로).
-            중계 중이면 학생 화면도 함께 바뀝니다. */}
+        {/* 잔디 / 격자 / 낱말 구름 — 같은 집계를 보는 방법만 바뀝니다(읽기는
+            그대로). 중계 중이면 학생 화면도 함께 바뀝니다.
+            차례는 **수업 중에 자주 여는 것부터**입니다 — 잔디('누가 어디까지
+            채웠나')가 맨 앞이고, 낱말을 보는 둘이 뒤에 섭니다. */}
         <div className="dash-view-tabs" role="tablist" aria-label="보는 방법">
+          {/* 잔디 — 세로 닿소리, 가로 학생. 뒤의 둘이 '무슨 낱말이 나왔나'라면
+              이것은 '누가 어디까지 채웠나'입니다. 학생 화면에는 중계하지
+              않습니다(아래 castPayload 참고). */}
+          <button
+            type="button"
+            role="tab"
+            aria-selected={view === "grass"}
+            className={`dash-view-tab${view === "grass" ? " on" : ""}`}
+            onClick={() => setView("grass")}
+            title="누가 어느 닿소리를 채웠는지 한 격자로 — 학생 화면에는 나가지 않습니다"
+          >
+            잔디
+          </button>
           <button
             type="button"
             role="tab"
@@ -329,19 +346,6 @@ export default function ConsonantDashboard({
             onClick={() => setView("cloud")}
           >
             낱말 구름
-          </button>
-          {/* 잔디 — 세로 닿소리, 가로 학생. 앞의 둘이 '무슨 낱말이 나왔나'라면
-              이것은 '누가 어디까지 채웠나'입니다. 학생 화면에는 중계하지
-              않습니다(아래 castPayload 참고). */}
-          <button
-            type="button"
-            role="tab"
-            aria-selected={view === "grass"}
-            className={`dash-view-tab${view === "grass" ? " on" : ""}`}
-            onClick={() => setView("grass")}
-            title="누가 어느 닿소리를 채웠는지 한 격자로 — 학생 화면에는 나가지 않습니다"
-          >
-            잔디
           </button>
         </div>
         <div className="dash-head-actions">
