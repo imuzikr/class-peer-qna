@@ -400,6 +400,43 @@ export default function RichTextEditor({
     return true;
   }
 
+  // ── '```' 로 코드 블록 ────────────────────────────────────────
+  // 줄 맨 앞에 백틱 셋을 적으면 그 줄이 코드 블록이 됩니다 — 마크다운과 같은
+  // 손놀림이라 툴바의 `</>`를 짚으러 가지 않아도 됩니다.
+  //
+  // **셋째 백틱을 칠 때** 바뀝니다(넷째가 아니라). 마크다운 편집기가 다들
+  // 그렇고, 앞의 둘은 이미 화면에 있어 '한 번 더 치면 되겠다'가 보입니다.
+  //
+  // 이 단축키가 특히 값진 까닭은 **빈 코드 블록이 한 번에 사라지기**
+  // 때문입니다(아래 `preWillEmpty`). 안을 다 지우면 블록이 함께 걷히는데,
+  // 지우다가 그런 것이면 다시 만들어야 합니다 — 툴바까지 가는 대신 백틱
+  // 세 번이면 그 자리에서 돌아옵니다.
+  const canCode = commands.some((c) => c?.cmd === "codeBlock");
+
+  function ticksToCode(e) {
+    if (!canCode) return false; // 툴바에 없는 서식을 몰래 만들지 않습니다
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0 || !sel.isCollapsed) return false;
+    const range = sel.getRangeAt(0);
+    if (!ref.current?.contains(range.startContainer)) return false;
+    // **코드 블록 안의 백틱은 진짜 백틱입니다** — 거기서 가로채면 블록 안에
+    // 블록을 만들게 되고, 파이썬 문자열에 백틱을 적을 길도 막힙니다.
+    if (getContainingPre()) return false;
+    // 줄에 적힌 것이 백틱 둘뿐일 때만(글 가운데의 `a``b`는 그대로 둡니다) —
+    // '- '와 같은 판정입니다.
+    if (linePrefix(range) !== "``") return false;
+
+    e.preventDefault();
+    // 앞의 백틱 둘을 브라우저에게 지우게 합니다(셋째는 preventDefault로 아직
+    // 안 들어왔습니다). 붙임표 하나를 지우는 그 방법이라 **Ctrl+Z 두 번이면
+    // '``'로 돌아옵니다**(실측 — 한 번은 블록, 한 번은 지운 백틱). 진짜로
+    // 백틱을 적고 싶을 때 빠져나갈 길입니다.
+    document.execCommand("delete", false, null);
+    document.execCommand("delete", false, null);
+    insertCodeBlock(); // 커서 자리까지 그 함수가 맡습니다(빈 블록의 공백 앞)
+    return true;
+  }
+
   // 커서가 목록(li) 안에 있으면 Enter는 '새 항목 추가'로 동작해야 함
   function isInList() {
     let node = window.getSelection()?.anchorNode;
@@ -599,6 +636,9 @@ export default function RichTextEditor({
 
     // 띄어쓰기: 줄 맨 앞의 '-' 하나였으면 글머리 기호로
     if (e.key === " " && dashToBullet(e)) return;
+
+    // 백틱: 줄 맨 앞의 '``' 뒤 셋째 백틱이면 코드 블록으로
+    if (e.key === "`" && ticksToCode(e)) return;
 
     // 지우기: 코드 블록이 비게 되면 블록까지 한 번에 걷어 냅니다
     if (e.key === "Backspace" || e.key === "Delete") {
