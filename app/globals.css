@@ -9243,32 +9243,53 @@ pre code {
   cursor: default;
 }
 
-/* 모둠 보기 — 모둠마다 색 띠를 왼쪽에 두고 학생 칸을 흘려 놓습니다.
-   자리 칸(.attend-seat)은 개별 보기와 같은 것을 쓰되, 여기서는 자리 격자가
-   아니라 흐름 배치라 칸 너비를 따로 정해 줍니다. */
-.lesson-seat-groups {
+/* ── 모둠 보기 — 개별 보기와 같은 격자, 모둠은 줄로 가릅니다 ──────────
+   뿌리가 `.attend-seatmap-grid`라 열 수(6칸)도 gap도 자리 칸 크기도
+   **개별 보기 그대로**입니다. 한때 모둠마다 색 띠를 두른 상자를 세우고 그
+   안에 학생 칸을 52px로 흘려 놓았는데, 같은 패널에서 탭만 바꿨을 뿐인데
+   칸이 작아지고 한 줄에 드는 수도 달라져 두 화면이 남남처럼 보였습니다.
+   그래서 **칸에는 아무것도 덧대지 않습니다** — 여기서 width나 flex를 주면
+   그때부터 두 보기가 다시 갈립니다.
+
+   모둠을 가르는 것은 한 줄을 가득 채우는 이름 줄입니다(`1 / -1`). 격자에서
+   한 줄을 통째로 차지하는 항목은 그 앞에서 줄을 바꾸므로, 앞 모둠의 마지막
+   줄이 덜 찼든 꽉 찼든 다음 모둠은 언제나 새 줄에서 시작합니다.
+
+   아래 규칙은 모두 `.lesson-seat-groupgrid` 아래로 한정합니다 — 자리표와
+   같은 격자를 쓰는 만큼, 모둠 보기에만 있어야 할 것이 개별 보기로 새지
+   않게 뿌리를 하나 두고 그 안에서만 말합니다. */
+.lesson-seat-groupgrid > .lesson-seat-group-name {
+  grid-column: 1 / -1;
   display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.lesson-seat-group {
-  padding-left: 9px;
-  border-left: 3px solid var(--group-color, var(--border));
-}
-.lesson-seat-group-name {
-  margin: 0 0 5px;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
   font-size: 11.5px;
   font-weight: 800;
   color: var(--group-color, var(--text-sub));
 }
-.lesson-seat-group-members {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-.lesson-seat-group-members .attend-seat {
-  width: 52px;
+/* 모둠 색은 글자와 앞의 작은 띠 둘로 말합니다 — 상자를 없앤 뒤에도 어느
+   모둠인지는 색으로 먼저 읽힙니다(예전 왼쪽 색 띠가 하던 일). */
+.lesson-seat-groupgrid > .lesson-seat-group-name::before {
+  content: "";
   flex: none;
+  width: 3px;
+  height: 13px;
+  border-radius: 2px;
+  background: var(--group-color, var(--border));
+}
+/* 둘째 모둠부터는 앞 줄과 한 칸 더 띄웁니다 — 격자 gap(6px)만으로는 앞
+   모둠의 마지막 줄과 다음 모둠의 이름이 붙어 보입니다. */
+.lesson-seat-groupgrid > .lesson-seat-group-name:not(:first-child) {
+  margin-top: 7px;
+}
+/* 빈 모둠의 안내도 한 줄을 통째로 씁니다 — 자리 칸 하나만 한 폭에 넣으면
+   글자가 서너 자씩 접힙니다. */
+.lesson-seat-groupgrid > .lesson-seat-group-empty {
+  grid-column: 1 / -1;
+  font-size: 11px;
+  font-style: normal;
+  color: var(--text-sub);
 }
 
 /* compact은 '칠판 안내 문구를 빼는' 용도로만 쓰고(공부방 패널과 달리 이
@@ -9291,11 +9312,6 @@ pre code {
   font-size: 13px;
   top: 2px;
   right: 3px;
-}
-.lesson-seat-group-empty {
-  font-size: 11px;
-  font-style: normal;
-  color: var(--text-sub);
 }
 
 /* ── 수업 준비: 공부방 연동 ── */

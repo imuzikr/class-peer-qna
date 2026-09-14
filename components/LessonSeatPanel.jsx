@@ -20,7 +20,7 @@
 // 길어져 화면이 한쪽으로 쏠립니다. 눌러야 펼쳐지게 해 평소엔 균형을 맞추고,
 // 필요할 때만 크게 봅니다.
 // =============================================================
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { subscribeQuestionSignals, todayDateKey } from "@/lib/store";
 import { normalizeSeats } from "@/lib/seats";
 import { getCurrentUser } from "@/lib/user";
@@ -342,35 +342,41 @@ export default function LessonSeatPanel({
         // 모둠 보기 — 모둠끼리 묶어 봅니다. 자리 이동(드래그)은 자리 배치를
         // 바꾸는 일이라 개별 보기에서만 합니다(모둠 보기에는 '자리'가 없어
         // 어디로 옮기는 건지가 성립하지 않습니다).
+        //
+        // [격자도 칸도 개별 보기와 같은 것입니다] 한때 모둠마다 색 띠를 두른
+        // 상자를 세우고 그 안에 학생 칸을 52px로 흘려 놓았는데, 같은 패널에서
+        // 탭만 바꿨을 뿐인데 칸 크기도 줄 수도 달라져 두 화면이 남남처럼
+        // 보였습니다. 지금은 자리표와 **같은 6칸 격자 하나** 안에 모둠 이름을
+        // 한 줄 가득(`grid-column: 1 / -1`) 끼워 넣습니다 — 그 줄이 곧
+        // 줄바꿈이라 모둠은 갈리면서 학생 칸은 개별 보기 그대로입니다.
         <div className="attend-seatmap attend-seatmap--compact">
           {/* 머리줄이 없습니다 — 탭도 손든 인원도 패널 머리로 올라갔습니다. */}
-          <div className="lesson-seat-groups">
+          <div className="attend-seatmap-grid lesson-seat-groupgrid">
             {groupSections.map((g) => (
-              <section
-                key={g.key}
-                className="lesson-seat-group"
-                style={{ "--group-color": g.color }}
-              >
-                <h4 className="lesson-seat-group-name">{g.name}</h4>
-                <div className="lesson-seat-group-members">
-                  {g.members.length === 0 ? (
-                    <em className="lesson-seat-group-empty">배정된 학생이 없어요</em>
-                  ) : (
-                    g.members.map((s) => (
-                      <SeatCell
-                        key={s.uid}
-                        student={s}
-                        raised={raisedUids.has(s.uid)}
-                        att={attStateOf(s.uid, presentUids)}
-                        live={liveState.get(s.uid) ?? null}
-                        noting={notingUids.has(s.uid)}
-                        todayCount={todayCountByUid.get(s.uid) ?? 0}
-                        onPick={onAward ? openTools : undefined}
-                      />
-                    ))
-                  )}
-                </div>
-              </section>
+              <Fragment key={g.key}>
+                <h4
+                  className="lesson-seat-group-name"
+                  style={{ "--group-color": g.color }}
+                >
+                  {g.name}
+                </h4>
+                {g.members.length === 0 ? (
+                  <em className="lesson-seat-group-empty">배정된 학생이 없어요</em>
+                ) : (
+                  g.members.map((s) => (
+                    <SeatCell
+                      key={s.uid}
+                      student={s}
+                      raised={raisedUids.has(s.uid)}
+                      att={attStateOf(s.uid, presentUids)}
+                      live={liveState.get(s.uid) ?? null}
+                      noting={notingUids.has(s.uid)}
+                      todayCount={todayCountByUid.get(s.uid) ?? 0}
+                      onPick={onAward ? openTools : undefined}
+                    />
+                  ))
+                )}
+              </Fragment>
             ))}
           </div>
         </div>
