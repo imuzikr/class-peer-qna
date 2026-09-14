@@ -632,7 +632,9 @@ function BooksPageInner() {
           classId={activeClassId}
           user={user}
           roster={roster}
+          baseGroupAssignment={baseGroupAssignment}
           onBack={goToList}
+          onToast={setToast}
           classTools={classTools}
         />
       ) : isRaft ? (
@@ -650,7 +652,9 @@ function BooksPageInner() {
           classId={activeClassId}
           user={user}
           roster={roster}
+          baseGroupAssignment={baseGroupAssignment}
           onBack={goToList}
+          onToast={setToast}
           classTools={classTools}
         />
       ) : isParatext ? (

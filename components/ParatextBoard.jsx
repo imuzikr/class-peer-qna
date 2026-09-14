@@ -14,8 +14,9 @@
 // 위쪽 방송 막대에서 이전/다음 영역으로 넘기거나 방송을 끝낼 수 있습니다.
 // =============================================================
 import { useEffect, useMemo, useState } from "react";
-import { subscribeParatextEntries, updateBookActivity } from "@/lib/store";
+import { subscribeParatextEntries, updateBookActivity, composeBookGroups } from "@/lib/store";
 import { useEntryCast } from "@/lib/useEntryCast";
+import GroupComposer from "./GroupComposer";
 import GroupFilterRow from "./GroupFilterRow";
 import ParatextProgressBoard from "./ParatextProgressBoard";
 import BookStudentRail from "./BookStudentRail";
@@ -36,7 +37,7 @@ import {
   paratextCellState,
   safeBookUrl,
 } from "@/lib/paratext";
-import { IconBook, IconLock, IconLockState } from "./StatusIcons";
+import { IconBook, IconLock, IconLockState, IconPeople } from "./StatusIcons";
 import CastBar from "./CastBar";
 
 export default function ParatextBoard({
@@ -49,6 +50,9 @@ export default function ParatextBoard({
   // 누가기록 관리·수업 메모 버튼 묶음 (교사 전용, 없으면 null)
   classTools = null,
   classPicker = null,
+  // 반의 기본 모둠 — '활동 모둠' 창이 '기본 모둠 그대로 가져오기'에 씁니다
+  baseGroupAssignment = null,
+  onToast = null,
 }) {
   const [entries, setEntries] = useState([]);
   const [openUid, setOpenUid] = useState(null);
@@ -56,6 +60,10 @@ export default function ParatextBoard({
   // 글은 모둠으로 묶여도 학생마다 한 장이라, 모둠은 '보는 차례'만 정합니다.
   const grouped = isGroupedActivity(activity);
   const groups = useBookGroups(activity.id, grouped);
+  const [composing, setComposing] = useState(false);
+  // '학생이 고르기'는 학생이 스스로 드는 방식이라 교사가 짤 것이 없습니다
+  // (닿소리 머리말의 같은 단추와 판정이 같아야 합니다).
+  const freeMode = activity.groupMode === "free";
   const [pickedGroup, setPickedGroup] = useState(null);
   // 읽는중 전광판 — 여덟 단계 × 반 전체를 한 격자로(공부방 전광판과 같은 모양)
   const [boardOpen, setBoardOpen] = useState(false);
@@ -181,6 +189,14 @@ export default function ParatextBoard({
         </div>
         <div className="books-head-row">
           <div className="books-head-main">
+            {/* 모둠 짜기 — 닿소리 머리말과 **같은 자리·같은 말**입니다.
+                모둠으로 진행하는 활동인데 짜는 길이 만들기 창에만 있어,
+                한 번 만들고 나면 교사가 모둠을 고칠 수 없었습니다. */}
+            {grouped && !freeMode && (
+              <button type="button" className="btn-ghost" onClick={() => setComposing(true)}>
+                <IconPeople size={15} /> 활동 모둠
+              </button>
+            )}
             {/* 주제어를 비워 두면 학생마다 제 책을 적습니다 —
                 빈 배지를 두는 대신 그 사실을 적어 둡니다 */}
             <span className={`book-group-topic${(activity.topic ?? "").trim() ? "" : " soft"}`}>
@@ -369,6 +385,34 @@ export default function ParatextBoard({
           cards={cards}
           onOpenStudent={(uid) => { setOpenUid(uid); setBoardOpen(false); }}
           onClose={() => setBoardOpen(false)}
+        />
+      )}
+
+      {/* 모둠 짜기 창 — 닿소리(BookGroupBoard)와 **같은 것을 같은 인자로**
+          부릅니다. 글은 모둠으로 묶여도 학생마다 한 장이라(entries/{uid}),
+          여기서 바뀌는 것은 '누구와 함께 보는가'뿐입니다. */}
+      {composing && (
+        <GroupComposer
+          board={{ id: activity.id, title: activity.title }}
+          roster={roster}
+          cards={groups.map((g) => ({
+            groupId: g.id,
+            groupIndex: g.groupIndex,
+            title: g.groupName,
+            groupName: g.groupName,
+            members: g.members ?? [],
+            leaderUid: g.leaderUid,
+            retired: g.retired,
+          }))}
+          onCompose={composeBookGroups}
+          keepEmpty
+          baseGroups={baseGroupAssignment?.groups ?? []}
+          groupSetName={
+            activity.groupSetName ||
+            `${activity.topic || activity.title || "독서 활동"} 활동 모둠`
+          }
+          onClose={() => setComposing(false)}
+          onSaved={() => onToast?.("모둠을 구성했어요.")}
         />
       )}
     </main>

@@ -18,6 +18,7 @@ import {
   subscribeParatextEntries,
   subscribeAllPeerReviews,
   setPeerReviewLocked,
+  composeBookGroups,
 } from "@/lib/store";
 import { useEntryCast } from "@/lib/useEntryCast";
 import {
@@ -33,8 +34,9 @@ import {
   raftCellState,
 } from "@/lib/raft";
 import { safeBookUrl } from "@/lib/paratext";
-import { IconBook, IconLock, IconLockState } from "./StatusIcons";
+import { IconBook, IconLock, IconLockState, IconPeople } from "./StatusIcons";
 import CastBar from "./CastBar";
+import GroupComposer from "./GroupComposer";
 import GroupFilterRow from "./GroupFilterRow";
 import RaftProgressBoard from "./RaftProgressBoard";
 import BookStudentRail from "./BookStudentRail";
@@ -65,6 +67,9 @@ export default function RaftBoard({
   // 누가기록 관리·수업 메모 버튼 묶음 (교사 전용, 없으면 null)
   classTools = null,
   classPicker = null,
+  // 반의 기본 모둠 — '활동 모둠' 창이 '기본 모둠 그대로 가져오기'에 씁니다
+  baseGroupAssignment = null,
+  onToast = null,
 }) {
   const [entries, setEntries] = useState([]);
   const [openUid, setOpenUid] = useState(null);
@@ -73,6 +78,10 @@ export default function RaftBoard({
   const grouped = isGroupedActivity(activity);
   const groups = useBookGroups(activity.id, grouped);
   const [pickedGroup, setPickedGroup] = useState(null);
+  const [composing, setComposing] = useState(false);
+  // '학생이 고르기'는 학생이 스스로 드는 방식이라 교사가 짤 것이 없습니다
+  // (닿소리 머리말의 같은 단추와 판정이 같아야 합니다).
+  const freeMode = activity.groupMode === "free";
   // 글쓰는중 전광판 — R·A·F·T + 글쓰기 다섯 줄 × 반 전체(곁텍스트와 같은 격자)
   const [boardOpen, setBoardOpen] = useState(false);
   // 동료 평가 — 모둠 활동일 때만. 교사는 전부 읽고, 열고 닫을 수 있습니다.
@@ -197,6 +206,14 @@ export default function RaftBoard({
         </div>
         <div className="books-head-row">
           <div className="books-head-main">
+            {/* 모둠 짜기 — 닿소리 머리말과 **같은 자리·같은 말**입니다.
+                모둠으로 진행하는 활동인데 짜는 길이 만들기 창에만 있어,
+                한 번 만들고 나면 교사가 모둠을 고칠 수 없었습니다. */}
+            {grouped && !freeMode && (
+              <button type="button" className="btn-ghost" onClick={() => setComposing(true)}>
+                <IconPeople size={15} /> 활동 모둠
+              </button>
+            )}
             {/* 주제어를 비워 두면 학생마다 제 책으로 씁니다 —
                 빈 배지를 두는 대신 그 사실을 적어 둡니다 */}
             <span className={`book-group-topic${(activity.topic ?? "").trim() ? "" : " soft"}`}>
@@ -406,6 +423,34 @@ export default function RaftBoard({
           cards={cards}
           onOpenStudent={(uid) => { setOpenUid(uid); setBoardOpen(false); }}
           onClose={() => setBoardOpen(false)}
+        />
+      )}
+
+      {/* 모둠 짜기 창 — 닿소리(BookGroupBoard)와 **같은 것을 같은 인자로**
+          부릅니다. 글은 모둠으로 묶여도 학생마다 한 장이라(entries/{uid}),
+          여기서 바뀌는 것은 '누구와 함께 보는가'와 동료 평가의 범위뿐입니다. */}
+      {composing && (
+        <GroupComposer
+          board={{ id: activity.id, title: activity.title }}
+          roster={roster}
+          cards={groups.map((g) => ({
+            groupId: g.id,
+            groupIndex: g.groupIndex,
+            title: g.groupName,
+            groupName: g.groupName,
+            members: g.members ?? [],
+            leaderUid: g.leaderUid,
+            retired: g.retired,
+          }))}
+          onCompose={composeBookGroups}
+          keepEmpty
+          baseGroups={baseGroupAssignment?.groups ?? []}
+          groupSetName={
+            activity.groupSetName ||
+            `${activity.topic || activity.title || "독서 활동"} 활동 모둠`
+          }
+          onClose={() => setComposing(false)}
+          onSaved={() => onToast?.("모둠을 구성했어요.")}
         />
       )}
     </main>
