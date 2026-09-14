@@ -26188,6 +26188,93 @@ ul.checklist > li.done {
   text-align: center;
 }
 
+/* ── 학생: 활동 탭의 파이썬 실행 줄 ──
+   코드 블록에 짠 것을 그 자리에서 돌려 보는 자리입니다. 서랍이 380px이라
+   단추는 작게, 출력은 제 칸 안에서 구르게 둡니다.
+   **수업 노트 필기 칸에는 이 줄이 없습니다** — 노트는 들은 것을 받아 적는
+   자리고, 짜서 돌려 보는 일은 활동에서 합니다. */
+.ltask-run {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+.ltask-run-btn,
+.ltask-run-stop,
+.ltask-run-attach {
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  cursor: pointer;
+}
+.ltask-run-btn {
+  background: var(--primary-light);
+  border-color: #efc19a;
+  color: var(--primary-dark);
+}
+.ltask-run-btn:hover:not(:disabled),
+.ltask-run-stop:hover,
+.ltask-run-attach:hover { border-color: var(--primary); }
+.ltask-run-btn:disabled { opacity: 0.55; cursor: default; }
+/* '결과 붙이기'는 오른쪽 끝으로 — 실행(왼쪽)과 하는 일이 다릅니다.
+   하나는 돌려 보는 것이고 하나는 칸에 남기는 것입니다. */
+.ltask-run-attach { margin-left: auto; }
+
+/* 입력값 — input()을 쓰는 코드일 때만 뜹니다 */
+.ltask-stdin {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+}
+.ltask-stdin > span {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--dark);
+}
+.ltask-stdin em {
+  margin-left: 5px;
+  font-style: normal;
+  font-weight: 600;
+  color: var(--text-faint);
+}
+.ltask-stdin textarea {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  resize: vertical;
+}
+
+/* 출력 — 코드 블록과 같은 어두운 바탕이라 '프로그램이 낸 말'로 읽힙니다.
+   **긴 출력은 이 칸 안에서만 구릅니다**(max-height) — 안 그러면 for문 한 번에
+   서랍이 한없이 길어져 쓰던 칸이 화면 밖으로 밀립니다. */
+.ltask-out {
+  margin-top: 6px;
+  max-height: 180px;
+  overflow: auto;
+  padding: 9px 11px;
+  border-radius: 10px;
+  background: var(--dark);
+  color: #ede9e0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.ltask-out-line { display: block; }
+.ltask-out-line--err { color: #ffb4a2; }
+.ltask-out-line--info { color: #b8b2a6; }
+.ltask-out-line--result { color: #a7d7a7; }
+
 /* ── 학생: 활동 탭 ── */
 .ltask {
   display: flex;

@@ -62,6 +62,8 @@ import {
 } from "@/lib/activities";
 import { sanitizeHtml, stripHtml, htmlHasImage, richHtml } from "@/lib/html";
 import RichTextEditor from "./RichTextEditor";
+import { runPython, stopPython } from "@/lib/pyRun";
+import { outputTextOf, pyResultHtml } from "@/lib/pyShare";
 
 const SAVE_DELAY = 1500;
 
@@ -91,6 +93,57 @@ function peek(html) {
   const text = stripHtml(html ?? "").replace(/\s+/g, " ").trim();
   if (text) return text;
   return htmlHasImage(html) ? "(그림)" : "";
+}
+
+// '결과 붙이기'로 넣어 둔 **출력** 블록인가.
+// **돌릴 코드를 고를 때 이것을 건너뛰어야 합니다.** 안 그러면 결과를 한 번
+// 붙인 뒤로는 '마지막 블록'이 늘 출력 블록이라, 입력값 칸에 값을 치고 실행을
+// 누르는 순간(커서가 에디터 밖으로 나간 그 순간) 제 코드가 아니라 지난
+// 출력을 돌립니다 — 실제로 그렇게 났습니다.
+function isResultPre(pre) {
+  if (!pre) return false;
+  if (pre.classList?.contains("py-result")) return true;
+  // 표시가 붙기 전에 저장된 카드 — 이름줄로 가려 봅니다(학생이 그 글자를
+  // 고쳤으면 못 가리지만, 그때는 커서 쪽 판정이 대개 맞습니다).
+  const prev = pre.previousElementSibling;
+  return prev?.tagName === "P" && (prev.textContent ?? "").trim() === "실행 결과";
+}
+
+// ── 돌릴 코드 고르기 ──
+// **커서가 든 코드 블록**, 커서가 그 칸 밖이면 **마지막 코드 블록**입니다.
+// 한 칸에 코드 블록을 여럿 둘 수 있어(고쳐 가며 여러 벌) 규칙이 하나
+// 필요한데, '지금 손이 가 있는 것'이 가장 덜 놀랍고 그다음이 '방금 적은
+// 것'입니다. 실행 단추는 `onMouseDown`에서 기본 동작을 막아 **커서가 안
+// 풀립니다**(툴바 단추가 서식을 걸 때 쓰는 그 방법).
+function pickCodeEl(area) {
+  if (!area) return null;
+  let node = window.getSelection()?.anchorNode;
+  while (node && node !== area) {
+    if (node.nodeName === "PRE" && area.contains(node)) return node;
+    node = node.parentNode;
+  }
+  // 커서가 이 칸 밖이면(입력값 칸에 값을 치는 중 등) **마지막 코드 블록**.
+  const all = [...area.querySelectorAll("pre")].filter((el) => !isResultPre(el));
+  return all.length ? all[all.length - 1] : null;
+}
+
+// input()을 쓰는 코드인가 — 쓰면 입력값 칸을 먼저 띄웁니다.
+// 서랍이 380px이라 그 칸을 늘 세워 두면 그만큼 쓰는 자리가 줄어듭니다.
+const USES_INPUT = /\binput\s*\(/;
+
+// 줄 전체에 **공통으로** 있는 들여쓰기를 걷어 냅니다(파이썬 textwrap.dedent).
+// -------------------------------------------------------------
+// 코드 블록은 빈 채로 만들면 공백 한 칸으로 시작합니다(빈 <code>에 커서를 둘
+// 수 없어서). 지금은 커서를 그 앞에 두어 새로 쓰는 코드에는 안 붙지만,
+// **이미 저장된 카드에는 그 칸이 첫 줄 앞에 남아 있습니다** — 그대로 돌리면
+// IndentationError입니다. 공통 들여쓰기만 걷으므로 줄 사이의 상대 들여쓰기는
+// 그대로고, 통째로 한 단 들여 써 둔 코드도 함께 살아납니다.
+function dedent(code) {
+  const lines = String(code ?? "").split("\n");
+  const used = lines.filter((l) => l.trim());
+  if (used.length === 0) return String(code ?? "");
+  const min = Math.min(...used.map((l) => (l.match(/^[ \t]*/) ?? [""])[0].length));
+  return min > 0 ? lines.map((l) => l.slice(min)).join("\n") : String(code ?? "");
 }
 
 export default function LessonTaskPanel({ task, user, onType }) {
@@ -231,9 +284,109 @@ export default function LessonTaskPanel({ task, user, onType }) {
     timerRef.current = setTimeout(() => { save(); }, SAVE_DELAY);
   }
 
+  // ── 파이썬 실행 ──
+  // 코드 블록에 짠 것을 **그 자리에서** 돌려 보고, 원하면 결과를 칸에 붙입니다.
+  // 엔진은 `lib/pyRun.js` — 실행기와 **워커 한 벌을 나눠 씁니다**(두 벌이
+  // 뜨면 Pyodide가 두 번 올라갑니다). **화면을 여는 것만으로는 안 만듭니다** —
+  // 처음 ▶ 실행을 누를 때 비로소 10MB 남짓을 받아 옵니다.
+  const [runAt, setRunAt] = useState(null);   // 결과를 보여 줄 활동 자리
+  const [runLines, setRunLines] = useState([]);
+  const [running, setRunning] = useState(false);
+  const [stdinFor, setStdinFor] = useState(null); // 입력값 칸을 띄운 활동 자리
+  const [stdin, setStdin] = useState("");
+  // 지금 출력 칸의 결과를 낸 코드 — 고쳐 놓고 다시 안 돌린 채 붙이면
+  // 바뀐 코드에 지난 결과가 따라붙습니다(lib/pyShare.js의 그 함정).
+  const ranCodeRef = useRef("");
+
+  const addRunLine = useCallback((type, text) => {
+    setRunLines((prev) => [...prev, { type, text }]);
+  }, []);
+
+  function runCode(i, stepEl) {
+    if (running) return;
+    const area = stepEl?.querySelector(".rte-area");
+    const el = pickCodeEl(area);
+    const code = String(el?.textContent ?? "").replace(/\s+$/, "");
+    setRunAt(i);
+    if (!code.trim()) {
+      setRunLines([{ type: "info", text: "돌릴 코드 블록이 없어요 — 툴바의 </> 로 코드 블록을 만들어 주세요." }]);
+      return;
+    }
+    // input()을 쓰는데 입력값 칸이 아직 없으면, 돌리지 않고 먼저 띄웁니다.
+    // 그냥 돌리면 EOFError로 끝나는데, 그 칸이 화면에 없어 무엇을 하라는
+    // 말인지 알 수 없습니다.
+    if (USES_INPUT.test(code) && stdinFor !== i) {
+      setStdinFor(i);
+      setRunLines([{ type: "info", text: "이 코드는 input()으로 값을 받아요 — 아래 칸에 한 줄씩 적고 다시 눌러 주세요." }]);
+      return;
+    }
+    setRunLines([]);
+    // 견줄 때는 칸에 있는 그대로(`code`), 돌릴 때는 공통 들여쓰기를 걷은 것.
+    ranCodeRef.current = code;
+    const how = runPython({
+      code: dedent(code),
+      stdin: stdinFor === i ? stdin : "",
+      onLine: addRunLine,
+      onDone: (result) => {
+        if (result) addRunLine("result", result);
+        setRunning(false);
+      },
+      onError: (err) => { addRunLine("err", err); setRunning(false); },
+      onTimeout: (ms) => {
+        addRunLine("err", `⏱ ${ms / 1000}초를 넘겨 멈췄어요. (무한 루프인지 확인해 보세요)`);
+        setRunning(false);
+      },
+    });
+    if (how === "busy") {
+      setRunLines([{ type: "info", text: "다른 칸에서 파이썬이 돌고 있어요 — 끝나면 다시 눌러 주세요." }]);
+      return;
+    }
+    if (how === "fresh") {
+      addRunLine("info", "파이썬을 불러오는 중이에요… (처음 한 번만, 조금 걸려요)");
+    }
+    setRunning(true);
+  }
+
+  // 결과 붙이기 — 돌린 코드 블록 **바로 뒤에** 넣고 칸에 알립니다.
+  // 저장은 지금까지대로 자동입니다('제출' 단추가 아닙니다 — 이 앱에 제출
+  // 상태는 없고, 교사는 전광판·활동보기로 누가 썼는지 봅니다).
+  function attachResult(i, stepEl) {
+    const area = stepEl?.querySelector(".rte-area");
+    const el = pickCodeEl(area);
+    const out = outputTextOf(runLines);
+    const html = pyResultHtml(out);
+    if (!area || !el || !html) return;
+    // **지금 코드가 낸 결과일 때만** 붙입니다. 고쳐 놓고 다시 안 돌린 채
+    // 붙이면 바뀐 코드에 지난 결과가 따라붙어, 두 달 뒤 복습할 때 짝이
+    // 안 맞는 기록이 됩니다(실행기의 '활동으로 보내기'와 같은 판정).
+    const now = String(el.textContent ?? "").replace(/\s+$/, "");
+    if (now !== ranCodeRef.current) {
+      setRunLines((prev) => [
+        ...prev,
+        { type: "info", text: "코드가 바뀌었어요 — 다시 실행한 뒤에 붙여 주세요." },
+      ]);
+      return;
+    }
+    const box = document.createElement("div");
+    box.innerHTML = html;
+    const frag = document.createDocumentFragment();
+    while (box.firstChild) frag.appendChild(box.firstChild);
+    el.after(frag);
+    onDraft(i, area.innerHTML);
+  }
+
   // 프로젝트가 바뀌거나 탭을 떠날 때 남은 것을 씁니다. 이 정리는 **바뀌기
   // 전에** 돌아, 붙들어 둔 원래 카드로 저장됩니다.
   useEffect(() => () => { save(); }, [boardId, save]);
+
+  // 프로젝트가 바뀌면 출력 칸을 비웁니다 — 앞 활동의 결과가 남아 있으면
+  // 새 활동의 코드가 낸 것처럼 보입니다.
+  useEffect(() => {
+    setRunAt(null);
+    setRunLines([]);
+    setStdinFor(null);
+    ranCodeRef.current = "";
+  }, [boardId]);
 
   // 화면을 벗어나거나 탭을 닫을 때 마지막으로 한 번 더
   useEffect(() => {
@@ -336,6 +489,7 @@ export default function LessonTaskPanel({ task, user, onType }) {
               {/* 쓰는 칸 — 에디터는 비제어라 마운트 때 한 번만 읽습니다.
                   프로젝트가 바뀌면 열쇠가 바뀌어 그 칸의 글로 갈아 끼웁니다. */}
               {open && (
+                <>
                 <RichTextEditor
                   key={`ltask-${boardId}-${i}`}
                   className="ltask-rte"
@@ -344,6 +498,75 @@ export default function LessonTaskPanel({ task, user, onType }) {
                   onChange={(html) => onDraft(i, html)}
                   placeholder="여기에 답을 써 주세요."
                 />
+
+                {/* ── 파이썬 실행 줄 ──
+                    코드 블록에 짠 것을 그 자리에서 돌려 보고, 원하면 결과를
+                    칸에 붙입니다. **칸마다 한 줄**이라 어느 코드를 돌리는
+                    것인지 헷갈리지 않습니다(출력은 마지막으로 돌린 칸에만).
+                    **수업 노트 필기 칸에는 이 줄이 없습니다** — 노트는 들은
+                    것을 받아 적는 자리고, 짜서 돌려 보는 일은 활동에서 합니다. */}
+                <div className="ltask-run">
+                  <button
+                    type="button"
+                    className="ltask-run-btn"
+                    // 커서를 지키려고 기본 동작을 막습니다 — 안 그러면 코드
+                    // 블록 안에 있던 커서가 풀려 늘 '마지막 블록'만 돌아갑니다.
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={(e) => runCode(i, e.currentTarget.closest(".ltask-step"))}
+                    disabled={running}
+                    title="커서가 든 코드 블록을 돌려 봅니다 (없으면 마지막 블록)"
+                  >
+                    {running && runAt === i ? "실행 중…" : "▶ 실행"}
+                  </button>
+                  {running && runAt === i && (
+                    <button
+                      type="button"
+                      className="ltask-run-stop"
+                      onClick={() => { stopPython(); setRunning(false); addRunLine("info", "⏹ 멈췄어요."); }}
+                    >
+                      ⏹ 중단
+                    </button>
+                  )}
+                  {/* 결과 붙이기 — **지금 코드가 낸 결과일 때만** 켜집니다.
+                      고쳐 놓고 다시 안 돌린 채 붙이면 바뀐 코드에 지난 결과가
+                      따라붙습니다(실행기의 '활동으로 보내기'와 같은 판정). */}
+                  {runAt === i && !running && outputTextOf(runLines) && (
+                    <button
+                      type="button"
+                      className="ltask-run-attach"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={(e) => attachResult(i, e.currentTarget.closest(".ltask-step"))}
+                      title="실행 결과를 코드 아래에 붙여 둡니다 — 그대로 저장돼요"
+                    >
+                      결과 붙이기
+                    </button>
+                  )}
+                </div>
+
+                {/* input()을 쓰는 코드일 때만 — 늘 세워 두면 380px에서 쓰는
+                    자리가 그만큼 줄어듭니다. 한 줄이 input() 한 번입니다. */}
+                {stdinFor === i && (
+                  <label className="ltask-stdin">
+                    <span>입력값 <em>한 줄에 하나씩</em></span>
+                    <textarea
+                      rows={2}
+                      value={stdin}
+                      onChange={(e) => setStdin(e.target.value)}
+                      placeholder={"홍길동\n7"}
+                    />
+                  </label>
+                )}
+
+                {runAt === i && runLines.length > 0 && (
+                  <div className="ltask-out" aria-live="polite">
+                    {runLines.map((l, n) => (
+                      <span key={n} className={`ltask-out-line ltask-out-line--${l.type}`}>
+                        {l.text}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                </>
               )}
             </section>
           );

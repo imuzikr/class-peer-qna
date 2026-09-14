@@ -277,7 +277,34 @@ export default function RichTextEditor({
     // 편집 중 DOM 오염을 막고, 저장 전 sanitize와 이중 방어)
     const html = `<pre><code>${escapeHtml(selectedText) || " "}</code></pre>`;
     document.execCommand("insertHTML", false, html);
+    // [빈 블록의 공백 한 칸 — 커서는 그 **앞**에]
+    // 빈 <code>에는 커서를 둘 수 없어 공백 하나로 시작합니다. 그런데
+    // insertHTML은 커서를 넣은 것 **뒤**에 두므로, 학생이 치는 첫 글자가 그
+    // 공백 뒤에 붙어 코드 첫 줄이 한 칸 들여쓰기된 채 시작했습니다 —
+    // 파이썬에서는 그것만으로 IndentationError입니다(서랍에서 코드를 돌릴 수
+    // 있게 되면서 드러났습니다. 그 전에는 아무도 안 돌려 티가 안 났습니다).
+    // 커서를 공백 앞에 두면 그 칸은 첫 줄 **끝**에 남고, 줄 끝 공백은
+    // 파이썬이 그냥 흘려보냅니다.
+    if (!selectedText) {
+      const pre = getContainingPre() ?? lastPre();
+      const t = pre?.querySelector("code")?.firstChild;
+      if (t && t.nodeType === Node.TEXT_NODE) {
+        const r = document.createRange();
+        r.setStart(t, 0);
+        r.collapse(true);
+        const s2 = window.getSelection();
+        s2.removeAllRanges();
+        s2.addRange(r);
+      }
+    }
     onChange(ref.current.innerHTML);
+  }
+
+  // 방금 넣은 코드 블록 — insertHTML 뒤 커서가 블록 **밖**에 설 수도 있어
+  // getContainingPre가 놓칠 때 쓰는 대비책입니다.
+  function lastPre() {
+    const all = ref.current?.querySelectorAll("pre");
+    return all && all.length ? all[all.length - 1] : null;
   }
 
   function handleInput() {
@@ -393,6 +420,104 @@ export default function RichTextEditor({
     return null;
   }
 
+  // ── 코드 블록 안에서는 들여쓰기가 문법입니다 ──
+  // 파이썬은 들여쓰기로 블록을 나눕니다. 그런데 이 칸은 CodeMirror가 아니라
+  // 그냥 글자 칸(contentEditable)이라, 손대지 않으면 **Tab이 칸 밖으로
+  // 포커스를 옮기고 Enter가 앞 줄 들여쓰기를 안 물려받습니다** — 줄마다
+  // 스페이스를 손으로 넣어야 했습니다. 아래 셋이 그것을 메웁니다.
+  // **코드 블록 안에서만** 바꿉니다 — 바깥에서 Tab을 가로채면 키보드만
+  // 쓰는 사람의 이동 경로가 막힙니다.
+  const PY_INDENT = "    "; // 공백 4칸 (PEP 8)
+
+  // <pre> 안에서 커서가 몇 번째 글자인가. 줄은 `\n` **글자**로 나뉩니다
+  // (에디터 바깥의 `linePrefix`가 보는 <br>이 아닙니다).
+  function caretOffsetInPre(pre) {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return 0;
+    const r = sel.getRangeAt(0);
+    const upto = document.createRange();
+    upto.selectNodeContents(pre);
+    upto.setEnd(r.endContainer, r.endOffset);
+    return upto.toString().length;
+  }
+
+  // <pre> 안의 글자 번호 → DOM 자리(텍스트 노드 + 오프셋)
+  function posInPre(pre, n) {
+    const walker = document.createTreeWalker(pre, NodeFilter.SHOW_TEXT);
+    let seen = 0;
+    let node;
+    while ((node = walker.nextNode())) {
+      const len = node.nodeValue.length;
+      if (seen + len >= n) return { node, offset: n - seen };
+      seen += len;
+    }
+    return { node: pre, offset: pre.childNodes.length };
+  }
+
+  // 커서 앞의 '같은 줄' 글자
+  function preLineBefore(pre) {
+    const upto = document.createRange();
+    upto.selectNodeContents(pre);
+    const sel = window.getSelection();
+    upto.setEnd(sel.getRangeAt(0).endContainer, sel.getRangeAt(0).endOffset);
+    const before = upto.toString();
+    const at = before.lastIndexOf("\n");
+    return at < 0 ? before : before.slice(at + 1);
+  }
+
+  // Enter — 앞 줄 들여쓰기를 물려받고, `:`로 끝나면 한 단 더.
+  //
+  // **`execCommand('insertText')`로 줄바꿈을 넣지 마세요.** 크롬은 `<pre>`
+  // 안에서 `\n`을 만나면 글자를 넣는 대신 **블록을 둘로 쪼갭니다** — Enter를
+  // 칠 때마다 코드 블록이 하나씩 늘어납니다(실측). 그래서 여기만 Range로
+  // 직접 넣습니다(Tab의 공백 넣기는 쪼개지 않아 execCommand 그대로).
+  //
+  // [꼬리 줄바꿈 하나]
+  // `<pre>`의 **맨 끝**에 `\n` 하나만 넣으면 그 줄이 그려지지 않습니다
+  // (HTML이 마지막 줄바꿈을 흘려 버립니다) — 높이도 그대로고 커서도 안
+  // 보여, 학생 눈에는 Enter가 안 먹은 것처럼 보입니다(실측 39→39px).
+  // 끝에서 칠 때만 `\n`을 **하나 더** 붙이고 커서를 그 앞에 둡니다
+  // (39→54px, 커서가 새 줄에). 꼬리는 한 번만 생기고 쌓이지 않습니다 —
+  // 그 뒤로는 커서 뒤에 글자가 있어 '맨 끝'이 아니기 때문입니다.
+  function preNewline(pre) {
+    const line = preLineBefore(pre);
+    const indent = (line.match(/^[ \t]*/) ?? [""])[0];
+    const deeper = /:\s*$/.test(line) ? PY_INDENT : "";
+    const body = `\n${indent}${deeper}`;
+    const atEnd = caretOffsetInPre(pre) === (pre.textContent ?? "").length;
+
+    const sel = window.getSelection();
+    const r = sel.getRangeAt(0);
+    r.deleteContents();
+    const node = document.createTextNode(atEnd ? `${body}\n` : body);
+    r.insertNode(node);
+    const put = document.createRange();
+    put.setStart(node, body.length);
+    put.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(put);
+  }
+
+  // Shift+Tab — 그 줄 앞의 공백을 최대 네 칸 걷어 냅니다. 커서가 줄 어디에
+  // 있든 **줄 머리**를 기준으로 잡습니다(공백이 없으면 아무 일도 안 하되,
+  // 기본 동작인 '포커스 이동'만은 막습니다).
+  function preOutdent(pre) {
+    const line = preLineBefore(pre);
+    const lead = (line.match(/^ */) ?? [""])[0];
+    const n = Math.min(PY_INDENT.length, lead.length);
+    if (n === 0) return;
+    const start = caretOffsetInPre(pre) - line.length;
+    const a = posInPre(pre, start);
+    const b = posInPre(pre, start + n);
+    const sel = window.getSelection();
+    const r = document.createRange();
+    r.setStart(a.node, a.offset);
+    r.setEnd(b.node, b.offset);
+    sel.removeAllRanges();
+    sel.addRange(r);
+    document.execCommand("delete");
+  }
+
   // 코드 블록을 통째로 걷어 내고 그 자리에 빈 줄을 둡니다.
   // -------------------------------------------------------------
   // 안을 다 지워도 **빈 검은 블록이 한 줄 남아** 한 번 더 지워야 사라졌습니다.
@@ -455,6 +580,21 @@ export default function RichTextEditor({
       e.preventDefault();
       if (!sendDisabled) onSend?.();
       return;
+    }
+
+    // 코드 블록 안의 Tab·Enter — 파이썬 들여쓰기 (위 주석 참고).
+    // Ctrl/⌘+Enter(전송)는 위에서 이미 갈라졌고, Shift+Enter는 그대로
+    // 브라우저에 맡깁니다.
+    if (e.key === "Tab" || (e.key === "Enter" && !e.shiftKey && !e.ctrlKey && !e.metaKey)) {
+      const pre = getContainingPre();
+      if (pre) {
+        e.preventDefault();
+        if (e.key === "Enter") preNewline(pre);
+        else if (e.shiftKey) preOutdent(pre);
+        else document.execCommand("insertText", false, PY_INDENT);
+        onChange(ref.current.innerHTML);
+        return;
+      }
     }
 
     // 띄어쓰기: 줄 맨 앞의 '-' 하나였으면 글머리 기호로

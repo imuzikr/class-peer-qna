@@ -8,7 +8,8 @@
 // - 실행 단축키: Ctrl+Enter (Mac: Cmd+Enter)
 // - 패널 왼쪽 가장자리를 드래그하면 너비 조절
 // - ⛶ '프로젝트 연계'로 2단을 엽니다 (서랍이 프로젝트 칸만큼 더 벌어짐)
-// - 실행 엔진: Pyodide(WebAssembly)를 Web Worker에서 실행, 15초 제한
+// - 실행 엔진: `lib/pyRun.js` — Pyodide(WebAssembly)를 Web Worker에서,
+//   15초 제한. **수업 노트 서랍의 활동 칸과 그 한 벌을 나눠 씁니다.**
 // =============================================================
 import { useEffect, useRef, useState } from "react";
 import { IconPythonRunner, IconKeyboard, IconAnswer } from "@/components/StatusIcons";
@@ -19,9 +20,8 @@ import { acceptCompletion } from "@codemirror/autocomplete";
 import { Prec } from "@codemirror/state";
 import { python } from "@codemirror/lang-python";
 import PyProjectPanel from "./PyProjectPanel";
+import { runPython, stopPython } from "@/lib/pyRun";
 
-const PYODIDE_VERSION = "0.26.4";
-const TIMEOUT_MS = 15000;
 const MIN_WIDTH = 340;
 // 2단이 열릴 때 서랍이 더 벌어지는 폭 — 프로젝트 칸 300px + 사이 여백 16px.
 // `.py-project`의 flex-basis와 `.py-main`의 gap을 고치면 이 값도 함께 고치세요.
@@ -29,50 +29,6 @@ const LINK_W = 316;
 // 서랍이 여닫히는 시간 — `.py-panel`의 transition과 **같아야** 합니다.
 // 닫을 때 프로젝트 칸을 이만큼 더 남겨 두는 데 씁니다.
 const SLIDE_MS = 250;
-
-// Web Worker 안에서 실행될 코드 (문자열로 만들어 Blob으로 생성)
-const WORKER_SOURCE = `
-importScripts("https://cdn.jsdelivr.net/pyodide/v${PYODIDE_VERSION}/full/pyodide.js");
-const pyodideReady = loadPyodide({
-  indexURL: "https://cdn.jsdelivr.net/pyodide/v${PYODIDE_VERSION}/full/",
-});
-pyodideReady.then(() => self.postMessage({ type: "ready" }));
-
-// input()을 '미리 받아 둔 입력값을 한 줄씩 돌려주는 함수'로 교체
-const INPUT_SHIM = [
-  "import builtins",
-  "def _make_input(text):",
-  "    lines = iter(text.splitlines())",
-  "    def _input(prompt=''):",
-  "        if prompt:",
-  "            print(prompt, end='')",
-  "        try:",
-  "            v = next(lines)",
-  "        except StopIteration:",
-  "            raise EOFError('input() 호출 횟수보다 입력값이 부족합니다. 입력값 칸을 확인하세요.')",
-  "        print(v)",
-  "        return v",
-  "    return _input",
-  "builtins.input = _make_input(___stdin_text)",
-].join("\\n");
-
-self.onmessage = async (e) => {
-  try {
-    const pyodide = await pyodideReady;
-    pyodide.setStdout({ batched: (s) => self.postMessage({ type: "stdout", text: s }) });
-    pyodide.setStderr({ batched: (s) => self.postMessage({ type: "stderr", text: s }) });
-    pyodide.globals.set("___stdin_text", e.data.stdin || "");
-    await pyodide.runPythonAsync(INPUT_SHIM);
-    const result = await pyodide.runPythonAsync(e.data.code);
-    self.postMessage({
-      type: "done",
-      result: result !== undefined && result !== null ? String(result) : "",
-    });
-  } catch (err) {
-    self.postMessage({ type: "error", error: String(err) });
-  }
-};
-`;
 
 // 빈 칸에 옅게 뜨는 **예시**입니다 — 실제 내용이 아니라 안내라, 학생이
 // 한 글자만 쳐도 저절로 사라집니다. 예전에는 이것이 진짜 코드로 채워져
@@ -133,8 +89,6 @@ export default function PythonRunner({
   const editorHostRef = useRef(null);
   const viewRef = useRef(null);
   const runRef = useRef(() => {});
-  const workerRef = useRef(null);
-  const timerRef = useRef(null);
   const panelRef = useRef(null);
   // 지금 출력 칸에 있는 결과를 낸 코드 (아직 한 번도 안 돌렸으면 null)
   const ranCodeRef = useRef(null);
@@ -204,13 +158,9 @@ export default function PythonRunner({
     };
   }, []);
 
-  // 워커·타이머 정리
-  useEffect(() => {
-    return () => {
-      workerRef.current?.terminate();
-      clearTimeout(timerRef.current);
-    };
-  }, []);
+  // 언마운트에서 워커를 끄지 않습니다 — 이제 수업 노트 서랍과 **한 벌을
+  // 나눠 쓰므로**, 실행기를 닫았다고 남의 실행까지 끊으면 안 됩니다.
+  // 워커는 중단·시간 초과 때만 꺼집니다(lib/pyRun.js).
 
   // ── 왼쪽 가장자리 드래그로 너비 조절 ──
   function startResize(e) {
@@ -245,30 +195,8 @@ export default function PythonRunner({
     setLines((prev) => [...prev, { type, text }]);
   }
 
-  function createWorker() {
-    const blob = new Blob([WORKER_SOURCE], { type: "text/javascript" });
-    const worker = new Worker(URL.createObjectURL(blob));
-    worker.onmessage = (e) => {
-      const msg = e.data;
-      if (msg.type === "stdout") appendLine("out", msg.text);
-      if (msg.type === "stderr") appendLine("err", msg.text);
-      if (msg.type === "done") {
-        clearTimeout(timerRef.current);
-        if (msg.result) appendLine("result", msg.result);
-        appendLine("info", "── 실행 완료 ──");
-        setStatus("idle");
-      }
-      if (msg.type === "error") {
-        clearTimeout(timerRef.current);
-        appendLine("err", msg.error);
-        setStatus("idle");
-      }
-    };
-    return worker;
-  }
-
   function run() {
-    if (status === "running" || status === "loading") return;
+    if (status === "running") return;
     const code = viewRef.current?.state.doc.toString() ?? "";
     if (!code.trim()) return;
     setLines([]);
@@ -276,25 +204,37 @@ export default function PythonRunner({
     // 고쳐 놓고 다시 안 돌린 코드에 지난 결과를 붙이지 않게(lib/pyShare.js).
     ranCodeRef.current = code;
 
-    if (!workerRef.current) {
-      setStatus("loading");
-      appendLine("info", "파이썬 인터프리터를 불러오는 중... (처음 한 번만)");
-      workerRef.current = createWorker();
+    const how = runPython({
+      code,
+      stdin: stdinText,
+      onLine: appendLine,
+      onDone: (result) => {
+        if (result) appendLine("result", result);
+        appendLine("info", "── 실행 완료 ──");
+        setStatus("idle");
+      },
+      onError: (err) => {
+        appendLine("err", err);
+        setStatus("idle");
+      },
+      onTimeout: (ms) => {
+        appendLine(
+          "err",
+          `⏱ ${ms / 1000}초 시간제한을 초과해 중단했습니다. (무한 루프인지 확인해 보세요)`
+        );
+        setStatus("idle");
+      },
+    });
+
+    // 서랍의 활동 칸과 워커 한 벌을 나눠 쓰므로, 거기서 돌고 있으면 비켜 줍니다.
+    if (how === "busy") {
+      appendLine("info", "다른 칸에서 파이썬이 돌고 있어요 — 끝나면 다시 눌러 주세요.");
+      return;
     }
-
+    if (how === "fresh") {
+      appendLine("info", "파이썬 인터프리터를 불러오는 중... (처음 한 번만)");
+    }
     setStatus("running");
-    workerRef.current.postMessage({ code, stdin: stdinText });
-
-    // 시간제한: 초과하면 워커를 강제 종료하고 새로 만들 준비
-    timerRef.current = setTimeout(() => {
-      workerRef.current?.terminate();
-      workerRef.current = null;
-      appendLine(
-        "err",
-        `⏱ ${TIMEOUT_MS / 1000}초 시간제한을 초과해 중단했습니다. (무한 루프인지 확인해 보세요)`
-      );
-      setStatus("idle");
-    }, TIMEOUT_MS);
   }
 
   // 단축키 핸들러가 항상 최신 상태의 run을 부르도록 갱신
@@ -323,9 +263,7 @@ export default function PythonRunner({
   }
 
   function stop() {
-    workerRef.current?.terminate();
-    workerRef.current = null;
-    clearTimeout(timerRef.current);
+    stopPython();
     appendLine("info", "⏹ 실행을 중단했습니다.");
     setStatus("idle");
   }
@@ -468,9 +406,7 @@ export default function PythonRunner({
               disabled={status !== "idle"}
               title="Ctrl+Enter (Mac: Cmd+Enter)"
             >
-              {status === "loading" ? (
-                "인터프리터 로딩..."
-              ) : status === "running" ? (
+              {status === "running" ? (
                 "실행 중..."
               ) : (
                 <>▶ 실행 <span className="py-run-hint">Ctrl+Enter</span></>
