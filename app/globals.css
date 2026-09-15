@@ -25298,6 +25298,57 @@ ul.checklist > li.done {
   font-weight: 700;
   color: var(--text);
 }
+/* ── 학생 글에 하이라이트 (교사) ──────────────────────────────
+   드래그한 자리를 형광펜처럼 덮고, 같은 대목이 아래 피드백 칸에 인용으로
+   들어갑니다.
+   **글자를 감싸지 않고 위에 덧그립니다** — 노트 본문은 React가
+   dangerouslySetInnerHTML로, 단서·요약은 React가 직접 그리는 자리라 <mark>를
+   끼워 넣으면 React가 들고 있던 텍스트 노드와 어긋납니다. Range의 줄 상자를
+   그대로 덮으므로 여러 줄·여러 칸에 걸친 선택도 자연히 맞습니다. */
+.cornell-hl-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 6px;
+}
+/* 안내·예시 글자는 --text-faint (읽을 것이 아니라 참고할 것) */
+.cornell-hl-tip {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--text-faint);
+}
+.cornell-hl-tip b { font-weight: 800; color: var(--text-sub); }
+.cornell-hl-clear {
+  margin-left: auto;
+  flex-shrink: 0;
+  padding: 3px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.cornell-hl-clear:hover { border-color: var(--primary); color: var(--primary-dark); }
+.cornell-hl-wrap { position: relative; }
+/* 끄는 동안에도 형광펜 색으로 보입니다 — '드래그 = 하이라이트'가 손에
+   먼저 읽히게. 감싼 칸 안으로만 한정합니다. */
+.cornell-hl-wrap ::selection { background: #ffe08a; }
+.cornell-hl {
+  position: absolute;
+  border-radius: 2px;
+  background: #ffe08a;
+  /* 글자 **위**에 덮이는 층이라 곱하기로 깝니다. 반투명으로 덮으면 글자까지
+     함께 옅어져 정작 짚은 대목이 읽기 어려워집니다. */
+  mix-blend-mode: multiply;
+  cursor: pointer;
+}
+.cornell-hl:hover { background: #ffcf5c; }
+
 .cornell-read-feedback {
   display: flex;
   flex-direction: column;
