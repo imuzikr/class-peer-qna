@@ -295,6 +295,60 @@ describe("수업 노트(코넬) 규칙", () => {
     await assertFails(updateDoc(noteRef(db, "cA", `stu1_${DATE}`), { feedback: "스스로 칭찬" }));
   });
 
+  // ── 하이라이트(feedbackMarks) ──
+  // 교사가 학생 글을 드래그해 짚은 대목입니다. 글자 자리와 그때의 글자를
+  // 함께 적어 두어, 학생 화면도 같은 대목을 칠합니다. 학생이 그 대목을
+  // 고치면 글자가 안 맞아 화면이 스스로 안 그립니다 — 그건 규칙의 일이
+  // 아니지만, **학생이 그 값을 지우지 못하는 것**은 규칙의 일입니다.
+  const marks = [{ start: 12, end: 26, text: "센서가 사람을 알아본다" }];
+
+  it("담당 교사는 피드백과 하이라이트를 함께 적을 수 있다", async () => {
+    const db = asTeacher(env, "teacherA").firestore();
+    await assertSucceeds(
+      updateDoc(noteRef(db, "cA", `stu1_${DATE}`), {
+        feedback: "「센서가 사람을 알아본다」\n→ 여기 예를 하나 더 들어 볼까요",
+        feedbackAt: serverTimestamp(),
+        feedbackBy: "teacherA",
+        feedbackMarks: marks,
+      })
+    );
+  });
+
+  it("하이라이트만 지우는 것(빈 목록)도 담당 교사는 할 수 있다", async () => {
+    const db = asTeacher(env, "teacherA").firestore();
+    await assertSucceeds(
+      updateDoc(noteRef(db, "cA", `stu1_${DATE}`), { feedback: "좋아요", feedbackMarks: [] })
+    );
+  });
+
+  it("하이라이트에 본문 수정을 끼워 넣을 수는 없다", async () => {
+    const db = asTeacher(env, "teacherA").firestore();
+    await assertFails(
+      updateDoc(noteRef(db, "cA", `stu1_${DATE}`), {
+        feedbackMarks: marks,
+        notes: "<div>내가 고친 필기</div>",
+      })
+    );
+  });
+
+  // 개수 천장 — 항목 하나하나의 모양은 규칙이 못 보므로(반복문이 없습니다)
+  // 여기가 문서가 불어나는 것을 막는 유일한 선입니다.
+  it("하이라이트가 40개를 넘으면 거부된다", async () => {
+    const db = asTeacher(env, "teacherA").firestore();
+    const many = Array.from({ length: 41 }, (_, i) => ({ start: i, end: i + 3, text: "가나다" }));
+    await assertFails(updateDoc(noteRef(db, "cA", `stu1_${DATE}`), { feedbackMarks: many }));
+  });
+
+  it("남의 반 교사는 하이라이트도 못 적는다", async () => {
+    const db = asTeacher(env, "teacherB").firestore();
+    await assertFails(updateDoc(noteRef(db, "cA", `stu1_${DATE}`), { feedbackMarks: marks }));
+  });
+
+  it("학생은 자기 노트에도 하이라이트를 적을 수 없다", async () => {
+    const db = asStudent(env, "stu1").firestore();
+    await assertFails(updateDoc(noteRef(db, "cA", `stu1_${DATE}`), { feedbackMarks: marks }));
+  });
+
   // ── 피드백이 붙은 뒤 ──
   describe("선생님 피드백이 달린 노트", () => {
     beforeEach(async () => {
@@ -318,6 +372,37 @@ describe("수업 노트(코넬) 규칙", () => {
       const db = asStudent(env, "stu1").firestore();
       await assertFails(
         setDoc(noteRef(db, "cA", `stu1_${DATE}`), payload("cA", "stu1", { feedback: "" }))
+      );
+    });
+
+    it("학생이 하이라이트를 지울 수 없다", async () => {
+      // 먼저 표시를 깔아 둡니다 — 없는 상태에서 빈 목록을 쓰는 것은 '바뀐 것이
+      // 없는 쓰기'라 당연히 통과합니다(그건 지우는 것이 아닙니다).
+      await seed(env, async (db) => {
+        await setDoc(
+          noteRef(db, "cA", `stu1_${DATE}`),
+          { feedbackMarks: [{ start: 0, end: 4, text: "키오스크" }] },
+          { merge: true }
+        );
+      });
+      const db = asStudent(env, "stu1").firestore();
+      await assertFails(updateDoc(noteRef(db, "cA", `stu1_${DATE}`), { feedbackMarks: [] }));
+    });
+
+    // 학생이 필기를 이어 쓰는 흔한 경우 — 하이라이트를 안 건드리므로
+    // 그대로 통과해야 합니다(안 그러면 선생님이 한 번 짚은 노트는 학생이
+    // 다시 저장할 수 없게 됩니다).
+    it("학생이 이어서 써도 하이라이트는 그대로 남는다", async () => {
+      await seed(env, async (db) => {
+        await setDoc(
+          noteRef(db, "cA", `stu1_${DATE}`),
+          { feedbackMarks: [{ start: 0, end: 3, text: "키오스크" }] },
+          { merge: true }
+        );
+      });
+      const db = asStudent(env, "stu1").firestore();
+      await assertSucceeds(
+        setDoc(noteRef(db, "cA", `stu1_${DATE}`), payload("cA", "stu1"), { merge: true })
       );
     });
 

@@ -25334,10 +25334,9 @@ ul.checklist > li.done {
   transition: border-color 0.15s, color 0.15s;
 }
 .cornell-hl-clear:hover { border-color: var(--primary); color: var(--primary-dark); }
+/* 덮개는 `CornellNoteSheet` 안에 있어 **교사·학생 화면에 다 걸립니다**
+   (교사 열람 · 노트 크게 보기 · 리포트 · 서랍의 노트). */
 .cornell-hl-wrap { position: relative; }
-/* 끄는 동안에도 형광펜 색으로 보입니다 — '드래그 = 하이라이트'가 손에
-   먼저 읽히게. 감싼 칸 안으로만 한정합니다. */
-.cornell-hl-wrap ::selection { background: #ffe08a; }
 .cornell-hl {
   position: absolute;
   border-radius: 2px;
@@ -25345,9 +25344,15 @@ ul.checklist > li.done {
   /* 글자 **위**에 덮이는 층이라 곱하기로 깝니다. 반투명으로 덮으면 글자까지
      함께 옅어져 정작 짚은 대목이 읽기 어려워집니다. */
   mix-blend-mode: multiply;
-  cursor: pointer;
 }
-.cornell-hl:hover { background: #ffcf5c; }
+/* 누를 수 있는 것은 교사 창뿐입니다 — 학생 화면의 표시는 읽는 것이라
+   손 모양도 hover 색도 없습니다(눌러 볼 것이 없는데 눌러 보게 됩니다). */
+.cornell-hl.is-editable { cursor: pointer; }
+.cornell-hl.is-editable:hover { background: #ffcf5c; }
+/* 끄는 동안에도 형광펜 색으로 보입니다 — '드래그 = 하이라이트'가 손에
+   먼저 읽히게. **교사 창 안으로만** 한정합니다(학생 화면에서 글을 긁을 때
+   노란색이 뜨면 제가 칠할 수 있다는 뜻으로 읽힙니다). */
+.modal-cornell-read .cornell-hl-wrap ::selection { background: #ffe08a; }
 
 .cornell-read-feedback {
   display: flex;
@@ -25720,6 +25725,11 @@ ul.checklist > li.done {
   flex-direction: column;
   overflow: hidden;
 }
+/* 하이라이트를 얹으려고 시트를 감싼 칸(.cornell-hl-wrap)이 여기서는 **flex
+   항목 자리를 대신 차지합니다.** 그냥 두면 시트의 `flex: 1`이 한 겹 안쪽으로
+   밀려 안 먹고, 아래 격자의 안쪽 스크롤이 통째로 풀립니다. 감싼 칸에 같은
+   값을 주어 layout 상 없는 것처럼 지나가게 합니다. */
+.modal-cornell-viewer .cornell-hl-wrap,
 .modal-cornell-viewer .cornell-sheet {
   flex: 1;
   min-height: 0;

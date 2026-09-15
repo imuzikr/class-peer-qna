@@ -693,12 +693,26 @@ service cloud.firestore {
                       && isClassMember(cId)
                       && isMyCornellNote(cId, nId)
                       && request.resource.data.get('feedback', '')
-                         == resource.data.get('feedback', '');
+                         == resource.data.get('feedback', '')
+                      // 하이라이트도 피드백과 같이 학생이 못 건드립니다.
+                      // 학생이 그 대목을 고쳐 표시가 **안 그려지는 것**과
+                      // 표시를 **지워 버리는 것**은 다른 일입니다 — 앞의 것은
+                      // 화면이 글자를 맞춰 보고 스스로 접는 것이고, 뒤의 것은
+                      // 선생님이 짚어 둔 자리를 없애는 것입니다.
+                      && request.resource.data.get('feedbackMarks', [])
+                         == resource.data.get('feedbackMarks', []);
         // 선생님의 피드백 — 그 칸만. 본문에는 손이 닿지 않습니다.
+        // feedbackMarks는 '어느 대목에 준 피드백인가'를 적어 둔 자리입니다
+        // ({ start, end, text } 목록 — 글자 자리와 그때의 글자). 학생 화면도
+        // 이 값으로 같은 대목을 칠하므로, 교사가 짚은 자리가 그대로 보입니다.
+        // **목록 안 항목의 모양까지는 규칙이 못 봅니다**(규칙 언어에 반복이
+        // 없습니다). 쓸 수 있는 사람이 담당 교사뿐이라 개수 천장만 둡니다.
         allow update: if (isAdmin() || ownsClassEditable(cId))
-                      && changedOnly(['feedback', 'feedbackAt', 'feedbackBy'])
+                      && changedOnly(['feedback', 'feedbackAt', 'feedbackBy', 'feedbackMarks'])
                       && request.resource.data.feedback is string
-                      && request.resource.data.feedback.size() <= 2000;
+                      && request.resource.data.feedback.size() <= 2000
+                      && request.resource.data.get('feedbackMarks', []) is list
+                      && request.resource.data.get('feedbackMarks', []).size() <= 40;
         allow delete: if signedIn() && (resource.data.uid == uid() || isAdmin());
       }
 
