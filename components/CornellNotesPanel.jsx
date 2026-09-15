@@ -62,10 +62,8 @@ export default function CornellNotesPanel({ classId, roster = [], user }) {
     });
     const shown = onlyWritten ? list.filter((s) => noteByUid.has(s.uid)) : list;
     // 선생님 보기 — 누가기록 탭과 **같은 함수**로 돌립니다(`flipRoster`).
-    // 안쪽이 구르는 칸이라 자리표처럼 그림을 180도 돌릴 수는 없고(스크롤이
-    // 거꾸로 됩니다) 배열을 뒤집는데, **그냥 뒤집으면 180도가 아닙니다** —
-    // 마지막 줄이 덜 찬 만큼 줄 경계가 밀립니다. 그래서 앞을 빈 칸으로
-    // 채워 뒤집습니다(까닭과 실측은 lib/seatView.js).
+    // **줄 차례만 뒤집고 줄 안의 좌우는 그대로** 둡니다 — 맞춰야 할 상대가
+    // 자리표라서요(까닭과 실측은 lib/seatView.js).
     return teacherView ? flipRoster(shown, cols) : shown;
   }, [roster, noteByUid, onlyWritten, teacherView, cols]);
 
@@ -136,7 +134,7 @@ export default function CornellNotesPanel({ classId, roster = [], user }) {
       ) : (
         <div className="notes-mgr-grid">
           {students.map((s, i) => {
-            // 선생님 보기에서 앞을 채우는 빈 칸 — 자리만 차지합니다.
+            // 덜 찬 줄을 채우는 빈 칸 — 자리만 차지합니다.
             if (!s) return <div key={`gap-${i}`} className="notes-mgr-gap" aria-hidden="true" />;
             const note = noteByUid.get(s.uid) ?? null;
             const hasFeedback = !!String(note?.feedback ?? "").trim();
