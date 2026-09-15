@@ -14,8 +14,7 @@
 // (책방 '14칸 완료 인원'을 활동 목록 카드에서 뺀 것과 같은 이유입니다)
 // =============================================================
 import { useEffect, useMemo, useState } from "react";
-import { subscribeClassCornellNotesOn, subscribeRewardEventsOn, todayDateKey } from "@/lib/store";
-import { netRewardsByUid } from "@/lib/useTodayRewards";
+import { subscribeClassCornellNotesOn, isCornellRewarded, todayDateKey } from "@/lib/store";
 import { useSeatView } from "@/lib/seatView";
 import SeatViewToggle from "./SeatViewToggle";
 import CornellNoteReadModal from "./CornellNoteReadModal";
@@ -38,25 +37,11 @@ export default function CornellNotesPanel({ classId, roster = [], user }) {
   // (lib/seatView.js). 화면마다 따로 기억하면 한 곳에서 뒤집어 놓고
   // 옮겼을 때 같은 반이 두 얼굴이 됩니다.
   const [teacherView, toggleSeatView] = useSeatView();
-  // 그 날짜에 준 과일 — 카드 색을 가르는 값입니다.
-  const [rewardEvents, setRewardEvents] = useState([]);
 
   useEffect(() => {
     if (!classId || !date) { setNotes([]); return; }
     return subscribeClassCornellNotesOn(classId, date, setNotes);
   }, [classId, date]);
-
-  // **'누적'이 아니라 '그 날짜에 준 것'입니다.** 노트도 이 패널도 날짜 하나로
-  // 보는 화면이라 그 기준이 맞고, 누적으로 하면 학기 중반부터 반 전체가
-  // 초록이 되어 '오늘 누구에게 줬나'를 못 가립니다.
-  useEffect(() => {
-    if (!classId || !date) { setRewardEvents([]); return; }
-    return subscribeRewardEventsOn(classId, date, setRewardEvents);
-  }, [classId, date]);
-
-  // 회수(−1)까지 더한 순증 — 주고 도로 거뒀으면 0이라 '안 준 것'입니다
-  // (자리표 뱃지와 같은 셈을 씁니다).
-  const rewardByUid = useMemo(() => netRewardsByUid(rewardEvents), [rewardEvents]);
 
   const noteByUid = useMemo(() => {
     const map = new Map();
@@ -153,7 +138,13 @@ export default function CornellNotesPanel({ classId, roster = [], user }) {
             // 주황(살구)입니다. 노트를 읽어 가며 주다 보면 누구까지 줬는지
             // 잊는데, 뱃지를 하나 더 다는 것보다 바탕색이 눈에 먼저
             // 들어옵니다. 안 쓴 학생은 지금까지대로 흰 카드입니다.
-            const awarded = (rewardByUid.get(s.uid) ?? 0) > 0;
+            //
+            // **판정은 노트 문서 한 곳**(`isCornellRewarded`) — '피드백을 쓴
+            // 날에 이 노트를 보고 과일을 줬나'입니다. 지급 이력에는 어느
+            // 화면에서 줬는지가 안 남아, 자리표에서 준 과일까지 섞이면
+            // '노트를 읽고 줬다'는 뜻이 흐려집니다. 이 화면이 이미 구독해 둔
+            // 노트로 보므로 **읽는 문서도 안 늡니다.**
+            const awarded = isCornellRewarded(note);
             return (
               <button
                 key={s.uid}

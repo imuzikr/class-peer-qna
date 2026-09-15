@@ -339,6 +339,57 @@ describe("수업 노트(코넬) 규칙", () => {
     await assertFails(updateDoc(noteRef(db, "cA", `stu1_${DATE}`), { feedbackMarks: many }));
   });
 
+  // ── 과일 도장(rewardedAt · rewardedBy) ──
+  // 수업 노트 화면의 과일 단추가 찍습니다. 피드백과 **따로** 나가는 쓰기라,
+  // 그 둘만 바뀌는 update가 통과해야 합니다.
+  it("담당 교사는 과일 도장만 따로 찍을 수 있다", async () => {
+    const db = asTeacher(env, "teacherA").firestore();
+    await assertSucceeds(
+      updateDoc(noteRef(db, "cA", `stu1_${DATE}`), {
+        rewardedAt: serverTimestamp(),
+        rewardedBy: "teacherA",
+      })
+    );
+  });
+
+  // 피드백보다 과일을 먼저 주는 경우 — 그때는 feedback 칸이 아직 없습니다.
+  // 규칙이 그 필드를 그대로 읽으면 평가 오류로 끝나 **선생님조차 거부**됩니다.
+  it("피드백이 아직 없는 노트에도 과일 도장을 찍을 수 있다", async () => {
+    await seed(env, async (db) => {
+      await setDoc(noteRef(db, "cA", `stu2_${DATE}`), {
+        classId: "cA", uid: "stu2", date: DATE,
+        cue: "", notes: "<div>이제 막 적기 시작</div>", summary: "",
+      });
+    });
+    const db = asTeacher(env, "teacherA").firestore();
+    await assertSucceeds(
+      updateDoc(noteRef(db, "cA", `stu2_${DATE}`), {
+        rewardedAt: serverTimestamp(),
+        rewardedBy: "teacherA",
+      })
+    );
+  });
+
+  it("과일 도장에 본문 수정을 끼워 넣을 수는 없다", async () => {
+    const db = asTeacher(env, "teacherA").firestore();
+    await assertFails(
+      updateDoc(noteRef(db, "cA", `stu1_${DATE}`), {
+        rewardedAt: serverTimestamp(),
+        notes: "<div>선생님이 고쳐 씀</div>",
+      })
+    );
+  });
+
+  it("남의 반 교사는 과일 도장도 못 찍는다", async () => {
+    const db = asTeacher(env, "teacherB").firestore();
+    await assertFails(
+      updateDoc(noteRef(db, "cA", `stu1_${DATE}`), {
+        rewardedAt: serverTimestamp(),
+        rewardedBy: "teacherB",
+      })
+    );
+  });
+
   it("남의 반 교사는 하이라이트도 못 적는다", async () => {
     const db = asTeacher(env, "teacherB").firestore();
     await assertFails(updateDoc(noteRef(db, "cA", `stu1_${DATE}`), { feedbackMarks: marks }));
@@ -387,6 +438,33 @@ describe("수업 노트(코넬) 규칙", () => {
       });
       const db = asStudent(env, "stu1").firestore();
       await assertFails(updateDoc(noteRef(db, "cA", `stu1_${DATE}`), { feedbackMarks: [] }));
+    });
+
+    // ── 과일 도장(rewardedAt) ──
+    // '이 노트를 읽고 과일을 줬다'는 표시입니다. 교사 화면이 '피드백을 쓴
+    // 날에 이 노트를 보고 과일을 줬나'로 자리 색을 가르는 데 쓰므로,
+    // 학생이 지우면 이미 준 학생에게 한 번 더 주게 됩니다.
+    it("학생이 과일 도장을 지울 수 없다", async () => {
+      await seed(env, async (db) => {
+        await setDoc(
+          noteRef(db, "cA", `stu1_${DATE}`),
+          { rewardedAt: serverTimestamp(), rewardedBy: "teacherA" },
+          { merge: true }
+        );
+      });
+      const db = asStudent(env, "stu1").firestore();
+      await assertFails(updateDoc(noteRef(db, "cA", `stu1_${DATE}`), { rewardedAt: null }));
+    });
+
+    it("학생이 스스로 과일 도장을 찍을 수 없다", async () => {
+      const db = asStudent(env, "stu1").firestore();
+      await assertFails(
+        setDoc(
+          noteRef(db, "cA", `stu1_${DATE}`),
+          payload("cA", "stu1", { rewardedAt: serverTimestamp(), rewardedBy: "stu1" }),
+          { merge: true }
+        )
+      );
     });
 
     // 학생이 필기를 이어 쓰는 흔한 경우 — 하이라이트를 안 건드리므로

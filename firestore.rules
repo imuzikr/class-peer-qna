@@ -700,17 +700,32 @@ service cloud.firestore {
                       // 화면이 글자를 맞춰 보고 스스로 접는 것이고, 뒤의 것은
                       // 선생님이 짚어 둔 자리를 없애는 것입니다.
                       && request.resource.data.get('feedbackMarks', [])
-                         == resource.data.get('feedbackMarks', []);
+                         == resource.data.get('feedbackMarks', [])
+                      // '이 노트를 읽고 과일을 줬다'는 도장도 선생님 것입니다.
+                      // 학생이 지우면 교사 화면의 초록 표시가 없어져, 이미
+                      // 준 학생에게 한 번 더 주게 됩니다.
+                      && request.resource.data.get('rewardedAt', null)
+                         == resource.data.get('rewardedAt', null)
+                      && request.resource.data.get('rewardedBy', '')
+                         == resource.data.get('rewardedBy', '');
         // 선생님의 피드백 — 그 칸만. 본문에는 손이 닿지 않습니다.
         // feedbackMarks는 '어느 대목에 준 피드백인가'를 적어 둔 자리입니다
         // ({ start, end, text } 목록 — 글자 자리와 그때의 글자). 학생 화면도
         // 이 값으로 같은 대목을 칠하므로, 교사가 짚은 자리가 그대로 보입니다.
         // **목록 안 항목의 모양까지는 규칙이 못 봅니다**(규칙 언어에 반복이
         // 없습니다). 쓸 수 있는 사람이 담당 교사뿐이라 개수 천장만 둡니다.
+        // `rewardedAt`·`rewardedBy`는 '이 노트를 읽고 과일을 줬다'는 도장입니다.
+        // 수업 노트 화면의 과일 단추만 찍습니다 — 교사 화면이 '피드백을 쓴 날에
+        // 이 노트를 보고 과일을 줬나'로 자리 색을 가르는 데 씁니다. 지급 이력
+        // (rewardEvents)에는 어느 화면에서 줬는지가 안 남아서, 답을 노트에
+        // 함께 적어 둡니다(그 화면이 이미 읽고 있는 문서라 읽기가 안 늡니다).
+        // **feedback을 get으로 봅니다** — 피드백보다 과일을 먼저 주면 그 칸이
+        // 아직 없어서, 없는 필드를 그대로 읽으면 규칙이 평가 오류로 끝납니다.
         allow update: if (isAdmin() || ownsClassEditable(cId))
-                      && changedOnly(['feedback', 'feedbackAt', 'feedbackBy', 'feedbackMarks'])
-                      && request.resource.data.feedback is string
-                      && request.resource.data.feedback.size() <= 2000
+                      && changedOnly(['feedback', 'feedbackAt', 'feedbackBy', 'feedbackMarks',
+                                      'rewardedAt', 'rewardedBy'])
+                      && request.resource.data.get('feedback', '') is string
+                      && request.resource.data.get('feedback', '').size() <= 2000
                       && request.resource.data.get('feedbackMarks', []) is list
                       && request.resource.data.get('feedbackMarks', []).size() <= 40;
         allow delete: if signedIn() && (resource.data.uid == uid() || isAdmin());
