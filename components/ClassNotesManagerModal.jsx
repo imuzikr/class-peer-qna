@@ -24,7 +24,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { backdropClose } from "@/lib/modal";
 import SeatViewToggle from "./SeatViewToggle";
-import { useSeatView } from "@/lib/seatView";
+import { flipRoster, useGridCols, useSeatView } from "@/lib/seatView";
 import {
   subscribeClassNoteCounts,
   subscribeClasses,
@@ -48,6 +48,9 @@ export default function ClassNotesManagerModal({
   const [onlyEmpty, setOnlyEmpty] = useState(false); // '아직 없는 학생만' 보기
   // 카드를 늘어놓는 쪽 — 자리표와 같은 값을 함께 씁니다(lib/seatView.js).
   const [teacherView, toggleSeatView] = useSeatView();
+  // 격자 칸 수 — `.notes-mgr-grid`의 @media와 같은 값(6칸 / 768px 아래 3칸).
+  // 선생님 보기로 돌릴 때 '뒤에 몇 칸이 비었나'를 세는 데 씁니다.
+  const cols = useGridCols(6, 3);
 
   // ── 반 고르기 ───────────────────────────────────────────────
   // 이 창은 '지금 이 반'의 맥락에서 열리지만, 교사가 실제로 하는 일은
@@ -111,13 +114,13 @@ export default function ClassNotesManagerModal({
       return String(a.studentId).localeCompare(String(b.studentId), "ko", { numeric: true });
     });
     const shown = onlyEmpty ? list.filter((s) => !(counts[s.uid] > 0)) : list;
-    // 선생님 보기 — 교탁에서 본 방향. **여기서는 배열을 뒤집습니다.**
-    // 자리표(빈 칸이 섞인 격자)는 그림을 180도 돌려야 하지만, 이 격자는
-    // 빈 칸도 자리 번호도 없는 그냥 명단이라 뒤집는 편이 낫습니다 —
-    // 돌리면 (ㄱ) 목록이 길 때 안쪽 스크롤이 거꾸로 되고, (ㄴ) 마지막 줄의
-    // 남는 자리가 첫 줄 왼쪽에 생겨 어색합니다.
-    return teacherView ? [...shown].reverse() : shown;
-  }, [shownRoster, counts, onlyEmpty, teacherView]);
+    // 선생님 보기 — 교탁에서 본 방향. 수업 노트 탭과 **같은 함수**로
+    // 돌립니다(`flipRoster`). 자리표처럼 그림을 180도 돌릴 수는 없습니다 —
+    // 안쪽이 구르는 칸이라 스크롤이 거꾸로 됩니다. 그렇다고 배열을 그냥
+    // 뒤집으면 **마지막 줄이 덜 찬 만큼 줄 경계가 밀려** 자리표와 어긋나므로,
+    // 앞을 빈 칸으로 채워 뒤집습니다(까닭과 실측은 lib/seatView.js).
+    return teacherView ? flipRoster(shown, cols) : shown;
+  }, [shownRoster, counts, onlyEmpty, teacherView, cols]);
 
   const withNotes = shownRoster.filter((s) => counts[s.uid] > 0).length;
 
@@ -212,7 +215,9 @@ export default function ClassNotesManagerModal({
                 <p className="empty-note">모든 학생에게 기록이 있어요.</p>
               ) : (
                 <div className="notes-mgr-grid">
-                  {students.map((s) => {
+                  {students.map((s, i) => {
+                    // 선생님 보기에서 앞을 채우는 빈 칸 — 자리만 차지합니다.
+                    if (!s) return <div key={`gap-${i}`} className="notes-mgr-gap" aria-hidden="true" />;
                     const n = counts[s.uid] ?? 0;
                     return (
                       <button

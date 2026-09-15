@@ -15,7 +15,7 @@
 // =============================================================
 import { useEffect, useMemo, useState } from "react";
 import { subscribeClassCornellNotesOn, isCornellRewarded, todayDateKey } from "@/lib/store";
-import { useSeatView } from "@/lib/seatView";
+import { flipRoster, useGridCols, useSeatView } from "@/lib/seatView";
 import SeatViewToggle from "./SeatViewToggle";
 import CornellNoteReadModal from "./CornellNoteReadModal";
 
@@ -37,6 +37,9 @@ export default function CornellNotesPanel({ classId, roster = [], user }) {
   // (lib/seatView.js). 화면마다 따로 기억하면 한 곳에서 뒤집어 놓고
   // 옮겼을 때 같은 반이 두 얼굴이 됩니다.
   const [teacherView, toggleSeatView] = useSeatView();
+  // 격자 칸 수 — `.notes-mgr-grid`의 @media와 같은 값(6칸 / 768px 아래 3칸).
+  // 선생님 보기로 돌릴 때 '뒤에 몇 칸이 비었나'를 세는 데 씁니다.
+  const cols = useGridCols(6, 3);
 
   useEffect(() => {
     if (!classId || !date) { setNotes([]); return; }
@@ -58,12 +61,13 @@ export default function CornellNotesPanel({ classId, roster = [], user }) {
       return String(a.studentId).localeCompare(String(b.studentId), "ko", { numeric: true });
     });
     const shown = onlyWritten ? list.filter((s) => noteByUid.has(s.uid)) : list;
-    // 선생님 보기 — 누가기록 탭과 같은 방식으로 **배열을 뒤집습니다.**
-    // 여기 격자는 빈 칸도 자리 번호도 없는 그냥 명단이라, 그림을 180도
-    // 돌리면 (ㄱ) 안쪽 스크롤이 거꾸로 되고 (ㄴ) 마지막 줄의 남는 자리가
-    // 첫 줄 왼쪽에 생깁니다.
-    return teacherView ? [...shown].reverse() : shown;
-  }, [roster, noteByUid, onlyWritten, teacherView]);
+    // 선생님 보기 — 누가기록 탭과 **같은 함수**로 돌립니다(`flipRoster`).
+    // 안쪽이 구르는 칸이라 자리표처럼 그림을 180도 돌릴 수는 없고(스크롤이
+    // 거꾸로 됩니다) 배열을 뒤집는데, **그냥 뒤집으면 180도가 아닙니다** —
+    // 마지막 줄이 덜 찬 만큼 줄 경계가 밀립니다. 그래서 앞을 빈 칸으로
+    // 채워 뒤집습니다(까닭과 실측은 lib/seatView.js).
+    return teacherView ? flipRoster(shown, cols) : shown;
+  }, [roster, noteByUid, onlyWritten, teacherView, cols]);
 
   const written = roster.filter((s) => noteByUid.has(s.uid)).length;
 
@@ -131,7 +135,9 @@ export default function CornellNotesPanel({ classId, roster = [], user }) {
         </p>
       ) : (
         <div className="notes-mgr-grid">
-          {students.map((s) => {
+          {students.map((s, i) => {
+            // 선생님 보기에서 앞을 채우는 빈 칸 — 자리만 차지합니다.
+            if (!s) return <div key={`gap-${i}`} className="notes-mgr-gap" aria-hidden="true" />;
             const note = noteByUid.get(s.uid) ?? null;
             const hasFeedback = !!String(note?.feedback ?? "").trim();
             // 과일을 준 학생은 **초록**, 노트는 썼는데 아직 안 준 학생은
