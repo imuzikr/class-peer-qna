@@ -172,7 +172,7 @@ export default function ClassNotesManagerModal({
               aria-selected={tab === "cornell"}
               className={`notes-mgr-tab${tab === "cornell" ? " active" : ""}`}
               onClick={() => setTab("cornell")}
-              title="학생이 수업 중에 적은 코넬 노트를 읽고 피드백을 남깁니다"
+              title="학생이 수업 중에 적은 수업 노트를 읽고 피드백을 남깁니다"
             >
               <IconRecord size={15} /> 수업 노트
             </button>

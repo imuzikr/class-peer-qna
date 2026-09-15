@@ -24731,6 +24731,15 @@ body:has(.confirm-backdrop) .cornell-handle {
   color: var(--text-sub);
   font-variant-numeric: tabular-nums;
 }
+/* 지난 노트를 고치는 중 — 머리말의 날짜가 오늘이 아님을 여기서도 말합니다
+   (쓰는 칸 맨 위의 줄이 본론이고, 이것은 그 줄이 스크롤 밖으로 나갔을 때
+   남는 표시입니다). */
+.cornell-date.past {
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--primary-light);
+  color: var(--primary-dark);
+}
 .cornell-status {
   margin-left: auto;
   font-size: 11px;
@@ -25668,6 +25677,71 @@ ul.checklist > li.done {
 }
 .cornell-past .cornell-sheet-cue::before { content: "단서 · 핵심 질문"; }
 .cornell-past .cornell-sheet-notes::before { content: "필기"; }
+/* 펼친 지난 노트 위의 '고치기' — 오른쪽 끝에 둡니다(줄 왼쪽은 날짜·제목이
+   이미 쓰고 있어, 여는 줄과 세로로 겹치지 않는 자리입니다). */
+.cornell-past-tools { display: flex; justify-content: flex-end; }
+.cornell-past-edit {
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  color: var(--text-sub);
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.cornell-past-edit:hover { border-color: var(--primary); color: var(--primary-dark); }
+
+/* ===== 지금 어느 날짜를 쓰고 있는가 · 고치기 전 안내 =====
+   쓰는 칸 맨 위 한 줄. 지난 날짜에 오늘 필기를 적는 일을 막는 자리라,
+   접히거나 옅게 두지 않고 그대로 보입니다. */
+.cornell-editing {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--primary-light);
+  border-radius: 8px;
+  background: var(--primary-light);
+}
+.cornell-editing-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.cornell-editing-tag {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--primary-dark);
+}
+.cornell-editing-head time {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-sub);
+  font-variant-numeric: tabular-nums;
+}
+.cornell-editing-back {
+  margin-left: auto;
+  border: 1px solid var(--primary);
+  background: var(--card-bg);
+  color: var(--primary-dark);
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.cornell-editing-back:hover { background: var(--primary); color: #fff; }
+/* 안내는 읽을 것이 아니라 참고할 것이라 한 단계 옅게 — 다만 고치기 전에
+   한 번은 읽히도록 딸림글(--text-sub)까지만 내립니다. */
+.cornell-editing-warn {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--text-sub);
+}
 
 /* ===== 손잡이는 열려 있을 때도 남습니다 =====
    서랍 왼쪽 가장자리로 옮겨 붙어 그대로 '닫기'가 됩니다. 여닫는 자리가 늘

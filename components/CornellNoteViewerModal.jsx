@@ -150,7 +150,7 @@ export default function CornellNoteViewerModal({
             className={`dash-view-tab${tab === "cornell" ? " on" : ""}`}
             onClick={() => pickTab("cornell")}
           >
-            코넬 노트
+            수업 노트
           </button>
           <button
             type="button"
