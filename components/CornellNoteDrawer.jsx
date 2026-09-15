@@ -30,7 +30,6 @@ import {
   subscribeMyCornellNote,
   saveCornellNote,
   fetchMyRecentCornellNotes,
-  invalidateMyRecentCornellNotes,
   fetchBoardHandouts,
   markCornellFeedbackSeen,
   isCornellFeedbackUnread,
@@ -52,7 +51,6 @@ import {
 } from "@/lib/cornell";
 import CornellNoteViewerModal from "./CornellNoteViewerModal";
 import { richHtml, stripHtml } from "@/lib/html";
-import { marksOf } from "@/lib/cornellMarks";
 import { IconRecord } from "./StatusIcons";
 
 const SAVE_DELAY = 2000; // ms — 이만큼 입력이 없으면 저장
@@ -128,15 +126,7 @@ export default function CornellNoteDrawer({
   // (아래 dirtyRef와 다릅니다: ref는 '한 번이라도 손댔나'라 저장 뒤에도 켜진
   //  채로 둡니다 — 서버 값이 내 글자를 덮어쓰지 못하게 하는 빗장이라서요)
   const [dirty, setDirty] = useState(false);
-  // 오늘 날짜 — 서랍이 처음 그려질 때 한 번 정합니다.
-  const [today] = useState(() => todayDateKey());
-  // **지금 쓰고 있는 날짜.** 평소에는 오늘이고, 아래 '지난 노트'에서
-  // '고치기'를 누르면 그 날짜로 갈아 끼웁니다(openNoteDate).
-  // 서랍은 쓰는 칸이 한 벌뿐이라, 지난 노트를 고치는 길은 새 편집 화면을
-  // 만드는 것이 아니라 **이 값을 바꾸는 것**입니다 — 자동 저장·덩어리 거울
-  // 쓰기·에디터 열쇠(loadSeq)가 지금 것 그대로 굴러갑니다.
-  const [date, setDate] = useState(today);
-  const pastEditing = date !== today;
+  const [date] = useState(() => todayDateKey());
   // 최근 14일치 — '안 읽은 선생님 한 마디'와 '지난 노트' 목록에 씁니다
   const [recent, setRecent] = useState([]);
   const [seenNow, setSeenNow] = useState(() => new Set()); // 이번에 읽은 것
@@ -318,22 +308,16 @@ export default function CornellNoteDrawer({
   const autoTitle = boardTitle || lessonTitle;
   useEffect(() => {
     if (dirtyRef.current || !loaded) return;
-    // 지난 노트를 고치는 중에는 채우지 않습니다 — 오늘 수업 제목이 지난
-    // 날짜의 노트에 들어가면 그 노트가 무슨 수업이었는지 흐려집니다.
-    if (pastEditing) return;
     if (topic || !autoTitle) return;
     if (note?.lessonTitle) return;
     setTopic(autoTitle);
-  }, [autoTitle, topic, loaded, note?.lessonTitle, pastEditing]);
+  }, [autoTitle, topic, loaded, note?.lessonTitle]);
 
   // 그 프로젝트의 학습 자료를 한 번 읽어 노트에 걸어 둡니다(문서 1건).
   // 이미 저장된 노트에 자료가 있으면 그것을 그대로 두어, 나중에 교사가
   // 프로젝트에서 자료를 바꿔도 그날 노트에 걸린 것은 흔들리지 않습니다.
   useEffect(() => {
-    // 지난 노트에는 걸지 않습니다 — 오늘 프로젝트의 자료가 지난 날짜 노트에
-    // 붙으면 '그날 무엇을 봤나'가 어긋납니다. 그 노트에 이미 저장된 자료는
-    // 아래 효과가 그대로 살려 씁니다.
-    if (!boardId || pastEditing) return;
+    if (!boardId) return;
     let alive = true;
     fetchBoardHandouts(boardId)
       .then((list) => {
@@ -347,7 +331,7 @@ export default function CornellNoteDrawer({
       })
       .catch(() => {});
     return () => { alive = false; };
-  }, [boardId, note?.id, pastEditing]);
+  }, [boardId, note?.id]);
 
   // 이미 저장된 노트에 자료가 있으면 그것을 씁니다
   useEffect(() => {
@@ -416,65 +400,12 @@ export default function CornellNoteDrawer({
   }, [classId, user, date, lessonTitle]);
 
   // 화면을 벗어날 때 쓰는 마지막 저장 — 언마운트 중일 수 있어 상태는 안 건드립니다
-  // (약속을 돌려줍니다 — 날짜를 갈아 끼울 때 '다 쓰인 뒤'를 기다려야 하는
-  //  자리가 있습니다. 나머지 부르는 곳은 그대로 던져 두고 갑니다.)
   const flush = useCallback(() => {
-    if (editSeqRef.current === savedSeqRef.current || !classId || !user?.uid) return null;
+    if (editSeqRef.current === savedSeqRef.current || !classId || !user?.uid) return;
     clearTimeout(timerRef.current);
     savedSeqRef.current = editSeqRef.current;
-    return saveCornellNote(classId, user, date, latestRef.current).catch(() => {});
+    saveCornellNote(classId, user, date, latestRef.current).catch(() => {});
   }, [classId, user, date, lessonTitle]);
-
-  // ── 지난 노트를 고치러 가기 ───────────────────────────────────
-  // 쓰는 칸을 그 날짜로 갈아 끼웁니다. **순서가 곧 안전장치입니다.**
-  //  1) 쓰던 것을 **먼저** 저장합니다 — `flush`는 지금 날짜를 클로저로 들고
-  //     있어서, 갈아 끼운 뒤에 부르면 엉뚱한 날짜에 씁니다.
-  //  2) `dirtyRef`를 내립니다. 그것은 '한 번이라도 손댔나'라는 빗장이라
-  //     (서버 값이 내 글자를 덮어쓰지 못하게 하는 자리), 켜진 채로 두면
-  //     구독이 새 날짜의 글을 화면에 **들여오지 못합니다.**
-  //  3) 칸을 비웁니다. 안 비우면 서버 답이 오기까지 앞 날짜의 글자가 화면에
-  //     남아 있고, 그 사이 자동 저장이 돌면 그대로 새 날짜에 덮여 씌워집니다.
-  const openNoteDate = useCallback(
-    (next) => {
-      if (!next || next === date) return;
-      // '이 날짜에서 손을 댔는가' — 아직 안 쓰인 것(pending)만 보면 안 됩니다.
-      // 고치고 '노트 저장'까지 누른 뒤에 옮기면 그 값이 거짓이라, 목록이 옛
-      // 내용으로 남습니다(실측). dirtyRef는 한 번이라도 손대면 켜지고 여기
-      // 말고는 안 꺼지므로, **내리기 전에** 읽어 둡니다.
-      const touched = dirtyRef.current || editSeqRef.current !== savedSeqRef.current;
-      const saving = flush();
-      dirtyRef.current = false;
-      editSeqRef.current = 0;
-      savedSeqRef.current = 0;
-      setDirty(false);
-      setStatus("idle");
-      setLoaded(false);
-      setNote(null);
-      setTopic("");
-      setBlocks([emptyBlock()]);
-      setSummary("");
-      setHandouts([]);
-      setOpenPast(null);
-      setOpenAlert(null);
-      setDate(next);
-
-      // 아래 '지난 노트' 목록은 5분 캐시라(fetchMyRecentCornellNotes), 방금
-      // 고친 노트가 **옛 내용인 채로** 남습니다 — 오늘로 돌아와 그 줄을 펴
-      // 보면 조금 전에 지운 글이 그대로 있습니다.
-      // **저장이 끝난 뒤에** 버려야 합니다 — 먼저 버리면 저장 전 값이 그대로
-      // 다시 캐시됩니다. 고친 것이 없으면 아무것도 하지 않습니다(그냥
-      // 넘겨보는 길에 14건을 다시 읽을 이유가 없습니다).
-      if (!touched) return;
-      Promise.resolve(saving)
-        .then(() => {
-          invalidateMyRecentCornellNotes(classId, user.uid);
-          return fetchMyRecentCornellNotes(classId, user.uid);
-        })
-        .then((list) => setRecent(list))
-        .catch(() => {});
-    },
-    [flush, date, classId, user]
-  );
 
   // 자동 저장 — 입력이 멎으면. 여기서는 상태를 미리 바꾸지 않습니다
   // (그 사이 단추는 '저장'인 채로 살아 있어야 합니다).
@@ -548,10 +479,6 @@ export default function CornellNoteDrawer({
   // 손잡이 점 — '오늘 뭔가 적었나'. 덩어리 어느 칸이든 글이 있으면 켭니다.
   const filled = usedBlocks(blocks).length + (summary.trim() ? 1 : 0);
   const feedback = String(note?.feedback ?? "").trim();
-  // 선생님이 이 노트의 어느 대목을 짚어 두었는가 — 있으면 고치기 전에
-  // 한 줄 일러 둡니다(아래 안내 문구). 오늘 노트에도 달릴 수 있으므로
-  // 날짜와 상관없이 '표시가 있는가'로만 봅니다.
-  const hasMarks = marksOf(note).length > 0;
 
   // 손잡이 배지 — 아직 안 본 한 마디의 수
   const unreadCount = merged.filter(
@@ -647,12 +574,7 @@ export default function CornellNoteDrawer({
         >
           <header className="cornell-head">
             <strong className="head-icon"><IconRecord size={18} /> 수업 노트</strong>
-            <span
-              className={`cornell-date${pastEditing ? " past" : ""}`}
-              title={pastEditing ? "지난 노트를 고치는 중이에요" : undefined}
-            >
-              {date}
-            </span>
+            <span className="cornell-date">{date}</span>
             <button
               type="button"
               className="cornell-close"
@@ -735,39 +657,6 @@ export default function CornellNoteDrawer({
           ) : (
             <>
             <div className="cornell-body">
-              {/* 지금 어느 날짜를 쓰고 있는가 · 고치기 전 안내
-                  ------------------------------------------------------
-                  머리말의 날짜만으로는 '오늘이 아니다'가 눈에 안 들어옵니다.
-                  쓰는 칸 맨 위에 한 줄 세워, 지난 날짜에 오늘 필기를 적는
-                  일을 막습니다(돌아가는 단추도 같은 줄에).
-                  안내 문구는 **표시가 있을 때만** 띄웁니다 — 표시가 없는
-                  노트에 붙으면 무슨 소린지 알 수 없는 경고가 됩니다. */}
-              {(pastEditing || hasMarks) && (
-                <div className="cornell-editing">
-                  {pastEditing && (
-                    <div className="cornell-editing-head">
-                      <span className="cornell-editing-tag">지난 노트 고치는 중</span>
-                      <time dateTime={date}>{date}</time>
-                      <button
-                        type="button"
-                        className="cornell-editing-back"
-                        onClick={() => openNoteDate(today)}
-                        title="오늘 노트로 돌아갑니다 (쓰던 것은 저장됩니다)"
-                      >
-                        오늘 노트로 →
-                      </button>
-                    </div>
-                  )}
-                  {hasMarks && (
-                    <p className="cornell-editing-warn">
-                      하이라이트가 있는 경우 내용을 수정하면 하이라이트가 사라질 수도
-                      있습니다. 단, 표시만 사라질 뿐 피드백 내용은 그대로 유지되니
-                      걱정하지 마세요.
-                    </p>
-                  )}
-                </div>
-              )}
-
               {/* 지난 노트에 달린 한 마디 — 선생님은 수업이 끝난 뒤에 쓰므로
                   대부분 '어제 것'입니다. 여기가 없으면 학생은 리포트에
                   들어가 그 날짜를 펼쳐 봐야만 알게 됩니다.
@@ -984,24 +873,7 @@ export default function CornellNoteDrawer({
                             {openPast === n.id ? "▾" : "▸"}
                           </span>
                         </button>
-                        {/* 고치기 — **노트 위에** 둡니다. 아래에 두면 긴
-                            노트에서는 끝까지 굴려야 나옵니다.
-                            누르면 쓰는 칸이 그 날짜로 갈아 끼워집니다. */}
-                        {openPastNote?.id === n.id && (
-                          <>
-                            <div className="cornell-past-tools">
-                              <button
-                                type="button"
-                                className="cornell-past-edit"
-                                onClick={() => openNoteDate(n.date)}
-                                title="이 날짜의 노트를 위 칸에서 고칩니다"
-                              >
-                                ✏ 이 노트 고치기
-                              </button>
-                            </div>
-                            <CornellNoteSheet note={openPastNote} />
-                          </>
-                        )}
+                        {openPastNote?.id === n.id && <CornellNoteSheet note={openPastNote} />}
                       </div>
                     );
                   })}

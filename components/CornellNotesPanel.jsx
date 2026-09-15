@@ -14,7 +14,10 @@
 // (책방 '14칸 완료 인원'을 활동 목록 카드에서 뺀 것과 같은 이유입니다)
 // =============================================================
 import { useEffect, useMemo, useState } from "react";
-import { subscribeClassCornellNotesOn, todayDateKey } from "@/lib/store";
+import { subscribeClassCornellNotesOn, subscribeRewardEventsOn, todayDateKey } from "@/lib/store";
+import { netRewardsByUid } from "@/lib/useTodayRewards";
+import { useSeatView } from "@/lib/seatView";
+import SeatViewToggle from "./SeatViewToggle";
 import CornellNoteReadModal from "./CornellNoteReadModal";
 
 // 'YYYY-MM-DD'에서 며칠 옮기기 — 문자열로만 다루면 월말에서 어긋납니다.
@@ -31,11 +34,29 @@ export default function CornellNotesPanel({ classId, roster = [], user }) {
   const [notes, setNotes] = useState([]);
   const [onlyWritten, setOnlyWritten] = useState(false);
   const [selected, setSelected] = useState(null); // 열어 볼 학생
+  // 늘어놓는 방향 — 자리표·누가기록 탭과 **같은 값**을 함께 씁니다
+  // (lib/seatView.js). 화면마다 따로 기억하면 한 곳에서 뒤집어 놓고
+  // 옮겼을 때 같은 반이 두 얼굴이 됩니다.
+  const [teacherView, toggleSeatView] = useSeatView();
+  // 그 날짜에 준 과일 — 카드 색을 가르는 값입니다.
+  const [rewardEvents, setRewardEvents] = useState([]);
 
   useEffect(() => {
     if (!classId || !date) { setNotes([]); return; }
     return subscribeClassCornellNotesOn(classId, date, setNotes);
   }, [classId, date]);
+
+  // **'누적'이 아니라 '그 날짜에 준 것'입니다.** 노트도 이 패널도 날짜 하나로
+  // 보는 화면이라 그 기준이 맞고, 누적으로 하면 학기 중반부터 반 전체가
+  // 초록이 되어 '오늘 누구에게 줬나'를 못 가립니다.
+  useEffect(() => {
+    if (!classId || !date) { setRewardEvents([]); return; }
+    return subscribeRewardEventsOn(classId, date, setRewardEvents);
+  }, [classId, date]);
+
+  // 회수(−1)까지 더한 순증 — 주고 도로 거뒀으면 0이라 '안 준 것'입니다
+  // (자리표 뱃지와 같은 셈을 씁니다).
+  const rewardByUid = useMemo(() => netRewardsByUid(rewardEvents), [rewardEvents]);
 
   const noteByUid = useMemo(() => {
     const map = new Map();
@@ -51,8 +72,13 @@ export default function CornellNotesPanel({ classId, roster = [], user }) {
       if (!b.studentId) return -1;
       return String(a.studentId).localeCompare(String(b.studentId), "ko", { numeric: true });
     });
-    return onlyWritten ? list.filter((s) => noteByUid.has(s.uid)) : list;
-  }, [roster, noteByUid, onlyWritten]);
+    const shown = onlyWritten ? list.filter((s) => noteByUid.has(s.uid)) : list;
+    // 선생님 보기 — 누가기록 탭과 같은 방식으로 **배열을 뒤집습니다.**
+    // 여기 격자는 빈 칸도 자리 번호도 없는 그냥 명단이라, 그림을 180도
+    // 돌리면 (ㄱ) 안쪽 스크롤이 거꾸로 되고 (ㄴ) 마지막 줄의 남는 자리가
+    // 첫 줄 왼쪽에 생깁니다.
+    return teacherView ? [...shown].reverse() : shown;
+  }, [roster, noteByUid, onlyWritten, teacherView]);
 
   const written = roster.filter((s) => noteByUid.has(s.uid)).length;
 
@@ -96,6 +122,10 @@ export default function CornellNotesPanel({ classId, roster = [], user }) {
               오늘
             </button>
           )}
+          {/* 늘어놓는 방향 — 날짜 칸 바로 오른쪽입니다(누가기록 탭과 같은
+              단추·같은 값). 교탁에서 본 방향으로 두면 자리표를 보며 카드를
+              짚는 손이 어긋나지 않습니다. */}
+          <SeatViewToggle teacherView={teacherView} onToggle={toggleSeatView} />
         </div>
         <span className="notes-mgr-summary">
           쓴 학생 <strong>{written}</strong> / {roster.length}
@@ -119,15 +149,22 @@ export default function CornellNotesPanel({ classId, roster = [], user }) {
           {students.map((s) => {
             const note = noteByUid.get(s.uid) ?? null;
             const hasFeedback = !!String(note?.feedback ?? "").trim();
+            // 과일을 준 학생은 **초록**, 노트는 썼는데 아직 안 준 학생은
+            // 주황(살구)입니다. 노트를 읽어 가며 주다 보면 누구까지 줬는지
+            // 잊는데, 뱃지를 하나 더 다는 것보다 바탕색이 눈에 먼저
+            // 들어옵니다. 안 쓴 학생은 지금까지대로 흰 카드입니다.
+            const awarded = (rewardByUid.get(s.uid) ?? 0) > 0;
             return (
               <button
                 key={s.uid}
                 type="button"
-                className={`notes-mgr-card${note ? " has" : ""}`}
+                className={`notes-mgr-card${note ? " has" : ""}${awarded ? " awarded" : ""}`}
                 onClick={() => setSelected(s)}
                 title={
                   note
-                    ? `${s.name} — 이 날 노트를 열어 읽고 피드백 남기기`
+                    ? `${s.name} — 이 날 노트를 열어 읽고 피드백 남기기${
+                        awarded ? " (이 날 과일을 줬어요)" : ""
+                      }`
                     : `${s.name} — 이 날은 안 썼어요. 눌러서 지난 노트 보기`
                 }
               >

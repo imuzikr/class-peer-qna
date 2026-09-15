@@ -1188,6 +1188,16 @@ button.footer-link:hover {
   background: var(--primary-light);
   border-color: var(--primary-light);
 }
+/* 그 날짜에 과일을 준 학생은 **초록**입니다 — 노트를 읽어 가며 하나씩 주다
+   보면 누구까지 줬는지 잊는데, 뱃지를 하나 더 다는 것보다 바탕색이 눈에
+   먼저 들어옵니다. 살구빛(위 .has)은 '노트는 썼는데 아직 안 줌'이 됩니다.
+   색은 출석부의 '출석' 자리(.attend-seat--present)와 **같은 값**입니다 —
+   이 앱에서 초록은 늘 '됐다'는 뜻이라 그 하나로 읽힙니다.
+   `.has` 뒤에 와야 이깁니다(특이도가 같습니다). */
+.notes-mgr-card.awarded {
+  background: #e8f7ed;
+  border-color: #a6d8b6;
+}
 /* 학번이 위, 이름이 아래. 학번순으로 늘어선 격자라 눈이 좇는 것은 숫자라
    그쪽을 먼저 놓고, 이름을 크게 둡니다. */
 .notes-mgr-no {
@@ -24731,15 +24741,6 @@ body:has(.confirm-backdrop) .cornell-handle {
   color: var(--text-sub);
   font-variant-numeric: tabular-nums;
 }
-/* 지난 노트를 고치는 중 — 머리말의 날짜가 오늘이 아님을 여기서도 말합니다
-   (쓰는 칸 맨 위의 줄이 본론이고, 이것은 그 줄이 스크롤 밖으로 나갔을 때
-   남는 표시입니다). */
-.cornell-date.past {
-  padding: 2px 7px;
-  border-radius: 999px;
-  background: var(--primary-light);
-  color: var(--primary-dark);
-}
 .cornell-status {
   margin-left: auto;
   font-size: 11px;
@@ -25113,6 +25114,120 @@ body:has(.confirm-backdrop) .cornell-handle {
   font-size: 13px;
   line-height: 1.6;
 }
+
+/* ===== 고치는 한 장 (CornellNoteEditSheet) =====
+   읽기 전용 한 장과 **같은 껍데기·같은 격자**를 그대로 쓰고, 글이 있던
+   자리만 입력칸이 됩니다 — '고치기'를 눌러도 보던 배치가 안 바뀝니다.
+   칸 자체의 테두리는 지웁니다: 격자의 가로 줄과 가운데 세로선이 이미 칸을
+   가르고 있어, 상자를 한 겹 더 두르면 줄 친 노트가 표 무더기로 보입니다. */
+.cornell-sheet--edit .cornell-edit-topic,
+.cornell-sheet--edit textarea {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  color: var(--text);
+  padding: 0;
+  resize: none;
+}
+.cornell-sheet--edit .cornell-edit-topic:focus,
+.cornell-sheet--edit textarea:focus { outline: none; }
+/* 지금 어느 칸을 고치는 중인지는 **바탕색**으로 알립니다(테두리를 두르면
+   위 규칙이 지운 상자가 초점마다 되살아납니다). */
+.cornell-sheet--edit .cornell-edit-topic:focus,
+.cornell-sheet--edit textarea:focus,
+.cornell-sheet--edit .cornell-edit-rte .rte-area:focus {
+  background: #fffdf6;
+}
+.cornell-edit-topic {
+  font-size: 15px;
+  font-weight: 800;
+}
+/* 단서·요약은 글만큼 늘어나지 않으므로(textarea) 최소 높이를 둡니다.
+   두 칸이 같은 자리에서 읽히도록 글자 크기는 읽기 전용과 같은 13.5px. */
+.cornell-edit-cue,
+.cornell-edit-summary {
+  font-size: 13.5px;
+  line-height: 1.7;
+  min-height: 66px;
+}
+.cornell-edit-summary { min-height: 54px; }
+.cornell-sheet--edit .cornell-edit-rte { border: none; background: transparent; }
+.cornell-sheet--edit .cornell-edit-rte .rte-area {
+  font-size: 13.5px;
+  line-height: 1.7;
+  min-height: 66px;
+  padding: 0;
+}
+/* 줄 지우기 — 단서 칸 아래 작은 글자. 눌러서 지우는 것이라 눈에 먼저
+   들어올 이유가 없습니다. */
+.cornell-edit-del {
+  align-self: flex-start;
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 11px;
+  color: var(--text-faint);
+  cursor: pointer;
+}
+.cornell-edit-del:hover { color: var(--primary-dark); text-decoration: underline; }
+.cornell-edit-add {
+  display: flex;
+  justify-content: center;
+  padding: 8px;
+  border-top: 1px solid var(--border);
+}
+.cornell-edit-add button {
+  border: 1px dashed var(--border);
+  background: none;
+  color: var(--text-sub);
+  padding: 5px 14px;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.cornell-edit-add button:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+.cornell-edit-add button:disabled { opacity: 0.5; cursor: default; }
+/* 고치기 전 안내 — 읽을 것이 아니라 참고할 것이라 딸림글 짙기까지만. */
+.cornell-edit-warn {
+  margin: 0 0 8px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: var(--primary-light);
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--text-sub);
+}
+/* 머리줄의 '고치기' — 인쇄 단추 왼쪽. 고치는 중에는 채운 색이 되어
+   '지금 고치는 중'을 그 자리가 그대로 말합니다. */
+.cornell-read-edit {
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  color: var(--text-sub);
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.cornell-read-edit:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+.cornell-read-edit.on {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+.cornell-read-edit:disabled { opacity: 0.5; cursor: default; }
 
 
 /* ===== 체크 줄 (수업 메모) ===========================================
@@ -25677,72 +25792,6 @@ ul.checklist > li.done {
 }
 .cornell-past .cornell-sheet-cue::before { content: "단서 · 핵심 질문"; }
 .cornell-past .cornell-sheet-notes::before { content: "필기"; }
-/* 펼친 지난 노트 위의 '고치기' — 오른쪽 끝에 둡니다(줄 왼쪽은 날짜·제목이
-   이미 쓰고 있어, 여는 줄과 세로로 겹치지 않는 자리입니다). */
-.cornell-past-tools { display: flex; justify-content: flex-end; }
-.cornell-past-edit {
-  border: 1px solid var(--border);
-  background: var(--card-bg);
-  color: var(--text-sub);
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-family: inherit;
-  font-size: 11.5px;
-  font-weight: 700;
-  cursor: pointer;
-}
-.cornell-past-edit:hover { border-color: var(--primary); color: var(--primary-dark); }
-
-/* ===== 지금 어느 날짜를 쓰고 있는가 · 고치기 전 안내 =====
-   쓰는 칸 맨 위 한 줄. 지난 날짜에 오늘 필기를 적는 일을 막는 자리라,
-   접히거나 옅게 두지 않고 그대로 보입니다. */
-.cornell-editing {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 8px 10px;
-  border: 1px solid var(--primary-light);
-  border-radius: 8px;
-  background: var(--primary-light);
-}
-.cornell-editing-head {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-}
-.cornell-editing-tag {
-  font-size: 11px;
-  font-weight: 800;
-  color: var(--primary-dark);
-}
-.cornell-editing-head time {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--text-sub);
-  font-variant-numeric: tabular-nums;
-}
-.cornell-editing-back {
-  margin-left: auto;
-  border: 1px solid var(--primary);
-  background: var(--card-bg);
-  color: var(--primary-dark);
-  padding: 3px 9px;
-  border-radius: 999px;
-  font-family: inherit;
-  font-size: 11px;
-  font-weight: 700;
-  cursor: pointer;
-}
-.cornell-editing-back:hover { background: var(--primary); color: #fff; }
-/* 안내는 읽을 것이 아니라 참고할 것이라 한 단계 옅게 — 다만 고치기 전에
-   한 번은 읽히도록 딸림글(--text-sub)까지만 내립니다. */
-.cornell-editing-warn {
-  margin: 0;
-  font-size: 11.5px;
-  line-height: 1.6;
-  color: var(--text-sub);
-}
-
 /* ===== 손잡이는 열려 있을 때도 남습니다 =====
    서랍 왼쪽 가장자리로 옮겨 붙어 그대로 '닫기'가 됩니다. 여닫는 자리가 늘
    같은 곳이라야 손이 기억합니다(예전에는 열리는 순간 사라졌습니다).
