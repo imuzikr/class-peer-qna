@@ -22197,6 +22197,99 @@ span.cloud-word { cursor: default; }
 }
 
 /* ── 방송 상태 막대 ── */
+/* ===== 수업 화면 창 — 지금 띄우는 것을 교사도 크게 (CastStageModal) ===== */
+/* 발표 모드로 수업할 때 교사 화면에는 '누구의 무엇을 띄우는 중'이라는 막대
+   한 줄뿐이라, 칠판에 무엇이 떠 있는지도 다음 학생의 같은 항목도 볼 수
+   없었습니다(실제 신고). 이 창이 그 둘을 함께 답합니다.
+   축이 둘입니다 — **학생 축이 주인공**(아래 큰 단추 둘 + 키보드 ← →),
+   단계 축은 딸림(위 줄의 작은 단추 둘). 창이 머리말 막대를 덮으므로
+   단계 축도 여기 있어야 합니다. */
+.modal-cast-stage {
+  /* `.modal`이 `max-width: 640px`으로 못 박아 두어 width만 키우면 안
+     넓어집니다 — 그 천장을 함께 올려야 합니다(실측 640 그대로였음).
+     수업 중에 교사가 답을 읽는 창이라 넉넉해야 합니다. */
+  width: 100%;
+  max-width: 960px;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  /* 구르는 것은 본문 한 칸뿐 — `.modal`의 overflow-y를 여기서 끕니다 */
+  overflow: hidden;
+}
+.cast-stage-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  /* 방송 중인 창이라는 것이 한눈에 — 머리말 막대와 같은 살구빛입니다 */
+  background: var(--primary-light);
+}
+.cast-stage-head h3 { margin: 0; font-size: 15px; }
+.cast-stage-who {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 15px;
+  font-weight: 700;
+}
+.cast-stage-who em { font-style: normal; font-size: 12.5px; color: var(--text-sub); }
+.cast-stage-count { font-size: 12.5px; color: var(--text-sub); }
+/* 과일 단추와 닫기는 **한 묶음으로** 오른쪽 끝에 붙습니다. 따로 두고
+   저마다 `margin-left: auto`를 주면 남는 폭을 둘이 나눠 가져 그 사이가
+   벌어집니다 — 미는 것은 묶음 하나여야 합니다. 과일을 못 주는 자리
+   (반·로그인이 없을 때)에서는 닫기 하나만 그 자리에 섭니다. */
+.cast-stage-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+.cast-stage-tools .modal-x { margin: 0; }
+
+.cast-stage-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border);
+}
+.cast-stage-secnav { display: flex; gap: 6px; margin-left: auto; }
+.cast-stage-secnav .btn-ghost { font-size: 12.5px; padding: 5px 10px; }
+
+/* 본문만 구릅니다 — 머리줄과 학생 넘기는 줄은 늘 제자리에 있어야
+   수업 중에 손이 같은 곳을 짚습니다. */
+.cast-stage-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 18px;
+}
+.cast-stage-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-deep);
+}
+/* 학생 축은 이 창의 주인공이라 단계 축(12.5px)보다 큽니다 */
+.cast-stage-step { font-size: 14px; font-weight: 700; padding: 9px 16px; }
+.cast-stage-hint {
+  flex: 1;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+.cast-stage-stop { margin-left: 4px; }
+
+@media (max-width: 768px) {
+  .cast-stage-hint { display: none; }
+  .cast-stage-foot { flex-wrap: wrap; }
+}
+
 .cast-bar {
   display: flex;
   align-items: center;

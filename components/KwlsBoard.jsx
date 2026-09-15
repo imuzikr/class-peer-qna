@@ -33,6 +33,7 @@ import KwlsProgressBoard from "./KwlsProgressBoard";
 import BookStudentRail from "./BookStudentRail";
 import EntryProgressPanel from "./EntryProgressPanel";
 import CastBar from "./CastBar";
+import CastStageModal from "./CastStageModal";
 
 // 방송할 수 있는 영역 — 네 칸 그대로
 const REGIONS = KWLS_COLUMNS;
@@ -51,6 +52,9 @@ export default function KwlsBoard({
 }) {
   const [entries, setEntries] = useState([]);
   const [openUid, setOpenUid] = useState(null);
+  // 수업 화면 — '수업 시작'을 누르면 열리는 큰 창. 지금 띄우는 것을 교사도
+  // 보고, **같은 영역을 학생별로** 넘깁니다(CastStageModal).
+  const [stageOpen, setStageOpen] = useState(false);
   // 성찰중 전광판 — 네 칸 × 반 전체(곁텍스트·RAFT와 같은 격자)
   const [boardOpen, setBoardOpen] = useState(false);
 
@@ -71,6 +75,8 @@ export default function KwlsBoard({
       uid: s.uid,
       name: s.name,
       studentId: s.studentId,
+      // 과일을 줄 때 이름표로 함께 적습니다(수업 화면 창의 과일 단추)
+      emoji: s.emoji,
       entry: byUid.get(s.uid) ?? null,
     }));
     const seen = new Set(roster.map((s) => s.uid));
@@ -105,15 +111,48 @@ export default function KwlsBoard({
   }, [castCard, castIndex, activity]);
   cast.useLiveUpdate(livePayload);
 
-  function castRegion(card, index) {
+  function castRegion(card, index, openStage = true) {
+    // 같은 자리를 다시 누르면 방송이 **꺼집니다**(useEntryCast의 토글) —
+    // 그때는 창도 함께 닫아야 '띄우는 중'이라 적힌 빈 창이 안 남습니다.
+    const stopping = cast.isCasting(card.uid, REGIONS[index].key);
     cast.cast({ uid: card.uid, key: REGIONS[index].key }, buildPayload(activity, card, index));
+    // **영역만 옮길 때는 창 상태를 안 건드립니다** — 닫아 둔 창이
+    // '다음 영역 →'에 되살아나면 닫은 뜻이 없어집니다.
+    setStageOpen(openStage && !stopping);
+    // 뒤의 화면도 따라옵니다 — 창을 닫았을 때 그 학생이 열려 있어야
+    // 방금 본 답을 이어서 읽습니다.
+    if (!stopping) setOpenUid(card.uid);
+  }
+
+  // 창을 닫는 것과 수업을 끝내는 것은 다릅니다 — 끝낼 때만 방송을 끕니다.
+  function stopCast() {
+    cast.stop();
+    setStageOpen(false);
+  }
+
+  // 학생 축 — 왼쪽 목록에 보이는 차례 그대로. 지금 띄우는 학생이 그 목록에
+  // 없으면 반 전체로 되돌아갑니다(안 그러면 넘길 곳이 없습니다).
+  const castList = useMemo(() => {
+    const uid = cast.target?.uid;
+    if (!uid) return cards;
+    return cards.some((c) => c.uid === uid) ? cards : cards;
+  }, [cards, cards, cast.target]);
+
+  const castAt = cast.target ? castList.findIndex((c) => c.uid === cast.target.uid) : -1;
+  const prevStudent = castAt > 0 ? castList[castAt - 1] : null;
+  const nextStudent = castAt >= 0 && castAt < castList.length - 1 ? castList[castAt + 1] : null;
+
+  // 학생을 넘기면 **같은 영역 그대로** 그 학생의 것을 띄웁니다.
+  function goStudent(card) {
+    if (!card || castIndex < 0) return;
+    castRegion(card, castIndex);
   }
 
   function step(delta) {
     if (castIndex < 0 || !castCard) return;
     const next = castIndex + delta;
     if (next < 0 || next >= REGION_COUNT) return;
-    castRegion(castCard, next);
+    castRegion(castCard, next, stageOpen);
   }
 
   const openAnswers = open?.entry?.answers ?? {};
@@ -182,7 +221,8 @@ export default function KwlsBoard({
               total={REGION_COUNT}
               onPrev={castIndex > 0 ? () => step(-1) : null}
               onNext={castIndex < REGION_COUNT - 1 ? () => step(1) : null}
-              onStop={cast.stop}
+              onStop={stopCast}
+              onOpenStage={stageOpen ? null : () => setStageOpen(true)}
             />
           )}
           {bookUrl && (
@@ -300,6 +340,27 @@ export default function KwlsBoard({
       )}
 
       {/* 전광판 — 학생을 고르면 닫습니다(그 화면이 곧 답입니다). */}
+      {/* 수업 화면 — 지금 띄우는 것을 교사도 크게 보고, **같은 영역을
+          학생별로** 넘기며 그 자리에서 과일을 줍니다. 닫아도 방송은
+          그대로이고, 머리말 막대의 '수업 화면 보기'로 다시 엽니다. */}
+      {stageOpen && cast.target && castCard && castIndex >= 0 && (
+        <CastStageModal
+          payload={livePayload}
+          student={castCard}
+          studentIndex={castAt}
+          studentTotal={castList.length}
+          prevStudent={prevStudent}
+          nextStudent={nextStudent}
+          onStudent={goStudent}
+          onPrevSection={castIndex > 0 ? () => step(-1) : null}
+          onNextSection={castIndex < REGION_COUNT - 1 ? () => step(1) : null}
+          classId={classId}
+          user={user}
+          onStop={stopCast}
+          onClose={() => setStageOpen(false)}
+        />
+      )}
+
       {boardOpen && (
         <KwlsProgressBoard
           activity={activity}

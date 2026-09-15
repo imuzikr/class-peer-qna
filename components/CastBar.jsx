@@ -11,7 +11,7 @@
 // =============================================================
 import { eulReul } from "@/lib/korean";
 
-export default function CastBar({ who, label, index, total, onPrev, onNext, onStop }) {
+export default function CastBar({ who, label, index, total, onPrev, onNext, onStop, onOpenStage = null }) {
   // 영역 이름에 따라 을/를이 달라집니다 ('제목를'이 아니라 '제목을')
   const josa = eulReul(label).slice(label.length);
   // 마인드맵처럼 나눌 영역이 없는 활동은 옮길 곳이 없습니다. 항상 눌리지 않는
@@ -25,6 +25,13 @@ export default function CastBar({ who, label, index, total, onPrev, onNext, onSt
         {total > 1 && <span className="cast-bar-step">{index + 1} / {total}</span>}
       </span>
       <div className="cast-bar-actions">
+        {/* 수업 화면 창을 닫아 두었을 때 다시 여는 길 — 닫기가 방송을 끄지
+            않으므로, 이 단추가 없으면 다시 보려고 수업을 껐다 켜야 합니다. */}
+        {onOpenStage && (
+          <button type="button" className="btn-ghost" onClick={onOpenStage}>
+            수업 화면 보기
+          </button>
+        )}
         {canStep && (
           <>
             <button type="button" className="btn-ghost" onClick={onPrev} disabled={!onPrev}>
