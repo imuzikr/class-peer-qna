@@ -972,6 +972,15 @@ button.footer-link:hover {
    이것은 '나가는 것'이라, 나란히 두면 잘못 눌러 로그아웃됩니다.
    상단바에 나와 있던 것을 여기로 옮겼습니다(전광판 자리를 비우려고 —
    components/UserProfile.jsx 주석 참고). */
+/* '선생님 대시보드' — 이 메뉴에서 유일하게 **화면을 옮기는** 항목이라,
+   아래의 '여는 것'들과 선으로 갈라 둡니다(로그아웃을 가른 것과 같은 까닭,
+   방향만 반대라 선이 아래에 붙습니다). */
+.profile-menu-item--go {
+  margin-bottom: 4px;
+  padding-bottom: 11px;
+  border-bottom: 1px solid var(--border);
+  border-radius: 8px 8px 0 0;
+}
 .profile-menu-item--out {
   margin-top: 4px;
   padding-top: 11px;

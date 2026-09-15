@@ -40,7 +40,7 @@ import CornellNoteDrawer from "./CornellNoteDrawer";
 import RewardCelebration from "./RewardCelebration";
 import AppMarquee from "./AppMarquee";
 import { useRewardCelebration } from "@/lib/useRewardCelebration";
-import { IconReport, IconPythonRunner, IconLogo, IconAnswer, IconBlackboard, IconBook, IconTeacher } from "./StatusIcons";
+import { IconReport, IconPythonRunner, IconLogo, IconAnswer, IconBlackboard, IconBook } from "./StatusIcons";
 
 export default function TopNav({ active, onPython, pyActive = false }) {
   const router = useRouter();
@@ -354,6 +354,7 @@ export default function TopNav({ active, onPython, pyActive = false }) {
         <UserProfile
           pendingCount={isStrictAdmin ? pendingTeacherCount : 0}
           onOpenRoleMgr={isStrictAdmin ? () => setRoleMgrOpen(true) : null}
+          onOpenAdmin={admin ? () => go("/admin") : null}
           onLogout={handleLogout}
         />
       </div>
@@ -391,16 +392,13 @@ export default function TopNav({ active, onPython, pyActive = false }) {
         >
           <IconPythonRunner size={20} /> <span className="nav-label">파이썬 실행기</span>
         </button>
-        {admin ? (
-          <button
-            className={`btn-ghost ${active === "admin" ? "nav-active" : ""}`}
-            onClick={() => go("/admin")}
-            title="선생님 대시보드"
-          >
-            <IconTeacher size={20} />{" "}
-            <span className="nav-label">선생님 대시보드</span>
-          </button>
-        ) : (
+        {/* 교사에게는 여기에 아무것도 없습니다 — '선생님 대시보드'는 프로필
+            메뉴로 옮겼습니다(로그아웃과 같은 까닭: 이동 메뉴에서 가장 긴
+            단추인데 수업 중에 자주 누르는 것은 아닙니다). 학생의 '학습
+            리포트'는 그대로 둡니다 — 학생이 제 기록을 보러 자주 오는 자리라
+            한 번에 닿아야 하고, 학생 화면에는 프로필 메뉴에 담을 것도
+            대시보드만큼 많지 않습니다. */}
+        {!admin && (
           <button
             className={`btn-ghost ${active === "report" ? "nav-active" : ""}`}
             onClick={() => go("/report")}

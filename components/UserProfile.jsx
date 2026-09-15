@@ -23,7 +23,18 @@ import { isTeacher } from "@/lib/user";
 import { IconTeacher, IconLogout } from "@/components/StatusIcons";
 import ProfileModal from "./ProfileModal";
 
-export default function UserProfile({ pendingCount = 0, onOpenRoleMgr = null, onLogout = null }) {
+export default function UserProfile({
+  pendingCount = 0,
+  onOpenRoleMgr = null,
+  // [선생님 대시보드가 왜 여기인가]
+  // 로그아웃과 같은 까닭입니다 — 이동 메뉴에서 **가장 긴 단추**(아이콘+여덟
+  // 글자)인데 교사가 수업 중에 자주 누르는 것은 아닙니다. 그 폭을 상단바에
+  // 돌려주면 전광판의 글자 자리가 그만큼 늘어납니다.
+  // 자리는 메뉴 맨 위 — 여기서 유일하게 **화면을 옮기는** 항목이라, 아래
+  // 둘(창을 여는 것)과 섞이지 않게 앞에 세웁니다.
+  onOpenAdmin = null,
+  onLogout = null,
+}) {
   const user = useCurrentUser();
   const teacherRole = isTeacher(user);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -73,6 +84,19 @@ export default function UserProfile({ pendingCount = 0, onOpenRoleMgr = null, on
 
       {menuOpen && user && (
         <div className="profile-menu" role="menu">
+          {onOpenAdmin && (
+            <button
+              type="button"
+              className="profile-menu-item profile-menu-item--go"
+              role="menuitem"
+              onClick={() => {
+                setMenuOpen(false);
+                onOpenAdmin();
+              }}
+            >
+              <IconTeacher size={17} /> 선생님 대시보드
+            </button>
+          )}
           <button
             type="button"
             className="profile-menu-item"
