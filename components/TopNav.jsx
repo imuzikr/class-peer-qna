@@ -264,13 +264,14 @@ export default function TopNav({ active, onPython, pyActive = false }) {
 
   return (
     <>
-    {/* 상단바는 두 줄입니다 — 1행 로고·문구·전광판 / 2행 이동 메뉴·아이콘.
+    {/* 상단바는 두 줄입니다 —
+          1행: 로고 · 문구 …… 전광판 …… 손들기·알림·프로필
+          2행: 이동 메뉴
         **여기 적힌 차례가 곧 보이는 차례이자 탭 이동 차례**입니다(CSS의
         order는 자리만 바꾸고 탭 순서는 안 바꿉니다). 요소를 더할 때는
         globals.css의 order 값도 함께 맞추세요 — 어긋나면 눈으로 보는
         차례와 키보드로 옮겨 다니는 차례가 갈립니다.
-        768px 이하만 다릅니다: 거기서는 1행이 로고+아이콘, 2행이 이동
-        메뉴입니다(globals.css의 모바일 블록). */}
+        좁아지면 가운데부터 빠집니다 — 문구는 1180px, 전광판은 768px에서. */}
     <header className="topbar">
       {/* 1행 ① 로고 — 좁은 화면에서도 항상 첫 줄에 남습니다 */}
       <div className="topbar-left">
@@ -317,15 +318,14 @@ export default function TopNav({ active, onPython, pyActive = false }) {
         </div>
       )}
 
-      {/* 1행 ② 문구 — 로고와 짝을 이루는 자리라 바로 옆입니다. 예전에는
-          이동 메뉴와 아이콘 줄 사이에 끼어 1440px 아래에서 접혔는데,
-          1행이 통째로 비면서 어느 폭에서도 섭니다. */}
+      {/* 1행 ② 문구 — 로고와 짝을 이루는 자리라 바로 옆입니다.
+          1행에 넷이 서므로 좁아지면 **이것이 먼저** 빠집니다(1180px). */}
       <span className="topbar-tagline">작은 변화로 시작하는 성장의 기록</span>
 
-      {/* 1행 ③ 전광판 — 1행 가운데, 좌우 여백이 같은 자리입니다.
-          한 줄이던 시절에는 문구·이동 메뉴·아이콘과 자리를 다퉈 1600px
-          에서도 글이 말줄임으로 접혔습니다. 지금은 이 줄에 로고와 문구밖에
-          없어 글자만큼 온전히 섭니다.
+      {/* 1행 ③ 전광판 — 왼쪽 묶음(로고·문구)과 오른쪽 묶음(아이콘) **사이
+          한가운데**입니다. 그 사이 남는 가로를 감싼 칸이 통째로 받고 알약은
+          그 안에서 가운데 서므로, 좌우 여백이 늘 같습니다(실측 1920px에서
+          408·408 · 1366px에서 131·131).
 
           **감싼 칸(`.topbar-mq-slot`)을 없애지 마세요.** 알약은 글자만큼만
           차지해야 하는데(`flex-basis: auto`), 그 값이 그대로 flex 항목의
@@ -333,7 +333,7 @@ export default function TopNav({ active, onPython, pyActive = false }) {
           아래로 떨어져 상단바가 네 줄이 되었습니다(실측). 줄을 나누는 셈은
           줄인 뒤가 아니라 **기준 폭으로** 하기 때문입니다. 기준 0짜리 칸을
           한 겹 씌우면 줄바꿈은 안 부르면서 남는 가로를 받고, 알약은 그 안에서
-          오른쪽에 붙어 글자만큼만 자랍니다.
+          제 글자만큼만 자랍니다.
 
           반과 무관하므로 `broadcastClassId`에 걸지 않습니다 — 반을 아직 안
           고른 교사, 질문방·리포트처럼 반이 없는 화면에도 그대로 섭니다. */}
@@ -341,15 +341,64 @@ export default function TopNav({ active, onPython, pyActive = false }) {
         <AppMarquee isTeacher={admin} />
       </div>
 
+      {/* 1행 ④ 오른쪽 끝: 손들기 + 확성기 + 과일 뱃지 + 알림 + 프로필.
+          **늘 눈에 띄어야 하는 것들이라 로고와 같은 줄입니다.** 한때 이동
+          메뉴와 함께 2행으로 내렸는데, 그러면 1행 오른쪽이 통째로 비어
+          전광판의 '가운데'가 오른쪽으로 치우쳤고 아이콘도 메뉴 줄에 얹혀
+          눈에 덜 들어왔습니다(실제 신고). */}
+      <div className="user-area">
+        {!isFirebaseConfigured && <RoleSwitcher />}
+        {/* 손들기 → 반 공지(교사) → 알림 순. 손들기는 반 안의 일이라 확성기
+            왼쪽에 두고, 확성기는 그 반에만 보내는 것이라 개인 알림(종) 왼쪽에
+            둡니다 — 왼쪽으로 갈수록 범위가 좁습니다. */}
+        {user && broadcastClassId && (
+          <QuestionSignalButton
+            classId={broadcastClassId}
+            user={user}
+            isTeacher={admin}
+            className={noticeClassName}
+          />
+        )}
+        {admin && user && broadcastClassId && (
+          <ClassNoticeButton
+            classId={broadcastClassId}
+            className={noticeClassName}
+            memberCount={noticeMemberCount}
+          />
+        )}
+        {/* 눌러서 '언제 얼마나 받았는지'까지 — 숫자만으로는 요즘 어떤지가
+            안 보입니다. 학생 리포트에 있는 것과 같은 흐름을 여기서도 바로
+            열어 볼 수 있게 합니다. */}
+        {!admin && user && (
+          <button
+            type="button"
+            className="fruit-total-chip fruit-total-chip--btn"
+            onClick={() => setFruitOpen(true)}
+            title="지금까지 받은 과일 — 눌러서 받은 흐름 보기"
+          >
+            🍊 {fruitTotal}
+          </button>
+        )}
+        {user && isFirebaseConfigured && <NotificationBell uid={user.uid} />}
+        {/* 로그아웃은 이 메뉴 안으로 들어갔습니다 — 상단바에 전광판을 두려고
+            자리를 비웠고, 하루에 한 번 누를까 말까 한 것이 늘 폭을 차지할
+            이유도 없습니다(UserProfile 주석 참고). */}
+        <UserProfile
+          pendingCount={isStrictAdmin ? pendingTeacherCount : 0}
+          onOpenRoleMgr={isStrictAdmin ? () => setRoleMgrOpen(true) : null}
+          onOpenAdmin={admin ? () => go("/admin") : null}
+          onLogout={handleLogout}
+        />
+      </div>
+
       {/* 줄바꿈 — 폭 100%·높이 0짜리 빈 칸(globals.css의 `.topbar-gap`).
           여기까지가 1행이고 아래가 2행입니다. 예전에는 남는 가로를 받아
-          아이콘 줄을 오른쪽으로 밀어내던 칸인데, 두 줄이 되면서 그 일은
-          `.user-area`의 자동 여백이 맡고 이 칸은 줄만 가릅니다. */}
+          아이콘 줄을 오른쪽으로 밀어내던 칸인데, 지금 그 일은 전광판이
+          앉는 칸이 맡고 이 칸은 줄만 가릅니다. */}
       <span className="topbar-gap" aria-hidden="true" />
 
-      {/* 2행 ① 이동 메뉴 — 질문방 · 공부방 · 책방 · 파이썬 실행기 ·
-          리포트(학생). 768px 이하에서는 이 줄이 통째로 둘째 줄이 되고
-          단추가 정사각형 칸으로 바뀝니다. */}
+      {/* 2행 이동 메뉴 — 질문방 · 공부방 · 책방 · 파이썬 실행기 ·
+          리포트(학생). 768px 이하에서는 단추가 정사각형 칸으로 바뀝니다. */}
       <nav className="topnav-menu">
         <button
           className={`btn-ghost ${active === "board" ? "nav-active" : ""}`}
@@ -399,56 +448,6 @@ export default function TopNav({ active, onPython, pyActive = false }) {
 
         {/* 역할 관리는 프로필 메뉴의 '관리자 설정'으로 이동 */}
       </nav>
-
-      {/* 2행 ② 오른쪽 끝: 손들기 + 과일 뱃지 + 프로필/로그아웃.
-          768px 이하에서만 첫 줄(로고 옆)로 올라갑니다 — 그 폭에서는 둘째
-          줄을 가로로 구르는 이동 메뉴가 차지해, 함께 두면 프로필이 화면
-          밖으로 밀려납니다. */}
-      <div className="user-area">
-        {!isFirebaseConfigured && <RoleSwitcher />}
-        {/* 손들기 → 반 공지(교사) → 알림 순. 손들기는 반 안의 일이라 확성기
-            왼쪽에 두고, 확성기는 그 반에만 보내는 것이라 개인 알림(종) 왼쪽에
-            둡니다 — 왼쪽으로 갈수록 범위가 좁습니다. */}
-        {user && broadcastClassId && (
-          <QuestionSignalButton
-            classId={broadcastClassId}
-            user={user}
-            isTeacher={admin}
-            className={noticeClassName}
-          />
-        )}
-        {admin && user && broadcastClassId && (
-          <ClassNoticeButton
-            classId={broadcastClassId}
-            className={noticeClassName}
-            memberCount={noticeMemberCount}
-          />
-        )}
-        {/* 눌러서 '언제 얼마나 받았는지'까지 — 숫자만으로는 요즘 어떤지가
-            안 보입니다. 학생 리포트에 있는 것과 같은 흐름을 여기서도 바로
-            열어 볼 수 있게 합니다. */}
-        {!admin && user && (
-          <button
-            type="button"
-            className="fruit-total-chip fruit-total-chip--btn"
-            onClick={() => setFruitOpen(true)}
-            title="지금까지 받은 과일 — 눌러서 받은 흐름 보기"
-          >
-            🍊 {fruitTotal}
-          </button>
-        )}
-        {user && isFirebaseConfigured && <NotificationBell uid={user.uid} />}
-        {/* 로그아웃은 이 메뉴 안으로 들어갔습니다 — 상단바에 전광판을 두려고
-            자리를 비웠고, 하루에 한 번 누를까 말까 한 것이 늘 폭을 차지할
-            이유도 없습니다(UserProfile 주석 참고). */}
-        <UserProfile
-          pendingCount={isStrictAdmin ? pendingTeacherCount : 0}
-          onOpenRoleMgr={isStrictAdmin ? () => setRoleMgrOpen(true) : null}
-          onOpenAdmin={admin ? () => go("/admin") : null}
-          onLogout={handleLogout}
-        />
-      </div>
-
     </header>
 
     {/* 학생 화면 — 교사가 방송 중이면 화면 전체를 강제로 덮습니다(학생은 닫을 수 없음) */}
