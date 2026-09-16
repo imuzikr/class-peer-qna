@@ -322,7 +322,7 @@ export default function TopNav({ active, onPython, pyActive = false }) {
           1행이 통째로 비면서 어느 폭에서도 섭니다. */}
       <span className="topbar-tagline">작은 변화로 시작하는 성장의 기록</span>
 
-      {/* 1행 ③ 전광판 — 1행의 오른쪽 끝입니다.
+      {/* 1행 ③ 전광판 — 1행 가운데, 좌우 여백이 같은 자리입니다.
           한 줄이던 시절에는 문구·이동 메뉴·아이콘과 자리를 다퉈 1600px
           에서도 글이 말줄임으로 접혔습니다. 지금은 이 줄에 로고와 문구밖에
           없어 글자만큼 온전히 섭니다.
