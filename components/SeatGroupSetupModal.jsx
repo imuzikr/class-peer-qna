@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { backdropClose } from "@/lib/modal";
 import SeatViewToggle from "./SeatViewToggle";
+import SeatGrid from "./SeatGrid";
 import { useSeatView } from "@/lib/seatView";
 import { STUDY_SEAT_COUNT } from "@/lib/store";
 
@@ -187,7 +188,7 @@ export default function SeatGroupSetupModal({
         {tab === "seats" ? (
           <>
             <div className="seat-setup-body">
-              <div className={`seat-setup-grid${teacherView ? " seat-flipped" : ""}`}>
+              <SeatGrid className={`seat-setup-grid${teacherView ? " seat-flipped" : ""}`}>
                 {seats.map((uid, i) => {
                   const s = studentOf(uid);
                   return (
@@ -214,7 +215,7 @@ export default function SeatGroupSetupModal({
                     </button>
                   );
                 })}
-              </div>
+              </SeatGrid>
               <aside className="seat-pool">
                 <strong>미배치 학생 {unseated.length}명</strong>
                 <div className="seat-pool-list">

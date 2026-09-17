@@ -28,6 +28,7 @@ import { normalizeSeats } from "@/lib/seats";
 import { useSeatView } from "@/lib/seatView";
 import { useTodayRewardCounts } from "@/lib/useTodayRewards";
 import SeatViewToggle from "./SeatViewToggle";
+import SeatGrid from "./SeatGrid";
 import StudentNotesThread from "./StudentNotesThread";
 import StudentToolsPopover from "./StudentToolsPopover";
 import { IconMyPost } from "./StatusIcons";
@@ -152,7 +153,7 @@ export function SeatPickGrid({
           🖐️ {compact ? raisedCount : `질문 ${raisedCount}`}
         </span>
       </div>
-      <div className={`attend-seatmap-grid${flipped ? " attend-seatmap-grid--flipped" : ""}`}>
+      <SeatGrid className={`attend-seatmap-grid${flipped ? " attend-seatmap-grid--flipped" : ""}`}>
         {seats.map((uid, i) => {
           const s = uid ? byUid.get(uid) : null;
           if (!s) {
@@ -184,7 +185,7 @@ export function SeatPickGrid({
             />
           );
         })}
-      </div>
+      </SeatGrid>
     </div>
   );
 }
