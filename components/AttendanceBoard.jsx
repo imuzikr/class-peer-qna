@@ -4,6 +4,7 @@
 // 참여 전광판 — 발표 중 학생 참여 상태 + 좌석/모둠 보기
 // =============================================================
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { backdropClose } from "@/lib/modal";
 import {
   PRESENCE_STALE_MS,
@@ -19,6 +20,38 @@ import SeatGrid from "./SeatGrid";
 import { IconMyPost } from "./StatusIcons";
 
 const DEFAULT_GROUP_COLORS = ["#2563eb", "#16a34a", "#f97316", "#9333ea", "#dc2626", "#0891b2"];
+const POPOUT_WINDOW_NAME_PREFIX = "class-peer-qna-attendance-board";
+
+function preparePopoutDocument(win, title) {
+  const doc = win.document;
+  if (!doc.body || doc.body.dataset.attendancePopout !== "1") {
+    doc.open();
+    doc.write("<!doctype html><html lang=\"ko\"><head><meta charset=\"utf-8\"><title></title></head><body></body></html>");
+    doc.close();
+  }
+
+  doc.documentElement.lang = document.documentElement.lang || "ko";
+  doc.title = title;
+  doc.body.dataset.attendancePopout = "1";
+  doc.body.className = "attend-popout-document";
+
+  doc.head
+    .querySelectorAll("[data-attendance-popout-clone=\"1\"]")
+    .forEach((node) => node.remove());
+
+  const base = document.createElement("base");
+  base.href = document.baseURI;
+  base.dataset.attendancePopoutClone = "1";
+  doc.head.appendChild(base);
+
+  document
+    .querySelectorAll("link[rel~=\"stylesheet\"], style")
+    .forEach((node) => {
+      const clone = node.cloneNode(true);
+      clone.dataset.attendancePopoutClone = "1";
+      doc.head.appendChild(clone);
+    });
+}
 
 // 학생 한 명의 상태를 'on' | 'away' | 'off'로 판정
 // 오늘 출석한 학생 uid 집합 — 기록이 하나도 없어도 '빈 집합'입니다(null이 아님).
@@ -156,6 +189,9 @@ function StudentCard({
 }
 
 export default function AttendanceBoard({
+  className: classLabel = "",
+  broadcastStatus = "",
+  focusRequest = 0,
   roster = [],
   presence = [],
   attendanceRecords = [],
@@ -167,6 +203,14 @@ export default function AttendanceBoard({
   onSaveDailySeats,
   onClose,
 }) {
+  const [portalHost] = useState(() =>
+    typeof document === "undefined" ? null : document.createElement("div")
+  );
+  const homeRef = useRef(null);
+  const popoutRef = useRef(null);
+  const popoutWindowNameRef = useRef("");
+  const [isPopout, setIsPopout] = useState(false);
+  const [popoutError, setPopoutError] = useState("");
   const [now, setNow] = useState(() => Date.now());
   const [viewMode, setViewMode] = useState("seat");
   const [dragIndex, setDragIndex] = useState(null);
@@ -301,21 +345,202 @@ export default function AttendanceBoard({
 
   const notesOpen = !!notesFor;
 
-  return (
-    <div className="modal-backdrop" {...backdropClose(onClose)}>
+  const popoutTitle = classLabel ? `참여 전광판 · ${classLabel}` : "참여 전광판";
+
+  function popoutWindowName() {
+    if (!popoutWindowNameRef.current) {
+      const id =
+        typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      popoutWindowNameRef.current = `${POPOUT_WINDOW_NAME_PREFIX}-${id}`;
+    }
+    return popoutWindowNameRef.current;
+  }
+
+  function attachBoardHomeNow() {
+    if (portalHost && homeRef.current && portalHost.parentNode !== homeRef.current) {
+      homeRef.current.appendChild(portalHost);
+    }
+  }
+
+  function moveBoardHome() {
+    setPopoutError("");
+    setToolsFor(null);
+    setToolsAt(null);
+    attachBoardHomeNow();
+    setIsPopout(false);
+    const win = popoutRef.current;
+    popoutRef.current = null;
+    if (win && !win.closed) {
+      win.close();
+    }
+  }
+
+  function closeBoard() {
+    const win = popoutRef.current;
+    popoutRef.current = null;
+    if (win && !win.closed) {
+      win.close();
+    }
+    onClose?.();
+  }
+
+  function openPopout() {
+    setPopoutError("");
+    const existing = popoutRef.current && !popoutRef.current.closed ? popoutRef.current : null;
+    let win = null;
+    try {
+      win =
+        existing ??
+        window.open(
+          "",
+          popoutWindowName(),
+          "popup=yes,width=1120,height=800,resizable=yes,scrollbars=yes"
+        );
+    } catch {
+      win = null;
+    }
+
+    if (!win) {
+      setPopoutError("팝업이 차단되었어요. 브라우저에서 이 사이트의 팝업을 허용해 주세요.");
+      return;
+    }
+
+    try {
+      preparePopoutDocument(win, popoutTitle);
+    } catch {
+      if (!win.closed) win.close();
+      setPopoutError("새 창을 준비하지 못했어요. 모달에서 전광판을 계속 볼 수 있습니다.");
+      return;
+    }
+    setToolsFor(null);
+    setToolsAt(null);
+    popoutRef.current = win;
+    setIsPopout(true);
+    win.focus();
+  }
+
+  useEffect(() => {
+    if (!portalHost) return undefined;
+    portalHost.dataset.attendanceBoardPortal = "1";
+    portalHost.style.display = "contents";
+    return () => {
+      portalHost.remove();
+    };
+  }, [portalHost]);
+
+  useEffect(() => {
+    if (!portalHost) return;
+    if (isPopout) {
+      const win = popoutRef.current;
+      if (!win || win.closed) {
+        setIsPopout(false);
+        return;
+      }
+      preparePopoutDocument(win, popoutTitle);
+      win.document.body.appendChild(portalHost);
+      win.focus();
+      return;
+    }
+    if (homeRef.current) {
+      homeRef.current.appendChild(portalHost);
+    }
+  }, [isPopout, portalHost, popoutTitle]);
+
+  useEffect(() => {
+    const win = popoutRef.current;
+    if (!isPopout || !win || win.closed) return undefined;
+
+    const restoreHome = () => {
+      if (popoutRef.current !== win) return;
+      popoutRef.current = null;
+      setToolsFor(null);
+      setToolsAt(null);
+      attachBoardHomeNow();
+      setIsPopout(false);
+      if (!win.closed) {
+        window.setTimeout(() => {
+          if (!win.closed) win.close();
+        }, 0);
+      }
+    };
+    const poll = window.setInterval(() => {
+      if (win.closed) restoreHome();
+    }, 500);
+
+    win.addEventListener("pagehide", restoreHome);
+    win.addEventListener("beforeunload", restoreHome);
+    return () => {
+      window.clearInterval(poll);
+      win.removeEventListener("pagehide", restoreHome);
+      win.removeEventListener("beforeunload", restoreHome);
+    };
+  }, [isPopout]);
+
+  useEffect(() => {
+    const closePopout = () => {
+      const win = popoutRef.current;
+      popoutRef.current = null;
+      if (win && !win.closed) {
+        win.close();
+      }
+    };
+    window.addEventListener("pagehide", closePopout);
+    window.addEventListener("beforeunload", closePopout);
+    return () => {
+      window.removeEventListener("pagehide", closePopout);
+      window.removeEventListener("beforeunload", closePopout);
+      closePopout();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!focusRequest) return;
+    const win = popoutRef.current;
+    if (win && !win.closed) {
+      win.focus();
+    }
+  }, [focusRequest]);
+
+  const board = (
+    <div className={isPopout ? "attend-popout" : "modal-backdrop"} {...(!isPopout ? backdropClose(closeBoard) : {})}>
       {/* 전광판과 누가기록 패널을 한 줄로 묶습니다 — 전광판은 제자리에
           그대로 있고, 누가기록 패널만 그 오른쪽에서 미끄러져 나옵니다. */}
       <div className="attend-shell" onClick={(e) => e.stopPropagation()}>
       <div
         className="modal attend-modal"
         role="dialog"
-        aria-modal="true"
+        aria-modal={!isPopout}
         aria-labelledby="attend-title"
       >
         <div className="modal-head">
           <h3 id="attend-title">참여 전광판</h3>
-          <button className="btn-close" onClick={onClose} aria-label="닫기">×</button>
+          <div className="attend-window-actions">
+            {isPopout ? (
+              <button type="button" className="btn-ghost" onClick={moveBoardHome}>
+                원래 화면으로
+              </button>
+            ) : (
+              <button type="button" className="btn-ghost" onClick={openPopout}>
+                새 창으로 열기
+              </button>
+            )}
+            <button className="btn-close" onClick={closeBoard} aria-label="닫기">×</button>
+          </div>
         </div>
+        {(classLabel || broadcastStatus) && (
+          <p className="attend-window-status">
+            {classLabel && <strong>{classLabel}</strong>}
+            {classLabel && broadcastStatus && <span> · </span>}
+            {broadcastStatus && <span>{broadcastStatus}</span>}
+          </p>
+        )}
+        {popoutError && (
+          <p className="lesson-note-empty" role="alert">
+            {popoutError}
+          </p>
+        )}
 
         <div className="attend-toolbar">
           <div className="attend-mode-tabs" role="tablist" aria-label="전광판 보기 방식">
@@ -451,5 +676,12 @@ export default function AttendanceBoard({
         />
       )}
     </div>
+  );
+
+  return (
+    <>
+      <div ref={homeRef} />
+      {portalHost ? createPortal(board, portalHost) : null}
+    </>
   );
 }

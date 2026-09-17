@@ -359,6 +359,7 @@ export default function LessonMode({
 
   // ── 참여 전광판 (수업 중, 발표하는 동안만) ──
   const [attendOpen, setAttendOpen] = useState(false);
+  const [attendFocusRequest, setAttendFocusRequest] = useState(0);
   // 실제로 방송이 나가는 상태 — 발표 중이면서 일시정지가 아닐 때뿐입니다.
   // 방송·학생 상태를 보는 자리는 모두 이 값을 씁니다(presenting이 아니라).
   const live = presenting && !paused;
@@ -852,7 +853,10 @@ export default function LessonMode({
             <button
               type="button"
               className="lesson-tool-btn"
-              onClick={() => setAttendOpen(true)}
+              onClick={() => {
+                setAttendOpen(true);
+                setAttendFocusRequest((n) => n + 1);
+              }}
               title={
                 presenting
                   ? "학생들이 화면을 보고 있는지 확인합니다"
@@ -927,6 +931,10 @@ export default function LessonMode({
 
       {attendOpen && (
         <AttendanceBoard
+          key={classId}
+          className={className}
+          broadcastStatus={live ? "방송 중" : presenting ? "방송 일시정지" : "방송 대기"}
+          focusRequest={attendFocusRequest}
           roster={roster}
           presence={presence}
           attendanceRecords={attendanceRecords}
