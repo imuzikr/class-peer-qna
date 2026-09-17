@@ -10142,14 +10142,19 @@ pre code {
   max-width: 100%;
   max-height: 100%;
 }
+.attend-backdrop {
+  padding: 16px;
+}
 .attend-modal {
   width: min(760px, 94vw);
   max-width: 100%;
-  /* 누가기록 패널과 최대 높이를 맞춰 나란히 있을 때 크기가 어긋나
-     보이지 않게 합니다. */
-  max-height: 85vh;
+  padding: 20px;
+  max-height: calc(100dvh - 32px);
   overflow-y: auto;
   scrollbar-gutter: stable both-edges;
+}
+.attend-modal .modal-head {
+  margin-bottom: 8px;
 }
 
 /* 누가기록 슬라이드 패널 — 전광판은 그대로 두고 그 오른쪽에 겹쳐서
@@ -10224,7 +10229,7 @@ pre code {
   display: flex;
   flex-wrap: wrap;
   gap: 16px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   font-size: 13px;
   font-weight: 700;
   color: var(--text-sub);
@@ -10250,7 +10255,13 @@ pre code {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 10px;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
+}
+.attend-view-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
 }
 .attend-mode-tabs {
   display: inline-flex;
@@ -10314,9 +10325,6 @@ pre code {
   border-radius: 10px;
   text-align: center;
   overflow: hidden;
-}
-.attend-desk[style*="--group-color"] {
-  border: 3px solid var(--group-color);
 }
 .attend-desk--on {
   background: #d7f0dd;
@@ -26882,7 +26890,7 @@ ul.checklist > li.done {
   color: var(--text-sub);
   font-size: 13px;
   word-break: keep-all;
-  margin-bottom: 14px;
+  margin: 0;
 }
 .attend-popout {
   min-height: 100vh;

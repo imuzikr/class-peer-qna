@@ -504,7 +504,7 @@ export default function AttendanceBoard({
   }, [focusRequest]);
 
   const board = (
-    <div className={isPopout ? "attend-popout" : "modal-backdrop"} {...(!isPopout ? backdropClose(closeBoard) : {})}>
+    <div className={isPopout ? "attend-popout" : "modal-backdrop attend-backdrop"} {...(!isPopout ? backdropClose(closeBoard) : {})}>
       {/* 전광판과 누가기록 패널을 한 줄로 묶습니다 — 전광판은 제자리에
           그대로 있고, 누가기록 패널만 그 오른쪽에서 미끄러져 나옵니다. */}
       <div className="attend-shell" onClick={(e) => e.stopPropagation()}>
@@ -529,13 +529,6 @@ export default function AttendanceBoard({
             <button className="btn-close" onClick={closeBoard} aria-label="닫기">×</button>
           </div>
         </div>
-        {(classLabel || broadcastStatus) && (
-          <p className="attend-window-status">
-            {classLabel && <strong>{classLabel}</strong>}
-            {classLabel && broadcastStatus && <span> · </span>}
-            {broadcastStatus && <span>{broadcastStatus}</span>}
-          </p>
-        )}
         {popoutError && (
           <p className="lesson-note-empty" role="alert">
             {popoutError}
@@ -543,18 +536,27 @@ export default function AttendanceBoard({
         )}
 
         <div className="attend-toolbar">
-          <div className="attend-mode-tabs" role="tablist" aria-label="전광판 보기 방식">
-            <button type="button" className={viewMode === "seat" ? "active" : ""} onClick={() => setViewMode("seat")}>
-              자리표 보기
-            </button>
-            <button
-              type="button"
-              className={viewMode === "group" ? "active" : ""}
-              onClick={() => setViewMode("group")}
-              disabled={(groupAssignment?.groups ?? []).length === 0}
-            >
-              모둠별 보기
-            </button>
+          <div className="attend-view-controls">
+            <div className="attend-mode-tabs" role="tablist" aria-label="전광판 보기 방식">
+              <button type="button" className={viewMode === "seat" ? "active" : ""} onClick={() => setViewMode("seat")}>
+                자리표 보기
+              </button>
+              <button
+                type="button"
+                className={viewMode === "group" ? "active" : ""}
+                onClick={() => setViewMode("group")}
+                disabled={(groupAssignment?.groups ?? []).length === 0}
+              >
+                모둠별 보기
+              </button>
+            </div>
+            {(classLabel || broadcastStatus) && (
+              <p className="attend-window-status">
+                {classLabel && <strong>{classLabel}</strong>}
+                {classLabel && broadcastStatus && <span> · </span>}
+                {broadcastStatus && <span>{broadcastStatus}</span>}
+              </p>
+            )}
           </div>
           {viewMode === "seat" && (
             <span className="attend-help">드래그하면 오늘 수업 동안만 위치가 유지됩니다.</span>
