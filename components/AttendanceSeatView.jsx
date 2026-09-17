@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { dailySeatLayoutId, subscribeStudySeatLayout, toDate } from "@/lib/store";
 import { normalizeSeats } from "@/lib/seats";
 import SeatGrid from "./SeatGrid";
+import SeatViewToggle from "./SeatViewToggle";
+import { useSeatView } from "@/lib/seatView";
 
 function AttendanceSeat({ student }) {
   const timestamp = student.record?.attendedAt || student.record?.createdAt;
@@ -24,6 +26,7 @@ function AttendanceSeat({ student }) {
 }
 
 export default function AttendanceSeatView({ rows, classId, date, seatLayout }) {
+  const [teacherView, toggleSeatView] = useSeatView();
   const layoutKey = `${classId || ""}:${date}`;
   const [daily, setDaily] = useState(null);
   useEffect(() => {
@@ -56,7 +59,10 @@ export default function AttendanceSeatView({ rows, classId, date, seatLayout }) 
         {datedLayout ? "선택한 날짜의 자리배치" : layout ? "기본 자리배치" : "저장된 자리배치가 없어 명단 순으로 표시합니다."}
         {layout && " 기준입니다."}
       </p>
-      <SeatGrid className="attendance-seat-grid" ariaLabel="출석 자리표">
+      <div className="attendance-seat-help">
+        <SeatViewToggle teacherView={teacherView} onToggle={toggleSeatView} />
+      </div>
+      <SeatGrid className={`attendance-seat-grid${teacherView ? " seat-flipped" : ""}`} ariaLabel="출석 자리표">
         {seats.map((uid, index) => uid ? (
           <AttendanceSeat key={uid} student={byUid.get(uid)} />
         ) : (
