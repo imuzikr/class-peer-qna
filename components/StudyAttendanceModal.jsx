@@ -355,7 +355,6 @@ export default function StudyAttendanceModal({
   records = [],
   roster = [],
   className = "",
-  classId = null,
   seatLayout = null,
   attendanceOpenToday = false,
   attendanceBusy = false,
@@ -510,7 +509,7 @@ export default function StudyAttendanceModal({
               {roster.length === 0 ? (
                 <p className="lesson-note-empty">이 반에 입장한 학생이 없어요.</p>
               ) : viewMode === "seat" ? (
-                <AttendanceSeatView rows={studentRows} classId={classId} date={activeDate} seatLayout={seatLayout} />
+                <AttendanceSeatView rows={studentRows} seatLayout={seatLayout} />
               ) : dates.length === 0 ? (
                 <p className="lesson-note-empty">아직 출석 기록이 없어요.</p>
               ) : viewMode === "calendar" && !activeDate ? (
