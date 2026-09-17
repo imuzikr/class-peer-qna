@@ -37,7 +37,8 @@
 // 3.2초 동안만 화면을 덮었다가 걷습니다.
 //
 // [화면을 막지 않습니다] 하늘도 캔버스도 pointer-events: none이라 터지는
-// 동안에도 아래 화면을 그대로 누를 수 있습니다. 3.2초 뒤 스스로 사라집니다.
+// 동안에도 아래 화면을 그대로 누를 수 있습니다. 폭죽은 3.2초 뒤 사라지고,
+// 연속 지급 배지는 마지막 지급부터 3.2초 더 보여 줍니다.
 //
 // [라이브러리를 쓰지 않는 이유] 불티 몇 백 개를 그리는 일이라 캔버스 하나와
 // rAF 한 줄이면 됩니다. 이것 때문에 번들에 패키지를 더할 일은 아닙니다.
@@ -73,17 +74,26 @@ function rgba(hex, a) {
 export default function RewardCelebration({ amount = 0, onDone }) {
   const canvasRef = useRef(null);
   const doneRef = useRef(onDone);
+  const amountRef = useRef(amount);
+  const active = amount > 0;
   doneRef.current = onDone;
+  amountRef.current = amount;
 
   useEffect(() => {
     if (amount <= 0) return;
 
     const finish = setTimeout(() => doneRef.current?.(), LIFE_MS);
+    return () => clearTimeout(finish);
+  }, [amount]);
+
+  useEffect(() => {
+    if (!active) return;
+
     const reduce =
       typeof window !== "undefined" &&
       window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     const canvas = canvasRef.current;
-    if (reduce || !canvas) return () => clearTimeout(finish);
+    if (reduce || !canvas) return;
 
     const ctx = canvas.getContext("2d");
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -112,7 +122,7 @@ export default function RewardCelebration({ amount = 0, onDone }) {
 
     // 과일을 많이 받을수록 더 많이 — 다만 마지막 발도 화면 안에서 터지도록
     // 상한을 둡니다(마지막 발사 ≈ 1.4초 + 올라가는 0.5초 = 1.9초 < 3.2초).
-    const shellCount = Math.min(9 + amount * 2, 16);
+    const shellCount = Math.min(9 + amountRef.current * 2, 16);
     // 발사 위치를 그냥 난수로 뽑았더니 열한 발이 오른쪽에 몰리고 왼쪽 절반이
     // 비는 일이 있었습니다(실측). 폭을 발수만큼의 띠로 나눠 띠마다 한 발씩
     // 두고, 그 순서를 섞습니다 — 고르게 퍼지되 좌에서 우로 훑는 것처럼
@@ -263,13 +273,12 @@ export default function RewardCelebration({ amount = 0, onDone }) {
     raf = requestAnimationFrame(frame);
 
     return () => {
-      clearTimeout(finish);
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
     };
-  }, [amount]);
+  }, [active]);
 
-  if (amount <= 0) return null;
+  if (!active) return null;
 
   return (
     <div className="reward-cheer" aria-live="polite">
@@ -277,10 +286,12 @@ export default function RewardCelebration({ amount = 0, onDone }) {
           지점입니다(최저 3.66:1). 클릭은 그대로 통과합니다. */}
       <div className="reward-cheer-sky" aria-hidden="true" />
       <canvas ref={canvasRef} className="reward-cheer-canvas" aria-hidden="true" />
-      <div className="reward-cheer-badge" role="status">
-        <span className="reward-cheer-emoji" aria-hidden="true">🍊</span>
-        <strong className="reward-cheer-plus">+{amount}</strong>
-        <span className="reward-cheer-text">과일을 받았어요!</span>
+      <div className="reward-cheer-enter">
+        <div key={amount} className="reward-cheer-badge" role="status">
+          <span className="reward-cheer-emoji" aria-hidden="true">🍊</span>
+          <strong className="reward-cheer-plus">+{amount}</strong>
+          <span className="reward-cheer-text">과일을 받았어요!</span>
+        </div>
       </div>
     </div>
   );

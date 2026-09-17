@@ -23951,7 +23951,7 @@ span.cloud-word { cursor: default; }
 }
 
 /* ===================== 과일 축포 (학생 화면) ===================== */
-/* 화면 한가운데에서 터지고 2.4초 뒤 사라집니다. 캔버스도 뱃지도 클릭을
+/* 폭죽은 3.2초, 배지는 마지막 지급부터 3.2초 표시합니다. 캔버스도 뱃지도 클릭을
    가로채지 않아, 터지는 동안에도 아래 화면을 그대로 쓸 수 있습니다. */
 .reward-cheer {
   position: fixed;
@@ -23981,6 +23981,11 @@ span.cloud-word { cursor: default; }
   70%  { opacity: 1; }
   100% { opacity: 0; }
 }
+.reward-cheer-enter {
+  position: relative;
+  z-index: 1;
+  animation: reward-cheer-pop 0.7s ease-out;
+}
 .reward-cheer-badge {
   /* 하늘·캔버스가 absolute라, 위치를 주지 않으면 뱃지가 그 아래로 깔려
      같이 어두워집니다(실제로 그랬습니다). */
@@ -23994,7 +23999,7 @@ span.cloud-word { cursor: default; }
   border: 2px solid var(--primary);
   border-radius: 999px;
   box-shadow: 0 10px 30px rgba(46, 36, 26, 0.18);
-  animation: reward-cheer-pop 3.2s ease-out forwards;
+  animation: reward-cheer-fade 3.2s ease-out forwards;
 }
 .reward-cheer-emoji { font-size: 34px; line-height: 1; }
 .reward-cheer-plus {
@@ -24009,10 +24014,12 @@ span.cloud-word { cursor: default; }
 }
 @keyframes reward-cheer-pop {
   0%   { transform: scale(0.5); opacity: 0; }
-  12%  { transform: scale(1.12); opacity: 1; }
-  22%  { transform: scale(1); opacity: 1; }
-  75%  { transform: scale(1); opacity: 1; }
-  100% { transform: scale(1); opacity: 0; }
+  55%  { transform: scale(1.12); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes reward-cheer-fade {
+  0%, 80% { opacity: 1; }
+  100%    { opacity: 0; }
 }
 /* 움직임을 줄인 설정 — 커졌다 작아지는 것 없이 그대로 떠 있다 사라집니다
    (조각은 컴포넌트가 아예 그리지 않습니다). */
@@ -24020,13 +24027,7 @@ span.cloud-word { cursor: default; }
   /* 움직임을 줄인 설정에서는 불티를 아예 안 쏘므로 하늘을 덮을 이유도
      없습니다 — 덮기만 하면 그냥 화면이 어두워졌다 밝아질 뿐입니다. */
   .reward-cheer-sky { display: none; }
-  .reward-cheer-badge {
-    animation: reward-cheer-fade 3.2s ease-out forwards;
-  }
-  @keyframes reward-cheer-fade {
-    0%, 80% { opacity: 1; }
-    100%    { opacity: 0; }
-  }
+  .reward-cheer-enter { animation: none; }
 }
 @media (max-width: 768px) {
   .reward-cheer-badge { padding: 14px 20px; gap: 8px; }
