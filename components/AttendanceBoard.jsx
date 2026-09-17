@@ -15,6 +15,7 @@ import { normalizeSeats } from "@/lib/seats";
 import { getCurrentUser } from "@/lib/user";
 import StudentNotesThread from "./StudentNotesThread";
 import StudentToolsPopover from "./StudentToolsPopover";
+import SeatGrid from "./SeatGrid";
 import { IconMyPost } from "./StatusIcons";
 
 const DEFAULT_GROUP_COLORS = ["#2563eb", "#16a34a", "#f97316", "#9333ea", "#dc2626", "#0891b2"];
@@ -381,7 +382,7 @@ export default function AttendanceBoard({
             ))}
           </div>
         ) : (
-          <div className="attend-grid">
+          <SeatGrid className="attend-grid">
             {desks.map((d) =>
               d.empty ? (
                 <div
@@ -407,7 +408,7 @@ export default function AttendanceBoard({
                 />
               )
             )}
-          </div>
+          </SeatGrid>
         )}
       </div>
 

@@ -33,6 +33,7 @@ import {
   todayDateKey,
 } from "@/lib/store";
 import { normalizeSeats } from "@/lib/seats";
+import SeatGrid from "./SeatGrid";
 
 export default function MySeatModal({ classId, myUid, roster = [], onClose }) {
   const [seatLayout, setSeatLayout] = useState(null);
@@ -88,7 +89,7 @@ export default function MySeatModal({ classId, myUid, roster = [], onClose }) {
             <div className="attend-seatmap-head">
               <span className="attend-seatmap-board">칠판</span>
             </div>
-            <div className="attend-seatmap-grid">
+            <SeatGrid className="attend-seatmap-grid">
               {seats.map((uid, i) => {
                 const s = uid ? byUid.get(uid) : null;
                 if (!s) {
@@ -106,7 +107,7 @@ export default function MySeatModal({ classId, myUid, roster = [], onClose }) {
                   </div>
                 );
               })}
-            </div>
+            </SeatGrid>
             <p className="my-seat-foot">
               {mySeatNo >= 0
                 ? "초록으로 칠한 자리가 내 자리예요."
