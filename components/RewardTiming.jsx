@@ -11,9 +11,9 @@
 // [수업 시작을 무엇으로 잡나] 교사가 '출석 시작'을 누른 시각은 저장되지
 // 않습니다. 남는 것은 학생 한 명씩의 attendedAt뿐이라, 한 무리의 첫 출석을
 // 시작으로 봅니다. 무리를 나누는 규칙은 lib/lessonSessions.js에 있습니다
-// (40분 안은 지각, 그 뒤는 새 수업, 끝은 다음 시작 10분 전).
+// (한국 시간 08:00 이상·16:00 미만만 사용, 40분 안은 지각, 그 뒤는 새 수업).
 //
-// [수업 시간 밖은 버리지 않습니다] 쉬는 시간이나 수업 전후에 준 과일은 세션에
+// [수업 시간 밖은 버리지 않습니다] 오전 8시 전·오후 4시부터와 쉬는 시간의 과일은 세션에
 // 안 들어갑니다. 조용히 빼면 위 '쏠림'의 총량과 합이 안 맞아, 따로 셉니다.
 //
 // [구독하지 않습니다] 이력도 출석도 부모(ClassRewardTrend)가 받아 둔 것을
@@ -48,6 +48,7 @@ export default function RewardTiming({ events = [], attendance = [], loaded = fa
     const counts = TIME_BANDS.map(() => 0);
     let outside = 0;
     given.forEach((e) => {
+      if (e.at == null || e.at === "") return;
       const d = toDate(e.at);
       const t = d?.getTime?.();
       if (t == null || Number.isNaN(t)) return;
@@ -80,7 +81,7 @@ export default function RewardTiming({ events = [], attendance = [], loaded = fa
       (n > 0
         ? `과일 ${n}개 (수업 안에 준 ${stat.total}개 중 ${pct(n)}%)`
         : "이 대목에는 준 과일이 없어요") +
-      `\n수업 시작은 그날 첫 출석 시각으로 봅니다`
+      `\n수업 시작은 한국 시간 08~16시 안의 해당 수업 첫 출석 시각으로 추정합니다`
     );
   };
 
@@ -88,7 +89,8 @@ export default function RewardTiming({ events = [], attendance = [], loaded = fa
     <div className="rtime">
       <p className="rtime-lead">
         <span className="rtime-title">언제 주나</span>
-        수업 {stat.sessions}번 · 한 차시 {MAX_LESSON_MIN}분 기준
+        <span>한국 시간 08:00 이상·16:00 미만</span>
+        <span>수업 {stat.sessions}번 · 한 차시 최대 {MAX_LESSON_MIN}분 기준</span>
       </p>
 
       {stat.total > 0 ? (
@@ -146,7 +148,7 @@ export default function RewardTiming({ events = [], attendance = [], loaded = fa
       {/* 쉬는 시간·수업 전후 — 버리지 않고 밝혀 둡니다 */}
       {stat.outside > 0 && (
         <p className="rtime-outside">
-          수업 시간 밖(쉬는 시간·수업 전후)에 준 {stat.outside}개는 위 셋에서
+          수업 시간 밖(08:00 이전·16:00부터 및 쉬는 시간 등)에 준 {stat.outside}개는 위 셋에서
           뺐어요.
         </p>
       )}
