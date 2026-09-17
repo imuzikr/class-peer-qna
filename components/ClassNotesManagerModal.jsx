@@ -24,7 +24,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { backdropClose } from "@/lib/modal";
 import SeatViewToggle from "./SeatViewToggle";
-import { flipRoster, useGridCols, useSeatView } from "@/lib/seatView";
+import SeatGrid from "./SeatGrid";
+import { flipRoster, useSeatView } from "@/lib/seatView";
 import {
   subscribeClassNoteCounts,
   subscribeClasses,
@@ -48,9 +49,6 @@ export default function ClassNotesManagerModal({
   const [onlyEmpty, setOnlyEmpty] = useState(false); // '아직 없는 학생만' 보기
   // 카드를 늘어놓는 쪽 — 자리표와 같은 값을 함께 씁니다(lib/seatView.js).
   const [teacherView, toggleSeatView] = useSeatView();
-  // 격자 칸 수 — `.notes-mgr-grid`의 @media와 같은 값(6칸 / 768px 아래 3칸).
-  // 선생님 보기로 돌릴 때 '뒤에 몇 칸이 비었나'를 세는 데 씁니다.
-  const cols = useGridCols(6, 3);
 
   // ── 반 고르기 ───────────────────────────────────────────────
   // 이 창은 '지금 이 반'의 맥락에서 열리지만, 교사가 실제로 하는 일은
@@ -117,8 +115,8 @@ export default function ClassNotesManagerModal({
     // 선생님 보기 — 교탁에서 본 방향. 수업 노트 탭과 **같은 함수**로
     // 돌립니다(`flipRoster`). **줄 차례만 뒤집고 줄 안의 좌우는 그대로**
     // 둡니다 — 맞춰야 할 상대가 자리표라서요(까닭은 lib/seatView.js).
-    return teacherView ? flipRoster(shown, cols) : shown;
-  }, [shownRoster, counts, onlyEmpty, teacherView, cols]);
+    return teacherView ? flipRoster(shown, 6) : shown;
+  }, [shownRoster, counts, onlyEmpty, teacherView]);
 
   const withNotes = shownRoster.filter((s) => counts[s.uid] > 0).length;
 
@@ -212,7 +210,7 @@ export default function ClassNotesManagerModal({
               {students.length === 0 ? (
                 <p className="empty-note">모든 학생에게 기록이 있어요.</p>
               ) : (
-                <div className="notes-mgr-grid">
+                <SeatGrid className="notes-mgr-grid" scrollClassName="notes-mgr-scroll" ariaLabel="누가기록 학생 목록">
                   {students.map((s, i) => {
                     // 덜 찬 줄을 채우는 빈 칸 — 자리만 차지합니다.
                     if (!s) return <div key={`gap-${i}`} className="notes-mgr-gap" aria-hidden="true" />;
@@ -243,7 +241,7 @@ export default function ClassNotesManagerModal({
                       </button>
                     );
                   })}
-                </div>
+                </SeatGrid>
               )}
             </>
           )}
