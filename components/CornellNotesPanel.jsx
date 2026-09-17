@@ -15,8 +15,9 @@
 // =============================================================
 import { useEffect, useMemo, useState } from "react";
 import { subscribeClassCornellNotesOn, isCornellRewarded, todayDateKey } from "@/lib/store";
-import { flipRoster, useGridCols, useSeatView } from "@/lib/seatView";
+import { flipRoster, useSeatView } from "@/lib/seatView";
 import SeatViewToggle from "./SeatViewToggle";
+import SeatGrid from "./SeatGrid";
 import CornellNoteReadModal from "./CornellNoteReadModal";
 
 // 'YYYY-MM-DD'에서 며칠 옮기기 — 문자열로만 다루면 월말에서 어긋납니다.
@@ -37,9 +38,6 @@ export default function CornellNotesPanel({ classId, roster = [], user }) {
   // (lib/seatView.js). 화면마다 따로 기억하면 한 곳에서 뒤집어 놓고
   // 옮겼을 때 같은 반이 두 얼굴이 됩니다.
   const [teacherView, toggleSeatView] = useSeatView();
-  // 격자 칸 수 — `.notes-mgr-grid`의 @media와 같은 값(6칸 / 768px 아래 3칸).
-  // 선생님 보기로 돌릴 때 '뒤에 몇 칸이 비었나'를 세는 데 씁니다.
-  const cols = useGridCols(6, 3);
 
   useEffect(() => {
     if (!classId || !date) { setNotes([]); return; }
@@ -64,8 +62,8 @@ export default function CornellNotesPanel({ classId, roster = [], user }) {
     // 선생님 보기 — 누가기록 탭과 **같은 함수**로 돌립니다(`flipRoster`).
     // **줄 차례만 뒤집고 줄 안의 좌우는 그대로** 둡니다 — 맞춰야 할 상대가
     // 자리표라서요(까닭과 실측은 lib/seatView.js).
-    return teacherView ? flipRoster(shown, cols) : shown;
-  }, [roster, noteByUid, onlyWritten, teacherView, cols]);
+    return teacherView ? flipRoster(shown, 6) : shown;
+  }, [roster, noteByUid, onlyWritten, teacherView]);
 
   const written = roster.filter((s) => noteByUid.has(s.uid)).length;
 
@@ -132,7 +130,7 @@ export default function CornellNotesPanel({ classId, roster = [], user }) {
           {onlyWritten ? "이 날 노트를 쓴 학생이 없어요." : "보여 줄 학생이 없어요."}
         </p>
       ) : (
-        <div className="notes-mgr-grid">
+        <SeatGrid className="notes-mgr-grid" scrollClassName="notes-mgr-scroll" ariaLabel="수업 노트 학생 목록">
           {students.map((s, i) => {
             // 덜 찬 줄을 채우는 빈 칸 — 자리만 차지합니다.
             if (!s) return <div key={`gap-${i}`} className="notes-mgr-gap" aria-hidden="true" />;
@@ -175,7 +173,7 @@ export default function CornellNotesPanel({ classId, roster = [], user }) {
               </button>
             );
           })}
-        </div>
+        </SeatGrid>
       )}
 
       {selected && (

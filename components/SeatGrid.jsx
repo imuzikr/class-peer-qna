@@ -1,9 +1,9 @@
-export default function SeatGrid({ children, className = "" }) {
+export default function SeatGrid({ children, className = "", scrollClassName = "", ariaLabel = "자리표" }) {
   return (
     <div
-      className="seat-pairs-scroll"
+      className={`seat-pairs-scroll ${scrollClassName}`}
       role="region"
-      aria-label="자리표"
+      aria-label={ariaLabel}
       tabIndex={0}
       onKeyDown={(event) => {
         if (event.target !== event.currentTarget || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
