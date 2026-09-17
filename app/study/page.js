@@ -1215,6 +1215,9 @@ function StudyPageInner() {
 
       {attendanceOpen && currentClass && (
         <StudyAttendanceModal
+          key={classId}
+          classId={classId}
+          seatLayout={seatLayout}
           isTeacher={admin}
           records={attendanceRecords}
           roster={admin ? roster : []}

@@ -10,6 +10,7 @@
 import { useMemo, useState } from "react";
 import { backdropClose } from "@/lib/modal";
 import { toDate, todayDateKey } from "@/lib/store";
+import AttendanceSeatView from "./AttendanceSeatView";
 import {
   downloadAttendanceWorkbook,
   filterRecordsByRange,
@@ -354,20 +355,23 @@ export default function StudyAttendanceModal({
   records = [],
   roster = [],
   className = "",
+  classId = null,
+  seatLayout = null,
   attendanceOpenToday = false,
   attendanceBusy = false,
   onStartAttendance = null,
   onStopAttendance = null,
   onClose,
 }) {
-  const [viewMode, setViewMode] = useState("list"); // "list" | "calendar"
+  const [viewMode, setViewMode] = useState("list"); // "list" | "calendar" | "seat"
   const [exportOpen, setExportOpen] = useState(false); // 출석부 내려받기 — 범위 고르기 창
   const dates = useMemo(
     () => [...new Set(records.map((r) => r.date).filter(Boolean))].sort((a, b) => b.localeCompare(a)),
     [records]
   );
   const [selectedDate, setSelectedDate] = useState("");
-  const activeDate = selectedDate || dates[0] || "";
+  const activeDate = selectedDate || (attendanceOpenToday ? todayDateKey() : dates[0]) || todayDateKey();
+  const dateOptions = dates.includes(activeDate) ? dates : [activeDate, ...dates].sort((a, b) => b.localeCompare(a));
 
   const byStudent = useMemo(() => {
     const map = new Map();
@@ -462,17 +466,27 @@ export default function StudyAttendanceModal({
           >
             캘린더형
           </button>
+          {isTeacher && (
+            <button type="button" className={viewMode === "seat" ? "active" : ""} onClick={() => setViewMode("seat")}>
+              좌석형
+            </button>
+          )}
         </div>
 
         <div className="study-attendance-body">
           {isTeacher ? (
             <>
-              {viewMode === "list" ? (
-                dates.length > 0 && (
+              {viewMode === "seat" ? (
+                <label className="study-attendance-date-picker">
+                  날짜
+                  <input type="date" value={activeDate} onChange={(e) => { if (e.target.value) setSelectedDate(e.target.value); }} />
+                </label>
+              ) : viewMode === "list" ? (
+                dateOptions.length > 0 && (
                   <label className="study-attendance-date-picker">
                     날짜
                     <select value={activeDate} onChange={(e) => setSelectedDate(e.target.value)}>
-                      {dates.map((date) => (
+                      {dateOptions.map((date) => (
                         <option key={date} value={date}>
                           {formatDateLabel(date)}
                         </option>
@@ -495,6 +509,8 @@ export default function StudyAttendanceModal({
                   캘린더형은 달력에서 고른 날짜가 기준이 됩니다. */}
               {roster.length === 0 ? (
                 <p className="lesson-note-empty">이 반에 입장한 학생이 없어요.</p>
+              ) : viewMode === "seat" ? (
+                <AttendanceSeatView rows={studentRows} classId={classId} date={activeDate} seatLayout={seatLayout} />
               ) : dates.length === 0 ? (
                 <p className="lesson-note-empty">아직 출석 기록이 없어요.</p>
               ) : viewMode === "calendar" && !activeDate ? (

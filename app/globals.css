@@ -26931,3 +26931,51 @@ ul.checklist > li.done {
   .attend-window-actions { gap: 4px; }
   .attend-modal > .modal-head { flex-wrap: wrap; gap: 8px; }
 }
+
+/* 출석 관리는 저장된 자리배치 위에 같은 날짜의 출석 기록을 표시합니다. */
+.seat-pairs-grid.attendance-seat-grid {
+  --seat-min-width: 96px;
+  row-gap: 8px;
+}
+.attendance-seat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+  min-height: 116px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-deep);
+  text-align: center;
+  color: var(--text);
+}
+.attendance-seat--present { background: #e8f7ed; border-color: #8fcea3; }
+.attendance-seat strong { max-width: 100%; font-size: 14px; overflow-wrap: anywhere; }
+.attendance-seat-number,
+.attendance-seat-time { font-size: 12px; color: var(--text-sub); }
+.attendance-seat .study-attendance-status { flex-shrink: 0; white-space: nowrap; }
+.attendance-seat--empty { border-style: dashed; background: transparent; color: var(--text-sub); font-size: 12px; }
+.attendance-seat-help { margin: 0 0 12px; font-size: 13px; color: var(--text-sub); }
+h4.attendance-seat-help { margin-top: 16px; }
+.study-attendance-date-picker input[type="date"] {
+  width: auto;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font: inherit;
+  color: var(--text);
+  background: #fff;
+}
+@media (max-width: 768px) {
+  .study-attendance-toolbar { flex-wrap: wrap; gap: 8px; }
+  .study-attendance-toolbar > .study-attendance-controls {
+    flex-basis: 100%;
+    height: auto;
+    flex-wrap: wrap;
+  }
+  .study-attendance-controls > * { flex-shrink: 0; white-space: nowrap; }
+  .study-attendance-export { margin-left: 0; }
+}
