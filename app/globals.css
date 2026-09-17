@@ -7751,11 +7751,11 @@ pre code {
    세로 스크롤바가 생기면 그 15px가 288 안에서 빠져나가, 자리표 칸과 모둠
    이름표가 한꺼번에 눌리고 줄이 다시 접혔습니다('궁금한 순간'을 펼쳤을 때
    실제로 그랬습니다).
-   지금은 내용 폭을 260px로 못박고, 패널은 거기에 여백과 스크롤바 자리를
+   지금은 내용 폭을 312px로 못박고, 패널은 거기에 여백과 스크롤바 자리를
    더한 만큼 저절로 넓어집니다. scrollbar-gutter: stable로 그 자리를 늘
    비워 두어, 스크롤바가 생기고 사라져도 내용은 한 픽셀도 움직이지 않습니다.
    (scrollbar-gutter를 모르는 옛 브라우저에서는 예전처럼 동작합니다 —
-   그때도 내용 폭 260px 자체는 지켜집니다) */
+   그때도 내용 폭 312px 자체는 지켜집니다) */
 .reward-panel {
   flex-shrink: 0;
   border-left: 1px solid var(--border);
@@ -7771,7 +7771,7 @@ pre code {
      '> *'로 폭을 주면 전체 화면 배경이 260px로 쪼그라듭니다.
    이 상자 안에 두면 그것들은 position: fixed라 폭에 매이지 않습니다. */
 .reward-panel-inner {
-  width: 260px;
+  width: 312px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -10145,7 +10145,8 @@ pre code {
   max-height: 100%;
 }
 .attend-modal {
-  width: min(680px, 94vw);
+  width: min(760px, 94vw);
+  max-width: 100%;
   /* 누가기록 패널과 최대 높이를 맞춰 나란히 있을 때 크기가 어긋나
      보이지 않게 합니다. */
   max-height: 85vh;
@@ -10179,13 +10180,13 @@ pre code {
     transform: translateX(0);
   }
 }
-/* 전광판(680px)이 가운데 있을 때 그 오른쪽에 패널(340px + 여백 14px)이
-   온전히 들어가려면 화면이 1388px은 돼야 합니다. 그보다 좁으면 패널이
+/* 전광판(760px)이 가운데 있을 때 그 오른쪽에 패널(340px + 여백 14px)이
+   온전히 들어가려면 화면이 1468px은 돼야 합니다. 그보다 좁으면 패널이
    화면 밖으로 잘리므로 화면 오른쪽 끝에 붙여 항상 다 보이게 합니다
    — 전광판 오른쪽 끝을 조금 덮지만, 잘려서 못 읽는 것보다 낫습니다.
    (전광판을 왼쪽으로 밀어 자리를 만들던 예전 방식은, 누가기록을 열 때마다
    전광판이 통째로 움직여 어지러웠습니다 — 전광판은 이제 고정입니다) */
-@media (max-width: 1400px) {
+@media (max-width: 1480px) {
   .attend-notes-panel {
     position: fixed;
     left: auto;
@@ -10895,7 +10896,7 @@ pre code {
     position: static;
     right: auto;
     top: auto;
-    /* 위 1400px 규칙이 걸어 둔 세로 가운데 정렬·전용 애니메이션을 되돌립니다
+    /* 위 1480px 규칙이 걸어 둔 세로 가운데 정렬·전용 애니메이션을 되돌립니다
        (그대로 두면 흐름에 놓인 패널이 위로 반쯤 떠오릅니다) */
     transform: none;
     animation: attend-notes-in 0.22s ease-out;
@@ -14420,6 +14421,8 @@ a.lesson-board-file-name { text-decoration: underline; }
   .seat-pairs-scroll {
     --seat-pair-spacer: 0px;
   }
+}
+@media (max-width: 1100px) {
   .seat-setup-body {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -14521,14 +14524,14 @@ a.lesson-board-file-name { text-decoration: underline; }
 
 /* 손들기 자리 확인 모달 — 자리표만 담으므로 전광판보다 조금 좁게 */
 .question-seat-modal {
-  width: min(560px, 94vw);
+  width: min(640px, 94vw);
   max-height: 85vh;
   overflow-y: auto;
 }
 /* 학생이 보는 자리 배치 — 손든 학생 확인 창과 같은 폭입니다(같은 자리표를
    그리므로 폭이 다르면 한 교실의 자리표가 화면마다 다른 모양이 됩니다). */
 .my-seat-modal {
-  width: min(560px, 94vw);
+  width: min(640px, 94vw);
   max-height: 85vh;
   overflow-y: auto;
 }
