@@ -33,6 +33,7 @@ export default function UserProfile({
   // 자리는 메뉴 맨 위 — 여기서 유일하게 **화면을 옮기는** 항목이라, 아래
   // 둘(창을 여는 것)과 섞이지 않게 앞에 세웁니다.
   onOpenAdmin = null,
+  onStudyExport = null,
   onLogout = null,
 }) {
   const user = useCurrentUser();
@@ -108,6 +109,23 @@ export default function UserProfile({
           >
             👤 내 프로필
           </button>
+          {teacherRole && onStudyExport && (
+            <button
+              type="button"
+              className="profile-menu-item"
+              role="menuitem"
+              title="활동 자료 다운로드 (CSV·Excel·PDF)"
+              onClick={() => {
+                setMenuOpen(false);
+                onStudyExport();
+              }}
+            >
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5" />
+              </svg>
+              다운로드
+            </button>
+          )}
           {onOpenRoleMgr && (
             <button
               type="button"

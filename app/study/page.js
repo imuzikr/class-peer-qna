@@ -736,6 +736,7 @@ function StudyPageInner() {
         active="study"
         onPython={() => setPyOpen((v) => !v)}
         pyActive={pyOpen}
+        onStudyExport={admin && currentClass && classBoards.length > 0 ? () => setExportOpen(true) : null}
       />
 
       {checkingClass ? (
@@ -957,15 +958,6 @@ function StudyPageInner() {
                         roster={roster}
                         user={user}
                       />
-                    )}
-                    {admin && currentClass && classBoards.length > 0 && (
-                      <button
-                        className="btn-ghost"
-                        onClick={() => setExportOpen(true)}
-                        title="활동 자료 다운로드 (CSV·Excel·PDF)"
-                      >
-                        다운로드
-                      </button>
                     )}
                   </div>
 
