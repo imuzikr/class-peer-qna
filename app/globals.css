@@ -1164,20 +1164,24 @@ button.footer-link:hover {
 
 /* ===== 누가기록 관리 (교사) ===== */
 .modal.modal-notes-manager {
-  /* 수업 노트 탭이 한 줄에 여섯 명(자리표와 같은 줄바꿈)이라 그만큼 넓힙니다 */
-  max-width: 860px;
+  /* 학생 여섯 열과 선생님 메모의 입력·기록 패널을 담습니다. */
+  max-width: 940px;
 }
 .notes-mgr-bar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
   margin: 4px 0 12px;
 }
-/* '학생 보기 / 선생님 보기'와 '아직 없는 학생만'이 오른쪽에 붙어 서게 —
-   줄이 space-between이라 auto 여백이 남는 자리를 다 먹습니다. */
-.notes-mgr-bar .reward-seat-flip { margin-left: auto; }
+.notes-mgr-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-left: auto;
+}
 .notes-mgr-summary {
   font-size: 13px;
   color: var(--text-sub);
@@ -1284,13 +1288,10 @@ button.footer-link:hover {
   color: #fff;
 }
 
-/* ===== 수업 메모 (교사) ===== */
-.modal.modal-lesson-memo {
-  max-width: 560px;
-}
+/* ===== 선생님 메모 (교사) ===== */
 /* 쓰는 칸 위 날짜 줄 — 누가기록(.notes-date-row)과 같은 모양을 그대로
    씁니다. 두 기록이 '언제 일인가'를 같은 방식으로 묻는 자리라서입니다. */
-.modal-lesson-memo .notes-date-row {
+.lesson-memo-editor .notes-date-row {
   margin-bottom: 10px;
 }
 /* 고칠 때는 메모 한 건 안에 들어가므로 조금 좁게 */
@@ -1460,38 +1461,16 @@ button.footer-link:hover {
   transform: rotate(90deg);
 }
 
-/* ── 수업 메모 캘린더 보기 ──
-   달력을 모달 안에 쌓으니 세로로 너무 길어져(달력만 250px) 쓰는 칸이 화면
-   위로 밀렸습니다. 파이썬 실행 패널(.py-panel)처럼 옆에서 미끄러져 나오게
-   하고, 모달과 패널을 한 줄로 묶습니다. */
-/* 묶음의 폭 = 모달의 폭입니다. 패널은 이 묶음 밖으로(오른쪽으로) 삐져
-   나오게 절대 배치합니다 — 그래야 두 가지가 함께 풀립니다.
-     ① 패널을 열어도 모달이 제자리에 그대로 있습니다. 묶음을 가로 flex로
-        두면 폭이 880px이 되면서 가운데 정렬이 다시 계산돼 모달이 왼쪽으로
-        밀려납니다.
-     ② 모달이 제 폭(560px)을 지킵니다. .modal은 width:100%인데, 폭이
-        내용으로 정해지는 묶음 안에서는 이 100%가 되돌이가 되어 내용 폭으로
-        주저앉았습니다(달력을 닫으면 모달이 눈에 띄게 좁아지던 원인). */
-.memo-modal-row {
-  position: relative;
-  width: 100%;
-  max-width: 560px; /* .modal.modal-lesson-memo와 같은 값 */
-  /* 위쪽에 붙입니다. 가운데 정렬이면 옆 패널이 길어질수록 모달이 그만큼
-     아래로 내려갑니다 — 정작 손이 가는 쓰는 칸이 화면 한참 아래에 놓입니다.
-     열든 닫든 늘 같은 자리라는 점도 함께 얻습니다(패널을 열 때 모달이
-     세로로도 움직이지 않습니다).
-     화면 꼭대기에 딱 붙이지는 않습니다 — 짧은 화면에서는 여백이 함께
-     줄도록 vh로 두되 최대 56px까지만. */
-  --memo-top: min(6vh, 56px);
-  align-self: flex-start;
-  margin-top: var(--memo-top);
+.lesson-memo-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 16px;
 }
-/* 위로 올린 만큼 아래 여유가 줄었으므로 모달과 패널의 최대 높이도 같이
-   줄입니다(배경 위아래 여백 24px씩 + 올린 만큼). 안 줄이면 긴 목록에서
-   아래가 화면 밖으로 넘어갑니다. */
-.memo-modal-row > .modal-lesson-memo {
-  max-height: calc(100vh - 48px - var(--memo-top));
+.lesson-memo-panel:has(> .memo-side-panel) {
+  grid-template-columns: minmax(0, 1fr) 320px;
 }
+.lesson-memo-editor { min-width: 0; }
 
 .memo-history-head {
   display: flex;
@@ -1592,20 +1571,13 @@ button.footer-link:hover {
    둘은 같은 자리에 서므로 껍데기를 함께 씁니다(.memo-side-panel). 한 번에
    하나만 열립니다 — 자리가 하나뿐이라 둘이 겹칩니다. */
 .memo-side-panel {
-  position: absolute;
-  top: 0;
-  left: 100%;
-  margin-left: 14px;
-  width: 320px;
-  /* 배경의 위아래 여백(24px씩)과 위로 올린 만큼을 뺀 데까지 */
-  max-height: calc(100vh - 48px - var(--memo-top));
+  min-width: 0;
   display: flex;
   flex-direction: column;
   background: var(--card-bg, #fff);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
-  box-shadow: 0 18px 48px rgba(46, 36, 26, 0.22);
   overflow: hidden;
-  /* 모달 뒤에서 미끄러져 나옵니다 */
   animation: memo-cal-slide 0.22s ease;
 }
 @keyframes memo-cal-slide {
@@ -1675,26 +1647,10 @@ button.footer-link:hover {
   padding: 12px 16px 16px;
   overflow-y: auto;
 }
-/* 560(모달) + 14(사이) + 320(패널) + 48(배경 여백) = 942px.
-   그보다 좁으면 모달 옆에 둘 자리가 없으므로 화면 오른쪽 끝에 붙는
-   서랍으로 바꿉니다(파이썬 실행 패널과 같은 모양). */
-@media (max-width: 960px) {
-  .memo-side-panel {
-    position: fixed;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: auto;
-    margin-left: 0;
-    max-height: none;
-    border-radius: 0;
-    animation: memo-cal-slide-edge 0.22s ease;
-  }
-  @keyframes memo-cal-slide-edge {
-    from { opacity: 0; transform: translateX(24px); }
-    to { opacity: 1; transform: translateX(0); }
-  }
+@media (max-width: 900px) {
+  .lesson-memo-panel:has(> .memo-side-panel) { grid-template-columns: minmax(0, 1fr); }
 }
+
 
 /* 달력 격자는 출석부의 것을 그대로 씁니다(.study-attendance-calendar).
    패널이 좁아 칸만 낮춥니다. **건수(.study-cal-count)는 안 그립니다** —
@@ -23681,8 +23637,8 @@ span.cloud-word { cursor: default; }
   background: #fff;
 }
 
-/* ── 누가기록 관리 · 수업 메모 (ClassNotesTools) ──
-   같은 두 버튼을 공부방 제목 줄, 책방 목록 머리말, 책방 모아보기 화면의
+/* ── 공부 기록 (ClassNotesTools) ──
+   같은 메뉴를 공부방 제목 줄, 책방 목록 머리말, 책방 모아보기 화면의
    제목 안에 끼워 씁니다. 제목(.book-group-title)은 flex라 버튼이 그대로
    한 줄에 서지만, 제목 글자에 맞춰 커 보이면 안 되므로 여기서 크기를
    못 박습니다. 공부방 제목 줄에서는 옆 버튼들과 같은 .btn-ghost 크기 그대로. */
@@ -25469,9 +25425,10 @@ ul.checklist > li.done {
   text-decoration: line-through;
 }
 
-/* ===== 기록 관리 모달 — 두 기록의 탭 ===== */
+/* ===== 공부 기록 모달 — 누가기록 · 수업 노트 · 선생님 메모 ===== */
 .notes-mgr-tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
   margin: 2px 0 10px;
   border-bottom: 1px solid var(--border);
@@ -25500,9 +25457,11 @@ ul.checklist > li.done {
   display: flex;
   align-items: center;
   gap: 6px;
-  flex-shrink: 0;
+  flex-wrap: wrap;
+  min-width: 0;
 }
 .cornell-mgr-date input[type="date"] {
+  width: auto;
   border: 1px solid var(--border);
   border-radius: var(--radius-btn);
   padding: 5px 8px;

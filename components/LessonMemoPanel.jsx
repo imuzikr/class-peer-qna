@@ -1,7 +1,7 @@
 "use client";
 
 // =============================================================
-// 수업 메모 (교사 전용) — 수업 중에 짧게 적어 두는 곳
+// 선생님 메모 (교사 전용) — 수업 중에 짧게 적어 두는 곳
 // -------------------------------------------------------------
 // 누가기록(studentNotes)과 다릅니다. 그쪽은 '학생 한 명에 대한 기록'이라
 // 학생을 먼저 고르고 들어가야 합니다. 수업 중에 떠오르는 것들은 대개
@@ -9,9 +9,8 @@
 // 길었다", "다음엔 예시를 먼저" 같은 것들이요. 그걸 적을 자리가 없어
 // 수업이 끝나면 사라졌습니다.
 //
-// 그래서 이 화면은 쓰는 칸이 먼저입니다. 지난 메모는 모달 안에 펼치지 않고
-// **옆 패널**로 내보냅니다 — 수업 중에 여는 화면이라 쓰기까지 한 번에 닿아야
-// 하고, 목록이 아래에 펼쳐지면 그만큼 쓰는 칸이 화면 위로 밀립니다.
+// 공부 기록의 세 번째 탭입니다. 입력칸 옆에 지난 메모와 달력을 펼칩니다.
+// 탭을 바꿔도 초안은 남기고, 보이지 않는 동안에는 구독만 멈춥니다.
 //
 // [반 버튼 줄 — 여기서 고른 반이 곧 '메모가 들어갈 반'입니다]
 // 쓰는 칸 아래에 내가 맡은 반이 버튼으로 섭니다. 누르면 (ㄱ) 그 반의 지난
@@ -56,9 +55,7 @@
 // 텍스트로 남아 있어, 읽을 때 richHtml()이 둘을 함께 다룹니다.
 // =============================================================
 import { useEffect, useMemo, useState } from "react";
-import { backdropClose } from "@/lib/modal";
 import RichTextEditor from "./RichTextEditor";
-import { IconMyPost } from "./StatusIcons";
 import {
   looksLikeHtml,
   richHtml,
@@ -180,7 +177,7 @@ const MEMO_TOOLS = [
   "checkList",
 ];
 
-export default function LessonMemoModal({ classId, className = "", user, onClose }) {
+export default function LessonMemoPanel({ classId, className = "", user, active = true, onClassChange }) {
   const [text, setText] = useState(""); // HTML 문자열
   // 에디터는 비제어 컴포넌트라 값을 비우려면 다시 마운트해야 합니다
   // (RichTextEditor는 initialHtml을 마운트 때 한 번만 봅니다).
@@ -188,15 +185,17 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
   // 이 메모가 '어느 수업의 일'인가 — 수업이 끝난 뒤 떠올라 적는 일이 잦아
   // 쓴 시각만으로는 언제 일인지 알 수 없습니다(누가기록과 같은 방식).
   const [date, setDate] = useState(() => todayDateKey());
-  const [memos, setMemos] = useState([]);
+  const [memoSnapshot, setMemoSnapshot] = useState(null);
+  const memosLoaded = memoSnapshot?.classId === classId;
+  const memos = useMemo(() => memosLoaded ? memoSnapshot.rows : [], [memosLoaded, memoSnapshot]);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
   // 오른쪽 패널 — null(없음) | "class"(한 반의 지난 메모) | "calendar"
   // 둘은 같은 자리에 서므로 한 번에 하나만 엽니다.
   const [historyView, setHistoryView] = useState(null);
   const [historyClassId, setHistoryClassId] = useState(classId);
-  // 이 메모가 들어갈 반 — 아래 버튼 줄에서 고른 반입니다. 처음에는 화면이
-  // 열려 있던 반이고, 다른 반을 누르면 그리로 옮겨 갑니다.
-  const [writeClassId, setWriteClassId] = useState(classId);
+  // 머리말과 메모의 반 버튼이 같은 저장 대상을 가리킵니다.
+  const writeClassId = classId;
   // 내가 맡은 반 — 버튼 줄에 이름을 세우는 데 씁니다(캘린더도 함께 씁니다).
   // 반 문서는 몇 개뿐이라 늘 구독해도 가볍습니다. 무거운 것은 반마다의
   // '메모'라, 그쪽은 지금도 필요할 때만 읽습니다(아래 두 구독).
@@ -229,22 +228,23 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
   }
 
   useEffect(() => {
-    if (!classId) { setMemos([]); return; }
-    return subscribeLessonMemos(classId, setMemos);
-  }, [classId]);
+    if (!active) return;
+    if (!classId) { setMemoSnapshot(null); return; }
+    return subscribeLessonMemos(classId, (rows) => setMemoSnapshot({ classId, rows }));
+  }, [classId, active]);
 
   // 페이지에서 반을 바꾸면 옆 패널도 따라갑니다 — 안 그러면 쓰는 칸은 새 반인데
   // 옆에는 앞 반의 지난 메모가 남아, 지금 어느 반을 보는 중인지 어긋납니다.
   useEffect(() => {
     setHistoryClassId(classId);
-    setWriteClassId(classId);
   }, [classId]);
 
   useEffect(() => {
+    if (!active) return;
     return subscribeClasses((list) =>
       setMyClasses(list.filter((c) => c.createdBy === user?.uid))
     );
-  }, [user?.uid]);
+  }, [user?.uid, active]);
 
   // [캘린더 보기를 켤 때만 다른 반의 메모까지 읽습니다]
   // 이 모달은 '지금 이 반'의 맥락에서 열리지만, 달력은 성격이 다릅니다 —
@@ -262,6 +262,7 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
   const otherClassIds = myClasses.map((c) => c.id).filter((id) => id !== classId);
   const otherKey = otherClassIds.join(",");
   useEffect(() => {
+    if (!active) return;
     if (!calendarOn || !otherKey) { setOtherMemos({}); return; }
     // 여기만 **50건**입니다(`LESSON_MEMO_CALENDAR`). 한 반을 펼쳐 보는
     // 자리는 200건이지만, 달력은 켜는 순간 맡은 반 수만큼 리스너가 걸려
@@ -275,7 +276,7 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
       )
     );
     return () => unsubs.forEach((u) => u());
-  }, [calendarOn, otherKey]);
+  }, [calendarOn, otherKey, active]);
 
   // 달력에 깔 메모 — 이 반 + 내 다른 반. 반 이름을 미리 붙여 둡니다.
   const nameOfClass = useMemo(() => {
@@ -332,17 +333,18 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
   const otherPanelClassId =
     classPanelOn && historyClassId && historyClassId !== classId ? historyClassId : null;
   useEffect(() => {
+    if (!active) return;
     setPickedMemos(null);
     if (!otherPanelClassId) return;
     return subscribeLessonMemos(otherPanelClassId, setPickedMemos);
-  }, [otherPanelClassId]);
-  const panelMemos = otherPanelClassId ? pickedMemos : memos;
+  }, [otherPanelClassId, active]);
+  const panelMemos = otherPanelClassId ? pickedMemos : memosLoaded ? memos : null;
 
   // 반 버튼 — 고른 반이 **쓰는 반이자 보는 반**입니다. 패널만 여닫는 것과
   // 달리 쓰는 반은 토글하지 않습니다: 같은 반을 다시 눌러 패널을 닫아도
   // 저장될 곳은 그대로입니다(닫는 동작이 '어디에 쓸지'를 흔들면 안 됩니다).
   function pickClassFor(cid) {
-    setWriteClassId(cid);
+    onClassChange(cid);
     if (classPanelOn && historyClassId === cid) { setHistoryView(null); return; }
     setHistoryClassId(cid);
     setHistoryView("class");
@@ -351,10 +353,11 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
   const calendarMemos = useMemo(() => {
     const rows = memos.map((m) => ({ ...m, classId }));
     for (const [cid, list] of Object.entries(otherMemos)) {
+      if (cid === classId || !otherKey.split(",").includes(cid)) continue;
       for (const m of list) rows.push({ ...m, classId: cid });
     }
     return rows;
-  }, [memos, otherMemos, classId]);
+  }, [memos, otherMemos, classId, otherKey]);
 
   // 날짜 → 그날 메모들. 같은 날이면 이 반 것이 먼저, 그다음 반 이름순.
   const byDate = useMemo(() => {
@@ -400,6 +403,7 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
     const body = text.trim();
     if (memoEmpty(body) || tooLong || busy || !canWrite) return;
     setBusy(true);
+    setError("");
     try {
       await addLessonMemo(writeClassId, user, body, date, { topic, pageFrom, pageTo });
       setText("");
@@ -417,6 +421,8 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
         setHistoryClassId(writeClassId);
         setHistoryView("class");
       }
+    } catch {
+      setError("메모를 저장하지 못했어요. 작성한 내용을 확인하고 다시 시도해 주세요.");
     } finally {
       setBusy(false);
     }
@@ -426,30 +432,8 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
   // 입력칸과 같은 약속입니다.
 
   return (
-    <div className="modal-backdrop" {...backdropClose(onClose)}>
-      {/* 모달과 옆 패널(지난 메모·달력)을 한 줄로 묶습니다 — 목록이나 달력을
-          모달 안에 쌓으니 세로로 너무 길어져(달력 하나가 250px), 쓰는 칸이
-          화면 위로 밀려났습니다. 파이썬 실행 패널(.py-panel)과 같은 방식으로
-          옆에서 미끄러져 나옵니다. */}
-      <div className="memo-modal-row">
-      <div
-        className="modal modal-lesson-memo"
-        role="dialog"
-        aria-modal="true"
-        aria-label="수업 메모"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="modal-head">
-          <h3 className="head-icon">
-            <IconMyPost size={20} /> 수업 메모
-            {/* 여기 적히는 반이 곧 **저장될 반**입니다(아래 버튼 줄에서
-                고른 반). 화면이 열려 있던 반이 아니라서, 옆 반을 골라 두고
-                적을 때 어디로 가는지 제목 한 줄로 알 수 있어야 합니다. */}
-            {writeClassName && <span className="notes-student">{writeClassName}</span>}
-          </h3>
-          <button className="btn-close" onClick={onClose} aria-label="닫기">×</button>
-        </div>
-
+    <div className="lesson-memo-panel">
+      <div className="lesson-memo-editor">
         <div className="notes-date-row memo-date-row">
           <span>날짜</span>
           <input
@@ -476,7 +460,7 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
           key={writeKey}
           className="memo-rte"
           tools={MEMO_TOOLS}
-          autoFocus
+          autoFocus={active}
           onChange={setText}
           onSend={handleSave}
           sendDisabled={busy || memoEmpty(text) || tooLong}
@@ -491,6 +475,7 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
             저장돼요'가 늘 떠 있었는데, 한 번 읽으면 그만인 말이 창을 열
             때마다 자리를 차지했습니다. 그 자리는 이제 **저장이 막혔을 때
             그 까닭만** 씁니다 — 늘 있는 글이 아니라야 떴을 때 눈에 띕니다. */}
+        {error && <p className="form-error" role="alert">{error}</p>}
         <div className="memo-foot">
           <button
             type="button"
@@ -605,7 +590,6 @@ export default function LessonMemoModal({ classId, className = "", user, onClose
           onClose={() => setHistoryView(null)}
         />
       )}
-      </div>
     </div>
   );
 }
@@ -1000,7 +984,7 @@ function MemoCalendarPanel({ byDate, nameOfClass, archivedClassIds, currentClass
   const classMemos = pickedClass ? dayMemos.filter((m) => m.classId === pickedClass) : [];
 
   return (
-    <aside className="memo-side-panel memo-cal-panel" onClick={(e) => e.stopPropagation()} aria-label="수업 메모 캘린더">
+    <aside className="memo-side-panel memo-cal-panel" onClick={(e) => e.stopPropagation()} aria-label="선생님 메모 캘린더">
       <div className="memo-side-panel-head">
         <h4>캘린더</h4>
         <button type="button" className="btn-close" onClick={onClose} aria-label="캘린더 닫기">×</button>
