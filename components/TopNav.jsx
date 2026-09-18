@@ -42,7 +42,7 @@ import AppMarquee from "./AppMarquee";
 import { useRewardCelebration } from "@/lib/useRewardCelebration";
 import { IconReport, IconPythonRunner, IconLogo, IconAnswer, IconBlackboard, IconBook } from "./StatusIcons";
 
-export default function TopNav({ active, onPython, pyActive = false }) {
+export default function TopNav({ active, onPython, pyActive = false, onStudyExport = null }) {
   const router = useRouter();
   const user = useCurrentUser();
   const admin = user ? isTeacher(user) : false;      // 교사+관리자 (대시보드 접근)
@@ -387,6 +387,7 @@ export default function TopNav({ active, onPython, pyActive = false }) {
           pendingCount={isStrictAdmin ? pendingTeacherCount : 0}
           onOpenRoleMgr={isStrictAdmin ? () => setRoleMgrOpen(true) : null}
           onOpenAdmin={admin ? () => go("/admin") : null}
+          onStudyExport={admin ? onStudyExport : null}
           onLogout={handleLogout}
         />
       </div>
