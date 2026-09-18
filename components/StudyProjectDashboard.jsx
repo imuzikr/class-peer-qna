@@ -422,7 +422,7 @@ function ProjectCard({
           )}
         </span>
 
-        <strong className="study-project-title">{board.title}</strong>
+        <strong className="study-project-title" title={board.title}>{board.title}</strong>
         <span className="study-project-desc">
           {board.description || (isTeacher ? "활동 안내가 아직 없어요." : "")}
         </span>
