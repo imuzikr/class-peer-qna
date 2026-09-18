@@ -185,87 +185,89 @@ export default function ClassNotesManagerModal({
             </button>
           </div>
 
-          {/* 옆 반 명단을 받아 오는 동안 — 빈 배열로 그리면 '입장한 학생이
-              없어요'가 한 번 스칩니다(위 `otherRoster` 주석 참고). */}
-          {tab === "memo" ? null : rosterLoading ? (
-            <p className="empty-note">명단을 불러오는 중이에요…</p>
-          ) : tab === "cornell" ? (
-            <CornellNotesPanel classId={pickedId} roster={shownRoster} user={user} />
-          ) : shownRoster.length === 0 ? (
-            <p className="empty-note">아직 이 반에 입장한 학생이 없어요.</p>
-          ) : (
-            <>
-              <div className="notes-mgr-bar">
-                <span className="notes-mgr-summary">
-                  기록 있음 <strong>{withNotes}</strong> · 아직 없음{" "}
-                  <strong>{shownRoster.length - withNotes}</strong>
-                </span>
-                <div className="notes-mgr-actions">
-                  {/* 이 화면을 여는 가장 흔한 이유가 '누구를 아직 못 남겼나'라
-                      그 추리기를 버튼 하나로 둡니다. */}
-                  {/* 교실에서 보이는 자리 차례로 훑을 수 있게 — 자리표의 그
-                      단추와 같은 값을 씁니다(한쪽에서 뒤집으면 함께 바뀝니다) */}
-                  <SeatViewToggle teacherView={teacherView} onToggle={toggleSeatView} />
-                  <button
-                    type="button"
-                    className={`notes-mgr-filter${onlyEmpty ? " active" : ""}`}
-                    onClick={() => setOnlyEmpty((v) => !v)}
-                    aria-pressed={onlyEmpty}
-                  >
-                    아직 없는 학생만
-                  </button>
+          <div className="notes-mgr-body">
+            {/* 옆 반 명단을 받아 오는 동안 — 빈 배열로 그리면 '입장한 학생이
+                없어요'가 한 번 스칩니다(위 `otherRoster` 주석 참고). */}
+            {tab === "memo" ? null : rosterLoading ? (
+              <p className="empty-note">명단을 불러오는 중이에요…</p>
+            ) : tab === "cornell" ? (
+              <CornellNotesPanel classId={pickedId} roster={shownRoster} user={user} />
+            ) : shownRoster.length === 0 ? (
+              <p className="empty-note">아직 이 반에 입장한 학생이 없어요.</p>
+            ) : (
+              <>
+                <div className="notes-mgr-bar">
+                  <span className="notes-mgr-summary">
+                    기록 있음 <strong>{withNotes}</strong> · 아직 없음{" "}
+                    <strong>{shownRoster.length - withNotes}</strong>
+                  </span>
+                  <div className="notes-mgr-actions">
+                    {/* 이 화면을 여는 가장 흔한 이유가 '누구를 아직 못 남겼나'라
+                        그 추리기를 버튼 하나로 둡니다. */}
+                    {/* 교실에서 보이는 자리 차례로 훑을 수 있게 — 자리표의 그
+                        단추와 같은 값을 씁니다(한쪽에서 뒤집으면 함께 바뀝니다) */}
+                    <SeatViewToggle teacherView={teacherView} onToggle={toggleSeatView} />
+                    <button
+                      type="button"
+                      className={`notes-mgr-filter${onlyEmpty ? " active" : ""}`}
+                      onClick={() => setOnlyEmpty((v) => !v)}
+                      aria-pressed={onlyEmpty}
+                    >
+                      아직 없는 학생만
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              {students.length === 0 ? (
-                <p className="empty-note">모든 학생에게 기록이 있어요.</p>
-              ) : (
-                <SeatGrid className="notes-mgr-grid" scrollClassName="notes-mgr-scroll" ariaLabel="누가기록 학생 목록">
-                  {students.map((s, i) => {
-                    // 덜 찬 줄을 채우는 빈 칸 — 자리만 차지합니다.
-                    if (!s) return <div key={`gap-${i}`} className="notes-mgr-gap" aria-hidden="true" />;
-                    const n = counts[s.uid] ?? 0;
-                    return (
-                      <button
-                        key={s.uid}
-                        type="button"
-                        className={`notes-mgr-card${n > 0 ? " has" : ""}`}
-                        onClick={() => setSelected(s)}
-                        title={
-                          n > 0
-                            ? `${s.name} — 누가기록 ${n}건 보기`
-                            : `${s.name} — 아직 기록이 없어요. 눌러서 남기기`
-                        }
-                      >
-                        {/* 학번을 위, 이름을 아래로. 동물 아이콘은 뺐습니다 —
-                            서른 장을 학번순으로 훑는 화면이라 눈이 따라가는
-                            것은 숫자인데, 그 위에 아이콘이 한 줄 더 있으면
-                            숫자가 카드 가운데로 밀려 줄이 안 맞습니다. */}
-                        <span className="notes-mgr-no">{s.studentId || "-"}</span>
-                        <span className="notes-mgr-name">{s.name}</span>
-                        {/* 있음/없음이 한눈에 갈리도록 색과 글자를 함께 씁니다 —
-                            색만으로 나누면 색 구분이 어려운 사람에게 안 보입니다. */}
-                        <span className={`notes-mgr-badge${n > 0 ? " has" : ""}`}>
-                          {n > 0 ? `${n}건` : "없음"}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </SeatGrid>
-              )}
-            </>
-          )}
-          {memoOpened && (
-            <div hidden={tab !== "memo"}>
-              <LessonMemoPanel
-                classId={pickedId}
-                className={myClasses.find((c) => c.id === pickedId)?.name || (isHome ? className : "")}
-                user={user}
-                active={tab === "memo"}
-                onClassChange={setPickedId}
-              />
-            </div>
-          )}
+                {students.length === 0 ? (
+                  <p className="empty-note">모든 학생에게 기록이 있어요.</p>
+                ) : (
+                  <SeatGrid className="notes-mgr-grid" scrollClassName="notes-mgr-scroll" ariaLabel="누가기록 학생 목록">
+                    {students.map((s, i) => {
+                      // 덜 찬 줄을 채우는 빈 칸 — 자리만 차지합니다.
+                      if (!s) return <div key={`gap-${i}`} className="notes-mgr-gap" aria-hidden="true" />;
+                      const n = counts[s.uid] ?? 0;
+                      return (
+                        <button
+                          key={s.uid}
+                          type="button"
+                          className={`notes-mgr-card${n > 0 ? " has" : ""}`}
+                          onClick={() => setSelected(s)}
+                          title={
+                            n > 0
+                              ? `${s.name} — 누가기록 ${n}건 보기`
+                              : `${s.name} — 아직 기록이 없어요. 눌러서 남기기`
+                          }
+                        >
+                          {/* 학번을 위, 이름을 아래로. 동물 아이콘은 뺐습니다 —
+                              서른 장을 학번순으로 훑는 화면이라 눈이 따라가는
+                              것은 숫자인데, 그 위에 아이콘이 한 줄 더 있으면
+                              숫자가 카드 가운데로 밀려 줄이 안 맞습니다. */}
+                          <span className="notes-mgr-no">{s.studentId || "-"}</span>
+                          <span className="notes-mgr-name">{s.name}</span>
+                          {/* 있음/없음이 한눈에 갈리도록 색과 글자를 함께 씁니다 —
+                              색만으로 나누면 색 구분이 어려운 사람에게 안 보입니다. */}
+                          <span className={`notes-mgr-badge${n > 0 ? " has" : ""}`}>
+                            {n > 0 ? `${n}건` : "없음"}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </SeatGrid>
+                )}
+              </>
+            )}
+            {memoOpened && (
+              <div hidden={tab !== "memo"}>
+                <LessonMemoPanel
+                  classId={pickedId}
+                  className={myClasses.find((c) => c.id === pickedId)?.name || (isHome ? className : "")}
+                  user={user}
+                  active={tab === "memo"}
+                  onClassChange={setPickedId}
+                />
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
