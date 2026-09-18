@@ -900,6 +900,15 @@ function StudyPageInner() {
                         출석 관리
                       </button>
                     )}
+                    {/* 책방과 공유하는 공부 기록 메뉴 */}
+                    {admin && currentClass && (
+                      <ClassNotesTools
+                        classId={classId}
+                        className={currentClass.name ?? ""}
+                        roster={roster}
+                        user={user}
+                      />
+                    )}
                     {admin && currentClass && (
                       <button
                         className={`btn-ghost${kwlPanelOpen ? " active" : ""}`}
@@ -913,16 +922,6 @@ function StudyPageInner() {
                       >
                         KWLS 차트
                       </button>
-                    )}
-                    {/* 누가기록 관리·수업 메모 — 책방 머리말에도 같은 것을
-                        끼우므로 버튼과 모달을 한 덩어리로 묶어 씁니다 */}
-                    {admin && currentClass && (
-                      <ClassNotesTools
-                        classId={classId}
-                        className={currentClass.name ?? ""}
-                        roster={roster}
-                        user={user}
-                      />
                     )}
                   </div>
 

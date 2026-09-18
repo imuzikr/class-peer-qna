@@ -1164,8 +1164,30 @@ button.footer-link:hover {
 
 /* ===== 누가기록 관리 (교사) ===== */
 .modal.modal-notes-manager {
-  /* 학생 여섯 열과 선생님 메모의 입력·기록 패널을 담습니다. */
+  /* 가장 큰 내용을 담던 상한을 공통 크기로 유지합니다. */
   max-width: 940px;
+  height: min(85dvh, calc(100dvh - 48px));
+  max-height: calc(100dvh - 48px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.modal-notes-manager > .modal-head,
+.modal-notes-manager > .notes-mgr-tabs {
+  flex-shrink: 0;
+}
+.notes-mgr-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-gutter: stable;
+}
+.notes-mgr-body .notes-mgr-scroll { max-height: none; }
+@media (max-width: 768px) {
+  .modal.modal-notes-manager {
+    height: 90dvh;
+    max-height: 90dvh;
+  }
 }
 .notes-mgr-bar {
   display: flex;
