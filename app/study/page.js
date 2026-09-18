@@ -36,7 +36,6 @@ import {
   subscribeClassRewards,
   setStudentReward,
   addStudentReward,
-  regenerateJoinCode,
   reorderStudyBoards,
   ensureDefaultStudyBoard,
   markStudyAttendance,
@@ -52,7 +51,6 @@ import {
   subscribeMyLessons,
   ensureClassIdSynced,
   fetchClassRosterProfiles,
-  toDate,
 } from "@/lib/store";
 import { isFirebaseConfigured } from "@/lib/firebase";
 import { isAdmin, isTeacher, getCurrentUser } from "@/lib/user";
@@ -145,10 +143,8 @@ function StudyPageInner() {
   const [membershipsLoaded, setMembershipsLoaded] = useState(false);
   const [teacherClassId, setTeacherClassId] = useState(null);
   const [joinCodesMap, setJoinCodesMap] = useState({}); // 교사: classId→{code,expiresAt}
-  const [regenerating, setRegenerating] = useState(false);
   const [creatingProject, setCreatingProject] = useState(false);
   const [classManagerOpen, setClassManagerOpen] = useState(false);
-  const [showCode, setShowCode] = useState(false); // 입장 코드 표시 토글
   const [attendanceOpen, setAttendanceOpen] = useState(false); // 출석부 모달
   const [noteViewerOpen, setNoteViewerOpen] = useState(false); // 내 수업 노트 크게 보기(학생)
   const [mySeatOpen, setMySeatOpen] = useState(false); // 자리 배치 보기(학생)
@@ -366,7 +362,6 @@ function StudyPageInner() {
   const classId = admin ? teacherClassId : studentClassId;
   const currentClass =
     (admin ? myClassesAll : classes).find((c) => c.id === classId) ?? null;
-  const currentCode = joinCodesMap[classId] ?? null; // { code, expiresAt } | null
   const classBoards = useMemo(
     () => boards.filter((b) => b.classId === classId),
     [boards, classId]
@@ -646,29 +641,9 @@ function StudyPageInner() {
   // '반 관리하기'에서 보관된 반의 '보기'를 누르면 그 반을(보기 전용으로) 봅니다.
   function handleViewArchivedClass(id) {
     setTeacherClassId(id);
-    setShowCode(false);
     setClassManagerOpen(false);
   }
 
-  // 입장 코드 만료 여부 + 표시용 포맷
-  const codeExpired = currentCode?.expiresAt
-    ? toDate(currentCode.expiresAt) < new Date()
-    : false;
-  function formatExpiry(ts) {
-    return toDate(ts).toLocaleDateString("ko-KR", {
-      month: "long",
-      day: "numeric",
-    });
-  }
-  async function handleRegenerate() {
-    if (!classId) return;
-    setRegenerating(true);
-    try {
-      await regenerateJoinCode(classId, getCurrentUser());
-    } finally {
-      setRegenerating(false);
-    }
-  }
   async function handleAttendance() {
     if (!classId || !user || attending || admin || attendedToday || !attendanceOpenToday) return;
     setAttending(true);
@@ -888,7 +863,6 @@ function StudyPageInner() {
                           value={classId ?? ""}
                           onChange={(e) => {
                             setTeacherClassId(e.target.value);
-                            setShowCode(false);
                           }}
                           aria-label="반 선택"
                         >
@@ -900,13 +874,12 @@ function StudyPageInner() {
                         </select>
                       )
                     )}
-                    {admin && currentClass && !currentClass.archived && (
+                    {admin && (
                       <button
                         className="btn-ghost"
-                        onClick={() => setShowCode(true)}
-                        title="학생에게 알려 줄 입장 코드 크게 보기"
+                        onClick={() => setClassManagerOpen(true)}
                       >
-                        입장 코드
+                        반 관리하기
                       </button>
                     )}
                     {admin && currentClass && !currentClass.archived && (
@@ -924,14 +897,6 @@ function StudyPageInner() {
                         onClick={() => setAttendanceOpen(true)}
                       >
                         출석 관리
-                      </button>
-                    )}
-                    {admin && (
-                      <button
-                        className="btn-ghost"
-                        onClick={() => setClassManagerOpen(true)}
-                      >
-                        반 관리하기
                       </button>
                     )}
                     {admin && currentClass && (
@@ -1105,44 +1070,6 @@ function StudyPageInner() {
         />
       )}
 
-      {/* 입장 코드 크게 보기 모달 — 학생들이 멀리서도 볼 수 있게 */}
-      {showCode && currentClass && (
-        <div className="modal-backdrop" {...backdropClose(() => setShowCode(false))}>
-          <div
-            className="modal modal-joincode"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              className="btn-close joincode-close"
-              onClick={() => setShowCode(false)}
-              aria-label="닫기"
-            >
-              ×
-            </button>
-            <p className="joincode-class">{currentClass.name}</p>
-            <p className="joincode-label">입장 코드</p>
-            <p className="joincode-value">{currentCode?.code ?? "—"}</p>
-            <p className="joincode-hint">
-              공부방 입장 화면에서 이 코드를 입력하세요
-            </p>
-            {currentCode?.expiresAt && (
-              <p className={`joincode-expiry${codeExpired ? " expired" : ""}`}>
-                {codeExpired
-                  ? "⚠️ 만료된 코드예요 — 재발급해 주세요"
-                  : `${formatExpiry(currentCode.expiresAt)}까지 유효`}
-              </p>
-            )}
-            <button
-              className="joincode-regen"
-              onClick={handleRegenerate}
-              disabled={regenerating}
-            >
-              {regenerating ? "재발급 중…" : "🔄 코드 재발급"}
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* 반 만들기 모달 */}
       {/* 활동 자료 다운로드 모달 — 범위·형식은 여기서 선택 */}
       {exportOpen && (
@@ -1277,6 +1204,7 @@ function StudyPageInner() {
       {classManagerOpen && (
         <ClassManagerModal
           classes={myClassesAll}
+          joinCodesMap={joinCodesMap}
           user={getCurrentUser()}
           onClose={() => setClassManagerOpen(false)}
           onCreated={handleClassCreated}

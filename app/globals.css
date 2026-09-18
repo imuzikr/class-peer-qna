@@ -3541,15 +3541,17 @@ button.footer-link:hover {
 
 /* ===================== 반 관리하기 모달 ===================== */
 .modal.modal-class-manager {
-  max-width: 520px;
+  max-width: 720px;
 }
 .class-mgr-create {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 4px;
 }
 .class-mgr-create input {
-  flex: 1;
+  flex: 1 1 220px;
+  min-width: 0;
 }
 .class-mgr-create .btn-primary {
   flex-shrink: 0;
@@ -3610,6 +3612,7 @@ button.footer-link:hover {
 }
 .class-mgr-rename-input {
   flex: 1;
+  min-width: 0;
   padding: 6px 8px;
 }
 .class-mgr-actions {
@@ -3821,66 +3824,61 @@ button.footer-link:hover {
   background: rgba(255, 255, 255, 0.28);
 }
 
-/* ===================== 입장 코드 크게 보기 모달 ===================== */
-/* 학생들이 교실 뒤에서도 읽을 수 있도록 코드를 크게 표시 */
-.modal.modal-joincode {
+/* ===================== 반별 입장 코드 ===================== */
+.class-mgr-row--with-code {
+  flex-direction: column;
+  align-items: stretch;
+}
+.class-mgr-row-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.class-joincode {
   position: relative;
-  max-width: 640px;
-  width: 92vw;
-  text-align: center;
-  padding: 48px 40px 44px;
-}
-.joincode-close {
-  position: absolute;
-  top: 14px;
-  right: 16px;
-}
-.joincode-class {
-  margin: 0 0 18px;
-  font-size: 1.15rem;
-  font-weight: 600;
-  color: var(--text-sub);
+  padding: 14px;
+  border-radius: var(--radius-btn);
+  background: var(--neutral);
+  cursor: auto;
 }
 .joincode-label {
-  margin: 0 0 8px;
-  font-size: 1rem;
-  letter-spacing: 0.3em;
+  margin: 0 0 6px;
   color: var(--text-sub);
+  font-size: 13px;
+  font-weight: 600;
 }
 .joincode-value {
-  margin: 0 0 22px;
-  font-family: var(--font-mono);
-  font-size: clamp(4rem, 18vw, 9rem);
-  font-weight: 800;
-  line-height: 1.05;
-  letter-spacing: 0.12em;
+  margin: 0 0 8px;
   color: var(--primary);
+  font-family: var(--font-mono);
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: 0.12em;
 }
-.joincode-hint {
-  margin: 0;
-  font-size: 1rem;
+.joincode-hint, .joincode-expiry {
+  margin: 4px 0 0;
   color: var(--text-sub);
-}
-.joincode-expiry {
-  margin: 14px 0 0;
-  font-size: 0.95rem;
-  color: var(--text-sub);
+  font-size: 13px;
+  overflow-wrap: anywhere;
 }
 .joincode-expiry.expired {
   color: var(--danger);
   font-weight: 600;
 }
+.joincode-actions {
+  margin-top: 12px;
+}
 .joincode-regen {
-  margin-top: 18px;
-  padding: 9px 16px;
+  padding: 9px 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius-btn);
   background: #fff;
   color: var(--text);
-  font-size: 0.9rem;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: border-color 0.1s, background 0.1s;
 }
 .joincode-regen:hover {
   border-color: var(--primary);
@@ -3889,6 +3887,58 @@ button.footer-link:hover {
 .joincode-regen:disabled {
   opacity: 0.6;
   cursor: default;
+}
+.joincode-expand {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 13px;
+}
+.joincode-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 3300;
+  height: 100dvh;
+  overflow-y: auto;
+  background: #fff;
+  padding: 72px 24px 32px;
+  display: flex;
+  text-align: center;
+}
+.joincode-close {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+}
+.joincode-fullscreen-content {
+  width: 100%;
+  margin: auto;
+}
+.joincode-class {
+  margin: 0 0 24px;
+  color: var(--text);
+  font-size: clamp(20px, 3vw, 40px);
+  overflow-wrap: anywhere;
+}
+.joincode-fullscreen .joincode-label {
+  font-size: clamp(16px, 2vw, 24px);
+}
+.joincode-fullscreen .joincode-value {
+  margin: 16px 0 24px;
+  font-size: clamp(36px, 12vw, 180px);
+}
+.joincode-fullscreen .joincode-hint,
+.joincode-fullscreen .joincode-expiry {
+  font-size: clamp(14px, 2vw, 22px);
+}
+.joincode-fullscreen .joincode-actions {
+  margin-top: 24px;
+}
+@media (max-width: 480px) {
+  .class-mgr-row--archived { flex-wrap: wrap; }
+  .class-mgr-row--archived .class-mgr-name { flex-basis: 100%; }
+  .class-joincode { padding: 12px; }
+  .joincode-expand { position: static; margin-top: 8px; }
 }
 
 /* ===================== 한 줄 정리(인사이트) 모달 ===================== */

@@ -20,10 +20,12 @@ import {
   reorderClasses,
 } from "@/lib/store";
 import ConfirmModal from "./ConfirmModal";
+import ClassJoinCode from "./ClassJoinCode";
 import { IconPen, IconTrash, IconArchive, IconChair } from "./StatusIcons";
 
 export default function ClassManagerModal({
   classes,
+  joinCodesMap = {},
   user,
   onClose,
   onCreated,
@@ -37,6 +39,7 @@ export default function ClassManagerModal({
   const [renamingId, setRenamingId] = useState(null);
   const [renameDraft, setRenameDraft] = useState("");
   const [busyId, setBusyId] = useState(null);
+  const [regeneratingCodeIds, setRegeneratingCodeIds] = useState([]);
   const [confirmDelete, setConfirmDelete] = useState(null); // { id, name } | null
   const [error, setError] = useState("");
 
@@ -112,8 +115,14 @@ export default function ClassManagerModal({
     }
   }
 
+  function handleCodeRegenerating(classId, regenerating) {
+    setRegeneratingCodeIds((ids) => regenerating
+      ? [...ids, classId]
+      : ids.filter((id) => id !== classId));
+  }
+
   async function handleArchive(c) {
-    if (busyId) return;
+    if (busyId || regeneratingCodeIds.includes(c.id)) return;
     setBusyId(c.id);
     setError("");
     try {
@@ -200,51 +209,60 @@ export default function ClassManagerModal({
               {orderedActive.map((c) => (
                 <li
                   key={c.id}
-                  className={`class-mgr-row${draggingId === c.id ? " dragging" : ""}`}
+                  className={`class-mgr-row class-mgr-row--with-code${draggingId === c.id ? " dragging" : ""}`}
                   draggable
                   onDragStart={() => handleDragStart(c.id)}
                   onDragOver={(e) => handleDragOver(e, c.id)}
                   onDrop={(e) => e.preventDefault()}
                   onDragEnd={handleDragEnd}
                 >
-                  <span className="class-mgr-drag-handle" aria-hidden="true" title="드래그해서 순서 바꾸기">
-                    ⠿
-                  </span>
-                  {renamingId === c.id ? (
-                    <input
-                      type="text"
-                      className="class-mgr-rename-input"
-                      value={renameDraft}
-                      autoFocus
-                      onChange={(e) => setRenameDraft(e.target.value)}
-                      onBlur={() => commitRename(c)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") { e.preventDefault(); commitRename(c); }
-                        else if (e.key === "Escape") { e.preventDefault(); setRenamingId(null); }
-                      }}
-                    />
-                  ) : (
-                    <span className="class-mgr-name">{c.name}</span>
-                  )}
-                  <div className="class-mgr-actions">
-                    <button
-                      type="button"
-                      className="btn-ghost"
-                      onClick={() => startRename(c)}
-                      title="이름 수정"
-                    >
-                      <IconPen size={15} />
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-ghost"
-                      onClick={() => handleArchive(c)}
-                      disabled={busyId === c.id}
-                      title="보관하면 학생 접근이 막히고 목록에서 숨겨져요"
-                    >
-                      <IconArchive size={15} /> 보관
-                    </button>
+                  <div className="class-mgr-row-head">
+                    <span className="class-mgr-drag-handle" aria-hidden="true" title="드래그해서 순서 바꾸기">
+                      ⠿
+                    </span>
+                    {renamingId === c.id ? (
+                      <input
+                        type="text"
+                        className="class-mgr-rename-input"
+                        value={renameDraft}
+                        autoFocus
+                        onChange={(e) => setRenameDraft(e.target.value)}
+                        onBlur={() => commitRename(c)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") { e.preventDefault(); commitRename(c); }
+                          else if (e.key === "Escape") { e.preventDefault(); setRenamingId(null); }
+                        }}
+                      />
+                    ) : (
+                      <span className="class-mgr-name">{c.name}</span>
+                    )}
+                    <div className="class-mgr-actions">
+                      <button
+                        type="button"
+                        className="btn-ghost"
+                        onClick={() => startRename(c)}
+                        title="이름 수정"
+                      >
+                        <IconPen size={15} />
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-ghost"
+                        onClick={() => handleArchive(c)}
+                        disabled={busyId === c.id || regeneratingCodeIds.includes(c.id)}
+                        title="보관하면 학생 접근이 막히고 목록에서 숨겨져요"
+                      >
+                        <IconArchive size={15} /> 보관
+                      </button>
+                    </div>
                   </div>
+                  <ClassJoinCode
+                    classroom={c}
+                    codeInfo={joinCodesMap[c.id]}
+                    user={user}
+                    disabled={busyId === c.id}
+                    onRegeneratingChange={handleCodeRegenerating}
+                  />
                 </li>
               ))}
             </ul>
