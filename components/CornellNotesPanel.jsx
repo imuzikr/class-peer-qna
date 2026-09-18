@@ -1,7 +1,7 @@
 "use client";
 
 // =============================================================
-// 수업 노트 살펴보기 (교사 전용) — '기록 관리' 모달의 한 탭
+// 수업 노트 살펴보기 (교사 전용) — '공부 기록' 모달의 한 탭
 // -------------------------------------------------------------
 // 교사가 실제로 하는 일은 "수업 끝났다, 오늘 애들이 뭘 적었나 보자"입니다.
 // 그래서 **날짜 하나**를 기준으로 반 전체를 늘어놓습니다.
@@ -107,22 +107,21 @@ export default function CornellNotesPanel({ classId, roster = [], user }) {
               오늘
             </button>
           )}
-          {/* 늘어놓는 방향 — 날짜 칸 바로 오른쪽입니다(누가기록 탭과 같은
-              단추·같은 값). 교탁에서 본 방향으로 두면 자리표를 보며 카드를
-              짚는 손이 어긋나지 않습니다. */}
-          <SeatViewToggle teacherView={teacherView} onToggle={toggleSeatView} />
+          <span className="notes-mgr-summary">
+            쓴 학생 <strong>{written}</strong> / {roster.length}
+          </span>
         </div>
-        <span className="notes-mgr-summary">
-          쓴 학생 <strong>{written}</strong> / {roster.length}
-        </span>
-        <button
-          type="button"
-          className={`notes-mgr-filter${onlyWritten ? " active" : ""}`}
-          onClick={() => setOnlyWritten((v) => !v)}
-          aria-pressed={onlyWritten}
-        >
-          쓴 학생만
-        </button>
+        <div className="notes-mgr-actions">
+          <SeatViewToggle teacherView={teacherView} onToggle={toggleSeatView} />
+          <button
+            type="button"
+            className={`notes-mgr-filter${onlyWritten ? " active" : ""}`}
+            onClick={() => setOnlyWritten((v) => !v)}
+            aria-pressed={onlyWritten}
+          >
+            쓴 학생만
+          </button>
+        </div>
       </div>
 
       {students.length === 0 ? (

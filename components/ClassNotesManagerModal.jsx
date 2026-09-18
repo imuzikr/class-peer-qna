@@ -1,13 +1,9 @@
 "use client";
 
 // =============================================================
-// 기록 관리 (교사 전용) — 반 학생 전체를 한 화면에서
+// 공부 기록 (교사 전용) — 반 학생 전체를 한 화면에서
 // -------------------------------------------------------------
-// 탭이 둘입니다. 주인이 반대인 두 기록을 한 자리에 모았습니다.
-//   · 누가기록  — **교사가 쓰는** 학생 관찰 메모
-//   · 수업 노트 — **학생이 쓴** 코넬 노트를 읽고 한 마디 남기기
-// 둘 다 '반 학생 전체를 학번순으로 늘어놓고 하나를 골라 들어간다'는 같은
-// 모양이라, 버튼을 하나 더 늘리는 대신 탭으로 묶었습니다.
+// 누가기록, 학생 수업 노트, 선생님 메모를 탭으로 모읍니다.
 //
 // [누가기록 탭]
 // 지금까지 누가기록은 자리표에서 학생 자리를 눌러 하나씩 들어가야 했습니다.
@@ -34,6 +30,7 @@ import {
 } from "@/lib/store";
 import StudentNotesModal from "./StudentNotesModal";
 import CornellNotesPanel from "./CornellNotesPanel";
+import LessonMemoPanel from "./LessonMemoPanel";
 import { IconMyPost, IconRecord } from "./StatusIcons";
 
 export default function ClassNotesManagerModal({
@@ -43,7 +40,8 @@ export default function ClassNotesManagerModal({
   user = null,
   onClose,
 }) {
-  const [tab, setTab] = useState("notes"); // notes | cornell
+  const [tab, setTab] = useState("notes"); // notes | cornell | memo
+  const [memoOpened, setMemoOpened] = useState(false);
   const [counts, setCounts] = useState({});
   const [selected, setSelected] = useState(null); // 기록을 열어 볼 학생
   const [onlyEmpty, setOnlyEmpty] = useState(false); // '아직 없는 학생만' 보기
@@ -127,12 +125,12 @@ export default function ClassNotesManagerModal({
           className="modal modal-notes-manager"
           role="dialog"
           aria-modal="true"
-          aria-label="누가기록 관리"
+          aria-label="공부 기록"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="modal-head">
             <h3 className="head-icon">
-              <IconMyPost size={20} /> 기록 관리
+              <IconMyPost size={20} /> 공부 기록
               {/* 고를 반이 하나뿐이면 지금까지처럼 이름 배지입니다 — 한 줄짜리
                   고르개는 누를 것이 없는데 눌러 보게 만듭니다(책방 머리말의
                   반 고르개와 같은 판정·같은 클래스). */}
@@ -155,7 +153,7 @@ export default function ClassNotesManagerModal({
             <button className="btn-close" onClick={onClose} aria-label="닫기">×</button>
           </div>
 
-          <div className="notes-mgr-tabs" role="tablist">
+          <div className="notes-mgr-tabs" role="tablist" aria-label="공부 기록 종류">
             <button
               type="button"
               role="tab"
@@ -175,11 +173,21 @@ export default function ClassNotesManagerModal({
             >
               <IconRecord size={15} /> 수업 노트
             </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === "memo"}
+              className={`notes-mgr-tab${tab === "memo" ? " active" : ""}`}
+              onClick={() => { setMemoOpened(true); setTab("memo"); }}
+              title="선생님만 보는 메모와 수업 진도를 남깁니다"
+            >
+              <IconMyPost size={15} /> 선생님 메모
+            </button>
           </div>
 
           {/* 옆 반 명단을 받아 오는 동안 — 빈 배열로 그리면 '입장한 학생이
               없어요'가 한 번 스칩니다(위 `otherRoster` 주석 참고). */}
-          {rosterLoading ? (
+          {tab === "memo" ? null : rosterLoading ? (
             <p className="empty-note">명단을 불러오는 중이에요…</p>
           ) : tab === "cornell" ? (
             <CornellNotesPanel classId={pickedId} roster={shownRoster} user={user} />
@@ -192,19 +200,21 @@ export default function ClassNotesManagerModal({
                   기록 있음 <strong>{withNotes}</strong> · 아직 없음{" "}
                   <strong>{shownRoster.length - withNotes}</strong>
                 </span>
-                {/* 이 화면을 여는 가장 흔한 이유가 '누구를 아직 못 남겼나'라
-                    그 추리기를 버튼 하나로 둡니다. */}
-                {/* 교실에서 보이는 자리 차례로 훑을 수 있게 — 자리표의 그
-                    단추와 같은 값을 씁니다(한쪽에서 뒤집으면 함께 바뀝니다) */}
-                <SeatViewToggle teacherView={teacherView} onToggle={toggleSeatView} />
-                <button
-                  type="button"
-                  className={`notes-mgr-filter${onlyEmpty ? " active" : ""}`}
-                  onClick={() => setOnlyEmpty((v) => !v)}
-                  aria-pressed={onlyEmpty}
-                >
-                  아직 없는 학생만
-                </button>
+                <div className="notes-mgr-actions">
+                  {/* 이 화면을 여는 가장 흔한 이유가 '누구를 아직 못 남겼나'라
+                      그 추리기를 버튼 하나로 둡니다. */}
+                  {/* 교실에서 보이는 자리 차례로 훑을 수 있게 — 자리표의 그
+                      단추와 같은 값을 씁니다(한쪽에서 뒤집으면 함께 바뀝니다) */}
+                  <SeatViewToggle teacherView={teacherView} onToggle={toggleSeatView} />
+                  <button
+                    type="button"
+                    className={`notes-mgr-filter${onlyEmpty ? " active" : ""}`}
+                    onClick={() => setOnlyEmpty((v) => !v)}
+                    aria-pressed={onlyEmpty}
+                  >
+                    아직 없는 학생만
+                  </button>
+                </div>
               </div>
 
               {students.length === 0 ? (
@@ -244,6 +254,17 @@ export default function ClassNotesManagerModal({
                 </SeatGrid>
               )}
             </>
+          )}
+          {memoOpened && (
+            <div hidden={tab !== "memo"}>
+              <LessonMemoPanel
+                classId={pickedId}
+                className={myClasses.find((c) => c.id === pickedId)?.name || (isHome ? className : "")}
+                user={user}
+                active={tab === "memo"}
+                onClassChange={setPickedId}
+              />
+            </div>
           )}
         </div>
       </div>
