@@ -18,6 +18,7 @@ import {
   unarchiveClass,
   deleteClass,
   reorderClasses,
+  regenerateJoinCode,
 } from "@/lib/store";
 import ConfirmModal from "./ConfirmModal";
 import ClassJoinCode from "./ClassJoinCode";
@@ -115,10 +116,20 @@ export default function ClassManagerModal({
     }
   }
 
-  function handleCodeRegenerating(classId, regenerating) {
-    setRegeneratingCodeIds((ids) => regenerating
-      ? [...ids, classId]
-      : ids.filter((id) => id !== classId));
+  // 코드 재발급 — 단추가 카드 머리줄(편집 옆)과 전체 화면 둘에 있어서,
+  // 상태를 여기서 들고 두 곳에 같은 것을 내려 줍니다. 보관 단추도 이 값을
+  // 보고 잠깁니다(재발급 도중에 반을 보관하면 코드가 어긋납니다).
+  async function handleRegenerateCode(c) {
+    if (busyId === c.id || regeneratingCodeIds.includes(c.id)) return;
+    setRegeneratingCodeIds((ids) => [...ids, c.id]);
+    setError("");
+    try {
+      await regenerateJoinCode(c.id, user);
+    } catch {
+      setError("코드를 재발급하지 못했어요. 잠시 후 다시 시도해 주세요.");
+    } finally {
+      setRegeneratingCodeIds((ids) => ids.filter((id) => id !== c.id));
+    }
   }
 
   async function handleArchive(c) {
@@ -202,6 +213,9 @@ export default function ClassManagerModal({
 
         <div className="class-mgr-section">
           <div className="class-mgr-section-title">운영 중인 반 ({active.length})</div>
+          {active.length > 0 && (
+            <p className="class-mgr-section-hint">학생은 공부방 입장 화면에서 아래 입장 코드를 입력합니다.</p>
+          )}
           {active.length === 0 ? (
             <p className="empty-note">아직 만든 반이 없어요.</p>
           ) : (
@@ -247,6 +261,20 @@ export default function ClassManagerModal({
                       </button>
                       <button
                         type="button"
+                        className="btn-ghost class-mgr-regen"
+                        onClick={() => handleRegenerateCode(c)}
+                        disabled={busyId === c.id || regeneratingCodeIds.includes(c.id)}
+                        title="새 입장 코드를 발급해요. 지금 코드는 더 이상 쓸 수 없어요"
+                        aria-label="입장 코드 재발급"
+                      >
+                        🔄
+                        {/* 좁은 화면에서는 글자만 접습니다 — 세 단추가 이름을 밀어냅니다 */}
+                        <span className="class-mgr-regen-label">
+                          {regeneratingCodeIds.includes(c.id) ? " 재발급 중…" : " 재발급"}
+                        </span>
+                      </button>
+                      <button
+                        type="button"
                         className="btn-ghost"
                         onClick={() => handleArchive(c)}
                         disabled={busyId === c.id || regeneratingCodeIds.includes(c.id)}
@@ -259,9 +287,9 @@ export default function ClassManagerModal({
                   <ClassJoinCode
                     classroom={c}
                     codeInfo={joinCodesMap[c.id]}
-                    user={user}
                     disabled={busyId === c.id}
-                    onRegeneratingChange={handleCodeRegenerating}
+                    regenerating={regeneratingCodeIds.includes(c.id)}
+                    onRegenerate={() => handleRegenerateCode(c)}
                   />
                 </li>
               ))}
