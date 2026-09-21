@@ -4812,11 +4812,19 @@ button.understood-bulb:hover {
   box-shadow: 0 0 0 3px rgba(217, 119, 87, 0.16);
 }
 
+/* 도구가 줄보다 많으면 **줄어들지 않고 옆으로 구릅니다** — 아이콘을 쭈그려
+   알아보기 어렵게 만드는 것보다 낫습니다(상단바 이동 메뉴와 같은 방식).
+   단추마다 `flex-shrink: 0`이 있어야 이 구르기가 실제로 걸립니다. */
 .rte-toolbar {
   display: flex;
   align-items: center;
   gap: 2px;
   padding: 6px 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.rte-toolbar::-webkit-scrollbar {
+  display: none;
 }
 
 .rte-full .rte-toolbar {
@@ -4885,18 +4893,35 @@ code.rte-code-glyph {
   flex-shrink: 0;
 }
 
-/* 종이비행기 전송 버튼 (채팅 툴바 오른쪽 끝) */
+/* 전송 버튼 — 박스 **바깥 아래**의 제 줄, 오른쪽 끝.
+   한때 채팅 툴바 오른쪽 끝에 있었는데, 그 줄에 도구가 아홉이라 좁은 칸
+   (질문 모달 오른쪽 390px 남짓)에서 줄을 넘겨 **버튼이 세로로 잘렸습니다**
+   (실제 신고). 줄을 따로 두면 폭에 안 걸리고 글자도 달 수 있습니다. */
+.rte-sendrow {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+  flex-shrink: 0;
+}
+/* 모둠 메모 칸은 제 `gap`(10px)이 이미 줄 사이를 벌려 둡니다 — 거기서는
+   위 여백을 풀어야 이 줄만 위아래 간격이 다르게 벌어지지 않습니다. */
+.gmemo-thread-pane > .rte-sendrow {
+  margin-top: 0;
+}
+
 .rte-send {
-  margin-left: auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
+  gap: 6px;
   height: 34px;
+  padding: 0 16px;
   border: none;
   border-radius: 10px;
   background: var(--primary);
   color: #fff;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
   flex-shrink: 0;
 }
@@ -19320,11 +19345,13 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
   /* 입력창 */
   .chat-compose { flex-shrink: 0; background: #fff; }
 
-  /* ── 에디터 툴바: 버튼 축소 → 전송 버튼 화면 밖으로 삐져나오지 않도록 ── */
+  /* ── 에디터 툴바: 좁은 화면에서는 버튼을 조금 줄여 한 줄에 더 담습니다
+     (넘치면 옆으로 구릅니다 — 전송은 이제 아래 제 줄이라 안 걸립니다) ── */
   .rte-toolbar { padding: 4px; gap: 1px; }
   .rte-tool { width: 26px; height: 26px; border-radius: 6px; }
   .rte-divider { margin: 0 3px; }
-  .rte-send { width: 30px; height: 30px; border-radius: 8px; }
+  .rte-sendrow { margin-top: 6px; }
+  .rte-send { height: 32px; padding: 0 14px; border-radius: 8px; }
 
   /* ──────────────────────────────────────────────────────────
      카드 내 텍스트 레이블 숨김 → 아이콘+숫자만 표시

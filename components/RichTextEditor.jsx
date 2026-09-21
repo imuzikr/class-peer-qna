@@ -6,9 +6,12 @@
 // 굵게 / 기울임 / 밑줄 / 글머리 기호 / 번호 목록을 지원합니다.
 //
 //   variant="full" : 박스 상단에 툴바 (질문·공지 작성용)
-//   variant="chat" : 박스 하단에 툴바 + 종이비행기 전송 버튼 (채팅용)
+//   variant="chat" : 박스 하단에 툴바 + **박스 아래 제 줄에** 전송 버튼
 //
-// toolbarTop: chat이면서 툴바만 위로 올립니다(전송 버튼은 그대로 툴바에).
+// chat은 컴포넌트가 **두 덩이**를 내놓습니다 — 박스(.rte)와 그 아래
+// 전송 줄(.rte-sendrow). 쓰는 자리가 세로 flex라야 줄이 제대로 섭니다.
+//
+// toolbarTop: chat이면서 툴바만 위로 올립니다(전송 줄은 그대로 맨 아래).
 //   메신저는 툴바가 아래인 것이 익숙하지만, '쓰는 칸'이 넓고 서식을 실제로
 //   쓰는 자리(모둠 메모)에서는 **꾸미개가 먼저, 쓰는 칸이 그다음**이라야
 //   질문·공지 작성 창과 순서가 같아집니다.
@@ -692,18 +695,27 @@ export default function RichTextEditor({
 
       {variant === "full" && children && <span className="rte-divider" />}
       {variant === "full" && children}
+    </div>
+  );
 
-      {variant === "chat" && (
-        <button
-          type="button"
-          className="rte-send"
-          title="전송 (Ctrl+Enter)"
-          disabled={sendDisabled}
-          onClick={onSend}
-        >
-          <IconSend />
-        </button>
-      )}
+  // 전송은 **툴바가 아니라 박스 아래 제 줄**입니다. 채팅 에디터가 서는
+  // 자리는 질문 모달의 오른쪽 칸·모둠 메모의 오른쪽 칸처럼 좁아서(실측
+  // 390px 남짓), 도구 아홉에 전송까지 한 줄에 세우면 줄이 넘쳐 **오른쪽
+  // 끝의 전송 버튼이 잘렸습니다**(.rte가 overflow: hidden이라 그대로 깎임).
+  // 아래로 내리면 폭에 기대지 않고, 글자('보내기')까지 달 자리가 생겨
+  // 무엇을 누르는 단추인지 그림 하나로 짐작하지 않아도 됩니다.
+  const sendRow = variant === "chat" && (
+    <div className="rte-sendrow">
+      <button
+        type="button"
+        className="rte-send"
+        title="전송 (Ctrl+Enter)"
+        disabled={sendDisabled}
+        onClick={onSend}
+      >
+        <IconSend />
+        보내기
+      </button>
     </div>
   );
 
@@ -721,21 +733,28 @@ export default function RichTextEditor({
     />
   );
 
+  // 전송 줄은 박스의 **형제**입니다(감싸는 칸을 새로 두지 않습니다) —
+  // 이 에디터를 쓰는 채팅 자리는 둘 다 세로 flex라 그대로 아래 줄이 되고,
+  // 바깥에 칸을 하나 더 두면 `.rte`를 겨냥해 둔 바깥 규칙들이 한 겹
+  // 어긋납니다.
   return (
-    <div
-      className={`rte rte-${variant}${toolbarTop ? " rte-toolbar-top" : ""} ${small ? "rte-sm" : ""} ${className}`.trim()}
-    >
-      {variant === "full" || toolbarTop ? (
-        <>
-          {toolbar}
-          {area}
-        </>
-      ) : (
-        <>
-          {area}
-          {toolbar}
-        </>
-      )}
-    </div>
+    <>
+      <div
+        className={`rte rte-${variant}${toolbarTop ? " rte-toolbar-top" : ""} ${small ? "rte-sm" : ""} ${className}`.trim()}
+      >
+        {variant === "full" || toolbarTop ? (
+          <>
+            {toolbar}
+            {area}
+          </>
+        ) : (
+          <>
+            {area}
+            {toolbar}
+          </>
+        )}
+      </div>
+      {sendRow}
+    </>
   );
 }
