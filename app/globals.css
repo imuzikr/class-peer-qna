@@ -4312,11 +4312,20 @@ button.footer-link:hover {
   color: #fff;
 }
 
+/* 말풍선 아래 한 줄 — 반응(왼쪽) + 내 글 고치기·지우기(오른쪽).
+   줄을 따로 두면 말풍선 사이가 그만큼 벌어져 대화가 성기어집니다. */
+.chat-msg-foot {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 4px 0;
+}
+
 /* 답변 말풍선 아래 작은 반응(엄지 척/하트/웃는 얼굴) */
 .chat-reactions {
   display: flex;
   gap: 4px;
-  margin: 4px 4px 0;
 }
 .chat-reaction-btn {
   display: inline-flex;
@@ -4352,6 +4361,63 @@ button.footer-link:hover {
 }
 .chat-reaction-btn.active .chat-reaction-count {
   color: var(--primary-dark);
+}
+
+/* 내 답변 고치기·지우기 — 글자만 둡니다. 옆의 반응이 테두리 있는 알약이라,
+   여기까지 알약을 두면 한 줄에 누를 것이 다섯이 되어 무엇이 '내 글에 하는
+   일'인지 묻힙니다. 삭제만 위험한 빛깔로 갈라 둡니다. */
+.chat-own-tools {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.chat-own-btn {
+  padding: 2px 6px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--text-sub);
+  font-size: 12px;
+  line-height: 1.6;
+  cursor: pointer;
+}
+.chat-own-btn:hover:not(:disabled) {
+  background: var(--neutral);
+  color: var(--text);
+}
+.chat-own-btn--del:hover:not(:disabled) {
+  color: var(--danger);
+}
+.chat-own-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* 고치는 동안에는 그 말풍선만 가로를 다 씁니다 — 88%짜리 말풍선 폭에
+   에디터를 욱여넣으면 툴바가 넘칩니다. */
+.chat-msg--editing {
+  align-items: stretch;
+}
+.chat-edit {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+.chat-edit-note {
+  margin: 6px 2px 0;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+.chat-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 8px;
+}
+.chat-edit-actions .btn-ghost,
+.chat-edit-actions .btn-primary {
+  padding: 6px 14px;
+  font-size: 13px;
 }
 
 .understood-bulb {

@@ -15,6 +15,8 @@ import {
   setQuestionPinned,
   setUnderstoodAnswer,
   setAnswerReaction,
+  updateAnswer,
+  deleteAnswer,
   deleteQuestion,
 } from "@/lib/store";
 import { isPinnedQuestion } from "@/lib/questionRanking";
@@ -68,6 +70,11 @@ export default function QuestionModal({
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [pinBusy, setPinBusy] = useState(false); // 고정 토글 중복 클릭 방지
   const [resetKey, setResetKey] = useState(0); // 전송 후 에디터 비우기
+  // 내 답변 고치기 — 말풍선 자리에서 바로 (id 하나만 열립니다)
+  const [editingAnswerId, setEditingAnswerId] = useState(null);
+  const [answerDraft, setAnswerDraft] = useState("");
+  const [answerBusy, setAnswerBusy] = useState(false);
+  const [deletingAnswer, setDeletingAnswer] = useState(null); // { id } | null
   const [qExpanded, setQExpanded] = useState(false); // 모바일: 질문 접기/펼치기
   const scrollRef = useRef(null);    // 모바일: qa-grid 단일 스크롤 컨테이너
   const chatScrollRef = useRef(null); // 데스크톱: chat-scroll 컨테이너
@@ -165,6 +172,50 @@ export default function QuestionModal({
       setResetKey((k) => k + 1); // 에디터 비우기
     } finally {
       setSaving(false);
+    }
+  }
+
+  // ── 내 답변 고치기·지우기 ──────────────────────────────────
+  // 고치는 것은 **본문 글뿐**입니다. 첨부 이미지는 그대로 두고 아래에 그대로
+  // 보여 줍니다 — 규칙이 작성자에게 열어 둔 것도 본문·첨부지만, 첨부를 여기서
+  // 손대게 하면 '고치기'가 답변을 새로 쓰는 일만큼 커집니다.
+  function startEditAnswer(a) {
+    setEditingAnswerId(a.id);
+    setAnswerDraft(a.content ?? "");
+  }
+
+  function cancelEditAnswer() {
+    setEditingAnswerId(null);
+    setAnswerDraft("");
+  }
+
+  async function saveEditAnswer(a) {
+    if (answerBusy) return;
+    const html = sanitizeHtml(answerDraft);
+    const hasContent = stripHtml(html).length > 0 || htmlHasImage(html);
+    const hasImages =
+      !!a.imageUrl || (a.images ?? []).length > 0;
+    // 글을 통째로 비우면 빈 말풍선이 남습니다 — 지우려면 '삭제'로.
+    if (!hasContent && !hasImages) return;
+    setAnswerBusy(true);
+    try {
+      await updateAnswer(question.id, a.id, hasContent ? html : "");
+      cancelEditAnswer();
+    } finally {
+      setAnswerBusy(false);
+    }
+  }
+
+  async function confirmDeleteAnswer() {
+    const target = deletingAnswer;
+    setDeletingAnswer(null);
+    if (!target || answerBusy) return;
+    setAnswerBusy(true);
+    try {
+      await deleteAnswer(question.id, target.id);
+      if (editingAnswerId === target.id) cancelEditAnswer();
+    } finally {
+      setAnswerBusy(false);
     }
   }
 
@@ -439,6 +490,26 @@ export default function QuestionModal({
                     onReact={(kind, active) =>
                       setAnswerReaction(question.id, a.id, kind, user.uid, !active)
                     }
+                    /* 고치고 지우는 것은 **쓴 사람 본인만**입니다(규칙도 그렇게
+                       열려 있습니다). 다만 질문자가 '이해됐어요'로 짚은 답변은
+                       못 지웁니다 — 지우면 질문 문서의 understoodAnswerId가
+                       없는 답변을 가리킨 채 '해결됨'으로 남는데, 그 값을
+                       치우는 것은 질문자·교사만 할 수 있습니다. */
+                    canEdit={isMine}
+                    canDelete={isMine}
+                    deleteBlockedReason={
+                      understoodAnswerId === a.id
+                        ? "질문자가 '이해됐어요'로 표시한 답변이라 지울 수 없어요. 표시를 먼저 해제해 주세요."
+                        : ""
+                    }
+                    onEdit={() => startEditAnswer(a)}
+                    onDelete={() => setDeletingAnswer({ id: a.id })}
+                    editing={editingAnswerId === a.id}
+                    editBusy={answerBusy}
+                    editDraft={answerDraft}
+                    onEditChange={setAnswerDraft}
+                    onEditCancel={cancelEditAnswer}
+                    onEditSave={() => saveEditAnswer(a)}
                   />
                 );
               })}
@@ -562,6 +633,25 @@ export default function QuestionModal({
           onClose={() => setConfirmingDelete(false)}
         />
       )}
+
+      {/* 답변 삭제 확인 — 한 줄 미리보기로 '어느 답변인지'를 밝힙니다.
+          대화가 길면 어느 말풍선의 삭제를 눌렀는지 창만 보고는 모릅니다. */}
+      {deletingAnswer && (
+        <ConfirmModal
+          icon={<IconTrash size={40} />}
+          title="답변 삭제"
+          preview={
+            stripHtml(
+              answers.find((a) => a.id === deletingAnswer.id)?.content ?? ""
+            ).slice(0, 60) || "(이미지만 있는 답변)"
+          }
+          description={"이 답변과 첨부한 이미지가 영구 삭제됩니다.\n삭제 후 복구할 수 없습니다."}
+          confirmLabel="삭제하기"
+          danger
+          onConfirm={confirmDeleteAnswer}
+          onClose={() => setDeletingAnswer(null)}
+        />
+      )}
     </div>
   );
 }
@@ -598,10 +688,30 @@ function ChatMessage({
   reactions = null,
   reactable = false,
   onReact,
+  // 내 답변 고치기·지우기 (질문 말풍선에는 안 넘깁니다 — 질문의 수정·삭제는
+  // 왼쪽 칸 아래에 이미 있습니다)
+  canEdit = false,
+  canDelete = false,
+  deleteBlockedReason = "",
+  onEdit,
+  onDelete,
+  editing = false,
+  editBusy = false,
+  editDraft = "",
+  onEditChange,
+  onEditCancel,
+  onEditSave,
 }) {
   const hasText = stripHtml(html ?? "").length > 0;
+  const pics = [...(imageUrl ? [imageUrl] : []), ...(images ?? [])];
+  const draftHtml = sanitizeHtml(editDraft ?? "");
+  // 글을 통째로 비우면 빈 말풍선이 남습니다 — 첨부가 있을 때만 빈 글을 허용.
+  const canSaveEdit =
+    stripHtml(draftHtml).length > 0 || htmlHasImage(draftHtml) || pics.length > 0;
   return (
-    <div className={`chat-msg ${mine ? "mine" : ""} ${understood ? "understood" : ""}`}>
+    <div
+      className={`chat-msg ${mine ? "mine" : ""} ${understood ? "understood" : ""}${editing ? " chat-msg--editing" : ""}`}
+    >
       <div className="chat-meta">
         {badge && <span className="chat-badge">{badge}</span>}
         {showUnderstoodIcon && (
@@ -637,34 +747,99 @@ function ChatMessage({
         {" · "}
         <time>{formatTime(time)}</time>
       </div>
-      <div className="chat-bubble">
-        {hasText && (
-          <div
-            dangerouslySetInnerHTML={{ __html: sanitizeHtml(html) }}
+      {editing ? (
+        /* 고치는 자리는 **말풍선 그 자리**입니다 — 창을 새로 띄우면 앞뒤로
+           오간 말이 가려져, 무엇에 답한 글인지 보면서 고칠 수 없습니다.
+           그동안만 가로를 다 쓰고(`--editing`) 첨부는 아래에 그대로 둡니다. */
+        <div className="chat-edit">
+          <RichTextEditor
+            variant="full"
+            small
+            initialHtml={editDraft}
+            onChange={onEditChange}
+            placeholder="답변을 고쳐 보세요"
           />
-        )}
-        {[...(imageUrl ? [imageUrl] : []), ...(images ?? [])].map((src, i) => (
-          <ZoomableImage key={i} src={src} alt="첨부 이미지" className="chat-image" />
-        ))}
-      </div>
-
-      {/* 답변 반응 — 정답이 아니어도 응답자의 노력을 칭찬하는 작은 이모티콘.
-          같은 이모티콘을 다시 누르면 취소되고, 본인 답변에는 반응할 수 없습니다. */}
-      {reactions && (
-        <div className="chat-reactions">
-          {reactions.map((r) => (
+          {pics.length > 0 && (
+            <p className="chat-edit-note">
+              첨부한 이미지 {pics.length}장은 그대로 남아요.
+            </p>
+          )}
+          <div className="chat-edit-actions">
             <button
-              key={r.kind}
               type="button"
-              className={`chat-reaction-btn${r.active ? " active" : ""}`}
-              onClick={() => onReact(r.kind, r.active)}
-              disabled={!reactable}
-              title={!reactable ? "내 답변에는 반응할 수 없어요" : r.active ? "반응 취소" : "반응 남기기"}
+              className="btn-ghost"
+              onClick={onEditCancel}
+              disabled={editBusy}
             >
-              <span className="chat-reaction-emoji">{r.emoji}</span>
-              <span className="chat-reaction-count">{r.count}</span>
+              취소
             </button>
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={onEditSave}
+              disabled={editBusy || !canSaveEdit}
+              title={canSaveEdit ? "" : "내용을 비울 수는 없어요 — 지우려면 '삭제'를 누르세요"}
+            >
+              {editBusy ? "저장 중…" : "저장"}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="chat-bubble">
+          {hasText && (
+            <div
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(html) }}
+            />
+          )}
+          {pics.map((src, i) => (
+            <ZoomableImage key={i} src={src} alt="첨부 이미지" className="chat-image" />
           ))}
+        </div>
+      )}
+
+      {/* 말풍선 아래 한 줄 — 왼쪽은 반응(정답이 아니어도 응답자의 노력을
+          칭찬하는 작은 이모티콘. 같은 것을 다시 누르면 취소되고 본인 답변에는
+          못 답니다), 오른쪽은 내 글을 고치고 지우는 자리입니다. 줄을 따로
+          두지 않고 한 줄에 담아 말풍선 사이가 벌어지지 않게 합니다. */}
+      {!editing && (reactions || canEdit || canDelete) && (
+        <div className="chat-msg-foot">
+          {reactions && (
+            <div className="chat-reactions">
+              {reactions.map((r) => (
+                <button
+                  key={r.kind}
+                  type="button"
+                  className={`chat-reaction-btn${r.active ? " active" : ""}`}
+                  onClick={() => onReact(r.kind, r.active)}
+                  disabled={!reactable}
+                  title={!reactable ? "내 답변에는 반응할 수 없어요" : r.active ? "반응 취소" : "반응 남기기"}
+                >
+                  <span className="chat-reaction-emoji">{r.emoji}</span>
+                  <span className="chat-reaction-count">{r.count}</span>
+                </button>
+              ))}
+            </div>
+          )}
+          {(canEdit || canDelete) && (
+            <div className="chat-own-tools">
+              {canEdit && (
+                <button type="button" className="chat-own-btn" onClick={onEdit}>
+                  수정
+                </button>
+              )}
+              {canDelete && (
+                <button
+                  type="button"
+                  className="chat-own-btn chat-own-btn--del"
+                  onClick={onDelete}
+                  disabled={!!deleteBlockedReason}
+                  title={deleteBlockedReason || "이 답변을 지웁니다"}
+                >
+                  삭제
+                </button>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
