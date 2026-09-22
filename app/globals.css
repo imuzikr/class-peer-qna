@@ -15016,9 +15016,13 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   color: var(--text-sub);
 }
 
+/* 좁은 화면에서는 **옆으로 구릅니다** — 출석 기록 칸이 밀리초까지 적으며
+   길어져, 안 두면 표가 이 테두리 밖으로 삐져나갑니다(실측 400px에서 48px).
+   글자를 줄이는 대신 구르게 하는 것은 상단바 이동 메뉴와 같은 방식입니다. */
 .study-attendance-table-wrap {
   border: 1px solid var(--border);
   border-radius: 12px;
+  overflow-x: auto;
 }
 
 .study-attendance-table {
@@ -27131,7 +27135,22 @@ ul.checklist > li.done {
 .attendance-seat--present { background: #e8f7ed; border-color: #8fcea3; }
 .attendance-seat strong { max-width: 100%; font-size: 14px; overflow-wrap: anywhere; }
 .attendance-seat-number,
-.attendance-seat-time { font-size: 12px; color: var(--text-sub); }
+/* 찍힌 시각은 **고정폭 숫자**로 — 밀리초까지 적으면 자리마다 글자 폭이
+   달라 세로로 훑을 때 자릿수가 어긋나 보입니다(표에서는 열이 들쭉날쭉).
+   한 줄에 다 서야 순서를 눈으로 좇을 수 있어 줄바꿈도 막습니다. */
+.attendance-seat-time,
+.study-attendance-at {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.attendance-seat-time { font-size: 11.5px; color: var(--text-sub); }
+/* 내 출석 목록에서는 '출석' 뒤에 붙는 딸림값이라 한 칸 띄웁니다 */
+.study-attendance-list .study-attendance-at {
+  margin-left: 8px;
+  color: var(--text-sub);
+  font-size: 12px;
+}
 .attendance-seat .study-attendance-status { flex-shrink: 0; white-space: nowrap; }
 .attendance-seat--empty { border-style: dashed; background: transparent; color: var(--text-sub); font-size: 12px; }
 .attendance-seat-help { margin: 0 0 12px; font-size: 13px; color: var(--text-sub); }

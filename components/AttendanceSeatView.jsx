@@ -1,6 +1,6 @@
 "use client";
 
-import { toDate } from "@/lib/store";
+import { toDate, formatClockMs } from "@/lib/store";
 import { normalizeSeats } from "@/lib/seats";
 import SeatGrid from "./SeatGrid";
 import SeatViewToggle from "./SeatViewToggle";
@@ -15,9 +15,11 @@ function AttendanceSeat({ student }) {
       <span className={`study-attendance-status${student.record ? " on" : ""}`}>
         {student.record ? "출석" : "기록 없음"}
       </span>
-      {timestamp && (
+      {/* 밀리초까지 — 칸이 좁아 시각만 적습니다(날짜는 위 머리줄이 말합니다).
+          `dateTime`에는 ISO 그대로 넣어 두어 기계가 읽는 값도 정밀합니다. */}
+      {formatClockMs(timestamp) && (
         <time className="attendance-seat-time" dateTime={toDate(timestamp).toISOString()}>
-          {toDate(timestamp).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: false })}
+          {formatClockMs(timestamp)}
         </time>
       )}
     </div>

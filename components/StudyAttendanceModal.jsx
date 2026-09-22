@@ -9,7 +9,7 @@
 // =============================================================
 import { useMemo, useState } from "react";
 import { backdropClose } from "@/lib/modal";
-import { toDate, todayDateKey } from "@/lib/store";
+import { todayDateKey, formatClockMs, formatStampMs } from "@/lib/store";
 import AttendanceSeatView from "./AttendanceSeatView";
 import {
   downloadAttendanceWorkbook,
@@ -22,17 +22,6 @@ function formatDateLabel(dateKey) {
   if (!dateKey) return "";
   const [year, month, day] = String(dateKey).split("-");
   return `${year}.${month}.${day}`;
-}
-
-function formatDateTime(value) {
-  const date = toDate(value);
-  return date.toLocaleString("ko-KR", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 }
 
 function toDateKey(year, month, day) {
@@ -337,10 +326,15 @@ function AttendanceTable({ rows }) {
                   {student.record ? "출석" : "기록 없음"}
                 </span>
               </td>
+              {/* 밀리초까지 — 같은 분에 여러 명이 찍혔을 때 순서가 여기서
+                  드러납니다. 서버가 답하기 전(빈 값)이면 지어낸 숫자를
+                  찍지 않고 '-'입니다. */}
               <td>
-                {student.record
-                  ? formatDateTime(student.record.attendedAt || student.record.createdAt)
-                  : "-"}
+                <span className="study-attendance-at">
+                  {formatStampMs(
+                    student.record?.attendedAt || student.record?.createdAt
+                  ) || "-"}
+                </span>
               </td>
             </tr>
           ))}
@@ -532,7 +526,16 @@ export default function StudyAttendanceModal({
               {records.map((record) => (
                 <li key={record.id}>
                   <strong>{formatDateLabel(record.date)}</strong>
-                  <span>출석</span>
+                  <span>
+                    출석
+                    {/* 내 기록에도 찍힌 시각을 적습니다 — 날짜만 있으면
+                        '언제 눌렀더라'를 학생이 확인할 길이 없습니다. */}
+                    {formatClockMs(record.attendedAt || record.createdAt) && (
+                      <span className="study-attendance-at">
+                        {formatClockMs(record.attendedAt || record.createdAt)}
+                      </span>
+                    )}
+                  </span>
                 </li>
               ))}
             </ul>
