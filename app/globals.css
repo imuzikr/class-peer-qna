@@ -7162,11 +7162,6 @@ pre code {
   margin-bottom: 16px;
   font-size: 26px;
 }
-/* 지우는 일이 아닌 되묻기('멋진 순간'처럼 주는 일)는 붉은 기를 걷습니다 —
-   붉은 동그라미는 이 앱에서 '되돌릴 수 없다'는 뜻으로 쓰고 있어서, 과일을
-   주는 창에 두면 무언가 잘못되는 일로 읽힙니다. 기본(danger)은 그대로라
-   지금까지 부르던 곳은 한 곳도 안 바뀝니다. */
-.confirm-icon-wrap--reward { background: var(--primary-light); }
 
 .confirm-title {
   font-size: 18px;

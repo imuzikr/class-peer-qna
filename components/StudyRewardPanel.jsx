@@ -23,8 +23,8 @@
 //
 // 헤더의 « 버튼으로 접기 — 접으면 세로 슬림 바(개인 설정, localStorage).
 // =============================================================
-import { useEffect, useState } from "react";
-import { subscribeQuestionSignals } from "@/lib/store";
+import { useEffect, useRef, useState } from "react";
+import { subscribeQuestionSignals, REWARD_MAX } from "@/lib/store";
 import { backdropClose } from "@/lib/modal";
 import { normalizeSeats } from "@/lib/seats";
 import { useTodayRewardCounts } from "@/lib/useTodayRewards";
@@ -33,7 +33,6 @@ import RewardTally from "./RewardTally";
 import StudentToolsPopover from "./StudentToolsPopover";
 import StudentNotesModal from "./StudentNotesModal";
 import SeatViewToggle from "./SeatViewToggle";
-import ConfirmModal from "./ConfirmModal";
 import { useSeatView } from "@/lib/seatView";
 import { IconChair, IconSort } from "./StatusIcons";
 
@@ -43,6 +42,9 @@ const COLLAPSE_KEY = "reward_panel_collapsed";
 // '한 건씩 차례로' 가는 것과 같은 결). 여섯이면 한 반이 네 번에 끝나
 // 학생들 화면의 폭죽이 거의 동시에 터집니다.
 const AWARD_ALL_LANES = 6;
+// 실패한 학생을 이름으로 적어 주는 한도. 이보다 많이 실패하면 대개 연결
+// 문제라, 이름을 스물몇 개 늘어놓아 봐야 토스트만 길어지고 짚을 수도 없습니다.
+const FAILED_NAMES_MAX = 6;
 const GROUP_COLORS = ["#2563eb", "#16a34a", "#f97316", "#9333ea", "#dc2626", "#0891b2"];
 // '자리 배정하기' 모달의 모둠 수 선택([2,3,4,5,6]개)과 같은 범위로 맞춥니다.
 const MIN_GROUPS = 2;
@@ -77,8 +79,10 @@ export default function StudyRewardPanel({
   const [dragUid, setDragUid] = useState(null); // 드래그로 옮기는 중인 학생
   const [pickedUid, setPickedUid] = useState(null); // 짚어 둔 학생(탭으로 옮기기)
   const [zoom, setZoom] = useState(false); // 자리표 확대 보기
-  const [confirmAll, setConfirmAll] = useState(false); // '다 함께' 되묻는 창
   const [awardingAll, setAwardingAll] = useState(0); // 다 함께 주는 중 — 남은 인원
+  // 되묻는 창을 걷어 내 한 번의 실수가 곧 스물몇 건의 쓰기입니다. 상태만으로는
+  // 같은 프레임의 두 번째 클릭을 못 막아(아직 옛 값을 봅니다) ref로 잠급니다.
+  const awardBusyRef = useRef(false);
   // 자리표를 어느 쪽에서 보는가 — 자리표가 나오는 네 화면이 같은 값을
   // 함께 씁니다(lib/seatView.js). 한 화면에서 뒤집으면 나머지도 따라옵니다.
   const [teacherView, toggleSeatView] = useSeatView();
@@ -276,12 +280,23 @@ export default function StudyRewardPanel({
   // 반드시 addStudentReward(델타)로' 참고). 여기는 한꺼번에 스물몇 명이라
   // 그 위험이 더 큽니다.
   async function awardAll() {
-    setConfirmAll(false);
+    // **ref로 막습니다.** 되묻는 창이 없어져 한 번의 실수가 곧 스물몇 건의
+    // 쓰기라, 빠른 더블클릭을 걸러야 합니다. `awardingAll`은 상태라 같은
+    // 프레임의 두 번째 클릭이 아직 옛 값(0)을 보고 지나갑니다.
+    if (awardBusyRef.current) return;
     const targets = awardTargets;
-    if (awardingAll > 0 || targets.length === 0) return;
+    if (targets.length === 0) return;
 
-    setAwardingAll(targets.length);
-    const queue = [...targets];
+    // **이미 가득 찬 학생은 빼고 셉니다.** `addStudentReward`는 천장
+    // (`REWARD_MAX`)에 닿으면 값도 안 올리고 이력도 안 남기는데 오류를
+    // 던지지도 않아, 그냥 보내면 '줬다'로 세어집니다. 누적은 명단이 이미
+    // 들고 있으므로(`roster[].count`) 읽기가 늘지 않습니다.
+    const maxed = targets.filter((s) => (s.count ?? 0) >= REWARD_MAX);
+    const sendable = targets.filter((s) => (s.count ?? 0) < REWARD_MAX);
+
+    awardBusyRef.current = true;
+    setAwardingAll(sendable.length);
+    const queue = [...sendable];
     const failed = [];
     let given = 0;
     // 여섯 줄로 나눠 보냅니다. shift()는 await 앞에서 끝나므로(자바스크립트는
@@ -299,20 +314,34 @@ export default function StudyRewardPanel({
       }
     }
     await Promise.all(
-      Array.from({ length: Math.min(AWARD_ALL_LANES, targets.length) }, lane)
+      Array.from({ length: Math.min(AWARD_ALL_LANES, sendable.length) }, lane)
     );
     setAwardingAll(0);
+    awardBusyRef.current = false;
 
-    // **못 준 학생은 이름으로 알립니다.** '3명 실패'라고만 하면 다시 누르게
-    // 되는데, 그러면 이미 받은 학생이 한 번 더 받습니다. 누구인지 알면
-    // 그 자리만 눌러 주면 됩니다.
-    if (failed.length === 0) {
-      onToast?.(`${given}명에게 🍊를 하나씩 줬어요.`);
-    } else {
-      onToast?.(
-        `${given}명에게 줬어요. ${failed.join(", ")}에게는 주지 못했어요 — 그 자리를 눌러 따로 주세요.`
+    // **결과는 토스트 한 줄이 전부입니다** — 되묻는 창을 걷어 내 이제 이것이
+    // 유일한 알림입니다. 그래서 '줬다'만 말하지 않고 **안 간 사람도** 함께
+    // 적습니다(못 준 학생 · 이미 가득 찬 학생).
+    const parts = [];
+    if (given > 0) parts.push(`${given}명에게 🍊를 하나씩 줬어요.`);
+    if (maxed.length > 0) {
+      parts.push(`이미 ${REWARD_MAX}개를 채운 ${maxed.length}명은 그대로예요.`);
+    }
+    if (failed.length > 0) {
+      // **이름으로 알립니다.** '3명 실패'라고만 하면 교사가 단추를 다시
+      // 누르게 되고, 그러면 이미 받은 학생이 하나 더 받습니다. 누구인지
+      // 알면 그 자리만 눌러 따로 주면 됩니다.
+      //
+      // 다만 여럿이 한꺼번에 실패하는 것은 대개 연결 문제라, 이름 스물몇
+      // 개를 늘어놓아 봐야 토스트만 길어지고 짚을 수도 없습니다. 그때는
+      // 수만 적습니다(`FAILED_NAMES_MAX`).
+      parts.push(
+        failed.length <= FAILED_NAMES_MAX
+          ? `${failed.join(", ")}에게는 주지 못했어요 — 그 자리를 눌러 따로 주세요.`
+          : `${failed.length}명에게는 주지 못했어요 — 연결을 확인하고 자리를 눌러 따로 주세요.`
       );
     }
+    onToast?.(parts.join(" "));
   }
 
   function openTools(student, el = null) {
@@ -381,7 +410,7 @@ export default function StudyRewardPanel({
               <button
                 type="button"
                 className="reward-seat-flip reward-seat-all"
-                onClick={() => setConfirmAll(true)}
+                onClick={awardAll}
                 disabled={!!awardAllBlocked || awardingAll > 0}
                 title={awardAllBlocked ?? `${awardWho}에게 과일을 하나씩 줍니다`}
               >
@@ -612,26 +641,6 @@ export default function StudyRewardPanel({
         />
       )}
 
-      {/* 다 함께 주기 — **몇 명에게 주는지를 먼저 말합니다.** 되돌리려면
-          자리를 하나씩 눌러 −1을 스물몇 번 해야 하므로, 누르기 전에 수를
-          보여 주는 편이 맞습니다(책방 휴지통 비우기와 같은 생각).
-          danger는 아닙니다 — 지우는 일이 아니라 주는 일입니다. */}
-      {confirmAll && (
-        <ConfirmModal
-          icon="🍊"
-          iconTone="reward"
-          title="다 함께 주기"
-          description={
-            `${awardWho}에게 과일을 하나씩 줍니다.\n학생들 화면에도 폭죽이 터져요.` +
-            // 받는 중이면 그 사실만 한 줄 더 — 지금 찍힌 사람까지만 간다는
-            // 뜻입니다. 출석을 끝낸 보통 날에는 군말 없이.
-            (attendanceOpen ? "\n\n출석을 받는 중이라 더 올 수도 있어요." : "")
-          }
-          confirmLabel={`${awardTargets.length}명에게 주기`}
-          onConfirm={awardAll}
-          onClose={() => setConfirmAll(false)}
-        />
-      )}
       </div>
     </aside>
   );
