@@ -61,7 +61,7 @@ export default function StudyRewardPanel({
   attendanceOpen = false,
   onSaveSeats,
   onSaveGroups,
-  // '다 함께 주기'의 결과를 알리는 데만 씁니다(페이지의 Toast).
+  // '다 함께'의 결과를 알리는 데만 씁니다(페이지의 Toast).
   onToast = null,
 }) {
   const [notesFor, setNotesFor] = useState(null); // 누가기록 모달 대상 학생(교사만)
@@ -77,7 +77,7 @@ export default function StudyRewardPanel({
   const [dragUid, setDragUid] = useState(null); // 드래그로 옮기는 중인 학생
   const [pickedUid, setPickedUid] = useState(null); // 짚어 둔 학생(탭으로 옮기기)
   const [zoom, setZoom] = useState(false); // 자리표 확대 보기
-  const [confirmAll, setConfirmAll] = useState(false); // '멋진 순간' 되묻는 창
+  const [confirmAll, setConfirmAll] = useState(false); // '다 함께' 되묻는 창
   const [awardingAll, setAwardingAll] = useState(0); // 다 함께 주는 중 — 남은 인원
   // 자리표를 어느 쪽에서 보는가 — 자리표가 나오는 네 화면이 같은 값을
   // 함께 씁니다(lib/seatView.js). 한 화면에서 뒤집으면 나머지도 따라옵니다.
@@ -222,7 +222,7 @@ export default function StudyRewardPanel({
   // 중입니다. 세는 대상은 **지금 명단에 있는 학생**뿐입니다 — 반에서 빠진
   // 학생의 옛 출석 기록이 섞이면 분자가 분모를 넘습니다.
   const attendanceDone = !!presentUids && !attendanceOpen;
-  // '멋진 순간'(다 함께 주기)이 줄 대상. 같은 조건으로 뽑아, 머리줄의
+  // '다 함께'가 줄 대상. 같은 조건으로 뽑아, 머리줄의
   // '출석 n/N'에 적힌 그 n명이 곧 받는 사람입니다 — 두 곳이 다른 기준을
   // 쓰면 '21명'이라 적힌 옆의 단추가 다른 수의 학생에게 줍니다.
   const presentStudents = attendanceDone
@@ -245,7 +245,7 @@ export default function StudyRewardPanel({
     maxRewardCount > 0 ? roster.filter((s) => todayOf(s.uid) === maxRewardCount).map((s) => s.uid) : []
   );
 
-  // '멋진 순간' — 왜 지금 못 누르는지. null이면 누를 수 있습니다.
+  // '다 함께' — 왜 지금 못 누르는지. null이면 누를 수 있습니다.
   // 누른 뒤에야 안 되는 걸 알게 하지 않으려고 **까닭을 툴팁에 미리** 적습니다.
   const awardAllBlocked = attendanceOpen
     ? "출석을 받는 중이에요 — 마친 뒤에 눌러 주세요."
@@ -359,10 +359,12 @@ export default function StudyRewardPanel({
                   출석 <b>{presentCount}</b>/{roster.length}
                 </span>
               )}
-              {/* 다 함께 주기 — 반이 통째로 잘한 순간에 누릅니다. 옆의 둘은
+              {/* 다 함께 — 반이 통째로 잘한 순간에 누릅니다. 옆의 둘은
                   '보는 방법'을 바꿀 뿐이지만 이것은 **스물몇 명의 기록을
-                  건드립니다.** 그래서 같은 알약이되 혼자 색이 있고(`.is-act`),
-                  되묻는 창을 한 번 거칩니다. */}
+                  건드립니다.** 그래서 같은 알약이되 혼자 색이 있고
+                  (`.reward-seat-all`), 되묻는 창을 한 번 거칩니다.
+                  이름은 패널 제목('멋진 순간')과 갈라 둡니다 — 한 패널 안에
+                  같은 말이 두 번 서면 무엇을 누르는 자리인지 흐려집니다. */}
               <button
                 type="button"
                 className="reward-seat-flip reward-seat-all"
@@ -373,7 +375,7 @@ export default function StudyRewardPanel({
                   `출석한 ${presentCount}명에게 과일을 하나씩 줍니다`
                 }
               >
-                {awardingAll > 0 ? `주는 중… ${awardingAll}` : "🍊 멋진 순간"}
+                {awardingAll > 0 ? `주는 중… ${awardingAll}` : "🍊 다 함께"}
               </button>
               {/* 지금 어느 쪽에서 본 배치인지 — 누르면 반대쪽으로 돌아갑니다 */}
               <SeatViewToggle teacherView={teacherView} onToggle={toggleSeatView} />
@@ -608,7 +610,7 @@ export default function StudyRewardPanel({
         <ConfirmModal
           icon="🍊"
           iconTone="reward"
-          title="멋진 순간"
+          title="다 함께 주기"
           description={`오늘 출석한 ${presentCount}명에게 과일을 하나씩 줍니다.\n학생들 화면에도 폭죽이 터져요.`}
           confirmLabel={`${presentCount}명에게 주기`}
           onConfirm={awardAll}
