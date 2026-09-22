@@ -25856,6 +25856,22 @@ ul.checklist > li.done {
   gap: 10px;
 }
 .cornell-read-award { font-size: 17px; }
+/* 과일을 준 뒤 단추 자리에 남는 표시 — 누를 수 없는 알약입니다.
+   초록은 이 앱에서 늘 '됐다'는 뜻이라, 기록 관리 수업 노트 탭의 '과일 준
+   카드'(`.notes-mgr-card.awarded`)와 **같은 값**을 씁니다. 두 화면이 같은
+   사실을 말하는데 색이 다르면 한쪽을 보고 다른 쪽을 오해합니다. */
+.cornell-read-given {
+  flex-shrink: 0;
+  padding: 3px 9px;
+  border: 1px solid #a6d8b6;
+  border-radius: 999px;
+  background: #e8f7ed;
+  color: #2f6b45;
+  font-size: 11.5px;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: default;
+}
 .cornell-read-feedback label { display: flex; flex-direction: column; gap: 1px; }
 .cornell-read-feedback label b { font-size: 12.5px; font-weight: 800; color: var(--dark); }
 .cornell-read-feedback label em {

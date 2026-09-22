@@ -67,6 +67,11 @@ export default function CornellNoteReadModal({
   // uid를 받는 함수라 교사가 학생 것을 보는 데도 그대로 씁니다.
   const [rewardCount, setRewardCount] = useState(0);
   const [awarding, setAwarding] = useState(false);
+  // 이번에 방금 준 노트의 id — **서버 시각을 기다리지 않으려고** 따로 듭니다.
+  // 도장(`rewardedAt`)은 `serverTimestamp()`라 서버가 답하기 전까지 화면에
+  // null로 와서(휴지통의 `deletedAt`에서 겪은 그 함정), 그것만 보면 누른 뒤에도
+  // 단추가 한 박자 더 남아 **한 번 더 눌립니다.**
+  const [justAwarded, setJustAwarded] = useState(() => new Set());
   useEffect(() => {
     if (!classId || !student?.uid) { setRewardCount(0); return; }
     return subscribeMyClassRewardCount(classId, student.uid, setRewardCount);
@@ -91,7 +96,12 @@ export default function CornellNoteReadModal({
       // 그날 노트가 없으면 찍을 자리도 없습니다 — 그때는 조용히 넘어갑니다
       // (규칙이 노트 생성을 본인에게만 열어 두어 교사가 대신 못 만듭니다).
       if (note?.id) {
-        await markCornellNoteRewarded(classId, note.id, user).catch(() => {});
+        const id = note.id;
+        await markCornellNoteRewarded(classId, id, user).catch(() => {});
+        // 도장이 실패해도 **단추는 걷습니다** — 과일은 이미 나갔으므로,
+        // 이 창에 단추가 남아 있으면 그것이 곧 두 번 주는 길입니다.
+        // (창을 닫았다 다시 열면 도장이 없어 단추가 돌아옵니다.)
+        setJustAwarded((s) => new Set(s).add(id));
       }
     } finally {
       setAwarding(false);
@@ -114,6 +124,16 @@ export default function CornellNoteReadModal({
 
   const index = notes.findIndex((n) => n.date === date);
   const note = index >= 0 ? notes[index] : null;
+
+  // **이 노트를 읽고 이미 줬나.** 줬으면 단추 자리에 '줬어요'만 남고 누를 수
+  // 없습니다 — 한 노트에 두 번 주는 일을 막고, 무엇보다 '줬던가?'를 화면이
+  // 대신 기억합니다(노트를 넘겨 가며 스물몇 장을 읽는 자리입니다).
+  // 판정은 **노트마다**입니다 — 같은 학생이라도 날짜가 다르면 다른 노트라
+  // 새로 줄 수 있습니다.
+  // `isCornellRewarded`를 쓰지 않는 까닭: 그것은 '피드백을 쓴 날과 같은 날'
+  // 까지 보는 값이라(기록 관리의 카드 색), 피드백보다 과일을 먼저 준 흔한
+  // 경우에 거짓이 되어 **단추가 도로 살아납니다.**
+  const awarded = !!note && (!!note.rewardedAt || justAwarded.has(note.id));
 
   // 노트를 옮길 때마다 피드백 칸을 그 노트의 것으로 되돌립니다.
   // 쓰던 중이면(dirty) 그대로 두지 않고 버립니다 — 다른 학생의 노트에 남긴
@@ -336,20 +356,35 @@ export default function CornellNoteReadModal({
                   <b>선생님 한 마디</b>
                   <em>학생 서랍 맨 위에 그대로 보입니다</em>
                 </label>
-                <button
-                  type="button"
-                  className="study-card-award-btn cornell-read-award"
-                  onClick={award}
-                  disabled={awarding || rewardMaxed}
-                  title={
-                    rewardMaxed
-                      ? "이미 최대 개수예요"
-                      : `${student?.name || "이 학생"}에게 과일 주기 (현재 ${rewardCount}개)`
-                  }
-                  aria-label="과일 주기"
-                >
-                  {nextFruit(rewardCount)}
-                </button>
+                {awarded ? (
+                  /* **준 뒤에는 단추가 사라집니다.** 그 자리에 남는 것은 누를 수
+                     없는 표시 한 개 — 그냥 비워 두면 '줬다'와 '여기엔 원래 단추가
+                     없다'가 같은 모양이 되어, 헷갈리던 것을 그대로 둡니다.
+                     과일 그림은 🍊 — 특정 과일이 아니라 '과일'을 대표하는
+                     자리입니다(누적 🍊 12 · 🍊 확인과 같은 갈래).
+                     한 번 더 주려면 자리표에서 그 자리를 누릅니다. */
+                  <span
+                    className="cornell-read-given"
+                    title={`${student?.name || "이 학생"}에게 이 노트를 읽고 과일을 줬어요 — 더 주려면 자리표에서`}
+                  >
+                    🍊 줬어요
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    className="study-card-award-btn cornell-read-award"
+                    onClick={award}
+                    disabled={awarding || rewardMaxed}
+                    title={
+                      rewardMaxed
+                        ? "이미 최대 개수예요"
+                        : `${student?.name || "이 학생"}에게 과일 주기 (현재 ${rewardCount}개)`
+                    }
+                    aria-label="과일 주기"
+                  >
+                    {nextFruit(rewardCount)}
+                  </button>
+                )}
               </div>
               <textarea
                 id="cornell-feedback"
