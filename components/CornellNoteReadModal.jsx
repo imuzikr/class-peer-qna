@@ -35,6 +35,7 @@ import {
   subscribeMyClassRewardCount,
   addStudentReward,
   markCornellNoteRewarded,
+  isCornellRewardedToday,
   REWARD_MAX,
 } from "@/lib/store";
 import CornellNoteSheet from "./CornellNoteSheet";
@@ -125,15 +126,12 @@ export default function CornellNoteReadModal({
   const index = notes.findIndex((n) => n.date === date);
   const note = index >= 0 ? notes[index] : null;
 
-  // **이 노트를 읽고 이미 줬나.** 줬으면 단추 자리에 '줬어요'만 남고 누를 수
+  // **오늘 이 노트에 줬나.** 줬으면 단추 자리에 '줬어요'만 남고 누를 수
   // 없습니다 — 한 노트에 두 번 주는 일을 막고, 무엇보다 '줬던가?'를 화면이
   // 대신 기억합니다(노트를 넘겨 가며 스물몇 장을 읽는 자리입니다).
-  // 판정은 **노트마다**입니다 — 같은 학생이라도 날짜가 다르면 다른 노트라
-  // 새로 줄 수 있습니다.
-  // `isCornellRewarded`를 쓰지 않는 까닭: 그것은 '피드백을 쓴 날과 같은 날'
-  // 까지 보는 값이라(기록 관리의 카드 색), 피드백보다 과일을 먼저 준 흔한
-  // 경우에 거짓이 되어 **단추가 도로 살아납니다.**
-  const awarded = !!note && (!!note.rewardedAt || justAwarded.has(note.id));
+  // 묻는 것은 **'오늘 눌렀는가' 하나뿐**이라 `isCornellRewardedToday`가
+  // 도장 날짜만 봅니다(`isCornellRewarded`는 카드 색 전용 — 위 함수 주석 참고).
+  const awarded = !!note && (isCornellRewardedToday(note) || justAwarded.has(note.id));
 
   // 노트를 옮길 때마다 피드백 칸을 그 노트의 것으로 되돌립니다.
   // 쓰던 중이면(dirty) 그대로 두지 않고 버립니다 — 다른 학생의 노트에 남긴
@@ -365,7 +363,7 @@ export default function CornellNoteReadModal({
                      한 번 더 주려면 자리표에서 그 자리를 누릅니다. */
                   <span
                     className="cornell-read-given"
-                    title={`${student?.name || "이 학생"}에게 이 노트를 읽고 과일을 줬어요 — 더 주려면 자리표에서`}
+                    title={`오늘 ${student?.name || "이 학생"}에게 이 노트로 과일을 줬어요 — 더 주려면 자리표에서`}
                   >
                     🍊 줬어요
                   </span>
