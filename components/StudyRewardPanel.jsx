@@ -226,22 +226,20 @@ export default function StudyRewardPanel({
     ? roster.filter((s) => presentUids.has(s.uid)).length
     : 0;
 
-  // '다 함께'가 줄 대상 — **오늘 출석 기록이 있으면 그 학생들, 없으면 반 전체.**
+  // '다 함께'가 줄 대상 — **오늘 출석을 찍은 학생.** 한 명이라도 있으면
+  // 그 사람들 모두에게 하나씩 가고, 한 명도 없으면 단추가 꺼집니다.
   //
-  // 처음에는 '출석을 끝냈고 기록이 있을 때'만 열어 두었는데, 그러면 **출석을
-  // 안 받은 날에는 단추가 죽어 있습니다**(실제 신고 — 출석을 종료했는데도
-  // 꺼져 있다고). 출석은 매 차시 받는 것이 아니고, 받다가 아무도 안 누른 채
-  // 끝낸 날도 `presentUids`가 null이라 같은 자리에 걸립니다. 반이 통째로 잘한
-  // 순간에 누르는 단추가 그 날씨를 타면 안 됩니다.
+  // **출석을 시작했나·끝냈나는 안 봅니다.** 보는 것은 '오늘 찍힌 기록이
+  // 있는가' 하나뿐이라, 받는 중에도 이미 온 학생들에게 줄 수 있습니다
+  // (머리줄의 '출석 n/N' 라벨은 끝난 뒤에만 뜨는데 그것과 기준이 다릅니다 —
+  // 한때 둘을 같은 배열에서 뽑아 단추가 라벨을 따라 죽었습니다).
   //
-  // 그래서 **막지 않고 대상을 바꿉니다.** 누가 왔는지 아는 날은 그 학생들에게,
-  // 모르는 날은 반 전체에게. 어느 쪽인지는 되묻는 창이 글자와 숫자로 밝히므로
-  // 교사가 누르기 전에 압니다(`awardTargets`·`awardByAttendance`).
-  const presentToday = presentUids
+  // **반 전체로 넘어가지 않습니다.** 출석 기록이 없는 날 명단 전원에게 주는
+  // 길을 한 번 뒀다가 걷었습니다 — 결석한 학생까지 받게 되고, 같은 단추가
+  // 날에 따라 다른 사람들에게 가서 '누구에게 주는 단추인가'가 흐려집니다.
+  const awardTargets = presentUids
     ? roster.filter((s) => presentUids.has(s.uid))
     : [];
-  const awardByAttendance = presentToday.length > 0;
-  const awardTargets = awardByAttendance ? presentToday : roster;
   const groupedUids = new Set(groups.flatMap((g) => (g.members ?? []).map((m) => m.uid)));
   const ungrouped = roster.filter((s) => !groupedUids.has(s.uid));
 
@@ -260,9 +258,15 @@ export default function StudyRewardPanel({
 
   // 누르기 전에 **누구에게 몇 개가 가는지** 한 줄로 — 툴팁과 되묻는 창이
   // 같은 말을 씁니다(두 곳이 다르면 눌러 보고서야 대상을 알게 됩니다).
-  const awardWho = awardByAttendance
-    ? `오늘 출석한 ${awardTargets.length}명`
-    : `반 전체 ${awardTargets.length}명`;
+  const awardWho = `오늘 출석한 ${awardTargets.length}명`;
+  // 못 누를 때는 **무엇을 하면 켜지는지**까지 적습니다. 회색 알약만 놓아
+  // 두면 고장으로 보입니다 — 실제로 '출석을 종료했는데 왜 꺼져 있냐'는
+  // 신고를 받았고, 그때 까닭은 그날 아무도 출석을 안 찍은 것이었습니다
+  // ('출석 종료'와 '출석 기록 있음'은 다릅니다).
+  const awardAllBlocked =
+    awardTargets.length === 0
+      ? "오늘 출석한 학생이 아직 없어요 — 학생이 '출석하기'를 누르면 켜집니다."
+      : null;
 
   // 출석한 학생 모두에게 과일 하나씩.
   //
@@ -378,8 +382,8 @@ export default function StudyRewardPanel({
                 type="button"
                 className="reward-seat-flip reward-seat-all"
                 onClick={() => setConfirmAll(true)}
-                disabled={awardingAll > 0}
-                title={`${awardWho}에게 과일을 하나씩 줍니다`}
+                disabled={!!awardAllBlocked || awardingAll > 0}
+                title={awardAllBlocked ?? `${awardWho}에게 과일을 하나씩 줍니다`}
               >
                 {awardingAll > 0 ? `주는 중… ${awardingAll}` : "🍊 다 함께"}
               </button>
@@ -619,13 +623,9 @@ export default function StudyRewardPanel({
           title="다 함께 주기"
           description={
             `${awardWho}에게 과일을 하나씩 줍니다.\n학생들 화면에도 폭죽이 터져요.` +
-            // 대상이 반 전체인 까닭, 또는 아직 더 올 수 있다는 것 — 누르기
-            // 전에 밝힙니다. 둘 다 아니면(출석을 끝낸 보통 날) 군말 없이.
-            (!awardByAttendance
-              ? "\n\n오늘 출석 기록이 없어 반 전체로 잡았어요."
-              : attendanceOpen
-                ? "\n\n출석을 받는 중이라 더 올 수도 있어요."
-                : "")
+            // 받는 중이면 그 사실만 한 줄 더 — 지금 찍힌 사람까지만 간다는
+            // 뜻입니다. 출석을 끝낸 보통 날에는 군말 없이.
+            (attendanceOpen ? "\n\n출석을 받는 중이라 더 올 수도 있어요." : "")
           }
           confirmLabel={`${awardTargets.length}명에게 주기`}
           onConfirm={awardAll}
