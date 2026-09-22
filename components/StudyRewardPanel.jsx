@@ -222,13 +222,26 @@ export default function StudyRewardPanel({
   // 중입니다. 세는 대상은 **지금 명단에 있는 학생**뿐입니다 — 반에서 빠진
   // 학생의 옛 출석 기록이 섞이면 분자가 분모를 넘습니다.
   const attendanceDone = !!presentUids && !attendanceOpen;
-  // '다 함께'가 줄 대상. 같은 조건으로 뽑아, 머리줄의
-  // '출석 n/N'에 적힌 그 n명이 곧 받는 사람입니다 — 두 곳이 다른 기준을
-  // 쓰면 '21명'이라 적힌 옆의 단추가 다른 수의 학생에게 줍니다.
-  const presentStudents = attendanceDone
+  const presentCount = attendanceDone
+    ? roster.filter((s) => presentUids.has(s.uid)).length
+    : 0;
+
+  // '다 함께'가 줄 대상 — **오늘 출석 기록이 있으면 그 학생들, 없으면 반 전체.**
+  //
+  // 처음에는 '출석을 끝냈고 기록이 있을 때'만 열어 두었는데, 그러면 **출석을
+  // 안 받은 날에는 단추가 죽어 있습니다**(실제 신고 — 출석을 종료했는데도
+  // 꺼져 있다고). 출석은 매 차시 받는 것이 아니고, 받다가 아무도 안 누른 채
+  // 끝낸 날도 `presentUids`가 null이라 같은 자리에 걸립니다. 반이 통째로 잘한
+  // 순간에 누르는 단추가 그 날씨를 타면 안 됩니다.
+  //
+  // 그래서 **막지 않고 대상을 바꿉니다.** 누가 왔는지 아는 날은 그 학생들에게,
+  // 모르는 날은 반 전체에게. 어느 쪽인지는 되묻는 창이 글자와 숫자로 밝히므로
+  // 교사가 누르기 전에 압니다(`awardTargets`·`awardByAttendance`).
+  const presentToday = presentUids
     ? roster.filter((s) => presentUids.has(s.uid))
     : [];
-  const presentCount = presentStudents.length;
+  const awardByAttendance = presentToday.length > 0;
+  const awardTargets = awardByAttendance ? presentToday : roster;
   const groupedUids = new Set(groups.flatMap((g) => (g.members ?? []).map((m) => m.uid)));
   const ungrouped = roster.filter((s) => !groupedUids.has(s.uid));
 
@@ -245,15 +258,11 @@ export default function StudyRewardPanel({
     maxRewardCount > 0 ? roster.filter((s) => todayOf(s.uid) === maxRewardCount).map((s) => s.uid) : []
   );
 
-  // '다 함께' — 왜 지금 못 누르는지. null이면 누를 수 있습니다.
-  // 누른 뒤에야 안 되는 걸 알게 하지 않으려고 **까닭을 툴팁에 미리** 적습니다.
-  const awardAllBlocked = attendanceOpen
-    ? "출석을 받는 중이에요 — 마친 뒤에 눌러 주세요."
-    : !presentUids
-      ? "오늘 출석을 먼저 확인해 주세요 — 누가 왔는지 알아야 줄 수 있어요."
-      : presentCount === 0
-        ? "오늘 출석한 학생이 없어요."
-        : null;
+  // 누르기 전에 **누구에게 몇 개가 가는지** 한 줄로 — 툴팁과 되묻는 창이
+  // 같은 말을 씁니다(두 곳이 다르면 눌러 보고서야 대상을 알게 됩니다).
+  const awardWho = awardByAttendance
+    ? `오늘 출석한 ${awardTargets.length}명`
+    : `반 전체 ${awardTargets.length}명`;
 
   // 출석한 학생 모두에게 과일 하나씩.
   //
@@ -264,7 +273,7 @@ export default function StudyRewardPanel({
   // 그 위험이 더 큽니다.
   async function awardAll() {
     setConfirmAll(false);
-    const targets = presentStudents;
+    const targets = awardTargets;
     if (awardingAll > 0 || targets.length === 0) return;
 
     setAwardingAll(targets.length);
@@ -294,7 +303,7 @@ export default function StudyRewardPanel({
     // 되는데, 그러면 이미 받은 학생이 한 번 더 받습니다. 누구인지 알면
     // 그 자리만 눌러 주면 됩니다.
     if (failed.length === 0) {
-      onToast?.(`출석한 ${given}명에게 🍊를 하나씩 줬어요.`);
+      onToast?.(`${given}명에게 🍊를 하나씩 줬어요.`);
     } else {
       onToast?.(
         `${given}명에게 줬어요. ${failed.join(", ")}에게는 주지 못했어요 — 그 자리를 눌러 따로 주세요.`
@@ -369,11 +378,8 @@ export default function StudyRewardPanel({
                 type="button"
                 className="reward-seat-flip reward-seat-all"
                 onClick={() => setConfirmAll(true)}
-                disabled={!!awardAllBlocked || awardingAll > 0}
-                title={
-                  awardAllBlocked ??
-                  `출석한 ${presentCount}명에게 과일을 하나씩 줍니다`
-                }
+                disabled={awardingAll > 0}
+                title={`${awardWho}에게 과일을 하나씩 줍니다`}
               >
                 {awardingAll > 0 ? `주는 중… ${awardingAll}` : "🍊 다 함께"}
               </button>
@@ -611,8 +617,17 @@ export default function StudyRewardPanel({
           icon="🍊"
           iconTone="reward"
           title="다 함께 주기"
-          description={`오늘 출석한 ${presentCount}명에게 과일을 하나씩 줍니다.\n학생들 화면에도 폭죽이 터져요.`}
-          confirmLabel={`${presentCount}명에게 주기`}
+          description={
+            `${awardWho}에게 과일을 하나씩 줍니다.\n학생들 화면에도 폭죽이 터져요.` +
+            // 대상이 반 전체인 까닭, 또는 아직 더 올 수 있다는 것 — 누르기
+            // 전에 밝힙니다. 둘 다 아니면(출석을 끝낸 보통 날) 군말 없이.
+            (!awardByAttendance
+              ? "\n\n오늘 출석 기록이 없어 반 전체로 잡았어요."
+              : attendanceOpen
+                ? "\n\n출석을 받는 중이라 더 올 수도 있어요."
+                : "")
+          }
+          confirmLabel={`${awardTargets.length}명에게 주기`}
           onConfirm={awardAll}
           onClose={() => setConfirmAll(false)}
         />
