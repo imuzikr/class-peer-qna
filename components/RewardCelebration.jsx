@@ -7,6 +7,22 @@
 // 받은 사실을 상단바의 작은 숫자가 조용히 1 늘어나는 것으로만 알리면
 // 대개 아무도 못 보고 지나갑니다.
 //
+// [연달아 주면 이어서 쏩니다] 교사는 한 학생에게 과일을 여러 번 주는 일이
+// 잦습니다(＋1을 서너 번). 예전에는 **첫 지급에만** 폭죽이 돌고 그 뒤로는
+// 뱃지 숫자만 올라갔습니다 — 캔버스 effect가 `[active]`(개수가 0인가 아닌가)
+// 하나만 보고 있어서 처음 한 번만 실행됐고, 프레임 루프도 `start + LIFE_MS`에
+// 스스로 멈췄기 때문입니다. 그래서 2초 간격으로 다섯 번 주면 3.2초 뒤부터는
+// **밤하늘도 불티도 없이 뱃지만 떠 있는** 화면을 7초 더 보게 됐습니다.
+//
+// 지금은 루프를 계속 돌려 두고 **지급할 때마다 새 발사를 목록에 밀어 넣습니다**
+// (`launch`). 떠 있던 불티는 그대로 내려앉고 그 위로 새 발이 올라가, 연달아
+// 줄수록 폭죽쇼가 길어집니다. 끝나는 시각도 `endAt`(마지막 발사 + LIFE_MS)로
+// 밀리므로 캔버스·밤하늘·뱃지·사라지는 타이머가 한 시각에 맞습니다.
+//   **'지급마다 처음부터 다시 시작'으로 짜지 마세요** — effect를 `[amount]`로
+//   다시 걸면 정리(cleanup)가 돌며 `resize()`가 `canvas.width`를 다시 넣어
+//   **화면이 통째로 지워지고**, 새 불씨가 바닥에서 올라오는 0.5초 동안 아무것도
+//   없습니다. 빨리 여러 번 누를수록 터지는 장면이 오히려 줄어듭니다.
+//
 // [폭죽의 두 단계] 처음엔 가운데서 색종이를 사방으로 뿌렸는데, 터지는
 // 순간이 없어 '축포'로 읽히지 않았습니다. 지금은 진짜 폭죽처럼 두 단계로
 // 갑니다 — 아래에서 불씨가 **솟아오르고**(꼬리를 흘리며), 꼭대기에서
@@ -34,11 +50,10 @@
 //
 // [밤하늘] 폭죽은 어두운 배경이 있어야 폭죽으로 보입니다. 이 앱은 크림색
 // 바탕이라 불티가 그대로 묻혔습니다(재 보니 노랑 1.53:1, 초록 2.16:1).
-// 3.2초 동안만 화면을 덮었다가 걷습니다.
+// 마지막 지급부터 LIFE_MS 동안만 화면을 덮었다가 걷습니다.
 //
 // [화면을 막지 않습니다] 하늘도 캔버스도 pointer-events: none이라 터지는
-// 동안에도 아래 화면을 그대로 누를 수 있습니다. 폭죽은 3.2초 뒤 사라지고,
-// 연속 지급 배지는 마지막 지급부터 3.2초 더 보여 줍니다.
+// 동안에도 아래 화면을 그대로 누를 수 있습니다.
 //
 // [라이브러리를 쓰지 않는 이유] 불티 몇 백 개를 그리는 일이라 캔버스 하나와
 // rAF 한 줄이면 됩니다. 이것 때문에 번들에 패키지를 더할 일은 아닙니다.
@@ -46,9 +61,12 @@
 // [움직임을 줄인 설정] prefers-reduced-motion이면 아무것도 쏘지 않고 가운데
 // 뱃지만 잠깐 띄웁니다 — 알리는 일은 그대로 하되 흔들지 않습니다.
 // =============================================================
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const LIFE_MS = 3200;
+// 끝에서 옅어지는 구간. 캔버스의 `fade`와 밤하늘의 transition이 **같은 값**을
+// 봐야 둘이 함께 걷힙니다(globals.css의 `.reward-cheer-sky` 참고).
+const FADE_MS = 640;
 // 발마다 하나씩 골라 쓰는 색. 밤하늘(스크림) 위에서 재 보니 가장 낮은 색도
 // 3.66:1이라 여섯 색 모두 또렷합니다 — 크림색 배경 위에서 쓰던 과일 계열은
 // 노랑 1.53:1, 초록 2.16:1로 거의 보이지 않았습니다.
@@ -64,6 +82,17 @@ const RISE_DECAY = 0.985; // 꼭대기에서 살짝 늘어지게
 // 감쇠가 누적된 이동거리 = v0 · (1-DECAY^n)/(1-DECAY)
 const RISE_SPAN = (1 - RISE_DECAY ** RISE_FRAMES) / (1 - RISE_DECAY);
 const KINDS = ["ring", "willow", "double", "ring"]; // ring이 조금 더 자주
+// 아직 안 터진 채 올라가는 중인 발의 천장. 한 발이 불티를 60~116개 만들어,
+// 연달아 다섯 번 받으면 크롬북에서 프레임이 떨어집니다. 천장에 닿아도
+// **한 발은 반드시 쏩니다** — 누른 만큼 무언가는 터져야 하니까요.
+const MAX_LIVE_SHELLS = 22;
+
+// 한 번에 쏠 발수. 첫 발사는 예전 그대로라 과일 하나를 받았을 때의 모습이
+// 달라지지 않고, 이어지는 발사는 작게 잡습니다 — 이미 하늘에 불티가 남아
+// 있어 적은 발수로도 '또 터졌다'가 읽힙니다.
+function volleySize(n, first) {
+  return first ? Math.min(9 + n * 2, 16) : Math.min(5 + n * 2, 10);
+}
 
 // "#rrggbb" + 투명도 → rgba(). 섬광의 그라데이션에 씁니다.
 function rgba(hex, a) {
@@ -74,18 +103,33 @@ function rgba(hex, a) {
 export default function RewardCelebration({ amount = 0, onDone }) {
   const canvasRef = useRef(null);
   const doneRef = useRef(onDone);
-  const amountRef = useRef(amount);
+  // 캔버스가 살아 있는 동안만 채워집니다(움직임을 줄인 설정에서는 계속 null).
+  const launchRef = useRef(null);
+  const shotRef = useRef(0); // 지금까지 폭죽으로 쏜 개수 — amount와의 차이가 새 지급
+  const [dimming, setDimming] = useState(false); // 밤하늘을 걷는 중
   const active = amount > 0;
   doneRef.current = onDone;
-  amountRef.current = amount;
 
+  // 사라지는 시각 — **마지막 지급부터** LIFE_MS. 지급이 더 오면 둘 다 되감깁니다.
   useEffect(() => {
-    if (amount <= 0) return;
-
+    if (amount <= 0) {
+      setDimming(false);
+      return;
+    }
+    setDimming(false);
+    const dim = setTimeout(() => setDimming(true), LIFE_MS - FADE_MS);
     const finish = setTimeout(() => doneRef.current?.(), LIFE_MS);
-    return () => clearTimeout(finish);
+    return () => {
+      clearTimeout(dim);
+      clearTimeout(finish);
+    };
   }, [amount]);
 
+  // 캔버스 — active인 동안 **한 번만** 차립니다. 지급이 더 오면 아래 effect가
+  // launch()로 발사만 덧붙입니다(맨 위 '연달아 주면 이어서 쏩니다' 참고).
+  // 이 effect가 아래 발사 effect보다 **먼저 선언돼 있어야** 합니다 — React는
+  // 같은 렌더에서 선언 순서대로 실행하므로, 뒤에 두면 첫 지급 때 launchRef가
+  // 아직 비어 있어 아무것도 안 터집니다.
   useEffect(() => {
     if (!active) return;
 
@@ -120,40 +164,12 @@ export default function RewardCelebration({ amount = 0, onDone }) {
     const sparkV = burstR / ((1 - DRAG ** 45) / (1 - DRAG));
     const g = GRAVITY * scale;
 
-    // 과일을 많이 받을수록 더 많이 — 다만 마지막 발도 화면 안에서 터지도록
-    // 상한을 둡니다(마지막 발사 ≈ 1.4초 + 올라가는 0.5초 = 1.9초 < 3.2초).
-    const shellCount = Math.min(9 + amountRef.current * 2, 16);
-    // 발사 위치를 그냥 난수로 뽑았더니 열한 발이 오른쪽에 몰리고 왼쪽 절반이
-    // 비는 일이 있었습니다(실측). 폭을 발수만큼의 띠로 나눠 띠마다 한 발씩
-    // 두고, 그 순서를 섞습니다 — 고르게 퍼지되 좌에서 우로 훑는 것처럼
-    // 보이지는 않습니다. 띠 안에서는 여전히 아무 자리나 잡습니다.
-    const slots = Array.from({ length: shellCount }, (_, i) => (i + Math.random()) / shellCount);
-    for (let i = slots.length - 1; i > 0; i -= 1) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [slots[i], slots[j]] = [slots[j], slots[i]];
-    }
-    const shells = Array.from({ length: shellCount }, (_, i) => {
-      // 가운데 76% 안에서 올라갑니다(가장자리에서 터지면 절반이 잘립니다).
-      const x = w * (0.12 + slots[i] * 0.76);
-      const apex = h * (0.12 + Math.random() * 0.36);
-      return {
-        x,
-        y: h + 10,
-        apex,
-        vx: (Math.random() - 0.5) * 0.6 * scale,
-        // RISE_FRAMES 프레임 뒤 정확히 apex에 닿는 속도
-        vy: -(h + 10 - apex) / RISE_SPAN,
-        px: x,
-        py: h + 10,
-        color: COLORS[i % COLORS.length],
-        inner: COLORS[(i + 3) % COLORS.length], // 이중 고리의 안쪽 색
-        kind: KINDS[Math.floor(Math.random() * KINDS.length)],
-        at: i * 88 + Math.random() * 70, // 발마다 시차 — 쉬지 않고 이어지게
-        burst: false,
-      };
-    });
+    let shells = [];
     const sparks = [];
     const flashes = [];
+    let colorSeq = 0;       // 발마다 색을 돌려 쓰는 번호 — 발사가 갈려도 이어집니다
+    let endAt = 0;          // 이 시각이 지나면 루프를 멈춥니다(발사할 때마다 미룸)
+    let raf = 0;
 
     // 불티 한 개. gf는 중력을 받는 정도(수양버들은 무겁게 내려앉습니다).
     function spark(x, y, angle, v, color, decay, gf) {
@@ -192,13 +208,64 @@ export default function RewardCelebration({ amount = 0, onDone }) {
       }
     }
 
-    const start = performance.now();
-    let raf = 0;
+    // 한 번 지급받은 만큼 쏩니다. now는 이 발사의 기준 시각 — 발마다 여기에
+    // 시차를 더해 **절대 시각**으로 둡니다(루프 시작 시각 기준이 아니라).
+    // 그래야 나중에 덧붙는 발사가 앞 발사의 시간표에 끌려가지 않습니다.
+    function launch(n) {
+      const now = performance.now();
+      const first = shells.length === 0 && sparks.length === 0;
+      // 이미 터진 발은 걷어 냅니다 — 안 걷으면 연달아 받을수록 배열만 늡니다.
+      shells = shells.filter((s) => !s.burst);
+      const count = Math.max(
+        1,
+        Math.min(volleySize(n, first), MAX_LIVE_SHELLS - shells.length)
+      );
+
+      // 발사 위치를 그냥 난수로 뽑았더니 열한 발이 오른쪽에 몰리고 왼쪽 절반이
+      // 비는 일이 있었습니다(실측). 폭을 발수만큼의 띠로 나눠 띠마다 한 발씩
+      // 두고, 그 순서를 섞습니다 — 고르게 퍼지되 좌에서 우로 훑는 것처럼
+      // 보이지는 않습니다. 띠 안에서는 여전히 아무 자리나 잡습니다.
+      const slots = Array.from({ length: count }, (_, i) => (i + Math.random()) / count);
+      for (let i = slots.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [slots[i], slots[j]] = [slots[j], slots[i]];
+      }
+      for (let i = 0; i < count; i += 1) {
+        // 가운데 76% 안에서 올라갑니다(가장자리에서 터지면 절반이 잘립니다).
+        const x = w * (0.12 + slots[i] * 0.76);
+        const apex = h * (0.12 + Math.random() * 0.36);
+        colorSeq += 1;
+        shells.push({
+          x,
+          y: h + 10,
+          apex,
+          vx: (Math.random() - 0.5) * 0.6 * scale,
+          // RISE_FRAMES 프레임 뒤 정확히 apex에 닿는 속도
+          vy: -(h + 10 - apex) / RISE_SPAN,
+          px: x,
+          py: h + 10,
+          color: COLORS[colorSeq % COLORS.length],
+          inner: COLORS[(colorSeq + 3) % COLORS.length], // 이중 고리의 안쪽 색
+          kind: KINDS[Math.floor(Math.random() * KINDS.length)],
+          at: now + i * 88 + Math.random() * 70, // 발마다 시차 — 쉬지 않고 이어지게
+          burst: false,
+        });
+      }
+
+      endAt = now + LIFE_MS;
+      // 루프가 멈춰 있으면(직전 발사가 다 사그라든 뒤) 다시 돌립니다.
+      if (!raf) raf = requestAnimationFrame(frame);
+    }
+
     function frame(now) {
-      const t = now - start;
-      if (t >= LIFE_MS) { ctx.clearRect(0, 0, w, h); return; }
+      if (now >= endAt) {
+        ctx.clearRect(0, 0, w, h);
+        raf = 0;
+        return;
+      }
       // 끝에서 서서히 사라지게 — 갑자기 없어지면 화면이 튑니다.
-      const fade = t < LIFE_MS * 0.8 ? 1 : 1 - (t - LIFE_MS * 0.8) / (LIFE_MS * 0.2);
+      const left = endAt - now;
+      const fade = left >= FADE_MS ? 1 : left / FADE_MS;
 
       ctx.clearRect(0, 0, w, h);
       ctx.lineCap = "round";
@@ -223,7 +290,7 @@ export default function RewardCelebration({ amount = 0, onDone }) {
 
       // ── 올라가는 불씨 (꼬리를 흘리며)
       for (const s of shells) {
-        if (s.burst || t < s.at) continue;
+        if (s.burst || now < s.at) continue;
         s.px = s.x;
         s.py = s.y;
         s.x += s.vx;
@@ -270,21 +337,41 @@ export default function RewardCelebration({ amount = 0, onDone }) {
       ctx.globalAlpha = 1;
       raf = requestAnimationFrame(frame);
     }
-    raf = requestAnimationFrame(frame);
+
+    launchRef.current = launch;
 
     return () => {
+      launchRef.current = null;
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
     };
   }, [active]);
+
+  // 새로 받은 만큼 덧붙여 쏩니다 — **위 캔버스 effect보다 뒤에** 있어야 합니다.
+  useEffect(() => {
+    if (amount <= 0) {
+      shotRef.current = 0;
+      return;
+    }
+    const delta = amount - shotRef.current;
+    if (delta <= 0) return;
+    shotRef.current = amount;
+    launchRef.current?.(delta);
+  }, [amount]);
 
   if (!active) return null;
 
   return (
     <div className="reward-cheer" aria-live="polite">
       {/* 잠깐의 밤하늘 — 불투명도 0.7은 불티 여섯 색이 모두 3:1을 넘는
-          지점입니다(최저 3.66:1). 클릭은 그대로 통과합니다. */}
-      <div className="reward-cheer-sky" aria-hidden="true" />
+          지점입니다(최저 3.66:1). 클릭은 그대로 통과합니다.
+          **key로 다시 마운트하지 마세요** — 들어오는 키프레임이 다시 돌아
+          지급할 때마다 어둠이 0.26초씩 깜빡입니다. 걷는 것만 클래스로
+          제어해, 늦게 온 지급에는 다시 짙어집니다. */}
+      <div
+        className={`reward-cheer-sky${dimming ? " is-out" : ""}`}
+        aria-hidden="true"
+      />
       <canvas ref={canvasRef} className="reward-cheer-canvas" aria-hidden="true" />
       <div className="reward-cheer-enter">
         <div key={amount} className="reward-cheer-badge" role="status">

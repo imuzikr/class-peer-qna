@@ -24136,18 +24136,28 @@ span.cloud-word { cursor: default; }
 }
 /* 잠깐의 밤하늘 — 0.7이라는 값은 눈대중이 아닙니다. 이 값에서 불티 여섯 색이
    모두 3:1을 넘습니다(가장 낮은 색 3.66:1). 0.62에서는 두 색이 3 아래로
-   떨어집니다. */
+   떨어집니다.
+
+   [들어오는 것과 나가는 것을 갈라 둡니다] 예전에는 3.2초짜리 키프레임 하나가
+   페이드인·유지·페이드아웃을 다 맡았습니다. 그러면 **첫 지급 때 한 번 돌고
+   끝나서**, 과일을 연달아 주면 3.2초 뒤부터 하늘이 걷힌 채 뱃지만 떠 있었고,
+   그렇다고 key로 다시 마운트하면 지급할 때마다 어둠이 0.26초씩 깜빡였습니다.
+   지금은 들어오는 것만 키프레임(마운트 때 한 번)이고, 걷는 것은 컴포넌트가
+   붙이는 `.is-out`입니다 — 늦게 온 지급에는 이 클래스가 떨어져 다시 짙어집니다.
+   0.64초는 `RewardCelebration`의 `FADE_MS`와 **같은 값이어야** 합니다(캔버스의
+   불티도 같은 구간에 옅어집니다). */
 .reward-cheer-sky {
   position: absolute;
   inset: 0;
   background: rgba(24, 22, 20, 0.7);
-  animation: reward-cheer-sky 3.2s ease-out forwards;
+  opacity: 1;
+  animation: reward-cheer-sky-in 0.26s ease-out;
+  transition: opacity 0.64s ease-out;
 }
-@keyframes reward-cheer-sky {
-  0%   { opacity: 0; }
-  8%   { opacity: 1; }
-  70%  { opacity: 1; }
-  100% { opacity: 0; }
+.reward-cheer-sky.is-out { opacity: 0; }
+@keyframes reward-cheer-sky-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 .reward-cheer-enter {
   position: relative;
