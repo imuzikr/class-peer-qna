@@ -26618,6 +26618,106 @@ ul.checklist > li.done {
   color: var(--text-faint);
   cursor: not-allowed;
 }
+
+/* ── '🍊 다 함께' 결과 창(AwardAllResultModal) ──────────────────────
+   되묻는 창을 걷어 내 **끝난 뒤에 무슨 일이 있었는지 말해 주는 자리가
+   이 창 하나뿐**입니다. 그래서 '몇 명에게 갔다'만이 아니라 안 간 사람까지
+   함께 적고, 실패한 이름은 눌러서 그 학생에게만 다시 보냅니다.
+
+   `.modal`이 `width: 100%; max-width: 640px`이라 폭을 좁히려면 **둘 다**
+   손대야 합니다(max-width만 내리면 width가 이깁니다 — 수업 화면 창에서
+   겪은 그 함정의 반대쪽). 이름 몇 개가 드는 창이라 640px은 너무 넓습니다. */
+.award-result-modal {
+  width: 100%;
+  max-width: 460px;
+}
+
+.award-result-sum {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--text);
+}
+.award-result-sum strong { color: var(--primary-dark); }
+
+/* 안 간 사람 칸 — 위 한 줄과 선으로 가릅니다. '줬다'와 '안 갔다'는 읽는
+   뜻이 다른 두 덩이라, 붙여 두면 한 문단으로 읽혀 놓칩니다. */
+.award-result-sec {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.award-result-sec h4 {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text);
+}
+.award-result-sec h4 em {
+  font-style: normal;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.award-result-hint {
+  margin-top: 3px;
+  font-size: 12.5px;
+  color: var(--text-faint);
+}
+
+.award-result-names {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+/* **이름이 곧 단추입니다** — 누르면 그 학생에게만 다시 보냅니다. 자리표에서
+   그 자리를 다시 찾는 것보다 짧고, 누가 안 받았는지 보면서 처리합니다. */
+.award-result-name {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.award-result-name:hover:not(:disabled) {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+.award-result-name.is-sending {
+  color: var(--text-faint);
+  cursor: progress;
+}
+/* 다시 준 이름은 초록 — 이 앱에서 초록은 늘 '됐다'는 뜻입니다
+   (출석부의 '출석' 자리·수업 노트 카드의 '과일 줌'과 같은 값). */
+.award-result-name.is-done {
+  background: #e8f7ed;
+  border-color: #a6d8b6;
+  color: #2f6b45;
+  cursor: default;
+}
+.award-result-name.is-error {
+  border-color: #e4b4ad;
+  color: var(--danger);
+}
+
+/* 이미 가득 찬 학생은 **글자로만** — 다시 보내도 천장이라 값이 그대로인데,
+   눌리는데 아무 일도 안 일어나면 고장으로 보입니다. */
+.award-result-maxed {
+  margin-top: 8px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-sub);
+}
+
+.award-result-foot {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
 /* 켜짐 색(.on)을 두지 않습니다 — 글자가 '선생님 보기'/'학생 보기'로 바뀌어
    지금 어느 쪽인지 그대로 말합니다. 색까지 얹으면 옆의 손바닥 뱃지처럼
    '무언가 켜져 있으니 봐 달라'는 신호로 읽혀 눈길을 뺏습니다. */

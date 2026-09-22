@@ -32,6 +32,7 @@ import { SeatPickGrid } from "./QuestionSeatModal";
 import RewardTally from "./RewardTally";
 import StudentToolsPopover from "./StudentToolsPopover";
 import StudentNotesModal from "./StudentNotesModal";
+import AwardAllResultModal from "./AwardAllResultModal";
 import SeatViewToggle from "./SeatViewToggle";
 import { useSeatView } from "@/lib/seatView";
 import { IconChair, IconSort } from "./StatusIcons";
@@ -42,9 +43,6 @@ const COLLAPSE_KEY = "reward_panel_collapsed";
 // '한 건씩 차례로' 가는 것과 같은 결). 여섯이면 한 반이 네 번에 끝나
 // 학생들 화면의 폭죽이 거의 동시에 터집니다.
 const AWARD_ALL_LANES = 6;
-// 실패한 학생을 이름으로 적어 주는 한도. 이보다 많이 실패하면 대개 연결
-// 문제라, 이름을 스물몇 개 늘어놓아 봐야 토스트만 길어지고 짚을 수도 없습니다.
-const FAILED_NAMES_MAX = 6;
 const GROUP_COLORS = ["#2563eb", "#16a34a", "#f97316", "#9333ea", "#dc2626", "#0891b2"];
 // '자리 배정하기' 모달의 모둠 수 선택([2,3,4,5,6]개)과 같은 범위로 맞춥니다.
 const MIN_GROUPS = 2;
@@ -63,8 +61,6 @@ export default function StudyRewardPanel({
   attendanceOpen = false,
   onSaveSeats,
   onSaveGroups,
-  // '다 함께'의 결과를 알리는 데만 씁니다(페이지의 Toast).
-  onToast = null,
 }) {
   const [notesFor, setNotesFor] = useState(null); // 누가기록 모달 대상 학생(교사만)
   // 자리 클릭 → 과일/누가기록 팝오버. `toolsAt`은 누른 자리 칸으로, 창이 그
@@ -80,6 +76,9 @@ export default function StudyRewardPanel({
   const [pickedUid, setPickedUid] = useState(null); // 짚어 둔 학생(탭으로 옮기기)
   const [zoom, setZoom] = useState(false); // 자리표 확대 보기
   const [awardingAll, setAwardingAll] = useState(0); // 다 함께 주는 중 — 남은 인원
+  // 다 함께가 끝난 뒤 여는 결과 창({ given, failed, maxed }). 되묻는 창이
+  // 없어져 **무슨 일이 있었는지 말해 주는 자리가 여기 하나뿐**입니다.
+  const [awardResult, setAwardResult] = useState(null);
   // 되묻는 창을 걷어 내 한 번의 실수가 곧 스물몇 건의 쓰기입니다. 상태만으로는
   // 같은 프레임의 두 번째 클릭을 못 막아(아직 옛 값을 봅니다) ref로 잠급니다.
   const awardBusyRef = useRef(false);
@@ -308,7 +307,9 @@ export default function StudyRewardPanel({
           await onAward?.(s.uid, s.count ?? 0, 1);
           given += 1;
         } catch {
-          failed.push(s.name);
+          // **이름만이 아니라 학생을 통째로** 담습니다 — 결과 창에서 그
+          // 이름을 눌러 다시 보내려면 uid가 있어야 합니다.
+          failed.push(s);
         }
         setAwardingAll((n) => Math.max(0, n - 1));
       }
@@ -319,29 +320,15 @@ export default function StudyRewardPanel({
     setAwardingAll(0);
     awardBusyRef.current = false;
 
-    // **결과는 토스트 한 줄이 전부입니다** — 되묻는 창을 걷어 내 이제 이것이
-    // 유일한 알림입니다. 그래서 '줬다'만 말하지 않고 **안 간 사람도** 함께
-    // 적습니다(못 준 학생 · 이미 가득 찬 학생).
-    const parts = [];
-    if (given > 0) parts.push(`${given}명에게 🍊를 하나씩 줬어요.`);
-    if (maxed.length > 0) {
-      parts.push(`이미 ${REWARD_MAX}개를 채운 ${maxed.length}명은 그대로예요.`);
-    }
-    if (failed.length > 0) {
-      // **이름으로 알립니다.** '3명 실패'라고만 하면 교사가 단추를 다시
-      // 누르게 되고, 그러면 이미 받은 학생이 하나 더 받습니다. 누구인지
-      // 알면 그 자리만 눌러 따로 주면 됩니다.
-      //
-      // 다만 여럿이 한꺼번에 실패하는 것은 대개 연결 문제라, 이름 스물몇
-      // 개를 늘어놓아 봐야 토스트만 길어지고 짚을 수도 없습니다. 그때는
-      // 수만 적습니다(`FAILED_NAMES_MAX`).
-      parts.push(
-        failed.length <= FAILED_NAMES_MAX
-          ? `${failed.join(", ")}에게는 주지 못했어요 — 그 자리를 눌러 따로 주세요.`
-          : `${failed.length}명에게는 주지 못했어요 — 연결을 확인하고 자리를 눌러 따로 주세요.`
-      );
-    }
-    onToast?.(parts.join(" "));
+    // **결과는 창으로 엽니다** — 되묻는 창을 걷어 내 이제 이것이 유일한
+    // 알림입니다. 토스트 한 줄이던 것을 옮긴 까닭은 '안 간 사람'이 그저
+    // 읽고 흘릴 글이 아니라 **바로 손봐야 할 일**이기 때문입니다. 창에서는
+    // 그 이름을 눌러 그 학생에게만 다시 줍니다(토스트로는 자리표에서 그
+    // 자리를 다시 찾아야 했고, 글자는 몇 초 뒤 사라졌습니다).
+    //
+    // **아무 일 없이 끝났을 때도 엽니다.** '몇 명에게 갔다'를 확인하는 자리가
+    // 없으면, 폭죽이 학생 화면에서만 터지는 교사는 눌린 것인지 알 수 없습니다.
+    setAwardResult({ given, failed, maxed });
   }
 
   function openTools(student, el = null) {
@@ -403,8 +390,9 @@ export default function StudyRewardPanel({
               )}
               {/* 다 함께 — 반이 통째로 잘한 순간에 누릅니다. 옆의 둘은
                   '보는 방법'을 바꿀 뿐이지만 이것은 **스물몇 명의 기록을
-                  건드립니다.** 그래서 같은 알약이되 혼자 색이 있고
-                  (`.reward-seat-all`), 되묻는 창을 한 번 거칩니다.
+                  건드립니다.** 그래서 같은 알약이되 혼자 색이 있습니다
+                  (`.reward-seat-all`). 되묻지 않고 바로 나가고, 무슨 일이
+                  있었는지는 끝난 뒤 결과 창이 말합니다.
                   이름은 패널 제목('멋진 순간')과 갈라 둡니다 — 한 패널 안에
                   같은 말이 두 번 서면 무엇을 누르는 자리인지 흐려집니다. */}
               <button
@@ -629,6 +617,21 @@ export default function StudyRewardPanel({
           onAward={onAward}
           onOpenNotes={openNotes}
           onClose={() => setToolsFor(null)}
+        />
+      )}
+
+      {awardResult && (
+        <AwardAllResultModal
+          given={awardResult.given}
+          failed={awardResult.failed}
+          maxed={awardResult.maxed}
+          rewardMax={REWARD_MAX}
+          // 다시 주기도 **델타**입니다(낱개 주기와 같은 길). 누적은 그 사이
+          // 구독으로 갱신됐을 수 있어 `byUid`에서 지금 값을 집습니다 — 델타
+          // 경로에서는 쓰이지 않지만, 옛 값을 넘겨 두면 나중에 절대값 경로로
+          // 바뀔 때 조용히 틀립니다.
+          onRetry={(s) => onAward?.(s.uid, byUid.get(s.uid)?.count ?? s.count ?? 0, 1)}
+          onClose={() => setAwardResult(null)}
         />
       )}
 
