@@ -92,8 +92,8 @@ export default function CornellNoteReadModal({
       // **이 노트를 읽고 줬다는 도장을 함께 찍습니다.** 지급 이력
       // (rewardEvents)에는 어느 화면에서 줬는지가 안 남아, 자리표에서 준
       // 과일과 구분할 길이 없습니다. 기록 관리의 수업 노트 탭이 이 값으로
-      // 카드를 초록으로 칠합니다(`isCornellRewarded` — 피드백을 쓴 날과
-      // 같은 날일 때만).
+      // 카드를 초록으로 칠하고(`isCornellRewarded`), 이 창의 단추도 같은
+      // 칸을 보고 걷힙니다(`isCornellRewardedToday` — 거기에 '오늘'만 더함).
       // 그날 노트가 없으면 찍을 자리도 없습니다 — 그때는 조용히 넘어갑니다
       // (규칙이 노트 생성을 본인에게만 열어 두어 교사가 대신 못 만듭니다).
       if (note?.id) {
