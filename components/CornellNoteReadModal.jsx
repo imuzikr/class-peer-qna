@@ -35,7 +35,7 @@ import {
   subscribeMyClassRewardCount,
   addStudentReward,
   markCornellNoteRewarded,
-  isCornellRewardedToday,
+  isCornellRewarded,
   REWARD_MAX,
 } from "@/lib/store";
 import CornellNoteSheet from "./CornellNoteSheet";
@@ -92,8 +92,8 @@ export default function CornellNoteReadModal({
       // **이 노트를 읽고 줬다는 도장을 함께 찍습니다.** 지급 이력
       // (rewardEvents)에는 어느 화면에서 줬는지가 안 남아, 자리표에서 준
       // 과일과 구분할 길이 없습니다. 기록 관리의 수업 노트 탭이 이 값으로
-      // 카드를 초록으로 칠하고(`isCornellRewarded`), 이 창의 단추도 같은
-      // 칸을 보고 걷힙니다(`isCornellRewardedToday` — 거기에 '오늘'만 더함).
+      // 카드를 초록으로 칠하고, 이 창의 단추도 **같은 판정 하나**를 보고
+      // 걷힙니다(`isCornellRewarded`).
       // 그날 노트가 없으면 찍을 자리도 없습니다 — 그때는 조용히 넘어갑니다
       // (규칙이 노트 생성을 본인에게만 열어 두어 교사가 대신 못 만듭니다).
       if (note?.id) {
@@ -126,12 +126,13 @@ export default function CornellNoteReadModal({
   const index = notes.findIndex((n) => n.date === date);
   const note = index >= 0 ? notes[index] : null;
 
-  // **오늘 이 노트에 줬나.** 줬으면 단추 자리에 '줬어요'만 남고 누를 수
+  // **이 노트에 줬나.** 줬으면 단추 자리에 '줬어요'만 남고 누를 수
   // 없습니다 — 한 노트에 두 번 주는 일을 막고, 무엇보다 '줬던가?'를 화면이
   // 대신 기억합니다(노트를 넘겨 가며 스물몇 장을 읽는 자리입니다).
-  // 묻는 것은 **'오늘 눌렀는가' 하나뿐**이라 `isCornellRewardedToday`가
-  // 도장 날짜만 봅니다(`isCornellRewarded`는 카드 색 전용 — 위 함수 주석 참고).
-  const awarded = !!note && (isCornellRewardedToday(note) || justAwarded.has(note.id));
+  // 판정은 **카드 색과 같은 것 하나**(`isCornellRewarded` — 도장이 있나).
+  // 날짜를 안 보는 까닭은 그 함수 주석에 있습니다: 이 단추가 막는 것은
+  // *그 노트에 대한* 중복 지급이지 그 학생에 대한 지급이 아닙니다.
+  const awarded = !!note && (isCornellRewarded(note) || justAwarded.has(note.id));
 
   // 노트를 옮길 때마다 피드백 칸을 그 노트의 것으로 되돌립니다.
   // 쓰던 중이면(dirty) 그대로 두지 않고 버립니다 — 다른 학생의 노트에 남긴
@@ -360,10 +361,12 @@ export default function CornellNoteReadModal({
                      없다'가 같은 모양이 되어, 헷갈리던 것을 그대로 둡니다.
                      과일 그림은 🍊 — 특정 과일이 아니라 '과일'을 대표하는
                      자리입니다(누적 🍊 12 · 🍊 확인과 같은 갈래).
-                     한 번 더 주려면 자리표에서 그 자리를 누릅니다. */
+                     **한 번 준 노트에는 이 창에서 다시 못 줍니다**(날짜가
+                     바뀌어도). 더 주려면 자리표에서 그 자리를 누릅니다 —
+                     그건 노트와 무관한 지급이라 도장을 안 남깁니다. */
                   <span
                     className="cornell-read-given"
-                    title={`오늘 ${student?.name || "이 학생"}에게 이 노트로 과일을 줬어요 — 더 주려면 자리표에서`}
+                    title={`${student?.name || "이 학생"}에게 이 노트로 과일을 줬어요 — 더 주려면 자리표에서`}
                   >
                     🍊 줬어요
                   </span>
@@ -376,7 +379,10 @@ export default function CornellNoteReadModal({
                     title={
                       rewardMaxed
                         ? "이미 최대 개수예요"
-                        : `${student?.name || "이 학생"}에게 과일 주기 (현재 ${rewardCount}개)`
+                        // **한 번만 줄 수 있다는 것을 누르기 전에 적습니다.**
+                        // 도장을 지우는 길이 앱에 없어, 잘못 누르면 이 창에서는
+                        // 그 노트에 다시 줄 수 없습니다(자리표로는 가능).
+                        : `${student?.name || "이 학생"}에게 과일 주기 (현재 ${rewardCount}개) — 이 노트에는 한 번만 줄 수 있어요`
                     }
                     aria-label="과일 주기"
                   >
