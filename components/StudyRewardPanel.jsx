@@ -33,10 +33,16 @@ import RewardTally from "./RewardTally";
 import StudentToolsPopover from "./StudentToolsPopover";
 import StudentNotesModal from "./StudentNotesModal";
 import SeatViewToggle from "./SeatViewToggle";
+import ConfirmModal from "./ConfirmModal";
 import { useSeatView } from "@/lib/seatView";
 import { IconChair, IconSort } from "./StatusIcons";
 
 const COLLAPSE_KEY = "reward_panel_collapsed";
+// 한 번에 몇 명씩 보낼까 — 학생마다 다른 문서라 트랜잭션끼리 부딪히지는
+// 않지만, 스물몇 건을 한 순간에 던지지는 않습니다(책방 휴지통 비우기가
+// '한 건씩 차례로' 가는 것과 같은 결). 여섯이면 한 반이 네 번에 끝나
+// 학생들 화면의 폭죽이 거의 동시에 터집니다.
+const AWARD_ALL_LANES = 6;
 const GROUP_COLORS = ["#2563eb", "#16a34a", "#f97316", "#9333ea", "#dc2626", "#0891b2"];
 // '자리 배정하기' 모달의 모둠 수 선택([2,3,4,5,6]개)과 같은 범위로 맞춥니다.
 const MIN_GROUPS = 2;
@@ -55,6 +61,8 @@ export default function StudyRewardPanel({
   attendanceOpen = false,
   onSaveSeats,
   onSaveGroups,
+  // '다 함께 주기'의 결과를 알리는 데만 씁니다(페이지의 Toast).
+  onToast = null,
 }) {
   const [notesFor, setNotesFor] = useState(null); // 누가기록 모달 대상 학생(교사만)
   // 자리 클릭 → 과일/누가기록 팝오버. `toolsAt`은 누른 자리 칸으로, 창이 그
@@ -69,6 +77,8 @@ export default function StudyRewardPanel({
   const [dragUid, setDragUid] = useState(null); // 드래그로 옮기는 중인 학생
   const [pickedUid, setPickedUid] = useState(null); // 짚어 둔 학생(탭으로 옮기기)
   const [zoom, setZoom] = useState(false); // 자리표 확대 보기
+  const [confirmAll, setConfirmAll] = useState(false); // '멋진 순간' 되묻는 창
+  const [awardingAll, setAwardingAll] = useState(0); // 다 함께 주는 중 — 남은 인원
   // 자리표를 어느 쪽에서 보는가 — 자리표가 나오는 네 화면이 같은 값을
   // 함께 씁니다(lib/seatView.js). 한 화면에서 뒤집으면 나머지도 따라옵니다.
   const [teacherView, toggleSeatView] = useSeatView();
@@ -212,9 +222,13 @@ export default function StudyRewardPanel({
   // 중입니다. 세는 대상은 **지금 명단에 있는 학생**뿐입니다 — 반에서 빠진
   // 학생의 옛 출석 기록이 섞이면 분자가 분모를 넘습니다.
   const attendanceDone = !!presentUids && !attendanceOpen;
-  const presentCount = attendanceDone
-    ? roster.filter((s) => presentUids.has(s.uid)).length
-    : 0;
+  // '멋진 순간'(다 함께 주기)이 줄 대상. 같은 조건으로 뽑아, 머리줄의
+  // '출석 n/N'에 적힌 그 n명이 곧 받는 사람입니다 — 두 곳이 다른 기준을
+  // 쓰면 '21명'이라 적힌 옆의 단추가 다른 수의 학생에게 줍니다.
+  const presentStudents = attendanceDone
+    ? roster.filter((s) => presentUids.has(s.uid))
+    : [];
+  const presentCount = presentStudents.length;
   const groupedUids = new Set(groups.flatMap((g) => (g.members ?? []).map((m) => m.uid)));
   const ungrouped = roster.filter((s) => !groupedUids.has(s.uid));
 
@@ -230,6 +244,63 @@ export default function StudyRewardPanel({
   const topRewardUids = new Set(
     maxRewardCount > 0 ? roster.filter((s) => todayOf(s.uid) === maxRewardCount).map((s) => s.uid) : []
   );
+
+  // '멋진 순간' — 왜 지금 못 누르는지. null이면 누를 수 있습니다.
+  // 누른 뒤에야 안 되는 걸 알게 하지 않으려고 **까닭을 툴팁에 미리** 적습니다.
+  const awardAllBlocked = attendanceOpen
+    ? "출석을 받는 중이에요 — 마친 뒤에 눌러 주세요."
+    : !presentUids
+      ? "오늘 출석을 먼저 확인해 주세요 — 누가 왔는지 알아야 줄 수 있어요."
+      : presentCount === 0
+        ? "오늘 출석한 학생이 없어요."
+        : null;
+
+  // 출석한 학생 모두에게 과일 하나씩.
+  //
+  // **낱개 주기와 같은 길로 보냅니다**(`onAward(uid, 개수, +1)` — 델타).
+  // 화면에 보이는 개수로 절대값을 만들어 보내면, 구독으로 돌아오기 전의
+  // 옛 값이라 방금 다른 데서 받은 과일이 묻힙니다(CLAUDE.md의 '＋1·−1 단추는
+  // 반드시 addStudentReward(델타)로' 참고). 여기는 한꺼번에 스물몇 명이라
+  // 그 위험이 더 큽니다.
+  async function awardAll() {
+    setConfirmAll(false);
+    const targets = presentStudents;
+    if (awardingAll > 0 || targets.length === 0) return;
+
+    setAwardingAll(targets.length);
+    const queue = [...targets];
+    const failed = [];
+    let given = 0;
+    // 여섯 줄로 나눠 보냅니다. shift()는 await 앞에서 끝나므로(자바스크립트는
+    // 한 줄기) 같은 학생을 두 번 집는 일이 없습니다.
+    async function lane() {
+      while (queue.length > 0) {
+        const s = queue.shift();
+        try {
+          await onAward?.(s.uid, s.count ?? 0, 1);
+          given += 1;
+        } catch {
+          failed.push(s.name);
+        }
+        setAwardingAll((n) => Math.max(0, n - 1));
+      }
+    }
+    await Promise.all(
+      Array.from({ length: Math.min(AWARD_ALL_LANES, targets.length) }, lane)
+    );
+    setAwardingAll(0);
+
+    // **못 준 학생은 이름으로 알립니다.** '3명 실패'라고만 하면 다시 누르게
+    // 되는데, 그러면 이미 받은 학생이 한 번 더 받습니다. 누구인지 알면
+    // 그 자리만 눌러 주면 됩니다.
+    if (failed.length === 0) {
+      onToast?.(`출석한 ${given}명에게 🍊를 하나씩 줬어요.`);
+    } else {
+      onToast?.(
+        `${given}명에게 줬어요. ${failed.join(", ")}에게는 주지 못했어요 — 그 자리를 눌러 따로 주세요.`
+      );
+    }
+  }
 
   function openTools(student, el = null) {
     setToolsFor(student);
@@ -288,6 +359,22 @@ export default function StudyRewardPanel({
                   출석 <b>{presentCount}</b>/{roster.length}
                 </span>
               )}
+              {/* 다 함께 주기 — 반이 통째로 잘한 순간에 누릅니다. 옆의 둘은
+                  '보는 방법'을 바꿀 뿐이지만 이것은 **스물몇 명의 기록을
+                  건드립니다.** 그래서 같은 알약이되 혼자 색이 있고(`.is-act`),
+                  되묻는 창을 한 번 거칩니다. */}
+              <button
+                type="button"
+                className="reward-seat-flip reward-seat-all"
+                onClick={() => setConfirmAll(true)}
+                disabled={!!awardAllBlocked || awardingAll > 0}
+                title={
+                  awardAllBlocked ??
+                  `출석한 ${presentCount}명에게 과일을 하나씩 줍니다`
+                }
+              >
+                {awardingAll > 0 ? `주는 중… ${awardingAll}` : "🍊 멋진 순간"}
+              </button>
               {/* 지금 어느 쪽에서 본 배치인지 — 누르면 반대쪽으로 돌아갑니다 */}
               <SeatViewToggle teacherView={teacherView} onToggle={toggleSeatView} />
               <button
@@ -510,6 +597,22 @@ export default function StudyRewardPanel({
           onBack={() => { setNotesFor(null); setToolsFor(notesFor); }}
           classId={classId}
           onClose={() => setNotesFor(null)}
+        />
+      )}
+
+      {/* 다 함께 주기 — **몇 명에게 주는지를 먼저 말합니다.** 되돌리려면
+          자리를 하나씩 눌러 −1을 스물몇 번 해야 하므로, 누르기 전에 수를
+          보여 주는 편이 맞습니다(책방 휴지통 비우기와 같은 생각).
+          danger는 아닙니다 — 지우는 일이 아니라 주는 일입니다. */}
+      {confirmAll && (
+        <ConfirmModal
+          icon="🍊"
+          iconTone="reward"
+          title="멋진 순간"
+          description={`오늘 출석한 ${presentCount}명에게 과일을 하나씩 줍니다.\n학생들 화면에도 폭죽이 터져요.`}
+          confirmLabel={`${presentCount}명에게 주기`}
+          onConfirm={awardAll}
+          onClose={() => setConfirmAll(false)}
         />
       )}
       </div>
