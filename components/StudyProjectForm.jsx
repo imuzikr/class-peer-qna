@@ -20,12 +20,24 @@
 // 복사본이 생길 때 함께 깔립니다(startStudyTemplateInClass).
 // =============================================================
 import { backdropClose } from "@/lib/modal";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { addStudyTemplate, addKeyword } from "@/lib/store";
 import { getCurrentUser } from "@/lib/user";
 import { IconIndividual, IconGroup } from "./StatusIcons";
+import { findSameNameProject } from "@/lib/projectNames";
+import ProjectNameDupModal from "./ProjectNameDupModal";
 
-export default function StudyProjectForm({ keywords = [], className = "", onClose, onCreated }) {
+export default function StudyProjectForm({
+  keywords = [],
+  className = "",
+  // 같은 이름 찾기에 쓰는 것 — 페이지가 이미 구독해 둔 값(lib/projectNames.js)
+  classId = null,
+  boards = [],
+  templates = [],
+  onClose,
+  onCreated,
+  onLoadExisting, // (hit) => Promise — 같은 이름의 이전 프로젝트 불러오기
+}) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [activityType, setActivityType] = useState("individual"); // 개별 | 모둠
@@ -36,6 +48,9 @@ export default function StudyProjectForm({ keywords = [], className = "", onClos
   const [saving, setSaving] = useState(false);
   const [addingKw, setAddingKw] = useState(false); // 새 키워드 입력 중
   const [newKw, setNewKw] = useState("");
+  // 같은 이름이 있을 때 — { name, hit }
+  const [dup, setDup] = useState(null);
+  const titleRef = useRef(null);
 
   function toggleKeyword(kw) {
     setSelectedKeywords((prev) =>
@@ -63,6 +78,12 @@ export default function StudyProjectForm({ keywords = [], className = "", onClos
   async function handleSubmit(e) {
     e.preventDefault();
     if (!title.trim()) return;
+    // 프로젝트 이름은 서로 달라야 합니다 — 있으면 만들지 않고 되묻습니다.
+    const hit = findSameNameProject(title, { classId, boards, templates });
+    if (hit) {
+      setDup({ name: title.trim(), hit });
+      return;
+    }
     setSaving(true);
     try {
       const me = getCurrentUser();
@@ -115,6 +136,7 @@ export default function StudyProjectForm({ keywords = [], className = "", onClos
           {/* 제목 + 연계 토글 */}
           <div className="study-board-form-title-row">
             <input
+              ref={titleRef}
               type="text"
               placeholder="프로젝트 제목 (예: 이온 결합 모형 탐구)"
               value={title}
@@ -231,6 +253,25 @@ export default function StudyProjectForm({ keywords = [], className = "", onClos
             {saving ? "만드는 중..." : "프로젝트 만들기"}
           </button>
         </form>
+
+        {dup && (
+          <ProjectNameDupModal
+            name={dup.name}
+            hit={dup.hit}
+            // 취소 — 이름 칸으로 돌아가 고쳐 쓰게 합니다(적어 둔 활동은 그대로).
+            onCancel={() => {
+              setDup(null);
+              requestAnimationFrame(() => {
+                titleRef.current?.focus();
+                titleRef.current?.select();
+              });
+            }}
+            onLoad={async () => {
+              await onLoadExisting?.(dup.hit);
+              onClose();
+            }}
+          />
+        )}
       </div>
     </div>
   );

@@ -45,11 +45,14 @@ import {
 } from "@/lib/activities";
 import { pyShareHtml } from "@/lib/pyShare";
 import { IconLockState } from "./StatusIcons";
+import { findSameNameProject, loadSameNameProject } from "@/lib/projectNames";
+import ProjectNameDupModal from "./ProjectNameDupModal";
 
 export default function PyProjectPanel({
   classId,
   className = "",
   boards = [],
+  templates = [], // 내 원본 — 새 프로젝트 이름이 겹치는지 보는 데만
   pyTarget = null,
   user,
   isTeacher = false,
@@ -65,6 +68,8 @@ export default function PyProjectPanel({
   const [making, setMaking] = useState(false); // 새 프로젝트 만들기 폼
   const [newTitle, setNewTitle] = useState("");
   const [newAct, setNewAct] = useState("");
+  const [dup, setDup] = useState(null); // 같은 이름이 있을 때 { name, hit }
+  const newTitleRef = useRef(null);
   const [addingAct, setAddingAct] = useState(false); // 활동 추가 폼
   const [actName, setActName] = useState("");
   // 학생이 직접 고른 목적지 — null이면 선생님이 정한 것을 그대로 따릅니다.
@@ -126,6 +131,13 @@ export default function PyProjectPanel({
     const title = newTitle.trim();
     const first = newAct.trim();
     if (!title || !first || busy) return;
+    // 프로젝트 이름은 서로 달라야 합니다(lib/projectNames.js) — 있으면
+    // 만들지 않고 '이전 프로젝트 불러오기'를 권합니다.
+    const hit = findSameNameProject(title, { classId, boards, templates });
+    if (hit) {
+      setDup({ name: title, hit });
+      return;
+    }
     setBusy(true);
     try {
       // 수업 중에 만들어도 **원본**으로 만들고 이 반에 불러옵니다 — 공부방
@@ -146,6 +158,20 @@ export default function PyProjectPanel({
     } finally {
       setBusy(false);
     }
+  }
+
+  // 같은 이름 안내에서 '이전 프로젝트 불러오기' — 이 반에 불러와 보낼 곳으로
+  // 잡습니다(새로 만들 때와 같은 끝모습). 실패하면 창이 오류를 적도록 던집니다.
+  async function loadDup() {
+    if (!dup) return;
+    const id = await loadSameNameProject(dup.hit, { classId, boards, user });
+    if (id) await setClassPyTarget(classId, { boardId: id, actIndex: 0 });
+    const t = dup.hit.item.title;
+    setDup(null);
+    setMaking(false);
+    setNewTitle("");
+    setNewAct("");
+    say("ok", `'${t}' 프로젝트를 불러와 보낼 곳으로 잡았어요.`);
   }
 
   // ── 그 자리에서 활동 추가(교사) ───────────────────────────
@@ -297,6 +323,7 @@ export default function PyProjectPanel({
           {making && (
             <form className="py-project-form" onSubmit={createProject}>
               <input
+                ref={newTitleRef}
                 className="py-project-input"
                 value={newTitle}
                 onChange={(e) => setNewTitle(e.target.value)}
@@ -363,6 +390,21 @@ export default function PyProjectPanel({
         코드는 코드 블록으로, 실행 결과가 있으면 그 아래에 함께 들어갑니다.
         이미 쓴 내용은 지워지지 않고 뒤에 이어 붙습니다.
       </p>
+
+      {dup && (
+        <ProjectNameDupModal
+          name={dup.name}
+          hit={dup.hit}
+          onCancel={() => {
+            setDup(null);
+            requestAnimationFrame(() => {
+              newTitleRef.current?.focus();
+              newTitleRef.current?.select();
+            });
+          }}
+          onLoad={loadDup}
+        />
+      )}
     </div>
   );
 }

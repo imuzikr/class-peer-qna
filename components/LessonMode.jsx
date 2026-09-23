@@ -66,6 +66,8 @@ import {
 import { uploadImage, uploadFile } from "@/lib/storageUpload";
 import { formatFileSize } from "@/lib/image";
 import { getCurrentUser } from "@/lib/user";
+import { findSameNameProject, loadSameNameProject } from "@/lib/projectNames";
+import ProjectNameDupModal from "./ProjectNameDupModal";
 import AttendanceBoard from "./AttendanceBoard";
 import StudyProgressBoard, { cardProgress } from "./StudyProgressBoard";
 import LessonSeatPanel from "./LessonSeatPanel";
@@ -664,27 +666,31 @@ export default function LessonMode({
     setDupBoard(null);
   }
 
-  // 이미 있는 프로젝트에 그냥 연결합니다(중복 안내에서 고른 경우).
-  // 같은 이름이 **원본**에만 있을 때(이 반에는 아직 없음)는 그 원본을 이 반에
-  // 불러와 연결합니다 — 같은 이름의 원본을 하나 더 만들지 않으려고요.
-  async function useExistingBoard(id, templateId = null) {
-    if (templateId) {
-      const t = templates.find((x) => x.id === templateId);
-      if (!t || !classId) return;
-      setMakingBoard(true);
-      try {
-        const bid = await startStudyTemplateInClass(t, classId, getCurrentUser());
-        if (bid) await onSaveBoardId?.(bid);
-        cancelAddBoard();
-      } catch (e2) {
-        setActError(`프로젝트를 불러오지 못했어요: ${e2?.message ?? "알 수 없는 오류"}`);
-      } finally {
-        setMakingBoard(false);
-      }
-      return;
-    }
-    await onSaveBoardId?.(id);
+  // 같은 이름 안내에서 '이전 프로젝트 불러오기'를 고른 경우 — 그것을 이 반에
+  // 불러와(이미 있으면 그대로) 이 수업에 연결합니다. 실패하면 창이 오류를
+  // 적도록 던집니다.
+  async function loadDupBoard() {
+    if (!dupBoard || !classId) return;
+    const all = [...boards, ...otherBoards];
+    const id = await loadSameNameProject(dupBoard.hit, {
+      classId,
+      boards: all,
+      user: getCurrentUser(),
+    });
+    if (id) await onSaveBoardId?.(id);
     cancelAddBoard();
+  }
+
+  // 같은 이름 안내의 '취소' — 창만 닫고 이름 칸으로 돌아가 고쳐 쓰게 합니다.
+  function closeDupBoard() {
+    setDupBoard(null);
+    requestAnimationFrame(() => {
+      const el = newBoardInputRef.current;
+      if (el) {
+        el.focus();
+        el.select();
+      }
+    });
   }
 
   // ── 다른 반에서 프로젝트 통째로 가져오기 ─────────────────────
@@ -766,18 +772,17 @@ export default function LessonMode({
     const name = (newBoardInputRef.current?.value ?? newBoardName).trim();
     if (!classId || !name || makingBoard) return;
 
-    // 같은 이름이 이미 있으면 한 번 되묻습니다 — 이 안내를 띄운 그 이름으로
-    // 다시 누르면 뜻이 분명하므로 그때는 만듭니다(같은 이름을 정말 원할
-    // 수도 있으니 막지는 않습니다).
-    // 이 반의 프로젝트가 먼저, 없으면 내 원본(이 반에는 아직 안 불러온 것).
-    const dup = boards.find((b) => (b.title ?? "").trim() === name);
-    const dupTpl = dup ? null : templates.find((t) => (t.title ?? "").trim() === name);
-    if ((dup || dupTpl) && dupBoard?.name !== name) {
-      setDupBoard(
-        dup
-          ? { name, id: dup.id, acts: dup.activities?.length ?? 0 }
-          : { name, templateId: dupTpl.id, acts: dupTpl.activities?.length ?? 0 }
-      );
+    // 프로젝트 이름은 서로 달라야 합니다 — 같은 이름이 이 반·내 원본·다른 반의
+    // 옛 프로젝트 어디에든 있으면 만들지 않고 '이전 프로젝트 불러오기'를
+    // 권합니다(lib/projectNames.js). 한때 '그래도 만들기'로 같은 이름을 하나
+    // 더 만들 수 있었는데, 그러면 원본 목록에서 둘을 가를 수 없습니다.
+    const hit = findSameNameProject(name, {
+      classId,
+      boards: [...boards, ...otherBoards],
+      templates,
+    });
+    if (hit) {
+      setDupBoard({ name, hit });
       return;
     }
 
@@ -1578,7 +1583,7 @@ export default function LessonMode({
                   {/* 조합 중인 한글은 state에 늦게 들어오므로 입력값으로
                       버튼을 잠그지 않습니다(빈 값은 handleAddBoard가 거릅니다) */}
                   <button type="submit" className="lesson-board-add" disabled={makingBoard}>
-                    {makingBoard ? "만드는 중…" : dupBoard ? "그래도 만들기" : "만들기"}
+                    {makingBoard ? "만드는 중…" : "만들기"}
                   </button>
                   <button
                     type="button"
@@ -1636,21 +1641,14 @@ export default function LessonMode({
                 </div>
               )}
 
-              {/* 같은 이름이 이미 있을 때 — 새로 만들기 전에 한 번 되묻습니다 */}
+              {/* 같은 이름이 이미 있을 때 — 만들지 않고 되묻습니다 */}
               {dupBoard && (
-                <p className="lesson-board-dup" role="alert">
-                  ‘{dupBoard.name}’ {dupBoard.templateId ? "원본이" : "프로젝트가"} 이미 있어요
-                  {dupBoard.acts > 0 ? ` (활동 ${dupBoard.acts}개).` : " (활동 없음)."}{" "}
-                  같은 이름을 하나 더 만들면 목록에서 구분하기 어려워요.
-                  <button
-                    type="button"
-                    className="lesson-board-dup-use"
-                    onClick={() => useExistingBoard(dupBoard.id, dupBoard.templateId)}
-                    disabled={makingBoard}
-                  >
-                    {dupBoard.templateId ? "그 원본을 이 반에 불러오기" : "그 프로젝트에 연결하기"}
-                  </button>
-                </p>
+                <ProjectNameDupModal
+                  name={dupBoard.name}
+                  hit={dupBoard.hit}
+                  onCancel={closeDupBoard}
+                  onLoad={loadDupBoard}
+                />
               )}
 
               {!classId && (

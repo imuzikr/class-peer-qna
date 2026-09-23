@@ -75,6 +75,7 @@ export default function PythonRunner({
   classId = null,
   className = "",
   boards = null, // null이면 2단 자체를 안 답니다(연계할 자리가 없는 화면)
+  templates = [], // 내 프로젝트 원본 — 새 프로젝트 이름이 겹치는지 보는 데만
   pyTarget = null,
   user = null,
   isTeacher = false,
@@ -457,6 +458,7 @@ export default function PythonRunner({
             classId={classId}
             className={className}
             boards={boards}
+            templates={templates}
             pyTarget={pyTarget}
             user={user}
             isTeacher={isTeacher}

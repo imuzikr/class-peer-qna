@@ -7235,6 +7235,74 @@ pre code {
   background: #b91c1c;
 }
 
+/* ============ 같은 이름의 프로젝트 (ProjectNameDupModal) ============
+   수업 편집(z 2900) · 파이썬 실행기 위에도 떠야 해서 그보다 높게 둡니다.
+   두 단추는 격자로 반씩 — 글자 길이가 달라도 크기가 같습니다(색도 같음). */
+.name-dup-backdrop {
+  z-index: 3020;
+}
+.name-dup-modal {
+  background: #fff;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 420px;
+  padding: 28px 26px 22px;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  animation: confirm-in 0.18s ease;
+}
+.name-dup-modal:focus {
+  outline: none;
+}
+.name-dup-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--dark);
+  margin-bottom: 12px;
+}
+.name-dup-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 14px;
+  margin-bottom: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.name-dup-name span {
+  font-weight: 500;
+  color: var(--text-sub);
+}
+.name-dup-desc {
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.65;
+  margin-bottom: 20px;
+  word-break: keep-all;
+}
+.name-dup-desc small {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 12.5px;
+  color: var(--text-sub);
+}
+.name-dup-modal .form-error {
+  margin: -8px 0 14px;
+}
+.name-dup-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.name-dup-actions .btn-primary {
+  padding: 11px 8px;
+  font-size: 14.5px;
+}
+
 /* ===================== 학생 프로필 편집 모달 ===================== */
 
 .student-edit-modal {
@@ -9639,40 +9707,6 @@ pre code {
   font-size: 12px;
   line-height: 1.6;
   color: var(--text-sub);
-}
-/* 이름이 겹칠 때의 확인 — 막는 게 아니라 되묻는 자리라 오류(빨강)가 아닌
-   주의(노랑) 색을 씁니다. */
-.lesson-board-dup {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-  padding: 10px 12px;
-  font-size: 13px;
-  line-height: 1.6;
-  color: #7a5b00;
-  background: #fff8e1;
-  border: 1px solid #f0d98a;
-  border-radius: var(--radius-btn);
-}
-.lesson-board-dup-use {
-  padding: 6px 12px;
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 700;
-  color: #7a5b00;
-  background: #fff;
-  border: 1px solid #e0c46a;
-  border-radius: var(--radius-btn);
-  cursor: pointer;
-}
-.lesson-board-dup-use:hover:not(:disabled) {
-  background: #fdf1c9;
-}
-.lesson-board-dup-use:disabled {
-  opacity: 0.5;
-  cursor: default;
 }
 /* 활동 목록 — 학생 카드에 그대로 들어갈 항목들.
    번호를 '활동 1'처럼 직접 그리므로 기본 목록 마커 자리는 비웁니다. */

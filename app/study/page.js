@@ -61,6 +61,7 @@ import { getSelectedClassId, setSelectedClassId } from "@/lib/classroom";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import AuthGate from "@/components/AuthGate";
 import { codeBlockHtml } from "@/lib/html";
+import { loadSameNameProject } from "@/lib/projectNames";
 import {
   buildStudyRows,
   downloadStudyCsv,
@@ -1276,6 +1277,22 @@ function StudyPageInner() {
         <StudyProjectForm
           keywords={keywordNames}
           className={currentClass.name ?? ""}
+          classId={classId}
+          boards={boards}
+          templates={templates}
+          // 같은 이름이 있어 '이전 프로젝트 불러오기'를 고른 경우 — 그것을 이
+          // 반에 불러오고(이미 있으면 그대로) 곧바로 그 프로젝트로 들어갑니다.
+          onLoadExisting={async (hit) => {
+            const id = await loadSameNameProject(hit, {
+              classId,
+              boards,
+              user: getCurrentUser(),
+            });
+            if (!id) return;
+            projectCreatedRef.current = true; // 닫힐 때 프로젝트 탭으로 되돌아가지 않게
+            setToast(`‘${hit.item.title}’를 불러왔어요.`);
+            router.push(`/study?project=${id}`);
+          }}
           onClose={() => {
             const from = creatingProject;
             setCreatingProject(false);
@@ -1326,6 +1343,7 @@ function StudyPageInner() {
         classId={classId}
         className={currentClass?.name ?? ""}
         boards={boards}
+        templates={templates}
         pyTarget={currentClass?.pyTarget ?? null}
         user={user}
         isTeacher={admin}
