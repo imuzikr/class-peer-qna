@@ -400,6 +400,26 @@ function StudyPageInner() {
       )
       .map((b) => ({ ...b, className: names.get(b.classId) ?? "" }));
   }, [admin, boards, classId, myClassesAll]);
+  // 이 반에서 수업 자료에 연결돼 있는 프로젝트 — 수업 편집 고르개가 줄 끝에
+  // '(연결됨)'을 답니다. 이미 구독해 둔 수업 자료 목록으로 셉니다(읽기 0).
+  // 판정은 LessonMode의 boardId와 같습니다: 이 반 키가 있으면 그 값('연결
+  // 안 함'으로 비운 것 포함), 없으면 옛 boardId가 이 반 프로젝트일 때만.
+  const linkedBoardIds = useMemo(() => {
+    const ids = new Set();
+    if (!admin || !classId) return ids;
+    const here = new Set(classBoards.map((b) => b.id));
+    for (const l of lessons) {
+      const map = l.boardIds ?? null;
+      const id =
+        map && Object.prototype.hasOwnProperty.call(map, classId)
+          ? map[classId]
+          : here.has(l.boardId)
+            ? l.boardId
+            : null;
+      if (id) ids.add(id);
+    }
+    return ids;
+  }, [admin, classId, classBoards, lessons]);
   const todayAttendanceKey = todayDateKey();
   const attendedToday = !admin && attendanceRecords.some((r) => r.date === todayAttendanceKey);
   // 교사가 '출석 시작'을 오늘 눌렀을 때만 유효 — attendanceOpenDate가 오늘과
@@ -1432,6 +1452,7 @@ function StudyPageInner() {
           otherBoards={otherClassBoards}
           // 내 프로젝트 원본 — 가져오기 목록 맨 앞(원본 하나가 한 줄)
           templates={templates}
+          linkedBoardIds={linkedBoardIds}
           // 연결은 **반마다 따로** 기억합니다 — 한 자료를 여러 반에서 쓰기
           // 때문입니다(LessonMode의 boardIds 주석 참고). 점 표기 경로
           // ({ "boardIds.xxx": … })는 Mock의 Object.assign에서 문자열 키가

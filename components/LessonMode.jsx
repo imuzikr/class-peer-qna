@@ -87,6 +87,7 @@ export default function LessonMode({
   otherBoards = [],     // 수업 준비: 다른 반에 만들어 둔 프로젝트(가져오기 대상)
   templates = [],       // 수업 준비: 내 프로젝트 원본(가져오기 목록의 맨 앞)
                         //   [{ id, title, className, activities[] }]
+  linkedBoardIds = null, // 수업 준비: 이 반에서 수업 자료에 연결된 프로젝트 id(Set)
   roster = [],          // 수업 중: 이 반 학생 명단(참여 전광판 자리 배치용)
   attendanceRecords = [],
   onAward,              // 수업 중: 참여 전광판 카드에서 과일 주기(교사만)
@@ -161,7 +162,7 @@ export default function LessonMode({
   // 열어도 이미 만들어진 보드라 계속 보였습니다)
   const [addingBoard, setAddingBoard] = useState(false);
   const [newBoardName, setNewBoardName] = useState("");
-  // '수업 프로젝트' 고르개의 둘째 묶음(이 반으로 가져올 프로젝트)에서 고른 것 —
+  // '수업 프로젝트' 고르개의 둘째 묶음(외부 프로젝트)에서 고른 것 —
   // `t:<원본 id>` 또는 `b:<프로젝트 id>`. 고르는 순간 만들지 않고 아래 확인 줄의
   // '가져오기'를 눌러야 씁니다(아래 importPick 설명).
   const [importFrom, setImportFrom] = useState("");
@@ -492,9 +493,9 @@ export default function LessonMode({
 
   // ── '수업 프로젝트' 고르개의 두 묶음 ─────────────────────────
   // 고르개 하나에 묶음(optgroup)이 둘입니다.
-  //   · **이 반의 프로젝트** — 이 반에 이미 있는 것. 고르면 곧바로 이 수업에
+  //   · **우리 반 프로젝트** — 이 반에 이미 있는 것. 고르면 곧바로 이 수업에
   //     연결합니다(지금까지와 같습니다).
-  //   · **이 반으로 가져올 프로젝트** — 아직 이 반에 없는 내 원본과, 원본 없는
+  //   · **외부 프로젝트** — 아직 이 반에 없는 내 원본과, 원본 없는
   //     다른 반의 옛 프로젝트. 고르면 이 반에 하나 열어 연결합니다.
   // 한때 둘째 묶음이 '프로젝트 가져오기' 단추 뒤의 따로 선 고르개였는데, 두
   // 목록이 같은 자리에 번갈아 서서 '무엇이 어디에 있나'를 두 번 찾아야 했고,
@@ -713,8 +714,8 @@ export default function LessonMode({
   }
 
   // ── 고르개에서 고르기 ─────────────────────────────────────────
-  // 첫째 묶음(이 반의 프로젝트)이나 '연결 안 함'은 고르는 즉시 연결합니다.
-  // 둘째 묶음(이 반으로 가져올 프로젝트)은 **고르기만 하고** 아래 확인 줄의
+  // 첫째 묶음(우리 반 프로젝트)이나 '연결 안 함'은 고르는 즉시 연결합니다.
+  // 둘째 묶음(외부 프로젝트)은 **고르기만 하고** 아래 확인 줄의
   // '가져오기'를 눌러야 이 반에 만듭니다. 닫힌 고르개에서 방향키를 누르면
   // 브라우저가 한 칸 옮길 때마다 change를 보내는데, 그때마다 가져오면 훑어
   // 내려가는 것만으로 이 반에 프로젝트가 줄줄이 생깁니다.
@@ -1575,14 +1576,20 @@ export default function LessonMode({
                         쪽"을 바로 집을 수 있습니다 — 실제로 같은 이름의 빈
                         프로젝트에 연결해 놓고 활동이 사라진 줄 알았던 일이
                         있었습니다. */}
+                    {/* 수업 자료에 연결돼 있는 것은 끝에 '(연결됨)' — 묶음을
+                        따로 두지 않는 까닭은, 연결하는 순간 그 줄이 다른 묶음으로
+                        옮겨 가 방금 고른 것이 목록에서 자리를 바꾸기 때문입니다.
+                        고른 뒤의 동작도 같습니다(한 프로젝트를 여러 수업이 함께
+                        가리킬 수 있고, 여기서 연결해도 다른 수업의 연결은 그대로). */}
                     {boards.length > 0 && (
-                      <optgroup label="이 반의 프로젝트">
+                      <optgroup label="우리 반 프로젝트">
                         {boards.map((b) => (
                           <option key={b.id} value={b.id}>
                             {b.title}
                             {b.activities?.length
                               ? ` · 활동 ${b.activities.length}개`
                               : " · 활동 없음"}
+                            {linkedBoardIds?.has(b.id) ? " (연결됨)" : ""}
                           </option>
                         ))}
                       </optgroup>
@@ -1591,7 +1598,7 @@ export default function LessonMode({
                         이름만 섭니다(앞으로는 다 원본이라 그 구분은 고를 때
                         쓸모가 없습니다). */}
                     {(importTemplates.length > 0 || importOld.length > 0) && (
-                      <optgroup label="이 반으로 가져올 프로젝트">
+                      <optgroup label="외부 프로젝트">
                         {importTemplates.map((t) => (
                           <option key={t.id} value={`t:${t.id}`}>
                             {t.title}
