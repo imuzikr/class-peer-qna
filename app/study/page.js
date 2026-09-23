@@ -1342,7 +1342,7 @@ function StudyPageInner() {
             projectCreatedRef.current = false;
           }}
           // 만든 것은 원본이라 반에는 아직 없습니다 — 수업 관리 창의 프로젝트
-          // 탭을 그 줄을 짚은 채로 열어, 다음 할 일('이 반에서 시작하기')이
+          // 탭을 그 줄을 짚은 채로 열어, 다음 할 일('우리 반에 가져오기')이
           // 바로 눈에 들게 합니다.
           onCreated={(newId) => {
             projectCreatedRef.current = true;

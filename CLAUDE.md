@@ -95,7 +95,7 @@ Firebase 미설정 시 자동으로 **데모 모드**로 동작 (새로고침 �
 | `components/StudyProjectView.jsx` | 프로젝트 상세 — 개인 카드 그리드 + 교사 도구 |
 | `components/StudyMyActivityCard.jsx` | 개인 카드 상세 — 활동 칸 + 누구의 카드인지 칩 · 옆 학생 넘기기 |
 | `components/StudyProjectForm.jsx` | 프로젝트 만들기 모달 (제목·안내·활동 목록) — **원본**을 만듭니다 |
-| `components/StudyTemplateList.jsx` | 프로젝트 원본 목록 (교사) — '수업 관리' 창의 프로젝트 탭 · 이 반에서 시작하기 · 삭제 |
+| `components/StudyTemplateList.jsx` | 프로젝트 원본 목록 (교사) — '수업 관리' 창의 프로젝트 탭 · 우리 반에 가져오기 · 삭제 |
 | `components/StudyProjectEditModal.jsx` | 프로젝트 편집 모달 — 제목·활동 안내만 (교사) |
 | `components/ClassNotesTools.jsx` | 기록 관리·수업 메모 버튼 + 모달 묶음 (교사 전용) |
 | `components/CornellNoteDrawer.jsx` | 수업 노트 서랍 (학생 전용) — 오른쪽 손잡이 → 코넬 세 칸 · 오늘의 활동과 날개로 나란히 |
@@ -231,7 +231,7 @@ Firebase 미설정 시 자동으로 **데모 모드**로 동작 (새로고침 �
   keywords[], activityType, activities[], createdAt) — 반에 안 묶인 선생님의 것
   - **프로젝트는 선생님의 것이고 반의 것이 아닙니다.** 공부방 '＋ 프로젝트
     만들기'는 여기에 한 장을 만들고 **반에는 아무것도 안 만듭니다.** 반에서
-    쓸 때 **'수업 관리' 창의 프로젝트 탭**에서 **'이 반에서 시작하기'**가 그 반에 복사본
+    쓸 때 **'수업 관리' 창의 프로젝트 탭**에서 **'우리 반에 가져오기'**가 그 반에 복사본
     (`studyBoards` 문서 + `templateId` = 원본 id)을 하나 엽니다
     (`startStudyTemplateInClass`). 수업 자료(`lessons`)가 반에 안 묶이고
     '수업 시작'으로 비로소 반과 만나는 것과 짝입니다.

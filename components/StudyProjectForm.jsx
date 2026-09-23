@@ -245,7 +245,7 @@ export default function StudyProjectForm({
               이 반에 열렸으므로, 말없이 바꾸면 '만들었는데 반에 없다'로 읽힙니다. */}
           <p className="project-form-where">
             원본으로 만들어져요. 반에는 아직 아무것도 안 생기고, 이어서 뜨는
-            ‘수업 관리’의 프로젝트 탭에서 <strong>이 반에서 시작하기</strong>를
+            ‘수업 관리’의 프로젝트 탭에서 <strong>우리 반에 가져오기</strong>를
             누르면 {className ? `‘${className}’ ` : ""}학생 화면에 열립니다.
           </p>
 
