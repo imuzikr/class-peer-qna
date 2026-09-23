@@ -220,7 +220,9 @@ export default function LessonManagerModal({
               </label>
               <button
                 type="button"
-                className="btn-ghost"
+                // 두 길이 같은 무게라 같은 색입니다(둘 다 채운 살구색). 한쪽만
+                // 테두리 단추면 그쪽이 '덜 권하는 길'로 읽힙니다.
+                className="btn-primary"
                 onClick={handleTitleOnly}
                 disabled={!!busy || !title.trim()}
                 title={

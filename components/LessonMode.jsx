@@ -496,24 +496,37 @@ export default function LessonMode({
     return m;
   }, [boards]);
 
-  // 그 뒤는 **원본 없는** 다른 반 프로젝트를 반별로 — 이 구조가 생기기 전에
-  // 만든 것들입니다(자료를 옮기지 않았습니다). 원본이 살아 있는 복사본은
-  // 여기서 뺍니다(원본 줄이 이미 그것을 대신합니다). 원본을 지운 복사본은
-  // 가리킬 곳이 없으니 예전처럼 반별로 섭니다.
-  // 고르는 자리에서 어느 반 것인지 보이지 않으면 이름이 비슷한 프로젝트를
-  // 구분할 수 없어 반으로 묶습니다.
-  const importGroups = useMemo(() => {
+  // 그 뒤는 **원본 없는** 옛 프로젝트 — 이 구조가 생기기 전에 만든 것들입니다
+  // (자료를 옮기지 않았습니다). 원본과 **같은 모양으로 이름만** 한 줄씩 섭니다.
+  // 한때 '원본 없는 프로젝트 · 반이름'으로 반별로 묶었는데, 앞으로는 다
+  // 원본으로 만들어지므로 선생님에게 그 구분은 쓸모가 없었고, 같은 프로젝트가
+  // 반 수만큼 되풀이되는 것도 그대로였습니다.
+  //   · 원본이 살아 있는 복사본은 뺍니다 — 원본 줄이 이미 그것을 대신합니다.
+  //   · **같은 이름은 한 줄로 접습니다.** 반마다 복제해 쓰던 것이라 이름이
+  //     같으면 대개 같은 프로젝트입니다. 그중 활동이 가장 많은 것(같으면 가장
+  //     최근 것)을 가져옵니다 — 학생 카드는 따라오지 않으므로 어느 반 것을
+  //     고르든 가져오는 것은 활동 목록과 안내뿐입니다.
+  //   · 원본과 이름이 같은 옛 프로젝트도 뺍니다 — 원본 줄이 그 이름을 이미
+  //     말하고, 같은 이름이 두 줄이면 무엇이 다른지 알 수 없습니다.
+  const importOld = useMemo(() => {
     const live = new Set(templates.map((t) => t.id));
-    const byClass = new Map();
+    const tplTitles = new Set(templates.map((t) => (t.title ?? "").trim()));
+    const byTitle = new Map();
+    const stamp = (b) => (b.createdAt ? toDate(b.createdAt).getTime() : 0);
     for (const b of otherBoards) {
       if (b.templateId && live.has(b.templateId)) continue;
-      const key = b.className || "반 이름 없음";
-      if (!byClass.has(key)) byClass.set(key, []);
-      byClass.get(key).push(b);
+      const key = (b.title ?? "").trim();
+      if (!key || tplTitles.has(key)) continue;
+      const prev = byTitle.get(key);
+      const n = b.activities?.length ?? 0;
+      const pn = prev?.activities?.length ?? 0;
+      if (!prev || n > pn || (n === pn && stamp(b) > stamp(prev))) byTitle.set(key, b);
     }
-    return [...byClass];
+    return [...byTitle.values()].sort((a, b) =>
+      (a.title ?? "").localeCompare(b.title ?? "", "ko", { numeric: true })
+    );
   }, [otherBoards, templates]);
-  const canImport = templates.length > 0 || importGroups.length > 0;
+  const canImport = templates.length > 0 || importOld.length > 0;
 
   // ── 학습 자료 ────────────────────────────────────────────────
   // 연결한 프로젝트 전체에서 쓰는 파일입니다. 공부방 왼쪽 패널의 '자료 제공'과
@@ -1446,27 +1459,22 @@ export default function LessonMode({
                     autoFocus
                   >
                     <option value="">프로젝트를 고르세요</option>
-                    {templates.length > 0 && (
-                      <optgroup label="내 프로젝트 원본">
-                        {templates.map((t) => (
-                          <option key={t.id} value={`t:${t.id}`}>
-                            {t.title}
-                            {t.activities?.length
-                              ? ` · 활동 ${t.activities.length}개`
-                              : " · 활동 없음"}
-                            {templateInstance.has(t.id) ? " · 이 반에 있음" : ""}
-                          </option>
-                        ))}
-                      </optgroup>
-                    )}
-                    {importGroups.map(([cls, list]) => (
-                      <optgroup key={cls} label={`원본 없는 프로젝트 · ${cls}`}>
-                        {list.map((b) => (
-                          <option key={b.id} value={`b:${b.id}`}>
-                            {b.title} · 활동 {b.activities?.length ?? 0}개
-                          </option>
-                        ))}
-                      </optgroup>
+                    {/* 이름만 한 줄씩 — 원본이 앞, 옛 프로젝트가 뒤. 묶음 이름표
+                        (optgroup)를 두지 않습니다: 앞으로는 다 원본이라 그
+                        구분은 선생님이 고를 때 쓸모가 없습니다. */}
+                    {templates.map((t) => (
+                      <option key={t.id} value={`t:${t.id}`}>
+                        {t.title}
+                        {t.activities?.length
+                          ? ` · 활동 ${t.activities.length}개`
+                          : " · 활동 없음"}
+                        {templateInstance.has(t.id) ? " · 이 반에 있음" : ""}
+                      </option>
+                    ))}
+                    {importOld.map((b) => (
+                      <option key={b.id} value={`b:${b.id}`}>
+                        {b.title} · 활동 {b.activities?.length ?? 0}개
+                      </option>
                     ))}
                   </select>
                   <button
@@ -1496,8 +1504,8 @@ export default function LessonMode({
                         ? "이 반에 이미 열어 둔 이 원본의 프로젝트에 연결합니다. 새로 만들지 않습니다."
                         : "이 반에 원본의 복사본을 하나 열어 이 수업에 연결합니다. 학생 카드는 반마다 따로 쌓이고, 첫 활동만 열린 채로 시작합니다."
                       : copyPick?.kind === "board"
-                      ? "원본이 없는 프로젝트예요. 이 반에 같은 프로젝트를 새로 만들어 연결합니다. 학생 카드는 따라오지 않고, 첫 활동만 열린 채로 들어옵니다."
-                      : "원본은 한 줄에 하나씩 섭니다. 이 반에 이미 있는 원본은 새로 만들지 않고 연결만 합니다."}
+                      ? "이 반에 같은 프로젝트를 새로 만들어 연결합니다. 학생 카드는 따라오지 않고, 첫 활동만 열린 채로 들어옵니다."
+                      : "이 반에 이미 있는 프로젝트는 새로 만들지 않고 연결만 합니다."}
                   </small>
                 </form>
               ) : addingBoard ? (

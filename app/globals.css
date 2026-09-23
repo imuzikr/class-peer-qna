@@ -11603,8 +11603,7 @@ a.lesson-board-file-name { text-decoration: underline; }
   gap: 8px;
   margin-bottom: 10px;
 }
-.lesson-new-ways > .btn-primary,
-.lesson-new-ways > .btn-ghost {
+.lesson-new-ways > .btn-primary {
   height: 44px;
   padding: 0 14px;
   display: inline-flex;
@@ -11620,19 +11619,8 @@ a.lesson-board-file-name { text-decoration: underline; }
   /* 긴 이름이 두 줄로 접히면 한쪽만 높아 보이므로 한 줄에 붙듭니다 */
   white-space: nowrap;
 }
-/* 글자는 본문색 — 기본 `.btn-ghost`의 옅은 회색을 그대로 두면 채운 단추
-   옆에서 **꺼져 있는 것처럼** 보입니다. 꺼졌을 때와도 갈려야 합니다. */
-.lesson-new-ways > .btn-ghost {
-  color: var(--text);
-}
-.lesson-new-ways > .btn-ghost:disabled {
-  opacity: 0.45;
-  cursor: default;
-}
-.lesson-new-ways > .btn-ghost:disabled:hover {
-  background: none;
-  color: var(--text);
-}
+/* 두 단추 모두 채운 살구색(.btn-primary)입니다 — 제목이 비어 있으면 '슬라이드
+   없이 만들기'만 옅어집니다(.btn-primary:disabled). */
 /* 설명 두 덩이 — 어느 단추의 말인지 굵은 글씨로 먼저 밝힙니다. */
 .lesson-new-hints > p + p {
   margin-top: 6px;
