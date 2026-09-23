@@ -73,7 +73,7 @@ import StudyRewardPanel from "@/components/StudyRewardPanel";
 import StudyProjectDashboard from "@/components/StudyProjectDashboard";
 import StudyProjectView from "@/components/StudyProjectView";
 import StudyProjectForm from "@/components/StudyProjectForm";
-import StudyTemplateModal from "@/components/StudyTemplateModal";
+import StudyTemplateList from "@/components/StudyTemplateList";
 import StudyActivityPanel from "@/components/StudyActivityPanel";
 import NewQuestionForm from "@/components/NewQuestionForm";
 import ClassEntry from "@/components/ClassEntry";
@@ -147,11 +147,12 @@ function StudyPageInner() {
   const [membershipsLoaded, setMembershipsLoaded] = useState(false);
   const [teacherClassId, setTeacherClassId] = useState(null);
   const [joinCodesMap, setJoinCodesMap] = useState({}); // 교사: classId→{code,expiresAt}
+  // 프로젝트 만들기 창 — false | "dash"(공부방 머리줄에서) | "tab"(수업 관리
+  // 창의 프로젝트 탭에서). 탭에서 열었다가 그냥 닫으면 그 탭으로 돌아갑니다.
   const [creatingProject, setCreatingProject] = useState(false);
+  const projectCreatedRef = useRef(false);
   // 프로젝트 원본 — 반에 안 묶인 선생님의 프로젝트(lib/store.js studyTemplates 절)
   const [templates, setTemplates] = useState([]);
-  // 원본 창 — 열려 있으면 `{ highlightId }`(방금 만든 원본), 닫힘은 null
-  const [templateModal, setTemplateModal] = useState(null);
   const [classManagerOpen, setClassManagerOpen] = useState(false);
   const [attendanceOpen, setAttendanceOpen] = useState(false); // 출석부 모달
   const [noteViewerOpen, setNoteViewerOpen] = useState(false); // 내 수업 노트 크게 보기(학생)
@@ -485,7 +486,6 @@ function StudyPageInner() {
     try {
       const id = await startStudyTemplateInClass(template, classId, getCurrentUser());
       if (!id) return;
-      setTemplateModal(null);
       setToast(`‘${template.title}’를 ‘${currentClass?.name ?? "이 반"}’에서 시작했어요.`);
       router.push(`/study?project=${id}`);
     } catch (e) {
@@ -537,6 +537,13 @@ function StudyPageInner() {
 
   function openLessonPicker() {
     router.push("/study?panel=lessons");
+  }
+  // 수업 관리 창의 탭 — 주소로 들고 있어 '뒤로 가기'가 탭 단위로 돕니다.
+  // `newId`는 방금 만든 원본(그 줄을 짚어 둡니다).
+  const lessonTab = searchParams.get("tab") === "projects" ? "projects" : "lessons";
+  const newTemplateId = searchParams.get("new");
+  function openProjectsTab(newId = null) {
+    router.push(`/study?panel=lessons&tab=projects${newId ? `&new=${newId}` : ""}`);
   }
   function openLessonEdit(lesson) {
     router.push(`/study?lesson=${lesson.id}&mode=edit`);
@@ -1046,9 +1053,7 @@ function StudyPageInner() {
                   readOnly={!!currentClass?.archived}
                   roster={admin ? roster : []}
                   onOpen={openProject}
-                  onCreate={() => setCreatingProject(true)}
-                  templateCount={templates.length}
-                  onOpenTemplates={() => setTemplateModal({ highlightId: null })}
+                  onCreate={() => setCreatingProject("dash")}
                   onReorder={handleReorderProjects}
                   onToast={setToast}
                 />
@@ -1271,32 +1276,22 @@ function StudyPageInner() {
         <StudyProjectForm
           keywords={keywordNames}
           className={currentClass.name ?? ""}
-          onClose={() => setCreatingProject(false)}
-          // 만든 것은 원본이라 반에는 아직 없습니다 — 원본 창을 띄워 그 줄을
-          // 짚어 두고, 다음 할 일('이 반에서 시작하기')이 바로 눈에 들게 합니다.
-          onCreated={(newId) => setTemplateModal({ highlightId: newId })}
-        />
-      )}
-
-      {templateModal && admin && currentClass && (
-        <StudyTemplateModal
-          templates={templates}
-          className={currentClass.name ?? ""}
-          classBoards={classBoards}
-          usedIn={templateUsedIn}
-          highlightId={templateModal.highlightId}
-          readOnly={!!currentClass.archived}
-          onStart={handleStartTemplate}
-          onOpenBoard={(boardId) => {
-            setTemplateModal(null);
-            router.push(`/study?project=${boardId}`);
+          onClose={() => {
+            const from = creatingProject;
+            setCreatingProject(false);
+            // 탭에서 열었다가 만들지 않고 닫으면 그 탭으로 돌아갑니다.
+            // 만들었으면 onCreated가 이미 탭을 열었습니다(이 함수는 그 뒤에
+            // 불립니다 — StudyProjectForm의 차례).
+            if (from === "tab" && !projectCreatedRef.current) openProjectsTab();
+            projectCreatedRef.current = false;
           }}
-          onDelete={handleDeleteTemplate}
-          onCreate={() => {
-            setTemplateModal(null);
-            setCreatingProject(true);
+          // 만든 것은 원본이라 반에는 아직 없습니다 — 수업 관리 창의 프로젝트
+          // 탭을 그 줄을 짚은 채로 열어, 다음 할 일('이 반에서 시작하기')이
+          // 바로 눈에 들게 합니다.
+          onCreated={(newId) => {
+            projectCreatedRef.current = true;
+            openProjectsTab(newId);
           }}
-          onClose={() => setTemplateModal(null)}
         />
       )}
 
@@ -1334,7 +1329,7 @@ function StudyPageInner() {
         pyTarget={currentClass?.pyTarget ?? null}
         user={user}
         isTeacher={admin}
-        hasModalOpen={cardModalOpen || classManagerOpen || creatingProject || !!templateModal || attendanceOpen || seatSetupOpen || (askKeyword !== null || askCode !== null)}
+        hasModalOpen={cardModalOpen || classManagerOpen || !!creatingProject || attendanceOpen || seatSetupOpen || (askKeyword !== null || askCode !== null)}
       />
 
       {/* ── 수업 준비 (목록 · 새로 만들기) ──
@@ -1354,6 +1349,31 @@ function StudyPageInner() {
           onStart={(lesson) => openLessonTeach(lesson)}
           onOpenSeatSetup={openSeatSetupFromLessons}
           seatSetupDisabled={roster.length === 0}
+          // 프로젝트 탭 — 내 프로젝트 원본. 수업 자료와 같이 반에 안 묶인
+          // 선생님의 것이라 한 창에 나란히 둡니다(StudyTemplateList).
+          tab={lessonTab}
+          onTabChange={(t) =>
+            t === "projects" ? openProjectsTab() : router.push("/study?panel=lessons")
+          }
+          projectsPane={
+            currentClass ? (
+              <StudyTemplateList
+                templates={templates}
+                className={currentClass.name ?? ""}
+                classBoards={classBoards}
+                usedIn={templateUsedIn}
+                highlightId={newTemplateId}
+                readOnly={!!currentClass.archived}
+                onStart={handleStartTemplate}
+                onOpenBoard={(boardId) => router.push(`/study?project=${boardId}`)}
+                onDelete={handleDeleteTemplate}
+              />
+            ) : null
+          }
+          onCreateProject={() => {
+            closeLessonNav();
+            setCreatingProject("tab");
+          }}
         />
       )}
 

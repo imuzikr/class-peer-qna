@@ -47,8 +47,6 @@ export default function StudyProjectDashboard({
   roster = [],      // 교사: 반 학생 명단(제출 현황의 분모)
   onOpen,
   onCreate,
-  templateCount = 0, // 교사: 내 프로젝트 원본 수
-  onOpenTemplates,   // 교사: 원본 창 열기
   onReorder,        // (draggedId, targetId) => void
   onToast,
 }) {
@@ -144,30 +142,23 @@ export default function StudyProjectDashboard({
             ? "이 반에서 진행 중인 프로젝트예요. 반 학생마다 개인 카드가 한 장씩 생기고, 여기서 정한 활동을 학생이 순서대로 수행해요."
             : "선생님이 연 프로젝트예요. 카드를 누르면 내 개인 카드에서 활동을 시작할 수 있어요."}
         </p>
-        {/* 프로젝트는 원본(선생님의 것)으로 만들고, 반에서는 원본 창의 '이 반에서
-            시작하기'로 엽니다. 만들기 단추는 원본을 만들고 곧바로 그 창을
-            띄우므로, 새로 만들어 이 반에 여는 흐름은 누름 두 번입니다. */}
+        {/* 프로젝트는 원본(선생님의 것)으로 만들어집니다 — 반에서는 '수업관리'
+            창의 프로젝트 탭에서 '이 반에서 시작하기'로 엽니다. 만들고 나면 그
+            탭이 방금 만든 줄을 짚은 채로 열리므로, 새로 만들어 이 반에 여는
+            것은 누름 두 번입니다. 원본을 보는 자리는 그 탭 하나뿐입니다
+            (여기에 '원본' 단추를 따로 두었다가 걷었습니다 — 보는 자리가
+            둘이면 어디서 봐야 하는지 헷갈립니다). */}
         {canManage && (
-          <span className="study-project-dash-btns">
-            <button
-              type="button"
-              className="btn-ghost"
-              onClick={onOpenTemplates}
-              title="내가 만든 프로젝트 원본 — 이 반에서 시작하기"
-            >
-              📚 프로젝트 원본{templateCount > 0 ? ` ${templateCount}` : ""}
-            </button>
-            <button type="button" className="btn-primary" onClick={onCreate}>
-              ＋ 프로젝트 만들기
-            </button>
-          </span>
+          <button type="button" className="btn-primary" onClick={onCreate}>
+            ＋ 프로젝트 만들기
+          </button>
         )}
       </div>
 
       {projects.length === 0 ? (
         <p className="empty-note">
           {isTeacher
-            ? "이 반에 연 프로젝트가 아직 없어요. ‘📚 프로젝트 원본’에서 골라 ‘이 반에서 시작하기’를 누르거나, ‘＋ 프로젝트 만들기’로 새로 만들어 보세요."
+            ? "이 반에 연 프로젝트가 아직 없어요. ‘수업관리’의 프로젝트 탭에서 골라 ‘이 반에서 시작하기’를 누르거나, ‘＋ 프로젝트 만들기’로 새로 만들어 보세요."
             : "아직 열린 프로젝트가 없어요. 선생님이 프로젝트를 열면 여기에 나타납니다."}
         </p>
       ) : (

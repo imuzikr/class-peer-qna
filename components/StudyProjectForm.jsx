@@ -14,7 +14,7 @@
 // · 연계 ON 시 키워드 칩을 복수로 선택 (제목 바로 아래)
 //
 // [여기서 만드는 것은 **원본**입니다] 반에는 아직 아무것도 안 생깁니다.
-// 프로젝트는 선생님의 것이고, 반에서 쓸 때 '프로젝트 원본' 창의 '이 반에서
+// 프로젝트는 선생님의 것이고, 반에서 쓸 때 '수업 관리' 창 프로젝트 탭의 '이 반에서
 // 시작하기'가 그 반에 복사본을 하나 만듭니다(lib/store.js의 studyTemplates
 // 절). 그래서 안내 카드도 여기서 깔지 않습니다 — 카드는 반에 붙는 것이라
 // 복사본이 생길 때 함께 깔립니다(startStudyTemplateInClass).
@@ -222,9 +222,9 @@ export default function StudyProjectForm({ keywords = [], className = "", onClos
           {/* 누르기 전에 무엇이 생기는지 말해 둡니다 — 예전에는 누르면 곧장
               이 반에 열렸으므로, 말없이 바꾸면 '만들었는데 반에 없다'로 읽힙니다. */}
           <p className="project-form-where">
-            원본으로 만들어져요. 반에는 아직 아무것도 안 생기고, 다음 창에서
-            {className ? ` ‘${className}’에서 ` : " "}
-            <strong>이 반에서 시작하기</strong>를 누르면 학생 화면에 열립니다.
+            원본으로 만들어져요. 반에는 아직 아무것도 안 생기고, 이어서 뜨는
+            ‘수업 관리’의 프로젝트 탭에서 <strong>이 반에서 시작하기</strong>를
+            누르면 {className ? `‘${className}’ ` : ""}학생 화면에 열립니다.
           </p>
 
           <button type="submit" className="btn-primary" disabled={saving || !title.trim()}>

@@ -11,8 +11,13 @@
 // 자료는 만든 선생님에게 귀속됩니다 — 같은 자료로 여러 반에서 수업 가능.
 //
 // 화면 두 가지
-//  · 목록 — 만들어 둔 자료마다 '편집하기'(주제·해설·활동 안내 다듬기)와
-//    '수업 시작하기'(그 자료로 바로 수업 페이지에 들어가기) 버튼.
+//  · 목록 — 탭이 둘입니다(`tab`).
+//    - 수업: 만들어 둔 자료마다 '편집하기'(주제·해설·활동 안내 다듬기)와
+//      '수업 시작하기'(그 자료로 바로 수업 페이지에 들어가기) 버튼.
+//    - 프로젝트: 내 프로젝트 원본(`projectsPane` — 페이지가 그려 넘깁니다).
+//      수업 자료와 프로젝트 원본은 **둘 다 반이 아니라 선생님에게 붙은
+//      설계도**라 한 창에 나란히 둡니다. 공부방 머리줄의 '＋ 프로젝트
+//      만들기'가 원본을 만들면 이 탭이 그 줄을 짚은 채로 열립니다.
 //  · 새 수업 만들기 — 주제 입력 + PDF 업로드. 올리기가 끝나면 바로 편집
 //    화면(LessonMode mode="edit")으로 넘어가 해설·활동 안내까지 이어 씁니다.
 // =============================================================
@@ -36,6 +41,12 @@ export default function LessonManagerModal({
   onClose,
   onOpenSeatSetup,
   seatSetupDisabled = false,
+  // 프로젝트 탭 — 탭은 주소(?tab=projects)로 들고 있어 '뒤로 가기'와 맞습니다.
+  // `projectsPane`이 없으면 탭 줄을 아예 안 그립니다.
+  tab = "lessons",
+  onTabChange,
+  projectsPane = null,
+  onCreateProject,
 }) {
   const [lessons, setLessons] = useState([]);
   const [creating, setCreating] = useState(false); // '새 수업 만들기' 화면 표시 여부
@@ -148,6 +159,31 @@ export default function LessonManagerModal({
           ) : (
             <h3>📝 수업 관리</h3>
           )}
+          {/* 탭 — 이 앱에서 '한 자리에 두 얼굴'을 고르는 알약 줄(.dash-view-tabs)과
+              같은 모양입니다(노트 크게 보기 · 닿소리 전체 보기). 제목 바로
+              옆에 두어 줄을 하나 더 쓰지 않습니다. */}
+          {!creating && projectsPane && (
+            <div className="dash-view-tabs lesson-mgr-tabs" role="tablist" aria-label="보는 목록">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={tab !== "projects"}
+                className={`dash-view-tab${tab !== "projects" ? " on" : ""}`}
+                onClick={() => onTabChange?.("lessons")}
+              >
+                수업
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={tab === "projects"}
+                className={`dash-view-tab${tab === "projects" ? " on" : ""}`}
+                onClick={() => onTabChange?.("projects")}
+              >
+                프로젝트
+              </button>
+            </div>
+          )}
           {!busy && (
             <button className="btn-close" onClick={onClose} aria-label="닫기">×</button>
           )}
@@ -222,6 +258,18 @@ export default function LessonManagerModal({
               </div>
             )}
             {error && <p className="lesson-error">{error}</p>}
+          </>
+        ) : tab === "projects" && projectsPane ? (
+          <>
+            {/* 수업 탭의 위 줄과 같은 자리·같은 모양 — '새로 만들기'가 늘 맨 위
+                왼쪽입니다. 만드는 창은 공부방의 그 창(StudyProjectForm)이라
+                이 창을 닫고 엽니다(창 둘이 겹치지 않게). */}
+            <div className="lesson-list-toolbar">
+              <button type="button" className="lesson-create-btn" onClick={onCreateProject}>
+                ＋ 새 프로젝트 만들기
+              </button>
+            </div>
+            {projectsPane}
           </>
         ) : (
           <>
