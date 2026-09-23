@@ -66,7 +66,7 @@ import {
 import { uploadImage, uploadFile } from "@/lib/storageUpload";
 import { formatFileSize } from "@/lib/image";
 import { getCurrentUser } from "@/lib/user";
-import { findSameNameProject, loadSameNameProject } from "@/lib/projectNames";
+import { findSameNameProject, loadSameNameProject, projectNameKey } from "@/lib/projectNames";
 import ProjectNameDupModal from "./ProjectNameDupModal";
 import AttendanceBoard from "./AttendanceBoard";
 import StudyProgressBoard, { cardProgress } from "./StudyProgressBoard";
@@ -161,9 +161,10 @@ export default function LessonMode({
   // 열어도 이미 만들어진 보드라 계속 보였습니다)
   const [addingBoard, setAddingBoard] = useState(false);
   const [newBoardName, setNewBoardName] = useState("");
-  // 다른 반 프로젝트를 통째로 가져오는 중 — 고른 원본은 누를 때까지 안 씁니다
-  const [copyingBoard, setCopyingBoard] = useState(false);
-  const [copyFrom, setCopyFrom] = useState("");
+  // '수업 프로젝트' 고르개의 둘째 묶음(이 반으로 가져올 프로젝트)에서 고른 것 —
+  // `t:<원본 id>` 또는 `b:<프로젝트 id>`. 고르는 순간 만들지 않고 아래 확인 줄의
+  // '가져오기'를 눌러야 씁니다(아래 importPick 설명).
+  const [importFrom, setImportFrom] = useState("");
   const newBoardInputRef = useRef(null);
   // 이름이 같은 프로젝트가 이미 있을 때의 확인 — { name, id, acts } | null.
   // 이름 칸이 수업 자료 제목으로 미리 채워져 있어, 연결하려던 손이 '만들기'로
@@ -489,11 +490,19 @@ export default function LessonMode({
     setNewAct("");
   }
 
-  // ── 가져오기 목록 ─────────────────────────────────────────────
-  // 맨 앞은 **원본**입니다 — 원본 하나가 한 줄이라, 세 반에서 쓰는 프로젝트도
-  // 이름이 한 번만 섭니다(lib/store.js의 studyTemplates 절). 그 원본의 복사본이
-  // 이 반에 이미 있으면 새로 만들지 않고 그것에 연결합니다 — 두 번 만들면 같은
-  // 이름이 이 반에 둘이 되어 원본을 둔 까닭이 도로 무너집니다.
+  // ── '수업 프로젝트' 고르개의 두 묶음 ─────────────────────────
+  // 고르개 하나에 묶음(optgroup)이 둘입니다.
+  //   · **이 반의 프로젝트** — 이 반에 이미 있는 것. 고르면 곧바로 이 수업에
+  //     연결합니다(지금까지와 같습니다).
+  //   · **이 반으로 가져올 프로젝트** — 아직 이 반에 없는 내 원본과, 원본 없는
+  //     다른 반의 옛 프로젝트. 고르면 이 반에 하나 열어 연결합니다.
+  // 한때 둘째 묶음이 '프로젝트 가져오기' 단추 뒤의 따로 선 고르개였는데, 두
+  // 목록이 같은 자리에 번갈아 서서 '무엇이 어디에 있나'를 두 번 찾아야 했고,
+  // 원본의 복사본이 이미 이 반에 있으면 두 목록에 같은 이름이 함께 섰습니다.
+  //
+  // 원본의 복사본이 이 반에 이미 있으면 그 원본은 둘째 묶음에 세우지 않습니다 —
+  // 첫째 묶음의 그 프로젝트가 곧 그것이고, 두 번 열면 같은 이름이 이 반에 둘이
+  // 되어 원본을 둔 까닭이 도로 무너집니다.
   const templateInstance = useMemo(() => {
     const m = new Map();
     for (const b of boards) {
@@ -514,18 +523,28 @@ export default function LessonMode({
   //     고르든 가져오는 것은 활동 목록과 안내뿐입니다.
   //   · 원본과 이름이 같은 옛 프로젝트도 뺍니다 — 원본 줄이 그 이름을 이미
   //     말하고, 같은 이름이 두 줄이면 무엇이 다른지 알 수 없습니다.
-  //   · **이 반에 같은 이름이 이미 있는 것도 뺍니다.** 그것은 위 '수업 프로젝트'
-  //     고르개에서 연결하면 되는 것이라, 여기서 고르면 같은 이름이 이 반에
-  //     하나 더 생길 뿐입니다(두 목록에 같은 이름이 함께 보이던 실제 신고).
+  //   · **이 반에 같은 이름이 이미 있는 것도 뺍니다.** 그것은 첫째 묶음에서
+  //     연결하면 되는 것이라, 여기서 고르면 같은 이름이 이 반에 하나 더 생길
+  //     뿐입니다(두 목록에 같은 이름이 함께 보이던 실제 신고).
+  const hereTitles = useMemo(
+    () => new Set(boards.map((b) => projectNameKey(b.title))),
+    [boards]
+  );
+  const importTemplates = useMemo(
+    () =>
+      templates.filter(
+        (t) => !templateInstance.has(t.id) && !hereTitles.has(projectNameKey(t.title))
+      ),
+    [templates, templateInstance, hereTitles]
+  );
   const importOld = useMemo(() => {
     const live = new Set(templates.map((t) => t.id));
-    const tplTitles = new Set(templates.map((t) => (t.title ?? "").trim()));
-    const hereTitles = new Set(boards.map((b) => (b.title ?? "").trim()));
+    const tplTitles = new Set(templates.map((t) => projectNameKey(t.title)));
     const byTitle = new Map();
     const stamp = (b) => (b.createdAt ? toDate(b.createdAt).getTime() : 0);
     for (const b of otherBoards) {
       if (b.templateId && live.has(b.templateId)) continue;
-      const key = (b.title ?? "").trim();
+      const key = projectNameKey(b.title);
       if (!key || tplTitles.has(key) || hereTitles.has(key)) continue;
       const prev = byTitle.get(key);
       const n = b.activities?.length ?? 0;
@@ -535,8 +554,7 @@ export default function LessonMode({
     return [...byTitle.values()].sort((a, b) =>
       (a.title ?? "").localeCompare(b.title ?? "", "ko", { numeric: true })
     );
-  }, [otherBoards, templates, boards]);
-  const canImport = templates.length > 0 || importOld.length > 0;
+  }, [otherBoards, templates, hereTitles]);
 
   // ── 학습 자료 ────────────────────────────────────────────────
   // 연결한 프로젝트 전체에서 쓰는 파일입니다. 공부방 왼쪽 패널의 '자료 제공'과
@@ -658,6 +676,7 @@ export default function LessonMode({
     setNewBoardName(lesson.title || "");
     setActError("");
     setDupBoard(null);
+    setImportFrom("");
     setAddingBoard(true);
   }
   function cancelAddBoard() {
@@ -693,71 +712,81 @@ export default function LessonMode({
     });
   }
 
-  // ── 다른 반에서 프로젝트 통째로 가져오기 ─────────────────────
-  // 공부방의 '다른 반으로 복제'와 같은 일을 받는 쪽에서 합니다. 보내는 쪽은
-  // 복사만 하고 끝나 받는 반 수업 자료에 연결하는 일이 남는데, 그 연결이
-  // 필요하다는 것을 깨닫는 자리가 바로 여기(그 반 수업 준비)입니다.
-  // 그래서 여기서는 복사와 연결을 한 번에 합니다.
-  function startCopyBoard() {
-    setCopyFrom("");
+  // ── 고르개에서 고르기 ─────────────────────────────────────────
+  // 첫째 묶음(이 반의 프로젝트)이나 '연결 안 함'은 고르는 즉시 연결합니다.
+  // 둘째 묶음(이 반으로 가져올 프로젝트)은 **고르기만 하고** 아래 확인 줄의
+  // '가져오기'를 눌러야 이 반에 만듭니다. 닫힌 고르개에서 방향키를 누르면
+  // 브라우저가 한 칸 옮길 때마다 change를 보내는데, 그때마다 가져오면 훑어
+  // 내려가는 것만으로 이 반에 프로젝트가 줄줄이 생깁니다.
+  async function pickBoard(value) {
     setActError("");
-    setDupBoard(null);
-    setCopyingBoard(true);
-  }
-  function cancelCopyBoard() {
-    setCopyingBoard(false);
-    setCopyFrom("");
-  }
-  // 고른 값은 `t:<원본 id>` 또는 `b:<프로젝트 id>` — 두 목록이 한 고르개에
-  // 섞여 서므로 앞머리로 가릅니다.
-  const copyPick = (() => {
-    if (copyFrom.startsWith("t:")) {
-      const t = templates.find((x) => x.id === copyFrom.slice(2));
-      return t ? { kind: "template", template: t, inst: templateInstance.get(t.id) ?? null } : null;
+    if (value.startsWith("t:") || value.startsWith("b:")) {
+      setImportFrom(value);
+      return;
     }
-    if (copyFrom.startsWith("b:")) {
-      const b = otherBoards.find((x) => x.id === copyFrom.slice(2));
+    setImportFrom("");
+    const id = value || null;
+    await onSaveBoardId?.(id);
+    const b = id ? boards.find((x) => x.id === id) : null;
+    // 원본의 복사본인데 **활동이 하나도 없으면** 원본의 활동을 채웁니다.
+    // 원본에는 활동이 있는데 이 반 복사본만 빈 일이 실제로 있었고(연결하면
+    // '활동 없음'), 그러면 불러와도 아무것도 안 들어온 것으로 보입니다.
+    // **빈 사본에만** 하므로 선생님이 이 반에서 활동을 고쳐 둔 사본은
+    // 건드리지 않습니다. 잠금은 새로 시작할 때와 같은 모양(첫 활동만 열림).
+    if (b?.templateId && (b.activities?.length ?? 0) === 0) {
+      const tpl = templates.find((t) => t.id === b.templateId);
+      const tplActs = (tpl?.activities ?? []).map((x) => String(x).trim()).filter(Boolean);
+      if (tplActs.length > 0) {
+        try {
+          await updateStudyBoard(b.id, {
+            activities: tplActs,
+            activityLocks: tplActs.map((_, i) => i > 0),
+          });
+        } catch (e) {
+          setActError(`원본의 활동을 채우지 못했어요: ${e?.message ?? "알 수 없는 오류"}`);
+        }
+      }
+    }
+  }
+  function cancelImport() {
+    setImportFrom("");
+  }
+  // 반이 바뀌면(페이지에서 반을 옮김) 고르던 것을 놓습니다 — 앞 반 기준으로
+  // 고른 것이라 새 반에서는 이미 있는 것일 수 있습니다.
+  useEffect(() => {
+    setImportFrom("");
+  }, [classId]);
+
+  // 고른 값은 `t:<원본 id>` 또는 `b:<프로젝트 id>` — 두 목록이 한 묶음에
+  // 섞여 서므로 앞머리로 가릅니다.
+  const importPick = (() => {
+    if (importFrom.startsWith("t:")) {
+      const t = templates.find((x) => x.id === importFrom.slice(2));
+      return t ? { kind: "template", template: t } : null;
+    }
+    if (importFrom.startsWith("b:")) {
+      const b = otherBoards.find((x) => x.id === importFrom.slice(2));
       return b ? { kind: "board", board: b } : null;
     }
     return null;
   })();
-  async function handleCopyBoard(e) {
-    e.preventDefault();
-    if (!classId || !copyPick || makingBoard) return;
+
+  // 가져오기 — 이 반에 하나 열고 곧바로 이 수업에 연결합니다. 공부방의 '다른
+  // 반으로 복제'와 같은 일을 받는 쪽에서 하는 것인데, 연결이 필요하다는 것을
+  // 깨닫는 자리가 바로 여기(그 반 수업 준비)라 복사와 연결을 한 번에 합니다.
+  async function handleImport() {
+    if (!classId || !importPick || makingBoard) return;
     setMakingBoard(true);
     setActError("");
     try {
-      let id = null;
-      if (copyPick.kind === "template") {
-        // 이 반에 복사본이 이미 있으면 그것에 연결만 합니다.
-        const inst = copyPick.inst;
-        const tplActs = (copyPick.template.activities ?? [])
-          .map((x) => String(x).trim())
-          .filter(Boolean);
-        if (inst) {
-          id = inst.id;
-          // 다만 그 복사본에 **활동이 하나도 없으면** 원본의 활동을 채웁니다.
-          // 원본에는 활동이 있는데 이 반 복사본만 빈 일이 실제로 있었고(목록에는
-          // '활동 3개 · 이 반에 있음'인데 연결하면 '활동 없음'), 그러면 가져오기를
-          // 눌러도 아무것도 안 들어온 것으로 보입니다. **빈 사본에만** 하므로
-          // 선생님이 이 반에서 활동을 고쳐 둔 사본은 건드리지 않습니다. 잠금은
-          // 새로 시작할 때와 같은 모양(첫 활동만 열림)입니다.
-          if ((inst.activities?.length ?? 0) === 0 && tplActs.length > 0) {
-            await updateStudyBoard(inst.id, {
-              activities: tplActs,
-              activityLocks: tplActs.map((_, i) => i > 0),
-            });
-          }
-        } else {
-          id = await startStudyTemplateInClass(copyPick.template, classId, getCurrentUser());
-        }
-      } else {
-        // 원본 없는 옛 프로젝트 — 예전처럼 통째로 복제합니다. 학생 카드는
-        // 따라오지 않고, 첫 활동만 열린 채로 도착합니다(duplicateStudyBoard 참고).
-        id = await duplicateStudyBoard(copyPick.board, classId, getCurrentUser());
-      }
+      const id =
+        importPick.kind === "template"
+          ? await startStudyTemplateInClass(importPick.template, classId, getCurrentUser())
+          : // 원본 없는 옛 프로젝트 — 예전처럼 통째로 복제합니다. 학생 카드는
+            // 따라오지 않고, 첫 활동만 열린 채로 도착합니다(duplicateStudyBoard).
+            await duplicateStudyBoard(importPick.board, classId, getCurrentUser());
       if (id) await onSaveBoardId?.(id);
-      cancelCopyBoard();
+      setImportFrom("");
     } catch (e2) {
       setActError(`프로젝트를 가져오지 못했어요: ${e2?.message ?? "알 수 없는 오류"}`);
     } finally {
@@ -1500,72 +1529,8 @@ export default function LessonMode({
             </div>
 
             <div className="lesson-board-body">
-              {/* 보드 선택 + 새 보드 만들기 + 다른 반에서 가져오기 */}
-              {copyingBoard ? (
-                <form className="lesson-board-pick lesson-board-addform" onSubmit={handleCopyBoard}>
-                  <label htmlFor="lesson-board-copy">가져올 프로젝트</label>
-                  <select
-                    id="lesson-board-copy"
-                    className="lesson-board-select"
-                    value={copyFrom}
-                    onChange={(e) => setCopyFrom(e.target.value)}
-                    disabled={makingBoard}
-                    autoFocus
-                  >
-                    <option value="">프로젝트를 고르세요</option>
-                    {/* 이름만 한 줄씩 — 원본이 앞, 옛 프로젝트가 뒤. 묶음 이름표
-                        (optgroup)를 두지 않습니다: 앞으로는 다 원본이라 그
-                        구분은 선생님이 고를 때 쓸모가 없습니다. */}
-                    {templates.map((t) => (
-                      <option key={t.id} value={`t:${t.id}`}>
-                        {t.title}
-                        {t.activities?.length
-                          ? ` · 활동 ${t.activities.length}개`
-                          : " · 활동 없음"}
-                        {templateInstance.has(t.id) ? " · 이 반에 있음" : ""}
-                      </option>
-                    ))}
-                    {importOld.map((b) => (
-                      <option key={b.id} value={`b:${b.id}`}>
-                        {b.title} · 활동 {b.activities?.length ?? 0}개
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    type="submit"
-                    className="lesson-board-add"
-                    disabled={!copyPick || makingBoard}
-                  >
-                    {makingBoard
-                      ? "가져오는 중…"
-                      : copyPick?.kind === "template" && copyPick.inst
-                      ? "연결하기"
-                      : "가져오기"}
-                  </button>
-                  <button
-                    type="button"
-                    className="lesson-board-cancel"
-                    onClick={cancelCopyBoard}
-                    disabled={makingBoard}
-                  >
-                    취소
-                  </button>
-                  {/* 무엇을 골랐느냐에 따라 일어나는 일이 셋이라, 누르기 전에
-                      그 하나를 말합니다. */}
-                  <small className="lesson-board-copy-note">
-                    {copyPick?.kind === "template"
-                      ? copyPick.inst
-                        ? (copyPick.inst.activities?.length ?? 0) === 0 &&
-                          (copyPick.template.activities?.length ?? 0) > 0
-                          ? "이 반에 있는 이 프로젝트에 활동이 비어 있어요. 연결하면서 원본의 활동을 채워 넣습니다."
-                          : "이 반에 이미 열어 둔 이 원본의 프로젝트에 연결합니다. 새로 만들지 않습니다."
-                        : "이 반에 원본의 복사본을 하나 열어 이 수업에 연결합니다. 학생 카드는 반마다 따로 쌓이고, 첫 활동만 열린 채로 시작합니다."
-                      : copyPick?.kind === "board"
-                      ? "이 반에 같은 프로젝트를 새로 만들어 연결합니다. 학생 카드는 따라오지 않고, 첫 활동만 열린 채로 들어옵니다."
-                      : "이 반에 이미 있는 프로젝트는 새로 만들지 않고 연결만 합니다."}
-                  </small>
-                </form>
-              ) : addingBoard ? (
+              {/* 보드 선택(이 반의 것 · 가져올 것) + 새 보드 만들기 */}
+              {addingBoard ? (
                 <form className="lesson-board-pick lesson-board-addform" onSubmit={handleAddBoard}>
                   <label htmlFor="lesson-board-newname">새 프로젝트 이름</label>
                   <input
@@ -1600,9 +1565,9 @@ export default function LessonMode({
                   <select
                     id="lesson-board-select"
                     className="lesson-board-select"
-                    value={boardId ?? ""}
-                    onChange={(e) => onSaveBoardId?.(e.target.value || null)}
-                    disabled={!classId}
+                    value={importFrom || boardId || ""}
+                    onChange={(e) => pickBoard(e.target.value)}
+                    disabled={!classId || makingBoard}
                   >
                     <option value="">연결 안 함</option>
                     {/* 제목만 적으면 이름이 같은 프로젝트를 고를 때 어느 쪽인지
@@ -1610,32 +1575,76 @@ export default function LessonMode({
                         쪽"을 바로 집을 수 있습니다 — 실제로 같은 이름의 빈
                         프로젝트에 연결해 놓고 활동이 사라진 줄 알았던 일이
                         있었습니다. */}
-                    {boards.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.title}
-                        {b.activities?.length
-                          ? ` · 활동 ${b.activities.length}개`
-                          : " · 활동 없음"}
-                      </option>
-                    ))}
+                    {boards.length > 0 && (
+                      <optgroup label="이 반의 프로젝트">
+                        {boards.map((b) => (
+                          <option key={b.id} value={b.id}>
+                            {b.title}
+                            {b.activities?.length
+                              ? ` · 활동 ${b.activities.length}개`
+                              : " · 활동 없음"}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                    {/* 원본이 앞, 원본 없는 옛 프로젝트가 뒤 — 같은 모양으로
+                        이름만 섭니다(앞으로는 다 원본이라 그 구분은 고를 때
+                        쓸모가 없습니다). */}
+                    {(importTemplates.length > 0 || importOld.length > 0) && (
+                      <optgroup label="이 반으로 가져올 프로젝트">
+                        {importTemplates.map((t) => (
+                          <option key={t.id} value={`t:${t.id}`}>
+                            {t.title}
+                            {t.activities?.length
+                              ? ` · 활동 ${t.activities.length}개`
+                              : " · 활동 없음"}
+                          </option>
+                        ))}
+                        {importOld.map((b) => (
+                          <option key={b.id} value={`b:${b.id}`}>
+                            {b.title}
+                            {b.activities?.length
+                              ? ` · 활동 ${b.activities.length}개`
+                              : " · 활동 없음"}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
                   </select>
-                  <button
-                    type="button"
-                    className="lesson-board-add"
-                    onClick={startAddBoard}
-                    disabled={!classId}
-                  >
-                    + 새 프로젝트
-                  </button>
-                  {canImport && (
+                  {importPick ? (
+                    <>
+                      <button
+                        type="button"
+                        className="lesson-board-add"
+                        onClick={handleImport}
+                        disabled={makingBoard}
+                      >
+                        {makingBoard ? "가져오는 중…" : "가져오기"}
+                      </button>
+                      <button
+                        type="button"
+                        className="lesson-board-cancel"
+                        onClick={cancelImport}
+                        disabled={makingBoard}
+                      >
+                        취소
+                      </button>
+                      {/* 누르기 전에 무엇이 일어나는지 — 이 반에 새로 생기는
+                          것이라 말해 둡니다. */}
+                      <small className="lesson-board-import-note">
+                        {importPick.kind === "template"
+                          ? "이 반에 원본의 복사본을 하나 열어 이 수업에 연결합니다. 학생 카드는 반마다 따로 쌓이고, 첫 활동만 열린 채로 시작합니다."
+                          : "다른 반의 이 프로젝트를 이 반에 새로 만들어 연결합니다. 학생 카드는 따라오지 않고, 첫 활동만 열린 채로 들어옵니다."}
+                      </small>
+                    </>
+                  ) : (
                     <button
                       type="button"
-                      className="lesson-board-copy-btn"
-                      onClick={startCopyBoard}
+                      className="lesson-board-add"
+                      onClick={startAddBoard}
                       disabled={!classId}
-                      title="내 프로젝트 원본(또는 원본 없는 다른 반 프로젝트)을 이 반에 열고 이 수업에 연결합니다"
                     >
-                      프로젝트 가져오기
+                      + 새 프로젝트
                     </button>
                   )}
                 </div>
