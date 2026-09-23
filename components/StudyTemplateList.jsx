@@ -24,6 +24,7 @@
 import { useEffect, useRef, useState } from "react";
 import { IconIndividual, IconGroup, IconTrash } from "./StatusIcons";
 import ConfirmModal from "./ConfirmModal";
+import LegacyProjectMigrate from "./LegacyProjectMigrate";
 
 export default function StudyTemplateList({
   templates = [],
@@ -35,6 +36,12 @@ export default function StudyTemplateList({
   onStart,            // (template) => Promise
   onOpenBoard,        // (boardId) => void
   onDelete,           // (template) => Promise
+  // 원본 없이 만든 옛 프로젝트 묶음(lib/projectNames.js의 groupLegacyProjects)
+  // — 있으면 목록 맨 위에 '원본으로 묶기' 줄이 섭니다.
+  legacyGroups = [],
+  classNameOf,
+  onMigrateLegacy,    // (group) => Promise
+  onLegacyDone,       // (묶은 개수) => void
 }) {
   const [busyId, setBusyId] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
@@ -76,6 +83,12 @@ export default function StudyTemplateList({
   return (
     <>
       <div className="lesson-list">
+        <LegacyProjectMigrate
+          groups={legacyGroups}
+          classNameOf={classNameOf}
+          onMigrate={onMigrateLegacy}
+          onDone={onLegacyDone}
+        />
         {templates.length === 0 ? (
           <p className="empty-note">
             아직 만든 프로젝트가 없어요. 위에서 새로 만들어 보세요.

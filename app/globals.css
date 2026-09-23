@@ -24469,6 +24469,92 @@ span.cloud-word { cursor: default; }
   color: #2f7a47; /* '됐다'는 초록 — 출석·과일 준 카드와 같은 뜻 */
   white-space: nowrap;
 }
+/* 옛 프로젝트를 원본으로 묶기 — 목록 칸 안의 첫 줄(LegacyProjectMigrate).
+   칸 바깥에 두면 프로젝트 탭만 창이 길어집니다. 원본 줄과 헷갈리지 않게
+   점선 테두리의 살구빛 알림 줄로 둡니다. */
+.tpl-legacy {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--primary-light);
+  border: 1px dashed var(--primary);
+  border-radius: var(--radius-btn);
+}
+.tpl-legacy-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text);
+  word-break: keep-all;
+}
+.tpl-legacy-btn {
+  flex-shrink: 0;
+  padding: 8px 14px;
+  font-size: 13.5px;
+  white-space: nowrap;
+}
+.legacy-migrate-modal {
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.legacy-migrate-lead {
+  margin: 0 0 12px;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--text-sub);
+  word-break: keep-all;
+}
+.legacy-migrate-list {
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+.legacy-migrate-row label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  cursor: pointer;
+}
+.legacy-migrate-row.on label {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+/* 전역 input 규칙(폭 100%)을 받으면 체크 칸이 줄을 다 차지해 글이 한 글자씩
+   접힙니다 — 폭을 되돌려 둡니다. */
+.legacy-migrate-row input[type="checkbox"] {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  margin: 3px 0 0;
+  padding: 0;
+}
+.legacy-migrate-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.legacy-migrate-main strong { font-size: 14px; color: var(--dark); }
+.legacy-migrate-meta { font-size: 12.5px; color: var(--text-sub); }
+.legacy-migrate-note { font-size: 12px; color: #2f7a47; }
+.legacy-migrate-warn { font-size: 12px; color: #9a5b00; word-break: keep-all; }
+@media (max-width: 768px) {
+  .tpl-legacy { flex-direction: column; align-items: stretch; }
+}
+
 /* 만들기 창 — 누르기 전에 '반에는 아직 안 생긴다'를 말해 두는 한 줄 */
 .project-form-where {
   margin: 0;

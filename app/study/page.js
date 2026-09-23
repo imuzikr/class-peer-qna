@@ -61,7 +61,11 @@ import { getSelectedClassId, setSelectedClassId } from "@/lib/classroom";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import AuthGate from "@/components/AuthGate";
 import { codeBlockHtml } from "@/lib/html";
-import { loadSameNameProject } from "@/lib/projectNames";
+import {
+  loadSameNameProject,
+  groupLegacyProjects,
+  migrateLegacyGroup,
+} from "@/lib/projectNames";
 import {
   buildStudyRows,
   downloadStudyCsv,
@@ -494,6 +498,21 @@ function StudyPageInner() {
       setToast("이 반에서 시작하지 못했어요. 잠시 뒤 다시 시도해 주세요.");
     }
   }
+
+  // 원본 없이 만든 옛 프로젝트 — 이름이 같은 것끼리 묶어 프로젝트 탭에서
+  // 원본으로 잇게 합니다(lib/projectNames.js). **내가 만든, 보관 안 된 반만** —
+  // 최고 관리자도 남의 반 프로젝트를 제 원본에 묶지 않고, 보관된 반은 규칙이
+  // 쓰기를 막습니다. 이미 받아 둔 보드·원본으로 셉니다(읽기 0).
+  const legacyGroups = useMemo(() => {
+    if (!admin || !user?.uid) return [];
+    // 데모 모드는 접속할 때마다 uid가 새로 나와 '내가 만든 반'이 없으므로,
+    // 화면에 보이는 운영 중인 반을 그대로 씁니다.
+    const own = isFirebaseConfigured
+      ? classes.filter((c) => c.createdBy === user.uid && !c.archived)
+      : myClasses;
+    return groupLegacyProjects({ boards, templates, classes: own });
+  }, [admin, user?.uid, classes, myClasses, boards, templates]);
+  const classNameOf = (cid) => myClassesAll.find((c) => c.id === cid)?.name ?? "알 수 없는 반";
 
   async function handleDeleteTemplate(template) {
     try {
@@ -1385,6 +1404,12 @@ function StudyPageInner() {
                 onStart={handleStartTemplate}
                 onOpenBoard={(boardId) => router.push(`/study?project=${boardId}`)}
                 onDelete={handleDeleteTemplate}
+                legacyGroups={legacyGroups}
+                classNameOf={classNameOf}
+                onMigrateLegacy={(g) => migrateLegacyGroup(g, getCurrentUser())}
+                onLegacyDone={(n) =>
+                  n > 0 && setToast(`옛 프로젝트 ${n}개를 원본으로 묶었어요.`)
+                }
               />
             ) : null
           }
