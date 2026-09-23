@@ -11340,9 +11340,18 @@ a.lesson-board-file-name { text-decoration: underline; }
   object-fit: contain;
   border-radius: 14px;
 }
+/* 슬라이드 없이 만든 수업의 빈 무대. 무대 바탕이 투명(밝은 화면)이라 예전의
+   흰 글자(rgba 255,.7)는 거의 안 보였습니다 — 딸림글 색으로 둡니다. */
 .lesson-empty {
-  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+  padding: 0 24px;
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text-sub);
 }
+.lesson-empty strong { color: var(--text); font-size: 15px; }
+.lesson-empty-hint { color: var(--primary); font-weight: 600; }
 .lesson-card-foot {
   display: flex;
   align-items: center;

@@ -1347,13 +1347,11 @@ function StudyPageInner() {
         <LessonManagerModal
           onClose={closeLessonNav}
           onEdit={(lesson) => openLessonEdit(lesson)}
-          onStart={(lesson) => {
-            if ((lesson.slides ?? []).length === 0) {
-              setToast("슬라이드가 없는 자료예요.");
-              return;
-            }
-            openLessonTeach(lesson);
-          }}
+          // 슬라이드가 없는 수업도 시작합니다 — '슬라이드 없이 만들기'로 만든
+          // 수업은 방송 없이 활동만 내보내는 자리라, 여기서 막으면 그 수업을
+          // 쓸 길이 아예 없습니다. 수업 화면이 0장을 스스로 다룹니다(넘기기와
+          // 방송 '시작'이 꺼지고 활동 내보내기만 삽니다).
+          onStart={(lesson) => openLessonTeach(lesson)}
           onOpenSeatSetup={openSeatSetupFromLessons}
           seatSetupDisabled={roster.length === 0}
         />
@@ -1395,13 +1393,7 @@ function StudyPageInner() {
             return updateLesson(editingLesson.id, { slides });
           }}
           onSaveActivities={(activities) => updateLesson(editingLesson.id, { activities })}
-          onStart={() => {
-            if ((editingLesson.slides ?? []).length === 0) {
-              setToast("슬라이드가 없는 자료예요.");
-              return;
-            }
-            openLessonTeach(editingLesson);
-          }}
+          onStart={() => openLessonTeach(editingLesson)}
           onClose={closeLessonNav}
         />
       )}

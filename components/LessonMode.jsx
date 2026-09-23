@@ -813,8 +813,10 @@ export default function LessonMode({
   useEffect(() => {
     function onKey(e) {
       if (e.target.tagName === "TEXTAREA" || e.target.tagName === "INPUT") return;
+      // 0장인 수업(슬라이드 없이 만들기)에서 → 를 누르면 total - 1이 -1이라
+      // 자리가 -1로 떨어집니다 — 0 아래로는 안 내려가게 붙듭니다.
       if (e.key === "ArrowLeft") setIdx((i) => Math.max(0, i - 1));
-      else if (e.key === "ArrowRight") setIdx((i) => Math.min(total - 1, i + 1));
+      else if (e.key === "ArrowRight") setIdx((i) => Math.max(0, Math.min(total - 1, i + 1)));
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -1025,9 +1027,24 @@ export default function LessonMode({
                 // 아니라 고른 모습이므로, 무엇이 없고 무엇을 할 수 있는지
                 // 함께 적습니다(빈 화면만 두면 '안 올라갔나'로 읽힙니다).
                 <p className="lesson-empty">
-                  슬라이드 없이 만든 수업이에요.
+                  <strong>슬라이드 없이 만든 수업이에요.</strong>
                   <br />
                   학생 화면에는 아무것도 안 뜨고, 아래에서 활동을 내보내며 수업합니다.
+                  {/* 내보낼 것이 하나도 없으면 아래 칸이 아예 안 섭니다 — 그때
+                      '아래에서'만 적어 두면 가리키는 곳이 비어 있어 막힌 것처럼
+                      보입니다. 어디서 채우는지까지 적습니다. 독서 활동을 아직
+                      읽는 중(null)이면 곧 설 수 있으니 말하지 않습니다. */}
+                  {!(board && boardActs.length > 0) && bookActs !== null && bookActs.length === 0 && (
+                    <>
+                      <br />
+                      <span className="lesson-empty-hint">
+                        지금은 내보낼 활동이 없어요 —{" "}
+                        {editing
+                          ? "아래 ‘공부방 프로젝트 연동’에서 프로젝트를 연결해 주세요."
+                          : "‘수업 편집’에서 공부방 프로젝트를 연결해 주세요."}
+                      </span>
+                    </>
+                  )}
                 </p>
               )}
             </div>
@@ -1057,7 +1074,7 @@ export default function LessonMode({
               <button
                 type="button"
                 className="lesson-ctrl-btn"
-                onClick={() => setIdx((i) => Math.min(total - 1, i + 1))}
+                onClick={() => setIdx((i) => Math.max(0, Math.min(total - 1, i + 1)))}
                 disabled={idx >= total - 1}
               >
                 다음 ›
