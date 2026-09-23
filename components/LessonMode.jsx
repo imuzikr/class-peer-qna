@@ -699,9 +699,27 @@ export default function LessonMode({
       let id = null;
       if (copyPick.kind === "template") {
         // 이 반에 복사본이 이미 있으면 그것에 연결만 합니다.
-        id = copyPick.inst
-          ? copyPick.inst.id
-          : await startStudyTemplateInClass(copyPick.template, classId, getCurrentUser());
+        const inst = copyPick.inst;
+        const tplActs = (copyPick.template.activities ?? [])
+          .map((x) => String(x).trim())
+          .filter(Boolean);
+        if (inst) {
+          id = inst.id;
+          // 다만 그 복사본에 **활동이 하나도 없으면** 원본의 활동을 채웁니다.
+          // 원본에는 활동이 있는데 이 반 복사본만 빈 일이 실제로 있었고(목록에는
+          // '활동 3개 · 이 반에 있음'인데 연결하면 '활동 없음'), 그러면 가져오기를
+          // 눌러도 아무것도 안 들어온 것으로 보입니다. **빈 사본에만** 하므로
+          // 선생님이 이 반에서 활동을 고쳐 둔 사본은 건드리지 않습니다. 잠금은
+          // 새로 시작할 때와 같은 모양(첫 활동만 열림)입니다.
+          if ((inst.activities?.length ?? 0) === 0 && tplActs.length > 0) {
+            await updateStudyBoard(inst.id, {
+              activities: tplActs,
+              activityLocks: tplActs.map((_, i) => i > 0),
+            });
+          }
+        } else {
+          id = await startStudyTemplateInClass(copyPick.template, classId, getCurrentUser());
+        }
       } else {
         // 원본 없는 옛 프로젝트 — 예전처럼 통째로 복제합니다. 학생 카드는
         // 따라오지 않고, 첫 활동만 열린 채로 도착합니다(duplicateStudyBoard 참고).
@@ -1501,7 +1519,10 @@ export default function LessonMode({
                   <small className="lesson-board-copy-note">
                     {copyPick?.kind === "template"
                       ? copyPick.inst
-                        ? "이 반에 이미 열어 둔 이 원본의 프로젝트에 연결합니다. 새로 만들지 않습니다."
+                        ? (copyPick.inst.activities?.length ?? 0) === 0 &&
+                          (copyPick.template.activities?.length ?? 0) > 0
+                          ? "이 반에 있는 이 프로젝트에 활동이 비어 있어요. 연결하면서 원본의 활동을 채워 넣습니다."
+                          : "이 반에 이미 열어 둔 이 원본의 프로젝트에 연결합니다. 새로 만들지 않습니다."
                         : "이 반에 원본의 복사본을 하나 열어 이 수업에 연결합니다. 학생 카드는 반마다 따로 쌓이고, 첫 활동만 열린 채로 시작합니다."
                       : copyPick?.kind === "board"
                       ? "이 반에 같은 프로젝트를 새로 만들어 연결합니다. 학생 카드는 따라오지 않고, 첫 활동만 열린 채로 들어옵니다."
