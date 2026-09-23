@@ -12,7 +12,7 @@
 // 종류의 물건처럼 읽힙니다.
 //
 // 줄마다 서는 것:
-//   · 이 반에 이미 복사본이 있으면 '이 반에서 진행 중' + [열기]
+//   · 이 반에 이미 복사본이 있으면 '연결된 프로젝트' + [열기]
 //     (같은 원본을 한 반에 두 번 시작하지 않게 — 두 번 누르면 같은 이름의
 //     프로젝트가 둘이 되어, 원본을 둔 까닭이 도로 무너집니다)
 //   · 없으면 [우리 반에 가져오기]
@@ -119,7 +119,7 @@ export default function StudyTemplateList({
                 <div className="lesson-row-actions">
                   {inst ? (
                     <>
-                      <span className="tpl-here">이 반에서 진행 중</span>
+                      <span className="tpl-here">연결된 프로젝트</span>
                       <button
                         type="button"
                         className="btn-ghost lesson-edit-btn"
