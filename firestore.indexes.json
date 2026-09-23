@@ -138,6 +138,25 @@
       ]
     },
     {
+      "//": "purgeStudentData — 탈퇴 시 수업 노트 정리: collectionGroup cornellNotes, uid== (이것이 없으면 탈퇴 처리가 '수업 노트: 9 FAILED_PRECONDITION'으로 그 항목만 실패합니다)",
+      "collectionGroup": "cornellNotes",
+      "fieldPath": "uid",
+      "indexes": [
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION"
+        },
+        {
+          "order": "DESCENDING",
+          "queryScope": "COLLECTION"
+        },
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION_GROUP"
+        }
+      ]
+    },
+    {
       "//": "purgeStudentData — 탈퇴 시 책방 모둠 명단에서 제외: collectionGroup groups, memberUids array-contains",
       "collectionGroup": "groups",
       "fieldPath": "memberUids",

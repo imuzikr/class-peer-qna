@@ -970,6 +970,29 @@ Firebase 미설정 시 자동으로 **데모 모드**로 동작 (새로고침 �
       격자를 40px 굴려도 글자와 어긋남 0.0px.
   - 탈퇴 정리는 `purgeStudentData`의 `collectionGroup("cornellNotes")` 한 줄.
     반 아래라 반 삭제는 `purgeClass`가 알아서 정리합니다.
+    - **`collectionGroup` 질의에는 색인을 손수 선언해야 합니다.** Firestore가
+      저절로 만들어 주는 단일 필드 색인은 **컬렉션 범위뿐**이고, 컬렉션 그룹
+      범위는 `firestore.indexes.json`의 `fieldOverrides`에 적어야 생깁니다.
+      이 줄을 더하면서 짝이 되는 색인을 안 적어, 탈퇴 처리가 **그 항목만**
+      `수업 노트: 9 FAILED_PRECONDITION`으로 실패했습니다(나머지는 정상
+      삭제 — 실패한 것만 `warnings`로 돌려주는 구조라 조용히 지나갔습니다).
+      **`collectionGroup(...).where(...)`를 새로 쓸 때는 색인을 함께 적고,
+      코드보다 먼저 배포하세요**(만드는 데 몇 분 걸립니다).
+    - **컬렉션 범위 색인을 함께 적어 두어야 합니다.** 단일 필드 예외는 그
+      필드의 자동 색인을 **통째로 갈아 끼웁니다** — 컬렉션 그룹만 적으면
+      컬렉션 범위 색인이 사라져 `subscribeMyCornellNotes`·
+      `subscribeStudentCornellNotes`(둘 다 `where("uid","==")`를 반 안에서
+      겁니다)가 함께 깨집니다. 그래서 이 항목만 `COLLECTION` 오름차순·
+      내림차순 + `COLLECTION_GROUP` 오름차순 **셋**입니다(다른 넷은 컬렉션
+      범위에서 그 필드로 거르는 질의가 없어 그룹 하나뿐입니다).
+      콘솔에서 에러 링크(`create_exemption=…`)로 만들면 이것을 알아서
+      맞춰 주지만, **'단일 필드' 탭에서 손으로 만들면 빠뜨리기 쉽습니다.**
+    - 색인이 없던 동안 남은 노트는 `npm run notes:purge-orphans`로 훑어
+      지웁니다(`--apply` 없이는 찾아만 봅니다 · `--uid=xxx`로 한 명만).
+      **프로필(`users/{uid}`)이 없는 노트만** 주인 없는 것으로 봅니다 —
+      탈퇴 정리가 프로필을 맨 마지막에 지우므로, 반에서만 빠진 학생의
+      노트는 건드리지 않습니다. 노트에서 받아 오는 칸은 `uid` 하나뿐이라
+      (`mask.fieldPaths`) 필기 본문을 읽지 않습니다.
 - `classes/{classId}/rewardEvents` — **과일 지급 이력** (uid, delta, count, byUid, at)
   - **어느 화면에서 줬는지는 안 남습니다.** 출처가 필요한 자리(기록 관리의
     수업 노트 탭)는 이력을 뒤지지 않고 **그 대상 문서에 도장을 찍습니다**
