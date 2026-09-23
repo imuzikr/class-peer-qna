@@ -158,31 +158,30 @@ export default function LessonManagerModal({
             {/* 새 수업 만들기 — 주제 입력 + PDF 업로드. 해설·활동 안내는
                 업로드가 끝난 뒤 편집 화면에서 이어 씁니다. */}
             <h3 className="lesson-create-title">새 수업 만들기</h3>
+            {/* 제목 한 줄 → 만드는 길 두 칸 → 설명. 물음이 '무엇을 만들까'
+                하나이므로 제목은 줄을 다 쓰고, 그 아래에서 **길이 갈립니다**. */}
             <div className="lesson-new">
               <input
                 type="text"
                 className="lesson-new-title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="수업 주제 (비우면 파일 이름)"
+                placeholder="수업 주제 (PDF를 올리면 비워 둬도 파일 이름이 들어갑니다)"
                 maxLength={60}
                 disabled={!!busy}
                 autoFocus
               />
+            </div>
+
+            {/* 두 단추는 **균등 두 칸에 같은 크기**입니다(`.modal-actions`와
+                같은 셈 — 격자 `1fr 1fr` + 높이 못 박기). flex로 두면 테두리가
+                있는 쪽이 2px 넓어지고, 두 클래스의 padding·글자 크기가 달라
+                높이도 20px 가까이 벌어집니다. */}
+            <div className="lesson-new-ways">
               <label className={`btn-primary lesson-upload-btn${busy ? " disabled" : ""}`}>
                 ＋ PDF 올리기
                 <input type="file" accept="application/pdf,.pdf" onChange={handlePdf} hidden disabled={!!busy} />
               </label>
-            </div>
-            <p className="lesson-hint">
-              구글 슬라이드·캔바·PPT 모두 <strong>PDF로 내보내기</strong> 후 올려 주세요.
-              장별 이미지로 바꿔 두어야 학생 화면이 선생님과 같은 장으로 넘어갑니다.
-            </p>
-
-            {/* 슬라이드 없이 만들기 — 띄울 자료 없이 활동만 내보내는 수업.
-                PDF 쪽이 기본이라 이쪽은 아래에 한 줄로 따로 둡니다(같은 줄에
-                두 단추를 세우면 무엇이 보통 길인지 흐려집니다). */}
-            <div className="lesson-new-alt">
               <button
                 type="button"
                 className="btn-ghost"
@@ -196,10 +195,22 @@ export default function LessonManagerModal({
               >
                 슬라이드 없이 만들기
               </button>
-              <span>
-                학생 화면에 띄울 자료 없이 <strong>프로젝트·독서 활동만 내보내는</strong> 수업이에요.
-                수업 중에 자리표·활동 내보내기·손들기는 그대로 쓸 수 있습니다.
-              </span>
+            </div>
+
+            {/* 설명은 단추 **아래에** 모읍니다. 나란히 선 두 길이라 어느 쪽
+                설명인지 먼저 밝히고(굵은 글씨) 이어 적습니다 — 이름 없이 두
+                덩이를 쌓으면 어느 것이 어느 단추의 말인지 알 수 없습니다. */}
+            <div className="lesson-hint lesson-new-hints">
+              <p>
+                <strong>PDF 올리기</strong> — 구글 슬라이드·캔바·PPT 모두 ‘PDF로 내보내기’ 후
+                올려 주세요. 장별 이미지로 바꿔 두어야 학생 화면이 선생님과 같은 장으로
+                넘어갑니다.
+              </p>
+              <p>
+                <strong>슬라이드 없이 만들기</strong> — 학생 화면에 띄울 자료 없이
+                프로젝트·독서 활동만 내보내는 수업이에요. 자리표·활동 내보내기·손들기는
+                그대로 쓸 수 있습니다. <em>수업 주제를 적어야 눌러집니다.</em>
+              </p>
             </div>
 
             {busy && (
