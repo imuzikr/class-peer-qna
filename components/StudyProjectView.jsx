@@ -30,6 +30,7 @@ import {
   subscribeMyGroupCards,
   subscribeQuestionsByKeywords,
   updateStudyBoard,
+  syncTemplateActivities,
   updateStudyCard,
   setCardReaction,
   deleteStudyBoard,
@@ -546,6 +547,8 @@ export default function StudyProjectView({
     setActMoveError("");
     try {
       await updateStudyBoard(board.id, { activities: next, activityLocks: locks });
+      // 원본에서 불러온 프로젝트면 원본의 활동 차례도 맞춥니다(다른 반 복사본은 그대로).
+      await syncTemplateActivities(board, next);
       // 학생 카드의 작성 틀도 새 순서로 맞춥니다(위에서 빈 카드만 남는 것을
       // 확인했으므로 덮어써도 잃을 내용이 없습니다).
       const html = buildActivityTemplate(next);

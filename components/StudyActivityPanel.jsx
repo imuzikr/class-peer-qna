@@ -17,7 +17,12 @@
 // 하던 검사를 그대로 옮겼습니다).
 // =============================================================
 import { useEffect, useMemo, useRef, useState } from "react";
-import { subscribeStudyCards, updateStudyBoard, updateStudyCard } from "@/lib/store";
+import {
+  subscribeStudyCards,
+  updateStudyBoard,
+  syncTemplateActivities,
+  updateStudyCard,
+} from "@/lib/store";
 import { stripHtml, htmlHasImage } from "@/lib/html";
 import {
   buildActivityTemplate,
@@ -240,6 +245,8 @@ export default function StudyActivityPanel({
         activities: newActivities,
         activityLocks: nextActivityLocks(activities, board.activityLocks ?? [], newActivities),
       });
+      // 원본에서 불러온 프로젝트면 원본의 활동 목록도 맞춥니다(다른 반 복사본은 그대로).
+      await syncTemplateActivities(board, newActivities);
       if (newActivities.length > 0) {
         const templateHtml = buildActivityTemplate(newActivities);
         await Promise.all(

@@ -24,9 +24,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   startBroadcast,
   stopBroadcast,
-  addStudyBoard,
   duplicateStudyBoard,
   startStudyTemplateInClass,
+  createStudyProjectInClass,
+  syncTemplateActivities,
   updateStudyBoard,
   updateStudyCard,
   subscribeStudyCards,
@@ -448,6 +449,9 @@ export default function LessonMode({
           locksOverride ??
           nextActivityLocks(boardActs, board.activityLocks ?? [], next),
       });
+      // 원본에서 불러온 프로젝트면 원본의 활동 목록도 맞춥니다 — 다른 반
+      // 복사본은 그대로(lib/store.js의 syncTemplateActivities).
+      await syncTemplateActivities(board, next);
       if (next.length > 0) {
         const html = buildActivityTemplate(next);
         await Promise.all(
@@ -508,15 +512,19 @@ export default function LessonMode({
   //     고르든 가져오는 것은 활동 목록과 안내뿐입니다.
   //   · 원본과 이름이 같은 옛 프로젝트도 뺍니다 — 원본 줄이 그 이름을 이미
   //     말하고, 같은 이름이 두 줄이면 무엇이 다른지 알 수 없습니다.
+  //   · **이 반에 같은 이름이 이미 있는 것도 뺍니다.** 그것은 위 '수업 프로젝트'
+  //     고르개에서 연결하면 되는 것이라, 여기서 고르면 같은 이름이 이 반에
+  //     하나 더 생길 뿐입니다(두 목록에 같은 이름이 함께 보이던 실제 신고).
   const importOld = useMemo(() => {
     const live = new Set(templates.map((t) => t.id));
     const tplTitles = new Set(templates.map((t) => (t.title ?? "").trim()));
+    const hereTitles = new Set(boards.map((b) => (b.title ?? "").trim()));
     const byTitle = new Map();
     const stamp = (b) => (b.createdAt ? toDate(b.createdAt).getTime() : 0);
     for (const b of otherBoards) {
       if (b.templateId && live.has(b.templateId)) continue;
       const key = (b.title ?? "").trim();
-      if (!key || tplTitles.has(key)) continue;
+      if (!key || tplTitles.has(key) || hereTitles.has(key)) continue;
       const prev = byTitle.get(key);
       const n = b.activities?.length ?? 0;
       const pn = prev?.activities?.length ?? 0;
@@ -525,7 +533,7 @@ export default function LessonMode({
     return [...byTitle.values()].sort((a, b) =>
       (a.title ?? "").localeCompare(b.title ?? "", "ko", { numeric: true })
     );
-  }, [otherBoards, templates]);
+  }, [otherBoards, templates, boards]);
   const canImport = templates.length > 0 || importOld.length > 0;
 
   // ── 학습 자료 ────────────────────────────────────────────────
@@ -657,7 +665,24 @@ export default function LessonMode({
   }
 
   // 이미 있는 프로젝트에 그냥 연결합니다(중복 안내에서 고른 경우).
-  async function useExistingBoard(id) {
+  // 같은 이름이 **원본**에만 있을 때(이 반에는 아직 없음)는 그 원본을 이 반에
+  // 불러와 연결합니다 — 같은 이름의 원본을 하나 더 만들지 않으려고요.
+  async function useExistingBoard(id, templateId = null) {
+    if (templateId) {
+      const t = templates.find((x) => x.id === templateId);
+      if (!t || !classId) return;
+      setMakingBoard(true);
+      try {
+        const bid = await startStudyTemplateInClass(t, classId, getCurrentUser());
+        if (bid) await onSaveBoardId?.(bid);
+        cancelAddBoard();
+      } catch (e2) {
+        setActError(`프로젝트를 불러오지 못했어요: ${e2?.message ?? "알 수 없는 오류"}`);
+      } finally {
+        setMakingBoard(false);
+      }
+      return;
+    }
     await onSaveBoardId?.(id);
     cancelAddBoard();
   }
@@ -744,20 +769,26 @@ export default function LessonMode({
     // 같은 이름이 이미 있으면 한 번 되묻습니다 — 이 안내를 띄운 그 이름으로
     // 다시 누르면 뜻이 분명하므로 그때는 만듭니다(같은 이름을 정말 원할
     // 수도 있으니 막지는 않습니다).
+    // 이 반의 프로젝트가 먼저, 없으면 내 원본(이 반에는 아직 안 불러온 것).
     const dup = boards.find((b) => (b.title ?? "").trim() === name);
-    if (dup && dupBoard?.name !== name) {
-      setDupBoard({ name, id: dup.id, acts: dup.activities?.length ?? 0 });
+    const dupTpl = dup ? null : templates.find((t) => (t.title ?? "").trim() === name);
+    if ((dup || dupTpl) && dupBoard?.name !== name) {
+      setDupBoard(
+        dup
+          ? { name, id: dup.id, acts: dup.activities?.length ?? 0 }
+          : { name, templateId: dupTpl.id, acts: dupTpl.activities?.length ?? 0 }
+      );
       return;
     }
 
     setMakingBoard(true);
     setActError("");
     try {
-      const id = await addStudyBoard(getCurrentUser(), {
+      // 수업 중에 만들어도 **원본**으로 만들고 이 반에 불러옵니다(누름은 한 번).
+      // 반에 곧바로 만들면 가져오기 목록에 '원본 없는 프로젝트'가 생겨,
+      // 공부방 '＋ 프로젝트 만들기'와 규칙이 갈립니다.
+      const { boardId: id } = await createStudyProjectInClass(getCurrentUser(), classId, {
         title: name,
-        type: "student",
-        description: "",
-        classId,
       });
       if (id) await onSaveBoardId?.(id);
       cancelAddBoard();
@@ -1608,16 +1639,16 @@ export default function LessonMode({
               {/* 같은 이름이 이미 있을 때 — 새로 만들기 전에 한 번 되묻습니다 */}
               {dupBoard && (
                 <p className="lesson-board-dup" role="alert">
-                  ‘{dupBoard.name}’ 프로젝트가 이미 있어요
+                  ‘{dupBoard.name}’ {dupBoard.templateId ? "원본이" : "프로젝트가"} 이미 있어요
                   {dupBoard.acts > 0 ? ` (활동 ${dupBoard.acts}개).` : " (활동 없음)."}{" "}
                   같은 이름을 하나 더 만들면 목록에서 구분하기 어려워요.
                   <button
                     type="button"
                     className="lesson-board-dup-use"
-                    onClick={() => useExistingBoard(dupBoard.id)}
+                    onClick={() => useExistingBoard(dupBoard.id, dupBoard.templateId)}
                     disabled={makingBoard}
                   >
-                    그 프로젝트에 연결하기
+                    {dupBoard.templateId ? "그 원본을 이 반에 불러오기" : "그 프로젝트에 연결하기"}
                   </button>
                 </p>
               )}

@@ -30,7 +30,8 @@
 // =============================================================
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  addStudyBoard,
+  createStudyProjectInClass,
+  syncTemplateActivities,
   addStudyCard,
   fetchStudyCardOnce,
   setClassPyTarget,
@@ -127,9 +128,11 @@ export default function PyProjectPanel({
     if (!title || !first || busy) return;
     setBusy(true);
     try {
-      const id = await addStudyBoard(user, {
+      // 수업 중에 만들어도 **원본**으로 만들고 이 반에 불러옵니다 — 공부방
+      // '＋ 프로젝트 만들기'와 같은 규칙(lib/store.js의 createStudyProjectInClass).
+      // 불러온 복사본은 첫 활동이 열린 채라 지금 곧바로 보낼 수 있습니다.
+      const { boardId: id } = await createStudyProjectInClass(user, classId, {
         title,
-        classId,
         activities: [first],
       });
       // 만들자마자 목적지로 잡습니다 — 만드는 까닭이 그것이라서요.
@@ -161,6 +164,8 @@ export default function PyProjectPanel({
           (v, i) => (i === next.length - 1 ? false : v)
         ),
       });
+      // 원본에서 불러온 프로젝트면 원본의 활동 목록도 맞춥니다(다른 반 복사본은 그대로).
+      await syncTemplateActivities(board, next);
       await setClassPyTarget(classId, { boardId: board.id, actIndex: next.length - 1 });
       setAddingAct(false);
       setActName("");
