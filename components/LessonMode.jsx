@@ -979,7 +979,14 @@ export default function LessonMode({
               {cur ? (
                 <img className="lesson-slide-img" src={cur.imageUrl} alt={`슬라이드 ${idx + 1}`} />
               ) : (
-                <p className="lesson-empty">슬라이드가 없어요.</p>
+                // '슬라이드 없이 만들기'로 만든 수업이 여기로 옵니다. 고장이
+                // 아니라 고른 모습이므로, 무엇이 없고 무엇을 할 수 있는지
+                // 함께 적습니다(빈 화면만 두면 '안 올라갔나'로 읽힙니다).
+                <p className="lesson-empty">
+                  슬라이드 없이 만든 수업이에요.
+                  <br />
+                  학생 화면에는 아무것도 안 뜨고, 아래에서 활동을 내보내며 수업합니다.
+                </p>
               )}
             </div>
 
@@ -1047,9 +1054,13 @@ export default function LessonMode({
                   }}
                   disabled={total === 0}
                   title={
-                    presenting
-                      ? "학생 화면을 원래대로 되돌립니다"
-                      : "지금 이 슬라이드를 학생 화면에 띄웁니다"
+                    // 꺼져 있을 때는 까닭까지 적습니다 — 회색 단추만 두면
+                    // 고장으로 보입니다('🍊 다 함께'와 같은 규칙).
+                    total === 0
+                      ? "슬라이드 없이 만든 수업이라 띄울 것이 없어요 — 활동 내보내기로 수업합니다"
+                      : presenting
+                        ? "학생 화면을 원래대로 되돌립니다"
+                        : "지금 이 슬라이드를 학생 화면에 띄웁니다"
                   }
                 >
                   {presenting ? "종료" : "시작"}

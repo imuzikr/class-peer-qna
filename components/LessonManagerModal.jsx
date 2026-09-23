@@ -103,6 +103,34 @@ export default function LessonManagerModal({
     }
   }
 
+  // 슬라이드 없이 제목만으로 만들기 — 띄울 자료는 없고 프로젝트·독서 활동만
+  // 내보내는 수업입니다. 자료 문서는 `slides: []`로 저장되고, 그 뒤는 PDF로
+  // 만든 수업과 **완전히 같은 길**을 갑니다(편집 화면 → 수업 시작하기).
+  //
+  // 수업 화면은 이 경우를 원래 알고 있었습니다 — 슬라이드 칸에 빈 상태가
+  // 서고, 넘기기와 '시작'(방송 켜기)이 `total === 0`으로 꺼져 있어 **방송이
+  // 아예 시작되지 않습니다.** 그래서 학생 화면은 그대로이고, 교사는 자리표·
+  // 활동 내보내기·손들기만 씁니다. 없던 것은 이 자리(만드는 길)뿐이었습니다.
+  //
+  // **제목이 반드시 있어야 합니다** — PDF 쪽은 비워 두면 파일 이름을 쓰는데
+  // 여기는 대신할 이름이 없고, 목록에서 그 수업을 찾는 유일한 값입니다.
+  async function handleTitleOnly() {
+    const name = title.trim();
+    if (!name || busy) return;
+    setError("");
+    try {
+      setBusy({ phase: "수업을 만드는 중", pct: 1 });
+      const id = await addLesson(me, { title: name, slides: [] });
+      setBusy(null);
+      setTitle("");
+      setCreating(false);
+      onEdit?.({ id, title: name, slides: [] });
+    } catch (err) {
+      setBusy(null);
+      setError(err?.message || "수업을 만들지 못했어요. 다시 시도해 주세요.");
+    }
+  }
+
   async function handleDelete() {
     const target = confirmDel;
     setConfirmDel(null);
@@ -151,6 +179,29 @@ export default function LessonManagerModal({
               장별 이미지로 바꿔 두어야 학생 화면이 선생님과 같은 장으로 넘어갑니다.
             </p>
 
+            {/* 슬라이드 없이 만들기 — 띄울 자료 없이 활동만 내보내는 수업.
+                PDF 쪽이 기본이라 이쪽은 아래에 한 줄로 따로 둡니다(같은 줄에
+                두 단추를 세우면 무엇이 보통 길인지 흐려집니다). */}
+            <div className="lesson-new-alt">
+              <button
+                type="button"
+                className="btn-ghost"
+                onClick={handleTitleOnly}
+                disabled={!!busy || !title.trim()}
+                title={
+                  title.trim()
+                    ? "슬라이드 없이 이 제목으로 수업을 만듭니다"
+                    : "위에 수업 주제를 적으면 눌러집니다 — 슬라이드가 없으면 제목이 이 수업을 찾는 유일한 이름이에요"
+                }
+              >
+                슬라이드 없이 만들기
+              </button>
+              <span>
+                학생 화면에 띄울 자료 없이 <strong>프로젝트·독서 활동만 내보내는</strong> 수업이에요.
+                수업 중에 자리표·활동 내보내기·손들기는 그대로 쓸 수 있습니다.
+              </span>
+            </div>
+
             {busy && (
               <div className="lesson-progress">
                 <div className="lesson-progress-bar">
@@ -189,7 +240,13 @@ export default function LessonManagerModal({
                   <div key={l.id} className="lesson-row">
                     <div className="lesson-row-main">
                       <strong>{l.title}</strong>
-                      <span>슬라이드 {(l.slides ?? []).length}장</span>
+                      {/* 슬라이드 없이 만든 수업은 '0장'이 아니라 그렇게
+                          적습니다 — 0장은 '만들다 만 것'으로 읽힙니다. */}
+                      <span>
+                        {(l.slides ?? []).length === 0
+                          ? "슬라이드 없음 · 활동만"
+                          : `슬라이드 ${(l.slides ?? []).length}장`}
+                      </span>
                     </div>
                     <div className="lesson-row-actions">
                       <button type="button" className="btn-ghost lesson-edit-btn" onClick={() => onEdit?.(l)}>
