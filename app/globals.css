@@ -15283,6 +15283,25 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   gap: 16px;
   flex-wrap: wrap;
 }
+/* 교사 단추 둘(원본 · 만들기) — 한 묶음으로 오른쪽에. 따로 두면 줄이 접힐 때
+   둘이 갈라져 한쪽만 다음 줄로 내려갑니다. */
+.study-project-dash-btns {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+/* 원본 단추는 옆 '＋ 프로젝트 만들기'(.btn-primary, 43px · 15px)와 같은 키로.
+   .btn-ghost 기본(27px · 13px)으로 두면 나란히 선 두 단추가 다른 급으로 읽힙니다.
+   .btn-ghost 자체는 앱 전체가 쓰므로 여기서만 덮습니다. */
+.study-project-dash-btns > .btn-ghost {
+  height: 43px;
+  padding: 0 16px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  background: #fff;
+}
 .study-project-intro {
   flex: 1;
   min-width: 240px;
@@ -24371,6 +24390,122 @@ span.cloud-word { cursor: default; }
 .study-trash-btn.danger { color: var(--danger); }
 .study-trash-btn.danger:hover:not(:disabled) { border-color: var(--danger); }
 .study-trash-btn:disabled { opacity: 0.5; cursor: default; }
+
+/* ===== 프로젝트 원본 창 (StudyTemplateModal) ==========================
+   원본 한 줄 = 제목 · 종류·활동 수·만든 날 · (다른 반에서 쓰는 중) ·
+   오른쪽 끝에 '이 반에서 시작하기'(또는 '이 반에서 진행 중 · 열기')와 삭제.
+   줄 모양과 작은 단추는 휴지통 줄(.study-trash-row · .study-trash-btn)과
+   같은 값을 씁니다 — 같은 대시보드 안에서 목록이 두 모양이면 따로 놉니다. */
+.modal.modal-study-templates {
+  width: 100%;
+  max-width: 680px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* 구르는 것은 목록 한 칸 — 머리줄과 아래 단추는 제자리 */
+}
+.study-tpl-intro {
+  margin: 0 0 14px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-sub);
+}
+.study-tpl-intro strong { color: var(--text); }
+.study-tpl-empty {
+  margin: 8px 0 4px;
+  font-size: 13px;
+  color: var(--text-sub);
+}
+.study-tpl-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0 2px 2px 0;
+  list-style: none;
+}
+.study-tpl-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+}
+/* 방금 만든 원본 — 창을 열자마자 눈이 그 줄로 가야 다음 할 일(시작하기)이
+   보입니다. 테두리 한 겹만(색 바탕까지 깔면 '진행 중' 줄과 헷갈립니다). */
+.study-tpl-row.is-new {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary);
+}
+.study-tpl-name {
+  flex: 1;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.study-tpl-name strong {
+  font-size: 14px;
+  color: var(--dark);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.study-tpl-name small {
+  font-size: 12px;
+  color: var(--text-sub);
+}
+.study-tpl-kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  vertical-align: -2px;
+}
+.study-tpl-used { color: var(--text-faint); }
+.study-tpl-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+.study-tpl-here {
+  font-size: 12px;
+  font-weight: 700;
+  color: #2f7a47; /* '됐다'는 초록 — 출석·과일 준 카드와 같은 뜻 */
+}
+.study-tpl-start {
+  flex-shrink: 0;
+  padding: 7px 14px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--primary);
+  border: 1px solid var(--primary);
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.study-tpl-start:hover:not(:disabled) { filter: brightness(0.95); }
+.study-tpl-start:disabled { opacity: 0.5; cursor: default; }
+.study-tpl-foot {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+/* 만들기 창 — 누르기 전에 '반에는 아직 안 생긴다'를 말해 두는 한 줄 */
+.project-form-where {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-sub);
+}
+.project-form-where strong { color: var(--text); }
 
 /* ===== 머리말 줄 스크롤 막대 ==========================================
    양쪽 패널이 열려 가운데가 좁아지면 이 줄들은 접히지 않고 가로로 밀립니다

@@ -12,15 +12,20 @@
 // · 활동 유형: 개별(학생 1인 1카드) / 모둠(모둠당 1카드)
 // · 제목 행 오른쪽 토글로 "질문 게시판 연계하기"
 // · 연계 ON 시 키워드 칩을 복수로 선택 (제목 바로 아래)
+//
+// [여기서 만드는 것은 **원본**입니다] 반에는 아직 아무것도 안 생깁니다.
+// 프로젝트는 선생님의 것이고, 반에서 쓸 때 '프로젝트 원본' 창의 '이 반에서
+// 시작하기'가 그 반에 복사본을 하나 만듭니다(lib/store.js의 studyTemplates
+// 절). 그래서 안내 카드도 여기서 깔지 않습니다 — 카드는 반에 붙는 것이라
+// 복사본이 생길 때 함께 깔립니다(startStudyTemplateInClass).
 // =============================================================
 import { backdropClose } from "@/lib/modal";
 import { useState } from "react";
-import { addStudyBoard, addStudyCard, addKeyword } from "@/lib/store";
-import { buildActivityTemplate } from "@/lib/activities";
+import { addStudyTemplate, addKeyword } from "@/lib/store";
 import { getCurrentUser } from "@/lib/user";
 import { IconIndividual, IconGroup } from "./StatusIcons";
 
-export default function StudyProjectForm({ keywords = [], classId = null, onClose, onCreated }) {
+export default function StudyProjectForm({ keywords = [], className = "", onClose, onCreated }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [activityType, setActivityType] = useState("individual"); // 개별 | 모둠
@@ -62,30 +67,13 @@ export default function StudyProjectForm({ keywords = [], classId = null, onClos
     try {
       const me = getCurrentUser();
       const acts = activities.map((a) => a.trim()).filter(Boolean);
-      const newId = await addStudyBoard(me, {
+      const newId = await addStudyTemplate(me, {
         title: title.trim(),
-        type: "student",
         description: description.trim(),
         keywords: linkKeyword ? selectedKeywords : [],
-        classId,
         activityType,
         activities: acts,
       });
-      // 선생님 안내 카드를 한 장 미리 깔아 둡니다 — 학생 카드 그리드의 맨
-      // 앞자리에 놓여(StudyProjectView의 seats) 예시·안내 역할을 합니다.
-      // 활동 틀을 그대로 채워 두어, 교사가 열면 곧바로 활동마다 예시를
-      // 적어 넣을 수 있습니다.
-      if (newId) {
-        try {
-          await addStudyCard(me, newId, {
-            title: "안내",
-            content: buildActivityTemplate(acts),
-          });
-        } catch {
-          // 안내 카드는 부가 기능이라 실패해도 프로젝트 생성은 그대로 둡니다
-          // (교사가 설정에서 '＋ 카드 추가'로 언제든 만들 수 있습니다).
-        }
-      }
       onCreated?.(newId);
       onClose();
     } finally {
@@ -231,8 +219,16 @@ export default function StudyProjectForm({ keywords = [], classId = null, onClos
             </button>
           </div>
 
-          <button type="submit" className="btn-primary" disabled={saving}>
-            {saving ? "만드는 중..." : "프로젝트 만들기"}
+          {/* 누르기 전에 무엇이 생기는지 말해 둡니다 — 예전에는 누르면 곧장
+              이 반에 열렸으므로, 말없이 바꾸면 '만들었는데 반에 없다'로 읽힙니다. */}
+          <p className="project-form-where">
+            원본으로 만들어져요. 반에는 아직 아무것도 안 생기고, 다음 창에서
+            {className ? ` ‘${className}’에서 ` : " "}
+            <strong>이 반에서 시작하기</strong>를 누르면 학생 화면에 열립니다.
+          </p>
+
+          <button type="submit" className="btn-primary" disabled={saving || !title.trim()}>
+            {saving ? "만드는 중..." : "프로젝트 원본 만들기"}
           </button>
         </form>
       </div>

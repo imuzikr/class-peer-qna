@@ -866,6 +866,24 @@ service cloud.firestore {
                             || (isTeacher() && resource.data.ownerId == uid());
     }
 
+    // ── 프로젝트 원본 — 반에 안 묶인 선생님의 프로젝트 ──
+    //  · 수업 자료(lessons)와 같은 모양: 만든 선생님만 읽고 쓰고 지웁니다.
+    //    학생은 원본을 볼 일이 없습니다 — 학생이 보는 것은 반에 만들어진
+    //    복사본(studyBoards)이고, 그쪽 규칙은 그대로입니다.
+    //  · 주인을 바꾸지 못합니다(ownerId 불변). 바꿀 수 있으면 원본을 남의
+    //    목록에 밀어 넣을 수 있습니다. 수업 자료에는 없는 한 줄입니다.
+    //  · 목록 질의는 `where ownerId == 나`여야 통과합니다(list 규칙은 결과가
+    //    아니라 질의로 판정) — lib/store.js의 subscribeMyStudyTemplates가 그렇게 겁니다.
+    match /studyTemplates/{tId} {
+      allow read: if isAdmin() || (isTeacher() && resource.data.ownerId == uid());
+      allow create: if isTeacher() && request.resource.data.ownerId == uid();
+      allow update: if isAdmin()
+                    || (isTeacher()
+                        && resource.data.ownerId == uid()
+                        && request.resource.data.ownerId == resource.data.ownerId);
+      allow delete: if isAdmin() || (isTeacher() && resource.data.ownerId == uid());
+    }
+
     // ── 발표 강제 전환(방송) — 문서 ID = classId. 있으면 방송 중, 없으면 아님. ──
     //  · 반 소유 교사/관리자만 켜고 끌 수 있고, 그 반 소속 학생은 읽기만.
     //  · 문서 ID가 곧 classId라 get() 없이 바로 판정합니다.

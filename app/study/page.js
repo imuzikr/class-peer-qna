@@ -49,6 +49,9 @@ import {
   saveStudySeatLayout,
   saveStudyGroupAssignment,
   subscribeMyLessons,
+  subscribeMyStudyTemplates,
+  startStudyTemplateInClass,
+  deleteStudyTemplate,
   ensureClassIdSynced,
   fetchClassRosterProfiles,
 } from "@/lib/store";
@@ -70,6 +73,7 @@ import StudyRewardPanel from "@/components/StudyRewardPanel";
 import StudyProjectDashboard from "@/components/StudyProjectDashboard";
 import StudyProjectView from "@/components/StudyProjectView";
 import StudyProjectForm from "@/components/StudyProjectForm";
+import StudyTemplateModal from "@/components/StudyTemplateModal";
 import StudyActivityPanel from "@/components/StudyActivityPanel";
 import NewQuestionForm from "@/components/NewQuestionForm";
 import ClassEntry from "@/components/ClassEntry";
@@ -144,6 +148,10 @@ function StudyPageInner() {
   const [teacherClassId, setTeacherClassId] = useState(null);
   const [joinCodesMap, setJoinCodesMap] = useState({}); // 교사: classId→{code,expiresAt}
   const [creatingProject, setCreatingProject] = useState(false);
+  // 프로젝트 원본 — 반에 안 묶인 선생님의 프로젝트(lib/store.js studyTemplates 절)
+  const [templates, setTemplates] = useState([]);
+  // 원본 창 — 열려 있으면 `{ highlightId }`(방금 만든 원본), 닫힘은 null
+  const [templateModal, setTemplateModal] = useState(null);
   const [classManagerOpen, setClassManagerOpen] = useState(false);
   const [attendanceOpen, setAttendanceOpen] = useState(false); // 출석부 모달
   const [noteViewerOpen, setNoteViewerOpen] = useState(false); // 내 수업 노트 크게 보기(학생)
@@ -444,6 +452,57 @@ function StudyPageInner() {
     }
     return subscribeMyLessons(user.uid, setLessons);
   }, [admin, user?.uid]);
+
+  // 내 프로젝트 원본 — 수업 자료 목록과 같은 모양(내 것만, 등호 하나).
+  // 대시보드의 원본 창과 수업 준비의 '가져오기' 목록이 같은 것을 씁니다.
+  useEffect(() => {
+    if (!admin || !user?.uid) {
+      setTemplates([]);
+      return;
+    }
+    return subscribeMyStudyTemplates(user.uid, setTemplates);
+  }, [admin, user?.uid]);
+
+  // 원본 id → 그 원본을 쓰는 **다른** 반 이름. 이미 구독해 둔 보드 목록으로
+  // 셉니다(읽기가 늘지 않습니다). 내 반만 — 남의 반 이름이 섞이지 않게.
+  const templateUsedIn = useMemo(() => {
+    if (!admin) return {};
+    const names = new Map(myClassesAll.map((c) => [c.id, c.name]));
+    const out = {};
+    boards.forEach((b) => {
+      if (!b.templateId || b.classId === classId || !names.has(b.classId)) return;
+      const list = (out[b.templateId] ??= []);
+      const name = names.get(b.classId);
+      if (!list.includes(name)) list.push(name);
+    });
+    return out;
+  }, [admin, boards, classId, myClassesAll]);
+
+  // 원본을 이 반에서 시작 — 복사본을 만들고 곧바로 그 프로젝트로 들어갑니다
+  // (예전 '만들자마자 들어가 활동을 손본다'와 같은 흐름).
+  async function handleStartTemplate(template) {
+    if (!classId) return;
+    try {
+      const id = await startStudyTemplateInClass(template, classId, getCurrentUser());
+      if (!id) return;
+      setTemplateModal(null);
+      setToast(`‘${template.title}’를 ‘${currentClass?.name ?? "이 반"}’에서 시작했어요.`);
+      router.push(`/study?project=${id}`);
+    } catch (e) {
+      console.warn("[공부방] 원본을 반에서 시작하지 못했어요:", e?.code, e?.message);
+      setToast("이 반에서 시작하지 못했어요. 잠시 뒤 다시 시도해 주세요.");
+    }
+  }
+
+  async function handleDeleteTemplate(template) {
+    try {
+      await deleteStudyTemplate(template.id);
+      setToast(`‘${template.title}’ 원본을 지웠어요. 이미 반에서 시작한 프로젝트는 그대로 있어요.`);
+    } catch (e) {
+      console.warn("[공부방] 원본을 지우지 못했어요:", e?.code, e?.message);
+      setToast("원본을 지우지 못했어요. 잠시 뒤 다시 시도해 주세요.");
+    }
+  }
 
   const lessonParam = searchParams.get("lesson");
   const modeParam = searchParams.get("mode");
@@ -988,6 +1047,8 @@ function StudyPageInner() {
                   roster={admin ? roster : []}
                   onOpen={openProject}
                   onCreate={() => setCreatingProject(true)}
+                  templateCount={templates.length}
+                  onOpenTemplates={() => setTemplateModal({ highlightId: null })}
                   onReorder={handleReorderProjects}
                   onToast={setToast}
                 />
@@ -1209,10 +1270,33 @@ function StudyPageInner() {
       {creatingProject && currentClass && (
         <StudyProjectForm
           keywords={keywordNames}
-          classId={currentClass.id}
+          className={currentClass.name ?? ""}
           onClose={() => setCreatingProject(false)}
-          // 만들자마자 그 프로젝트로 들어가 활동을 이어서 손보게 합니다
-          onCreated={(newId) => router.push(`/study?project=${newId}`)}
+          // 만든 것은 원본이라 반에는 아직 없습니다 — 원본 창을 띄워 그 줄을
+          // 짚어 두고, 다음 할 일('이 반에서 시작하기')이 바로 눈에 들게 합니다.
+          onCreated={(newId) => setTemplateModal({ highlightId: newId })}
+        />
+      )}
+
+      {templateModal && admin && currentClass && (
+        <StudyTemplateModal
+          templates={templates}
+          className={currentClass.name ?? ""}
+          classBoards={classBoards}
+          usedIn={templateUsedIn}
+          highlightId={templateModal.highlightId}
+          readOnly={!!currentClass.archived}
+          onStart={handleStartTemplate}
+          onOpenBoard={(boardId) => {
+            setTemplateModal(null);
+            router.push(`/study?project=${boardId}`);
+          }}
+          onDelete={handleDeleteTemplate}
+          onCreate={() => {
+            setTemplateModal(null);
+            setCreatingProject(true);
+          }}
+          onClose={() => setTemplateModal(null)}
         />
       )}
 
@@ -1250,7 +1334,7 @@ function StudyPageInner() {
         pyTarget={currentClass?.pyTarget ?? null}
         user={user}
         isTeacher={admin}
-        hasModalOpen={cardModalOpen || classManagerOpen || creatingProject || attendanceOpen || seatSetupOpen || (askKeyword !== null || askCode !== null)}
+        hasModalOpen={cardModalOpen || classManagerOpen || creatingProject || !!templateModal || attendanceOpen || seatSetupOpen || (askKeyword !== null || askCode !== null)}
       />
 
       {/* ── 수업 준비 (목록 · 새로 만들기) ──
@@ -1285,6 +1369,8 @@ function StudyPageInner() {
           // 학생이 카드를 쓰는 보드만 연결 대상 — '선생님 보드'(공지용)는 제외
           boards={classBoards.filter((b) => b.type !== "notice")}
           otherBoards={otherClassBoards}
+          // 내 프로젝트 원본 — 가져오기 목록 맨 앞(원본 하나가 한 줄)
+          templates={templates}
           // 연결은 **반마다 따로** 기억합니다 — 한 자료를 여러 반에서 쓰기
           // 때문입니다(LessonMode의 boardIds 주석 참고). 점 표기 경로
           // ({ "boardIds.xxx": … })는 Mock의 Object.assign에서 문자열 키가
