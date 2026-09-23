@@ -11503,8 +11503,11 @@ a.lesson-board-file-name { text-decoration: underline; }
 }
 
 /* ── 수업 자료 목록·만들기 모달 ── */
+/* 폭 720px — 수업과 프로젝트 원본이 한 창에 탭으로 섭니다. 줄마다 오른쪽에
+   단추가 셋(편집하기·수업 시작하기·🗑 / 이 반에서 시작하기·🗑)이라 620px에서는
+   제목이 일찍 말줄임으로 접혔습니다. */
 .modal-lesson {
-  max-width: 620px;
+  max-width: 720px;
 }
 /* 목록 → 새 수업 만들기로 넘어갈 때 제목 자리에 뜨는 뒤로가기 */
 .lesson-back-btn {
@@ -24385,7 +24388,30 @@ span.cloud-word { cursor: default; }
    탭은 제목 바로 옆(.modal-head가 space-between이라 margin-right:auto로
    왼쪽에 붙입니다 — 안 그러면 제목과 × 사이 한가운데 떠 있습니다). */
 .modal-lesson .modal-head { align-items: center; }
-.lesson-mgr-tabs { margin-right: auto; }
+/* 탭은 **같은 크기**입니다 — 격자 한 줄에 칸마다 1fr이라 가장 긴 이름의 폭으로
+   모두 맞춰집니다. 탭이 늘어도(책방 독서 활동이 같은 길로 올 예정) CSS를 안
+   고치고 같은 크기로 섭니다. 글자·여백도 기본 알약(12.5px · 5/12)보다 한 단계
+   크게 — 이 창에서 가장 먼저 고르는 자리입니다. */
+.lesson-mgr-tabs {
+  margin-right: auto;
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+}
+.lesson-mgr-tabs .dash-view-tab {
+  min-width: 84px;
+  padding: 8px 18px;
+  font-size: 14px;
+  text-align: center;
+}
+/* 두 탭의 목록 칸은 **같은 높이로 못 박습니다** — 수업이 셋이고 원본이 하나일
+   때 탭을 바꿀 때마다 창이 늘었다 줄었다 했습니다. 목록이 쌓이면 이 칸 안에서
+   구릅니다(한 줄 62px 남짓이라 큰 화면에서 일곱 줄 안팎이 한 번에 보입니다).
+   작은 화면에서는 화면 높이를 따라 줄어듭니다. */
+.modal-lesson .lesson-list {
+  height: clamp(240px, 56vh, 520px);
+  max-height: none;
+}
 /* 프로젝트 원본 줄 — 수업 줄(.lesson-row)을 그대로 쓰고 딸림글만 더합니다 */
 .tpl-row.is-new {
   border-color: var(--primary);
