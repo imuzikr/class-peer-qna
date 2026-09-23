@@ -228,7 +228,7 @@ export default function StudyProjectForm({ keywords = [], className = "", onClos
           </p>
 
           <button type="submit" className="btn-primary" disabled={saving || !title.trim()}>
-            {saving ? "만드는 중..." : "프로젝트 원본 만들기"}
+            {saving ? "만드는 중..." : "프로젝트 만들기"}
           </button>
         </form>
       </div>

@@ -21,24 +21,33 @@
 // 않습니다 — 유형은 이미 만든 카드의 모양을 바꾸는 일이고, 공개 범위는
 // 설정 패널의 토글이 그 자리에서 곧바로 저장합니다.
 //
+// [삭제도 여기서] 프로젝트를 지우려면 프로젝트를 열어 설정(⚙)을 펴야
+// 했습니다. 카드의 '편집'이 '이 프로젝트를 손보는 자리'이므로 삭제도 함께
+// 둡니다. 곧바로 지우지 않고 **휴지통으로 보냅니다**(`deleteStudyBoard` —
+// 상세 화면의 '프로젝트 삭제'와 같은 함수). 원본이 있는 프로젝트라도 원본은
+// 그대로 남아, 수업 관리의 프로젝트 탭에서 다시 시작할 수 있습니다.
+//
 // [규칙을 안 건드립니다] `studyBoards`의 update가
 // `ownsClassEditable(classId)`만 보고 필드 목록을 못 박아 두지 않아,
 // 제목·안내를 고치는 데 규칙이 그대로 통과합니다(확인함).
 // =============================================================
 import { useState } from "react";
-import { updateStudyBoard } from "@/lib/store";
+import { updateStudyBoard, deleteStudyBoard } from "@/lib/store";
 import { backdropClose } from "@/lib/modal";
+import ConfirmModal from "./ConfirmModal";
+import { IconTrash } from "./StatusIcons";
 
 // 제목 길이는 상세 화면의 인라인 수정(`.study-title-inline`)과 **같은 40자**
 // 입니다 — 두 자리가 다르면 한쪽에서 쓴 제목이 다른 쪽에서 잘립니다.
 const TITLE_MAX = 40;
 const DESC_MAX = 500;
 
-export default function StudyProjectEditModal({ board, onClose, onSaved }) {
+export default function StudyProjectEditModal({ board, onClose, onSaved, onDeleted }) {
   const [title, setTitle] = useState(board?.title ?? "");
   const [description, setDescription] = useState(board?.description ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [confirmDel, setConfirmDel] = useState(false);
 
   const trimmed = title.trim();
   // 제목이 비면 카드에 이름이 없어져 목록에서 무엇인지 알 수 없습니다.
@@ -60,6 +69,21 @@ export default function StudyProjectEditModal({ board, onClose, onSaved }) {
       // 실패하면 창을 닫지 않습니다 — 쓴 글을 잃지 않게.
       setError(`저장하지 못했어요: ${err?.message ?? "알 수 없는 오류"}`);
     } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDelete() {
+    setConfirmDel(false);
+    if (saving) return;
+    setSaving(true);
+    setError("");
+    try {
+      await deleteStudyBoard(board.id);
+      onDeleted?.(board);
+      onClose?.();
+    } catch (err) {
+      setError(`삭제하지 못했어요: ${err?.message ?? "알 수 없는 오류"}`);
       setSaving(false);
     }
   }
@@ -112,6 +136,20 @@ export default function StudyProjectEditModal({ board, onClose, onSaved }) {
 
           {error && <p className="form-error">{error}</p>}
 
+          {/* 삭제 — 저장·취소와 갈라 선 아래 왼쪽에 둡니다. 나란히 두면 '저장'을
+              누르려던 손이 미끄러집니다. 누르면 한 번 더 묻습니다. */}
+          <div className="study-edit-danger">
+            <button
+              type="button"
+              className="study-trash-btn danger"
+              onClick={() => setConfirmDel(true)}
+              disabled={saving}
+            >
+              <IconTrash size={14} /> 프로젝트 삭제
+            </button>
+            <span>휴지통으로 보내요 — 대시보드 아래 ‘🗑 휴지통’에서 되돌릴 수 있어요.</span>
+          </div>
+
           <div className="modal-actions">
             <button type="button" className="btn-ghost" onClick={onClose}>
               취소
@@ -122,6 +160,24 @@ export default function StudyProjectEditModal({ board, onClose, onSaved }) {
           </div>
         </form>
       </div>
+
+      {confirmDel && (
+        <ConfirmModal
+          title="프로젝트 삭제"
+          preview={board?.title ?? ""}
+          description={
+            "이 반의 프로젝트를 휴지통으로 보냅니다. 학생 카드도 함께 들어갑니다.\n" +
+            "대시보드 아래 ‘🗑 휴지통’에서 되돌릴 수 있어요." +
+            (board?.templateId
+              ? "\n원본은 그대로 남아 ‘수업 관리’의 프로젝트 탭에서 다시 시작할 수 있어요."
+              : "")
+          }
+          confirmLabel="휴지통으로 보내기"
+          danger
+          onConfirm={handleDelete}
+          onClose={() => setConfirmDel(false)}
+        />
+      )}
     </div>
   );
 }
