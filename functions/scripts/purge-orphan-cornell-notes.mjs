@@ -75,13 +75,21 @@ async function docExists(path) {
 
 // `mask`를 주면 그 칸만 받아 옵니다. 노트 본문을 아예 안 가져오려고
 // uid 하나만 받습니다.
-async function listAll(path, mask = "") {
+//
+// `showMissing`은 **문서는 없는데 하위 컬렉션만 남은 자리**까지 함께
+// 돌려줍니다(실재하는 문서에는 createTime이 있고, 빈 자리에는 name만 옵니다).
+// Firestore는 문서를 지워도 하위 컬렉션을 같이 지우지 않아서, 반 문서가
+// 사라진 자리에 노트만 남아 있을 수 있습니다 — 그냥 훑으면 그런 자리는
+// 목록에 아예 안 잡혀 '0건'으로 보입니다(알림함 스크립트가 같은 이유로
+// 이 옵션을 씁니다).
+async function listAll(path, mask = "", showMissing = false) {
   const out = [];
   let pageToken = "";
   do {
     const body = await api(
       `${BASE}/${path}?pageSize=300` +
         (mask ? `&mask.fieldPaths=${encodeURIComponent(mask)}` : "") +
+        (showMissing ? "&showMissing=true" : "") +
         (pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : "")
     );
     out.push(...(body.documents ?? []));
@@ -107,8 +115,10 @@ async function main() {
       "\n"
   );
 
-  const classes = await listAll("classes", "createdAt");
-  console.log(`반 ${classes.length}개\n`);
+  // showMissing — 반 문서가 지워진 자리에 노트만 남아 있을 수 있습니다.
+  const classes = await listAll("classes", "createdAt", true);
+  const ghosts = classes.filter((c) => !c.createTime).length;
+  console.log(`반 ${classes.length}개` + (ghosts ? ` (그중 반 문서가 없는 자리 ${ghosts}개)` : "") + "\n");
 
   // uid -> 프로필이 있나 (같은 학생이 여러 반에 있으므로 한 번만 물어봅니다)
   const aliveCache = new Map();
@@ -135,7 +145,12 @@ async function main() {
       hits.push({ name: n.name, uid, date: cut > 0 ? id.slice(cut + 1) : "?", classId });
     }
 
-    console.log(`  ${classId}: 노트 ${notes.length}건 · 주인 없는 것 ${hits.length}건`);
+    // 반 문서가 없는 자리는 따로 표시합니다. 다만 **지우는 기준은 그대로
+    // '학생 프로필이 없나'입니다** — 반만 지워지고 노트가 남은 것은 다른
+    // 문제(purgeClass가 훑었어야 할 자리)라, 살아 있는 학생의 노트를 여기서
+    // 함께 지워 버리면 안 됩니다. 눈에 띄면 알려 주는 데까지만 합니다.
+    const ghost = cls.createTime ? "" : "  ← 반 문서 없음";
+    console.log(`  ${classId}: 노트 ${notes.length}건 · 주인 없는 것 ${hits.length}건${ghost}`);
     orphans.push(...hits);
   }
 
