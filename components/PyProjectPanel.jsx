@@ -62,6 +62,9 @@ export default function PyProjectPanel({
   // 지금 출력 칸의 결과를 낸 코드 — 고쳐 놓고 다시 안 돌렸으면 결과를
   // 안 붙이는 데 씁니다(lib/pyShare.js).
   getRanCode,
+  // 학생 카드의 '파이썬 실행기' 단추로 열렸을 때 — 그 활동을 보낼 곳으로
+  // 잡습니다({ boardId, actIndex, seq }). seq가 바뀔 때마다 다시 잡습니다.
+  preset = null,
 }) {
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState(null); // { kind: 'ok'|'err', text }
@@ -75,8 +78,18 @@ export default function PyProjectPanel({
   // 학생이 직접 고른 목적지 — null이면 선생님이 정한 것을 그대로 따릅니다.
   // (반 문서는 교사만 쓸 수 있어 여기 담습니다. 화면을 닫으면 사라지고
   //  다시 선생님 것을 따라갑니다 — 그게 수업의 기본값이라서요.)
-  const [myPick, setMyPick] = useState(null);
+  const [myPick, setMyPick] = useState(() =>
+    preset?.boardId ? { boardId: preset.boardId, actIndex: preset.actIndex ?? 0 } : null
+  );
   const noteTimer = useRef(null);
+
+  // 카드의 단추로 다시 열리면(다른 활동에서 눌렀을 수도) 그 활동으로 옮깁니다.
+  // 반 문서(pyTarget)는 안 건드립니다 — 학생의 고름은 이 화면 안에서만 삽니다.
+  useEffect(() => {
+    if (isTeacher || !preset?.boardId) return;
+    setMyPick({ boardId: preset.boardId, actIndex: preset.actIndex ?? 0 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preset?.seq]);
 
   useEffect(() => () => clearTimeout(noteTimer.current), []);
 
@@ -143,9 +156,12 @@ export default function PyProjectPanel({
       // 수업 중에 만들어도 **원본**으로 만들고 이 반에 불러옵니다 — 공부방
       // '＋ 프로젝트 만들기'와 같은 규칙(lib/store.js의 createStudyProjectInClass).
       // 불러온 복사본은 첫 활동이 열린 채라 지금 곧바로 보낼 수 있습니다.
+      // 실행기에서 만드는 프로젝트는 코드를 받으려는 것이라 **실행기 연계를
+      // 켠 채로** 만듭니다 — 학생 카드에도 '파이썬 실행기' 단추가 섭니다.
       const { boardId: id } = await createStudyProjectInClass(user, classId, {
         title,
         activities: [first],
+        pyLinked: true,
       });
       // 만들자마자 목적지로 잡습니다 — 만드는 까닭이 그것이라서요.
       if (id) await setClassPyTarget(classId, { boardId: id, actIndex: 0 });

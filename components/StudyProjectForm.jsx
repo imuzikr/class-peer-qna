@@ -10,22 +10,25 @@
 // 편이 낫습니다.)
 //
 // · 활동 유형: 개별(학생 1인 1카드) / 모둠(모둠당 1카드)
-// · 제목 행 오른쪽 토글로 "질문 게시판 연계하기"
-// · 연계 ON 시 키워드 칩을 복수로 선택 (제목 바로 아래)
+// · 제목 행 오른쪽 토글 '연계하기'를 켜면 그 아래에 두 줄이 섭니다
+//   (ProjectLinkOptions — 편집 창과 같은 조각).
+//     - 키워드와 연계하기: 질문방 키워드 칩을 복수로 선택
+//     - 파이썬 실행기와 연계하기: 학생 카드 활동 칸에 '파이썬 실행기' 단추
 //
 // [여기서 만드는 것은 **원본**입니다] 반에는 아직 아무것도 안 생깁니다.
-// 프로젝트는 선생님의 것이고, 반에서 쓸 때 '수업 관리' 창 프로젝트 탭의 '이 반에서
-// 시작하기'가 그 반에 복사본을 하나 만듭니다(lib/store.js의 studyTemplates
+// 프로젝트는 선생님의 것이고, 반에서 쓸 때 '수업 관리' 창 프로젝트 탭의 '우리 반에
+// 가져오기'가 그 반에 복사본을 하나 만듭니다(lib/store.js의 studyTemplates
 // 절). 그래서 안내 카드도 여기서 깔지 않습니다 — 카드는 반에 붙는 것이라
 // 복사본이 생길 때 함께 깔립니다(startStudyTemplateInClass).
 // =============================================================
 import { backdropClose } from "@/lib/modal";
 import { useRef, useState } from "react";
-import { addStudyTemplate, addKeyword } from "@/lib/store";
+import { addStudyTemplate } from "@/lib/store";
 import { getCurrentUser } from "@/lib/user";
 import { IconIndividual, IconGroup } from "./StatusIcons";
 import { findSameNameProject } from "@/lib/projectNames";
 import ProjectNameDupModal from "./ProjectNameDupModal";
+import ProjectLinkOptions from "./ProjectLinkOptions";
 
 export default function StudyProjectForm({
   keywords = [],
@@ -41,32 +44,17 @@ export default function StudyProjectForm({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [activityType, setActivityType] = useState("individual"); // 개별 | 모둠
+  // '연계하기' 토글 — 켜면 아래 두 줄(키워드 · 파이썬 실행기)이 섭니다.
+  const [linkOn, setLinkOn] = useState(false);
   const [linkKeyword, setLinkKeyword] = useState(false);
   const [selectedKeywords, setSelectedKeywords] = useState([]);
+  const [pyLinked, setPyLinked] = useState(false);
   // 활동 — 빈 칸 하나로 시작해, 교사가 바로 첫 활동을 적을 수 있게 합니다.
   const [activities, setActivities] = useState([""]);
   const [saving, setSaving] = useState(false);
-  const [addingKw, setAddingKw] = useState(false); // 새 키워드 입력 중
-  const [newKw, setNewKw] = useState("");
   // 같은 이름이 있을 때 — { name, hit }
   const [dup, setDup] = useState(null);
   const titleRef = useRef(null);
-
-  function toggleKeyword(kw) {
-    setSelectedKeywords((prev) =>
-      prev.includes(kw) ? prev.filter((k) => k !== kw) : [...prev, kw]
-    );
-  }
-
-  // 새 키워드 추가 — 전역 키워드 목록에 만들고(중복이면 생략) 이 프로젝트에 바로 선택.
-  async function handleAddKeyword() {
-    const name = newKw.trim().replace(/^#\s*/, "");
-    if (!name) return;
-    if (!keywords.includes(name)) await addKeyword(name);
-    setSelectedKeywords((prev) => (prev.includes(name) ? prev : [...prev, name]));
-    setNewKw("");
-    setAddingKw(false);
-  }
 
   function setActivityAt(i, value) {
     setActivities((prev) => prev.map((a, j) => (j === i ? value : a)));
@@ -91,9 +79,11 @@ export default function StudyProjectForm({
       const newId = await addStudyTemplate(me, {
         title: title.trim(),
         description: description.trim(),
-        keywords: linkKeyword ? selectedKeywords : [],
+        keywords: linkOn && linkKeyword ? selectedKeywords : [],
         activityType,
         activities: acts,
+        // 모둠 프로젝트에는 아직 안 씁니다(ProjectLinkOptions 머리 주석)
+        pyLinked: linkOn && pyLinked && activityType !== "group",
       });
       onCreated?.(newId);
       onClose();
@@ -145,57 +135,30 @@ export default function StudyProjectForm({
             />
             <label
               className="toggle-switch"
-              title="질문 게시판 주제와 연계하기"
+              title="질문방 키워드 · 파이썬 실행기와 연계하기"
             >
               <input
                 type="checkbox"
-                checked={linkKeyword}
-                onChange={(e) => setLinkKeyword(e.target.checked)}
+                checked={linkOn}
+                onChange={(e) => setLinkOn(e.target.checked)}
               />
               <span className="toggle-track" />
               <span className="toggle-label">연계하기</span>
             </label>
           </div>
 
-          {/* 키워드 칩 (연계 ON일 때) — 맨 끝 '+'로 새 키워드 추가 */}
-          {linkKeyword && (
-            <div className="study-keyword-chips">
-              {keywords.map((kw) => (
-                <button
-                  key={kw}
-                  type="button"
-                  className={`study-keyword-chip${selectedKeywords.includes(kw) ? " selected" : ""}`}
-                  onClick={() => toggleKeyword(kw)}
-                >
-                  # {kw}
-                </button>
-              ))}
-              {addingKw ? (
-                <span className="study-keyword-add-inline">
-                  <input
-                    type="text"
-                    value={newKw}
-                    onChange={(e) => setNewKw(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") { e.preventDefault(); handleAddKeyword(); }
-                      if (e.key === "Escape") { setAddingKw(false); setNewKw(""); }
-                    }}
-                    placeholder="새 키워드"
-                    autoFocus
-                  />
-                  <button type="button" onClick={handleAddKeyword}>추가</button>
-                </span>
-              ) : (
-                <button
-                  type="button"
-                  className="study-keyword-chip study-keyword-add"
-                  onClick={() => setAddingKw(true)}
-                  title="키워드 추가"
-                >
-                  +
-                </button>
-              )}
-            </div>
+          {/* 연계 두 줄 — 키워드 · 파이썬 실행기(편집 창과 같은 조각) */}
+          {linkOn && (
+            <ProjectLinkOptions
+              keywords={keywords}
+              kwOn={linkKeyword}
+              onKwOn={setLinkKeyword}
+              selected={selectedKeywords}
+              onSelected={setSelectedKeywords}
+              pyOn={pyLinked}
+              onPyOn={setPyLinked}
+              isGroup={activityType === "group"}
+            />
           )}
 
           <textarea

@@ -1,7 +1,7 @@
 "use client";
 
 // =============================================================
-// 프로젝트 편집 — 제목 · 활동 안내 (교사 전용)
+// 프로젝트 편집 — 제목 · 활동 안내 · 연계 (교사 전용)
 // -------------------------------------------------------------
 // 대시보드의 프로젝트 카드에 달린 '편집'이 엽니다.
 //
@@ -27,24 +27,48 @@
 // 상세 화면의 '프로젝트 삭제'와 같은 함수). 원본이 있는 프로젝트라도 원본은
 // 그대로 남아, 수업 관리의 프로젝트 탭에서 다시 시작할 수 있습니다.
 //
+// [연계 — 키워드 · 파이썬 실행기] 만들기 창과 **같은 조각**(ProjectLinkOptions)
+// 입니다. 연계를 정하는 자리가 만들기 창뿐이라, 만들 때 빠뜨리면 나중에
+// 켤 길이 없었습니다. 고친 연계는 **원본에도 함께 적습니다**
+// (`syncTemplateLinks`) — 활동 목록과 같은 까닭으로, 다음에 불러오는 반부터
+// 고친 대로 옵니다. 이미 나간 다른 반의 복사본은 그대로입니다. 제목·안내는
+// 반마다 달리 쓸 수 있어 원본에 안 적습니다.
+//
 // [규칙을 안 건드립니다] `studyBoards`의 update가
 // `ownsClassEditable(classId)`만 보고 필드 목록을 못 박아 두지 않아,
 // 제목·안내를 고치는 데 규칙이 그대로 통과합니다(확인함).
 // =============================================================
 import { useState } from "react";
-import { updateStudyBoard, deleteStudyBoard } from "@/lib/store";
+import { updateStudyBoard, deleteStudyBoard, syncTemplateLinks } from "@/lib/store";
 import { backdropClose } from "@/lib/modal";
 import ConfirmModal from "./ConfirmModal";
 import { IconTrash } from "./StatusIcons";
+import ProjectLinkOptions from "./ProjectLinkOptions";
 
 // 제목 길이는 상세 화면의 인라인 수정(`.study-title-inline`)과 **같은 40자**
 // 입니다 — 두 자리가 다르면 한쪽에서 쓴 제목이 다른 쪽에서 잘립니다.
 const TITLE_MAX = 40;
 const DESC_MAX = 500;
 
-export default function StudyProjectEditModal({ board, onClose, onSaved, onDeleted }) {
+// 옛 프로젝트는 keyword 한 칸이었습니다 — 읽는 자리마다 같은 식으로 받습니다.
+function keywordsOf(board) {
+  if (Array.isArray(board?.keywords)) return board.keywords;
+  return board?.keyword ? [board.keyword] : [];
+}
+
+export default function StudyProjectEditModal({
+  board,
+  keywords = [], // 질문방 키워드 목록 전체(칩으로 고르는 데)
+  onClose,
+  onSaved,
+  onDeleted,
+}) {
   const [title, setTitle] = useState(board?.title ?? "");
   const [description, setDescription] = useState(board?.description ?? "");
+  const [selectedKeywords, setSelectedKeywords] = useState(() => keywordsOf(board));
+  const [kwOn, setKwOn] = useState(() => keywordsOf(board).length > 0);
+  const [pyOn, setPyOn] = useState(!!board?.pyLinked);
+  const isGroup = board?.activityType === "group";
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [confirmDel, setConfirmDel] = useState(false);
@@ -59,10 +83,17 @@ export default function StudyProjectEditModal({ board, onClose, onSaved, onDelet
     setSaving(true);
     setError("");
     try {
+      const links = {
+        keywords: kwOn ? selectedKeywords : [],
+        pyLinked: pyOn && !isGroup,
+      };
       await updateStudyBoard(board.id, {
         title: trimmed,
         description: description.trim(),
+        ...links,
       });
+      // 원본에도 — 다음에 불러오는 반부터 고친 연계로 옵니다(실패해도 반은 그대로).
+      await syncTemplateLinks(board, links);
       onSaved?.();
       onClose?.();
     } catch (err) {
@@ -125,6 +156,22 @@ export default function StudyProjectEditModal({ board, onClose, onSaved, onDelet
               maxLength={DESC_MAX}
               rows={4}
               placeholder="이 프로젝트에서 무엇을 하는지 적어 주세요."
+            />
+          </div>
+
+          <div className="study-edit-field">
+            <span className="study-edit-label">
+              연계 <small>{board?.templateId ? "원본에도 함께 적혀 다음에 가져오는 반부터 적용돼요." : "이 반의 프로젝트에 적용돼요."}</small>
+            </span>
+            <ProjectLinkOptions
+              keywords={keywords}
+              kwOn={kwOn}
+              onKwOn={setKwOn}
+              selected={selectedKeywords}
+              onSelected={setSelectedKeywords}
+              pyOn={pyOn}
+              onPyOn={setPyOn}
+              isGroup={isGroup}
             />
           </div>
 

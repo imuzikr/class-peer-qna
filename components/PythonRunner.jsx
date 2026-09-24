@@ -79,6 +79,9 @@ export default function PythonRunner({
   pyTarget = null,
   user = null,
   isTeacher = false,
+  // 학생 카드의 '파이썬 실행기' 단추로 열 때 — 그 활동을 보낼 곳으로 잡고
+  // 2단을 펼칩니다({ boardId, actIndex, seq }).
+  preset = null,
 }) {
   const [stdinText, setStdinText] = useState("홍길동");
   const [lines, setLines] = useState([]); // 출력 줄 목록 {type, text}
@@ -268,6 +271,12 @@ export default function PythonRunner({
     appendLine("info", "⏹ 실행을 중단했습니다.");
     setStatus("idle");
   }
+
+  // 카드의 단추로 열렸으면 2단을 펼칩니다 — 보낼 곳이 이미 정해져 있으니
+  // '활동으로 보내기'가 곧바로 보여야 합니다. 누를 때마다 seq가 바뀝니다.
+  useEffect(() => {
+    if (preset?.seq) setLinked(true);
+  }, [preset?.seq]);
 
   // 2단을 달 수 있는 화면인가 — 프로젝트 목록과 반이 함께 있어야 합니다.
   // 아니면 단추 자체가 없습니다. 예전에는 이 자리가 '전체 화면'이라 연계할
@@ -465,6 +474,7 @@ export default function PythonRunner({
             getCode={() => viewRef.current?.state.doc.toString() ?? ""}
             getLines={() => lines}
             getRanCode={() => ranCodeRef.current}
+            preset={preset}
           />
         )}
       </div>

@@ -175,6 +175,9 @@ function StudyPageInner() {
   const [askCode, setAskCode] = useState(null);     // 파이썬 실행기에서 넘어온 코드
   const [askKwlW, setAskKwlW] = useState(null);    // KWL W칸에서 넘어온 텍스트
   const [pyOpen, setPyOpen] = useState(false);      // 파이썬 실행 패널
+  // 학생 카드의 '파이썬 실행기' 단추로 열 때 보낼 곳 — { boardId, actIndex, seq }.
+  // seq는 누를 때마다 바뀌어, 같은 활동을 다시 눌러도 2단이 펼쳐집니다.
+  const [pyPreset, setPyPreset] = useState(null);
   const [cardModalOpen, setCardModalOpen] = useState(false); // StudyProjectView 모달
   const [kwlMobileOpen, setKwlMobileOpen] = useState(false); // 모바일 KWL 패널 (현재 보관 중)
   // 학생용 KWLS 차트 패널 — 왼쪽에서 폭을 벌리며 밀고 들어옵니다(떠 있지 않음)
@@ -1073,6 +1076,10 @@ function StudyPageInner() {
                   attendanceRecords={admin ? attendanceRecords : []}
                   onBack={closeProject}
                   onAsk={(kw) => setAskKeyword(kw)}
+                  onOpenPython={(boardId, actIndex) => {
+                    setPyPreset({ boardId, actIndex, seq: Date.now() });
+                    setPyOpen(true);
+                  }}
                   onModalChange={setCardModalOpen}
                   onDeleted={() => {
                     closeProject();
@@ -1096,6 +1103,7 @@ function StudyPageInner() {
                   onCreate={() => setCreatingProject("dash")}
                   onReorder={handleReorderProjects}
                   onToast={setToast}
+                  keywords={keywordNames}
                 />
               )}
             </div>
@@ -1386,6 +1394,7 @@ function StudyPageInner() {
         pyTarget={currentClass?.pyTarget ?? null}
         user={user}
         isTeacher={admin}
+        preset={pyPreset}
         hasModalOpen={cardModalOpen || classManagerOpen || !!creatingProject || attendanceOpen || seatSetupOpen || (askKeyword !== null || askCode !== null)}
       />
 

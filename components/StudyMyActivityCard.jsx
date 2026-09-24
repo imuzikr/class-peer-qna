@@ -43,7 +43,7 @@ import ZoomableImage from "./ZoomableImage";
 import UploadProgress from "./UploadProgress";
 import StudyQuestionPeek from "./StudyQuestionPeek";
 import { nextFruit } from "./RewardFruits";
-import { IconAsk, IconSolved, IconLock, IconTrash } from "./StatusIcons";
+import { IconAsk, IconSolved, IconLock, IconTrash, IconPythonRunner } from "./StatusIcons";
 
 const FILE_EXTS = {
   html: "HTML", htm: "HTML", txt: "TXT", csv: "CSV",
@@ -88,6 +88,10 @@ export default function StudyMyActivityCard({
   rewardCount = 0,
   rewardMax = Infinity,
   onAward = null,
+  // (활동 번호) => void — 파이썬 실행기와 연계한 프로젝트의 **내 카드**에서만
+  // 옵니다(StudyProjectView가 거릅니다: 모둠 프로젝트·교사·남의 카드는 null).
+  // 누르면 그 활동을 보낼 곳으로 잡은 실행기 서랍이 열립니다.
+  onOpenPython = null,
 }) {
   const isNew = card === null;
   const activities = board.activities ?? [];
@@ -658,6 +662,27 @@ export default function StudyMyActivityCard({
                     }}
                     title="눌러서 크게 쓰기"
                   >
+                    {/* 파이썬 실행기 — 칸 오른쪽 위. 이 단추만은 크게 쓰기 창을
+                        열지 않고 곧바로 실행기로 갑니다(칸을 여는 클릭까지
+                        번지지 않게 막습니다). data-py-toggle은 실행기가 열려
+                        있을 때 이 단추를 '바깥 클릭'으로 보고 닫지 않게 하는
+                        표시입니다 — 다른 활동의 단추를 누르면 닫혔다 다시
+                        열리는 대신 보낼 곳만 옮겨 갑니다. */}
+                    {onOpenPython && (
+                      <button
+                        type="button"
+                        className="study-mycard-py"
+                        data-py-toggle
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onOpenPython(i);
+                        }}
+                        onKeyDown={(e) => e.stopPropagation()}
+                        title="파이썬 실행기를 열어 이 활동으로 보내기"
+                      >
+                        <IconPythonRunner size={16} /> 파이썬 실행기
+                      </button>
+                    )}
                     {stripHtml(activityContents[i] ?? "").trim() ||
                     htmlHasImage(activityContents[i] ?? "") ? (
                       <div
@@ -771,6 +796,21 @@ export default function StudyMyActivityCard({
             })
           }
           onClose={() => setEditingAct(null)}
+          // 서식 줄 끝의 '파이썬 실행기' — 창을 닫고 실행기를 엽니다. 창이 떠
+          // 있는 동안은 보낸 내용을 카드에 들여오지 않으므로(그 편집기는 열 때
+          // 한 번만 읽습니다) 먼저 닫아야 보낸 것이 칸에 나타납니다. 쓰던 글은
+          // 곧바로 저장해 둡니다 — 저장 전에 보낸 코드가 들어오면 그 칸은 '쓰는
+          // 중'으로 보여 들여오지 않고, 그 뒤 자동 저장이 보낸 것을 덮습니다.
+          onOpenPython={
+            onOpenPython
+              ? () => {
+                  const i = editingAct;
+                  setEditingAct(null);
+                  flushRef.current?.();
+                  onOpenPython(i);
+                }
+              : null
+          }
         />
       )}
     </section>
@@ -788,6 +828,7 @@ function ActivityEditorModal({
   onTitleChange,
   onChange,
   onClose,
+  onOpenPython = null,
 }) {
   // 열 때의 내용만 편집기에 심습니다(RichTextEditor는 비제어 컴포넌트라,
   // 타자 도중 initialHtml이 바뀌면 커서가 튑니다).
@@ -840,7 +881,21 @@ function ActivityEditorModal({
             initialHtml={initialRef.current}
             onChange={onChange}
             placeholder="내용을 입력해 주세요."
-          />
+          >
+            {/* 서식 줄 맨 끝 — 파이썬 실행기와 연계한 프로젝트에서만 */}
+            {onOpenPython && (
+              <button
+                type="button"
+                className="rte-tool rte-py-tool"
+                data-py-toggle
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={onOpenPython}
+                title="창을 닫고 파이썬 실행기를 열어요 — 짠 코드를 이 활동으로 보낼 수 있어요"
+              >
+                <IconPythonRunner size={16} /> 파이썬 실행기
+              </button>
+            )}
+          </RichTextEditor>
         </div>
       </div>
     </div>

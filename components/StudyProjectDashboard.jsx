@@ -49,6 +49,7 @@ export default function StudyProjectDashboard({
   onCreate,
   onReorder,        // (draggedId, targetId) => void
   onToast,
+  keywords = [],    // 질문방 키워드 목록 — 편집 창의 연계 칩
 }) {
   const [draggingId, setDraggingId] = useState(null);
   const [trashOpen, setTrashOpen] = useState(false);
@@ -304,11 +305,12 @@ export default function StudyProjectDashboard({
         />
       )}
 
-      {/* 프로젝트 편집 — 제목·활동 안내. 저장하면 구독이 알아서 다시 그리므로
+      {/* 프로젝트 편집 — 제목·활동 안내·연계. 저장하면 구독이 알아서 다시 그리므로
           여기서 목록을 손보지 않습니다. */}
       {editing && (
         <StudyProjectEditModal
           board={editing}
+          keywords={keywords}
           onClose={() => setEditing(null)}
           onDeleted={(b) => {
             onToast?.(`‘${b.title}’ 프로젝트를 휴지통으로 보냈어요. 아래 ‘🗑 휴지통’에서 되돌릴 수 있어요.`);

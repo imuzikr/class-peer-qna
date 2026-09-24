@@ -105,6 +105,7 @@ export default function StudyProjectView({
   attendanceRecords = [],
   onBack,
   onAsk,
+  onOpenPython, // (boardId, actIndex) — 학생 카드의 '파이썬 실행기' 단추
   onModalChange,
   onDeleted,
   onDuplicated,
@@ -644,6 +645,14 @@ export default function StudyProjectView({
         // '프로젝트 목록으로'를 누르는 두 단계를 한 번으로 줄입니다.
         onBackToList={onBack}
         onAsk={onAsk}
+        // 파이썬 실행기와 연계한 프로젝트에서, **내 카드**에만 — 실행기의
+        // '활동으로 보내기'는 자기 카드로만 보냅니다(교사 카드는 자동 ID라
+        // 보낼 때마다 새 카드가 생기고, 모둠 카드는 규칙이 막습니다).
+        onOpenPython={
+          detailSeat.mine && !isTeacher && board.pyLinked && board.activityType !== "group"
+            ? (i) => onOpenPython?.(board.id, i)
+            : null
+        }
         relatedQuestions={relatedQuestions}
         // 활동 칸 머리의 과일 단추 — 학생 카드 격자의 단추와 **같은 값·같은
         // 길**입니다(`classRoster`의 누적 개수 → 델타로 주기). 교사 카드와
