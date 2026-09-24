@@ -18,12 +18,15 @@
 //   · 없으면 [우리 반에 가져오기]
 //   · 다른 반 어디에서 쓰는 중인지(이름만) — 이미 받아 둔 보드 목록으로
 //     셉니다(읽기가 늘지 않습니다).
+//   · [편집] — 원본의 제목·안내·활동·연계를 곧바로 고칩니다
+//     (StudyTemplateEditModal). 이미 가져간 반에는 번지지 않습니다.
 //
 // 원본을 지워도 **복사본은 그대로**입니다. 되묻는 창이 그것을 밝힙니다.
 // =============================================================
 import { useEffect, useRef, useState } from "react";
 import { IconIndividual, IconGroup, IconTrash } from "./StatusIcons";
 import ConfirmModal from "./ConfirmModal";
+import StudyTemplateEditModal from "./StudyTemplateEditModal";
 import LegacyProjectMigrate from "./LegacyProjectMigrate";
 
 export default function StudyTemplateList({
@@ -31,6 +34,7 @@ export default function StudyTemplateList({
   className = "",
   classBoards = [],   // 지금 이 반의 프로젝트 — 복사본이 이미 있는지 봅니다
   usedIn = {},        // 원본 id → 그 원본을 쓰는 다른 반 이름들
+  keywords = [],      // 질문방 키워드 목록 — 편집 창의 연계 칩
   highlightId = null, // 방금 만든 원본 — 그 줄을 짚어 둡니다
   readOnly = false,   // 보관된 반 — 시작할 수 없습니다
   onStart,            // (template) => Promise
@@ -45,6 +49,7 @@ export default function StudyTemplateList({
 }) {
   const [busyId, setBusyId] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [editing, setEditing] = useState(null);
   const highlightRef = useRef(null);
 
   // 방금 만든 원본은 목록 끝에 섭니다(만든 차례) — 원본이 많으면 목록 칸
@@ -145,6 +150,15 @@ export default function StudyTemplateList({
                   )}
                   <button
                     type="button"
+                    className="btn-ghost lesson-edit-btn"
+                    onClick={() => setEditing(t)}
+                    disabled={!!busyId}
+                    title="이 원본의 제목·안내·활동·연계를 고쳐요"
+                  >
+                    편집
+                  </button>
+                  <button
+                    type="button"
                     className="btn-ghost qa-delete"
                     onClick={() => setConfirmDelete(t)}
                     disabled={!!busyId}
@@ -158,6 +172,19 @@ export default function StudyTemplateList({
           })
         )}
       </div>
+
+      {editing && (
+        <StudyTemplateEditModal
+          template={editing}
+          templates={templates}
+          keywords={keywords}
+          usedClasses={[
+            ...(instanceOf.has(editing.id) && className ? [className] : []),
+            ...(usedIn[editing.id] ?? []),
+          ]}
+          onClose={() => setEditing(null)}
+        />
+      )}
 
       {confirmDelete && (
         <ConfirmModal

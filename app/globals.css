@@ -27610,3 +27610,20 @@ h4.attendance-seat-help { margin-top: 16px; }
   font-weight: 700;
   white-space: nowrap;
 }
+
+/* ── 프로젝트 원본 편집 (StudyTemplateEditModal) ──
+   '수업 관리' 창(배경 z 100) 위에, 되묻는 창(200) 아래에 섭니다. */
+.tpl-edit-backdrop {
+  z-index: 150;
+}
+/* 고친 것이 어디까지 닿는지 — 창 맨 위 한 줄 */
+.tpl-edit-scope {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--bg);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-sub);
+  word-break: keep-all;
+}

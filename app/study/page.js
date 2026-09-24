@@ -1428,6 +1428,7 @@ function StudyPageInner() {
                 className={currentClass.name ?? ""}
                 classBoards={classBoards}
                 usedIn={templateUsedIn}
+                keywords={keywordNames}
                 highlightId={newTemplateId}
                 readOnly={!!currentClass.archived}
                 onStart={handleStartTemplate}
