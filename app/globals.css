@@ -21339,9 +21339,10 @@ span.cloud-word { cursor: default; }
    다른 점은 이름 길이뿐입니다: 곁텍스트는 '표지·지은이'처럼 두세 글자라
    여덟 개가 한 줄에 들어가지만, 활동 이름은 문장이라 칩이 줄줄이 접힙니다.
    그대로 두면 '모두 열기'까지 밀려 내려가 줄이 넷이 되고 목록과 뒤섞였습니다.
-   그래서 자리를 격자로 잡습니다 — 첫 줄에 '활동 열기 n/N'과 '모두 열기'가
-   양끝으로 서고, 칩은 그 아래 한 덩어리로 깔립니다. 몇 개가 접히든 이
-   두 줄 구조는 흔들리지 않습니다. */
+   그래서 자리를 두 줄로 잡습니다 — 첫 줄은 '활동 열기 n/N'(과 안내),
+   둘째 줄은 칩과 그 **바로 뒤의** '순서 바꾸기 · 모두 열기'입니다.
+   (한때 두 단추가 첫 줄 오른쪽 끝에 섰는데, 칩에서 멀어 무엇에 하는
+   일인지 이어 읽기 어려웠습니다.) */
 .study-act-gate {
   display: grid;
   grid-template-columns: 1fr auto;
@@ -21351,8 +21352,17 @@ span.cloud-word { cursor: default; }
      이 줄이 '카드에 딸린 조작'으로 읽히게 합니다. */
   margin: 4px 0 12px;
 }
-.study-act-gate .section-gate-chips { grid-column: 1 / -1; }
-.study-act-gate-tools { display: flex; gap: 6px; }
+/* 칩 줄 — 칩 뒤에 '순서 바꾸기 · 모두 열기'가 곧바로 이어 섭니다.
+   칩이 넘쳐 옆으로 구를 때도 단추는 줄 끝에 붙어 남습니다(flex-shrink 0). */
+.study-act-gate-row {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.study-act-gate-row .section-gate-chips { flex: 0 1 auto; min-width: 0; }
+.study-act-gate-tools { display: flex; gap: 6px; flex-shrink: 0; }
 /* 순서 바꾸는 중 안내 — 지금 무엇을 눌러야 하는지 한 줄로 알려 줍니다.
    자리는 라벨 안이라 켜고 꺼도 줄 수가 늘지 않습니다. */
 .study-act-gate-hint {
