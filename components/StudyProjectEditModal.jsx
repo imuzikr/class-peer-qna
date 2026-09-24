@@ -161,7 +161,7 @@ export default function StudyProjectEditModal({
 
           <div className="study-edit-field">
             <span className="study-edit-label">
-              연계 <small>{board?.templateId ? "원본에도 함께 적혀 다음에 가져오는 반부터 적용돼요." : "이 반의 프로젝트에 적용돼요."}</small>
+              연계하기 <small>{board?.templateId ? "원본에도 함께 적혀 다음에 가져오는 반부터 적용돼요." : "이 반의 프로젝트에 적용돼요."}</small>
             </span>
             <ProjectLinkOptions
               keywords={keywords}

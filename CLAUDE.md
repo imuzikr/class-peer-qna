@@ -229,11 +229,19 @@ Firebase 미설정 시 자동으로 **데모 모드**로 동작 (새로고침 �
       예외로 열린 채입니다 — 지금 받으려고 만드는 자리라서요.
 - `studyTemplates` — **프로젝트 원본** (ownerId, ownerName, title, description,
   keywords[], activityType, activities[], pyLinked, createdAt) — 반에 안 묶인 선생님의 것
-  - **연계 두 줄 — 키워드 · 파이썬 실행기**(`pyLinked`). 만들기 창의 '연계하기'
-    토글을 켜면 그 아래에 두 줄이 서고, 편집 창에도 같은 조각이 섭니다
+  - **연계 두 단추 — 키워드 · 파이썬 실행기**(`pyLinked`). 만들기 창의
+    '연계하기' 칸(안내 아래 · 활동 위, 머리 모양은 '활동' 칸과 같음)에 **두 누름
+    단추가 한 줄에 반씩** 서고, 편집 창에도 같은 조각이 섭니다
     (`components/ProjectLinkOptions.jsx` — 두 창이 **같은 조각**이라 모양이
     한 벌입니다). 원본에서 복사본으로(`startStudyTemplateInClass`), 다른 반으로
     (`duplicateStudyBoard`), 옛 프로젝트 묶기로(`migrateLegacyGroup`) 함께 갑니다.
+    - **꺼짐은 연한 살구(`--primary-light`), 켜짐은 살구(`--primary`, 흰 글자)**
+      입니다(`.project-link-btn.on`, `aria-pressed`). 단추 하나가 곧 기능
+      하나입니다 — 키워드 단추를 켜면 그 아래에 키워드 칩이 펼쳐집니다.
+    - 한때 제목 줄의 '연계하기' **토글을 먼저 켜야** 체크 상자 두 줄이
+      나타났는데 걷었습니다 — 켜는 스위치가 두 겹이라 '연계하기를 켰는데
+      아무것도 안 된다'가 되었습니다. **마스터 토글을 되살리지 마세요.**
+    - 480px 아래에서는 한 줄에 하나씩 섭니다.
     - **파이썬 실행기와 연계하기**를 켜면 학생 카드의 활동 칸 오른쪽 위
       (`.study-mycard-py`)와 '크게 쓰기' 창의 서식 줄 끝(`.rte-py-tool`)에
       '파이썬 실행기' 단추가 섭니다. 누르면 **그 활동을 보낼 곳으로 잡은**

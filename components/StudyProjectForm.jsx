@@ -10,9 +10,9 @@
 // 편이 낫습니다.)
 //
 // · 활동 유형: 개별(학생 1인 1카드) / 모둠(모둠당 1카드)
-// · 제목 행 오른쪽 토글 '연계하기'를 켜면 그 아래에 두 줄이 섭니다
+// · '연계하기' 칸 — 두 누름 단추가 한 줄에 반씩 섭니다
 //   (ProjectLinkOptions — 편집 창과 같은 조각).
-//     - 키워드와 연계하기: 질문방 키워드 칩을 복수로 선택
+//     - 키워드와 연계하기: 켜면 질문방 키워드 칩을 복수로 선택
 //     - 파이썬 실행기와 연계하기: 학생 카드 활동 칸에 '파이썬 실행기' 단추
 //
 // [여기서 만드는 것은 **원본**입니다] 반에는 아직 아무것도 안 생깁니다.
@@ -44,8 +44,7 @@ export default function StudyProjectForm({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [activityType, setActivityType] = useState("individual"); // 개별 | 모둠
-  // '연계하기' 토글 — 켜면 아래 두 줄(키워드 · 파이썬 실행기)이 섭니다.
-  const [linkOn, setLinkOn] = useState(false);
+  // '연계하기' 두 단추 — 키워드 · 파이썬 실행기(저마다 켜고 끕니다)
   const [linkKeyword, setLinkKeyword] = useState(false);
   const [selectedKeywords, setSelectedKeywords] = useState([]);
   const [pyLinked, setPyLinked] = useState(false);
@@ -79,11 +78,11 @@ export default function StudyProjectForm({
       const newId = await addStudyTemplate(me, {
         title: title.trim(),
         description: description.trim(),
-        keywords: linkOn && linkKeyword ? selectedKeywords : [],
+        keywords: linkKeyword ? selectedKeywords : [],
         activityType,
         activities: acts,
         // 모둠 프로젝트에는 아직 안 씁니다(ProjectLinkOptions 머리 주석)
-        pyLinked: linkOn && pyLinked && activityType !== "group",
+        pyLinked: pyLinked && activityType !== "group",
       });
       onCreated?.(newId);
       onClose();
@@ -123,32 +122,28 @@ export default function StudyProjectForm({
             </button>
           </div>
 
-          {/* 제목 + 연계 토글 */}
-          <div className="study-board-form-title-row">
-            <input
-              ref={titleRef}
-              type="text"
-              placeholder="프로젝트 제목 (예: 이온 결합 모형 탐구)"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              autoFocus
-            />
-            <label
-              className="toggle-switch"
-              title="질문방 키워드 · 파이썬 실행기와 연계하기"
-            >
-              <input
-                type="checkbox"
-                checked={linkOn}
-                onChange={(e) => setLinkOn(e.target.checked)}
-              />
-              <span className="toggle-track" />
-              <span className="toggle-label">연계하기</span>
-            </label>
-          </div>
+          <input
+            ref={titleRef}
+            type="text"
+            placeholder="프로젝트 제목 (예: 이온 결합 모형 탐구)"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            autoFocus
+          />
 
-          {/* 연계 두 줄 — 키워드 · 파이썬 실행기(편집 창과 같은 조각) */}
-          {linkOn && (
+          <textarea
+            className="study-board-desc-input"
+            placeholder="프로젝트 안내를 적어 주세요. (선택)"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          />
+
+          {/* 연계하기 — 두 단추(키워드 · 파이썬 실행기), 편집 창과 같은 조각 */}
+          <div className="project-form-acts project-form-links">
+            <div className="project-form-acts-head">
+              <span>연계하기</span>
+              <small>필요한 것만 눌러 켜세요. (선택)</small>
+            </div>
             <ProjectLinkOptions
               keywords={keywords}
               kwOn={linkKeyword}
@@ -159,14 +154,7 @@ export default function StudyProjectForm({
               onPyOn={setPyLinked}
               isGroup={activityType === "group"}
             />
-          )}
-
-          <textarea
-            className="study-board-desc-input"
-            placeholder="프로젝트 안내를 적어 주세요. (선택)"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
+          </div>
 
           {/* 활동 — 학생 개인 카드에 그대로 입력 칸으로 만들어집니다 */}
           <div className="project-form-acts">

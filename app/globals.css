@@ -18438,77 +18438,6 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
   resize: vertical;
 }
 
-/* 보드 폼 — 제목 + 연계 토글 한 줄 */
-.study-board-form-title-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.study-board-form-title-row > input[type="text"] {
-  flex: 1;
-  min-width: 0;
-}
-
-/* 토글 스위치 */
-.toggle-switch {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-  user-select: none;
-  flex-shrink: 0;
-}
-
-.toggle-switch > input[type="checkbox"] {
-  position: absolute;
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.toggle-track {
-  width: 36px;
-  height: 20px;
-  background: var(--neutral);
-  border-radius: 999px;
-  position: relative;
-  transition: background 0.2s;
-  flex-shrink: 0;
-}
-
-.toggle-switch > input:checked + .toggle-track {
-  background: var(--primary);
-}
-
-.toggle-track::after {
-  content: "";
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 16px;
-  height: 16px;
-  background: #fff;
-  border-radius: 50%;
-  transition: transform 0.2s;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-}
-
-.toggle-switch > input:checked + .toggle-track::after {
-  transform: translateX(16px);
-}
-
-.toggle-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-sub);
-  white-space: nowrap;
-}
-
-.toggle-switch > input:checked ~ .toggle-label {
-  color: var(--primary-dark);
-}
-
 /* 키워드 칩 다중 선택 */
 .study-keyword-chips {
   display: flex;
@@ -27568,56 +27497,79 @@ h4.attendance-seat-help { margin-top: 16px; }
   .study-attendance-export { margin-left: 0; }
 }
 
-/* ── 프로젝트 연계 두 줄 (ProjectLinkOptions) — 만들기 창 · 편집 창 공용 ──
-   키워드 · 파이썬 실행기. 두 창이 같은 조각이라 규칙도 한 벌입니다. */
+/* ── 프로젝트 연계 두 단추 (ProjectLinkOptions) — 만들기 창 · 편집 창 공용 ──
+   키워드 · 파이썬 실행기. 두 창이 같은 조각이라 규칙도 한 벌입니다.
+   한 줄에 반씩 선 누름 단추이고, 꺼짐은 연한 살구 · 켜짐은 살구로 채웁니다
+   (활동 유형 두 단추 `.board-acttype-btn`과 같은 격자). */
 .project-links {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--bg);
-}
-.project-link-row {
-  display: flex;
-  align-items: flex-start;
   gap: 8px;
-  cursor: pointer;
 }
-/* 전역 input 규칙(width: 100%)이 체크 상자를 늘여 글자를 밀어내므로 크기를 못 박습니다 */
-.project-link-row input[type="checkbox"] {
-  flex: 0 0 auto;
-  width: 16px;
-  height: 16px;
-  margin: 2px 0 0;
-  padding: 0;
-  accent-color: var(--primary);
+.project-link-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
 }
-.project-link-text {
+.project-link-btn {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  align-items: flex-start;
+  gap: 3px;
   min-width: 0;
+  padding: 11px 14px;
+  border: 1.5px solid #f0d5c6;
+  border-radius: 10px;
+  background: var(--primary-light);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
 }
-.project-link-text strong {
+.project-link-btn strong {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 13.5px;
-  color: var(--text);
+  font-size: 14px;
+  font-weight: 700;
 }
-.project-link-text small {
-  font-size: 12px;
-  color: var(--text-faint);
+.project-link-btn small {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-sub);
+  line-height: 1.4;
+  word-break: keep-all;
 }
-.project-link-row.disabled {
-  cursor: default;
-  opacity: 0.6;
+.project-link-btn:hover:not(:disabled) {
+  border-color: var(--primary);
 }
-/* 키워드 칩은 체크 상자 글자와 같은 세로선에서 시작합니다(16 + 8) */
+.project-link-btn.on {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+.project-link-btn.on small {
+  color: rgba(255, 255, 255, 0.88);
+}
+.project-link-btn.on:hover {
+  background: var(--primary-dark);
+  border-color: var(--primary-dark);
+}
+.project-link-btn:disabled {
+  background: var(--bg);
+  border-color: var(--border);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
 .project-link-chips {
-  padding-left: 24px;
+  padding: 0;
+}
+/* 만들기 창의 '연계하기' 칸 — 아래 '활동' 칸과 같은 머리·가름선 */
+.project-form-links {
+  gap: 8px;
+}
+@media (max-width: 480px) {
+  .project-link-grid { grid-template-columns: 1fr; }
 }
 
 /* ── 학생 카드의 '파이썬 실행기' 단추 ──
