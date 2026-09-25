@@ -395,7 +395,7 @@ export default function PythonRunner({
             <IconKeyboard size={26} /> 입력값 — input()이 읽어 갈 내용 (한 줄에 하나씩)
           </label>
           <textarea
-            className="py-code py-stdin"
+            className="py-mono py-stdin"
             spellCheck={false}
             value={stdinText}
             onChange={(e) => setStdinText(e.target.value)}

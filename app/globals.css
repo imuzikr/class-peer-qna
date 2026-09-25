@@ -5059,6 +5059,39 @@ pre code {
   font-size: inherit;
 }
 
+/* 코드 셀의 **결과**(lib/pyCells.js의 `pre.py-result`) — 읽는 자리에서.
+   코드와 같은 검은 블록이면 어디까지가 코드고 어디부터가 출력인지 안
+   갈려서, 옅은 바탕 + 왼쪽 선으로 '프로그램이 낸 말'임을 보입니다.
+   '실행 결과' 이름은 **코드 셀 바로 뒤일 때만** CSS가 그립니다 — 옛
+   '결과 붙이기'는 `<p>실행 결과</p>` 줄을 글로 넣어 두어, 거기까지 달면
+   이름이 두 번 섭니다. 출력은 길어도 접어 보이게(pre-wrap) 둡니다. */
+.rte-area pre.py-result,
+.study-card-content pre.py-result,
+.study-card-body pre.py-result {
+  background: var(--bg-deep);
+  color: var(--text);
+  border-left: 3px solid #a6d8b6;
+  border-radius: 0 10px 10px 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.rte-area pre.py-code + pre.py-result,
+.study-card-content pre.py-code + pre.py-result,
+.study-card-body pre.py-code + pre.py-result {
+  margin-top: -2px;
+}
+.rte-area pre.py-code + pre.py-result::before,
+.study-card-content pre.py-code + pre.py-result::before,
+.study-card-body pre.py-code + pre.py-result::before {
+  content: "실행 결과";
+  display: block;
+  margin-bottom: 2px;
+  font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-sub);
+}
+
 /* 글머리 기호 들여쓰기 (에디터·말풍선·본문·공지 공통) */
 .rte-area ul,
 .rte-area ol,
@@ -5410,8 +5443,11 @@ pre code {
   border-right: 1px solid var(--border);
 }
 
-/* 코드 입력창 */
-.py-code {
+/* 실행기의 입력값 칸 — 고정폭 글꼴.
+   **`.py-code`로 되돌리지 마세요** — 그 이름은 카드에 저장되는 코드 셀
+   (`pre.py-code`, lib/pyCells.js)이 씁니다. 여기 규칙(min-height 200px ·
+   밝은 바탕)이 그대로 새어 카드의 코드 셀이 전부 커다란 흰 상자가 됩니다. */
+.py-mono {
   font-family: var(--font-mono);
   font-size: 13.5px;
   line-height: 1.6;
@@ -17719,6 +17755,10 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
   line-height: 1.7;
   color: var(--text);
 }
+/* 코드 블록은 오른쪽 위 '파이썬 실행기' 단추(float) **아래에서** 시작합니다 —
+   가로로 구르는 블록(overflow)은 흘린 단추를 피해 폭을 줄이므로, 첫 블록이
+   단추 옆에 끼어 코드가 잘려 보였습니다(`range(3` — 실측). */
+.study-mycard-preview-body pre { clear: both; }
 .study-mycard-preview-empty {
   font-size: 13.5px;
   color: var(--text-sub);
@@ -27151,20 +27191,12 @@ ul.checklist > li.done {
   text-align: center;
 }
 
-/* ── 학생: 활동 탭의 파이썬 실행 줄 ──
-   코드 블록에 짠 것을 그 자리에서 돌려 보는 자리입니다. 서랍이 380px이라
-   단추는 작게, 출력은 제 칸 안에서 구르게 둡니다.
-   **수업 노트 필기 칸에는 이 줄이 없습니다** — 노트는 들은 것을 받아 적는
-   자리고, 짜서 돌려 보는 일은 활동에서 합니다. */
-.ltask-run {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 6px;
-}
+/* ── 학생: 코드 셀의 ▶ 실행 · 중단 단추(PyCellEditor) ──
+   서랍이 380px이라 작게. 예전에는 활동 칸 아래 '실행 줄'(▶ 실행 · 결과
+   붙이기)이 따로 섰는데, 셀이 코드와 결과를 제 것으로 들면서 셀 머리로
+   옮겼습니다(그 줄의 .ltask-run · -attach · -kbd는 걷었습니다). */
 .ltask-run-btn,
-.ltask-run-stop,
-.ltask-run-attach {
+.ltask-run-stop {
   padding: 5px 12px;
   border-radius: 999px;
   border: 1px solid var(--border);
@@ -27181,19 +27213,8 @@ ul.checklist > li.done {
   color: var(--primary-dark);
 }
 .ltask-run-btn:hover:not(:disabled),
-.ltask-run-stop:hover,
-.ltask-run-attach:hover { border-color: var(--primary); }
+.ltask-run-stop:hover { border-color: var(--primary); }
 .ltask-run-btn:disabled { opacity: 0.55; cursor: default; }
-/* 단축키 표시 — 실행기의 '▶ 실행 Ctrl+Enter'와 같은 말. 단추 글자보다 옅고 작게 */
-.ltask-run-kbd {
-  margin-left: 4px;
-  font-size: 10.5px;
-  font-weight: 600;
-  opacity: 0.7;
-}
-/* '결과 붙이기'는 오른쪽 끝으로 — 실행(왼쪽)과 하는 일이 다릅니다.
-   하나는 돌려 보는 것이고 하나는 칸에 남기는 것입니다. */
-.ltask-run-attach { margin-left: auto; }
 
 /* 입력값 — input()을 쓰는 코드일 때만 뜹니다 */
 .ltask-stdin {
@@ -27733,17 +27754,19 @@ h4.attendance-seat-help { margin-top: 16px; }
   background: var(--primary-light);
   outline: none;
 }
-/* 크게 쓰기 창의 서식 줄 끝 — 다른 도구는 그림 하나라 30px 정사각형이지만
-   이것은 글자까지 달아 폭을 풉니다 */
-.rte-tool.rte-py-tool {
-  width: auto;
-  gap: 5px;
-  padding: 0 10px;
-  font-family: inherit;
-  font-size: 12.5px;
-  font-weight: 700;
+/* 크게 **보는** 창(연계 프로젝트의 내 카드 — ActivityViewModal) —
+   제목은 입력칸이 아니라 글자이고, 단추는 머리 줄의 한 칸으로 섭니다
+   (칸 미리보기에서처럼 흘려 두지 않습니다). 본문이 길면 이 칸만 구릅니다. */
+.study-act-modal-title.study-act-modal-title--view {
+  border-color: transparent;
+  background: none;
+  padding-left: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
+.study-mycard-py.study-act-view-py { float: none; margin: 0; flex: none; }
+.study-act-modal-body.study-act-view-body { overflow-y: auto; padding: 2px; }
 
 /* ── 프로젝트 원본 편집 (StudyTemplateEditModal) ──
    '수업 관리' 창(배경 z 100) 위에, 되묻는 창(200) 아래에 섭니다. */

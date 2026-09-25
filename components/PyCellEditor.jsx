@@ -43,6 +43,7 @@ import { keymap, placeholder as cmPlaceholder } from "@codemirror/view";
 import { indentWithTab } from "@codemirror/commands";
 import { acceptCompletion } from "@codemirror/autocomplete";
 import { Prec } from "@codemirror/state";
+import { indentUnit } from "@codemirror/language";
 import { python } from "@codemirror/lang-python";
 import RichTextEditor from "./RichTextEditor";
 import PyLineText from "./PyLineText";
@@ -208,11 +209,11 @@ export default function PyCellEditor({ initialHtml = "", onChange, codeAtEnd = 0
   }, [codeAtEnd, commit]);
 
   // ── 실행 ──
-  function finish(id, { keepPartial = true } = {}) {
+  function finish(id) {
     setRunningId(null);
     if (!aliveRef.current) return;
     const lines = liveRef.current[id] ?? [];
-    const out = keepPartial ? outputTextOf(lines) : "";
+    const out = outputTextOf(lines);
     const cell = cellsRef.current.find((c) => c.id === id);
     // 돌리는 사이에 코드를 고쳤으면 붙이지 않습니다 — 그 결과는 지금 코드의 것이
     // 아닙니다.
@@ -416,6 +417,9 @@ function CodeCell({ code, onCode, onRun, focusN }) {
         basicSetup,
         keymap.of([indentWithTab]),
         python(),
+        // 들여쓰기는 네 칸 — 파이썬 관례이고, 이 앱의 코드 블록(Tab = 공백 4칸)과
+        // 같습니다. CodeMirror 기본값은 두 칸입니다.
+        indentUnit.of("    "),
         cmPlaceholder("코드를 적고 Ctrl+Enter로 실행해 보세요"),
         EditorView.updateListener.of((u) => {
           if (u.docChanged) onCodeRef.current(u.state.doc.toString());

@@ -169,11 +169,6 @@ export default function RichTextEditor({
   tools = null, // 보일 서식 목록 (예: ["bold", "underline"]) — 없으면 전부
   onSend, // 전송 실행 (Ctrl/⌘+Enter로도 전송). chat이면 버튼도 함께
   sendDisabled = false,
-  // 값이 바뀔 때마다(0이 아니면) **글 맨 끝에 빈 코드 블록을 두고 커서를 그
-  // 안에** 둡니다. 수업 노트 서랍의 '프로젝트 활동'이 씁니다 — 카드의 '파이썬
-  // 실행기' 단추를 누른 뜻이 '여기에 코드를 짜겠다'라서요. 번호로 받는 까닭은
-  // 같은 활동의 단추를 다시 눌러도 다시 돌게 하려는 것입니다.
-  codeAtEnd = 0,
   children, // 툴바에 끼워 넣을 추가 도구 (첨부, 그리기 등)
 }) {
   const ref = useRef(null);
@@ -277,10 +272,7 @@ export default function RichTextEditor({
     onChange(ref.current.innerHTML);
   }
 
-  // silent — 자리만 마련하고 '고쳤다'로 알리지 않습니다(`codeAtEnd`). 단추만
-  // 눌러 보고 아무것도 안 쓴 학생의 카드에 빈 코드 블록이 저장되지 않게.
-  // 첫 글자를 치면 그때 onInput이 블록까지 함께 알립니다.
-  function insertCodeBlock(silent = false) {
+  function insertCodeBlock() {
     ref.current?.focus();
     const sel = window.getSelection();
     const selectedText = sel && !sel.isCollapsed ? sel.toString() : "";
@@ -308,64 +300,8 @@ export default function RichTextEditor({
         s2.addRange(r);
       }
     }
-    if (!silent) onChange(ref.current.innerHTML);
+    onChange(ref.current.innerHTML);
   }
-
-  // ── 글 맨 끝에 빈 코드 블록 (`codeAtEnd`) ──
-  // - 맨 끝이 이미 **빈 코드 블록**이면 새로 만들지 않고 그 안에 커서만 둡니다
-  //   — 단추를 두 번 누를 때마다 빈 블록이 쌓이면 안 됩니다.
-  // - 글이 있으면 **맨 끝에 빈 줄을 하나 새로 두고 거기서** 넣습니다.
-  //   커서를 글 줄(<p>) 끝에 둔 채 넣으면 크롬이 블록을 그 줄 안에 **검은
-  //   글자색만 입힌 <span>**으로 바꿔 넣어, 보기엔 코드 같아도 코드 블록이
-  //   아니라 ▶ 실행이 '코드 블록이 없어요'라고 했습니다(실측). 맨 끝이 코드
-  //   블록일 때도 같은 길입니다 — 블록 안에 선 채 넣으면 블록 안에 블록이 생깁니다.
-  // **마운트 때 받은 번호는 건너뜁니다.** 밖에서 그 칸의 글이 바뀌면 부르는
-  // 쪽이 에디터를 새로 마운트하는데(서랍의 `ver`), 그때 같은 번호로 다시 돌면
-  // 빈 블록이 또 생기고 초점까지 빼앗습니다 — '크게 쓰기' 창에서 쓰던 커서가
-  // 뒤의 서랍으로 튀어 갑니다. 번호가 **바뀌었을 때만** 돕니다.
-  const codeSeenRef = useRef(codeAtEnd);
-  useEffect(() => {
-    if (!codeAtEnd || codeAtEnd === codeSeenRef.current || !ref.current) return;
-    codeSeenRef.current = codeAtEnd;
-    const area = ref.current;
-    area.focus();
-    const sel = window.getSelection();
-    // 마지막 코드 블록이 비어 있고 **그 뒤에 아무것도 없으면** 그것을 씁니다.
-    // 블록은 한 겹 감싸여(`<div><pre>`) 들어가기도 해서 lastElementChild로는
-    // 못 알아봅니다(실측 — 누를 때마다 빈 블록이 하나씩 늘었습니다).
-    const pres = area.querySelectorAll("pre");
-    const last = pres[pres.length - 1];
-    let reuse = false;
-    if (last && !(last.textContent ?? "").trim()) {
-      const after = document.createRange();
-      after.setStartAfter(last);
-      after.setEnd(area, area.childNodes.length);
-      reuse = !after.toString().trim() && !after.cloneContents().querySelector("img, pre");
-    }
-    if (reuse) {
-      const code = last.querySelector("code") ?? last;
-      if (!code.firstChild) code.appendChild(document.createTextNode(" "));
-      const r = document.createRange();
-      r.setStart(code.firstChild, 0);
-      r.collapse(true);
-      sel.removeAllRanges();
-      sel.addRange(r);
-      return;
-    }
-    let at = area;
-    if ((area.textContent ?? "").trim() || area.querySelector("img, pre")) {
-      at = document.createElement("div");
-      at.innerHTML = "<br>";
-      area.appendChild(at);
-    }
-    const r = document.createRange();
-    r.selectNodeContents(at);
-    r.collapse(true);
-    sel.removeAllRanges();
-    sel.addRange(r);
-    insertCodeBlock(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [codeAtEnd]);
 
   // 방금 넣은 코드 블록 — insertHTML 뒤 커서가 블록 **밖**에 설 수도 있어
   // getContainingPre가 놓칠 때 쓰는 대비책입니다.

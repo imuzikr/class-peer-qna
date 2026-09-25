@@ -9,7 +9,7 @@ mock.timers.enable({ apis: ["Date"], now: NOW });
 
 const { toDate, todayDateKey, formatClockMs, formatStampMs } = await import("@/lib/dates");
 const { splitEcho } = await import("@/lib/pyRun");
-const { outputTextOf, pyResultHtml } = await import("@/lib/pyShare");
+const { outputTextOf } = await import("@/lib/pyShare");
 const { cellIndexOfWord } = await import("@/lib/consonants");
 const { buildMemoThreads, memoTime } = await import("@/lib/memoThreads");
 
@@ -62,12 +62,6 @@ test("outputTextOf: 줄바꿈으로 잇고 안내 줄은 뺍니다", () => {
     { type: "err", text: "Traceback" },
   ];
   assert.equal(outputTextOf(lines), "skan\n테스트\nTraceback");
-});
-
-test("pyResultHtml: 코드 속 < > &를 이스케이프하고 py-result 표시를 답니다", () => {
-  const html = pyResultHtml("a < b & c > d\n");
-  assert.match(html, /<pre class="py-result"><code>a &lt; b &amp; c &gt; d<\/code><\/pre>/);
-  assert.equal(pyResultHtml("   "), "");
 });
 
 // ── 닿소리 칸 고르기 ─────────────────────────────────────────
