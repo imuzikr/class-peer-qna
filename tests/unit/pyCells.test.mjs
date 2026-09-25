@@ -101,3 +101,32 @@ test("도우미 — 빈 HTML 판정 · input() 판정", () => {
   assert.equal(codeUsesInput("a = input('이름: ')"), true);
   assert.equal(codeUsesInput("print('inputs')"), false);
 });
+
+test("오류 글 — Pyodide 자신의 줄은 걷고 학생 코드의 줄만(lib/pyRun.js의 tidyTraceback)", async () => {
+  const { tidyTraceback } = await import("@/lib/pyRun");
+  const raw = [
+    "PythonError: Traceback (most recent call last):",
+    '  File "/lib/python312.zip/_pyodide/_base.py", line 597, in eval_code_async',
+    "    await CodeRunner(",
+    '  File "/lib/python312.zip/_pyodide/_base.py", line 411, in run_async',
+    "    coroutine = eval(self.code, globals, locals)",
+    "                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^",
+    '  File "<exec>", line 2, in <module>',
+    "    print(x)",
+    "          ^",
+    "NameError: name 'x' is not defined",
+    "",
+  ].join("\n");
+  assert.equal(
+    tidyTraceback(raw),
+    [
+      "Traceback (most recent call last):",
+      '  File "<exec>", line 2, in <module>',
+      "    print(x)",
+      "          ^",
+      "NameError: name 'x' is not defined",
+    ].join("\n")
+  );
+  // 설치본 줄이 없으면 머리말만 걷습니다
+  assert.equal(tidyTraceback("PythonError: EOFError: 입력값이 부족합니다"), "EOFError: 입력값이 부족합니다");
+});

@@ -27397,6 +27397,106 @@ ul.checklist > li.done {
 
 /* 펼친 단계 — 여는 줄과 쓰는 칸을 한 묶음으로 둡니다. */
 .ltask-step { display: flex; flex-direction: column; gap: 8px; }
+
+/* ── 파이썬 연계 활동의 셀 편집기(components/PyCellEditor.jsx) ──
+   셀마다 테두리를 두르지 않습니다 — 글 셀의 서식 에디터와 코드 셀의 코드 칸이
+   이미 제 테두리가 있어, 한 겹 더 두르면 380px 서랍에서 선이 겹겹이 섭니다.
+   고른 셀은 **왼쪽 띠**로 짚습니다(코랩과 같은 모양). '＋ 글 / ＋ 코드'가 그
+   셀 바로 아래에 넣습니다. */
+.pycells { display: flex; flex-direction: column; gap: 10px; }
+.pycell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-left: 8px;
+  border-left: 3px solid transparent;
+}
+.pycell.active { border-left-color: var(--primary); }
+.pycell-head { display: flex; align-items: center; gap: 6px; min-height: 26px; }
+.pycell-kind {
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--bg-deep);
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-sub);
+}
+.pycell--code .pycell-kind { background: var(--dark); color: #ede9e0; }
+.pycell-run { padding: 3px 11px; }
+.pycell-tools { margin-left: auto; display: flex; gap: 2px; }
+.pycell-tool {
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text-faint);
+  cursor: pointer;
+}
+.pycell-tool:hover:not(:disabled) { background: var(--bg-deep); color: var(--text); }
+.pycell-tool:disabled { opacity: 0.35; cursor: default; }
+.pycell-tool--del:hover:not(:disabled) { color: #c0392b; }
+/* 코드 칸 — 실행기의 코드 칸(.py-editor)과 같은 글꼴·줄 간격 */
+.pycell-code {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--card-bg);
+}
+.pycell-code:focus-within { border-color: var(--primary); }
+.pycell-code .cm-editor { font-size: 13px; max-height: 360px; }
+.pycell-code .cm-editor.cm-focused { outline: none; }
+.pycell-code .cm-scroller { font-family: var(--font-mono); line-height: 1.6; min-height: 60px; }
+.pycell-code .cm-gutters {
+  background: var(--bg-deep);
+  color: #a8a69d;
+  border-right: 1px solid var(--border);
+}
+/* 접기 칸은 뺍니다 — 셀 하나가 짧은 코드라 쓸 일이 없고 폭만 먹습니다 */
+.pycell-code .cm-foldGutter { display: none; }
+.pycell .ltask-stdin,
+.pycell .ltask-out { margin-top: 0; }
+.pycell-text .rte-area { min-height: 64px; }
+.pycell-undo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--bg-deep);
+  font-size: 12px;
+  color: var(--text-sub);
+}
+.pycell-undo button {
+  margin-left: auto;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--primary-dark);
+  cursor: pointer;
+}
+.pycell-add { display: flex; gap: 6px; }
+.pycell-add button {
+  flex: 1 1 0;
+  padding: 7px 10px;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  background: transparent;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+  cursor: pointer;
+}
+.pycell-add button:hover {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  color: var(--primary-dark);
+}
 /* RAFT 문장은 책방 화면과 같은 규칙(.raft-sentence)을 그대로 쓰고,
    서랍에서만 위아래 여백을 줄입니다. */
 .ltask .raft-sentence { margin: 0; font-size: 13px; }

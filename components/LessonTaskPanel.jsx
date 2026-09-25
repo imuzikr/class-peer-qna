@@ -38,6 +38,11 @@
 // '프로젝트 활동' 절). 그때는 선생님이 보낸 것이 아니므로 머리말이 '오늘의
 // 활동'이 아니라 '프로젝트 활동'이고, 방송 점을 달지 않습니다.
 //
+// [파이썬 연계 프로젝트는 셀 편집기]
+// `board.pyLinked`이면 활동 칸이 서식 에디터 대신 PyCellEditor(글 셀 · 코드
+// 셀)입니다. 아래의 ▶ 실행 줄 · 결과 붙이기 · 칸마다 입력값은 **연계하지 않은
+// 프로젝트**에만 섭니다 — 셀은 코드와 결과를 셀마다 스스로 들고 있습니다.
+//
 // [읽는 문서]
 // 프로젝트 1건(`fetchStudyBoard`) + 내 카드 **구독** 1건(`subscribeStudyCard`).
 // 반 문서는 상단바가 이미 구독하고 있어 그대로 받아 씁니다(새 구독 없음).
@@ -76,6 +81,7 @@ import RichTextEditor from "./RichTextEditor";
 import { runPython, stopPython } from "@/lib/pyRun";
 import { outputTextOf, pyResultHtml } from "@/lib/pyShare";
 import PyLineText from "@/components/PyLineText";
+import PyCellEditor from "@/components/PyCellEditor";
 
 const SAVE_DELAY = 1500;
 
@@ -296,6 +302,10 @@ export default function LessonTaskPanel({ task, user, onType }) {
   const locked = board ? isActivityLocked(board, idx) : false;
   const isGroup = board?.type === "group";
   const canWrite = !!board && !locked && !isGroup;
+  // 파이썬 실행기와 연계한 프로젝트는 활동 칸이 **셀 편집기**입니다(글 셀 ·
+  // 코드 셀 — components/PyCellEditor.jsx). 수업 중 '오늘의 활동'도 같습니다 —
+  // 같은 카드의 같은 칸이 보내는 길에 따라 두 모양이면 안 됩니다.
+  const cellMode = !!board?.pyLinked && !isGroup;
 
   // 카드에서 활동 칸들을 떠 옵니다. 자리(index)로 읽고 자리로 씁니다 —
   // 제목으로 짝지으면 학생이 카드에서 활동 제목을 고쳤을 때 엉뚱한 칸을
@@ -673,7 +683,20 @@ export default function LessonTaskPanel({ task, user, onType }) {
                   프로젝트가 바뀌면 열쇠가 바뀌어 그 칸의 글로 갈아 끼웁니다.
                   밖(카드 화면)에서 이 칸이 고쳐지면 ver가 올라 새 글로
                   다시 그립니다 — 쓰는 중인 칸은 올리지 않습니다. */}
-              {open && (
+              {open && cellMode && (
+                <PyCellEditor
+                  key={`ltask-${boardId}-${i}-${ver[i] ?? 0}`}
+                  initialHtml={text}
+                  onChange={(html, o) => {
+                    onDraft(i, html);
+                    // 결과가 붙을 때는 곧바로 씁니다 — 1.5초를 기다리면 카드에
+                    // 결과가 늦게 나타나 한 번 더 돌리게 됩니다.
+                    if (o?.flush) save();
+                  }}
+                  codeAtEnd={wantsCode && i === idx ? codeSeq : 0}
+                />
+              )}
+              {open && !cellMode && (
                 <>
                 <RichTextEditor
                   key={`ltask-${boardId}-${i}-${ver[i] ?? 0}`}
