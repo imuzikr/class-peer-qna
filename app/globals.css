@@ -27245,6 +27245,19 @@ ul.checklist > li.done {
 .ltask-out-line--info { color: #b8b2a6; }
 .ltask-out-line--result { color: #a7d7a7; }
 
+/* input()이 찍은 '입력한 값' — 출력보다 옅게(components/PyLineText.jsx).
+   `print(input())`에서 같은 값이 두 줄 서는데, 하나는 입력이고 하나는
+   출력이라 색으로 갈라 둡니다. 실행기(.py-output)와 서랍(.ltask-out)이
+   **같은 값**을 씁니다 — 같은 코드의 결과가 두 곳에서 달라 보이면 안 됩니다.
+   실행기의 안내 줄(.py-line.info, #87867f)과 색이 거의 같아 점선 밑줄을
+   함께 둡니다 — 안내는 줄 하나를 통째로 쓰고 입력한 값은 줄 안의 조각이라
+   자리로도 갈리지만, 짧은 값 하나가 한 줄일 때는 모양이 같아집니다. */
+.py-echo {
+  color: #8f8a80;
+  text-decoration: underline dotted rgba(143, 138, 128, 0.7);
+  text-underline-offset: 3px;
+}
+
 /* ── 학생: 활동 탭 ── */
 .ltask {
   display: flex;

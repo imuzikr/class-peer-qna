@@ -20,6 +20,7 @@ import { acceptCompletion } from "@codemirror/autocomplete";
 import { Prec } from "@codemirror/state";
 import { python } from "@codemirror/lang-python";
 import PyProjectPanel from "./PyProjectPanel";
+import PyLineText from "./PyLineText";
 import { runPython, stopPython } from "@/lib/pyRun";
 
 const MIN_WIDTH = 340;
@@ -194,8 +195,9 @@ export default function PythonRunner({
     document.addEventListener("mouseup", onUp);
   }
 
-  function appendLine(type, text) {
-    setLines((prev) => [...prev, { type, text }]);
+  // parts — input()이 찍은 '입력한 값' 조각이 섞인 줄일 때만(lib/pyRun.js의 splitEcho)
+  function appendLine(type, text, parts) {
+    setLines((prev) => [...prev, { type, text, parts }]);
   }
 
   function run() {
@@ -443,7 +445,7 @@ export default function PythonRunner({
             ) : (
               lines.map((l, i) => (
                 <span key={i} className={`py-line ${l.type}`}>
-                  {l.text}
+                  <PyLineText line={l} />
                 </span>
               ))
             )}

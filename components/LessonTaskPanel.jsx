@@ -75,6 +75,7 @@ import { sanitizeHtml, stripHtml, htmlHasImage, richHtml } from "@/lib/html";
 import RichTextEditor from "./RichTextEditor";
 import { runPython, stopPython } from "@/lib/pyRun";
 import { outputTextOf, pyResultHtml } from "@/lib/pyShare";
+import PyLineText from "@/components/PyLineText";
 
 const SAVE_DELAY = 1500;
 
@@ -458,8 +459,9 @@ export default function LessonTaskPanel({ task, user, onType }) {
   // 바뀐 코드에 지난 결과가 따라붙습니다(lib/pyShare.js의 그 함정).
   const ranCodeRef = useRef("");
 
-  const addRunLine = useCallback((type, text) => {
-    setRunLines((prev) => [...prev, { type, text }]);
+  // parts — input()이 찍은 '입력한 값' 조각이 섞인 줄일 때만(lib/pyRun.js의 splitEcho)
+  const addRunLine = useCallback((type, text, parts) => {
+    setRunLines((prev) => [...prev, { type, text, parts }]);
   }, []);
 
   function runCode(i, stepEl) {
@@ -762,7 +764,7 @@ export default function LessonTaskPanel({ task, user, onType }) {
                   <div className="ltask-out" aria-live="polite">
                     {runLines.map((l, n) => (
                       <span key={n} className={`ltask-out-line ltask-out-line--${l.type}`}>
-                        {l.text}
+                        <PyLineText line={l} />
                       </span>
                     ))}
                   </div>
