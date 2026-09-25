@@ -19,14 +19,7 @@ import { flipRoster, useSeatView } from "@/lib/seatView";
 import SeatViewToggle from "./SeatViewToggle";
 import SeatGrid from "./SeatGrid";
 import CornellNoteReadModal from "./CornellNoteReadModal";
-
-// 'YYYY-MM-DD'에서 며칠 옮기기 — 문자열로만 다루면 월말에서 어긋납니다.
-function shiftDate(key, days) {
-  const [y, m, d] = key.split("-").map(Number);
-  const dt = new Date(y, m - 1, d);
-  dt.setDate(dt.getDate() + days);
-  return todayDateKey(dt);
-}
+import { shiftDateKey } from "@/lib/dates";
 
 export default function CornellNotesPanel({ classId, roster = [], user }) {
   const today = useMemo(() => todayDateKey(), []);
@@ -87,7 +80,7 @@ export default function CornellNotesPanel({ classId, roster = [], user }) {
             <button
               type="button"
               className="cornell-read-step"
-              onClick={() => setDate((d) => shiftDate(d, -1))}
+              onClick={() => setDate((d) => shiftDateKey(d, -1))}
               title="하루 앞으로"
             >
               ‹
@@ -95,7 +88,7 @@ export default function CornellNotesPanel({ classId, roster = [], user }) {
             <button
               type="button"
               className="cornell-read-step"
-              onClick={() => setDate((d) => shiftDate(d, 1))}
+              onClick={() => setDate((d) => shiftDateKey(d, 1))}
               disabled={date >= today}
               title="하루 뒤로"
             >

@@ -46,18 +46,9 @@ import {
 } from "@/lib/store";
 import { KWLS_COLUMNS, kwlsAnswersFromEntry } from "@/lib/kwls";
 import KwlDateCalendar from "./KwlDateCalendar";
+import { dateKeyOf, dateKeyLabel } from "@/lib/dates";
 
-function toYMD(d) {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-function formatDateLabel(dateStr) {
-  const d = new Date(dateStr + "T00:00:00");
-  return d.toLocaleDateString("ko-KR", { month: "long", day: "numeric", weekday: "short" });
-}
-const TODAY = toYMD(new Date());
+const TODAY = dateKeyOf(new Date());
 
 export default function KwlFullscreenModal({
   classId,
@@ -327,7 +318,7 @@ export default function KwlFullscreenModal({
                 aria-expanded={calOpen}
                 title="달력에서 날짜 고르기 — 기록이 있는 날이 표시됩니다"
               >
-                📅 {formatDateLabel(date)}
+                📅 {dateKeyLabel(date)}
               </button>
               <div className="kwlfs-date-arrows">
                 {/* 목록을 아직 안 읽었으면(navDates === null) 꺼 두지 않습니다 —
@@ -338,7 +329,7 @@ export default function KwlFullscreenModal({
                   onClick={() => jumpDate(-1)}
                   disabled={navDates ? !prevDate : false}
                   aria-label="이전 기록"
-                  title={prevDate ? `${formatDateLabel(prevDate)} (←)` : `이전 기록 (←)${navDates ? " — 더 앞은 없어요" : ""}`}
+                  title={prevDate ? `${dateKeyLabel(prevDate)} (←)` : `이전 기록 (←)${navDates ? " — 더 앞은 없어요" : ""}`}
                 >
                   ‹
                 </button>
@@ -348,7 +339,7 @@ export default function KwlFullscreenModal({
                   onClick={() => jumpDate(1)}
                   disabled={navDates ? !nextDate : false}
                   aria-label="다음 기록"
-                  title={nextDate ? `${formatDateLabel(nextDate)} (→)` : `다음 기록 (→)${navDates ? " — 더 뒤는 없어요" : ""}`}
+                  title={nextDate ? `${dateKeyLabel(nextDate)} (→)` : `다음 기록 (→)${navDates ? " — 더 뒤는 없어요" : ""}`}
                 >
                   ›
                 </button>
@@ -386,7 +377,7 @@ export default function KwlFullscreenModal({
         <div className="kwlfs-body">
           {shownRows.length === 0 ? (
             <p className="present-empty">
-              {formatDateLabel(date)}에{" "}
+              {dateKeyLabel(date)}에{" "}
               {pickedUid ? `${pickedName || "이 학생"}이 쓴 KWLS가` : "저장된 KWLS가"} 없어요.
             </p>
           ) : (

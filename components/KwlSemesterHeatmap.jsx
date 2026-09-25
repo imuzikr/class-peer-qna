@@ -16,6 +16,7 @@
 // 곧바로 그날 쓴 내용으로 넘어가는 것이 이 탭의 쓰임이라서.
 // =============================================================
 import { kwlsFilledKeysOf, KWLS_COLUMNS } from "@/lib/kwls";
+import { dateKeyOf } from "@/lib/dates";
 
 const MONTH_NAMES = ["1월","2월","3월","4월","5월","6월","7월","8월","9월","10월","11월","12월"];
 const DAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
@@ -47,13 +48,6 @@ function semesterYearOf(today) {
   return today >= semesterStart(y) ? y : y - 1;
 }
 
-function ymd(date) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
-
 // tone — 'dark'는 공부방 사이드바(어두운 패널), 'light'는 학습 리포트(흰 패널).
 // 같은 격자를 두 바탕에서 쓰는데, 색을 자동으로 뒤집으면 명도 순서가 무너져
 // '많이 쓴 날'이 옅어집니다. 바탕마다 검증기를 통과시킨 램프를 따로 둡니다.
@@ -83,7 +77,7 @@ export default function KwlSemesterHeatmap({
         start.getMonth(),
         start.getDate() + w * 7 + i
       );
-      const key = ymd(date);
+      const key = dateKeyOf(date);
       const dayEntries = byDate[key];
       const filled = dayEntries ? kwlsFilledKeysOf(dayEntries) : null;
       return {
@@ -112,8 +106,8 @@ export default function KwlSemesterHeatmap({
   // 집계는 '깔아 놓은 학기 안'만 셉니다. history에는 지난 학기 기록도
   // 들어 있어(subscribeMyAllKwl은 전 기간), 전부 세면 격자에 보이는 것보다
   // 큰 숫자가 나와 화면과 말이 어긋납니다.
-  const startKey = ymd(start);
-  const endKey = ymd(
+  const startKey = dateKeyOf(start);
+  const endKey = dateKeyOf(
     new Date(end.getFullYear(), end.getMonth(), end.getDate() + 6)
   );
   const inSemester = Object.entries(byDate).filter(

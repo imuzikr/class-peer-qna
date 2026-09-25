@@ -15,18 +15,9 @@ import {
   downloadAttendanceWorkbook,
   filterRecordsByRange,
 } from "@/lib/exportAttendance";
+import { dateKeyFromParts, dateKeyDots } from "@/lib/dates";
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
-
-function formatDateLabel(dateKey) {
-  if (!dateKey) return "";
-  const [year, month, day] = String(dateKey).split("-");
-  return `${year}.${month}.${day}`;
-}
-
-function toDateKey(year, month, day) {
-  return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-}
 
 function shiftMonth(cursor, delta) {
   const m = cursor.month + delta;
@@ -116,7 +107,7 @@ function AttendanceCalendar({
       <div className={`study-cal-grid${showDetail && canDetail ? " detail" : ""}`}>
         {cells.map((d, i) => {
           if (d === null) return <span key={`blank${i}`} className="study-cal-cell study-cal-cell--blank" />;
-          const key = toDateKey(cursor.year, cursor.month, d);
+          const key = dateKeyFromParts(cursor.year, cursor.month, d);
           const dayRecords = recordsByDate.get(key) ?? [];
           const has = dayRecords.length > 0;
           const absentees = showDetail && canDetail && has ? absenteesOf(dayRecords) : null;
@@ -241,7 +232,7 @@ function AttendanceExportModal({ dates, roster, records, className, onClose }) {
               <span>날짜</span>
               <select value={day} onChange={(e) => setDay(e.target.value)}>
                 {dates.map((d) => (
-                  <option key={d} value={d}>{formatDateLabel(d)}</option>
+                  <option key={d} value={d}>{dateKeyDots(d)}</option>
                 ))}
               </select>
             </label>
@@ -251,7 +242,7 @@ function AttendanceExportModal({ dates, roster, records, className, onClose }) {
                 <span>시작</span>
                 <select value={from} onChange={(e) => setFrom(e.target.value)}>
                   {dates.map((d) => (
-                    <option key={d} value={d}>{formatDateLabel(d)}</option>
+                    <option key={d} value={d}>{dateKeyDots(d)}</option>
                   ))}
                 </select>
               </label>
@@ -259,7 +250,7 @@ function AttendanceExportModal({ dates, roster, records, className, onClose }) {
                 <span>끝</span>
                 <select value={to} onChange={(e) => setTo(e.target.value)}>
                   {dates.map((d) => (
-                    <option key={d} value={d}>{formatDateLabel(d)}</option>
+                    <option key={d} value={d}>{dateKeyDots(d)}</option>
                   ))}
                 </select>
               </label>
@@ -268,7 +259,7 @@ function AttendanceExportModal({ dates, roster, records, className, onClose }) {
             <p className="book-help book-solo-note">
               수업한 날 <strong>{dates.length}일</strong>을 모두 담습니다
               {oldest && newest && oldest !== newest
-                ? ` (${formatDateLabel(oldest)} ~ ${formatDateLabel(newest)})`
+                ? ` (${dateKeyDots(oldest)} ~ ${dateKeyDots(newest)})`
                 : ""}
               .
             </p>
@@ -481,7 +472,7 @@ export default function StudyAttendanceModal({
                     <select value={activeDate} onChange={(e) => setSelectedDate(e.target.value)}>
                       {dateOptions.map((date) => (
                         <option key={date} value={date}>
-                          {formatDateLabel(date)}
+                          {dateKeyDots(date)}
                         </option>
                       ))}
                     </select>
@@ -512,7 +503,7 @@ export default function StudyAttendanceModal({
                 <>
                   {viewMode === "calendar" && activeDate && (
                     <p className="study-attendance-active-date">
-                      {formatDateLabel(activeDate)} 기준
+                      {dateKeyDots(activeDate)} 기준
                     </p>
                   )}
                   <AttendanceTable rows={studentRows} />
@@ -525,7 +516,7 @@ export default function StudyAttendanceModal({
             <ul className="study-attendance-list">
               {records.map((record) => (
                 <li key={record.id}>
-                  <strong>{formatDateLabel(record.date)}</strong>
+                  <strong>{dateKeyDots(record.date)}</strong>
                   <span>
                     출석
                     {/* 내 기록에도 찍힌 시각을 적습니다 — 날짜만 있으면

@@ -34,6 +34,7 @@
 import { useMemo, useState } from "react";
 import { kwlsAnswersFromEntry } from "@/lib/kwls";
 import { toDate } from "@/lib/store";
+import { dateKeyOf } from "@/lib/dates";
 
 const WEEKS = 4;
 const DAY = 24 * 60 * 60 * 1000;
@@ -47,9 +48,7 @@ function entryDate(e) {
   if (e.date) return String(e.date);
   const d = toDate(e.createdAt ?? e.updatedAt);
   if (!d || Number.isNaN(d.getTime())) return "";
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
-    d.getDate()
-  ).padStart(2, "0")}`;
+  return dateKeyOf(d);
 }
 
 function entryTime(e) {

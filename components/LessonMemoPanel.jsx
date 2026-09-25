@@ -65,6 +65,7 @@ import {
   hitCheckBox,
   CHECK_ITEM_SELECTOR,
 } from "@/lib/html";
+import { dateKeyFromParts, dateKeyDots } from "@/lib/dates";
 import {
   subscribeLessonMemos,
   LESSON_MEMO_CALENDAR,
@@ -847,21 +848,11 @@ function MemoClassPanel({ classId, name, memos, readOnly, onClose }) {
 // 여기는 '메모 몇 건'.
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
-function toDateKey(year, month, day) {
-  return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-}
-
 function shiftMonth(cursor, delta) {
   const m = cursor.month + delta;
   if (m < 0) return { year: cursor.year - 1, month: 11 };
   if (m > 11) return { year: cursor.year + 1, month: 0 };
   return { year: cursor.year, month: m };
-}
-
-function formatDateLabel(dateKey) {
-  if (!dateKey) return "";
-  const [y, m, d] = String(dateKey).split("-");
-  return `${y}.${m}.${d}`;
 }
 
 function MemoCalendarPanel({ byDate, nameOfClass, archivedClassIds, currentClassId, user, onClose }) {
@@ -1006,7 +997,7 @@ function MemoCalendarPanel({ byDate, nameOfClass, archivedClassIds, currentClass
               if (d === null) {
                 return <span key={`blank${i}`} className="study-cal-cell study-cal-cell--blank" />;
               }
-              const key = toDateKey(cursor.year, cursor.month, d);
+              const key = dateKeyFromParts(cursor.year, cursor.month, d);
               const list = byDate.get(key) ?? [];
               const has = list.length > 0;
               // 이 반 메모가 있는 날은 또렷하게 — 모달을 연 맥락이 이 반이라,
@@ -1050,7 +1041,7 @@ function MemoCalendarPanel({ byDate, nameOfClass, archivedClassIds, currentClass
         ) : !pickedClass ? (
           /* 두 번째 걸음 — 그날 수업이 있던 반 */
           <div className="memo-cal-step">
-            <p className="memo-cal-step-head">{formatDateLabel(picked)}</p>
+            <p className="memo-cal-step-head">{dateKeyDots(picked)}</p>
             <ul className="memo-cal-picks">
               {dayClasses.map((c) => (
                 <li key={c.id}>
@@ -1076,7 +1067,7 @@ function MemoCalendarPanel({ byDate, nameOfClass, archivedClassIds, currentClass
                 ‹ 반 목록
               </button>
               <span className="memo-cal-step-where">
-                {formatDateLabel(picked)} · {nameOfClass(pickedClass)}
+                {dateKeyDots(picked)} · {nameOfClass(pickedClass)}
               </span>
             </div>
 
@@ -1095,7 +1086,7 @@ function MemoCalendarPanel({ byDate, nameOfClass, archivedClassIds, currentClass
                   onChange={setDraft}
                   onSend={saveNew}
                   sendDisabled={busy || memoEmpty(draft) || draft.length > MAX_LEN}
-                  placeholder={`${formatDateLabel(picked)} 수업에 적어 둘 것`}
+                  placeholder={`${dateKeyDots(picked)} 수업에 적어 둘 것`}
                 />
                 <div className="memo-cal-write-foot">
                   <button

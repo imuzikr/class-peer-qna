@@ -18,16 +18,11 @@
 // 앞날만 막습니다.
 // =============================================================
 import { useState } from "react";
+import { dateKeyOf } from "@/lib/dates";
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
-function toYMD(d) {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-const TODAY = toYMD(new Date());
+const TODAY = dateKeyOf(new Date());
 
 function shiftMonth(cursor, delta) {
   const m = cursor.month + delta;

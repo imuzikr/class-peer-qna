@@ -29,30 +29,10 @@ import {
 } from "@/lib/kwls";
 import KwlFullscreenModal from "./KwlFullscreenModal";
 import StudyActivityWall from "./StudyActivityWall";
+import { shiftDateKey, dateKeyLabel } from "@/lib/dates";
 
 // 접어 둔 묶음을 기억하는 자리 (브라우저마다·교사마다)
 const FOLD_KEY = "tkwl-folded";
-
-// 날짜를 하루씩 옮깁니다 (YYYY-MM-DD 문자열 기준)
-function shiftDate(dateKey, days) {
-  const d = new Date(`${dateKey}T00:00:00`);
-  if (Number.isNaN(d.getTime())) return dateKey;
-  d.setDate(d.getDate() + days);
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
-function dateLabel(dateKey) {
-  const d = new Date(`${dateKey}T00:00:00`);
-  if (Number.isNaN(d.getTime())) return dateKey;
-  return d.toLocaleDateString("ko-KR", {
-    month: "long",
-    day: "numeric",
-    weekday: "short",
-  });
-}
 
 export default function TeacherKwlPanel({
   classId,
@@ -209,15 +189,15 @@ export default function TeacherKwlPanel({
         <div className="tkwl-date">
           <button
             type="button"
-            onClick={() => setDate((d) => shiftDate(d, -1))}
+            onClick={() => setDate((d) => shiftDateKey(d, -1))}
             aria-label="이전 날"
           >
             ‹
           </button>
-          <span>{dateLabel(date)}</span>
+          <span>{dateKeyLabel(date)}</span>
           <button
             type="button"
-            onClick={() => setDate((d) => shiftDate(d, 1))}
+            onClick={() => setDate((d) => shiftDateKey(d, 1))}
             aria-label="다음 날"
           >
             ›
@@ -456,7 +436,7 @@ export default function TeacherKwlPanel({
           // (buildPayload가 만드는 것과 같은 값입니다).
           castMeta={{
             activityTitle: "KWLS 성찰",
-            topic: dateLabel(date),
+            topic: dateKeyLabel(date),
             letter: wallCol.letter,
             labelEn: wallCol.en,
             prompt: wallCol.prompt ?? "",
@@ -508,7 +488,7 @@ function buildPayload(row, key, date) {
   return {
     mode: "entry",
     activityTitle: "KWLS 성찰",
-    topic: dateLabel(date),
+    topic: dateKeyLabel(date),
     // 학생들이 보는 쪽에는 익명으로 — 이 패널은 교사만 보는 자리라 실명을
     // 그대로 두지만, 학급 화면으로 나가는 이름은 닉네임입니다.
     writerName: row.anonName || row.name,

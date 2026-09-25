@@ -33,6 +33,15 @@ Firebase를 import하는 `lib/store.js`도 못 읽습니다 — 순수 함수를
 이름으로 다시 내보냅니다). `tests/ui/`의 둘(popover · 과일 축포)은 React
 훅을 가짜로 바꿔 끼우는 시험이라 소스를 잘라 쓰는 방식을 일부러 둡니다.
 
+**날짜 셈은 `lib/dates.js` 한 곳입니다** — `dateKeyOf`(Date → `2026-09-25`) ·
+`todayDateKey` · `dateKeyFromParts`(달력 칸) · `shiftDateKey`(± 며칠) ·
+`dateKeyLabel`(`9월 25일 (금)`) · `dateKeyDots`(`2026.09.25`). 같은 셈이
+열 파일에 열다섯 벌 흩어져 있던 것을 모았습니다(`ymd` · `toYMD` · `getToday`
+· `toDateKey` · `shiftDate` · `fmtDate` · `formatDateLabel` …). 날짜 열쇠가
+곧 문서 ID(`uid_날짜`)라 한 글자만 달라져도 지난 기록을 못 찾으므로,
+**컴포넌트에 새로 짜지 말고 여기서 가져오세요.** 옛 구현을 그대로 옮겨 적은
+참조본과 두 해치 날짜를 견주는 시험이 `tests/unit/dates.test.mjs`에 있습니다.
+
 **린트**는 설치물만 `tools/lint/`에, 설정은 루트 `eslint.config.mjs`에
 있습니다(ESLint는 설정 파일 폴더 바깥을 무시합니다). `next build`는
 린트를 건너뜁니다(`eslint.ignoreDuringBuilds`). 지금은 경고 29개 —
@@ -3117,7 +3126,8 @@ CodeMirror가 아니라 그냥 글자 칸(contentEditable)이라, 손대지 않�
   버려지고**(실측: `Timestamp(1758500096, 789123456)` → `.789`, 뒤 여섯
   자리 소실), (ㄴ) 화면이 시·분만 찍고 있었습니다. 그래서 규칙도 자료도
   그대로이고 **읽어서 그리는 자리만** 고쳤습니다.
-- **셈은 `lib/store.js`의 `formatClockMs`·`formatStampMs` 두 곳**입니다.
+- **셈은 `lib/dates.js`의 `formatClockMs`·`formatStampMs` 두 곳**입니다
+  (store.js가 같은 이름으로 다시 내보냅니다).
   세 화면이 저마다 만들면 한 곳만 고쳤을 때 같은 기록이 화면마다 다른
   자릿수로 보입니다.
 - **`Intl`의 `fractionalSecondDigits`를 쓰지 마세요.** ES2021 옵션이라

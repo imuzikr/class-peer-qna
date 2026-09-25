@@ -4,12 +4,7 @@
 // 학생 KWLS 기록 패널 (관리자 대시보드) — 선택한 학생의 KWLS를 날짜별로 표시.
 // =============================================================
 import { KWLS_COLUMNS, kwlsAnswersFromEntry } from "@/lib/kwls";
-
-function fmtDate(dateStr) {
-  const d = new Date(dateStr + "T00:00:00");
-  if (Number.isNaN(d.getTime())) return dateStr;
-  return d.toLocaleDateString("ko-KR", { month: "long", day: "numeric", weekday: "short" });
-}
+import { dateKeyLabel } from "@/lib/dates";
 
 export default function StudentKwlPanel({ entries = [] }) {
   const byDate = {};
@@ -31,7 +26,7 @@ export default function StudentKwlPanel({ entries = [] }) {
         <div className="kwl-record-list">
           {dates.map((date) => (
             <div key={date} className="kwl-record-day">
-              <div className="kwl-record-date">{fmtDate(date)}</div>
+              <div className="kwl-record-date">{dateKeyLabel(date)}</div>
               {byDate[date].map((e) => (
                 <div key={e.id} className="kwl-record-entry">
                   {KWLS_COLUMNS.map((c) => {

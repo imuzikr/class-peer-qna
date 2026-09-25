@@ -14,21 +14,7 @@ import {
   kwlsFilledKeysOf,
 } from "@/lib/kwls";
 import KwlSemesterHeatmap from "@/components/KwlSemesterHeatmap";
-
-function getToday() {
-  // 로컬(사용자 시간대) 자정 기준 날짜 — UTC 기준이면 KST 오전 9시에
-  // 날짜가 바뀌므로, 한국 달력과 일치하도록 로컬 기준으로 계산합니다.
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
-function formatDateLabel(dateStr) {
-  const d = new Date(dateStr + "T00:00:00");
-  return d.toLocaleDateString("ko-KR", { month: "long", day: "numeric", weekday: "short" });
-}
+import { todayDateKey, dateKeyLabel } from "@/lib/dates";
 
 // 그 날의 진행 단계 — 왼쪽 색 띠에 씁니다. 교사 격자(tkwl-cell)와 같은
 // 시각 언어예요: 읽기 전(K·W)은 파랑, 읽은 뒤(L·S)까지 마치면 초록.
@@ -143,7 +129,7 @@ function KwlEntry({ entry }) {
 }
 
 export default function KwlPanel({ classId, user, isTeacher, onAsk, mobileOpen, onMobileClose }) {
-  const today = getToday();
+  const today = todayDateKey();
 
   const [tab, setTab] = useState("today");
   const [answers, setAnswers] = useState(() => emptyKwlsAnswers());
@@ -252,7 +238,7 @@ export default function KwlPanel({ classId, user, isTeacher, onAsk, mobileOpen, 
 
       {tab === "today" ? (
         <>
-          <div className="kwl-panel-date">{formatDateLabel(today)}</div>
+          <div className="kwl-panel-date">{dateKeyLabel(today)}</div>
 
           {/* 입력 폼 — 오늘 이미 작성했다면 숨기고 아래 항목의 '수정'으로만
               고치게 합니다(하루 1개, 새 글 추가 대신 수정만 허용). */}
@@ -368,12 +354,12 @@ export default function KwlPanel({ classId, user, isTeacher, onAsk, mobileOpen, 
                       type="button"
                       className="kwl-history-toggle"
                       onClick={() => setExpandedDate(open ? null : date)}
-                      aria-label={`${formatDateLabel(date)} — 네 칸 중 ${filled.size}칸 작성`}
+                      aria-label={`${dateKeyLabel(date)} — 네 칸 중 ${filled.size}칸 작성`}
                     >
                       <span className="kwl-history-toggle-inner">
                         <span className="kwl-history-head">
                           <span className="kwl-history-date">
-                            {formatDateLabel(date)}
+                            {dateKeyLabel(date)}
                             {entries.length > 1 && (
                               <span className="kwl-history-count"> ×{entries.length}</span>
                             )}
