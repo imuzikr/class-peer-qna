@@ -308,6 +308,46 @@ export default function LessonTaskPanel({ task, user, onType }) {
     .map((name, i) => ({ name, i }))
     .filter(({ i }) => board && !isActivityLocked(board, i));
 
+  // ── 프로젝트 활동: 어느 칸을 펼쳐 둘까 ──────────────────────────
+  // 수업 중에는 선생님이 보낸 칸 하나가 늘 펼쳐져 있고 못 접습니다(`on`).
+  // 학생이 스스로 연 **프로젝트 활동**은 다릅니다 — 칸마다 펴고 접으며,
+  // 처음 펼칠 칸은 **마지막으로 손댄 활동**입니다. 늘 첫 활동만 펼쳐 두던
+  // 때는 3번을 쓰다 서랍을 다시 열면 1번이 크게 서고 3번은 접혀 있었습니다.
+  //
+  // '손댐'은 셋 — 그 칸에 글을 씀 · 카드의 단추로 그 활동을 엶 · 접힌 줄을
+  // 눌러 폄. 기억은 **이 기기에만**(localStorage, 학생·프로젝트마다) 둡니다 —
+  // 화면을 여는 편의라 서버에 적을 일이 아니고, 없거나 못 읽으면 처음 열린
+  // 활동을 펼칩니다(페이지가 넘겨 준 `actIndex`).
+  // 단추로 연 것(`task.focus`)은 기억보다 **누른 활동**이 먼저입니다.
+  const lastKey = local && user?.uid && boardId ? `ptask_last:${user.uid}:${boardId}` : "";
+  const rememberedRef = useRef(null);
+  function remember(i) {
+    if (!lastKey || rememberedRef.current === i) return;
+    rememberedRef.current = i;
+    try { localStorage.setItem(lastKey, String(i)); } catch {}
+  }
+  useEffect(() => {
+    if (!local || !board) return;
+    let start = idx;
+    if (!task?.focus && lastKey) {
+      try {
+        const raw = localStorage.getItem(lastKey);
+        const v = raw === null ? NaN : Number(raw);
+        if (Number.isInteger(v) && v >= 0 && v < acts.length && !isActivityLocked(board, v)) {
+          start = v;
+        }
+      } catch {}
+    }
+    if (start >= acts.length || isActivityLocked(board, start)) return;
+    // 단추로 연 것은 기억에 적고(누른 활동이 곧 '손댄 활동'), 기억에서 꺼낸
+    // 것은 적었다는 표시만 합니다. **순서를 바꾸지 마세요** — 표시를 먼저
+    // 세우면 remember가 '이미 적었다'로 보고 건너뜁니다(실측).
+    if (task?.focus) remember(start);
+    else rememberedRef.current = start;
+    setOpenIdx((prev) => (prev.has(start) ? prev : new Set(prev).add(start)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [local, board?.id, boardId, idx, task?.at]);
+
   const timerRef = useRef(null);
   // 아직 저장 안 된 글 — { t: 쓸 곳, drafts: { 활동자리: 쓴 글 } }.
   // **글자를 칠 때 쓸 곳을 함께 붙들어 둡니다** — 쓰는 사이에 선생님이 다음
@@ -373,6 +413,7 @@ export default function LessonTaskPanel({ task, user, onType }) {
   function onDraft(i, html) {
     const t = loadedRef.current;
     if (!t?.boardId || t.isGroup) return;
+    if (local) remember(i);
     const prev = pendingRef.current;
     const drafts =
       prev && prev.t.boardId === t.boardId ? { ...prev.drafts } : {};
@@ -573,10 +614,12 @@ export default function LessonTaskPanel({ task, user, onType }) {
 
       {/* 열린 활동이 모두 섭니다 — 보낸 것은 펼치고 나머지는 접어서.
           누르면 그 자리에서 펴져 앞서 쓴 것을 고칠 수 있습니다(책방
-          곁텍스트와 같은 모양). */}
+          곁텍스트와 같은 모양). 프로젝트 활동은 모든 칸이 접히는 줄입니다. */}
       {!isGroup &&
         openActs.map(({ name, i }) => {
-          const on = i === idx;
+          // 늘 펼쳐 두고 못 접는 칸 — 수업 중 선생님이 보낸 것뿐입니다.
+          // 프로젝트 활동은 모든 칸을 학생이 펴고 접습니다(위 절).
+          const on = !local && i === idx;
           const open = on || openIdx.has(i);
           const text = secs[i]?.content ?? "";
           const label = String(name ?? "").trim() || `활동 ${i + 1}`;
@@ -603,6 +646,7 @@ export default function LessonTaskPanel({ task, user, onType }) {
                     // 접기 전에 남은 글을 씁니다 — 접으면 쓰던 칸이 사라지고,
                     // 곧바로 다시 펴면 아직 저장 안 된 글이 없는 셈이 됩니다.
                     if (open) save();
+                    else if (local) remember(i);
                     setOpenIdx((prev) => {
                       const next = new Set(prev);
                       if (next.has(i)) next.delete(i);
@@ -640,7 +684,7 @@ export default function LessonTaskPanel({ task, user, onType }) {
                   onSend={() =>
                     runCode(i, rootRef.current?.querySelector(`.ltask-step[data-act="${i}"]`))
                   }
-                  codeAtEnd={on && local ? codeSeq : 0}
+                  codeAtEnd={wantsCode && i === idx ? codeSeq : 0}
                 />
 
                 {/* 입력값 — **실행 줄보다 위**입니다. 코드를 치는 동안
