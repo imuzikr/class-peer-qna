@@ -10,6 +10,7 @@
     "start": "next start",
     "test:unit": "node --import ./tests/unit/register.mjs --test \"tests/unit/**/*.test.mjs\" \"tests/ui/**/*.test.mjs\"",
     "test:rules": "npm --prefix tests/rules test",
+    "lint": "npm --prefix tools/lint run lint",
     "deploy": "bash scripts/deploy.sh",
     "kwls:backfill": "node functions/scripts/kwls-backfill.mjs",
     "books:to-solo": "node functions/scripts/consonant-to-solo.mjs",

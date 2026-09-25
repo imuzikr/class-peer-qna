@@ -27,6 +27,11 @@ const csp = [
 const nextConfig = {
   reactStrictMode: true,
 
+  // 린트는 빌드가 아니라 `npm run lint`로 따로 돌립니다(보고만 — 루트
+  // eslint.config.mjs 머리말). ESLint는 tools/lint에만 설치돼 있어, 빌드가
+  // 루트 설정을 보고 린트를 돌리려 하면 찾지 못해 멈춥니다.
+  eslint: { ignoreDuringBuilds: true },
+
   async headers() {
     return [
       {
