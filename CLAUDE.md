@@ -28,8 +28,8 @@ npm run lint       # ESLint 훅 규칙 (보고만, 최초 1회 npm ci --prefix t
 시험 도구를 설치하지 않은 것은 규칙 시험을 떼어 둔 것과 같은 까닭입니다.
 **JSX는 못 읽으니** 컴포넌트 안의 셈을 시험하려면 lib/의 함수로 빼내세요
 (`RewardTiming` → `lib/lessonSessions.js`의 `rewardTimingStat`).
-Firebase를 import하는 `lib/store.js`도 못 읽습니다 — 순수 함수를 store.js에
-새로 두지 말고 제 파일에 두세요(날짜는 `lib/dates.js`, store.js가 같은
+Firebase를 import하는 `lib/store.js`·`lib/data/*`도 못 읽습니다 — 순수 함수를
+거기 새로 두지 말고 제 파일에 두세요(날짜는 `lib/dates.js`, store.js가 같은
 이름으로 다시 내보냅니다). `tests/ui/`의 둘(popover · 과일 축포)은 React
 훅을 가짜로 바꿔 끼우는 시험이라 소스를 잘라 쓰는 방식을 일부러 둡니다.
 
@@ -110,7 +110,9 @@ Firebase 미설정 시 자동으로 **데모 모드**로 동작 (새로고침 �
 
 | 파일 | 역할 |
 |------|------|
-| `lib/store.js` | Firestore CRUD + Mock Store + 구독(subscribe) 함수 전체 |
+| `lib/store.js` | 데이터 함수의 **입구** — `lib/data/*`의 공개 이름을 다시 내보내기만 함 |
+| `lib/data/*.js` | Firestore CRUD + Mock + 구독 — 영역별(questions · classes · study · books · kwl · cornell …) |
+| `lib/data/shared.js` | 데모 모드 자료(`mock`) · 구독자 목록 · `nextMockSeq` · 영역끼리 나눠 쓰는 도우미 |
 | `lib/user.js` | `getCurrentUser()`, `isAdmin()` — 세션 기반 사용자 |
 | `lib/firebase.js` | Firebase 초기화. `isFirebaseConfigured` 플래그로 모드 분기 |
 | `app/globals.css` | 전체 스타일. 모바일 반응형은 파일 하단 `@media (max-width: 768px)` |
@@ -3752,8 +3754,19 @@ CodeMirror가 아니라 그냥 글자 칸(contentEditable)이라, 손대지 않�
 
 ## 주의 사항
 
-- `store.js`의 Mock 구현과 Firebase 구현을 **항상 동기화**할 것
+- `lib/data/*`의 Mock 구현과 Firebase 구현을 **항상 동기화**할 것
   (함수 추가 시 두 분기 모두 작성)
+- **데이터 함수는 영역 파일(`lib/data/*.js`)에 두고, 화면에 보일 것은
+  `lib/store.js`의 목록에 한 줄 더합니다.** `store.js`는 7천 줄이 넘던
+  한 파일을 영역별로 나눈 뒤 남은 입구라 다시 내보내기만 합니다 — 화면은
+  지금까지처럼 `@/lib/store`에서 가져가고, 목록에 안 올리면 화면에서
+  안 보입니다. 영역끼리 나눠 쓰는 비공개 도우미(`mock` · `notify…` ·
+  `nextMockSeq`)는 일부러 목록에 올리지 않습니다.
+  - 데모 문서 id의 일련번호는 `nextMockSeq()`로 올립니다. `mockSeq`는 `let`이라
+    다른 파일에서 `++` 할 수 없습니다(ES 모듈의 import는 읽기 전용).
+  - **영역 파일끼리 서로 가져올 때 최상위에서 곧바로 쓰지 마세요**(함수 안에서만).
+    서로 가져오는 고리가 생기면 먼저 읽힌 쪽에서 아직 정해지지 않은 값을 봅니다.
+    `shared.js`는 어느 영역 파일도 가져오지 않습니다 — 그래서 모두가 기댈 수 있습니다.
 - **mock 문서는 `replaceDoc(목록, 문서, 고칠 값…)`으로만 고칩니다**
   (`lib/mockDocs.js`). `Object.assign(문서, …)`이나 `문서.필드 = 값`처럼
   제자리에서 고치면 구독하는 쪽이 같은 참조를 받아 React가 다시 그리지
