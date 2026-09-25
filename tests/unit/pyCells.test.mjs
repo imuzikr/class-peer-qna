@@ -142,3 +142,18 @@ test("읽는 자리 — 옛 카드의 두 번 붙은 결과 · 빈 코드 블록
     '<pre class="py-code"><code>print(123)</code></pre><pre class="py-result"><code>123</code></pre>'
   );
 });
+
+test("읽는 자리 — 글 셀은 py-text 블록으로 감싸고, 저장 모양은 그대로", () => {
+  const html = "<p>설명</p><pre><code>print(1)</code></pre><p>끝</p>";
+  assert.equal(
+    tidyCellsHtml(html),
+    '<div class="py-text"><p>설명</p></div>' +
+      '<pre class="py-code"><code>print(1)</code></pre>' +
+      '<div class="py-text"><p>끝</p></div>'
+  );
+  // 저장(serializeCells 기본값)은 감싸지 않습니다
+  assert.equal(
+    serializeCells(parseCells(html)),
+    '<p>설명</p><pre class="py-code"><code>print(1)</code></pre><p>끝</p>'
+  );
+});
