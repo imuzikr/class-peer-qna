@@ -1508,6 +1508,7 @@ export default function LessonMode({
                       boardActs={boardActs}
                       cards={boardCards}
                       roster={roster}
+                      pyLinked={!!board?.pyLinked}
                     />
                   }
                   onSaveSeats={(seats, user) =>

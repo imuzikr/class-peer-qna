@@ -27,6 +27,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { matchActivitySections } from "@/lib/activities";
 import { sanitizeHtml, stripHtml, htmlHasImage } from "@/lib/html";
+import { tidyCellsHtml } from "@/lib/pyCells";
 
 export default function LessonAnswerPanel({
   task = null,          // 반 문서의 task — 없으면 '내보낸 것이 없음'
@@ -34,6 +35,7 @@ export default function LessonAnswerPanel({
   boardActs = [],       // 이 프로젝트의 활동 이름들
   cards = [],           // 이 프로젝트의 학생 카드 — 이미 구독해 둔 것
   roster = [],          // 반 명단(학번순)
+  pyLinked = false,     // 파이썬 연계 프로젝트 — 답을 셀 모양으로 맞춰 그립니다
 }) {
   const [at, setAt] = useState(0);
 
@@ -53,7 +55,8 @@ export default function LessonAnswerPanel({
       // 씁니다 — 교사가 활동 이름을 바꿔도 학생이 쓴 답을 그대로 잡습니다.
       // (자리를 정해 **쓰는** 곳에서는 쓰지 않습니다 — lib/activities.js 주석)
       const sec = card ? matchActivitySections(card, boardActs)[taskActIndex] : null;
-      const html = sec?.content ?? "";
+      const raw = sec?.content ?? "";
+      const html = pyLinked ? tidyCellsHtml(raw) : raw;
       return {
         uid: s.uid,
         name: s.name,
@@ -64,7 +67,7 @@ export default function LessonAnswerPanel({
         hasImage: htmlHasImage(html),
       };
     });
-  }, [roster, byAuthor, boardActs, taskActIndex]);
+  }, [roster, byAuthor, boardActs, taskActIndex, pyLinked]);
 
   // 활동이 바뀌면 처음부터 — 앞 활동에서 보던 자리에 그대로 서 있으면
   // 무엇을 보는 중인지 어긋납니다. 명단이 줄어도 범위를 넘지 않게 함께 봅니다.

@@ -19,9 +19,24 @@ import {
 } from "@/lib/store";
 import { getCurrentUser, isTeacher } from "@/lib/user";
 import { sanitizeHtml, stripImgTags } from "@/lib/html";
-import { parseActivitySections } from "@/lib/activities";
+import { parseActivitySections, buildActivityHtml } from "@/lib/activities";
+import { tidyCellsHtml } from "@/lib/pyCells";
 import RewardFruits, { rewardStars, nextFruit } from "./RewardFruits";
 import { IconGroup } from "./StatusIcons";
+
+// 파이썬 연계 프로젝트의 카드는 활동 칸마다 셀 모양으로 맞춰 싣습니다 —
+// 옛 '결과 붙이기'가 결과를 두 번 붙인 칸도 학생 화면에 코드 하나에 결과
+// 하나로 뜨게(카드 미리보기의 shownHtml과 같은 셈). 칸을 먼저 나눠야
+// 합니다 — 통째로 셀로 풀면 활동 구역의 표식이 사라집니다.
+function castContent(html, pyLinked) {
+  if (!pyLinked) return html;
+  const secs = parseActivitySections(html);
+  if (secs.length === 0) return tidyCellsHtml(html);
+  return buildActivityHtml(
+    secs.map((s) => s.title),
+    secs.map((s) => tidyCellsHtml(s.content || ""))
+  );
+}
 
 export default function StudyPresentModal({ board, cards = [], onClose }) {
   const [idx, setIdx] = useState(0);
@@ -71,7 +86,7 @@ export default function StudyPresentModal({ board, cards = [], onClose }) {
       boardTitle: board.title,
       cardId: card.id,
       title: card.title || "",
-      content: stripImgTags(sanitizeHtml(card.content || "")),
+      content: stripImgTags(sanitizeHtml(castContent(card.content || "", board.pyLinked))),
       displayName: name,
       isGroupCard: isGroup,
       members: card.members ?? null,
@@ -148,7 +163,9 @@ export default function StudyPresentModal({ board, cards = [], onClose }) {
             {activitySections.length > 0 ? (
               <div className="present-activities">
                 {activitySections.map((sec, i) => {
-                  const secHtml = stripImgTags(sanitizeHtml(sec.content || ""));
+                  const secHtml = stripImgTags(
+                    sanitizeHtml(board.pyLinked ? tidyCellsHtml(sec.content || "") : sec.content || "")
+                  );
                   const secText = secHtml.replace(/<[^>]*>/g, "").trim();
                   return (
                     <section key={i} className="present-activity">

@@ -40,6 +40,7 @@ import {
   REWARD_MAX,
 } from "@/lib/store";
 import { stripHtml, htmlHasImage } from "@/lib/html";
+import { tidyCellsHtml } from "@/lib/pyCells";
 import {
   buildActivityTemplate,
   isActivityLocked,
@@ -368,9 +369,12 @@ export default function StudyProjectView({
       const card = cards.find((c) =>
         isGroup ? c.memberUids?.includes(s.uid) : c.authorId === s.uid
       );
-      const html = card
+      const raw = card
         ? matchActivitySections(card, activities)[wallIndex]?.content ?? ""
         : "";
+      // 연계 프로젝트는 셀 모양으로 맞춰 싣습니다(카드 미리보기와 같은 셈) —
+      // 이 값이 모아보기의 카드와 학급 화면 띄우기에 함께 쓰입니다.
+      const html = board.pyLinked ? tidyCellsHtml(raw) : raw;
       const text = stripHtml(html).trim();
       return {
         uid: s.uid,
@@ -383,7 +387,7 @@ export default function StudyProjectView({
         at: card?.updatedAt ?? card?.createdAt ?? null,
       };
     });
-  }, [wallIndex, classRoster, cards, activities, isGroup]);
+  }, [wallIndex, classRoster, cards, activities, isGroup, board.pyLinked]);
 
   // ── 보드 설정 패널의 '현황' 대시보드 ──
   // 반 명단을 분모로 삼습니다(카드를 아직 안 만든 학생도 0으로 세야 실제
