@@ -3744,6 +3744,15 @@ CodeMirror가 아니라 그냥 글자 칸(contentEditable)이라, 손대지 않�
 
 - `store.js`의 Mock 구현과 Firebase 구현을 **항상 동기화**할 것
   (함수 추가 시 두 분기 모두 작성)
+- **mock 문서는 `replaceDoc(목록, 문서, 고칠 값…)`으로만 고칩니다**
+  (`lib/mockDocs.js`). `Object.assign(문서, …)`이나 `문서.필드 = 값`처럼
+  제자리에서 고치면 구독하는 쪽이 같은 참조를 받아 React가 다시 그리지
+  않습니다 — 반 문서·독서 활동·수업 노트·답변에서 따로 네 번 겪은 그 함정입니다
+  (위 절들의 '갈아 끼웁니다'가 모두 이것). 한때 이 모양이 store.js에 34곳
+  남아 있어 한꺼번에 옮겼습니다. 인자가 Object.assign과 같아 앞에 목록만
+  붙이면 되고, 고칠 값 자리에 함수를 주면 지금 문서를 보고 셉니다
+  (`(q) => ({ answerCount: q.answerCount + 1 })`). 새 객체는 **목록의 같은
+  자리**에 들어갑니다 — 빼고 뒤에 다시 넣으면 화면 차례가 바뀝니다.
 - `saveKwl` (upsert)은 제거됨 — `addKwl` (append)만 사용
 - `subscribeMyKwl` (단일 반환)은 제거됨 — `subscribeMyTodayKwl` (배열 반환)만 사용
 - CSS `@media (max-width: 760px)` 블록이 별도 존재함 — 768px 블록에서 필요 시 덮어쓸 것
