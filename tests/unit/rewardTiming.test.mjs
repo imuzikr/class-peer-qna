@@ -1,27 +1,14 @@
-import { readFileSync } from "node:fs";
-import { runInNewContext } from "node:vm";
-import { test } from "node:test";
+import { test, mock } from "node:test";
 import assert from "node:assert/strict";
 
-// Run the production calculation without bootstrapping Firebase or a browser.
-const store = readFileSync(new URL("../../lib/store.js", import.meta.url), "utf8");
-const toDate = store.match(/export function toDate\(value\) \{[\s\S]*?\n\}/)[0].replace("export ", "");
-const sessions = readFileSync(new URL("../../lib/lessonSessions.js", import.meta.url), "utf8")
-  .replace(/import \{ toDate \} from "\.\/store";/, "")
-  .replaceAll("export ", "");
-const component = readFileSync(new URL("../../components/RewardTiming.jsx", import.meta.url), "utf8");
-const marker = "const stat = useMemo(() => {";
-const start = component.indexOf(marker) + marker.length;
-const end = component.indexOf("}, [events, attendance]);", start);
-assert.ok(start >= marker.length && end > start, "production useMemo calculation is present");
-// A daytime clock makes accidental toDate(undefined) => now deterministic.
-class DaytimeDate extends Date {
-  constructor(...args) { super(...(args.length ? args : ["2026-09-17T12:00:00+09:00"])); }
-}
-const { buildLessonSessions, sessionAt, calculate } = runInNewContext(
-  `${toDate}\n${sessions}\n({ buildLessonSessions, sessionAt, calculate(events, attendance) {${component.slice(start, end)}} });`,
-  { Date: DaytimeDate },
-);
+// '지금'을 한낮으로 못 박습니다. 시각이 없는 기록을 실수로 '지금'으로 치면
+// (toDate(undefined) → new Date()) 그것이 수업 시간 안에 떨어져 시험이
+// 잡아내도록 — 밤에 돌리면 그 실수가 조용히 지나갑니다.
+// **import보다 먼저** 걸어야 모듈이 처음 읽는 Date부터 고정됩니다.
+mock.timers.enable({ apis: ["Date"], now: new Date("2026-09-17T12:00:00+09:00") });
+
+const { buildLessonSessions, sessionAt, rewardTimingStat: calculate } = await import("@/lib/lessonSessions");
+
 const at = (time, date = "2026-09-17") => `${date}T${time}+09:00`;
 const attendance = (...times) => times.map(time => ({ attendedAt: at(time) }));
 const ms = time => new Date(at(time)).getTime();

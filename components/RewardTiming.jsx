@@ -20,11 +20,8 @@
 // 그대로 받습니다.
 // =============================================================
 import { useMemo } from "react";
-import { toDate } from "@/lib/store";
 import {
-  buildLessonSessions,
-  sessionAt,
-  bandOf,
+  rewardTimingStat,
   TIME_BANDS,
   MAX_LESSON_MIN,
 } from "@/lib/lessonSessions";
@@ -39,28 +36,8 @@ import {
 const BANDS = ["#276b49", "#5ba077", "#8ec7a0"];
 
 export default function RewardTiming({ events = [], attendance = [], loaded = false }) {
-  const stat = useMemo(() => {
-    const sessions = buildLessonSessions(attendance);
-    if (sessions.length === 0) return null;
-
-    // 회수(음수)는 빼고 '준 것'만 — 쏠림과 같은 기준입니다.
-    const given = events.filter((e) => (e.delta ?? 0) > 0);
-    const counts = TIME_BANDS.map(() => 0);
-    let outside = 0;
-    given.forEach((e) => {
-      if (e.at == null || e.at === "") return;
-      const d = toDate(e.at);
-      const t = d?.getTime?.();
-      if (t == null || Number.isNaN(t)) return;
-      const hit = sessionAt(sessions, t);
-      if (!hit) { outside += e.delta ?? 0; return; }
-      const b = bandOf(hit.elapsedMin);
-      if (b >= 0) counts[b] += e.delta ?? 0;
-    });
-
-    const total = counts.reduce((a, b) => a + b, 0);
-    return { sessions: sessions.length, counts, total, outside };
-  }, [events, attendance]);
+  // 셈은 lib/lessonSessions.js의 rewardTimingStat 한 곳 — 시험이 그것을 곧바로 부릅니다.
+  const stat = useMemo(() => rewardTimingStat(events, attendance), [events, attendance]);
 
   if (!loaded || !stat) return null;
   if (stat.total === 0 && stat.outside === 0) return null;
