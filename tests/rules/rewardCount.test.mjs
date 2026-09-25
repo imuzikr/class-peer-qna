@@ -9,7 +9,7 @@ import { makeEnv, seed, asStudent, asAdmin } from "./helpers.mjs";
 
 // Execute the production subscriber with an emulator client, without loading
 // lib/firebase.js (which initializes the live project).
-const source = readFileSync(new URL("../../lib/store.js", import.meta.url), "utf8");
+const source = readFileSync(new URL("../../lib/data/rewards.js", import.meta.url), "utf8");
 const start = source.indexOf("export function subscribeMyClassRewardCount(");
 const end = source.indexOf("\nexport ", start + 1);
 assert.ok(start >= 0 && end > start, "production reward subscriber must exist");
