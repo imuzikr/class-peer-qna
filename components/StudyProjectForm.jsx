@@ -15,7 +15,10 @@
 //     - 키워드와 연계하기: 켜면 질문방 키워드 칩을 복수로 선택
 //     - 파이썬 실행기와 연계하기: 학생 카드 활동 칸에 '파이썬 실행기' 단추
 //
-// [여기서 만드는 것은 **원본**입니다] 반에는 아직 아무것도 안 생깁니다.
+// [여기서 만드는 것은 **원본**입니다] 수업 관리의 프로젝트 탭에서 열면 반에는
+// 아직 아무것도 안 생깁니다. 공부방 '프로젝트 가져오기' 창에서 열면
+// (`openInClass`) 원본을 보관하고 **곧바로 이 반에 복사본을 엽니다**
+// (createStudyProjectInClass — 수업 편집·파이썬 실행기의 '＋ 새 프로젝트'와 같은 길).
 // 프로젝트는 선생님의 것이고, 반에서 쓸 때 '수업 관리' 창 프로젝트 탭의 '우리 반에
 // 가져오기'가 그 반에 복사본을 하나 만듭니다(lib/store.js의 studyTemplates
 // 절). 그래서 안내 카드도 여기서 깔지 않습니다 — 카드는 반에 붙는 것이라
@@ -23,7 +26,7 @@
 // =============================================================
 import { backdropClose } from "@/lib/modal";
 import { useRef, useState } from "react";
-import { addStudyTemplate } from "@/lib/store";
+import { addStudyTemplate, createStudyProjectInClass } from "@/lib/store";
 import { getCurrentUser } from "@/lib/user";
 import { IconIndividual, IconGroup } from "./StatusIcons";
 import { findSameNameProject } from "@/lib/projectNames";
@@ -37,8 +40,10 @@ export default function StudyProjectForm({
   classId = null,
   boards = [],
   templates = [],
+  // 참이면 원본을 만들고 곧바로 이 반(classId)에 복사본을 엽니다.
+  openInClass = false,
   onClose,
-  onCreated,
+  onCreated, // (templateId, boardId | null)
   onLoadExisting, // (hit) => Promise — 같은 이름의 이전 프로젝트 불러오기
 }) {
   const [title, setTitle] = useState("");
@@ -75,7 +80,7 @@ export default function StudyProjectForm({
     try {
       const me = getCurrentUser();
       const acts = activities.map((a) => a.trim()).filter(Boolean);
-      const newId = await addStudyTemplate(me, {
+      const fields = {
         title: title.trim(),
         description: description.trim(),
         keywords: linkKeyword ? selectedKeywords : [],
@@ -83,8 +88,14 @@ export default function StudyProjectForm({
         activities: acts,
         // 모둠 프로젝트에는 아직 안 씁니다(ProjectLinkOptions 머리 주석)
         pyLinked: pyLinked && activityType !== "group",
-      });
-      onCreated?.(newId);
+      };
+      if (openInClass && classId) {
+        const { templateId, boardId } = await createStudyProjectInClass(me, classId, fields);
+        onCreated?.(templateId, boardId);
+      } else {
+        const newId = await addStudyTemplate(me, fields);
+        onCreated?.(newId, null);
+      }
       onClose();
     } finally {
       setSaving(false);
@@ -195,9 +206,19 @@ export default function StudyProjectForm({
           {/* 누르기 전에 무엇이 생기는지 말해 둡니다 — 예전에는 누르면 곧장
               이 반에 열렸으므로, 말없이 바꾸면 '만들었는데 반에 없다'로 읽힙니다. */}
           <p className="project-form-where">
-            원본으로 만들어져요. 반에는 아직 아무것도 안 생기고, 이어서 뜨는
-            ‘수업 관리’의 프로젝트 탭에서 <strong>우리 반에 가져오기</strong>를
-            누르면 {className ? `‘${className}’ ` : ""}학생 화면에 열립니다.
+            {openInClass ? (
+              <>
+                원본으로 보관되고, {className ? `‘${className}’` : "이 반"}에
+                곧바로 열려요. 원본은 ‘수업 관리’의 프로젝트 탭에서 다른 반에도
+                가져올 수 있어요.
+              </>
+            ) : (
+              <>
+                원본으로 만들어져요. 반에는 아직 아무것도 안 생기고, 이어서 뜨는
+                ‘수업 관리’의 프로젝트 탭에서 <strong>우리 반에 가져오기</strong>를
+                누르면 {className ? `‘${className}’ ` : ""}학생 화면에 열립니다.
+              </>
+            )}
           </p>
 
           <button type="submit" className="btn-primary" disabled={saving || !title.trim()}>

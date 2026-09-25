@@ -78,6 +78,7 @@ import StudyRewardPanel from "@/components/StudyRewardPanel";
 import StudyProjectDashboard from "@/components/StudyProjectDashboard";
 import StudyProjectView from "@/components/StudyProjectView";
 import StudyProjectForm from "@/components/StudyProjectForm";
+import StudyProjectImportModal from "@/components/StudyProjectImportModal";
 import StudyTemplateList from "@/components/StudyTemplateList";
 import StudyActivityPanel from "@/components/StudyActivityPanel";
 import NewQuestionForm from "@/components/NewQuestionForm";
@@ -152,9 +153,12 @@ function StudyPageInner() {
   const [membershipsLoaded, setMembershipsLoaded] = useState(false);
   const [teacherClassId, setTeacherClassId] = useState(null);
   const [joinCodesMap, setJoinCodesMap] = useState({}); // 교사: classId→{code,expiresAt}
-  // 프로젝트 만들기 창 — false | "dash"(공부방 머리줄에서) | "tab"(수업 관리
-  // 창의 프로젝트 탭에서). 탭에서 열었다가 그냥 닫으면 그 탭으로 돌아갑니다.
+  // 프로젝트 만들기 창 — false | "import"(가져오기 창 아래 '＋ 프로젝트
+  // 만들기' — 만들면 곧바로 이 반에 엽니다) | "tab"(수업 관리 창의 프로젝트
+  // 탭 — 원본만 만듭니다). 만들지 않고 닫으면 연 자리로 돌아갑니다.
   const [creatingProject, setCreatingProject] = useState(false);
+  // 공부방 머리줄 '＋ 프로젝트 가져오기' 창(StudyProjectImportModal)
+  const [importingProject, setImportingProject] = useState(false);
   const projectCreatedRef = useRef(false);
   // 프로젝트 원본 — 반에 안 묶인 선생님의 프로젝트(lib/store.js studyTemplates 절)
   const [templates, setTemplates] = useState([]);
@@ -1100,7 +1104,7 @@ function StudyPageInner() {
                   readOnly={!!currentClass?.archived}
                   roster={admin ? roster : []}
                   onOpen={openProject}
-                  onCreate={() => setCreatingProject("dash")}
+                  onImport={() => setImportingProject(true)}
                   onReorder={handleReorderProjects}
                   onToast={setToast}
                   keywords={keywordNames}
@@ -1320,8 +1324,33 @@ function StudyPageInner() {
         />
       )}
 
+      {importingProject && currentClass && (
+        <StudyProjectImportModal
+          templates={templates}
+          classBoards={classBoards}
+          className={currentClass.name ?? ""}
+          readOnly={!!currentClass.archived}
+          onImport={async (t) => {
+            await handleStartTemplate(t);
+            setImportingProject(false);
+          }}
+          onOpenBoard={(boardId) => {
+            setImportingProject(false);
+            router.push(`/study?project=${boardId}`);
+          }}
+          // 창 둘이 겹치지 않게 이 창을 닫고 만들기 창을 엽니다.
+          onCreate={() => {
+            setImportingProject(false);
+            setCreatingProject("import");
+          }}
+          onClose={() => setImportingProject(false)}
+        />
+      )}
+
       {creatingProject && currentClass && (
         <StudyProjectForm
+          // 가져오기 창에서 열었으면 원본을 보관하고 곧바로 이 반에 엽니다.
+          openInClass={creatingProject === "import"}
           keywords={keywordNames}
           className={currentClass.name ?? ""}
           classId={classId}
@@ -1343,18 +1372,26 @@ function StudyPageInner() {
           onClose={() => {
             const from = creatingProject;
             setCreatingProject(false);
-            // 탭에서 열었다가 만들지 않고 닫으면 그 탭으로 돌아갑니다.
-            // 만들었으면 onCreated가 이미 탭을 열었습니다(이 함수는 그 뒤에
-            // 불립니다 — StudyProjectForm의 차례).
-            if (from === "tab" && !projectCreatedRef.current) openProjectsTab();
+            // 만들지 않고 닫으면 연 자리(탭 · 가져오기 창)로 돌아갑니다.
+            // 만들었으면 onCreated가 이미 다음 화면을 열었습니다(이 함수는 그
+            // 뒤에 불립니다 — StudyProjectForm의 차례).
+            if (!projectCreatedRef.current) {
+              if (from === "tab") openProjectsTab();
+              if (from === "import") setImportingProject(true);
+            }
             projectCreatedRef.current = false;
           }}
-          // 만든 것은 원본이라 반에는 아직 없습니다 — 수업 관리 창의 프로젝트
-          // 탭을 그 줄을 짚은 채로 열어, 다음 할 일('우리 반에 가져오기')이
-          // 바로 눈에 들게 합니다.
-          onCreated={(newId) => {
+          // 가져오기 창에서 만들었으면 이 반에 열린 그 프로젝트로 들어갑니다.
+          // 탭에서 만들었으면 원본뿐이라 반에는 아직 없습니다 — 그 탭을 새 줄을
+          // 짚은 채로 열어 다음 할 일('우리 반에 가져오기')이 눈에 들게 합니다.
+          onCreated={(newId, boardId) => {
             projectCreatedRef.current = true;
-            openProjectsTab(newId);
+            if (boardId) {
+              setToast(`‘${currentClass?.name ?? "이 반"}’에 새 프로젝트를 열었어요.`);
+              router.push(`/study?project=${boardId}`);
+            } else {
+              openProjectsTab(newId);
+            }
           }}
         />
       )}
@@ -1395,7 +1432,7 @@ function StudyPageInner() {
         user={user}
         isTeacher={admin}
         preset={pyPreset}
-        hasModalOpen={cardModalOpen || classManagerOpen || !!creatingProject || attendanceOpen || seatSetupOpen || (askKeyword !== null || askCode !== null)}
+        hasModalOpen={cardModalOpen || classManagerOpen || !!creatingProject || importingProject || attendanceOpen || seatSetupOpen || (askKeyword !== null || askCode !== null)}
       />
 
       {/* ── 수업 준비 (목록 · 새로 만들기) ──

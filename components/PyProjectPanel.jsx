@@ -70,7 +70,8 @@ export default function PyProjectPanel({
   const [note, setNote] = useState(null); // { kind: 'ok'|'err', text }
   const [making, setMaking] = useState(false); // 새 프로젝트 만들기 폼
   const [newTitle, setNewTitle] = useState("");
-  const [newAct, setNewAct] = useState("");
+  // 활동 이름들 — 한 번에 여럿을 적어 만들 수 있습니다(빈 칸은 건너뜀).
+  const [newActs, setNewActs] = useState([""]);
   const [dup, setDup] = useState(null); // 같은 이름이 있을 때 { name, hit }
   const newTitleRef = useRef(null);
   const [addingAct, setAddingAct] = useState(false); // 활동 추가 폼
@@ -125,25 +126,47 @@ export default function PyProjectPanel({
   const groupBoard = board?.activityType === "group";
   const boardLocked = board?.editMode === "locked";
 
+  // [교사가 고르면 그 활동을 연다] 여기서 보낼 곳을 고르는 뜻은 '지금 이걸
+  // 쓰세요'입니다 — 수업 모드의 '내보내기'가 잠긴 활동을 함께 여는 것과 같은
+  // 까닭입니다. 실행기 안에는 활동을 여는 칩이 없어, 안 열면 학생 쪽에 '잠긴
+  // 활동'만 뜨고 선생님은 공부방으로 건너가야 합니다. 새로 만든 프로젝트가
+  // 첫 활동만 열린 채 들어오므로(둘째부터 잠김) 특히 필요합니다.
+  // 학생이 고를 때는 아무것도 열지 않습니다(규칙도 학생의 보드 쓰기를 막습니다).
+  async function openIfLocked(b, i) {
+    if (!isTeacher || !b || !isActivityLocked(b, i)) return;
+    const locks = (b.activities ?? []).map((_, k) => isActivityLocked(b, k));
+    locks[i] = false;
+    try {
+      await updateStudyBoard(b.id, { activityLocks: locks });
+      say("ok", `잠겨 있던 ‘${b.activities?.[i] ?? `활동 ${i + 1}`}’을 열었어요.`);
+    } catch {
+      say("err", "활동을 열지 못했어요.");
+    }
+  }
+
   // 교사가 고르면 반 전체의 기본값이 바뀌고, 학생이 고르면 자기 화면만.
   async function pickBoard(boardId) {
     const next = boardId ? { boardId, actIndex: 0 } : null;
-    if (isTeacher) await setClassPyTarget(classId, next);
-    else setMyPick(next);
+    if (isTeacher) {
+      await setClassPyTarget(classId, next);
+      await openIfLocked(projects.find((b) => b.id === boardId), 0);
+    } else setMyPick(next);
   }
   async function pickAct(i) {
     if (!board) return;
     const next = { boardId: board.id, actIndex: Number(i) };
-    if (isTeacher) await setClassPyTarget(classId, next);
-    else setMyPick(next);
+    if (isTeacher) {
+      await setClassPyTarget(classId, next);
+      await openIfLocked(board, Number(i));
+    } else setMyPick(next);
   }
 
   // ── 그 자리에서 프로젝트 만들기(교사) ─────────────────────
   async function createProject(e) {
     e.preventDefault();
     const title = newTitle.trim();
-    const first = newAct.trim();
-    if (!title || !first || busy) return;
+    const acts = newActs.map((a) => a.trim()).filter(Boolean);
+    if (!title || acts.length === 0 || busy) return;
     // 프로젝트 이름은 서로 달라야 합니다(lib/projectNames.js) — 있으면
     // 만들지 않고 '이전 프로젝트 불러오기'를 권합니다.
     const hit = findSameNameProject(title, { classId, boards, templates });
@@ -155,19 +178,21 @@ export default function PyProjectPanel({
     try {
       // 수업 중에 만들어도 **원본**으로 만들고 이 반에 불러옵니다 — 공부방
       // '＋ 프로젝트 만들기'와 같은 규칙(lib/store.js의 createStudyProjectInClass).
-      // 불러온 복사본은 첫 활동이 열린 채라 지금 곧바로 보낼 수 있습니다.
+      // 불러온 복사본은 첫 활동만 열린 채입니다(둘째부터는 잠김 — 새로 만드는
+      // 프로젝트의 규칙). 둘째 활동은 선생님이 보낼 곳으로 고를 때 열립니다
+      // (openIfLocked).
       // 실행기에서 만드는 프로젝트는 코드를 받으려는 것이라 **실행기 연계를
       // 켠 채로** 만듭니다 — 학생 카드에도 '파이썬 실행기' 단추가 섭니다.
       const { boardId: id } = await createStudyProjectInClass(user, classId, {
         title,
-        activities: [first],
+        activities: acts,
         pyLinked: true,
       });
       // 만들자마자 목적지로 잡습니다 — 만드는 까닭이 그것이라서요.
       if (id) await setClassPyTarget(classId, { boardId: id, actIndex: 0 });
       setMaking(false);
       setNewTitle("");
-      setNewAct("");
+      setNewActs([""]);
       say("ok", `'${title}' 프로젝트를 만들고 보낼 곳으로 잡았어요.`);
     } catch {
       say("err", "프로젝트를 만들지 못했어요.");
@@ -186,7 +211,7 @@ export default function PyProjectPanel({
     setDup(null);
     setMaking(false);
     setNewTitle("");
-    setNewAct("");
+    setNewActs([""]);
     say("ok", `'${t}' 프로젝트를 불러와 보낼 곳으로 잡았어요.`);
   }
 
@@ -346,15 +371,53 @@ export default function PyProjectPanel({
                 placeholder="프로젝트 이름"
                 autoFocus
               />
-              <input
-                className="py-project-input"
-                value={newAct}
-                onChange={(e) => setNewAct(e.target.value)}
-                placeholder="첫 활동 이름 (예: 반복문 연습)"
-              />
+              {/* 활동을 한 번에 여럿 — 만들기 창(StudyProjectForm)과 같은 '활동 n'
+                  목록입니다. '＋ 활동 추가'는 입력칸 옆이 아니라 목록 아래 제
+                  줄에 둡니다(칸이 300px라 옆에 두면 입력칸이 좁아집니다). */}
+              {newActs.map((a, i) => (
+                <div key={i} className="py-project-actrow">
+                  <input
+                    className="py-project-input"
+                    value={a}
+                    onChange={(e) =>
+                      setNewActs((prev) => prev.map((v, j) => (j === i ? e.target.value : v)))
+                    }
+                    placeholder={i === 0 ? "활동 1 이름 (예: 반복문 연습)" : `활동 ${i + 1} 이름`}
+                    aria-label={`활동 ${i + 1} 이름`}
+                  />
+                  {/* 첫 칸은 뺄 수 없지만, 칸이 여럿일 때는 ✕ 자리를 비워 두어
+                      입력칸들이 같은 폭으로 섭니다. */}
+                  {i === 0 && newActs.length > 1 && (
+                    <span className="py-project-actdel py-project-actdel--gap" aria-hidden="true" />
+                  )}
+                  {i > 0 && (
+                    <button
+                      type="button"
+                      className="py-project-actdel"
+                      onClick={() => setNewActs((prev) => prev.filter((_, j) => j !== i))}
+                      aria-label={`활동 ${i + 1} 빼기`}
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              ))}
+              <button
+                type="button"
+                className="py-project-actadd"
+                onClick={() => setNewActs((prev) => [...prev, ""])}
+              >
+                ＋ 활동 추가
+              </button>
               <div className="py-project-form-actions">
                 <button type="button" className="btn-ghost" onClick={() => setMaking(false)}>취소</button>
-                <button type="submit" className="btn-primary" disabled={busy || !newTitle.trim() || !newAct.trim()}>만들기</button>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  disabled={busy || !newTitle.trim() || !newActs.some((a) => a.trim())}
+                >
+                  만들기
+                </button>
               </div>
             </form>
           )}

@@ -27637,3 +27637,88 @@ h4.attendance-seat-help { margin-top: 16px; }
   color: var(--text-sub);
   word-break: keep-all;
 }
+
+/* ── 프로젝트 가져오기 (StudyProjectImportModal) ──
+   줄 모양은 수업 관리 프로젝트 탭과 같은 .lesson-row · .tpl-row. 여기만의
+   것은 안내 한 줄 · 빈 상태 · 맨 아래 만들기 단추뿐입니다. */
+.tpl-import-modal {
+  width: 640px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.tpl-import-hint {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-sub);
+  word-break: keep-all;
+}
+.tpl-import-create {
+  width: 100%;
+}
+.tpl-import-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  padding: 24px 8px 8px;
+  text-align: center;
+}
+.tpl-import-empty p {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--text-sub);
+  word-break: keep-all;
+}
+/* .lesson-create-btn은 가로 줄에 서도록 flex: 1이라, 세로로 쌓는 이 창에서는
+   높이를 나눠 갖지 않게 풉니다. */
+.tpl-import-modal .lesson-create-btn,
+.tpl-import-empty .lesson-create-btn {
+  flex: none;
+}
+
+/* ── 실행기 '＋ 새 프로젝트' — 활동 여럿 (PyProjectPanel) ──
+   활동 칸마다 한 줄, 둘째 줄부터 ✕. '＋ 활동 추가'는 목록 아래 제 줄
+   (만들기 창 .study-activity-add와 같은 점선 모양, 칸이 좁아 작게). */
+.py-project-actrow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.py-project-actrow .py-project-input {
+  flex: 1;
+  min-width: 0;
+}
+.py-project-actdel {
+  flex: 0 0 26px;
+  height: 26px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--text-sub);
+  font-size: 12px;
+  cursor: pointer;
+}
+.py-project-actdel:hover {
+  background: var(--neutral);
+  color: var(--text);
+}
+.py-project-actadd {
+  padding: 6px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text-sub);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.py-project-actadd:hover {
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+.py-project-actdel--gap {
+  cursor: default;
+}
