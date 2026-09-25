@@ -34,7 +34,7 @@ export default function ClassNoticeButton({ classId, className = "", memberCount
       if (!wrapRef.current?.contains(e.target)) setOpen(false);
     }
     function onKey(e) {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") { e.preventDefault(); setOpen(false); }
     }
     document.addEventListener("pointerdown", onDown);
     window.addEventListener("keydown", onKey);

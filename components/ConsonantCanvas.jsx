@@ -311,7 +311,7 @@ export default function ConsonantCanvas({
                 onChange={(e) => { setQuick(e.target.value); setQuickNote(""); }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") { e.preventDefault(); addQuick(); }
-                  else if (e.key === "Escape") { setQuick(""); setQuickNote(""); }
+                  else if (e.key === "Escape") { e.preventDefault(); setQuick(""); setQuickNote(""); }
                 }}
                 placeholder="낱말 넣기"
                 title="낱말을 적고 Enter — 첫 글자를 보고 칸을 골라 줍니다"
@@ -393,7 +393,7 @@ export default function ConsonantCanvas({
                     onChange={(e) => setTopicDraft(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") { e.preventDefault(); saveTopic(); }
-                      else if (e.key === "Escape") setTopicEditing(false);
+                      else if (e.key === "Escape") { e.preventDefault(); setTopicEditing(false); }
                     }}
                     onBlur={saveTopic}
                     placeholder="주제어 · 도서명"
@@ -474,6 +474,7 @@ export default function ConsonantCanvas({
                       e.preventDefault();
                       handleAdd(slot);
                     } else if (e.key === "Escape") {
+                      e.preventDefault();
                       setActiveIndex(null);
                       setDraft("");
                     }

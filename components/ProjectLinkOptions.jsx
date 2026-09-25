@@ -107,7 +107,7 @@ export default function ProjectLinkOptions({
                 onChange={(e) => setNewKw(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") { e.preventDefault(); handleAddKeyword(); }
-                  if (e.key === "Escape") { e.stopPropagation(); setAddingKw(false); setNewKw(""); }
+                  if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); setAddingKw(false); setNewKw(""); }
                 }}
                 placeholder="새 키워드"
                 autoFocus

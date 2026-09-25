@@ -487,6 +487,7 @@ export default function CornellNoteDrawer({
       // 창이 서랍 위로 뜨는 경우가 있습니다(프로젝트 활동을 연 채로 칸을
       // 누를 때). 이 리스너는 캡처 단계라 여기서 멈추면 창이 Esc를 못 받습니다.
       if (document.querySelector(".modal-backdrop")) return;
+      e.preventDefault();
       e.stopPropagation();
       toggle();
     }

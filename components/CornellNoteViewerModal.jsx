@@ -201,6 +201,7 @@ export default function CornellNoteViewerModal({
   useEffect(() => {
     function onKey(e) {
       if (e.key === "Escape") {
+        e.preventDefault();
         e.stopPropagation();
         closeNow();
       } else if (tab !== "cornell") {

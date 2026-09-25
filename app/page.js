@@ -102,7 +102,7 @@ export default function LandingPage() {
   useEffect(() => {
     if (!authMode) return;
     function onKey(e) {
-      if (e.key === "Escape") setAuthMode(null);
+      if (e.key === "Escape") { e.preventDefault(); setAuthMode(null); }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);

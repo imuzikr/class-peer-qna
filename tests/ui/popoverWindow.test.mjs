@@ -48,8 +48,11 @@ test("popover dismissal listens and cleans up in the popup document", () => {
   assert.deepEqual(registrations.map(({ name, type }) => [name, type]), [
     ["popup-document", "pointerdown"], ["popup-window", "keydown"],
   ]);
-  registrations[1].listener({ key: "Escape" });
+  // Esc는 팝오버만 닫고 뒤의 모달은 그대로 — 공통 Esc(lib/modal.js)가 보고 비켜 가도록 preventDefault
+  let prevented = false;
+  registrations[1].listener({ key: "Escape", preventDefault: () => { prevented = true; } });
   assert.equal(closed, 1);
+  assert.equal(prevented, true);
   registrations[0].listener({ target: { isConnected: true } });
   assert.equal(closed, 2);
   cleanup();

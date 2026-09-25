@@ -44,7 +44,7 @@ export default function StudyPresentModal({ board, cards = [], onClose }) {
     function onKey(e) {
       if (e.key === "ArrowLeft") setIdx((i) => Math.max(0, i - 1));
       else if (e.key === "ArrowRight") setIdx((i) => Math.min(total - 1, i + 1));
-      else if (e.key === "Escape") onClose();
+      else if (e.key === "Escape") { e.preventDefault(); onClose(); }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);

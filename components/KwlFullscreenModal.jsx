@@ -182,6 +182,7 @@ export default function KwlFullscreenModal({
       // 달력이 열려 있으면 Esc는 달력만 닫습니다 — 날짜를 고르다 실수로
       // 화면 전체가 닫히면 다시 열어 날짜를 맞춰야 합니다.
       if (e.key === "Escape") {
+        e.preventDefault();
         if (calOpen) setCalOpen(false);
         else onClose();
       } else if (!typing && e.key === "ArrowLeft") jumpDate(-1);

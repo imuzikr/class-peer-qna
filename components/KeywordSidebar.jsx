@@ -113,7 +113,7 @@ export default function KeywordSidebar({
                 onChange={(e) => setEditName(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") saveEdit(kw.id);
-                  if (e.key === "Escape") { setEditingId(null); setEditName(""); }
+                  if (e.key === "Escape") { e.preventDefault(); setEditingId(null); setEditName(""); }
                 }}
                 autoFocus
                 className="kw-edit-input"
@@ -177,7 +177,7 @@ export default function KeywordSidebar({
               type="text"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Escape") { setAdding(false); setNewName(""); } }}
+              onKeyDown={(e) => { if (e.key === "Escape") { e.preventDefault(); setAdding(false); setNewName(""); } }}
               placeholder="새 키워드"
               autoFocus
               className="kw-edit-input"

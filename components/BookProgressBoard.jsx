@@ -60,7 +60,7 @@ export default function BookProgressBoard({
   const [tip, setTip] = useState(null);
 
   useEffect(() => {
-    function onKey(e) { if (e.key === "Escape") onClose?.(); }
+    function onKey(e) { if (e.key === "Escape") { e.preventDefault(); onClose?.(); } }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);

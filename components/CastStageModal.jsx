@@ -83,7 +83,7 @@ export default function CastStageModal({
   // 없습니다(수업 화면의 슬라이드 넘기기에서 겪은 그 문제).
   useEffect(() => {
     function onKey(e) {
-      if (e.key === "Escape") { onClose(); return; }
+      if (e.key === "Escape") { e.preventDefault(); onClose(); return; }
       if (e.key === "ArrowLeft" && prevStudent) { e.preventDefault(); onStudent?.(prevStudent); }
       if (e.key === "ArrowRight" && nextStudent) { e.preventDefault(); onStudent?.(nextStudent); }
     }

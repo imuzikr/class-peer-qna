@@ -161,7 +161,7 @@ export default function StudentNotesThread({
                     autoFocus
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) handleSaveEdit(e);
-                      if (e.key === "Escape") setEditing(null);
+                      if (e.key === "Escape") { e.preventDefault(); setEditing(null); }
                     }}
                   />
                   <div className="notes-edit-actions">

@@ -628,8 +628,10 @@ export default function DrawingCanvas({ onSave, onClose }) {
       ? "pointer"
       : "crosshair";
 
+  // Esc로 닫지 않습니다 — 그린 것은 글 칸이 아니라 lib/modal.js가 '쓰던 것'으로
+  // 알아보지 못해, 한 번에 날아갑니다.
   return (
-    <div className="modal-backdrop" {...backdropClose(onClose)}>
+    <div className="modal-backdrop" {...backdropClose(onClose, { esc: false })}>
       <div className="modal modal-canvas" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <h3>🎨 그리기</h3>

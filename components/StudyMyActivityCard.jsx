@@ -835,7 +835,7 @@ function ActivityEditorModal({
   const initialRef = useRef(html);
 
   useEffect(() => {
-    function onKey(e) { if (e.key === "Escape") onClose(); }
+    function onKey(e) { if (e.key === "Escape") { e.preventDefault(); onClose(); } }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);

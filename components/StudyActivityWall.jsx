@@ -136,7 +136,7 @@ export default function StudyActivityWall({
     function onKey(e) {
       const tag = document.activeElement?.tagName;
       const typing = tag === "INPUT" || tag === "TEXTAREA";
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") { e.preventDefault(); onClose(); }
       else if (!typing && e.key === "ArrowLeft") goTo(at - 1);
       else if (!typing && e.key === "ArrowRight") goTo(at + 1);
     }

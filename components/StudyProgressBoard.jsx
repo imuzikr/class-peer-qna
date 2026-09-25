@@ -224,7 +224,7 @@ export default function StudyProgressBoard({
 
   useEffect(() => {
     if (!popup) return;
-    function onKey(e) { if (e.key === "Escape") setPopup(null); }
+    function onKey(e) { if (e.key === "Escape") { e.preventDefault(); setPopup(null); } }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [popup]);

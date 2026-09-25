@@ -15,7 +15,11 @@ export default function ZoomableImage({ src, alt = "", className = "", ...rest }
 
   useEffect(() => {
     if (!open) return;
-    const onKey = (e) => e.key === "Escape" && setOpen(false);
+    const onKey = (e) => {
+      if (e.key !== "Escape") return;
+      e.preventDefault(); // 확대 창만 닫고, 뒤의 모달은 그대로(lib/modal.js)
+      setOpen(false);
+    };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
