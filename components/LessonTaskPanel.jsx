@@ -267,15 +267,20 @@ export default function LessonTaskPanel({ task, user, onType }) {
     return () => { alive = false; };
   }, [boardId, idx, task?.at]);
 
-  // 수업 밖에서 연 칸은 **누른 활동에 커서를 둡니다** — 단추를 누른 뜻이
-  // '여기에 코드를 쓰겠다'라서요. 수업 중에는 안 합니다(선생님이 보낼 때마다
-  // 스물몇 명의 커서를 옮기면 다른 칸에 쓰던 학생의 손이 끊깁니다).
+  // 수업 밖에서 연 칸은 **누른 활동의 맨 끝에 빈 코드 블록을 두고 커서를
+  // 그 안에** 둡니다(RichTextEditor의 `codeAtEnd`) — 카드의 '파이썬 실행기'
+  // 단추를 누른 뜻이 '여기에 코드를 짜겠다'라서요. 커서만 옮기면 글 맨 앞에
+  // 서서 학생이 코드 블록을 손수 찾아 만들어야 했습니다(실제 신고).
+  // 수업 중에는 안 합니다 — 선생님이 보낼 때마다 스물몇 명의 커서를 옮기면
+  // 다른 칸에 쓰던 학생의 손이 끊기고, 보낸 활동이 코드 활동이 아닐 수도
+  // 있습니다.
   const rootRef = useRef(null);
+  const [codeSeq, setCodeSeq] = useState(0);
   useEffect(() => {
     if (!local || !loaded) return undefined;
-    const t = setTimeout(() => {
-      rootRef.current?.querySelector(".ltask-step.on .rte-area")?.focus();
-    }, 300); // 서랍이 미끄러져 들어온 뒤에
+    // 서랍이 미끄러져 들어온 뒤에 — 움직이는 동안 초점을 주면 브라우저가
+    // 그 칸을 화면 안으로 끌어오느라 서랍이 튑니다.
+    const t = setTimeout(() => setCodeSeq((n) => n + 1), 300);
     return () => clearTimeout(t);
   }, [local, loaded, idx, task?.at]);
 
@@ -480,6 +485,10 @@ export default function LessonTaskPanel({ task, user, onType }) {
     while (box.firstChild) frag.appendChild(box.firstChild);
     el.after(frag);
     onDraft(i, area.innerHTML);
+    // **곧바로 저장합니다.** 글자를 칠 때처럼 1.5초를 기다리면, 누른 뒤
+    // 카드에 결과가 늦게 나타나 '안 붙었나' 싶어 한 번 더 누르게 됩니다.
+    // 치는 도중이 아니라 한 번 누르는 일이라 기다릴 까닭이 없습니다.
+    save();
   }
 
   // 프로젝트가 바뀌거나 탭을 떠날 때 남은 것을 씁니다. 이 정리는 **바뀌기
@@ -570,7 +579,7 @@ export default function LessonTaskPanel({ task, user, onType }) {
           const label = String(name ?? "").trim() || `활동 ${i + 1}`;
           const line = peek(text);
           return (
-            <section key={i} className={`ltask-step${on ? " on" : ""}`}>
+            <section key={i} className={`ltask-step${on ? " on" : ""}`} data-act={i}>
               {/* 칸마다 이름 줄이 섭니다 — 없으면 어느 칸의 글쓰기인지
                   알 수 없습니다(접힌 줄 바로 아래 선 칸이 그 줄의 것처럼
                   보였습니다). 보낸 활동은 늘 펼쳐지므로 누를 수 없는 줄이고,
@@ -624,6 +633,11 @@ export default function LessonTaskPanel({ task, user, onType }) {
                   initialHtml={richHtml(text)}
                   onChange={(html) => onDraft(i, html)}
                   placeholder="여기에 답을 써 주세요."
+                  // 실행기와 같은 단축키 — Ctrl(⌘)+Enter로 이 칸의 코드를 돌립니다
+                  onSend={() =>
+                    runCode(i, rootRef.current?.querySelector(`.ltask-step[data-act="${i}"]`))
+                  }
+                  codeAtEnd={on && local ? codeSeq : 0}
                 />
 
                 {/* 입력값 — **실행 줄보다 위**입니다. 코드를 치는 동안
@@ -664,9 +678,13 @@ export default function LessonTaskPanel({ task, user, onType }) {
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={(e) => runCode(i, e.currentTarget.closest(".ltask-step"))}
                     disabled={running}
-                    title="커서가 든 코드 블록을 돌려 봅니다 (없으면 마지막 블록)"
+                    title="커서가 든 코드 블록을 돌려 봅니다 (없으면 마지막 블록) — Ctrl+Enter (Mac: Cmd+Enter)"
                   >
-                    {running && runAt === i ? "실행 중…" : "▶ 실행"}
+                    {running && runAt === i ? (
+                      "실행 중…"
+                    ) : (
+                      <>▶ 실행 <span className="ltask-run-kbd">Ctrl+Enter</span></>
+                    )}
                   </button>
                   {running && runAt === i && (
                     <button

@@ -27184,6 +27184,13 @@ ul.checklist > li.done {
 .ltask-run-stop:hover,
 .ltask-run-attach:hover { border-color: var(--primary); }
 .ltask-run-btn:disabled { opacity: 0.55; cursor: default; }
+/* 단축키 표시 — 실행기의 '▶ 실행 Ctrl+Enter'와 같은 말. 단추 글자보다 옅고 작게 */
+.ltask-run-kbd {
+  margin-left: 4px;
+  font-size: 10.5px;
+  font-weight: 600;
+  opacity: 0.7;
+}
 /* '결과 붙이기'는 오른쪽 끝으로 — 실행(왼쪽)과 하는 일이 다릅니다.
    하나는 돌려 보는 것이고 하나는 칸에 남기는 것입니다. */
 .ltask-run-attach { margin-left: auto; }
