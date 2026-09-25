@@ -113,6 +113,7 @@ Firebase 미설정 시 자동으로 **데모 모드**로 동작 (새로고침 �
 | `lib/store.js` | 데이터 함수의 **입구** — `lib/data/*`의 공개 이름을 다시 내보내기만 함 |
 | `lib/data/*.js` | Firestore CRUD + Mock + 구독 — 영역별(questions · classes · study · books · kwl · cornell …) |
 | `lib/data/shared.js` | 데모 모드 자료(`mock`) · 구독자 목록 · `nextMockSeq` · 영역끼리 나눠 쓰는 도우미 |
+| `lib/roster.js` · `lib/useClassRoster.js` | 교사 화면의 반 명단(소속 × 실명 × 과일 누적, **학번순**) — 셈과 구독 훅 |
 | `lib/user.js` | `getCurrentUser()`, `isAdmin()` — 세션 기반 사용자 |
 | `lib/firebase.js` | Firebase 초기화. `isFirebaseConfigured` 플래그로 모드 분기 |
 | `app/globals.css` | 전체 스타일. 모바일 반응형은 파일 하단 `@media (max-width: 768px)` |
@@ -3756,6 +3757,16 @@ CodeMirror가 아니라 그냥 글자 칸(contentEditable)이라, 손대지 않�
 
 - `lib/data/*`의 Mock 구현과 Firebase 구현을 **항상 동기화**할 것
   (함수 추가 시 두 분기 모두 작성)
+- **반 명단은 `useClassRoster`로 받으세요**(`lib/useClassRoster.js`, 셈은
+  `lib/roster.js`의 `buildClassRoster`). 같은 셈이 공부방·책방·손든 학생 자리
+  확인 창에 따로 있었는데 **자리 확인 창만 학번순 정렬이 빠져**, 자리표에 없는
+  학생을 빈자리에 채울 때(`normalizeSeats`는 명단 차례를 씁니다) 그 창에서만
+  다른 자리에 앉았습니다. 소속 uid만 필요하면 `useClassMembers`.
+  - 두 곳은 일부러 안 옮겼습니다 — `/admin`의 반 분석(`null` = 아직 모름 ·
+    `Set`)과 기록 관리의 옆 반 명단(`null` = 아직 모름). 이 훅은 첫 답 전에도
+    빈 배열이라 '없다'와 '아직 모른다'를 못 가릅니다(위 '첫 화면' 절).
+  - 디렉터리·과일은 **받아서** 씁니다. 페이지가 이미 다른 데 쓰려고 구독해
+    두어, 훅이 또 구독하면 같은 컬렉션에 리스너가 둘입니다.
 - **데이터 함수는 영역 파일(`lib/data/*.js`)에 두고, 화면에 보일 것은
   `lib/store.js`의 목록에 한 줄 더합니다.** `store.js`는 7천 줄이 넘던
   한 파일을 영역별로 나눈 뒤 남은 입구라 다시 내보내기만 합니다 — 화면은

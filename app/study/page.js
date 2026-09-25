@@ -32,7 +32,6 @@ import {
   subscribeUserDirectory,
   subscribeMyMemberships,
   subscribeJoinCodes,
-  subscribeClassMembers,
   subscribeClassRewards,
   setStudentReward,
   addStudentReward,
@@ -59,6 +58,7 @@ import { isFirebaseConfigured } from "@/lib/firebase";
 import { isAdmin, isTeacher, getCurrentUser } from "@/lib/user";
 import { getSelectedClassId, setSelectedClassId } from "@/lib/classroom";
 import { useCurrentUser } from "@/lib/useCurrentUser";
+import { useClassRoster } from "@/lib/useClassRoster";
 import AuthGate from "@/components/AuthGate";
 import { codeBlockHtml } from "@/lib/html";
 import { openProjectTask, setProjectContext } from "@/lib/projectTask";
@@ -188,7 +188,6 @@ function StudyPageInner() {
   const [activityPanelMobileOpen, setActivityPanelMobileOpen] = useState(false); // 모바일 활동 패널
   const [toast, setToast] = useState("");
   const [directory, setDirectory] = useState([]);   // 교사: uid→실명 등 프로필
-  const [memberUids, setMemberUids] = useState([]);  // 현재 반 소속 학생 uid
   const [rewards, setRewards] = useState([]);        // 현재 반 보상(과일) 목록
   const ensuringDefaultBoardRef = useRef(new Set());
 
@@ -664,13 +663,9 @@ function StudyPageInner() {
 
   // 현재 반의 소속 학생 uid 구독 (반이 바뀌면 재구독) — 교사는 실명 명단을
   // 만드는 데, 학생은 아래에서 급우 이름표(프로필)를 조회하는 데 씁니다.
-  useEffect(() => {
-    if (!classId) {
-      setMemberUids([]);
-      return;
-    }
-    return subscribeClassMembers(classId, setMemberUids);
-  }, [classId]);
+  // teacherRoster는 소속 × 디렉터리(실명) × 과일 누적, 학번순(lib/roster.js).
+  // 학생에게는 디렉터리가 비어 있어 쓰지 않습니다(아래 roster의 학생 갈래).
+  const { memberUids, roster: teacherRoster } = useClassRoster(classId, { directory, rewards });
 
   // 학생: 급우 uid 목록으로 이름·학번·이모지를 하나씩 조회합니다(교사 전용인
   // subscribeUserDirectory 대신 — 공부방 프로젝트에서 아직 카드를 안 쓴
@@ -710,25 +705,8 @@ function StudyPageInner() {
         }))
         .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "ko"));
     }
-    const dir = new Map(directory.map((d) => [d.uid, d]));
-    const countByUid = {};
-    rewards.forEach((r) => { countByUid[r.uid] = r.count ?? 0; });
-    return memberUids
-      .map((uid) => {
-        const d = dir.get(uid) || {};
-        return {
-          uid,
-          name: d.realName || d.studentId || "이름 미설정",
-          studentId: d.studentId || null,
-          emoji: d.emoji || "🙂",
-          email: d.email || null,
-          count: countByUid[uid] ?? 0,
-        };
-      })
-      .sort((a, b) =>
-        (a.studentId || a.name).localeCompare(b.studentId || b.name, "ko")
-      );
-  }, [admin, memberUids, directory, rewards]);
+    return teacherRoster;
+  }, [admin, rewards, teacherRoster]);
 
   // 개인 카드 그리드에서 결석생의 빈 자리를 회색으로 눕히는 데 씁니다.
   // 위의 todayPresentUids와 조건이 한 가지 다릅니다 — **출석을 끝냈을 때만**

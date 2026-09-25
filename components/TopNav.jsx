@@ -18,7 +18,6 @@ import {
   subscribeMyMemberships,
   subscribeMyClassRewardCount,
   subscribeBroadcast,
-  subscribeClassMembers,
   subscribeClass,
   classTaskOf,
   fetchClass,
@@ -40,6 +39,7 @@ import CornellNoteDrawer from "./CornellNoteDrawer";
 import RewardCelebration from "./RewardCelebration";
 import AppMarquee from "./AppMarquee";
 import { useRewardCelebration } from "@/lib/useRewardCelebration";
+import { useClassMembers } from "@/lib/useClassRoster";
 import { IconReport, IconPythonRunner, IconLogo, IconAnswer, IconBlackboard, IconBook } from "./StatusIcons";
 
 export default function TopNav({ active, onPython, pyActive = false, onStudyExport = null }) {
@@ -156,14 +156,7 @@ export default function TopNav({ active, onPython, pyActive = false, onStudyExpo
   // 반 공지 대상 — 지금 보고 있는 반의 이름과 학생 수. 교사가 '몇 명에게
   // 가는지'를 보고 보내도록 버튼에 함께 띄웁니다(잘못된 반에 보내는 실수를
   // 줄이는 가장 값싼 방법입니다). 실제 받는 사람은 서버가 다시 정합니다.
-  const [noticeMemberUids, setNoticeMemberUids] = useState([]);
-  useEffect(() => {
-    if (!isFirebaseConfigured || !admin || !broadcastClassId) {
-      setNoticeMemberUids([]);
-      return;
-    }
-    return subscribeClassMembers(broadcastClassId, setNoticeMemberUids);
-  }, [admin, broadcastClassId]);
+  const noticeMemberUids = useClassMembers(broadcastClassId, isFirebaseConfigured && admin);
   // 지금 보고 있는 반의 문서 하나 — '오늘의 활동'(`task`)이 여기 들어 있습니다.
   // 교사는 마지막으로 고른 반, 학생은 소속 반.
   //

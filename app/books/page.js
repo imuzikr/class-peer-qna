@@ -28,7 +28,6 @@ import {
   updateBookActivity,
   subscribeClasses,
   subscribeMyMemberships,
-  subscribeClassMembers,
   subscribeUserDirectory,
   subscribeStudyGroupAssignment,
   subscribeStudySeatLayout,
@@ -45,6 +44,7 @@ import { isFirebaseConfigured } from "@/lib/firebase";
 import { isAdmin, isTeacher, getCurrentUser } from "@/lib/user";
 import { getSelectedClassId, setSelectedClassId } from "@/lib/classroom";
 import { useCurrentUser } from "@/lib/useCurrentUser";
+import { useClassRoster } from "@/lib/useClassRoster";
 import AuthGate from "@/components/AuthGate";
 import TopNav from "@/components/TopNav";
 import ClassEntry from "@/components/ClassEntry";
@@ -162,7 +162,6 @@ function BooksPageInner() {
   const [localSelectedId, setLocalSelectedId] = useState(null);
   const [teacherClassId, setTeacherClassId] = useState(null);
   const [directory, setDirectory] = useState([]);
-  const [memberUids, setMemberUids] = useState([]);
   const [baseGroupAssignment, setBaseGroupAssignment] = useState(null);
   // '멋진 순간' 패널의 자리표 — 공부방과 같은 문서(seatLayouts/default)를 봅니다.
   // 두 화면 중 어디서 자리를 옮기든 서로 어긋나지 않습니다.
@@ -263,12 +262,6 @@ function BooksPageInner() {
     return subscribeStudySeatLayout(classId, "default", setSeatLayout);
   }, [admin, classId]);
 
-  // 교사: 모둠 구성용 반 학생 명단
-  useEffect(() => {
-    if (!admin || !classId) { setMemberUids([]); return; }
-    return subscribeClassMembers(classId, setMemberUids);
-  }, [admin, classId]);
-
   // 왼쪽 '오늘' 패널 — 공부방의 그 패널을 그대로 씁니다. 오늘 이 반이 어떻게
   // 움직였는지(출석·카드·성찰·과일)는 책방에서 활동을 하는 동안에도 똑같이
   // 궁금한 것이라, 화면을 옮겨 다니지 않게 여기에도 놓습니다.
@@ -302,24 +295,10 @@ function BooksPageInner() {
     [studyBoards, classId]
   );
 
-  const roster = useMemo(() => {
-    const dir = new Map(directory.map((d) => [d.uid, d]));
-    const countByUid = {};
-    rewards.forEach((r) => { countByUid[r.uid] = r.count ?? 0; });
-    return memberUids
-      .map((uid) => {
-        const d = dir.get(uid) ?? {};
-        return {
-          uid,
-          name: d.realName || d.studentId || "이름 미설정",
-          studentId: d.studentId || null,
-          emoji: d.emoji || "🙂",
-          // 누적 총계 — 없으면 '과일 주기' 창이 0으로 보고 '−1'을 잠급니다.
-          count: countByUid[uid] ?? 0,
-        };
-      })
-      .sort((a, b) => (a.studentId || a.name).localeCompare(b.studentId || b.name, "ko"));
-  }, [memberUids, directory, rewards]);
+  // 교사: 모둠 구성·자리표용 반 학생 명단 — 소속 × 디렉터리(실명) × 과일 누적,
+  // 학번순(lib/roster.js). 과일 누적(`count`)이 없으면 '과일 주기' 창이 '−1'을
+  // 잠급니다(위 rewards 주석).
+  const { roster } = useClassRoster(classId, { enabled: admin, directory, rewards });
 
   // 오늘 출석한 학생 — 공부방과 같은 기준입니다(app/study/page.js).
   // 출석을 아직 시작하지도, 기록이 하나도 남지도 않았으면 null을 주어 자리를

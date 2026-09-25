@@ -17,7 +17,6 @@ import {
   dailySeatLayoutId,
   setStudentReward,
   addStudentReward,
-  subscribeClassMembers,
   subscribeClassRewards,
   subscribeQuestionSignals,
   subscribeStudySeatLayout,
@@ -27,6 +26,7 @@ import {
 import { normalizeSeats } from "@/lib/seats";
 import { useSeatView } from "@/lib/seatView";
 import { useTodayRewardCounts } from "@/lib/useTodayRewards";
+import { useClassRoster } from "@/lib/useClassRoster";
 import SeatViewToggle from "./SeatViewToggle";
 import SeatGrid from "./SeatGrid";
 import StudentNotesThread from "./StudentNotesThread";
@@ -191,7 +191,6 @@ export function SeatPickGrid({
 }
 
 export default function QuestionSeatModal({ classId, onClose }) {
-  const [memberUids, setMemberUids] = useState([]);
   const [directory, setDirectory] = useState([]);
   const [rewards, setRewards] = useState([]);
   const [seatLayout, setSeatLayout] = useState(null);
@@ -215,11 +214,6 @@ export default function QuestionSeatModal({ classId, onClose }) {
   }
 
   const todayLayoutId = dailySeatLayoutId(todayDateKey());
-
-  useEffect(() => {
-    if (!classId) return;
-    return subscribeClassMembers(classId, setMemberUids);
-  }, [classId]);
 
   useEffect(() => subscribeUserDirectory(setDirectory), []);
 
@@ -245,22 +239,11 @@ export default function QuestionSeatModal({ classId, onClose }) {
     );
   }, [classId]);
 
-  // 명단 — 참여 전광판과 같은 방식으로 디렉터리(실명·학번)와 과일 수를 붙입니다
-  const roster = useMemo(() => {
-    const dir = new Map(directory.map((d) => [d.uid, d]));
-    const countByUid = {};
-    rewards.forEach((r) => { countByUid[r.uid] = r.count ?? 0; });
-    return memberUids.map((uid) => {
-      const d = dir.get(uid) || {};
-      return {
-        uid,
-        name: d.realName || d.studentId || "이름 미설정",
-        studentId: d.studentId || null,
-        emoji: d.emoji || "🙂",
-        count: countByUid[uid] ?? 0,
-      };
-    });
-  }, [memberUids, directory, rewards]);
+  // 명단 — 참여 전광판·'멋진 순간' 자리표와 같은 셈입니다(lib/roster.js).
+  // 학번순이어야 합니다: 자리표에 아직 없는 학생을 빈자리에 채울 때
+  // (`normalizeSeats`) 명단 차례를 그대로 써서, 이 창만 정렬이 빠져 있던 동안
+  // 같은 교실이 여기서만 다른 자리에 앉았습니다.
+  const { roster } = useClassRoster(classId, { directory, rewards });
 
   // 오늘 임시 자리표가 있으면 그것을, 없으면 기본 자리표를 씁니다(전광판과 동일)
   const seats = useMemo(
