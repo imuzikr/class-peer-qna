@@ -1,0 +1,71 @@
+# =============================================================
+# CI — main에 올라가는 것과 PR을 세 갈래로 확인합니다.
+# -------------------------------------------------------------
+# 배포와는 무관합니다: 앱은 Vercel이 main 푸시를 받아 알아서 배포하고,
+# 규칙·함수 배포는 npm run deploy입니다(CLAUDE.md '배포'). 여기서 빨간불이
+# 떠도 배포가 멈추지는 않으니, **main에 올리기 전에** 이 결과를 보세요.
+#
+# 세 갈래는 서로 기다리지 않고 나란히 돕니다.
+#   · app   — 단위 시험(npm run test:unit) + 프로덕션 빌드
+#   · rules — Firestore 보안 규칙 시험(에뮬레이터 — Java가 필요)
+#   · lint  — ESLint. 경고는 통과, 오류(훅을 조건문 안에서 부르는 등)만 실패
+# =============================================================
+name: CI
+
+on:
+  push:
+    # claude/** — 작업 브랜치에서 main에 올리기 전에 미리 확인하려고
+    branches: [main, "claude/**"]
+  pull_request:
+  workflow_dispatch:
+
+# 같은 브랜치에 새로 올리면 앞의 것은 멈춥니다(결과를 볼 일이 없으므로).
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  app:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run test:unit
+      - run: npm run build
+
+  rules:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tests/rules/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      # 에뮬레이터 jar를 매번 받지 않게
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/firebase/emulators
+          key: firebase-emulators-${{ hashFiles('tests/rules/package-lock.json') }}
+      - run: npm ci --prefix tests/rules
+      - run: npm run test:rules
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tools/lint/package-lock.json
+      - run: npm ci --prefix tools/lint
+      - run: npm run lint

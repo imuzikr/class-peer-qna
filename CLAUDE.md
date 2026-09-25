@@ -15,11 +15,32 @@
 npm run dev        # 개발 서버 (http://localhost:3000)
 npm run build      # 프로덕션 빌드
 npm run test:rules # Firestore 보안 규칙 테스트 (에뮬레이터, Java 필요)
+npm run test:unit  # lib/ 순수 함수 시험 (설치 없음 — node --test)
+npm run lint       # ESLint 훅 규칙 (보고만, 최초 1회 npm ci --prefix tools/lint)
 ```
 
 규칙 테스트는 `tests/rules/`에 있고 최초 1회 `cd tests/rules && npm install`이
 필요합니다. 루트와 분리한 이유·작성 시 주의점은 `tests/rules/README.md` 참고.
 **`firestore.rules`를 고치면 반드시 이 테스트를 돌리고 배포하세요.**
+
+**단위 시험**(`tests/unit/`)은 앱 코드를 **그대로 import**합니다 —
+`tests/unit/resolve.mjs`가 `@/` 별칭과 확장자 없는 import를 풀어 줍니다.
+시험 도구를 설치하지 않은 것은 규칙 시험을 떼어 둔 것과 같은 까닭입니다.
+**JSX는 못 읽으니** 컴포넌트 안의 셈을 시험하려면 lib/의 함수로 빼내세요
+(`RewardTiming` → `lib/lessonSessions.js`의 `rewardTimingStat`).
+Firebase를 import하는 `lib/store.js`도 못 읽습니다 — 순수 함수를 store.js에
+새로 두지 말고 제 파일에 두세요(날짜는 `lib/dates.js`, store.js가 같은
+이름으로 다시 내보냅니다). `tests/ui/`의 둘(popover · 과일 축포)은 React
+훅을 가짜로 바꿔 끼우는 시험이라 소스를 잘라 쓰는 방식을 일부러 둡니다.
+
+**린트**는 설치물만 `tools/lint/`에, 설정은 루트 `eslint.config.mjs`에
+있습니다(ESLint는 설정 파일 폴더 바깥을 무시합니다). `next build`는
+린트를 건너뜁니다(`eslint.ignoreDuringBuilds`). 지금은 경고 34개 —
+의존성 빠짐 22 · 쓸모없어진 끄기 주석 5 등 — 를 **보고만** 합니다.
+
+**CI**(`.github/workflows/ci.yml`)가 main과 `claude/**` 푸시, PR에서 위
+셋과 빌드를 돌립니다. 배포를 막지는 않으니(Vercel은 따로 배포합니다)
+**main에 올리기 전에** 작업 브랜치의 결과를 보세요.
 
 ## 배포 (Firestore 규칙 · Cloud Functions)
 
