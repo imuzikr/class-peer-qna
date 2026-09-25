@@ -17747,6 +17747,10 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
 .study-mycard-col { min-height: 420px; }
 
 /* 활동 하나를 크게 쓰는 모달 */
+/* 수업 노트 서랍(3001) 위 — 서랍에 프로젝트 활동을 연 채로 칸을 누르면
+   서랍이 창의 오른쪽(× 단추)을 덮었습니다. 노트 크게 보기(3010)와 같은 층. */
+.study-act-backdrop { z-index: 3010; }
+
 .modal.study-act-modal {
   width: min(980px, 94vw);
   max-width: 94vw;

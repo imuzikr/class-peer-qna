@@ -61,6 +61,7 @@ import { getSelectedClassId, setSelectedClassId } from "@/lib/classroom";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import AuthGate from "@/components/AuthGate";
 import { codeBlockHtml } from "@/lib/html";
+import { openProjectTask } from "@/lib/projectTask";
 import {
   loadSameNameProject,
   groupLegacyProjects,
@@ -179,9 +180,6 @@ function StudyPageInner() {
   const [askCode, setAskCode] = useState(null);     // 파이썬 실행기에서 넘어온 코드
   const [askKwlW, setAskKwlW] = useState(null);    // KWL W칸에서 넘어온 텍스트
   const [pyOpen, setPyOpen] = useState(false);      // 파이썬 실행 패널
-  // 학생 카드의 '파이썬 실행기' 단추로 열 때 보낼 곳 — { boardId, actIndex, seq }.
-  // seq는 누를 때마다 바뀌어, 같은 활동을 다시 눌러도 2단이 펼쳐집니다.
-  const [pyPreset, setPyPreset] = useState(null);
   const [cardModalOpen, setCardModalOpen] = useState(false); // StudyProjectView 모달
   const [kwlMobileOpen, setKwlMobileOpen] = useState(false); // 모바일 KWL 패널 (현재 보관 중)
   // 학생용 KWLS 차트 패널 — 왼쪽에서 폭을 벌리며 밀고 들어옵니다(떠 있지 않음)
@@ -1080,9 +1078,12 @@ function StudyPageInner() {
                   attendanceRecords={admin ? attendanceRecords : []}
                   onBack={closeProject}
                   onAsk={(kw) => setAskKeyword(kw)}
+                  // 학생 카드의 '파이썬 실행기' 단추 — 실행기가 아니라 **수업
+                  // 노트 서랍**에 그 활동 칸을 엽니다(lib/projectTask.js).
+                  // 실행기가 떠 있으면 접습니다 — 둘 다 오른쪽에서 나와 겹칩니다.
                   onOpenPython={(boardId, actIndex) => {
-                    setPyPreset({ boardId, actIndex, seq: Date.now() });
-                    setPyOpen(true);
+                    setPyOpen(false);
+                    openProjectTask(boardId, actIndex);
                   }}
                   onModalChange={setCardModalOpen}
                   onDeleted={() => {
@@ -1431,7 +1432,6 @@ function StudyPageInner() {
         pyTarget={currentClass?.pyTarget ?? null}
         user={user}
         isTeacher={admin}
-        preset={pyPreset}
         hasModalOpen={cardModalOpen || classManagerOpen || !!creatingProject || importingProject || attendanceOpen || seatSetupOpen || (askKeyword !== null || askCode !== null)}
       />
 

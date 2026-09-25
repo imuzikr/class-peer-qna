@@ -58,10 +58,14 @@ function samplePlaceholder() {
 // 2단 서랍입니다.
 //  1단 — 실행기만(지금까지의 모습).
 //  2단 — '프로젝트 연계'를 누르면 서랍이 **프로젝트 칸만큼만 더 벌어지고**
-//        오른쪽에 그 칸이 섭니다. 짠 코드를 프로젝트의 활동 칸으로 곧바로
-//        보낼 수 있고, 교사는 거기서 보낼 곳을 정하거나 프로젝트·활동을
-//        새로 만듭니다. **화면을 덮지 않습니다** — 2단은 서랍이 한 칸 더
-//        열리는 것이지 전체 화면이 아닙니다.
+//        오른쪽에 그 칸이 섭니다. 교사가 수업 중에 코드를 받을 활동을 고르고
+//        (잠겨 있으면 열림) 프로젝트·활동을 그 자리에서 만듭니다. **화면을
+//        덮지 않습니다** — 2단은 서랍이 한 칸 더 열리는 것이지 전체 화면이
+//        아닙니다.
+// **2단은 교사에게만 있습니다.** 학생은 카드의 활동 칸에서 '파이썬 실행기'를
+// 누르면 이 실행기가 아니라 **수업 노트 서랍**에 그 활동 칸이 열려, 거기서
+// 곧바로 쓰고 돌리고 저장합니다(CornellNoteDrawer의 '프로젝트 활동'). 학생의
+// 실행기는 1단 연습장입니다 — 길게 짜 보고, 복사해 서랍의 코드 블록에 붙입니다.
 // 넓히기만 하던 예전 '전체 화면'은 없앴습니다 — 넓어지는 것은 프로젝트 칸을
 // 놓느라 따라오는 일이지 그 자체가 모드일 이유가 없었습니다. 그래서 연계할
 // 프로젝트가 없는 화면(질문방)에는 이 단추가 아예 없습니다.
@@ -79,9 +83,6 @@ export default function PythonRunner({
   pyTarget = null,
   user = null,
   isTeacher = false,
-  // 학생 카드의 '파이썬 실행기' 단추로 열 때 — 그 활동을 보낼 곳으로 잡고
-  // 2단을 펼칩니다({ boardId, actIndex, seq }).
-  preset = null,
 }) {
   const [stdinText, setStdinText] = useState("홍길동");
   const [lines, setLines] = useState([]); // 출력 줄 목록 {type, text}
@@ -94,8 +95,6 @@ export default function PythonRunner({
   const viewRef = useRef(null);
   const runRef = useRef(() => {});
   const panelRef = useRef(null);
-  // 지금 출력 칸에 있는 결과를 낸 코드 (아직 한 번도 안 돌렸으면 null)
-  const ranCodeRef = useRef(null);
 
   // 패널 바깥을 클릭하면 실행기를 닫습니다.
   // (모달이 떠 있을 땐 무시, 실행기 토글 버튼[data-py-toggle] 클릭도 무시)
@@ -204,9 +203,6 @@ export default function PythonRunner({
     const code = viewRef.current?.state.doc.toString() ?? "";
     if (!code.trim()) return;
     setLines([]);
-    // 이 출력이 '어느 코드가 낸 것인지' 적어 둡니다 — '활동으로 보내기'가
-    // 고쳐 놓고 다시 안 돌린 코드에 지난 결과를 붙이지 않게(lib/pyShare.js).
-    ranCodeRef.current = code;
 
     const how = runPython({
       code,
@@ -272,17 +268,12 @@ export default function PythonRunner({
     setStatus("idle");
   }
 
-  // 카드의 단추로 열렸으면 2단을 펼칩니다 — 보낼 곳이 이미 정해져 있으니
-  // '활동으로 보내기'가 곧바로 보여야 합니다. 누를 때마다 seq가 바뀝니다.
-  useEffect(() => {
-    if (preset?.seq) setLinked(true);
-  }, [preset?.seq]);
-
-  // 2단을 달 수 있는 화면인가 — 프로젝트 목록과 반이 함께 있어야 합니다.
+  // 2단을 달 수 있는 화면인가 — **교사**이고, 프로젝트 목록과 반이 함께
+  // 있어야 합니다(학생은 1단뿐 — 위 머리 주석).
   // 아니면 단추 자체가 없습니다. 예전에는 이 자리가 '전체 화면'이라 연계할
   // 것이 없어도 넓히기는 했는데, 넓히기만 하는 모드는 따로 둘 이유가
   // 없어졌습니다(넓어지는 것은 프로젝트 칸을 놓느라 따라오는 일입니다).
-  const canLink = !!(boards && classId && user);
+  const canLink = !!(isTeacher && boards && classId && user);
   // 모달이 열려 있으면 2단을 접습니다 — 화면을 다 덮으면 모달이 안 보입니다.
   const linkedOpen = linked && canLink && !hasModalOpen;
 
@@ -375,7 +366,7 @@ export default function PythonRunner({
               title={
                 linked
                   ? "실행기만 보기 — 프로젝트 칸을 접습니다"
-                  : "프로젝트 연계 — 짠 코드를 프로젝트 활동으로 보낼 수 있습니다"
+                  : "프로젝트 연계 — 코드를 받을 활동을 고르고(잠겨 있으면 열림) 그 자리에서 만듭니다"
               }
               tabIndex={hasModalOpen ? -1 : 0}
             >
@@ -470,11 +461,6 @@ export default function PythonRunner({
             templates={templates}
             pyTarget={pyTarget}
             user={user}
-            isTeacher={isTeacher}
-            getCode={() => viewRef.current?.state.doc.toString() ?? ""}
-            getLines={() => lines}
-            getRanCode={() => ranCodeRef.current}
-            preset={preset}
           />
         )}
       </div>

@@ -663,22 +663,22 @@ export default function StudyMyActivityCard({
                     title="눌러서 크게 쓰기"
                   >
                     {/* 파이썬 실행기 — 칸 오른쪽 위. 이 단추만은 크게 쓰기 창을
-                        열지 않고 곧바로 실행기로 갑니다(칸을 여는 클릭까지
-                        번지지 않게 막습니다). data-py-toggle은 실행기가 열려
-                        있을 때 이 단추를 '바깥 클릭'으로 보고 닫지 않게 하는
-                        표시입니다 — 다른 활동의 단추를 누르면 닫혔다 다시
-                        열리는 대신 보낼 곳만 옮겨 갑니다. */}
+                        열지 않고 곧바로 **수업 노트 서랍**에 이 활동 칸을
+                        엽니다(칸을 여는 클릭까지 번지지 않게 막습니다). 거기서
+                        코드를 쓰고 ▶ 실행 · 결과 붙이기를 하고, 쓴 것은 이
+                        카드에 곧바로 저장됩니다(CornellNoteDrawer의 '프로젝트
+                        활동'). 이름은 그대로 '파이썬 실행기'입니다 — 학생에게는
+                        '여기서 파이썬을 돌린다'가 그 이름으로 익어 있습니다. */}
                     {onOpenPython && (
                       <button
                         type="button"
                         className="study-mycard-py"
-                        data-py-toggle
                         onClick={(e) => {
                           e.stopPropagation();
                           onOpenPython(i);
                         }}
                         onKeyDown={(e) => e.stopPropagation()}
-                        title="파이썬 실행기를 열어 이 활동으로 보내기"
+                        title="오른쪽 서랍에 이 활동을 열어 코드를 쓰고 돌려 봐요"
                       >
                         <IconPythonRunner size={16} /> 파이썬 실행기
                       </button>
@@ -796,11 +796,12 @@ export default function StudyMyActivityCard({
             })
           }
           onClose={() => setEditingAct(null)}
-          // 서식 줄 끝의 '파이썬 실행기' — 창을 닫고 실행기를 엽니다. 창이 떠
-          // 있는 동안은 보낸 내용을 카드에 들여오지 않으므로(그 편집기는 열 때
-          // 한 번만 읽습니다) 먼저 닫아야 보낸 것이 칸에 나타납니다. 쓰던 글은
-          // 곧바로 저장해 둡니다 — 저장 전에 보낸 코드가 들어오면 그 칸은 '쓰는
-          // 중'으로 보여 들여오지 않고, 그 뒤 자동 저장이 보낸 것을 덮습니다.
+          // 서식 줄 끝의 '파이썬 실행기' — 창을 닫고 수업 노트 서랍에 이 활동
+          // 칸을 엽니다. 창이 떠 있는 동안은 밖(서랍)에서 쓴 것을 카드에 들여오지
+          // 않으므로(그 편집기는 열 때 한 번만 읽습니다) 닫아야 서랍과 한 글을
+          // 봅니다. 쓰던 글은 **곧바로 저장**해 둡니다 — 서랍은 저장된 카드를
+          // 읽으므로, 안 그러면 방금 쓴 것이 서랍에 없고 그 뒤 서랍의 저장이
+          // 그 칸을 옛 글로 되돌립니다.
           onOpenPython={
             onOpenPython
               ? () => {
@@ -844,7 +845,11 @@ function ActivityEditorModal({
   const done = chars >= DONE_MIN_CHARS;
 
   return (
-    <div className="modal-backdrop" {...backdropClose(onClose)}>
+    // 배경을 **수업 노트 서랍(3001) 위로** 올립니다(.study-act-backdrop) —
+    // 서랍에 '프로젝트 활동'을 연 채로 칸을 누르면 서랍이 창 오른쪽을 덮어
+    // × 단추를 못 눌렀습니다(실측). 같은 카드를 두 곳에서 동시에 고칠 일도
+    // 없어집니다 — 창을 닫으면 서랍이 저장된 글을 구독으로 따라옵니다.
+    <div className="modal-backdrop study-act-backdrop" {...backdropClose(onClose)}>
       <div
         className="modal study-act-modal"
         role="dialog"
@@ -887,10 +892,9 @@ function ActivityEditorModal({
               <button
                 type="button"
                 className="rte-tool rte-py-tool"
-                data-py-toggle
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={onOpenPython}
-                title="창을 닫고 파이썬 실행기를 열어요 — 짠 코드를 이 활동으로 보낼 수 있어요"
+                title="창을 닫고 오른쪽 서랍에 이 활동을 열어요 — 거기서 코드를 쓰고 돌려 봐요"
               >
                 <IconPythonRunner size={16} /> 파이썬 실행기
               </button>

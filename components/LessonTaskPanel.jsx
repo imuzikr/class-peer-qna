@@ -32,16 +32,27 @@
 // 공부방으로 건너가야 했습니다. 잠긴 활동은 깔지 않습니다 — 학생이 아직 쓰면
 // 안 되는 자리입니다.
 //
+// [수업 밖에서도 — '프로젝트 활동']
+// 파이썬 실행기와 연계된 프로젝트에서 학생이 활동 칸의 '파이썬 실행기' 단추를
+// 누르면 이 칸이 같은 모습으로 열립니다(`task.local` — CornellNoteDrawer의
+// '프로젝트 활동' 절). 그때는 선생님이 보낸 것이 아니므로 머리말이 '오늘의
+// 활동'이 아니라 '프로젝트 활동'이고, 방송 점을 달지 않습니다.
+//
 // [읽는 문서]
-// 프로젝트 1건(`fetchStudyBoard`) + 내 카드 1건(`fetchStudyCardOnce`).
+// 프로젝트 1건(`fetchStudyBoard`) + 내 카드 **구독** 1건(`subscribeStudyCard`).
 // 반 문서는 상단바가 이미 구독하고 있어 그대로 받아 씁니다(새 구독 없음).
+// 카드를 한 번만 읽던 것을 구독으로 바꾼 까닭: 프로젝트 화면에서는 서랍 뒤에
+// **같은 카드가 열려 있습니다.** 한 번 읽은 옛 내용으로 카드 전체를 다시 짜
+// 쓰면, 카드 화면에서 방금 고친 다른 칸이 옛 값으로 되돌아갑니다. 지금은
+// 칸마다 '아직 저장 안 한 글이 있나'를 보고, 없는 칸만 서버 값을 들입니다
+// (StudyMyActivityCard가 밖에서 온 값을 칸 단위로 들이는 것과 같은 생각).
 // **보낸 활동이 바뀌면 프로젝트를 다시 읽습니다**(1건) — 교사는 보내면서 그
 // 활동을 여는데, 같은 프로젝트의 다음 활동을 보내면 프로젝트 id는 그대로라
 // 처음 읽기가 다시 돌지 않습니다. 그러면 학생 화면이 방금 연 활동을 아직
 // 잠긴 것으로 알고 '선생님이 이 활동을 열어 주면 쓸 수 있어요'에서 멈춥니다
 // (실제로 그랬습니다 — 책방 쪽에서 겪은 그 함정과 같습니다).
-// **카드는 다시 안 읽습니다** — 지금 화면에 든 것이 더 새것이고, 덮어쓰면
-// 방금 친 글자가 날아갑니다.
+// 카드는 구독이라 따로 다시 읽지 않습니다. 쓰는 중인 칸은 서버 값이 와도
+// 안 들입니다 — 덮어쓰면 방금 친 글자가 날아갑니다.
 //
 // [모둠 프로젝트는 못 씁니다]
 // 규칙이 학생의 카드 **생성**을 막습니다(모둠 카드는 교사가 만들어 둡니다).
@@ -51,7 +62,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   fetchStudyBoard,
-  fetchStudyCardOnce,
+  subscribeStudyCard,
   addStudyCard,
   updateStudyCard,
 } from "@/lib/store";
@@ -168,7 +179,6 @@ function dedent(code) {
 export default function LessonTaskPanel({ task, user, onType }) {
   const [board, setBoard] = useState(null);
   const [card, setCard] = useState(null);
-  const [loaded, setLoaded] = useState(false);
   const [status, setStatus] = useState("idle"); // idle | saving | saved
   const [error, setError] = useState("");
   // 접힌 활동 중 학생이 펴 둔 것 — 보낸 활동은 늘 펼쳐집니다.
@@ -176,33 +186,75 @@ export default function LessonTaskPanel({ task, user, onType }) {
 
   const boardId = task?.boardId ?? "";
   const idx = task?.actIndex ?? 0;
+  const local = !!task?.local; // 수업 밖 — 학생이 스스로 연 '프로젝트 활동'
+  const tagWord = local ? "프로젝트 활동" : "오늘의 활동";
 
-  // 프로젝트와 내 카드를 한 번씩 읽습니다.
+  // 칸마다 에디터가 지금 담고 있는 글 — 서버 값이 이것과 다를 때만 갈아
+  // 끼웁니다(ver를 올려 다시 마운트). 저장한 값은 **쓰기 전에** 되읽은
+  // 모양으로 적어 둡니다 — 쓰는 순간 구독이 곧바로 돌아오므로(지연 보정),
+  // 그 뒤에 적으면 방금 쓴 것을 '밖에서 온 값'으로 보고 커서가 튑니다.
+  const shownRef = useRef({});
+  const [ver, setVer] = useState({});
+  // 아직 저장 안 된 글 — 아래 '자동 저장' 참고(구독 콜백이 봐야 해서 위에 둡니다)
+  const pendingRef = useRef(null);
+
+  // 프로젝트는 한 번 읽습니다.
+  const [boardLoaded, setBoardLoaded] = useState(false);
   useEffect(() => {
-    if (!boardId || !user?.uid) { setLoaded(true); return undefined; }
+    if (!boardId || !user?.uid) { setBoardLoaded(true); return undefined; }
     let alive = true;
-    setLoaded(false);
+    setBoardLoaded(false);
     setError("");
-    (async () => {
-      try {
-        const [b, c] = await Promise.all([
-          fetchStudyBoard(boardId),
-          fetchStudyCardOnce(boardId, user.uid),
-        ]);
-        if (!alive) return;
-        setBoard(b);
-        setCard(c);
-      } catch (e) {
+    fetchStudyBoard(boardId)
+      .then((b) => { if (alive) setBoard(b); })
+      .catch((e) => {
         if (alive) setError(`활동을 불러오지 못했어요: ${e?.message ?? "알 수 없는 오류"}`);
-      } finally {
-        if (alive) setLoaded(true);
-      }
-    })();
+      })
+      .finally(() => { if (alive) setBoardLoaded(true); });
     return () => { alive = false; };
   }, [boardId, user?.uid]);
 
-  // 보낸 활동이 바뀌면 **프로젝트만** 다시 읽습니다(잠금이 방금 열렸을 수
-  // 있어서). 프로젝트 자체가 바뀐 경우는 위 효과가 이미 읽으므로 비켜 줍니다.
+  // 내 카드는 **구독**합니다(머리 주석 '읽는 문서'). 쓰는 중인 칸(아직 저장
+  // 안 한 글이 있는 칸)은 서버 값이 와도 안 들입니다.
+  const [cardLoaded, setCardLoaded] = useState(false);
+  useEffect(() => {
+    if (!boardId || !user?.uid) { setCardLoaded(true); return undefined; }
+    setCardLoaded(false);
+    shownRef.current = {};
+    setVer({});
+    let first = true; // 첫 답은 에디터가 그것으로 처음 그려지므로 견줄 것이 없습니다
+    return subscribeStudyCard(boardId, user.uid, (c) => {
+      const incoming = c ? parseActivitySections(c.content) : [];
+      const drafts =
+        pendingRef.current?.t?.boardId === boardId ? pendingRef.current.drafts : {};
+      const bump = [];
+      incoming.forEach((s, i) => {
+        if (Object.prototype.hasOwnProperty.call(drafts, i)) return;
+        const now = s?.content ?? "";
+        // 처음 본 칸은 빈 칸으로 그려져 있었습니다(카드가 아직 없었거나 그
+        // 칸이 없던 카드) — 그 사이 밖에서 채워졌으면 들여야 합니다.
+        const had = i in shownRef.current ? shownRef.current[i] : "";
+        if (!first && had !== now) bump.push(i);
+        shownRef.current[i] = now;
+      });
+      first = false;
+      if (bump.length) {
+        setVer((prev) => {
+          const next = { ...prev };
+          bump.forEach((i) => { next[i] = (next[i] ?? 0) + 1; });
+          return next;
+        });
+      }
+      setCard(c);
+      setCardLoaded(true);
+    });
+  }, [boardId, user?.uid]);
+
+  const loaded = boardLoaded && cardLoaded;
+
+  // 보낸 활동이 바뀌면(또는 같은 활동을 다시 열면) **프로젝트만** 다시
+  // 읽습니다(잠금이 방금 열렸을 수 있어서). 프로젝트 자체가 바뀐 경우는 위
+  // 효과가 이미 읽으므로 비켜 줍니다.
   const readBoardIdRef = useRef("");
   useEffect(() => {
     const first = readBoardIdRef.current !== boardId;
@@ -213,7 +265,19 @@ export default function LessonTaskPanel({ task, user, onType }) {
       .then((b) => { if (alive && b) setBoard(b); })
       .catch(() => {});
     return () => { alive = false; };
-  }, [boardId, idx]);
+  }, [boardId, idx, task?.at]);
+
+  // 수업 밖에서 연 칸은 **누른 활동에 커서를 둡니다** — 단추를 누른 뜻이
+  // '여기에 코드를 쓰겠다'라서요. 수업 중에는 안 합니다(선생님이 보낼 때마다
+  // 스물몇 명의 커서를 옮기면 다른 칸에 쓰던 학생의 손이 끊깁니다).
+  const rootRef = useRef(null);
+  useEffect(() => {
+    if (!local || !loaded) return undefined;
+    const t = setTimeout(() => {
+      rootRef.current?.querySelector(".ltask-step.on .rte-area")?.focus();
+    }, 300); // 서랍이 미끄러져 들어온 뒤에
+    return () => clearTimeout(t);
+  }, [local, loaded, idx, task?.at]);
 
   const acts = Array.isArray(board?.activities) ? board.activities : [];
   // 탭 머리의 '오늘의 활동 N'이 이미 차례를 말하므로, 이름이 기본값
@@ -242,7 +306,7 @@ export default function LessonTaskPanel({ task, user, onType }) {
   // 활동을 보낼 수 있어, 저장하는 순간의 자리로 쓰면 글이 옆 칸에 들어갑니다.
   // 자리를 **맵으로** 모으는 것은 칸이 여럿 펼쳐질 수 있기 때문입니다 — 한
   // 자리만 들고 있으면 접힌 것을 펴서 고친 글이 다음 저장에 덮입니다.
-  const pendingRef = useRef(null);
+  // (`pendingRef`는 구독 콜백이 봐야 해서 위에서 만듭니다.)
 
   const loadedRef = useRef(null);
   loadedRef.current = {
@@ -262,23 +326,32 @@ export default function LessonTaskPanel({ task, user, onType }) {
     pendingRef.current = null;
     const { t, drafts } = p;
     if (!t?.boardId || t.isGroup) return;
-    const titles = t.acts.map((a, i) => t.secs[i]?.title || a);
+    // 다른 칸은 **지금 구독으로 든 카드**에서 옮겨 담습니다. 글자를 칠 때
+    // 붙들어 둔 카드(t.secs)를 쓰면, 그 사이 카드 화면에서 고친 칸이 옛
+    // 값으로 되돌아갑니다. 프로젝트가 갈렸으면 붙들어 둔 것 그대로.
+    const now = loadedRef.current;
+    const same = now?.boardId === t.boardId;
+    const secsNow = same ? now.secs : t.secs;
+    const cardId = same ? now.cardId : t.cardId;
+    const titles = t.acts.map((a, i) => secsNow[i]?.title || a);
     const contents = t.acts.map((_, i) =>
-      Object.prototype.hasOwnProperty.call(drafts, i) ? drafts[i] : t.secs[i]?.content ?? ""
+      Object.prototype.hasOwnProperty.call(drafts, i) ? drafts[i] : secsNow[i]?.content ?? ""
     );
     const html = buildActivityHtml(titles, contents);
+    // 쓰기 **전에** 적어 둡니다 — 구독이 곧바로 돌아와도 제 글로 알아봅니다
+    // (위 shownRef 주석).
+    if (same) {
+      const back = parseActivitySections(html);
+      Object.keys(drafts).forEach((k) => {
+        shownRef.current[k] = back[k]?.content ?? "";
+      });
+    }
     setStatus("saving");
     try {
-      if (t.cardId) {
-        await updateStudyCard(t.boardId, t.cardId, { content: html });
+      if (cardId) {
+        await updateStudyCard(t.boardId, cardId, { content: html });
       } else {
         await addStudyCard(user, t.boardId, { content: html });
-      }
-      // 방금 쓴 것을 손에 들고 있어야 다음 저장이 이 값을 이어 씁니다
-      // (구독이 아니라 한 번 읽기라 서버가 다시 알려 주지 않습니다).
-      // 그 사이에 다른 프로젝트가 내려와 카드가 갈렸으면 건드리지 않습니다.
-      if (t.boardId === loadedRef.current?.boardId) {
-        setCard((prev) => ({ ...(prev ?? { id: user.uid }), content: html }));
       }
       // 쓰는 사이에 또 고쳤으면 '저장됨'이 아닙니다 — 곧 다시 저장됩니다.
       setStatus(pendingRef.current ? "idle" : "saved");
@@ -452,13 +525,13 @@ export default function LessonTaskPanel({ task, user, onType }) {
 
   if (!loaded) return <p className="cornell-empty">활동을 불러오는 중이에요…</p>;
   if (!board) {
-    return <p className="cornell-empty">오늘의 활동을 찾지 못했어요.</p>;
+    return <p className="cornell-empty">{tagWord}을 찾지 못했어요.</p>;
   }
 
   return (
-    <div className="ltask">
+    <div className="ltask" ref={rootRef}>
       <section className="ltask-head">
-        <span className="ltask-tag">오늘의 활동 {idx + 1}</span>
+        <span className="ltask-tag">{tagWord} {idx + 1}</span>
         {/* 이름은 아래 활동 줄이 말합니다 — 그 줄이 안 서는 때(잠김·모둠)
             에만 여기에 적습니다. 둘 다 적으면 같은 말이 두 줄입니다. */}
         {showName && (locked || isGroup) && (
@@ -507,7 +580,8 @@ export default function LessonTaskPanel({ task, user, onType }) {
                 <div className="ltask-fold open now">
                   <span className="ltask-fold-no">{i + 1}</span>
                   <span className="ltask-fold-name">{label}</span>
-                  <span className="broadcast-live-dot" aria-hidden="true" />
+                  {/* 방송 점은 선생님이 보낸 것에만 — 스스로 연 칸은 방송이 아닙니다 */}
+                  {!local && <span className="broadcast-live-dot" aria-hidden="true" />}
                 </div>
               ) : (
                 <button
@@ -538,11 +612,13 @@ export default function LessonTaskPanel({ task, user, onType }) {
                 </button>
               )}
               {/* 쓰는 칸 — 에디터는 비제어라 마운트 때 한 번만 읽습니다.
-                  프로젝트가 바뀌면 열쇠가 바뀌어 그 칸의 글로 갈아 끼웁니다. */}
+                  프로젝트가 바뀌면 열쇠가 바뀌어 그 칸의 글로 갈아 끼웁니다.
+                  밖(카드 화면)에서 이 칸이 고쳐지면 ver가 올라 새 글로
+                  다시 그립니다 — 쓰는 중인 칸은 올리지 않습니다. */}
               {open && (
                 <>
                 <RichTextEditor
-                  key={`ltask-${boardId}-${i}`}
+                  key={`ltask-${boardId}-${i}-${ver[i] ?? 0}`}
                   className="ltask-rte"
                   tools={TASK_TOOLS}
                   initialHtml={richHtml(text)}
@@ -645,7 +721,9 @@ export default function LessonTaskPanel({ task, user, onType }) {
       )}
 
       <p className="ltask-note">
-        쓴 내용은 공부방의 내 카드에 저장돼요 — 수업이 끝난 뒤에도 이어서 쓸 수 있어요.
+        {local
+          ? "쓴 내용은 이 프로젝트의 내 카드에 곧바로 저장돼요."
+          : "쓴 내용은 공부방의 내 카드에 저장돼요 — 수업이 끝난 뒤에도 이어서 쓸 수 있어요."}
       </p>
       {error && <p className="form-error" role="alert">{error}</p>}
     </div>
