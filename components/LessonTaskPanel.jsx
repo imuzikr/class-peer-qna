@@ -276,13 +276,16 @@ export default function LessonTaskPanel({ task, user, onType }) {
   // 있습니다.
   const rootRef = useRef(null);
   const [codeSeq, setCodeSeq] = useState(0);
+  // 단추로 연 것(`task.focus`)에만 — 손잡이로 서랍을 연 뒤 탭을 편 것은
+  // 코드를 짜겠다는 뜻이 아닐 수 있어(앞서 쓴 글을 보러 온 것일 수도) 안 넣습니다.
+  const wantsCode = local && !!task?.focus;
   useEffect(() => {
-    if (!local || !loaded) return undefined;
+    if (!wantsCode || !loaded) return undefined;
     // 서랍이 미끄러져 들어온 뒤에 — 움직이는 동안 초점을 주면 브라우저가
     // 그 칸을 화면 안으로 끌어오느라 서랍이 튑니다.
     const t = setTimeout(() => setCodeSeq((n) => n + 1), 300);
     return () => clearTimeout(t);
-  }, [local, loaded, idx, task?.at]);
+  }, [wantsCode, loaded, idx, task?.at]);
 
   const acts = Array.isArray(board?.activities) ? board.activities : [];
   // 탭 머리의 '오늘의 활동 N'이 이미 차례를 말하므로, 이름이 기본값

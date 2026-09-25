@@ -52,7 +52,7 @@ import {
 import CornellNoteViewerModal from "./CornellNoteViewerModal";
 import { richHtml, stripHtml } from "@/lib/html";
 import { IconRecord } from "./StatusIcons";
-import { onOpenProjectTask } from "@/lib/projectTask";
+import { onOpenProjectTask, subscribeProjectContext } from "@/lib/projectTask";
 
 const SAVE_DELAY = 2000; // ms — 이만큼 입력이 없으면 저장
 const OPEN_KEY = "cornell-drawer-open";
@@ -102,12 +102,26 @@ export default function CornellNoteDrawer({
   // - **서랍을 닫으면 비웁니다.** 단추로 연 것이라, 손잡이로 다시 열면 노트로
   //   돌아옵니다(선생님이 보낸 활동은 닫아도 남습니다 — 오늘 것이라서요).
   const [projTask, setProjTask] = useState(null);
-  const task = projTask ?? classTask;
+  // **지금 머무는 프로젝트**(파이썬 실행기와 연계된 것) — 손잡이로 서랍을
+  // 직접 열어도 '프로젝트 활동' 탭이 서게 합니다. 단추로 연 것과 달리 칸을
+  // 저절로 켜거나 코드 블록을 넣지 않습니다(학생이 탭을 눌러 폅니다).
+  // 차례는 **단추로 연 것 → 선생님이 보낸 오늘의 활동 → 머무는 프로젝트**.
+  const [projCtx, setProjCtx] = useState(null);
+  useEffect(() => subscribeProjectContext(setProjCtx), []);
+  const ctxTask = useMemo(
+    () =>
+      projCtx
+        ? { kind: "study", boardId: projCtx.boardId, actIndex: projCtx.actIndex, local: true }
+        : null,
+    [projCtx]
+  );
+  const task = projTask ?? classTask ?? ctxTask;
   const taskWord = task?.local ? "프로젝트 활동" : "오늘의 활동";
   useEffect(
     () =>
       onOpenProjectTask(({ boardId, actIndex }) => {
-        setProjTask({ kind: "study", boardId, actIndex, at: Date.now(), local: true });
+        // focus — 단추로 연 것이라 그 활동 끝에 코드 블록을 두고 커서를 둡니다
+        setProjTask({ kind: "study", boardId, actIndex, at: Date.now(), local: true, focus: true });
         setPanes(new Set(["task"]));
         setOpen(true);
         try { localStorage.setItem(OPEN_KEY, "1"); } catch {}
@@ -566,7 +580,7 @@ export default function CornellNoteDrawer({
         title={
           open
             ? "수업 노트 닫기 (Esc)"
-            : task
+            : task && !task.local
               ? "오늘의 활동이 있어요 — 눌러서 쓰기"
               : unreadCount > 0
                 ? `선생님이 한 마디를 남겼어요 (${unreadCount}개)`
