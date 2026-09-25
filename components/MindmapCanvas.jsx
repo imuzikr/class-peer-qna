@@ -265,7 +265,6 @@ export default function MindmapCanvas({
     if (sy > marginY) ny = py - (sy - marginY);
     else if (sy < -marginY) ny = py + (-marginY - sy);
     if (nx !== px || ny !== py) setPan({ x: nx, y: ny });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId, positions]);
 
   // ── 휠 확대/축소 — 손가락(커서) 아래 지점을 붙잡은 채로 키웁니다 ──

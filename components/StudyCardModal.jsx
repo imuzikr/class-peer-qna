@@ -368,7 +368,6 @@ export default function StudyCardModal({
       if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
       if (dirtyRef.current) flushRef.current?.();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 방송 종료 — 교사가 '크게 보기'를 끄거나 모달을 닫으면 학생 화면도 원래대로.

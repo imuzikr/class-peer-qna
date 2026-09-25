@@ -281,7 +281,6 @@ export default function ConsonantDashboard({
   useEffect(() => {
     if (!casting || !canCast) return;
     return () => { stopBroadcast(classId).catch(() => {}); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [casting, canCast, classId]);
 
   async function toggleCast() {

@@ -54,7 +54,6 @@ export default function StudyPresentModal({ board, cards = [], onClose }) {
   useEffect(() => {
     if (!board.classId || !isTeacher(getCurrentUser())) return;
     return () => { stopBroadcast(board.classId); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [board.classId]);
 
   // 방송 내용 갱신 — 카드를 넘길 때마다 학생 화면도 같은 카드로 함께 넘어갑니다.

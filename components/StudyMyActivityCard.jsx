@@ -220,7 +220,6 @@ export default function StudyMyActivityCard({
       if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
       if (dirtyRef.current) flushRef.current?.();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── 밖에서 카드가 바뀌면 화면에 들여옵니다 ──────────────────

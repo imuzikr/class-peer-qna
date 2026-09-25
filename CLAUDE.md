@@ -35,8 +35,8 @@ Firebase를 import하는 `lib/store.js`도 못 읽습니다 — 순수 함수를
 
 **린트**는 설치물만 `tools/lint/`에, 설정은 루트 `eslint.config.mjs`에
 있습니다(ESLint는 설정 파일 폴더 바깥을 무시합니다). `next build`는
-린트를 건너뜁니다(`eslint.ignoreDuringBuilds`). 지금은 경고 34개 —
-의존성 빠짐 22 · 쓸모없어진 끄기 주석 5 등 — 를 **보고만** 합니다.
+린트를 건너뜁니다(`eslint.ignoreDuringBuilds`). 지금은 경고 29개 —
+의존성 빠짐 22 등 — 를 **보고만** 합니다(쓸모없어진 끄기 주석 5개는 지웠습니다).
 
 **CI**(`.github/workflows/ci.yml`)가 main과 `claude/**` 푸시, PR에서 위
 셋과 빌드를 돌립니다. 배포를 막지는 않으니(Vercel은 따로 배포합니다)
@@ -620,7 +620,7 @@ Firebase 미설정 시 자동으로 **데모 모드**로 동작 (새로고침 �
     같습니다). 활동 전체를 잠그는 `locked`는 그대로 규칙이 막습니다 —
     '수업 끝, 이제 아무도 못 고침'은 여전히 규칙이 보장합니다.
   - 헬퍼는 전부 `lib/paratext.js`에 있습니다(`isSectionLocked` ·
-    `sectionLocksWith` · `sectionLocksUpTo` · `firstLockedIndex`).
+    `sectionLocksWith` · `sectionLocksUpTo`).
 - `bookActivities/{id}.deleted` · `.deletedAt` · `.deletedBy` — **휴지통**
   활동 삭제는 곧바로 지우지 않고 이 표시만 찍습니다(`deleteBookActivity`).
   목록·학생 화면·통계에서 사라지지만 자료는 그대로라 `restoreBookActivity`로
@@ -1437,8 +1437,8 @@ Firebase 미설정 시 자동으로 **데모 모드**로 동작 (새로고침 �
   반이 칩으로 서고, 누르면 그 반에 **바로** 넣고 뺍니다.
 - **왜 필요했나**: 학기 초에 학생이 입장 코드를 잘못 눌러 옆 반에 들어가는
   일이 잦은데 고칠 길이 아예 없었습니다. 규칙이 소속 생성을 '본인 + 유효한
-  입장 코드'로만 열어 두어 교사는 넣지도 빼지도 못했고(`leaveClass`는 있었지만
-  어느 화면에서도 안 불렀습니다), 학생에게 코드를 다시 알려 주고 직접 들어오게
+  입장 코드'로만 열어 두어 교사는 넣지도 빼지도 못했고(학생이 스스로 나가는
+  `leaveClass`가 있었지만 어느 화면에서도 안 불러 지웠습니다), 학생에게 코드를 다시 알려 주고 직접 들어오게
   해야 했습니다.
 - **위 프로필 칸들과 달리 누르는 즉시 저장됩니다.** 소속은 `users`가 아니라
   `memberships` 문서라 '저장' 한 번에 함께 담을 수 없고, 담는 척하면 '취소'를
