@@ -28,6 +28,7 @@ import { backdropClose } from "@/lib/modal";
 import { addStudyCard, updateStudyCard, deleteStudyCard, formatTime } from "@/lib/store";
 import { useEntryCast } from "@/lib/useEntryCast";
 import { sanitizeHtml, stripHtml, htmlHasImage } from "@/lib/html";
+import { tidyCellsHtml } from "@/lib/pyCells";
 import {
   parseActivitySections,
   buildActivityHtml,
@@ -102,6 +103,11 @@ export default function StudyMyActivityCard({
   // 판정은 서랍 단추가 오는가(`onOpenPython`) — StudyProjectView가 이미
   // '연계 · 내 카드 · 모둠 아님 · 학생'을 걸러 줍니다.
   const drawerOnly = !!onOpenPython;
+  // 파이썬 연계 프로젝트의 칸은 **읽는 자리에서** 셀 모양으로 맞춰 그립니다
+  // (lib/pyCells.js의 tidyCellsHtml) — 옛 '결과 붙이기'가 두 번 붙인 결과나 끝에
+  // 남은 빈 코드 블록이 서랍에서 보는 모양(코드 하나에 결과 하나)과 같아집니다.
+  // 저장된 글은 그대로이고, 교사가 이 카드를 볼 때도 같은 모양입니다.
+  const shownHtml = (h) => (board.pyLinked ? tidyCellsHtml(h ?? "") : h ?? "");
   // 선생님이 붙인 참고 자료(활동별) — 예전 단일 자료도 함께 읽힙니다
   const materials = boardMaterials(board);
   const boardKeywords = Array.isArray(board.keywords)
@@ -641,7 +647,7 @@ export default function StudyMyActivityCard({
                   {stripHtml(activityContents[i] ?? "").trim() || htmlHasImage(activityContents[i] ?? "") ? (
                     <div
                       className="study-card-content study-mycard-col-body"
-                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(activityContents[i] ?? "") }}
+                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(shownHtml(activityContents[i])) }}
                     />
                   ) : (
                     <p className="activity-form-locked-note">
@@ -716,7 +722,7 @@ export default function StudyMyActivityCard({
                       <div
                         className="study-card-content study-mycard-preview-body"
                         dangerouslySetInnerHTML={{
-                          __html: sanitizeHtml(activityContents[i] ?? ""),
+                          __html: sanitizeHtml(shownHtml(activityContents[i])),
                         }}
                       />
                     ) : (
@@ -811,7 +817,7 @@ export default function StudyMyActivityCard({
         <ActivityViewModal
           index={editingAct}
           title={activityTitles[editingAct] ?? activities[editingAct] ?? ""}
-          html={activityContents[editingAct] ?? ""}
+          html={shownHtml(activityContents[editingAct])}
           onClose={() => setEditingAct(null)}
           onOpenPython={() => {
             const i = editingAct;

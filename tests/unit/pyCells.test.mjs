@@ -1,7 +1,7 @@
 // 파이썬 연계 활동의 셀(lib/pyCells.js) — 옛 카드를 셀로 풀고, 셀을 HTML로 적기.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseCells, serializeCells, dedent, isBlankHtml, codeUsesInput } from "@/lib/pyCells";
+import { parseCells, serializeCells, dedent, isBlankHtml, codeUsesInput, tidyCellsHtml } from "@/lib/pyCells";
 
 const LABEL = "<p><strong>실행 결과</strong></p>";
 
@@ -129,4 +129,16 @@ test("오류 글 — Pyodide 자신의 줄은 걷고 학생 코드의 줄만(lib
   );
   // 설치본 줄이 없으면 머리말만 걷습니다
   assert.equal(tidyTraceback("PythonError: EOFError: 입력값이 부족합니다"), "EOFError: 입력값이 부족합니다");
+});
+
+test("읽는 자리 — 옛 카드의 두 번 붙은 결과 · 빈 코드 블록이 서랍과 같은 모양으로", () => {
+  const html =
+    "<pre><code>print(123)</code></pre>" +
+    `${LABEL}<pre class="py-result"><code>123</code></pre>` +
+    `${LABEL}<pre class="py-result"><code>123</code></pre>` +
+    "<pre><code> </code></pre>";
+  assert.equal(
+    tidyCellsHtml(html),
+    '<pre class="py-code"><code>print(123)</code></pre><pre class="py-result"><code>123</code></pre>'
+  );
 });
