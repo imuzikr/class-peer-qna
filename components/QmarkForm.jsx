@@ -6,13 +6,15 @@
 // 종이 활동지를 옮기되, 두 군데를 넓혔습니다(선생님 요청).
 //   ① 나의 물음표 — 읽으며 물음표를 붙인 곳 가운데 중요한 물음과 그 이유를
 //      **여러 쌍**(QMARK_ASK_MAX까지) 적습니다. '＋ 물음표 더하기'로 늘리고
-//      쌍마다 ✕로 뺍니다(글이 든 쌍은 되묻습니다).
+//      쌍마다 ✕로 뺍니다(글이 든 쌍은 되묻습니다). 쌍은 **접었다 폅니다** —
+//      펼친 것은 하나, 나머지는 번호 · 궁금증 한 줄 · 상태로 접힙니다.
 //   ② 물음 고르기 — 다섯 물음 가운데 **두 개 이상** 체크합니다.
 //   ③ 나의 생각 정리 — 체크한 물음을 길잡이 삼아 **한 칸에** 씁니다. 예전에는
 //      체크한 물음마다 칸이 따로 열렸는데, 생각이 물음마다 조각나 한 편의
 //      글로 이어지지 않았습니다.
 //
-// 넓은 화면에서는 두 열(① ｜ ②③)이고, 좁아지면 한 줄로 쌓입니다. 접는 기준은
+// 넓은 화면에서는 ①｜② 두 열이고, ③은 그 아래 **가로를 다 쓰는 한 줄**
+// 입니다(두 열 어느 쪽에도 속하지 않는 마무리 자리). 좁아지면 한 줄로 쌓입니다. 접는 기준은
 // 창이 아니라 이 화면의 폭입니다(`@container` — 책방은 양옆에 패널이 서서
 // 창 폭으로는 모릅니다. 해시태그 폼과 같은 까닭).
 //
@@ -59,6 +61,10 @@ export default function QmarkForm({ activity, user, onBack }) {
   const focusRef = useRef(null);
   // 빼기 전에 되묻는 쌍 { index, question, reason }
   const [askRemove, setAskRemove] = useState(null);
+  // 펼친 물음표 쌍(하나만, 없으면 null) — 나머지는 한 줄로 접힙니다.
+  // 처음에는 아직 다 안 쓴 첫 쌍을 폅니다(해시태그 카드와 같은 약속).
+  const [openAsk, setOpenAsk] = useState(null);
+  const openInitRef = useRef(false);
 
   const locked = !!activity.locked;
   const bookUrl = safeBookUrl(activity.bookUrl);
@@ -117,11 +123,16 @@ export default function QmarkForm({ activity, user, onBack }) {
     if (locked || answers.asks.length >= QMARK_ASK_MAX) return;
     dirtyRef.current = true;
     focusRef.current = answers.asks.length; // 새 쌍의 궁금증 칸으로
+    setOpenAsk(answers.asks.length); // 새 쌍만 펴고 앞의 것은 접습니다
     setAnswers((prev) => addQmarkAsk(prev));
   }
   function removeAsk(index) {
     dirtyRef.current = true;
     setAnswers((prev) => removeQmarkAsk(prev, index));
+    // 펼친 쌍의 번호를 뺀 자리만큼 당깁니다(하나뿐이라 비운 경우는 그대로)
+    if (answers.asks.length > 1) {
+      setOpenAsk((o) => (o == null || o < index ? o : o === index ? null : o - 1));
+    }
     setAskRemove(null);
   }
   // 글이 든 쌍은 되묻고, 빈 쌍은 곧바로 뺍니다(해시태그 칩과 같은 약속)
@@ -136,6 +147,12 @@ export default function QmarkForm({ activity, user, onBack }) {
     dirtyRef.current = true;
     setAnswers((prev) => toggleQmarkPick(prev, key));
   }
+  useEffect(() => {
+    if (!loaded || openInitRef.current) return;
+    openInitRef.current = true;
+    const i = answers.asks.findIndex((x) => !(x.question.trim() && x.reason.trim()));
+    setOpenAsk(i >= 0 ? i : null);
+  }, [loaded, answers.asks]);
   useEffect(() => {
     const i = focusRef.current;
     if (i == null) return;
@@ -231,7 +248,7 @@ export default function QmarkForm({ activity, user, onBack }) {
             </span>
             <span className="qmark-guide-arrow" aria-hidden="true">→</span>
             <span className={`qmark-guide-step${picked >= QMARK_MIN_PICKS ? " done" : ""}`}>
-              <b>②</b> 아래 물음 가운데 <b>{QMARK_MIN_PICKS}개 이상</b> 체크해요
+              <b>②</b> 다섯 물음 가운데 <b>{QMARK_MIN_PICKS}개 이상</b> 체크해요
             </span>
             <span className="qmark-guide-arrow" aria-hidden="true">→</span>
             <span className={`qmark-guide-step${thoughtDone ? " done" : ""}`}>
@@ -249,13 +266,37 @@ export default function QmarkForm({ activity, user, onBack }) {
                   {answers.asks.length} / {QMARK_ASK_MAX}
                 </b>
               </h2>
+              {/* 쌍마다 접었다 폅니다 — 펼친 것은 하나. 접힌 줄에는 번호 · 궁금증
+                  한 줄 · 상태만 서서, 여러 개를 적어도 목록이 한눈에 듭니다.
+                  머리줄 전체가 여닫는 단추이고 ×만 따로 섭니다. */}
               <ol className="qmark-asks">
                 {answers.asks.map((x, i) => {
-                  const filled = x.question.trim() && x.reason.trim();
+                  const q = x.question.trim();
+                  const r = x.reason.trim();
+                  const filled = q && r;
+                  const open = openAsk === i;
+                  const state = filled ? "완성" : q || r ? "쓰는 중" : "비어 있음";
                   return (
-                    <li key={i} className={`qmark-ask${filled ? " filled" : ""}`}>
+                    <li key={i} className={`qmark-ask${filled ? " filled" : ""}${open ? " open" : ""}`}>
                       <div className="qmark-ask-head">
-                        <span className="qmark-ask-no">물음표 {i + 1}</span>
+                        <button
+                          type="button"
+                          className="qmark-ask-toggle"
+                          onClick={() => setOpenAsk(open ? null : i)}
+                          aria-expanded={open}
+                          aria-controls={`qmark-ask-body-${i}`}
+                        >
+                          <svg className="qmark-ask-caret" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+                            <path d="M4 2.5 L8 6 L4 9.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                          <span className="qmark-ask-no">물음표 {i + 1}</span>
+                          {!open && (
+                            <span className={`qmark-ask-peek${q ? "" : " empty"}`}>
+                              {q || "아직 궁금증을 적지 않았어요"}
+                            </span>
+                          )}
+                          <span className={`qmark-ask-state${filled ? " done" : q || r ? " doing" : ""}`}>{state}</span>
+                        </button>
                         {!locked && (answers.asks.length > 1 || x.question || x.reason) && (
                           <button
                             type="button"
@@ -268,29 +309,33 @@ export default function QmarkForm({ activity, user, onBack }) {
                           </button>
                         )}
                       </div>
-                      <label className="qmark-field">
-                        <span className="qmark-field-lab">궁금증</span>
-                        <textarea
-                          id={`qmark-ask-${i}`}
-                          rows={2}
-                          value={x.question}
-                          onChange={(e) => editAsk(i, "question", e.target.value)}
-                          placeholder={i === 0 ? "예: 주인공은 왜 끝까지 사실을 말하지 않았을까?" : "또 하나의 궁금증"}
-                          maxLength={QMARK_TEXT_MAX}
-                          disabled={locked}
-                        />
-                      </label>
-                      <label className="qmark-field">
-                        <span className="qmark-field-lab">이유는</span>
-                        <textarea
-                          rows={3}
-                          value={x.reason}
-                          onChange={(e) => editAsk(i, "reason", e.target.value)}
-                          placeholder="이 물음이 궁금했던 까닭 · 중요하다고 생각한 까닭"
-                          maxLength={QMARK_TEXT_MAX}
-                          disabled={locked}
-                        />
-                      </label>
+                      {open && (
+                        <div className="qmark-ask-body" id={`qmark-ask-body-${i}`}>
+                          <label className="qmark-field">
+                            <span className="qmark-field-lab">궁금증</span>
+                            <textarea
+                              id={`qmark-ask-${i}`}
+                              rows={2}
+                              value={x.question}
+                              onChange={(e) => editAsk(i, "question", e.target.value)}
+                              placeholder={i === 0 ? "예: 주인공은 왜 끝까지 사실을 말하지 않았을까?" : "또 하나의 궁금증"}
+                              maxLength={QMARK_TEXT_MAX}
+                              disabled={locked}
+                            />
+                          </label>
+                          <label className="qmark-field">
+                            <span className="qmark-field-lab">이유는</span>
+                            <textarea
+                              rows={3}
+                              value={x.reason}
+                              onChange={(e) => editAsk(i, "reason", e.target.value)}
+                              placeholder="이 물음이 궁금했던 까닭 · 중요하다고 생각한 까닭"
+                              maxLength={QMARK_TEXT_MAX}
+                              disabled={locked}
+                            />
+                          </label>
+                        </div>
+                      )}
                     </li>
                   );
                 })}
@@ -312,66 +357,65 @@ export default function QmarkForm({ activity, user, onBack }) {
               )}
             </section>
 
-            <div className="qmark-col">
-              <section className={`qmark-sec qmark-sec--pick${picked >= QMARK_MIN_PICKS ? " filled" : ""}`}>
-                <h2 className="qmark-sec-title">
-                  <span className="qmark-badge qmark-badge--think" aria-hidden="true">✓</span>
-                  물음 고르기
-                  <em>{QMARK_MIN_PICKS}개 이상 체크</em>
-                  <b className={`qmark-count${picked >= QMARK_MIN_PICKS ? " full" : ""}`}>
-                    {picked} / {QMARK_MIN_PICKS}
-                  </b>
-                </h2>
-                <ul className="qmark-prompts">
-                  {QMARK_PROMPTS.map((p) => {
-                    const on = answers.picks.includes(p.key);
-                    return (
-                      <li key={p.key} className={`qmark-prompt${on ? " on" : ""}`}>
-                        <label className="qmark-check">
-                          <input
-                            type="checkbox"
-                            checked={on}
-                            onChange={() => togglePick(p.key)}
-                            disabled={locked}
-                          />
-                          <span className="qmark-check-text">{p.text}</span>
-                        </label>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </section>
-
-              {/* 나의 생각 — 체크한 물음과 따로 선 칸 하나. 체크한 물음을 칸 위에
-                  한 줄씩 되풀이해 무엇을 길잡이로 쓰는지 쓰는 자리에서 보입니다. */}
-              <section className={`qmark-sec qmark-sec--think${thoughtDone ? " filled" : ""}`}>
-                <h2 className="qmark-sec-title">
-                  <span className="qmark-badge qmark-badge--think" aria-hidden="true">✎</span>
-                  나의 생각 정리
-                  <em>체크한 물음에 대한 내 생각</em>
-                </h2>
-                {picked > 0 ? (
-                  <ul className="qmark-picked">
-                    {QMARK_PROMPTS.filter((p) => answers.picks.includes(p.key)).map((p) => (
-                      <li key={p.key}>{p.text}</li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="qmark-picked-empty">위에서 물음을 {QMARK_MIN_PICKS}개 이상 체크해 주세요.</p>
-                )}
-                <textarea
-                  className="qmark-thought"
-                  rows={10}
-                  value={answers.thought}
-                  onChange={(e) => editThought(e.target.value)}
-                  placeholder="체크한 물음을 떠올리며, 이 책을 읽고 알게 된 것 · 달라진 생각을 이어서 적어 보세요"
-                  maxLength={QMARK_THOUGHT_MAX}
-                  disabled={locked}
-                  aria-label="나의 생각 정리"
-                />
-              </section>
-            </div>
+            <section className={`qmark-sec qmark-sec--pick${picked >= QMARK_MIN_PICKS ? " filled" : ""}`}>
+              <h2 className="qmark-sec-title">
+                <span className="qmark-badge qmark-badge--think" aria-hidden="true">✓</span>
+                물음 고르기
+                <em>{QMARK_MIN_PICKS}개 이상 체크</em>
+                <b className={`qmark-count${picked >= QMARK_MIN_PICKS ? " full" : ""}`}>
+                  {picked} / {QMARK_MIN_PICKS}
+                </b>
+              </h2>
+              <ul className="qmark-prompts">
+                {QMARK_PROMPTS.map((p) => {
+                  const on = answers.picks.includes(p.key);
+                  return (
+                    <li key={p.key} className={`qmark-prompt${on ? " on" : ""}`}>
+                      <label className="qmark-check">
+                        <input
+                          type="checkbox"
+                          checked={on}
+                          onChange={() => togglePick(p.key)}
+                          disabled={locked}
+                        />
+                        <span className="qmark-check-text">{p.text}</span>
+                      </label>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
           </div>
+
+          {/* 나의 생각 — 두 열 아래 **따로 선 한 줄**(선생님 요청). 두 열 가운데
+              어느 쪽에도 속하지 않는 마무리 자리라 가로를 다 씁니다. 체크한
+              물음을 칸 위에 한 줄씩 되풀이해 무엇을 길잡이로 쓰는지 보입니다. */}
+          <section className={`qmark-sec qmark-sec--think${thoughtDone ? " filled" : ""}`}>
+            <h2 className="qmark-sec-title">
+              <span className="qmark-badge qmark-badge--think" aria-hidden="true">✎</span>
+              나의 생각 정리
+              <em>체크한 물음에 대한 내 생각</em>
+            </h2>
+            {picked > 0 ? (
+              <ul className="qmark-picked">
+                {QMARK_PROMPTS.filter((p) => answers.picks.includes(p.key)).map((p) => (
+                  <li key={p.key}>{p.text}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="qmark-picked-empty">위에서 물음을 {QMARK_MIN_PICKS}개 이상 체크해 주세요.</p>
+            )}
+            <textarea
+              className="qmark-thought"
+              rows={10}
+              value={answers.thought}
+              onChange={(e) => editThought(e.target.value)}
+              placeholder="체크한 물음을 떠올리며, 이 책을 읽고 알게 된 것 · 달라진 생각을 이어서 적어 보세요"
+              maxLength={QMARK_THOUGHT_MAX}
+              disabled={locked}
+              aria-label="나의 생각 정리"
+            />
+          </section>
         </div>
       )}
 
