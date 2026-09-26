@@ -22,7 +22,7 @@ import {
   DONE_MIN_CHARS,
   isTeacherAuthoredCard,
 } from "@/lib/activities";
-import { formatFileSize } from "@/lib/image";
+import { formatFileSize, IMAGE_ACCEPT } from "@/lib/image";
 import { uploadImage, uploadFile, uploadDataUrl } from "@/lib/storageUpload";
 import dynamic from "next/dynamic";
 import RichTextEditor, { IconImage, IconPen } from "./RichTextEditor";
@@ -592,7 +592,7 @@ export default function StudyCardModal({
                   >
                     <label className="rte-tool" title="이미지 첨부">
                       <IconImage />
-                      <input type="file" accept="image/*" onChange={handleFile} hidden />
+                      <input type="file" accept={IMAGE_ACCEPT} onChange={handleFile} hidden />
                     </label>
                     <button
                       type="button"

@@ -48,6 +48,7 @@ import {
   nodeHasImage,
   MINDMAP_IMAGE_W,
 } from "@/lib/mindmap";
+import { IMAGE_ACCEPT } from "@/lib/image";
 
 const ZOOM_MIN = 0.3;
 const ZOOM_MAX = 2.4;
@@ -349,6 +350,11 @@ export default function MindmapCanvas({
     if (editingEdgeId) setEditingEdgeId(null);
     if (editingId && editingId !== node.id) setEditingId(null);
     if (onSelect) onSelect(node.id);
+    // 끌기는 왼쪽 단추로만 — 오른쪽 단추(우클릭 = 글자 고치기)까지 끌기를
+    // 시작하면 포인터를 붙잡아 두어, 누르는 사이 손이 조금만 움직여도 노드가
+    // 딸려 오고 그때마다 판을 다시 저장합니다. 윈도는 contextmenu가 손을 뗀
+    // 뒤에 와서 고치기 칸이 그만큼 늦게 뜹니다.
+    if (e.button !== 0) return;
     if (readOnly || editingId === node.id) return;
     const lv = levels.get(node.id) ?? 0;
     if (map.layout === "tree" && lv !== 1) return;
@@ -729,7 +735,7 @@ export default function MindmapCanvas({
             <input
               ref={fileRef}
               type="file"
-              accept="image/*"
+              accept={IMAGE_ACCEPT}
               hidden
               onChange={(e) => {
                 const f = e.target.files?.[0];

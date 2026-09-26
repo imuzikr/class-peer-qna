@@ -15,7 +15,7 @@
 // =============================================================
 import { backdropClose } from "@/lib/modal";
 import { useEffect, useRef, useState } from "react";
-import { readImageAsDataUrl } from "@/lib/image";
+import { readImageAsDataUrl, IMAGE_ACCEPT } from "@/lib/image";
 import { IconTrash } from "./StatusIcons";
 
 const COLORS = ["#262625", "#c04a3f", "#d97757", "#3d7a4a", "#d4a017"];
@@ -684,7 +684,7 @@ export default function DrawingCanvas({ onSave, onClose }) {
               🖼️ 이미지
               <input
                 type="file"
-                accept="image/*"
+                accept={IMAGE_ACCEPT}
                 onChange={handleImageFile}
                 hidden
               />

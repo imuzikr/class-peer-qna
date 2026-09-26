@@ -8,6 +8,7 @@ import { KEYWORDS, addQuestion, updateQuestion } from "@/lib/store";
 import { getCurrentUser } from "@/lib/user";
 import { sanitizeHtml, stripHtml, htmlHasImage } from "@/lib/html";
 import { uploadImage, uploadDataUrl } from "@/lib/storageUpload";
+import { IMAGE_ACCEPT } from "@/lib/image";
 import dynamic from "next/dynamic";
 import RichTextEditor, { IconImage, IconPen } from "./RichTextEditor";
 import UploadProgress from "./UploadProgress";
@@ -174,7 +175,7 @@ export default function NewQuestionForm({
               <IconImage />
               <input
                 type="file"
-                accept="image/*"
+                accept={IMAGE_ACCEPT}
                 onChange={handleFile}
                 hidden
               />
