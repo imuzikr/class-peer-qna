@@ -25,6 +25,7 @@
 import { useEffect, useState } from "react";
 import { backdropClose } from "@/lib/modal";
 import { addStudentReward, subscribeMyClassRewardCount, REWARD_MAX } from "@/lib/store";
+import { useCastStopHere } from "@/lib/castPresence";
 import { nextFruit } from "./RewardFruits";
 
 export default function CastStageModal({
@@ -97,6 +98,11 @@ export default function CastStageModal({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose, onStudent, prevStudent, nextStudent]);
+
+  // 이 창이 떠 있는 동안은 상단바의 '방송 종료' 알약이 비킵니다 — 오른쪽 아래
+  // '수업 종료'가 같은 일을 합니다. 창을 닫으면(수업은 계속) 알약이 돌아와
+  // 그것으로 끕니다(lib/castPresence.js).
+  useCastStopHere(true);
 
   const fields = payload?.fields ?? [];
 

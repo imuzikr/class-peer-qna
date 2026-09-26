@@ -46,7 +46,6 @@ import BookStudentRail from "./BookStudentRail";
 import HashtagSlide from "./HashtagSlide";
 import HashtagComments from "./HashtagComments";
 import WordCloud from "./WordCloud";
-import CastBar from "./CastBar";
 import CastStageModal from "./CastStageModal";
 
 // 네모 여섯 개 — 해시태그 칸마다(왼쪽 목록의 칸 색).
@@ -234,21 +233,6 @@ export default function HashtagBoard({
               </span>
             )}
           </div>
-          {/* 방송 막대 — 배지와 같은 줄에(KWLS·곁텍스트와 같은 짜임). 학생마다
-              한 장이라 영역을 넘기는 단추는 없습니다. */}
-          {cast.target && castCard && (
-            <CastBar
-              who={castCard.name}
-              label="해시태그 슬라이드"
-              index={0}
-              total={1}
-              onPrev={null}
-              onNext={null}
-              onStop={stopCast}
-              onOpenStage={stageOpen ? null : () => setStageOpen(true)}
-              stopInStage
-            />
-          )}
         </div>
       </div>
 

@@ -10,17 +10,8 @@
 // 덮어쓰기만 하므로 학생 화면이 곧바로 다음 영역으로 바뀝니다.
 // =============================================================
 import { eulReul } from "@/lib/korean";
-import { useCastStopHere } from "@/lib/castPresence";
 
-export default function CastBar({
-  who, label, index, total, onPrev, onNext, onStop, onOpenStage = null,
-  // 수업 화면 창이 있는 활동 — '수업 종료'는 그 창 오른쪽 아래 한 곳에만
-  // 둡니다(선생님 지적). 이 막대에는 '수업 화면 보기'만 남고, 상단바의
-  // '방송 종료' 알약도 이 막대가 떠 있는 동안 비킵니다(lib/castPresence.js).
-  // 창이 없는 활동(마인드맵)은 지금까지대로 여기서 끕니다.
-  stopInStage = false,
-}) {
-  useCastStopHere(stopInStage);
+export default function CastBar({ who, label, index, total, onPrev, onNext, onStop, onOpenStage = null }) {
   // 영역 이름에 따라 을/를이 달라집니다 ('제목를'이 아니라 '제목을')
   const josa = eulReul(label).slice(label.length);
   // 마인드맵처럼 나눌 영역이 없는 활동은 옮길 곳이 없습니다. 항상 눌리지 않는
@@ -51,11 +42,9 @@ export default function CastBar({
             </button>
           </>
         )}
-        {!stopInStage && (
-          <button type="button" className="btn-primary cast-bar-stop" onClick={onStop}>
-            수업 종료
-          </button>
-        )}
+        <button type="button" className="btn-primary cast-bar-stop" onClick={onStop}>
+          수업 종료
+        </button>
       </div>
     </div>
   );

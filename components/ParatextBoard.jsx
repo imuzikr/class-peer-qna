@@ -38,7 +38,6 @@ import {
   safeBookUrl,
 } from "@/lib/paratext";
 import { IconBook, IconLock, IconLockState, IconPeople } from "./StatusIcons";
-import CastBar from "./CastBar";
 import CastStageModal from "./CastStageModal";
 
 export default function ParatextBoard({
@@ -263,23 +262,6 @@ export default function ParatextBoard({
               </span>
             )}
           </div>
-          {/* 방송 막대는 배지와 같은 줄에 — 무엇을 방송 중인지 늘 보이게
-              하되(학생 목록으로 나가도 남습니다), 배지 몇 개뿐인 줄 아래에
-              또 한 줄을 깔면 본문이 그만큼 밀립니다. 남는 폭을 채우며
-              오른쪽에 붙고, 좁아지면 알아서 아랫줄로 내려갑니다. */}
-          {cast.target && castCard && castIndex >= 0 && (
-            <CastBar
-              who={castCard.name}
-              label={PARATEXT_SECTIONS[castIndex].ko}
-              index={castIndex}
-              total={PARATEXT_SECTION_COUNT}
-              onPrev={castIndex > 0 ? () => step(-1) : null}
-              onNext={castIndex < PARATEXT_SECTION_COUNT - 1 ? () => step(1) : null}
-              onStop={stopCast}
-              onOpenStage={stageOpen ? null : () => setStageOpen(true)}
-              stopInStage
-            />
-          )}
           {bookUrl && (
             <a
               className="btn-primary book-info-btn"

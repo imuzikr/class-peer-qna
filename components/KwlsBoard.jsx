@@ -32,7 +32,6 @@ import { IconBook, IconLock } from "./StatusIcons";
 import KwlsProgressBoard from "./KwlsProgressBoard";
 import BookStudentRail from "./BookStudentRail";
 import EntryProgressPanel from "./EntryProgressPanel";
-import CastBar from "./CastBar";
 import CastStageModal from "./CastStageModal";
 
 // 방송할 수 있는 영역 — 네 칸 그대로
@@ -215,21 +214,6 @@ export default function KwlsBoard({
               </span>
             )}
           </div>
-          {/* 방송 막대는 배지와 같은 줄에 — 배지 몇 개뿐인 줄 아래에 또 한 줄을
-              깔면 본문이 그만큼 밀립니다(ParatextBoard와 같은 짜임) */}
-          {cast.target && castCard && castIndex >= 0 && (
-            <CastBar
-              who={castCard.name}
-              label={REGIONS[castIndex].ko}
-              index={castIndex}
-              total={REGION_COUNT}
-              onPrev={castIndex > 0 ? () => step(-1) : null}
-              onNext={castIndex < REGION_COUNT - 1 ? () => step(1) : null}
-              onStop={stopCast}
-              onOpenStage={stageOpen ? null : () => setStageOpen(true)}
-              stopInStage
-            />
-          )}
           {bookUrl && (
             <a
               className="btn-primary book-info-btn"
