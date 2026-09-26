@@ -270,6 +270,9 @@ export default function LessonMode({
     setActError("");
     try {
       if (isActivityLocked(board, i)) await toggleActLock(i, false);
+      // 프로젝트 전체가 잠겨 있으면 그것도 엽니다 — 규칙이 카드 쓰기를 막아
+      // 칸만 뜨고 저장이 안 됩니다(잠긴 활동을 함께 여는 것과 같은 까닭).
+      if (board.editMode === "locked") await updateStudyBoard(board.id, { editMode: "open" });
       await setClassTask(classId, { kind: "study", boardId: board.id, actIndex: i });
     } catch (e) {
       setActError(`활동을 내보내지 못했어요: ${e?.message ?? "알 수 없는 오류"}`);
@@ -1308,9 +1311,9 @@ export default function LessonMode({
 
                   **칩에 자물쇠를 달지 않습니다.** 수업의 흐름은 '처음엔
                   잠김 → 내보내면 열림' 하나뿐이고, 다시 잠그는 일은 공부방
-                  '활동 설정'의 활동별 잠금 토글에서 합니다(공부방 프로젝트에는
-                  통째로 잠그는 길이 화면에 없습니다 — `editMode`는 자료와
-                  규칙에만 남아 있고 남은 잠금은 교사가 열면 저절로 풀립니다).
+                  '활동 설정'의 활동별 잠금 토글에서 합니다(프로젝트를 통째로
+                  잠그는 것은 공부방 목록 카드의 '프로젝트 잠그기' — 잠긴
+                  프로젝트의 활동을 내보내면 그 잠금도 함께 풉니다).
                   누르는 자리가 둘이면 열려고 누른 손이 학생 화면 스물몇 대를
                   바꿉니다.
 

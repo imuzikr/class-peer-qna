@@ -21,10 +21,12 @@ import {
   fetchTrashedStudyBoards,
   restoreStudyBoard,
   purgeStudyBoard,
+  updateStudyBoard,
+  deleteStudyBoard,
   toDate,
 } from "@/lib/store";
 import { cardActivitySummary, isActivityLocked, isTeacherAuthoredCard } from "@/lib/activities";
-import { IconLock, IconIndividual, IconGroup } from "./StatusIcons";
+import { IconLockState, IconIndividual, IconGroup, IconTrash } from "./StatusIcons";
 import ConfirmModal from "./ConfirmModal";
 import StudyProjectEditModal from "./StudyProjectEditModal";
 
@@ -62,6 +64,10 @@ export default function StudyProjectDashboard({
   const [confirmEmpty, setConfirmEmpty] = useState(false);
   // 편집할 프로젝트(없으면 null) — 카드의 '편집'이 채웁니다.
   const [editing, setEditing] = useState(null);
+  // 카드의 🗑 — 휴지통으로 보내기 전에 한 번 묻습니다(편집 창의 '삭제'와 같은 창).
+  const [confirmDel, setConfirmDel] = useState(null);
+  // 잠그기·시작하기를 누른 프로젝트 — 답이 오기 전에 한 번 더 눌리지 않게.
+  const [lockBusyId, setLockBusyId] = useState(null);
 
   const projects = boards.filter((b) => b.type !== "notice");
   const canManage = isTeacher && !readOnly;
@@ -83,6 +89,43 @@ export default function StudyProjectDashboard({
     setConfirmPurge(null);
     setConfirmEmpty(false);
   }, [classId]);
+
+  // 프로젝트 잠그기 / 시작하기 — 책방 활동 카드의 '활동 잠그기'와 같은 자리.
+  // 잠그는 값은 `editMode`입니다. 규칙(isBoardLocked)이 학생의 카드 쓰기를
+  // 직접 막으므로 '수업 끝, 이제 아무도 못 고침'이 서버에서도 보장됩니다
+  // (활동별 잠금 activityLocks는 화면에서만 막습니다).
+  async function handleToggleLock(board) {
+    if (lockBusyId) return;
+    const lock = board.editMode !== "locked";
+    setLockBusyId(board.id);
+    try {
+      await updateStudyBoard(board.id, { editMode: lock ? "locked" : "open" });
+      onToast?.(
+        lock
+          ? `‘${board.title}’ 프로젝트를 잠갔어요. 학생은 보기만 할 수 있어요.`
+          : `‘${board.title}’ 프로젝트를 열었어요. 학생이 다시 쓸 수 있어요.`
+      );
+    } catch (e) {
+      onToast?.(`${lock ? "잠그지" : "열지"} 못했어요: ${e?.message ?? "알 수 없는 오류"}`);
+    } finally {
+      setLockBusyId(null);
+    }
+  }
+
+  // 카드의 🗑 — 곧바로 지우지 않고 **휴지통으로** 보냅니다(편집 창의 '삭제'와
+  // 같은 `deleteStudyBoard`). 되돌리는 길은 아래 '🗑 휴지통'입니다.
+  async function handleDelete() {
+    const board = confirmDel;
+    setConfirmDel(null);
+    if (!board) return;
+    try {
+      await deleteStudyBoard(board.id);
+      onToast?.(`‘${board.title}’ 프로젝트를 휴지통으로 보냈어요. 아래 ‘🗑 휴지통’에서 되돌릴 수 있어요.`);
+      if (trashOpen) loadTrash();
+    } catch (e) {
+      onToast?.(`삭제하지 못했어요: ${e?.message ?? "알 수 없는 오류"}`);
+    }
+  }
 
   async function handleRestore(board) {
     if (trashBusy) return;
@@ -175,6 +218,9 @@ export default function StudyProjectDashboard({
               onOpen={() => onOpen?.(board)}
               canEdit={canManage}
               onEdit={() => setEditing(board)}
+              onToggleLock={() => handleToggleLock(board)}
+              lockBusy={lockBusyId === board.id}
+              onDelete={() => setConfirmDel(board)}
               draggable={canManage}
               isDragging={draggingId === board.id}
               onDragStart={() => setDraggingId(board.id)}
@@ -306,6 +352,25 @@ export default function StudyProjectDashboard({
         />
       )}
 
+      {/* 카드의 🗑 — 편집 창의 '삭제'와 같은 말로 묻습니다. */}
+      {confirmDel && (
+        <ConfirmModal
+          title="프로젝트 삭제"
+          preview={confirmDel.title ?? ""}
+          description={
+            "이 반의 프로젝트를 휴지통으로 보냅니다. 학생 카드도 함께 들어갑니다.\n" +
+            "대시보드 아래 ‘🗑 휴지통’에서 되돌릴 수 있어요." +
+            (confirmDel.templateId
+              ? "\n원본은 그대로 남아 ‘수업 관리’의 프로젝트 탭에서 다시 시작할 수 있어요."
+              : "")
+          }
+          confirmLabel="휴지통으로 보내기"
+          danger
+          onConfirm={handleDelete}
+          onClose={() => setConfirmDel(null)}
+        />
+      )}
+
       {/* 프로젝트 편집 — 제목·활동 안내·연계. 저장하면 구독이 알아서 다시 그리므로
           여기서 목록을 손보지 않습니다. */}
       {editing && (
@@ -334,6 +399,9 @@ function ProjectCard({
   onOpen,
   canEdit = false,
   onEdit,
+  onToggleLock,
+  lockBusy = false,
+  onDelete,
   draggable,
   isDragging,
   onDragStart,
@@ -432,11 +500,12 @@ function ProjectCard({
             <span className="study-project-badge soft">활동 {activities.length}개</span>
           )}
           {shared && <span className="study-project-badge soft">함께 보기</span>}
-          {locked && (
-            <span className="study-project-badge lock">
-              <IconLock size={15} /> 보기 전용
-            </span>
-          )}
+          {/* 지금 상태 — **잠겼을 때만이 아니라 늘 답니다**(책방 활동 카드와
+              같은 까닭: 배지가 없는 카드는 '열려 있다'가 아니라 '아직 안
+              봤다'로도 읽힙니다). 말도 책방과 같은 잠김 / 열림입니다. */}
+          <span className={`study-project-badge${locked ? " lock" : ""}`}>
+            <IconLockState locked={locked} size={15} /> {locked ? "잠김" : "열림"}
+          </span>
         </span>
 
         <strong className="study-project-title" title={board.title}>{board.title}</strong>
@@ -499,6 +568,34 @@ function ProjectCard({
         <div className="study-project-actions">
           <button type="button" className="btn-ghost" onClick={onEdit} title="제목·활동 안내 편집">
             편집
+          </button>
+          {/* 잠그기 / 시작하기 — 책방 활동 카드와 같은 자리·같은 모양입니다.
+              **자물쇠를 달지 않습니다**: 위 배지가 지금 상태를 자물쇠로
+              말하고, 단추의 글자는 '누르면 할 일'이라 한 카드에 방향이 다른
+              자물쇠 둘이 생깁니다. 말머리는 '활동'이 아니라 **'프로젝트'** —
+              공부방에서 '활동'은 프로젝트 안의 한 칸이라, '활동 잠그기'는 한
+              칸만 잠그는 것으로 읽힙니다(칸 하나 잠그기는 '활동 열기' 칩). */}
+          <button
+            type="button"
+            className="btn-ghost"
+            onClick={onToggleLock}
+            disabled={lockBusy}
+            title={
+              locked
+                ? "지금 잠겨 있어요 — 눌러서 학생이 다시 쓸 수 있게 엽니다"
+                : "지금 열려 있어요 — 눌러서 잠그면 학생이 카드를 더 고칠 수 없어요"
+            }
+          >
+            {locked ? "프로젝트 시작하기" : "프로젝트 잠그기"}
+          </button>
+          <button
+            type="button"
+            className="btn-ghost qa-delete"
+            onClick={onDelete}
+            title="휴지통으로 보내기"
+            aria-label="프로젝트 삭제"
+          >
+            <IconTrash size={15} />
           </button>
         </div>
       )}

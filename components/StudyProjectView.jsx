@@ -168,21 +168,6 @@ export default function StudyProjectView({
     return subscribeStudyCards(board.id, setCards);
   }, [board.id, isGroup, isTeacher, shared, user?.uid]);
 
-  // 남아 있던 보드 전체 잠금(editMode: 'locked')을 풉니다.
-  // -------------------------------------------------------------
-  // '편집 상태' 스위치를 없애면서, 그 전에 잠가 둔 프로젝트는 화면에서 풀
-  // 길이 사라집니다. 게다가 이 값은 Firestore 규칙이 직접 보고 학생 쓰기를
-  // 막으므로, 그냥 두면 활동을 열어 줘도 학생 쪽에서 조용히 실패합니다.
-  // 그래서 담당 교사가 프로젝트를 열면 그 자리에서 한 번 풀어 줍니다.
-  // 규칙상 쓰기가 되는 사람(소유 교사)만 부르고, 이미 열려 있으면 아무 일도
-  // 하지 않으므로 몇 번을 다시 그려도 쓰기가 거듭되지 않습니다.
-  useEffect(() => {
-    if (!isTeacher || !locked) return;
-    updateStudyBoard(board.id, { editMode: "open" }).catch(() => {
-      /* 권한·네트워크 오류는 조용히 넘어갑니다 — 다음에 열 때 다시 시도합니다 */
-    });
-  }, [isTeacher, locked, board.id]);
-
   // 외부에서 제목·설명이 바뀌면 편집 초안도 동기화
   useEffect(() => { setTitleDraft(board.title); }, [board.title]);
   // 활동 안내는 설정 패널에서 그 자리에 쓰고 포커스를 떼면 저장합니다.
@@ -754,9 +739,11 @@ export default function StudyProjectView({
                     {shared ? "함께 보기" : isGroup ? "자기 모둠만" : "나만 보기"}
                   </span>
                 )}
+                {/* 목록 카드의 배지와 같은 말(잠김) — 한 상태가 화면마다 두
+                    이름이면 안 됩니다. 여기는 머리말이라 잠겼을 때만 답니다. */}
                 {locked && (
                   <span className="study-project-badge lock">
-                    <IconLock size={15} /> 보기 전용
+                    <IconLock size={15} /> 잠김
                   </span>
                 )}
               </>
@@ -930,12 +917,11 @@ export default function StudyProjectView({
                 </div>
               )}
 
-              {/* '편집 상태'(편집 가능 / 보기 전용) 줄은 뺐습니다 — 학생이
-                  무엇을 쓸 수 있나는 위 '활동 열기' 칩이 활동 단위로 더 곱게
-                  정합니다. 보드 전체를 한 번에 잠그는 스위치는 그 위에 겹쳐
-                  놓인 두 번째 관문이라, 활동을 열어 뒀는데도 학생이 못 쓰는
-                  까닭을 찾기 어려웠습니다. 남아 있던 잠금은 아래 효과가
-                  자동으로 풉니다. */}
+              {/* 프로젝트 전체 잠금(editMode)은 여기가 아니라 **목록 카드의
+                  '프로젝트 잠그기 / 시작하기'**에서 합니다(책방 활동 카드와
+                  같은 자리). 잠겨 있으면 '활동 열기' 줄이 그 사실을 적습니다
+                  — 활동을 열어 뒀는데도 학생이 못 쓰는 까닭을 찾기 어렵지
+                  않게. */}
 
               <div className="study-board-row">
                 <span className="study-board-row-label">관리</span>
@@ -1108,7 +1094,13 @@ export default function StudyProjectView({
             활동 열기 <b>{summaryOpenCount} / {activities.length}</b>
             {/* 못 바꾸는 까닭은 누르기 전에 말해 줍니다 — 끌었다가 제자리로
                 돌아가는 것만 보이면 고장으로 읽힙니다. */}
-            {activityOrderFrozen ? (
+            {/* 프로젝트 전체가 잠겨 있으면 칩을 열어도 학생은 못 씁니다 —
+                관문이 둘이라 까닭을 찾기 어렵지 않게 여기서 먼저 말합니다. */}
+            {locked ? (
+              <em className="study-act-gate-hint frozen">
+                {" — 프로젝트가 잠겨 있어 학생은 보기만 해요 (목록 카드의 ‘프로젝트 시작하기’로 엽니다)"}
+              </em>
+            ) : activityOrderFrozen ? (
               <em className="study-act-gate-hint frozen">
                 {" — 학생이 이미 쓴 카드가 있어 순서를 바꿀 수 없어요"}
               </em>

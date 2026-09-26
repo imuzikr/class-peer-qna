@@ -587,8 +587,10 @@ function StudyPageInner() {
   // 펼칠 활동은 **처음으로 열린 활동**입니다 — 잠긴 활동을 짚으면 칸이
   // '선생님이 열어 주면…'에서 멈춥니다. 모둠 프로젝트는 학생이 서랍에서
   // 쓸 수 없어(규칙이 카드 생성을 막음) 알리지 않습니다.
+  // 프로젝트 전체가 잠겼으면(editMode) 알리지 않습니다 — 쓸 수 없는 칸이라서요.
   const pyCtxBoardId =
-    !admin && activeProject?.pyLinked && activeProject.activityType !== "group"
+    !admin && activeProject?.pyLinked && activeProject.activityType !== "group" &&
+    activeProject.editMode !== "locked"
       ? activeProject.id
       : null;
   const pyCtxAct = pyCtxBoardId

@@ -228,7 +228,9 @@ export default function LessonTaskPanel({ task, user, onType }) {
   // ('활동 N')뿐이면 같은 말을 두 번 적지 않습니다.
   const actName = String(acts[idx] ?? "").trim();
   const showName = !!actName && actName !== `활동 ${idx + 1}`;
-  const locked = board ? isActivityLocked(board, idx) : false;
+  // 프로젝트 전체 잠금(editMode) — 규칙이 카드 쓰기를 막으므로 칸도 막습니다.
+  const boardLocked = board?.editMode === "locked";
+  const locked = board ? boardLocked || isActivityLocked(board, idx) : false;
   const isGroup = board?.type === "group";
   const canWrite = !!board && !locked && !isGroup;
   // 파이썬 실행기와 연계한 프로젝트는 활동 칸이 **셀 편집기**입니다(글 셀 ·
@@ -404,6 +406,8 @@ export default function LessonTaskPanel({ task, user, onType }) {
         <p className="ltask-blocked">
           모둠 프로젝트는 여기서 쓸 수 없어요 — 공부방에서 모둠 카드로 써 주세요.
         </p>
+      ) : boardLocked ? (
+        <p className="ltask-blocked">선생님이 이 프로젝트를 잠갔어요 — 지금은 보기만 할 수 있어요.</p>
       ) : locked ? (
         <p className="ltask-blocked">선생님이 이 활동을 열어 주면 쓸 수 있어요.</p>
       ) : null}

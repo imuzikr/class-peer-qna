@@ -93,12 +93,20 @@ export default function PyProjectPanel({
   // 활동'만 뜨고 선생님은 공부방으로 건너가야 합니다. 새로 만든 프로젝트가
   // 첫 활동만 열린 채 들어오므로(둘째부터 잠김) 특히 필요합니다.
   async function openIfLocked(b, i) {
-    if (!b || !isActivityLocked(b, i)) return;
+    // 프로젝트 전체 잠금(editMode)도 함께 엽니다 — 규칙이 카드 쓰기를 막아
+    // 활동만 열어서는 학생이 저장하지 못합니다.
+    const boardLocked = b?.editMode === "locked";
+    if (!b || (!boardLocked && !isActivityLocked(b, i))) return;
     const locks = (b.activities ?? []).map((_, k) => isActivityLocked(b, k));
     locks[i] = false;
     try {
-      await updateStudyBoard(b.id, { activityLocks: locks });
-      say("ok", `잠겨 있던 ‘${b.activities?.[i] ?? `활동 ${i + 1}`}’을 열었어요.`);
+      await updateStudyBoard(b.id, {
+        activityLocks: locks,
+        ...(boardLocked ? { editMode: "open" } : {}),
+      });
+      say("ok", boardLocked
+        ? `잠겨 있던 ‘${b.title}’ 프로젝트를 열었어요.`
+        : `잠겨 있던 ‘${b.activities?.[i] ?? `활동 ${i + 1}`}’을 열었어요.`);
     } catch {
       say("err", "활동을 열지 못했어요.");
     }
