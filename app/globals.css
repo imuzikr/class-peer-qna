@@ -19924,27 +19924,31 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
 .book-activity-actions .btn-ghost { padding: 4px 10px; font-size: 12px; }
 
 /* ── 활동 만들기 폼 ── */
-/* 가로로 넓게, 두 칸으로. 예전에는 480px 한 줄에 항목을 전부 쌓아 창이
-   세로로 길어졌고(종류 5 + 이름·주제어 + 주소 + 모둠 세 물음 + 모둠 수 +
-   이름), 85vh를 넘겨 안쪽에 스크롤 막대가 생겼습니다. 스크롤을 내리면 위에서
-   고른 활동 종류가 화면 밖으로 나가 무엇을 만드는 중인지 보이지 않습니다.
+/* 위아래 두 덩이 — 위는 '무엇을 할까'(활동 종류, 두 줄 격자), 아래는
+   '어떻게 할까'(이름·주제어·주소·모둠). 한때 왼쪽에 종류를 세로로 세우고
+   오른쪽에 설정을 두었는데, 종류가 여덟이 되자 왼쪽 목록이 창보다 길어져
+   오른쪽은 위쪽만 쓰고 아래가 통째로 비었습니다(선생님 요청으로 바꿈).
+   두 열로 세우면 종류 여덟이 네 줄이라 한눈에 들고, 설정은 그 아래 넓은
+   폭을 다 씁니다. 그보다 전에는 480px 한 줄에 항목을 전부 쌓아 창이 세로로
+   길어졌습니다 — 폭을 넓게 쓰는 것은 그대로입니다.
    .modal의 max-width(640px)보다 세야 해서 선택자를 겹쳐 씁니다. */
 .modal.book-form {
   width: min(94vw, 900px);
   max-width: min(94vw, 900px);
+  /* 종류 여덟이 위에 서는 만큼 보통 창(85vh)보다 조금 더 씁니다 —
+     900px 화면에서 모둠 설정까지 스크롤 없이 들게(실측). */
+  max-height: 94vh;
 }
-.book-form-cols { display: flex; align-items: flex-start; gap: 20px; }
-/* 왼쪽 — '무엇을 할까'(활동 종류). 폭을 고정해 두어야 종류를 바꿔도
-   오른쪽 칸의 너비가 흔들리지 않습니다. */
+.book-form-cols { display: flex; flex-direction: column; }
+/* 위 — 활동 종류. 아래 설정과 선으로 가릅니다. */
 .book-form-side {
-  flex: 0 0 300px;
-  padding-right: 20px;
-  border-right: 1px solid var(--border);
+  padding-bottom: 14px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--border);
 }
 .book-form-side .book-field { margin-bottom: 0; }
-/* 오른쪽 — '어떻게 할까'(이름·주제어·주소·모둠). min-width: 0 이 없으면
-   안의 긴 안내문이 칸을 밀어 왼쪽이 찌그러집니다. */
-.book-form-main { flex: 1; min-width: 0; }
+/* 아래 — 설정. min-width: 0 이 없으면 안의 긴 안내문이 칸을 밉니다. */
+.book-form-main { min-width: 0; }
 .book-form-main > *:last-child { margin-bottom: 0; }
 .book-field {
   display: flex;
@@ -20034,13 +20038,14 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
   font-size: 12.5px;
 }
 .book-solo-note strong { font-weight: 800; }
-/* 활동 종류 고르기 — 설명이 함께 붙어 세로로 쌓는 넓은 버튼.
-   왼쪽 칸에 다섯을 **세로로** 세웁니다. 2×2(+1)로 놓았을 때는 마지막 하나가
-   혼자 남아 줄이 비었고, 창 위쪽 가로를 다 먹어 아래 항목이 밀려났습니다.
-   세로로 세우면 오른쪽 칸의 항목들과 높이가 맞아떨어집니다. */
+/* 활동 종류 고르기 — 설명이 함께 붙은 넓은 버튼을 **두 열**로.
+   여덟이라 네 줄이 꽉 찹니다. 설명은 **한 줄에 드는 길이로** 적습니다
+   (TYPES의 desc) — 한 칸이라도 두 줄이면 그 줄 전체가 높아져 창 아래
+   단추가 화면 밖으로 밀립니다. 종류가 홀수가 되면 마지막 하나가 반 줄만
+   쓰는데, 줄을 늘여 채우지 마세요 — 그 하나만 넓어 보여 눈에 먼저 띕니다. */
 .book-type-seg {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
 }
 .book-type-btn {
@@ -20049,7 +20054,7 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
   flex-direction: column;
   gap: 3px;
   text-align: left;
-  padding: 10px 12px;
+  padding: 8px 12px;
   border: 1.5px solid var(--border);
   border-radius: var(--radius-btn);
   background: #fff;
@@ -20066,6 +20071,10 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
   font-style: normal;
   color: var(--text-sub);
   line-height: 1.45;
+}
+/* 창이 좁으면(폰) 한 칸이 250px 아래라 설명이 세 줄로 접힙니다 — 한 열로 */
+@media (max-width: 560px) {
+  .book-type-seg { grid-template-columns: 1fr; }
 }
 
 /* ── 모둠 대시보드 ── */
@@ -21398,19 +21407,8 @@ span.cloud-word { cursor: default; }
   .paratext-card-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
   /* 공부방 활동 대시보드도 마찬가지로 한 줄에 하나씩 */
   .activity-dash-grid { grid-template-columns: 1fr; }
-  /* 만들기 창 — 좁은 화면에서는 두 칸을 위아래로 되돌립니다(구분선도 아래로).
-     항목 짝짓기(.book-field-row)도 풀어 한 줄에 하나씩 놓습니다. */
-  .book-form-cols { flex-direction: column; gap: 0; }
-  .book-form-side {
-    flex: none;
-    width: 100%;
-    padding: 0 0 13px;
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 13px;
-  }
-  .book-form-side .book-field { margin-bottom: 0; }
-  .book-form-main { width: 100%; }
+  /* 만들기 창 — 좁은 화면에서는 항목 짝짓기(.book-field-row)를 풀어 한 줄에
+     하나씩 놓습니다. 활동 종류는 아래 560px에서 한 열로 접습니다. */
   .book-field-row { flex-wrap: wrap; }
   .book-field-row .book-field { flex: 1 1 100%; }
   /* 좁은 화면에서는 자리를 미리 잡지 않습니다 — 줄이 세로로 풀려 '이 활동만의
@@ -29521,20 +29519,60 @@ h4.attendance-seat-help { margin-top: 16px; }
   box-shadow: 0 0 0 3px var(--primary-light);
 }
 .qmark-sec textarea:disabled { background: var(--bg-deep); color: var(--text-sub); }
-/* 무엇에 대한 생각인지 — 위에 적은 물음을 인용처럼 한 줄 */
-.qmark-myq {
+/* 오른쪽 열 — ② 물음 고르기 · ③ 나의 생각 정리가 위아래로 따로 섭니다 */
+.qmark-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+/* ① 물음표 여러 쌍 — 쌍마다 옅은 상자, 다 쓴 쌍은 초록 테두리 */
+.qmark-asks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.qmark-ask {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fffaf6;
+  transition: border-color 0.15s, background 0.15s;
+}
+.qmark-ask.filled { border-color: #a6d8b6; background: #f6fbf8; }
+.qmark-ask-head { display: flex; align-items: center; gap: 8px; }
+.qmark-ask-no { font-size: 13px; font-weight: 800; color: var(--primary-dark); }
+.qmark-ask.filled .qmark-ask-no { color: #2f7a4b; }
+.qmark-ask-del {
+  margin-left: auto;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-faint);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+.qmark-ask-del:hover { background: var(--bg-deep); color: var(--text); }
+.qmark-ask-add { align-self: flex-start; }
+/* ③ 위에 체크한 물음을 한 줄씩 — 무엇을 길잡이로 쓰는지 쓰는 자리에서 보이게 */
+.qmark-picked {
   margin: 0;
-  padding: 8px 12px;
+  padding: 8px 12px 8px 30px;
   border-left: 4px solid var(--primary);
   border-radius: 4px;
   background: var(--primary-light);
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 700;
-  line-height: 1.6;
+  line-height: 1.7;
   color: var(--text);
-  overflow-wrap: anywhere;
 }
-.qmark-myq.empty { font-weight: 500; color: var(--text-faint); border-left-color: var(--border); background: var(--bg-deep); }
+.qmark-picked-empty {
+  margin: 0;
+  padding: 8px 12px;
+  border-left: 4px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-deep);
+  font-size: 13.5px;
+  color: var(--text-faint);
+}
+.qmark-sec textarea.qmark-thought { min-height: 220px; }
 .qmark-prompts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .qmark-prompt {
   display: flex;
@@ -29546,8 +29584,7 @@ h4.attendance-seat-help { margin-top: 16px; }
   background: #fff;
   transition: border-color 0.15s, background 0.15s;
 }
-.qmark-prompt.on { border-color: #f0cdb8; background: #fffaf6; }
-.qmark-prompt.filled { border-color: #a6d8b6; background: #f6fbf8; }
+.qmark-prompt.on { border-color: #a6d8b6; background: #f6fbf8; }
 .qmark-check {
   display: flex;
   align-items: flex-start;
@@ -29565,15 +29602,19 @@ h4.attendance-seat-help { margin-top: 16px; }
   accent-color: var(--primary);
   cursor: pointer;
 }
-.qmark-prompt.filled .qmark-check input { accent-color: #3d8a72; }
+.qmark-prompt.on .qmark-check input { accent-color: #3d8a72; }
 .qmark-prompt.on .qmark-check-text { font-weight: 700; }
 .qmark-check input:disabled { cursor: default; }
 
-/* 교사 상세 — 물음표 한 장이 위에 가로로 넓게, 다섯 물음은 그 아래 격자.
-   고르지 않은 물음은 옅게(빈 칸이 아니라 '고르지 않음'이라는 뜻). */
-.entry-detail-grid.qmark-detail-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.qmark-detail-grid .entry-region.wide { grid-column: 1 / -1; }
-.qmark-detail-grid .entry-region.skipped { opacity: 0.55; border-style: dashed; }
-@container (max-width: 700px) {
-  .entry-detail-grid.qmark-detail-grid { grid-template-columns: minmax(0, 1fr); }
-}
+/* 교사 상세 — '나의 물음표'와 '나의 생각' 두 장을 위아래로, 둘 다 가로를 다
+   씁니다. 물음표 쌍은 번호와 함께 차례로, 다섯 물음은 체크한 것만 또렷하게
+   (안 고른 것은 옅게 — 빈 칸이 아니라 '고르지 않음'이라는 뜻). */
+.entry-detail-grid.qmark-detail-grid { grid-template-columns: minmax(0, 1fr); }
+.qmark-read-asks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.qmark-read-ask { padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: #fff; }
+.qmark-read-ask .paratext-read-field + .paratext-read-field { margin-top: 6px; }
+.qmark-read-picks { list-style: none; margin: 0 0 10px; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.qmark-read-pick { display: flex; gap: 8px; font-size: 14px; line-height: 1.55; color: var(--text-faint); }
+.qmark-read-pick::before { content: "☐"; flex-shrink: 0; }
+.qmark-read-pick.on { color: var(--text); font-weight: 700; }
+.qmark-read-pick.on::before { content: "☑"; color: #2f7a4b; }

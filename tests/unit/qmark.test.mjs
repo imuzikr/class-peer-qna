@@ -3,10 +3,15 @@ import assert from "node:assert/strict";
 import {
   QMARK_PROMPTS,
   QMARK_MIN_PICKS,
+  QMARK_ASK_MAX,
   emptyQmarkAnswers,
   normalizeQmarkAnswers,
+  addQmarkAsk,
+  removeQmarkAsk,
+  editQmarkAsk,
   toggleQmarkPick,
-  qmarkAnsweredPicks,
+  qmarkQuestionDone,
+  qmarkThoughtDone,
   qmarkDone,
   qmarkStarted,
   qmarkChars,
@@ -16,70 +21,115 @@ import {
   qmarkRegionFields,
 } from "../../lib/qmark.js";
 
-test("다섯 물음 · 두 개 이상", () => {
+test("다섯 물음 · 두 개 이상 · 영역 둘", () => {
   assert.equal(QMARK_PROMPTS.length, 5);
   assert.equal(QMARK_MIN_PICKS, 2);
-  assert.equal(QMARK_REGIONS.length, 6);
+  assert.deepEqual(QMARK_REGIONS.map((r) => r.key), ["question", "thought"]);
 });
 
-test("빈 값 · 이상한 값도 같은 모양으로", () => {
-  const e = emptyQmarkAnswers();
-  assert.deepEqual(e.picks, []);
-  assert.equal(e.question, "");
-  const n = normalizeQmarkAnswers({ picks: ["change", "zzz", "knowledge", "change"], question: 3 });
-  // 정해 둔 차례로 · 모르는 key와 겹친 key는 걷힘
+test("빈 값 · 이상한 값도 같은 모양으로 — 물음표는 늘 한 쌍 이상", () => {
+  assert.deepEqual(emptyQmarkAnswers(), { asks: [{ question: "", reason: "" }], picks: [], thought: "" });
+  const n = normalizeQmarkAnswers({ asks: [], picks: ["change", "zzz", "knowledge", "change"], thought: "t" });
   assert.deepEqual(n.picks, ["knowledge", "change"]);
-  assert.equal(n.question, "3");
-  assert.deepEqual(normalizeQmarkAnswers(null).picks, []);
+  assert.equal(n.asks.length, 1);
+  assert.equal(normalizeQmarkAnswers(null).asks.length, 1);
+  const many = normalizeQmarkAnswers({ asks: Array.from({ length: 9 }, () => ({ question: "q" })), thought: "" });
+  assert.equal(many.asks.length, QMARK_ASK_MAX);
 });
 
-test("고르기 · 풀기 — 풀어도 글은 남음", () => {
-  let a = { ...emptyQmarkAnswers(), bias: "편견 글" };
-  a = toggleQmarkPick(a, "bias");
-  assert.deepEqual(a.picks, ["bias"]);
+test("옛 모양 — 물음 하나 · 물음마다 쓴 글을 읽음", () => {
+  const old = {
+    question: "왜?",
+    reason: "궁금해서",
+    picks: ["use", "bias"],
+    use: "활용 글",
+    bias: "",
+    interest: "안 고른 글",
+  };
+  const a = normalizeQmarkAnswers(old);
+  assert.deepEqual(a.asks, [{ question: "왜?", reason: "궁금해서" }]);
+  assert.equal(a.thought, `${QMARK_PROMPTS[1].text}\n활용 글`);
+  // 한 번 저장해 thought가 생기면(빈 글이라도) 옛 칸은 더 안 봄
+  assert.equal(normalizeQmarkAnswers({ ...old, thought: "", asks: [{ question: "새", reason: "" }] }).thought, "");
+  assert.equal(normalizeQmarkAnswers({ ...old, asks: [{ question: "새", reason: "" }] }).asks[0].question, "새");
+});
+
+test("물음표 더하기 · 빼기 · 고치기", () => {
+  let a = emptyQmarkAnswers();
+  a = editQmarkAsk(a, 0, "question", "하나");
+  a = addQmarkAsk(a);
+  a = editQmarkAsk(a, 1, "reason", "둘 이유");
+  assert.deepEqual(a.asks, [{ question: "하나", reason: "" }, { question: "", reason: "둘 이유" }]);
+  a = removeQmarkAsk(a, 0);
+  assert.deepEqual(a.asks, [{ question: "", reason: "둘 이유" }]);
+  // 하나뿐이면 비우기
+  assert.deepEqual(removeQmarkAsk(a, 0).asks, [{ question: "", reason: "" }]);
+  // 천장
+  let b = emptyQmarkAnswers();
+  for (let i = 0; i < 10; i += 1) b = addQmarkAsk(b);
+  assert.equal(b.asks.length, QMARK_ASK_MAX);
+  assert.deepEqual(editQmarkAsk(a, 0, "zzz", "x"), a);
+});
+
+test("체크 · 풀기", () => {
+  let a = toggleQmarkPick(emptyQmarkAnswers(), "bias");
   a = toggleQmarkPick(a, "knowledge");
   assert.deepEqual(a.picks, ["knowledge", "bias"]);
   a = toggleQmarkPick(a, "bias");
   assert.deepEqual(a.picks, ["knowledge"]);
-  assert.equal(a.bias, "편견 글");
   assert.deepEqual(toggleQmarkPick(a, "nope").picks, ["knowledge"]);
 });
 
-test("완성 — 궁금증 · 이유 + 두 개 이상 고르고 글까지", () => {
-  const base = { question: "왜?", reason: "궁금해서" };
-  assert.equal(qmarkDone({ ...base, picks: ["use", "bias"], use: "활용", bias: "" }), false);
-  assert.equal(qmarkDone({ ...base, picks: ["use", "bias"], use: "활용", bias: "편견" }), true);
-  // 고르지 않은 물음의 글은 세지 않음
-  assert.equal(qmarkDone({ ...base, picks: ["use"], use: "활용", bias: "편견" }), false);
-  assert.equal(qmarkDone({ question: "왜?", picks: ["use", "bias"], use: "a", bias: "b" }), false);
-  assert.deepEqual(qmarkAnsweredPicks({ picks: ["use", "bias"], use: " ", bias: "b" }), ["bias"]);
+test("완성 — 적은 물음표마다 궁금증 · 이유 + 두 개 이상 체크 + 생각", () => {
+  const asks = [{ question: "왜?", reason: "궁금해서" }];
+  const ok = { asks, picks: ["use", "bias"], thought: "정리" };
+  assert.equal(qmarkDone(ok), true);
+  // 빈 쌍(＋만 눌러 둔 것)은 세지 않음
+  assert.equal(qmarkDone({ ...ok, asks: [...asks, { question: "", reason: "" }] }), true);
+  // 이유 없는 물음표가 하나라도 있으면 아님
+  assert.equal(qmarkQuestionDone({ asks: [...asks, { question: "또", reason: "" }] }), false);
+  assert.equal(qmarkQuestionDone({ asks: [{ question: "", reason: "" }] }), false);
+  assert.equal(qmarkThoughtDone({ picks: ["use"], thought: "정리" }), false);
+  assert.equal(qmarkThoughtDone({ picks: ["use", "bias"], thought: " " }), false);
 });
 
-test("시작 · 글자 수 — 고른 물음만 셈", () => {
-  assert.equal(qmarkStarted({}), false);
-  assert.equal(qmarkStarted({ picks: ["use"] }), true);
-  assert.equal(qmarkChars({ question: "ab", reason: "c", picks: ["use"], use: "de", bias: "zzzz" }), 5);
+test("시작 · 글자 수", () => {
+  assert.equal(qmarkStarted({ asks: [], thought: "" }), false);
+  assert.equal(qmarkStarted({ picks: ["use"], thought: "" }), true);
+  assert.equal(
+    qmarkChars({ asks: [{ question: "ab", reason: "c" }, { question: "d", reason: "" }], thought: "ef" }),
+    6
+  );
 });
 
 test("진행 줄 셋 · 칸 색", () => {
   const rows = qmarkRows();
   assert.deepEqual(rows.map((r) => r.key), ["question", "reason", "thoughts"]);
   const [q, r, t] = rows;
-  assert.equal(qmarkCellState(q, { question: "x" }), "done");
-  assert.equal(qmarkCellState(r, {}), "empty");
-  assert.equal(qmarkCellState(t, {}), "empty");
-  assert.equal(qmarkCellState(t, { picks: ["use"] }), "doing");
-  assert.equal(qmarkCellState(t, { picks: ["use", "bias"], use: "a" }), "doing");
-  assert.equal(qmarkCellState(t, { picks: ["use", "bias"], use: "a", bias: "b" }), "done");
+  const two = { asks: [{ question: "x", reason: "y" }, { question: "z", reason: "" }], thought: "" };
+  assert.equal(qmarkCellState(q, two), "done");
+  assert.equal(qmarkCellState(r, two), "doing");
+  assert.equal(qmarkCellState(r, { thought: "" }), "empty");
+  assert.equal(qmarkCellState(t, { thought: "" }), "empty");
+  assert.equal(qmarkCellState(t, { picks: ["use"], thought: "" }), "doing");
+  assert.equal(qmarkCellState(t, { picks: ["use", "bias"], thought: "" }), "doing");
+  assert.equal(qmarkCellState(t, { picks: ["use", "bias"], thought: "글" }), "done");
 });
 
-test("띄울 영역 — 물음표 한 장 · 고르지 않은 물음은 그렇다고", () => {
-  const a = { question: "왜?", reason: "이유", picks: ["use"], use: "활용" };
-  assert.deepEqual(qmarkRegionFields(a, "question"), [
+test("띄울 영역 — 물음표 모두 · 체크한 물음 + 생각", () => {
+  const one = { asks: [{ question: "왜?", reason: "이유" }], picks: ["use"], thought: "생각" };
+  assert.deepEqual(qmarkRegionFields(one, "question"), [
     { label: "궁금증", text: "왜?" },
     { label: "이유는", text: "이유" },
   ]);
-  assert.deepEqual(qmarkRegionFields(a, "use"), [{ label: "", text: "활용" }]);
-  assert.match(qmarkRegionFields(a, "bias")[0].text, /고르지 않았어요/);
-  assert.deepEqual(qmarkRegionFields(a, "nope"), []);
+  const two = { asks: [{ question: "a", reason: "b" }, { question: "", reason: "" }, { question: "c", reason: "" }] };
+  assert.deepEqual(
+    qmarkRegionFields(two, "question").map((f) => f.label),
+    ["궁금증 1", "이유는", "궁금증 2", "이유는"]
+  );
+  assert.deepEqual(qmarkRegionFields(one, "thought"), [
+    { label: "고른 물음", text: `· ${QMARK_PROMPTS[1].text}` },
+    { label: "나의 생각", text: "생각" },
+  ]);
+  assert.deepEqual(qmarkRegionFields(one, "nope"), []);
 });

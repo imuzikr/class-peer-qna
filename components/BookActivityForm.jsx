@@ -39,8 +39,8 @@ const TYPES = [
   { key: "kwls", label: "KWLS로 성찰하기", desc: "읽기 전 아는 것·궁금한 것, 읽은 뒤 알게 된 것을 적습니다", defaultTitle: "KWLS로 성찰하기" },
   { key: "mindmap", label: "마인드맵", desc: "주제에서 가지를 뻗어 생각을 방사형·계층형으로 펼칩니다", defaultTitle: "마인드맵" },
   { key: "opinion", label: "내 생각은요...", desc: "영역(찬성·반대 등)을 나눠 두면 학생이 메모지에 생각을 적어 붙입니다", defaultTitle: "내 생각은요..." },
-  { key: "hashtag", label: "여섯 개의 해시태그", desc: "글을 읽고 해시태그를 찾아 태그마다 생각을 쓰고, 한 사람씩 슬라이드로 띄워 나눕니다", defaultTitle: "여섯 개의 해시태그" },
-  { key: "qmark", label: "물음표로 책 읽기", desc: "읽으며 궁금한 곳에 물음표를 붙이고, 가장 중요한 물음과 그 이유 · 고른 물음에 대한 생각을 씁니다", defaultTitle: "물음표로 책 읽기" },
+  { key: "hashtag", label: "여섯 개의 해시태그", desc: "해시태그를 찾아 태그마다 생각을 쓰고, 슬라이드로 띄워 나눕니다", defaultTitle: "여섯 개의 해시태그" },
+  { key: "qmark", label: "물음표로 책 읽기", desc: "궁금한 곳에 물음표를 붙이고, 물음과 이유 · 나의 생각을 정리합니다", defaultTitle: "물음표로 책 읽기" },
 ];
 // 모둠을 정하는 일은 **세 번의 물음**입니다. 한 줄에 다섯 갈래를 늘어놓았더니
 // '기본 모둠'과 '활동 모둠'이 나란히 있어 무엇이 무엇인지 알기 어려웠습니다.
@@ -214,10 +214,9 @@ export default function BookActivityForm({
           <button type="button" className="btn-close" onClick={onClose} aria-label="닫기">×</button>
         </div>
 
-        {/* 창을 가로로 넓게 쓰고 두 칸으로 나눕니다 — 왼쪽은 '무엇을 할까'
-            (활동 종류), 오른쪽은 '어떻게 할까'(이름·주제어·모둠). 예전에는
-            전부 한 줄로 쌓아 창이 세로로 길어졌고, 스크롤을 내리면 위에서
-            고른 종류가 화면 밖으로 나가 무엇을 만드는 중인지 안 보였습니다. */}
+        {/* 위아래 두 덩이 — 위는 '무엇을 할까'(활동 종류, 두 열 격자), 아래는
+            '어떻게 할까'(이름·주제어·모둠). 한때 왼쪽에 종류를 세로로 세웠는데
+            종류가 여덟이 되자 왼쪽 목록만 길고 오른쪽 아래가 통째로 비었습니다. */}
         <div className="book-form-cols">
         {!fixedType && (
           <div className="book-form-side">
@@ -268,6 +267,32 @@ export default function BookActivityForm({
               />
             </label>
           )}
+          {/* 혼자 읽고 쓰는 활동에는 학생이 눌러볼 도서 정보 주소를 받습니다.
+              곁텍스트·RAFT는 이 칸과 모둠 설정을 **둘 다** 씁니다 — 모둠으로
+              묶여도 읽는 책은 그대로라서요. 이름·주제어와 **한 줄에** 둡니다 —
+              제 줄을 차지하면 종류를 위에 올린 만큼 창이 세로로 넘칩니다. */}
+          {hasBookUrl && (
+            <label className="book-field">
+              <span>
+                도서 정보 사이트 <em className="book-optional">선택</em>
+              </span>
+              {/* type="url"이 아니라 text입니다 — 'www.yes24.com/…'처럼 앞에
+                  https://를 안 붙이고 적는 경우가 많은데, type="url"이면 브라우저가
+                  제출 자체를 막아 버립니다. 대신 safeBookUrl이 검사하고 채워 줍니다. */}
+              <input
+                type="text"
+                inputMode="url"
+                value={bookUrl}
+                onChange={(e) => setBookUrl(e.target.value)}
+                placeholder="예: www.yes24.com/product/goods/..."
+              />
+              <em className="book-help">
+                {urlBad
+                  ? "열 수 없는 주소예요. http(s):// 주소를 넣어 주세요."
+                  : "학생 화면에 ‘도서 정보’ 버튼이 생깁니다."}
+              </em>
+            </label>
+          )}
         </div>
 
         {isHashtag && (
@@ -286,32 +311,6 @@ export default function BookActivityForm({
               학생은 먼저 찾은 해시태그(최대 여섯 개)를 적고, 태그마다 그 해시태그를 활용한 생각을 씁니다.
               선생님이 학생을 골라 ‘수업 시작’을 누르면 그 학생의 것이 슬라이드 한 장으로 학급
               화면에 뜹니다. 친구 해시태그는 ‘공개하기’를 눌러야 서로 보이고 댓글을 달 수 있어요.
-            </em>
-          </label>
-        )}
-
-        {/* 혼자 읽고 쓰는 활동에는 학생이 눌러볼 도서 정보 주소를 받습니다.
-            곁텍스트·RAFT는 이 칸과 모둠 설정을 **둘 다** 씁니다 — 모둠으로
-            묶여도 읽는 책은 그대로라서요. */}
-        {hasBookUrl && (
-          <label className="book-field">
-            <span>
-              도서 정보 사이트 <em className="book-optional">선택</em>
-            </span>
-            {/* type="url"이 아니라 text입니다 — 'www.yes24.com/…'처럼 앞에
-                https://를 안 붙이고 적는 경우가 많은데, type="url"이면 브라우저가
-                제출 자체를 막아 버립니다. 대신 safeBookUrl이 검사하고 채워 줍니다. */}
-            <input
-              type="text"
-              inputMode="url"
-              value={bookUrl}
-              onChange={(e) => setBookUrl(e.target.value)}
-              placeholder="예: www.yes24.com/product/goods/..."
-            />
-            <em className="book-help">
-              {urlBad
-                ? "열 수 없는 주소예요. http:// 또는 https:// 로 시작하는 주소를 넣어 주세요."
-                : "넣어 두면 학생 화면에 ‘도서 정보’ 버튼이 생겨 새 탭으로 열립니다."}
             </em>
           </label>
         )}

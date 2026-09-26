@@ -7,28 +7,29 @@
 // 학생의 답 — CSS도 그대로). 오른쪽 '학생별 진행'은 모둠 활동에만 서므로
 // 개인 활동인 여기는 두 칸입니다.
 //
-// 가운데 칸은 '나의 물음표'(궁금증 · 이유) 한 장이 위에 넓게, 다섯 물음이
-// 그 아래 격자로 섭니다. **고르지 않은 물음은 옅게**(점선) 둡니다 — 빈 칸으로
-// 그리면 '안 했다'로 읽히는데, 이 활동은 두 개 이상만 고르는 것이라 안 고른
-// 것은 덜 한 것이 아닙니다.
+// 가운데 칸은 두 장 — '나의 물음표'(궁금증 · 이유 쌍을 번호대로 모두)와
+// '나의 생각'(다섯 물음 가운데 체크한 것 + 정리 글). 안 고른 물음은 옅게
+// 둡니다 — 빈 칸으로 그리면 '안 했다'로 읽히는데, 이 활동은 두 개 이상만
+// 고르는 것이라 안 고른 것은 덜 한 것이 아닙니다.
 //
 // 칸마다 '수업 시작'으로 학급 화면에 띄우고, 수업 화면 창(CastStageModal)이
-// 함께 열려 **같은 칸을 학생별로** 넘깁니다. 영역은 여섯으로 못 박습니다
-// (물음표 한 장 + 다섯 물음) — 학생마다 고른 물음이 달라도 '다음 학생 →'이
-// 같은 자리를 짚어야 하므로, 안 고른 물음이면 그 사실을 적어 띄웁니다.
+// 함께 열려 **같은 칸을 학생별로** 넘깁니다. 영역은 둘로 못 박습니다 —
+// 학생마다 물음표 개수가 달라도 '다음 학생 →'이 같은 자리를 짚어야 합니다.
 // =============================================================
 import { useEffect, useMemo, useState } from "react";
 import { subscribeParatextEntries } from "@/lib/store";
 import { useEntryCast } from "@/lib/useEntryCast";
 import {
   QMARK_MIN_PICKS,
+  QMARK_PROMPTS,
   QMARK_REGIONS,
   normalizeQmarkAnswers,
-  qmarkAnsweredPicks,
   qmarkCellState,
   qmarkChars,
   qmarkDone,
   qmarkQuestionDone,
+  qmarkStartedAsks,
+  qmarkThoughtDone,
   qmarkRegionFields,
   qmarkRows,
   qmarkStarted,
@@ -40,7 +41,7 @@ import BookStudentRail from "./BookStudentRail";
 import CastStageModal from "./CastStageModal";
 
 const REGIONS = QMARK_REGIONS;
-const REGION_COUNT = REGIONS.length; // 6
+const REGION_COUNT = REGIONS.length; // 2
 
 export default function QmarkBoard({
   activity,
@@ -209,7 +210,7 @@ export default function QmarkBoard({
             meta={(c) =>
               !qmarkStarted(c.entry?.answers)
                 ? "아직 시작 전"
-                : `나의 생각 ${qmarkAnsweredPicks(c.entry?.answers).length} / ${QMARK_MIN_PICKS} · 글 ${qmarkChars(c.entry?.answers)}자`
+                : railMeta(c.entry?.answers)
             }
           />
 
@@ -224,50 +225,79 @@ export default function QmarkBoard({
                   {!(activity.topic ?? "").trim() && open.entry?.topic && (
                     <span className="book-group-topic">{open.entry.topic}</span>
                   )}
-                  <span className="book-group-class">
-                    나의 생각 {qmarkAnsweredPicks(openAnswers).length} / {QMARK_MIN_PICKS} ·
-                    {" "}글 {qmarkChars(openAnswers)}자
-                  </span>
+                  <span className="book-group-class">{railMeta(openAnswers)}</span>
                 </div>
 
                 <div className="entry-detail-grid qmark-detail-grid">
                   {REGIONS.map((r, i) => {
                     const live = cast.isCasting(open.uid, r.key);
                     const isAsk = r.key === "question";
-                    const picked = isAsk || openAnswers.picks.includes(r.key);
-                    const done = isAsk
-                      ? qmarkQuestionDone(openAnswers)
-                      : picked && openAnswers[r.key].trim().length > 0;
+                    const done = isAsk ? qmarkQuestionDone(openAnswers) : qmarkThoughtDone(openAnswers);
+                    const asks = qmarkStartedAsks(openAnswers);
+                    const thought = openAnswers.thought.trim();
                     return (
                       <section
                         key={r.key}
-                        className={`entry-region${isAsk ? " wide" : ""}${done ? " done" : ""}${
-                          picked ? "" : " skipped"
-                        }${live ? " live" : ""}`}
+                        className={`entry-region wide${done ? " done" : ""}${live ? " live" : ""}`}
                       >
                         <header className="paratext-card-head">
                           <span className="paratext-letter" aria-hidden="true">{r.letter}</span>
                           <span className="paratext-card-title">
-                            <strong>{isAsk ? r.ko : r.prompt}</strong>
-                            {!isAsk && !picked && <em>고르지 않음</em>}
+                            <strong>{r.ko}</strong>
+                            <em>
+                              {isAsk
+                                ? `${asks.length}개`
+                                : `고른 물음 ${openAnswers.picks.length} / ${QMARK_MIN_PICKS}`}
+                            </em>
                           </span>
                           {castBtn(i, live)}
                         </header>
                         <div className="entry-region-body">
                           {isAsk ? (
-                            qmarkRegionFields(openAnswers, "question").map((f) => (
-                              <div key={f.label} className="paratext-read-field">
-                                <span className="paratext-read-label">{f.label}</span>
-                                <p className={`paratext-read-text${f.text ? "" : " empty"}`}>
-                                  {f.text || "아직 쓰지 않았어요"}
+                            asks.length === 0 ? (
+                              <p className="paratext-read-text empty">아직 쓰지 않았어요</p>
+                            ) : (
+                              <ol className="qmark-read-asks">
+                                {asks.map((x, k) => (
+                                  <li key={k} className="qmark-read-ask">
+                                    <div className="paratext-read-field">
+                                      <span className="paratext-read-label">
+                                        {asks.length > 1 ? `궁금증 ${k + 1}` : "궁금증"}
+                                      </span>
+                                      <p className={`paratext-read-text${x.question.trim() ? "" : " empty"}`}>
+                                        {x.question.trim() || "아직 쓰지 않았어요"}
+                                      </p>
+                                    </div>
+                                    <div className="paratext-read-field">
+                                      <span className="paratext-read-label">이유는</span>
+                                      <p className={`paratext-read-text${x.reason.trim() ? "" : " empty"}`}>
+                                        {x.reason.trim() || "아직 쓰지 않았어요"}
+                                      </p>
+                                    </div>
+                                  </li>
+                                ))}
+                              </ol>
+                            )
+                          ) : (
+                            <>
+                              <ul className="qmark-read-picks">
+                                {QMARK_PROMPTS.map((p) => (
+                                  <li
+                                    key={p.key}
+                                    className={`qmark-read-pick${openAnswers.picks.includes(p.key) ? " on" : ""}`}
+                                  >
+                                    {p.text}
+                                  </li>
+                                ))}
+                              </ul>
+                              <div className="paratext-read-field">
+                                <span className="paratext-read-label">나의 생각</span>
+                                <p className={`paratext-read-text${thought ? "" : " empty"}`}>
+                                  {thought || "아직 쓰지 않았어요"}
                                 </p>
                               </div>
-                            ))
-                          ) : picked ? (
-                            <p className={`paratext-read-text${openAnswers[r.key].trim() ? "" : " empty"}`}>
-                              {openAnswers[r.key].trim() || "골랐지만 아직 쓰지 않았어요"}
-                            </p>
-                          ) : null}
+                            </>
+                          )}
                         </div>
                       </section>
                     );
@@ -314,13 +344,24 @@ export default function QmarkBoard({
   );
 }
 
+// 학생 목록 · 상세 머리의 한 줄 — 물음표 몇 개 · 고른 물음 · 글자 수
+function railMeta(answers) {
+  const a = normalizeQmarkAnswers(answers);
+  return `물음표 ${qmarkStartedAsks(a).length}개 · 고른 물음 ${a.picks.length} / ${QMARK_MIN_PICKS} · 글 ${qmarkChars(a)}자`;
+}
+
 // 한 칸을 방송 꾸러미로(곁텍스트 · RAFT · KWLS와 같은 'entry' 모양).
-// 다섯 물음 칸에는 그 학생의 물음을 함께 실어 — '무엇에 대한 생각인가'가
-// 칠판에 있어야 합니다(RAFT가 문장을 함께 싣는 자리 `note`).
+// '나의 생각' 칸에는 그 학생의 물음을 함께 실어 — '무엇에 대한 생각인가'가
+// 칠판에 있어야 합니다(RAFT가 문장을 함께 싣는 자리 `note`). 물음이 여럿이면
+// 첫 물음과 나머지 개수만(칠판 한 줄에 다 싣지 않습니다).
 function buildPayload(activity, card, index) {
   const r = REGIONS[index];
   const answers = normalizeQmarkAnswers(card.entry?.answers);
-  const question = answers.question.trim();
+  const qs = qmarkStartedAsks(answers).map((x) => x.question.trim()).filter(Boolean);
+  const note =
+    r.key === "thought" && qs.length > 0
+      ? `나의 물음 — “${qs[0]}”${qs.length > 1 ? ` 외 ${qs.length - 1}개` : ""}`
+      : "";
   return {
     mode: "entry",
     activityTitle: activity.title ?? "",
@@ -330,7 +371,7 @@ function buildPayload(activity, card, index) {
     label: r.ko,
     labelEn: r.en,
     prompt: r.prompt,
-    note: r.key !== "question" && question ? `나의 물음 — “${question}”` : "",
+    note,
     index,
     total: REGION_COUNT,
     fields: qmarkRegionFields(answers, r.key),
