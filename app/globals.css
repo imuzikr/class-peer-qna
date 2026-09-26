@@ -29360,8 +29360,18 @@ h4.attendance-seat-help { margin-top: 16px; }
 
 /* ── 교사 화면 ── */
 .ht-publish.on { background: var(--primary); color: #fff; border-color: var(--primary); }
-.ht-teacher-cloud .cloud-box { min-height: 220px; height: 240px; }
-.ht-teacher-cloud { margin-top: 14px; }
+/* 반의 해시태그 구름은 가운데 칸의 남는 높이를 다 씁니다 — 낱말이 몇 개뿐이어도
+   판은 줄지 않습니다. 높이를 못 박았을 때(240px)는 판 아래가 통째로 비어
+   구름이 화면 위쪽 띠에 갇혀 보였습니다. 판이 커지면 lib/wordCloud.js가 글자도
+   함께 키우므로(천장 96px) 따로 손댈 것이 없습니다. */
+.ht-teacher-cloud {
+  margin-top: 14px;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.ht-teacher-cloud .cloud-box { min-height: 260px; }
 
 @media (max-width: 768px) {
   .ht-grid2 { grid-template-columns: 1fr; }
