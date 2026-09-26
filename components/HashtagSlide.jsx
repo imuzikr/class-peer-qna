@@ -9,7 +9,7 @@
 // 것이 곧 칠판에 뜬 것**이어야 하므로 한 컴포넌트로 둡니다.
 //
 //   머리  누구의 것 · 읽은 글 한 줄 · 찾은 해시태그 칩 줄   (+ 대표 이미지)
-//   몸통  태그마다 카드 한 장 — #태그 · 원문 문장(인용) · 생각
+//   몸통  태그마다 카드 한 장 — #태그 · 생각 (원문 문장 칸은 거뒀습니다)
 //
 // 받는 값은 `hashtagSlide()`가 지은 모양(= 방송 꾸러미)입니다. 남이 쓴 값이라
 // 그리기 전에 `normalizeHashtagSlide`로 한 번 더 거릅니다.
@@ -78,11 +78,6 @@ export default function HashtagSlide({ slide, variant = "page", maxCols = 3 }) {
               <h3 className={`hts-card-tag${e.tag ? "" : " empty"}`}>
                 {e.tag ? `#${e.tag}` : "태그 없음"}
               </h3>
-              {e.quote ? (
-                <blockquote className="hts-quote">{e.quote}</blockquote>
-              ) : (
-                <p className="hts-blank">원문 문장을 아직 옮기지 않았어요</p>
-              )}
               {e.insight ? (
                 <p className="hts-insight">
                   <b>생각</b>

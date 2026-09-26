@@ -53,16 +53,19 @@ test("원문 문장에 태그 낱말이 있나 — 띄어쓰기 무시, 빈 칸�
   assert.equal(quoteHasTag("AI", "ai가 바꾼 세상"), true);
 });
 
-test("진행 — 세 칸이 다 찬 칸만, 중복 칸은 빼고", () => {
+test("진행 — 태그와 생각이 다 찬 칸만, 중복 칸은 빼고 · 원문은 안 봄", () => {
   const tags = [
-    { tag: "가", quote: "가 문장", insight: "알게 됨" },
-    { tag: "나", quote: "나 문장", insight: "" },
-    { tag: "가", quote: "가 또", insight: "또" },
+    { tag: "가", insight: "알게 됨" },
+    { tag: "나", quote: "옛 원문만", insight: "" },
+    { tag: "가", insight: "또" },
+    { tag: "다", insight: "원문 없이도 완성" },
   ];
   const pr = hashtagProgress({ tags, summary: "" });
-  assert.equal(pr.done, 1);
-  assert.equal(pr.tagged, 2);
+  assert.equal(pr.done, 2);
+  assert.equal(pr.tagged, 3);
   assert.equal(pr.complete, false);
+  const six = Array.from({ length: 6 }, (_, i) => ({ tag: `t${i}`, insight: "생각" }));
+  assert.equal(hashtagProgress({ tags: six }).complete, true);
 });
 
 test("저장 모양 — 위험한 그림 주소는 걷습니다", () => {
@@ -144,12 +147,14 @@ test("슬라이드 한 장 — 실어 보낼 모양 · 위험한 그림 주소 �
   );
   assert.equal(slide.writerName, "30105 홍길동");
   assert.equal(slide.image.url, "");
-  assert.deepEqual(slide.entries, [{ tag: "바다", quote: "바다가 뜨겁다", insight: "걱정된다" }]);
+  // 원문은 실어 보내지 않습니다(거둔 칸)
+  assert.deepEqual(slide.entries, [{ tag: "바다", insight: "걱정된다" }]);
   assert.equal(hashtagSourceLine(slide.source), "「바다의 변화」 기사 · 한겨레");
   assert.equal(hashtagSourceLine({ kind: "book", title: "어린 왕자" }), "『어린 왕자』");
   assert.equal(hashtagSourceLine({ title: "" }), "");
   assert.equal(hashtagSlideSize(slide), "lg");
-  assert.equal(hashtagSlideSize({ entries: Array.from({ length: 10 }, () => ({ quote: "가".repeat(200) })) }), "sm");
+  assert.equal(hashtagSlideSize({ entries: Array.from({ length: 10 }, () => ({ insight: "가".repeat(200) })) }), "sm");
+  assert.equal(hashtagSlideSize({ entries: Array.from({ length: 3 }, () => ({ quote: "가".repeat(600) })) }), "lg");
   // 방송으로 받은 값은 열 칸까지만
   assert.equal(normalizeHashtagSlide({ entries: Array.from({ length: 15 }, () => ({ tag: "x" })) }).entries.length, 10);
 });

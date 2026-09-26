@@ -8,9 +8,9 @@
 // 모양만 달리 그립니다 — 한 학생의 기록을 포스터처럼 한눈에 훑게 하려고요.
 //
 //   머리띠  읽은 글 제목(큰 글씨) · 종류 · 지은이 · 쓴 사람  (+ 대표 이미지)
-//   숫자    해시태그 n · 원문 n · 생각 n
+//   숫자    해시태그 n · 생각 n
 //   리본    찾은 해시태그 칩 — 칩마다 제 카드와 같은 색
-//   본문    태그마다 번호 카드(#태그 · 원문 인용 · 생각)
+//   본문    태그마다 번호 카드(#태그 · 생각) — 원문 문장 칸은 거뒀습니다
 //
 // 색은 카드 차례로 `ROW_COLORS` 열 가지를 돌려 씁니다(여섯 칸이라 한 장 안에서
 // 겹치지 않습니다). 칩과 카드가 같은 색이라 리본에서 카드를 눈으로 찾습니다.
@@ -34,7 +34,6 @@ export default function HashtagInfographic({ slide }) {
   const s = normalizeHashtagSlide(slide);
   const title = s.source.title;
   const tagged = s.entries.filter((e) => e.tag).length;
-  const quoted = s.entries.filter((e) => e.quote).length;
   const thought = s.entries.filter((e) => e.insight).length;
 
   return (
@@ -64,10 +63,6 @@ export default function HashtagInfographic({ slide }) {
             <div>
               <dt>해시태그</dt>
               <dd>{tagged}</dd>
-            </div>
-            <div>
-              <dt>원문 문장</dt>
-              <dd>{quoted}</dd>
             </div>
             <div>
               <dt>나의 생각</dt>
@@ -108,11 +103,6 @@ export default function HashtagInfographic({ slide }) {
                     {e.tag ? `#${e.tag}` : "태그 없음"}
                   </h3>
                 </div>
-                {e.quote ? (
-                  <blockquote className="htg-quote">{e.quote}</blockquote>
-                ) : (
-                  <p className="htg-blank">원문 문장을 아직 옮기지 않았어요</p>
-                )}
                 {e.insight ? (
                   <p className="htg-insight">
                     <b>나의 생각</b>

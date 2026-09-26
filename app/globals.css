@@ -28566,7 +28566,7 @@ h4.attendance-seat-help { margin-top: 16px; }
 .paratext-saved.err { color: var(--danger); }
 
 /* 두 열 — 왼쪽은 모으는 것(① 해시태그 칩 · ③ 읽은 글 · ④ 대표 이미지),
-   오른쪽은 태그마다 글쓰기(② 원문 · 생각). 칩을 더하면 옆 열에 카드가
+   오른쪽은 태그마다 글쓰기(② 생각 표현하기). 칩을 더하면 옆 열에 카드가
    생기는 것이 한눈에 보입니다. 열 폭은 화면이 아니라 **이 기둥의 폭**으로
    접습니다(@container) — 책방은 양옆에 패널이 서서 창 폭만으로는 모릅니다. */
 .ht-form {
@@ -28665,12 +28665,11 @@ h4.attendance-seat-help { margin-top: 16px; }
 .ht-image-side { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
 .ht-image-btns { display: flex; gap: 8px; }
 
-/* 해시태그 열 칸 — 한 칸에 **입력칸 셋이 따로** 섭니다. 바탕·테두리·
-   이름표가 저마다 달라 무엇을 어디에 쓰는지 헷갈리지 않게:
-     태그     살구 알약(# 붙음)
-     원문     옅은 회색 인용 상자 + 왼쪽 굵은 선 + 기울인 세리프
-     알 수 있는 것  흰 바탕 + 초록 왼쪽 선
-   보고서의 차례(소제목 → 인용 → 해설)와 같은 모양입니다. */
+/* 해시태그 카드 — 한 칸에 **입력칸 둘이 따로** 섭니다. 바탕·테두리·
+   이름표가 달라 무엇을 어디에 쓰는지 헷갈리지 않게:
+     태그          살구 알약(# 붙음)
+     생각 표현하기  흰 바탕 + 초록 왼쪽 선
+   (한때 둘 사이에 '원문 문장' 인용 상자가 있었는데 거뒀습니다.) */
 /* 한 줄에 한 칸 — 펼친 칸 하나 + 접힌 줄들(누르면 그 칸만 펼침) */
 .ht-entries {
   list-style: none;
@@ -28711,7 +28710,7 @@ h4.attendance-seat-help { margin-top: 16px; }
 .ht-entry-fold .ht-entry-no { font-size: 16px; }
 .ht-fold-tag { flex-shrink: 0; font-size: 14px; font-weight: 800; color: var(--primary-dark); }
 .ht-fold-tag.empty { color: var(--text-faint); font-weight: 600; }
-.ht-fold-quote {
+.ht-fold-text {
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -28788,14 +28787,6 @@ h4.attendance-seat-help { margin-top: 16px; }
 .ht-tag-input:focus-within {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(217, 119, 87, 0.18);
-}
-.ht-form .ht-field--quote textarea {
-  background: var(--bg-deep);
-  border: none;
-  border-left: 4px solid #8a8a82;
-  border-radius: 4px var(--radius-btn) var(--radius-btn) 4px;
-  font-family: var(--font-serif);
-  font-style: italic;
 }
 .ht-form .ht-field--insight textarea {
   border-left: 4px solid #6fb98a;
@@ -28970,21 +28961,8 @@ h4.attendance-seat-help { margin-top: 16px; }
 }
 .hts-card-tag { margin: 0; font-size: 18px; font-weight: 800; color: var(--primary-dark); overflow-wrap: anywhere; }
 .hts-card-tag.empty { color: var(--text-faint); }
-/* 원문은 인용 상자 · 생각은 초록 선 — 폼의 입력칸과 같은 모양이라 학생이
-   쓴 칸이 슬라이드의 어디에 앉는지 그대로 보입니다. */
-.hts-quote {
-  margin: 0;
-  padding: 6px 10px;
-  border-left: 4px solid #8a8a82;
-  background: var(--bg-deep);
-  border-radius: 3px;
-  font-family: var(--font-serif);
-  font-style: italic;
-  font-size: 14.5px;
-  line-height: 1.65;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
+/* 생각은 초록 선 — 폼의 입력칸과 같은 모양이라 학생이 쓴 칸이 슬라이드의
+   어디에 앉는지 그대로 보입니다. */
 .hts-insight {
   margin: 0;
   padding-left: 10px;
@@ -29052,12 +29030,9 @@ h4.attendance-seat-help { margin-top: 16px; }
 .hts--cast .hts-grid { gap: clamp(10px, 1.2vw, 20px); }
 .hts--cast .hts-card { padding: clamp(12px, 1.2vw, 22px); }
 .hts--cast .hts-card-tag { font-size: clamp(18px, 1.7vw, 30px); }
-.hts--cast .hts-quote,
 .hts--cast .hts-insight { font-size: clamp(15px, 1.25vw, 22px); }
 .hts--cast[data-size="lg"] .hts-card-tag { font-size: clamp(22px, 2.4vw, 42px); }
-.hts--cast[data-size="lg"] .hts-quote,
 .hts--cast[data-size="lg"] .hts-insight { font-size: clamp(16px, 1.45vw, 26px); }
-.hts--cast[data-size="sm"] .hts-quote,
 .hts--cast[data-size="sm"] .hts-insight { font-size: clamp(14px, 1vw, 18px); }
 .hts--cast .hts-insight b { font-size: 0.72em; }
 @media (max-width: 900px) {
@@ -29245,29 +29220,6 @@ h4.attendance-seat-help { margin-top: 16px; }
 }
 .htg-card-tag { margin: 0; font-size: 19px; font-weight: 800; color: var(--c-tx); overflow-wrap: anywhere; }
 .htg-card-tag.empty { color: var(--text-faint); }
-.htg-quote {
-  position: relative;
-  margin: 0;
-  padding: 2px 4px 0 30px;
-  font-family: var(--font-serif);
-  font-style: italic;
-  font-size: 14.5px;
-  line-height: 1.7;
-  color: var(--text);
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-.htg-quote::before {
-  content: "\201C";
-  position: absolute;
-  left: 2px;
-  top: -8px;
-  font-family: Georgia, var(--font-serif), serif;
-  font-style: normal;
-  font-size: 40px;
-  line-height: 1;
-  color: var(--c-bd);
-}
 .htg-insight {
   margin: 0;
   padding: 10px 12px 11px;

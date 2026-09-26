@@ -6,10 +6,12 @@
 // 위에서 아래로 한 줄기입니다:
 //   ① 내가 찾은 해시태그 — **먼저 태그 목록을 칩으로** 모읍니다(최대 여섯 개).
 //      낱말을 적고 Enter(여러 개를 한꺼번에 붙여 넣어도 낱말마다 칩).
-//      칩의 ×로 빼면 그 태그에 쓴 원문·생각도 함께 빠집니다(글이 있으면 되물음).
-//   ② 해시태그별 원문 · 생각 — 칩 하나에 카드 한 장. 펼친 카드 하나만 열고
+//      칩의 ×로 빼면 그 태그에 쓴 생각도 함께 빠집니다(글이 있으면 되물음).
+//   ② 해시태그별 생각 — 칩 하나에 카드 한 장. 펼친 카드 하나만 열고
 //      나머지는 한 줄로 접습니다(칩을 누르면 그 카드가 펴짐). 카드 안의 입력칸
-//      셋은 모양이 다 다릅니다 — 태그(# 알약) · 원문(인용 상자) · 생각(초록 선).
+//      둘은 모양이 다릅니다 — 태그(# 알약) · 생각 표현하기(초록 선).
+//      (한때 '원문 문장' 칸이 태그와 생각 사이에 있었는데 선생님이 거두셨습니다.
+//      옛 기록의 원문은 저장 문서에 그대로 남고 화면에만 안 보입니다.)
 //   ③ 읽은 글  ④ 대표 이미지(선택) — 슬라이드 머리에 함께 실립니다.
 //   ⑤ 내 해시태그에 달린 댓글
 //
@@ -35,7 +37,6 @@ import {
   HASHTAG_COUNT,
   HASHTAG_FIELD_MAX,
   HASHTAG_INSIGHT_MAX,
-  HASHTAG_QUOTE_MAX,
   HASHTAG_SOURCE_KINDS,
   HASHTAG_TAG_MAX,
   addTagsTo,
@@ -51,13 +52,12 @@ import {
   newCommentCount,
   normalizeHashtagPost,
   normalizeTag,
-  quoteHasTag,
   removeTagAt,
   safeSourceUrl,
   tagKey,
 } from "@/lib/hashtag";
 import { IMAGE_ACCEPT } from "@/lib/image";
-import { iGa, eulReul } from "@/lib/korean";
+import { eulReul } from "@/lib/korean";
 import { uploadImage, deleteUploadedFile } from "@/lib/storageUpload";
 import HashtagInfographic from "./HashtagInfographic";
 import HashtagComments from "./HashtagComments";
@@ -106,7 +106,7 @@ export default function HashtagForm({ activity, user, onBack }) {
   // 해시태그 카드 — 지금 펼친 칸 번호. null이면 '아직 다 안 쓴 첫 카드'를,
   // -1이면 아무것도 펴지 않습니다.
   const [openIdx, setOpenIdx] = useState(null);
-  const focusQuoteRef = useRef(null); // 칩을 눌러 편 카드의 원문 칸에 커서를
+  const focusInsightRef = useRef(null); // 칩을 눌러 편 카드의 생각 칸에 커서를
   // 칩 입력칸
   const [draft, setDraft] = useState("");
   const [tagMsg, setTagMsg] = useState("");
@@ -257,19 +257,20 @@ export default function HashtagForm({ activity, user, onBack }) {
   }
   function requestRemove(e) {
     if (locked) return;
-    if (e.quote.trim() || e.insight.trim()) setAskRemove(e);
+    // 옛 원문도 봅니다 — 화면에 안 보여도 지워지는 글이라서요.
+    if (e.insight.trim() || e.quote.trim()) setAskRemove(e);
     else removeEntry(e.index);
   }
   function openEntry(index) {
     setOpenIdx(index);
-    focusQuoteRef.current = index;
+    focusInsightRef.current = index;
   }
-  // 칩을 눌러 편 카드 — 그려진 뒤 원문 칸으로 데려갑니다.
+  // 칩을 눌러 편 카드 — 그려진 뒤 생각 칸으로 데려갑니다.
   useEffect(() => {
-    const i = focusQuoteRef.current;
+    const i = focusInsightRef.current;
     if (i == null) return;
-    focusQuoteRef.current = null;
-    const el = document.getElementById(`ht-quote-${i}`);
+    focusInsightRef.current = null;
+    const el = document.getElementById(`ht-insight-${i}`);
     el?.scrollIntoView({ behavior: "smooth", block: "center" });
     el?.focus({ preventScroll: true });
   }, [openAt]);
@@ -477,7 +478,7 @@ export default function HashtagForm({ activity, user, onBack }) {
                       type="button"
                       className="ht-chip-go"
                       onClick={() => openEntry(e.index)}
-                      title="눌러서 이 해시태그의 원문 · 생각 쓰기"
+                      title="눌러서 이 해시태그의 생각 쓰기"
                     >
                       #{e.tag}
                     </button>
@@ -618,13 +619,13 @@ export default function HashtagForm({ activity, user, onBack }) {
             </section>
             </div>
 
-            {/* 오른쪽 열 — 태그마다 글쓰기(원문 · 생각). 왼쪽에서 모은 칩이 여기 카드가 됩니다. */}
+            {/* 오른쪽 열 — 태그마다 생각 쓰기. 왼쪽에서 모은 칩이 여기 카드가 됩니다. */}
             <div className="ht-col ht-col--write">
-            {/* ② 해시태그별 원문 · 생각 — 펼친 카드 하나만 연다 */}
+            {/* ② 해시태그별 생각 — 펼친 카드 하나만 연다 */}
             <section className="ht-sec ht-sec--write">
               <h2 className="ht-sec-title">
-                <span>2</span> 해시태그별 원문 · 생각
-                <em>그 낱말이 쓰인 원문 문장 · 생각 표현하기</em>
+                <span>2</span> 해시태그별 생각 표현하기
+                <em>해시태그를 활용한 나의 생각</em>
                 <b className={`ht-sec-count${progress.done === HASHTAG_COUNT ? " full" : ""}`}>
                   {progress.done} / {HASHTAG_COUNT} 완성
                 </b>
@@ -641,13 +642,12 @@ export default function HashtagForm({ activity, user, onBack }) {
                     const dupOf = dup.has(i)
                       ? post.tags.findIndex((x, j) => j < i && tagKey(x.tag) === tagKey(e.tag)) + 1
                       : 0;
-                    const quoteMiss = !quoteHasTag(e.tag, e.quote);
                     const open = i === openAt;
                     const state = done ? "완성" : "쓰는 중";
                     const no = String(n + 1).padStart(2, "0");
                     const cls = `ht-entry${done ? " done" : " doing"}${open ? " open" : ""}`;
                     if (!open) {
-                      // 접힌 칸 — 번호 · 태그 · 원문 한 줄. 누르면 그 칸만 펼칩니다.
+                      // 접힌 칸 — 번호 · 태그 · 생각 한 줄. 누르면 그 칸만 펼칩니다.
                       return (
                         <li key={i} className={cls}>
                           <button
@@ -661,8 +661,8 @@ export default function HashtagForm({ activity, user, onBack }) {
                             <b className={`ht-fold-tag${e.tag ? "" : " empty"}`}>
                               {e.tag ? `#${e.tag}` : "태그 없음"}
                             </b>
-                            <span className="ht-fold-quote">{e.quote.trim() || e.insight.trim()}</span>
-                            {(dupOf > 0 || quoteMiss) && (
+                            <span className="ht-fold-text">{e.insight.trim()}</span>
+                            {dupOf > 0 && (
                               <span className="ht-fold-warn" title="펼쳐서 확인해 주세요">!</span>
                             )}
                             <span className="ht-entry-state">{state}</span>
@@ -706,29 +706,11 @@ export default function HashtagForm({ activity, user, onBack }) {
                           )}
                         </label>
 
-                        <label className="ht-field ht-field--quote">
-                          <span className="ht-field-lab">원문 문장 <em>그 낱말이 쓰인 문장을 그대로 옮겨요</em></span>
-                          <textarea
-                            id={`ht-quote-${i}`}
-                            rows={2}
-                            value={e.quote}
-                            disabled={locked}
-                            maxLength={HASHTAG_QUOTE_MAX}
-                            onChange={(ev) => setEntry(i, "quote", ev.target.value)}
-                            placeholder="“글에서 그대로 옮긴 문장”"
-                            aria-label={`${n + 1}번 원문 문장`}
-                          />
-                          {quoteMiss && (
-                            <em className="ht-warn soft">
-                              이 문장에 ‘{e.tag}’{iGa(e.tag).slice(e.tag.length)} 보이지 않아요. 태그를 문장 속 낱말과 맞춰 보세요(저장은 돼요).
-                            </em>
-                          )}
-                        </label>
-
                         <label className="ht-field ht-field--insight">
                           <span className="ht-field-lab">생각 표현하기 <em>해시태그를 활용하여 나의 생각을 표현해 주세요</em></span>
                           <textarea
-                            rows={3}
+                            id={`ht-insight-${i}`}
+                            rows={4}
                             value={e.insight}
                             disabled={locked}
                             maxLength={HASHTAG_INSIGHT_MAX}
@@ -774,8 +756,8 @@ export default function HashtagForm({ activity, user, onBack }) {
       {askRemove && (
         <ConfirmModal
           title={askRemove.tag ? `${eulReul(`#${askRemove.tag}`)} 뺄까요?` : "이 카드를 뺄까요?"}
-          preview={(askRemove.quote.trim() || askRemove.insight.trim()).slice(0, 60)}
-          description="이 해시태그에 쓴 원문 문장과 생각도 함께 지워집니다."
+          preview={(askRemove.insight.trim() || askRemove.quote.trim()).slice(0, 60)}
+          description="이 해시태그에 쓴 생각도 함께 지워집니다."
           confirmLabel="빼기"
           danger
           onConfirm={() => removeEntry(askRemove.index)}
