@@ -140,7 +140,7 @@ test("반의 해시태그 구름 — 한 보고서 안의 같은 태그는 한 �
     { tags: [{ tag: "기후" }], createdAt: 2 },
   ];
   const { words } = hashtagCloud(posts);
-  assert.deepEqual(words.map((w) => [w.text, w.count]), [["#기후", 2], ["#바다", 1]]);
+  assert.deepEqual(words.map((w) => [w.text, w.count]), [["기후", 2], ["바다", 1]]);
 });
 
 test("새 댓글 수 — 남이 단 것 중 본 뒤의 것만", () => {
