@@ -353,8 +353,9 @@ export default function MindmapCanvas({
     // 끌기는 왼쪽 단추로만 — 오른쪽 단추(우클릭 = 글자 고치기)까지 끌기를
     // 시작하면 포인터를 붙잡아 두어, 누르는 사이 손이 조금만 움직여도 노드가
     // 딸려 오고 그때마다 판을 다시 저장합니다. 윈도는 contextmenu가 손을 뗀
-    // 뒤에 와서 고치기 칸이 그만큼 늦게 뜹니다.
-    if (e.button !== 0) return;
+    // 뒤에 와서 고치기 칸이 그만큼 늦게 뜹니다. 맥의 Ctrl+클릭도 우클릭이라
+    // (단추는 왼쪽으로 옵니다) 함께 거릅니다.
+    if (e.button !== 0 || e.ctrlKey) return;
     if (readOnly || editingId === node.id) return;
     const lv = levels.get(node.id) ?? 0;
     if (map.layout === "tree" && lv !== 1) return;
