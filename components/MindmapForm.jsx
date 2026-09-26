@@ -18,9 +18,11 @@ import {
   branchCount,
   emptyMindmap,
   maxDepth,
+  mindmapImages,
   normalizeMindmap,
   withRadialPositions,
 } from "@/lib/mindmap";
+import { uploadImage, deleteUploadedFile } from "@/lib/storageUpload";
 import { safeBookUrl } from "@/lib/paratext";
 import MindmapCanvas from "./MindmapCanvas";
 import { IconBook, IconLock } from "./StatusIcons";
@@ -110,8 +112,17 @@ export default function MindmapForm({ activity, user, onBack }) {
 
   function edit(next) {
     dirtyRef.current = true;
+    // 판에서 빠진 이미지(빼기·바꾸기·그 노드를 지움)는 Storage에서도 치웁니다 —
+    // 되돌리기가 없는 판이라 한 번 빠진 그림은 다시 쓰일 일이 없습니다.
+    // 데모의 data URL은 deleteUploadedFile이 알아서 건너뜁니다.
+    const kept = mindmapImages(next);
+    for (const url of mindmapImages(map)) if (!kept.has(url)) deleteUploadedFile(url);
     setMap(next);
   }
+
+  // 노드 이미지 — 판에는 120×90으로 그리지만 확대(최대 240%)·방송 화면에서
+  // 커지므로 폭 640px까지 남깁니다.
+  const uploadNodeImage = (file) => uploadImage(file, { maxWidth: 640, quality: 0.8 });
 
   function pickLayout(key) {
     if (key === map.layout) return;
@@ -267,6 +278,7 @@ export default function MindmapForm({ activity, user, onBack }) {
             selectedId={selectedId}
             onSelect={setSelectedId}
             fitKey={activity.id}
+            onUploadImage={locked ? null : uploadNodeImage}
           />
         </>
       )}

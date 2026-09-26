@@ -21,7 +21,15 @@
 //   · 노드를 더블클릭 → 그 노드의 자식 노드를 만들고 바로 편집 상태로
 //   · 노드를 우클릭  → 그 노드를 편집 상태로 (내용 입력칸이 뜸)
 //   · 선을 클릭      → 그 선(부모→이 노드) 위에 라벨을 입력
-// 세 동작 모두 편집판(onChange가 있을 때)에서만 동작합니다.
+//   · 노드를 고르고 아래 막대의 '이미지 넣기' → 그 노드에 그림 한 장
+//     (글자 칸에서 붙여넣기로도 됩니다)
+// 모두 편집판(onChange가 있을 때)에서만 동작하고, 이미지는 올릴 곳
+// (onUploadImage)을 받았을 때만 — 교사의 임시 편집은 저장되지 않는데
+// 파일만 Storage에 남으면 주인 없는 파일이 되므로 거기엔 주지 않습니다.
+//
+// [이미지 미리보기] 어느 층이든 같은 크기(120×90, 가득 채워 자름)입니다.
+// 층마다 글자 크기가 달라도 그림 크기까지 달라지면 그림이 중요도처럼
+// 읽힙니다. 글자는 그림 아래에 붙고, 그림만 있으면 글자 줄은 비웁니다.
 // =============================================================
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
@@ -36,6 +44,9 @@ import {
   updateEdgeLabel,
   moveSubtreeTo,
   reorderFirstLevelChild,
+  updateNodeImage,
+  nodeHasImage,
+  MINDMAP_IMAGE_W,
 } from "@/lib/mindmap";
 
 const ZOOM_MIN = 0.3;
@@ -56,8 +67,11 @@ function estimatedNodeHalfWidth(node, level) {
   const max = level === 0 ? 200 : 168;
   const min = level === 0 ? 94 : 62;
   const placeholder = "내용을 적어 주세요";
-  const raw = node?.text?.trim() || placeholder;
-  return Math.min(max, Math.max(min, textWidth(raw) + pad)) / 2;
+  const hasImg = nodeHasImage(node);
+  const raw = node?.text?.trim() || (hasImg ? "" : placeholder);
+  // 이미지가 든 노드는 적어도 그림 폭 + 좌우 여백만큼 넓습니다
+  const floor = hasImg ? MINDMAP_IMAGE_W + pad + 4 : min;
+  return Math.min(max, Math.max(floor, textWidth(raw) + pad)) / 2;
 }
 
 function edgeLabelMid(a, b, parentNode, childNode, levels) {
@@ -143,6 +157,8 @@ export default function MindmapCanvas({
   className = "",
   // 형태를 바꾸거나 처음 열 때 화면에 맞춰 다시 잡아 주는 열쇠
   fitKey = "",
+  // (file) => Promise<url> — 주면 노드에 이미지를 붙일 수 있습니다
+  onUploadImage = null,
 }) {
   const readOnly = !onChange;
   const stageRef = useRef(null);
@@ -154,6 +170,15 @@ export default function MindmapCanvas({
   const [dragPreview, setDragPreview] = useState(null);
   const editInputRef = useRef(null);
   const edgeInputRef = useRef(null);
+  const fileRef = useRef(null);
+  // 이미지를 올리는 중인 노드 — 그 노드 자리에 같은 크기의 빈 틀을 둡니다
+  const [uploadingId, setUploadingId] = useState(null);
+  const [imageError, setImageError] = useState("");
+  const canImage = !!onChange && !!onUploadImage;
+  // 올리는 동안 학생이 가지를 더하거나 고칠 수 있어, 끝났을 때는 그 순간의
+  // 판에 붙여야 합니다(올리기 시작할 때의 map에 붙이면 그 사이 고친 것이 날아감).
+  const mapRef = useRef(map);
+  mapRef.current = map;
 
   const positions = useMemo(() => layoutPositions(map), [map]);
   const levels = useMemo(() => levelMap(map.nodes), [map.nodes]);
@@ -406,6 +431,31 @@ export default function MindmapCanvas({
     setDragPreview(null);
   }
 
+  async function attachImage(nodeId, file) {
+    if (!canImage || !file || uploadingId) return;
+    if (!/^image\//.test(file.type || "")) {
+      setImageError("이미지 파일만 붙일 수 있어요.");
+      return;
+    }
+    setImageError("");
+    setUploadingId(nodeId);
+    try {
+      const url = await onUploadImage(file);
+      if (nodeById(mapRef.current.nodes, nodeId)) {
+        onChange(updateNodeImage(mapRef.current, nodeId, url));
+      }
+    } catch {
+      setImageError("이미지를 올리지 못했어요. 잠시 뒤 다시 해 주세요.");
+    } finally {
+      setUploadingId(null);
+    }
+  }
+
+  function pickImage() {
+    if (!selected || uploadingId) return;
+    fileRef.current?.click();
+  }
+
   const canDragNodes = !readOnly && map.layout === "radial";
 
   return (
@@ -499,12 +549,16 @@ export default function MindmapCanvas({
             const isPreviewRoot = dragPreview?.id === n.id;
             const isPreviewChild = !isPreviewRoot && previewIds.has(n.id);
             const canReorder = !readOnly && map.layout === "tree" && lv === 1;
+            const hasImg = nodeHasImage(n);
+            const isUploading = uploadingId === n.id;
             return (
               <div
                 key={n.id}
                 className={`mm-node${isSel ? " sel" : ""}${lv === 0 ? " root" : ""}${
                   isEditing ? " editing" : ""
                 }${canReorder ? " reorderable" : ""}${isPreviewRoot ? " dragging" : ""}${
+                  hasImg || isUploading ? " has-img" : ""
+                }${
                   isPreviewChild ? " drag-child" : ""
                 }`}
                 style={{
@@ -532,6 +586,12 @@ export default function MindmapCanvas({
                     : undefined
                 }
               >
+                {/* 미리보기 — 어느 층이든 같은 크기(CSS .mm-node-img) */}
+                {isUploading ? (
+                  <span className="mm-node-img mm-node-img--loading">올리는 중…</span>
+                ) : hasImg ? (
+                  <img className="mm-node-img" src={n.image} alt={n.text || "노드 이미지"} draggable={false} />
+                ) : null}
                 {isEditing ? (
                   <input
                     ref={editInputRef}
@@ -546,12 +606,20 @@ export default function MindmapCanvas({
                         setEditingId(null);
                       }
                     }}
+                    onPaste={(e) => {
+                      // 글자 칸에 그림을 붙여 넣으면 그 노드의 이미지로
+                      if (!canImage) return;
+                      const f = [...(e.clipboardData?.files ?? [])].find((x) => /^image\//.test(x.type));
+                      if (!f) return;
+                      e.preventDefault();
+                      attachImage(n.id, f);
+                    }}
                     onBlur={() => setEditingId(null)}
                     maxLength={60}
                   />
                 ) : n.text.trim() ? (
-                  n.text
-                ) : (
+                  <span className="mm-node-text">{n.text}</span>
+                ) : hasImg || isUploading ? null : (
                   <em className="mm-node-empty">내용을 적어 주세요</em>
                 )}
               </div>
@@ -573,6 +641,30 @@ export default function MindmapCanvas({
       {!readOnly && (
         <div className="mm-bar">
           {selected ? (
+            <>
+            {canImage && (
+              <>
+                <button
+                  type="button"
+                  className="btn-ghost mm-bar-img"
+                  onClick={pickImage}
+                  disabled={!!uploadingId}
+                  title="이 노드에 그림 한 장을 붙입니다 (글자 칸에 붙여넣기로도 돼요)"
+                >
+                  {uploadingId ? "올리는 중…" : nodeHasImage(selected) ? "이미지 바꾸기" : "이미지 넣기"}
+                </button>
+                {nodeHasImage(selected) && (
+                  <button
+                    type="button"
+                    className="btn-ghost mm-bar-img"
+                    disabled={!!uploadingId}
+                    onClick={() => onChange(updateNodeImage(map, selected.id, ""))}
+                  >
+                    이미지 빼기
+                  </button>
+                )}
+              </>
+            )}
             <button
               type="button"
               className="btn-ghost mm-bar-del"
@@ -589,12 +681,36 @@ export default function MindmapCanvas({
             >
               지우기
             </button>
+            {imageError ? (
+              <span className="mm-bar-hint mm-bar-error" role="alert">{imageError}</span>
+            ) : (
+              canImage && (
+                <span className="mm-bar-hint">
+                  글자는 마우스 오른쪽 버튼으로, 그림은 ‘이미지 넣기’로 붙여요. 글자와 그림 중 하나만 있어도 돼요.
+                </span>
+              )
+            )}
+            </>
           ) : (
             <span className="mm-bar-hint">
               노드를 더블클릭하면 가지가 생기고, 마우스 오른쪽 버튼을 누르면 내용을 고칠 수 있어요.
               선을 클릭하면 선 위에 글자를 넣을 수 있어요.
               {map.layout === "radial" && " 노드를 끌어 자리를 옮길 수도 있어요."}
+              {canImage && " 노드를 고르면 이미지도 넣을 수 있어요."}
             </span>
+          )}
+          {canImage && (
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                e.target.value = ""; // 같은 파일을 다시 골라도 change가 오게
+                if (f && selected) attachImage(selected.id, f);
+              }}
+            />
           )}
         </div>
       )}

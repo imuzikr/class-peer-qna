@@ -160,9 +160,9 @@ export default function PresentationOverlay({ broadcast, noteOpen = false, noteW
       broadcast.topic
     );
     const mapSignature = map.nodes
-      .map((n) => `${n.id}:${n.parentId ?? ""}:${n.text}:${n.edgeLabel ?? ""}:${n.x ?? ""}:${n.y ?? ""}`)
+      .map((n) => `${n.id}:${n.parentId ?? ""}:${n.text}:${n.edgeLabel ?? ""}:${n.x ?? ""}:${n.y ?? ""}:${n.image ? n.image.length : 0}`)
       .join("|");
-    const hasVisibleNode = map.nodes.some((n) => n.text?.trim());
+    const hasVisibleNode = map.nodes.some((n) => n.text?.trim() || n.image);
     return (
       <div
         className={`broadcast-overlay broadcast-overlay--mindmap${shrink}`}

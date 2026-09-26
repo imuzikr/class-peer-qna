@@ -280,6 +280,8 @@ export default function MindmapBoard({
                 </header>
                 {/* 교사도 직접 고칠 수 있습니다 — 학생 화면과 같은 판·같은 조작
                     (더블클릭으로 가지 추가, 우클릭으로 글 고치기)입니다.
+                    이미지 넣기만은 안 줍니다(onUploadImage 없음) — 이 편집은
+                    저장되지 않는 임시라, 올린 파일만 Storage에 주인 없이 남습니다.
                     아직 학생이 시작 전이어도 판 자체는 그대로 두고, 대신
                     가운데 주제만 있다는 안내만 살짝 얹습니다(교사가 대신
                     가지를 잡아 줄 수 있게). */}
@@ -332,6 +334,8 @@ function buildPayload(activity, card) {
       parentId: n.parentId,
       text: n.text,
       edgeLabel: n.edgeLabel ?? "",
+      // 이미지는 주소 한 줄만 — 학생 화면이 그 주소로 그대로 그립니다
+      image: n.image ?? "",
       // Firestore는 undefined를 저장하지 못해 빈 자리는 null로 맞춥니다
       x: Number.isFinite(n.x) ? n.x : null,
       y: Number.isFinite(n.y) ? n.y : null,
