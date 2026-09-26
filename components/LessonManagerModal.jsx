@@ -78,6 +78,18 @@ export default function LessonManagerModal({
     () => (usage ? projectUsageByClass(usage.classes, usage.boards, usage.templates) : []),
     [usage]
   );
+  // 반별 현황에서 펼친 반 — 창이 들고 있어 수업 ↔ 프로젝트 ↔ 자리 배치로
+  // 탭을 오가도 그대로입니다(null = 아직 안 만짐 → 지금 반만 펼침).
+  const [openUsage, setOpenUsage] = useState(null);
+  const usageOpenIds = openUsage ?? new Set(usage?.currentClassId ? [usage.currentClassId] : []);
+  const toggleUsage = (id) =>
+    setOpenUsage(() => {
+      const next = new Set(usageOpenIds);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
   // 두 목록 탭은 같은 두 칸 — 왼쪽 목록, 오른쪽 반별 현황(.lesson-mgr-body)
   const withUsage = (mode, main) => (
     <div className={`lesson-mgr-body${usage ? "" : " no-usage"}`}>
@@ -88,6 +100,9 @@ export default function LessonManagerModal({
           groups={mode === "lessons" ? lessonGroups : projectGroups}
           currentClassId={usage.currentClassId}
           onOpenBoard={usage.onOpenBoard}
+          openIds={usageOpenIds}
+          onToggle={toggleUsage}
+          onSetAll={(ids) => setOpenUsage(new Set(ids))}
         />
       )}
     </div>

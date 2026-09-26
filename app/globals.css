@@ -11657,14 +11657,52 @@ a.lesson-board-file-name { text-decoration: underline; }
 }
 /* 지금 보는 반 — 자리는 그대로(이름순)이고 테두리만 살구빛입니다 */
 .lesson-usage-class.here { border-color: var(--primary); }
+/* 반 머리줄이 곧 여닫는 단추입니다 — 줄 전체를 누를 수 있어야 손이 안
+   헤맵니다(삼각형만 누르게 두면 과녁이 12px). 여닫는 자리가 늘 같은 곳이라
+   접었다 펴도 반 이름이 제자리에 있습니다. */
 .lesson-usage-class-head {
+  width: 100%;
   display: flex;
   align-items: center;
   gap: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
   font-size: 13px;
   font-weight: 800;
   color: var(--dark);
+  text-align: left;
+  cursor: pointer;
 }
+.lesson-usage-caret {
+  flex-shrink: 0;
+  color: var(--text-sub);
+  transition: transform 0.15s;
+}
+.lesson-usage-class.open .lesson-usage-caret { transform: rotate(90deg); }
+/* 접힌 반의 요약 — 최근에 한 날. 펼치면 줄마다 날짜가 서므로 뺍니다. */
+.lesson-usage-last {
+  flex-shrink: 0;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-sub);
+  white-space: nowrap;
+}
+.lesson-usage-all {
+  margin-left: auto;
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+  cursor: pointer;
+}
+.lesson-usage-all:hover { border-color: var(--primary); color: var(--primary-dark); }
 .lesson-usage-class-name {
   min-width: 0;
   overflow: hidden;
