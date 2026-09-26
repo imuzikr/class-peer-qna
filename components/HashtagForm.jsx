@@ -59,7 +59,7 @@ import {
 import { IMAGE_ACCEPT } from "@/lib/image";
 import { iGa, eulReul } from "@/lib/korean";
 import { uploadImage, deleteUploadedFile } from "@/lib/storageUpload";
-import HashtagSlide from "./HashtagSlide";
+import HashtagInfographic from "./HashtagInfographic";
 import HashtagComments from "./HashtagComments";
 import ConfirmModal from "./ConfirmModal";
 import WordCloud from "./WordCloud";
@@ -393,7 +393,12 @@ export default function HashtagForm({ activity, user, onBack }) {
             <button type="button" className="btn-ghost ht-friend-back" onClick={() => setOpenFriend(null)}>
               ← 친구 목록
             </button>
-            <HashtagSlide slide={hashtagSlide(friendPost, { writerName: authorLabelOf(friendPost) })} />
+            <HashtagInfographic
+              slide={hashtagSlide(friendPost, {
+                writerName: authorLabelOf(friendPost),
+                activityTitle: activity.title,
+              })}
+            />
             <HashtagComments
               activityId={activity.id}
               postUid={friendPost.authorId}

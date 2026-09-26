@@ -28900,7 +28900,7 @@ h4.attendance-seat-help { margin-top: 16px; }
 }
 
 /* ── 슬라이드 한 장 — 학생 한 명의 해시태그 ──
-   방송(.hts--cast) · 교사 화면 · 친구 보기(.hts--page)가 같은 뼈대입니다.
+   방송(.hts--cast) · 교사 화면(.hts--page)이 같은 뼈대입니다(친구 보기는 .htg).
    카드 수에 따라 한 줄에 1~3장(--hts-cols, 컴포넌트가 정함). */
 .hts {
   background: #fff;
@@ -29031,6 +29031,243 @@ h4.attendance-seat-help { margin-top: 16px; }
 /* 수업 화면 창 안 — 창에 이미 테두리가 있어 한 겹 덜어 냅니다. 창이 960px이라
    한 줄에 두 장까지(HashtagSlide의 maxCols). */
 .cast-stage-body .hts--page { border: none; padding: 4px 2px; }
+
+/* ── 인포그래픽 장표 — 친구 해시태그 보기(HashtagInfographic) ──
+   칠판 슬라이드(.hts)와 같은 자료를 포스터 한 장으로 그립니다. 접두사를
+   따로(.htg) 둔 까닭: 슬라이드는 방송·교사 화면·수업 화면 창이 함께 쓰는
+   뼈대라, 여기 모양이 그리로 새면 칠판 글자 크기 규칙과 부딪힙니다.
+   카드·칩의 색은 컴포넌트가 줄 차례로 넘깁니다(--c-bg · --c-bd · --c-tx,
+   lib/bookColors.js의 ROW_COLORS). 좁은 자리에서 접는 기준은 창이 아니라
+   이 장표의 폭입니다(@container). */
+.htg {
+  container-type: inline-size;
+  max-width: 1100px;
+  margin: 0 auto;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: 0 12px 32px rgba(58, 49, 46, 0.08);
+  overflow: hidden;
+  color: var(--text);
+}
+.htg-head {
+  display: flex;
+  gap: 24px;
+  align-items: stretch;
+  padding: 28px 32px 24px;
+  background:
+    radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--primary) 22%, transparent) 0, transparent 55%),
+    var(--primary-light);
+  border-bottom: 1px solid color-mix(in srgb, var(--primary) 25%, #fff);
+}
+.htg-head-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.htg-kicker {
+  margin: 0 0 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--primary-dark);
+}
+.htg-hash {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 14px;
+}
+.htg-title {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1.3;
+  color: var(--dark);
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+.htg-meta { margin: 10px 0 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; font-size: 13.5px; color: var(--text-sub); }
+.htg-kind {
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--dark);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+}
+.htg-author { font-weight: 600; color: var(--text); }
+.htg-writer { display: inline-flex; align-items: baseline; gap: 5px; font-weight: 800; color: var(--dark); }
+.htg-writer em { font-style: normal; font-size: 11.5px; font-weight: 700; color: var(--text-sub); }
+.htg-stats {
+  margin: auto 0 0;
+  padding-top: 18px;
+  display: flex;
+  gap: 10px;
+}
+.htg-stats > div {
+  flex: 0 0 auto;
+  min-width: 96px;
+  padding: 8px 14px 9px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid color-mix(in srgb, var(--primary) 20%, #fff);
+}
+.htg-stats dt { font-size: 11.5px; font-weight: 700; color: var(--text-sub); }
+.htg-stats dd {
+  margin: 1px 0 0;
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--primary-dark);
+  font-variant-numeric: tabular-nums;
+}
+.htg-figure { flex: 0 0 auto; width: 260px; margin: 0; display: flex; flex-direction: column; }
+.htg-figure img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 160px;
+  max-height: 220px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 3px solid #fff;
+  box-shadow: 0 4px 14px rgba(58, 49, 46, 0.12);
+}
+.htg-figure figcaption { margin-top: 6px; font-size: 12px; color: var(--text-sub); text-align: center; }
+.htg-empty { margin: 0; padding: 28px 32px; font-size: 14px; color: var(--text-faint); }
+
+/* 리본 — 찾은 태그를 한 줄로. 칩과 아래 카드가 같은 색·같은 번호입니다. */
+.htg-ribbon {
+  list-style: none;
+  margin: 0;
+  padding: 16px 32px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  border-bottom: 1px dashed var(--border);
+}
+.htg-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 4px 12px 5px;
+  border-radius: 999px;
+  background: var(--c-bg);
+  border: 1px solid var(--c-bd);
+  color: var(--c-tx);
+  font-size: 14.5px;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+.htg-chip b { font-size: 11px; font-weight: 800; opacity: 0.7; font-variant-numeric: tabular-nums; }
+
+.htg-grid {
+  list-style: none;
+  margin: 0;
+  padding: 20px 32px 24px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.htg-grid.one { grid-template-columns: minmax(0, 1fr); }
+/* 카드가 홀수면 마지막 한 장이 줄을 다 씁니다 — 오른쪽 아래가 비면 장표가
+   덜 끝난 것처럼 보입니다. */
+.htg-grid > .htg-card:last-child:nth-child(odd) { grid-column: 1 / -1; }
+.htg-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px 16px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--c-bg) 40%, #fff);
+  border: 1px solid color-mix(in srgb, var(--c-bd) 45%, #fff);
+  min-width: 0;
+}
+.htg-card-head { display: flex; align-items: center; gap: 10px; }
+.htg-no {
+  flex: 0 0 auto;
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--c-bd);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.htg-card-tag { margin: 0; font-size: 19px; font-weight: 800; color: var(--c-tx); overflow-wrap: anywhere; }
+.htg-card-tag.empty { color: var(--text-faint); }
+.htg-quote {
+  position: relative;
+  margin: 0;
+  padding: 2px 4px 0 30px;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: var(--text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.htg-quote::before {
+  content: "\201C";
+  position: absolute;
+  left: 2px;
+  top: -8px;
+  font-family: Georgia, var(--font-serif), serif;
+  font-style: normal;
+  font-size: 40px;
+  line-height: 1;
+  color: var(--c-bd);
+}
+.htg-insight {
+  margin: 0;
+  padding: 10px 12px 11px;
+  border-radius: 10px;
+  background: #fff;
+  font-size: 14.5px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.htg-insight b {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--c-tx);
+}
+.htg-blank { margin: 0; font-size: 13px; font-style: italic; color: var(--text-faint); }
+.htg-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 32px 14px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-deep);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.htg-foot-mark { color: var(--primary-dark); letter-spacing: 0.02em; }
+@container (max-width: 720px) {
+  .htg-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@container (max-width: 600px) {
+  .htg-head { flex-direction: column; padding: 22px 18px 18px; }
+  .htg-title { font-size: 24px; }
+  .htg-figure { width: 100%; }
+  .htg-stats > div { flex: 1 1 0; min-width: 0; }
+  .htg-ribbon, .htg-grid { padding-left: 18px; padding-right: 18px; }
+  .htg-foot { padding-left: 18px; padding-right: 18px; }
+}
 
 /* ── 댓글 ── */
 .htc {
