@@ -237,7 +237,7 @@ export default function PresentationOverlay({ broadcast, noteOpen = false, noteW
     );
   }
 
-  // 열 개의 해시태그 — 학생 한 명의 것을 슬라이드 한 장으로. 교사 화면의
+  // 여섯 개의 해시태그 — 학생 한 명의 것을 슬라이드 한 장으로. 교사 화면의
   // 수업 화면 창(CastStageModal)이 **같은 컴포넌트**로 같은 꾸러미를 그립니다.
   // 누구의 것인지는 슬라이드 머리가 크게 말하므로 막대에는 안 적습니다.
   if (broadcast.mode === "hashtag") {

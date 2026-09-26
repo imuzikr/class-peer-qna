@@ -28531,7 +28531,7 @@ h4.attendance-seat-help { margin-top: 16px; }
 }
 
 /* =============================================================
-   열 개의 해시태그 — 학생 폼(.ht-*) · 슬라이드(.hts*) · 댓글(.htc*)
+   여섯 개의 해시태그 — 학생 폼(.ht-*) · 슬라이드(.hts*) · 댓글(.htc*)
    -------------------------------------------------------------
    접두사를 셋으로 갈라 둡니다 — 폼·슬라이드·댓글이 교사 화면·친구 화면·
    학급 방송에 따로따로 끼어 들어가서, 한 덩어리 이름이면 서로의 규칙이
@@ -28953,6 +28953,8 @@ h4.attendance-seat-help { margin-top: 16px; }
   padding: 0;
   display: grid;
   grid-template-columns: repeat(var(--hts-cols, 2), minmax(0, 1fr));
+  /* 한 장 안의 카드는 늘 같은 높이 — 줄마다 키가 다르면 칸이 들쭉날쭉합니다 */
+  grid-auto-rows: 1fr;
   gap: 12px;
 }
 .hts-card {
@@ -29002,18 +29004,51 @@ h4.attendance-seat-help { margin-top: 16px; }
 .hts-blank { margin: 0; font-size: 13px; font-style: italic; color: var(--text-faint); }
 
 /* 칠판 — 뒷자리에서 읽혀야 하므로 화면 폭을 따라 커집니다. 글이 적을수록
-   한 단계 더(data-size, lib/hashtag.js의 hashtagSlideSize). */
-.broadcast-overlay--hashtag .broadcast-body { align-items: flex-start; }
+   한 단계 더(data-size, lib/hashtag.js의 hashtagSlideSize).
+   **칸 크기는 못 박습니다**(선생님 요청) — 슬라이드가 화면 높이를 다 쓰고,
+   머리(이름·읽은 글·태그·그림)도 높이가 고정이라 카드 자리는 늘 같습니다.
+   카드는 세 칸 × 두 줄(HashtagSlide가 --hts-cols 3 · --hts-rows 2)이고,
+   카드가 적으면 빈 자리가 남습니다. 넘치는 글은 그 카드 안에서 구릅니다. */
+.broadcast-overlay--hashtag .broadcast-body {
+  align-items: stretch;
+  min-height: 0;
+  padding: clamp(14px, 2vh, 28px) clamp(12px, 1.6vw, 28px);
+}
 .hts--cast {
   width: min(97vw, 1650px);
   margin: 0 auto;
-  padding: clamp(20px, 2.4vw, 40px) clamp(20px, 2.8vw, 48px);
+  padding: clamp(18px, 2.2vh, 36px) clamp(20px, 2.4vw, 44px);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.hts--cast .hts-head {
+  flex: 0 0 auto;
+  height: clamp(120px, 21vh, 230px);
+  margin-bottom: clamp(12px, 1.8vh, 24px);
+  overflow: hidden;
+}
+.hts--cast .hts-grid {
+  flex: 1 1 0;
+  min-height: 0;
+  grid-template-rows: repeat(var(--hts-rows, 2), minmax(0, 1fr));
+  grid-auto-rows: minmax(0, 1fr);
+}
+.hts--cast .hts-card {
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
 }
 .hts--cast .hts-who { font-size: clamp(24px, 2.6vw, 44px); }
 .hts--cast .hts-source { font-size: clamp(15px, 1.4vw, 24px); }
 .hts--cast .hts-tag { font-size: clamp(14px, 1.3vw, 22px); padding: 4px 14px; }
-.hts--cast .hts-figure { width: clamp(180px, 20vw, 360px); }
-.hts--cast .hts-figure img { max-height: clamp(140px, 22vh, 280px); }
+.hts--cast .hts-figure {
+  width: clamp(180px, 20vw, 360px);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.hts--cast .hts-figure img { flex: 1 1 0; min-height: 0; max-height: none; height: 100%; }
 .hts--cast .hts-grid { gap: clamp(10px, 1.2vw, 20px); }
 .hts--cast .hts-card { padding: clamp(12px, 1.2vw, 22px); }
 .hts--cast .hts-card-tag { font-size: clamp(18px, 1.7vw, 30px); }
@@ -29021,12 +29056,18 @@ h4.attendance-seat-help { margin-top: 16px; }
 .hts--cast .hts-insight { font-size: clamp(15px, 1.25vw, 22px); }
 .hts--cast[data-size="lg"] .hts-card-tag { font-size: clamp(22px, 2.4vw, 42px); }
 .hts--cast[data-size="lg"] .hts-quote,
-.hts--cast[data-size="lg"] .hts-insight { font-size: clamp(18px, 1.9vw, 34px); }
+.hts--cast[data-size="lg"] .hts-insight { font-size: clamp(16px, 1.45vw, 26px); }
 .hts--cast[data-size="sm"] .hts-quote,
 .hts--cast[data-size="sm"] .hts-insight { font-size: clamp(14px, 1vw, 18px); }
 .hts--cast .hts-insight b { font-size: 0.72em; }
 @media (max-width: 900px) {
   .hts-grid { grid-template-columns: 1fr; }
+  /* 좁은 화면(학생 폰)에서는 세 칸이 안 서서 못 박기를 풉니다 — 한 줄에
+     한 장씩 늘어서고 페이지가 구릅니다. */
+  .hts--cast .hts-head { height: auto; overflow: visible; }
+  .hts--cast .hts-grid { flex: none; grid-template-rows: none; grid-auto-rows: auto; }
+  .hts--cast .hts-card { overflow: visible; }
+  .broadcast-overlay--hashtag .broadcast-body { align-items: flex-start; }
 }
 /* 수업 화면 창 안 — 창에 이미 테두리가 있어 한 겹 덜어 냅니다. 창이 960px이라
    한 줄에 두 장까지(HashtagSlide의 maxCols). */

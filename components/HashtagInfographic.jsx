@@ -1,7 +1,7 @@
 "use client";
 
 // =============================================================
-// 열 개의 해시태그 — 친구에게 보이는 인포그래픽 장표 한 장 (읽기 전용)
+// 여섯 개의 해시태그 — 친구에게 보이는 인포그래픽 장표 한 장 (읽기 전용)
 // -------------------------------------------------------------
 // 공개 뒤 '친구 해시태그'에서 친구 하나를 누르면 이 한 장이 뜹니다. 칠판용
 // 슬라이드(HashtagSlide)와 **같은 자료**(`hashtagSlide()`가 지은 모양)를 받아
@@ -12,7 +12,7 @@
 //   리본    찾은 해시태그 칩 — 칩마다 제 카드와 같은 색
 //   본문    태그마다 번호 카드(#태그 · 원문 인용 · 생각)
 //
-// 색은 카드 차례로 `ROW_COLORS` 열 가지를 돌려 씁니다(열 칸이라 한 장 안에서
+// 색은 카드 차례로 `ROW_COLORS` 열 가지를 돌려 씁니다(여섯 칸이라 한 장 안에서
 // 겹치지 않습니다). 칩과 카드가 같은 색이라 리본에서 카드를 눈으로 찾습니다.
 //
 // 칠판 방송·교사 화면·수업 화면 창은 지금까지처럼 HashtagSlide입니다 — 거기는
@@ -43,7 +43,7 @@ export default function HashtagInfographic({ slide }) {
         <div className="htg-head-text">
           <p className="htg-kicker">
             <span className="htg-hash" aria-hidden="true">#</span>
-            {s.activityTitle || "열 개의 해시태그"}
+            {s.activityTitle || "여섯 개의 해시태그"}
           </p>
           <h2 className="htg-title">
             {title
@@ -129,7 +129,7 @@ export default function HashtagInfographic({ slide }) {
 
       <footer className="htg-foot">
         <span>{s.writerName}</span>
-        <span className="htg-foot-mark">#열개의해시태그</span>
+        <span className="htg-foot-mark">#여섯개의해시태그</span>
       </footer>
     </article>
   );

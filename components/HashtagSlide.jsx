@@ -1,7 +1,7 @@
 "use client";
 
 // =============================================================
-// 열 개의 해시태그 — 학생 한 명의 슬라이드 한 장 (읽기 전용)
+// 여섯 개의 해시태그 — 학생 한 명의 슬라이드 한 장 (읽기 전용)
 // -------------------------------------------------------------
 // 교사가 '수업 시작'을 누르면 이 한 장이 학급 화면에 뜹니다. 같은 모양을
 // 세 곳이 씁니다 — 학생 화면의 방송(PresentationOverlay) · 교사의 수업 화면
@@ -29,16 +29,23 @@ export default function HashtagSlide({ slide, variant = "page", maxCols = 3 }) {
   const size = hashtagSlideSize(s);
   const src = hashtagSourceLine(s.source);
   const tagged = s.entries.filter((e) => e.tag);
-  // 카드가 적으면 한 줄에 덜 세웁니다 — 두 장을 세 칸 격자에 두면 오른쪽이
-  // 통째로 빕니다.
-  // 좁은 자리(교사의 수업 화면 창)는 maxCols로 두 장까지만.
-  const cols = Math.min(maxCols, s.entries.length <= 1 ? 1 : s.entries.length <= 4 ? 2 : 3);
+  // 칠판(cast)은 **칸 크기를 못 박습니다** — 세 칸 × 두 줄(여섯 자리)이 늘
+  // 같은 크기로 서고, 카드가 적으면 빈 자리가 남습니다. 학생을 넘길 때마다
+  // 카드 수에 따라 칸이 커졌다 작아졌다 하면 같은 화면으로 안 읽힙니다
+  // (선생님 요청). 여섯을 넘는 옛 기록(열 개이던 때)만 줄이 늘어납니다.
+  // 화면 안의 한 칸(page)은 카드가 적으면 한 줄에 덜 세웁니다 — 두 장을
+  // 세 칸 격자에 두면 오른쪽이 통째로 빕니다. 좁은 자리(교사의 수업 화면
+  // 창)는 maxCols로 두 장까지만.
+  const n = s.entries.length;
+  const cols =
+    variant === "cast" ? 3 : Math.min(maxCols, n <= 1 ? 1 : n <= 4 ? 2 : 3);
+  const rows = Math.max(2, Math.ceil(n / 3));
 
   return (
     <article
       className={`hts hts--${variant}`}
       data-size={size}
-      style={{ "--hts-cols": cols }}
+      style={{ "--hts-cols": cols, "--hts-rows": rows }}
       aria-label={`${s.writerName || "학생"}의 해시태그`}
     >
       <header className="hts-head">

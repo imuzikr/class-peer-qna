@@ -30,13 +30,13 @@ test("태그는 #을 떼고 띄어쓰기·끝 문장부호를 지웁니다", () 
   assert.equal(normalizeTag(""), "");
 });
 
-test("칸은 늘 열 개 — 빈 값·옛 값도 같은 모양", () => {
+test("칸은 여섯 개 — 빈 값·옛 값도 같은 모양", () => {
   const p = normalizeHashtagPost(null);
   assert.equal(p.tags.length, HASHTAG_COUNT);
   assert.equal(p.source.kind, "book");
   const q = normalizeHashtagPost({ tags: [{ tag: "#가" }], source: { kind: "이상한값" } });
   assert.equal(q.tags[0].tag, "가");
-  assert.equal(q.tags.length, 10);
+  assert.equal(q.tags.length, 6);
   assert.equal(q.source.kind, "book");
 });
 
@@ -72,7 +72,7 @@ test("저장 모양 — 위험한 그림 주소는 걷습니다", () => {
   assert.equal(hashtagPostForSave({ image: { url: "https://a/b.jpg" } }).image.url, "https://a/b.jpg");
 });
 
-test("칩 더하기 — 붙여 넣은 여러 개 · 같은 태그 막기 · 열 칸 넘침", () => {
+test("칩 더하기 — 붙여 넣은 여러 개 · 같은 태그 막기 · 여섯 칸 넘침", () => {
   const r = addTagsTo([], "#기후위기 #바다, 탄소 #AI");
   assert.deepEqual(r.tags.slice(0, 4).map((e) => e.tag), ["기후위기", "바다", "탄소", "AI"]);
   assert.deepEqual(r.added, [0, 1, 2, 3]);
@@ -80,8 +80,8 @@ test("칩 더하기 — 붙여 넣은 여러 개 · 같은 태그 막기 · 열 
   assert.deepEqual(r2.dupes, ["ai", "바다"]);
   assert.equal(r2.tags[4].tag, "산호");
   const full = addTagsTo([], "a b c d e f g h i j k l");
-  assert.equal(full.added.length, 10);
-  assert.deepEqual(full.overflow, ["k", "l"]);
+  assert.equal(full.added.length, 6);
+  assert.deepEqual(full.overflow, ["g", "h", "i", "j", "k", "l"]);
 });
 
 test("칩 더하기 — 태그 없이 글만 있는 옛 칸은 건너뜁니다", () => {
@@ -98,10 +98,30 @@ test("칩 빼기 — 그 칸이 글째로 빠지고 뒤가 당겨집니다", () 
     { tag: "다" },
   ];
   const out = removeTagAt(tags, 1);
-  assert.equal(out.length, 10);
+  assert.equal(out.length, 6);
   assert.deepEqual(out.slice(0, 3).map((e) => e.tag), ["가", "다", ""]);
   assert.equal(out[0].quote, "q1");
-  assert.equal(removeTagAt(tags, 99).length, 10);
+  assert.equal(removeTagAt(tags, 99).length, 6);
+});
+
+test("열 개이던 때의 옛 기록 — 여섯 칸 뒤의 글도 지우지 않고, 더는 못 더함", () => {
+  const old = Array.from({ length: 8 }, (_, i) => ({ tag: `t${i}`, quote: `q${i}` }));
+  const p = normalizeHashtagPost({ tags: old });
+  assert.equal(p.tags.length, 8);
+  assert.equal(p.tags[7].quote, "q7");
+  const r = addTagsTo(p.tags, "새것");
+  assert.deepEqual(r.added, []);
+  assert.deepEqual(r.overflow, ["새것"]);
+  // 칸 사이에 빈자리가 있어도 여섯을 넘겨 채우지 않습니다
+  const gap = [...old.slice(0, 3), {}, ...old.slice(3, 7)];
+  assert.deepEqual(addTagsTo(gap, "새것").overflow, ["새것"]);
+  // 하나를 빼면 칸이 당겨지고, 여섯 아래로 내려가야 다시 더할 수 있습니다
+  const less = removeTagAt(p.tags, 0);
+  assert.equal(less.length, 7);
+  assert.deepEqual(addTagsTo(less, "새것").overflow, ["새것"]);
+  const six = removeTagAt(removeTagAt(less, 0), 0);
+  assert.equal(six.length, 6);
+  assert.deepEqual(addTagsTo(six, "새것").added, [5]);
 });
 
 test("쓴 칸 · 친구 목록 판정", () => {

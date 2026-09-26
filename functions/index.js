@@ -252,7 +252,7 @@ async function purgeStudentData(uid, warnings) {
     warnings,
     "책방 메모"
   );
-  // '열 개의 해시태그' — 보고서와 댓글에 학번·실명이 있어 반드시 지웁니다.
+  // '여섯 개의 해시태그' — 보고서와 댓글에 학번·실명이 있어 반드시 지웁니다.
   // 보고서를 지울 때 **그 보고서에 달린 남의 댓글**도 함께 지웁니다(가리킬
   // 보고서가 없어진 댓글). 그 셈은 활동 안의 컬렉션 질의라 따로 색인이
   // 필요 없습니다. 색인(hashtagPosts·hashtagComments.authorId)을 이 코드보다

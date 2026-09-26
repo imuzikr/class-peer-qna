@@ -46,7 +46,7 @@ export default function CastStageModal({
   user = null,
   onStop,
   onClose,
-  // 본문을 따로 그리는 활동 — 열 개의 해시태그는 영역이 아니라 **학생 한 명의
+  // 본문을 따로 그리는 활동 — 여섯 개의 해시태그는 영역이 아니라 **학생 한 명의
   // 슬라이드 한 장**이라 fields 목록으로 담을 수 없습니다. 주면 아래 본문 자리에
   // 이것을 그리고, 영역 줄(단계 축)은 꾸러미에 label이 없으면 안 그립니다.
   body = null,

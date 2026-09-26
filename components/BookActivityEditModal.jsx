@@ -43,7 +43,7 @@ export default function BookActivityEditModal({ activity, onClose, onDone }) {
   const [prompt, setPrompt] = useState(activity.prompt ?? "");
   const [noteMode, setNoteMode] = useState(() => opinionNoteMode(activity));
   const zonesBad = isOpinion && zoneNames.some((n) => !n.trim());
-  // 열 개의 해시태그 — 주제어·도서 주소 대신 안내 문구 하나
+  // 여섯 개의 해시태그 — 주제어·도서 주소 대신 안내 문구 하나
   const isHashtag = activity.type === "hashtag";
   const [guide, setGuide] = useState(activity.guide ?? "");
 
