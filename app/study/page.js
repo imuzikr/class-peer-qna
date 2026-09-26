@@ -48,6 +48,7 @@ import {
   saveStudySeatLayout,
   saveStudyGroupAssignment,
   subscribeMyLessons,
+  recordLessonTaught,
   subscribeMyStudyTemplates,
   startStudyTemplateInClass,
   deleteStudyTemplate,
@@ -509,6 +510,27 @@ function StudyPageInner() {
     return out;
   }, [admin, boards, classId, myClassesAll]);
 
+  // 수업 관리 창의 '반별 현황'(오른쪽 열) — 이미 구독해 둔 반·보드·원본을
+  // 그대로 넘깁니다(읽기 0). 보관된 반은 뺍니다(지난 학기라 열이 길어지기만
+  // 합니다). 다른 반의 프로젝트를 누르면 그 반으로 옮겨 가 엽니다.
+  const lessonUsage = useMemo(
+    () =>
+      admin
+        ? {
+            classes: myClasses,
+            boards,
+            templates,
+            currentClassId: classId,
+            onOpenBoard: (boardId) => {
+              const b = boards.find((x) => x.id === boardId);
+              if (b?.classId && b.classId !== classId) setTeacherClassId(b.classId);
+              router.push(`/study?project=${boardId}`);
+            },
+          }
+        : null,
+    [admin, myClasses, boards, templates, classId, router]
+  );
+
   // 원본을 이 반에서 시작 — 복사본을 만들고 곧바로 그 프로젝트로 들어갑니다
   // (예전 '만들자마자 들어가 활동을 손본다'와 같은 흐름).
   async function handleStartTemplate(template) {
@@ -617,6 +639,13 @@ function StudyPageInner() {
     router.push(`/study?lesson=${lesson.id}&mode=edit`);
   }
   function openLessonTeach(lesson) {
+    // 이 반에서 오늘 이 수업을 했다고 적어 둡니다 — 수업 관리 창의 '반별
+    // 현황'이 읽는 기록(taughtDays). 실패해도 수업은 그대로 엽니다.
+    if (classId) {
+      recordLessonTaught(lesson.id, classId, todayDateKey()).catch((e) =>
+        console.warn("[수업하기] 수업한 날을 적지 못했어요:", e?.code, e?.message)
+      );
+    }
     router.push(`/study?lesson=${lesson.id}&mode=teach`);
   }
   function closeLessonNav() {
@@ -1449,6 +1478,7 @@ function StudyPageInner() {
           // 프로젝트 탭 — 내 프로젝트 원본. 수업 자료와 같이 반에 안 묶인
           // 선생님의 것이라 한 창에 나란히 둡니다(StudyTemplateList).
           tab={lessonTab}
+          usage={lessonUsage}
           onTabChange={(t) =>
             t === "projects"
               ? openProjectsTab()

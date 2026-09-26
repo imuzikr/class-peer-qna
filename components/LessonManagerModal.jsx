@@ -22,17 +22,23 @@
 //      수업 자료와 프로젝트 원본은 **둘 다 반이 아니라 선생님에게 붙은
 //      설계도**라 한 창에 나란히 둡니다. 공부방 머리줄의 '＋ 프로젝트
 //      만들기'가 원본을 만들면 이 탭이 그 줄을 짚은 채로 열립니다.
+//  · 창 크기는 세 탭이 같습니다(자리 배치가 요구하는 1180px). 넓어진 만큼
+//    두 목록 탭은 오른쪽에 **반별 현황**(ClassUsagePanel)을 둡니다 — 수업은
+//    '어느 반에서 언제 했나'(lessons.taughtDays), 프로젝트는 '반마다 열어 둔
+//    프로젝트'. 두 탭의 두 칸은 같은 격자라 탭을 바꿔도 경계가 제자리입니다.
 //  · 새 수업 만들기 — 주제 입력 + PDF 업로드. 올리기가 끝나면 바로 편집
 //    화면(LessonMode mode="edit")으로 넘어가 해설·활동 안내까지 이어 씁니다.
 // =============================================================
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { backdropClose } from "@/lib/modal";
 import { subscribeMyLessons, addLesson, deleteLesson } from "@/lib/store";
 import { convertPdfSlides } from "@/lib/pdfSlides";
 import { createUploadPool } from "@/lib/uploadPool";
 import { uploadImageBlob } from "@/lib/storageUpload";
 import { getCurrentUser } from "@/lib/user";
+import { lessonUsageByClass, projectUsageByClass } from "@/lib/classUsage";
 import ConfirmModal from "./ConfirmModal";
+import ClassUsagePanel from "./ClassUsagePanel";
 import { IconTrash } from "./StatusIcons";
 
 const MAX_SLIDES = 60;
@@ -50,6 +56,9 @@ export default function LessonManagerModal({
   projectsPane = null,
   seatsPane = null,
   onCreateProject,
+  // 반별 현황(오른쪽 열) — 페이지가 이미 구독해 둔 반·프로젝트·원본을 받습니다.
+  // 수업 자료는 이 창이 스스로 구독하는 목록을 그대로 씁니다(읽기 0).
+  usage = null,
 }) {
   const [lessons, setLessons] = useState([]);
   const [creating, setCreating] = useState(false); // '새 수업 만들기' 화면 표시 여부
@@ -60,6 +69,29 @@ export default function LessonManagerModal({
 
   const me = getCurrentUser();
   useEffect(() => subscribeMyLessons(me?.uid, setLessons), [me?.uid]);
+
+  const lessonGroups = useMemo(
+    () => (usage ? lessonUsageByClass(usage.classes, lessons, usage.boards) : []),
+    [usage, lessons]
+  );
+  const projectGroups = useMemo(
+    () => (usage ? projectUsageByClass(usage.classes, usage.boards, usage.templates) : []),
+    [usage]
+  );
+  // 두 목록 탭은 같은 두 칸 — 왼쪽 목록, 오른쪽 반별 현황(.lesson-mgr-body)
+  const withUsage = (mode, main) => (
+    <div className={`lesson-mgr-body${usage ? "" : " no-usage"}`}>
+      <div className="lesson-mgr-main">{main}</div>
+      {usage && (
+        <ClassUsagePanel
+          mode={mode}
+          groups={mode === "lessons" ? lessonGroups : projectGroups}
+          currentClassId={usage.currentClassId}
+          onOpenBoard={usage.onOpenBoard}
+        />
+      )}
+    </div>
+  );
 
   async function handlePdf(e) {
     const file = e.target.files?.[0];
@@ -153,7 +185,7 @@ export default function LessonManagerModal({
 
   return (
     <div className="modal-backdrop" {...backdropClose(busy ? () => {} : onClose)}>
-      <div className={`modal modal-lesson${!creating && tab === "seats" && seatsPane ? " is-seats" : ""}`} onClick={(e) => e.stopPropagation()}>
+      <div className="modal modal-lesson" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           {creating ? (
             <button type="button" className="btn-ghost lesson-back-btn" onClick={() => setCreating(false)} disabled={!!busy}>
@@ -265,7 +297,7 @@ export default function LessonManagerModal({
             {error && <p className="lesson-error">{error}</p>}
           </>
         ) : tab === "projects" && projectsPane ? (
-          <>
+          withUsage("projects", <>
             {/* 수업 탭의 위 줄과 같은 자리·같은 모양 — '새로 만들기'가 늘 맨 위
                 왼쪽입니다. 만드는 창은 공부방의 그 창(StudyProjectForm)이라
                 이 창을 닫고 엽니다(창 둘이 겹치지 않게). */}
@@ -275,11 +307,11 @@ export default function LessonManagerModal({
               </button>
             </div>
             {projectsPane}
-          </>
+          </>)
         ) : tab === "seats" && seatsPane ? (
           seatsPane
         ) : (
-          <>
+          withUsage("lessons", <>
             <div className="lesson-list-toolbar">
               <button type="button" className="lesson-create-btn" onClick={() => { setError(""); setCreating(true); }}>
                 ＋ 새 수업 만들기
@@ -323,7 +355,7 @@ export default function LessonManagerModal({
                 ))
               )}
             </div>
-          </>
+          </>)
         )}
       </div>
 
