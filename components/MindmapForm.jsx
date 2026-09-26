@@ -135,6 +135,27 @@ export default function MindmapForm({ activity, user, onBack }) {
   const depth = useMemo(() => maxDepth(map), [map]);
   const layoutKo = MINDMAP_LAYOUTS.find((l) => l.key === map.layout)?.ko ?? "방사형";
 
+  // 저장 상태 줄 — 카드 화면에서는 머리말에, 판을 연 뒤에는 형태 고르기 줄
+  // 끝에 섭니다(형태 · 설명 · 가지 수가 한 줄에 — 판이 그만큼 위로 올라옵니다).
+  const statusLine = (
+    <div className="paratext-status">
+      <span className="paratext-progress">
+        {layoutKo} · 가지 {branches}개 · {depth}단계
+      </span>
+      {locked ? (
+        <span className="paratext-saved locked">
+          <IconLock size={14} /> 잠김
+        </span>
+      ) : (
+        status !== "idle" && (
+          <span className="paratext-saved">
+            {status === "saving" ? "저장 중…" : "저장됨"}
+          </span>
+        )
+      )}
+    </div>
+  );
+
   return (
     <main className="books-main mindmap-main">
       <div className="books-head">
@@ -196,22 +217,7 @@ export default function MindmapForm({ activity, user, onBack }) {
           )}
         </div>
         )}
-        <div className="paratext-status">
-          <span className="paratext-progress">
-            {layoutKo} · 가지 {branches}개 · {depth}단계
-          </span>
-          {locked ? (
-            <span className="paratext-saved locked">
-              <IconLock size={14} /> 잠김
-            </span>
-          ) : (
-            status !== "idle" && (
-              <span className="paratext-saved">
-                {status === "saving" ? "저장 중…" : "저장됨"}
-              </span>
-            )
-          )}
-        </div>
+        {!open && statusLine}
       </div>
 
       {locked && (
@@ -270,6 +276,7 @@ export default function MindmapForm({ activity, user, onBack }) {
             <span className="mindmap-layout-hint">
               {MINDMAP_LAYOUTS.find((l) => l.key === map.layout)?.hint}
             </span>
+            {statusLine}
           </div>
 
           <MindmapCanvas
