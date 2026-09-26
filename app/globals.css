@@ -28537,8 +28537,9 @@ h4.attendance-seat-help { margin-top: 16px; }
    학급 방송에 따로따로 끼어 들어가서, 한 덩어리 이름이면 서로의 규칙이
    새어 들어갑니다. (.htr은 거둔 보고서의 접두사 — 다시 쓰지 마세요.)
    ============================================================= */
-/* 폭을 못 박고 가운데로 — 머리말·폼·보고서·댓글이 한 기둥에 섭니다 */
-.ht-wrap { max-width: 1040px; margin: 0 auto; }
+/* 폭을 못 박고 가운데로 — 머리말·폼·댓글이 한 기둥에 섭니다.
+   폼이 두 열이라 1320px까지 씁니다(한 열이던 때는 1040px). */
+.ht-wrap { max-width: 1320px; margin: 0 auto; container-type: inline-size; }
 .ht-tabs-row { margin-bottom: 16px; }
 .ht-guide {
   margin: 0 0 12px;
@@ -28564,7 +28565,27 @@ h4.attendance-seat-help { margin-top: 16px; }
 }
 .paratext-saved.err { color: var(--danger); }
 
-.ht-form { display: flex; flex-direction: column; gap: 18px; }
+/* 두 열 — 왼쪽은 모으는 것(① 해시태그 칩 · ③ 읽은 글 · ④ 대표 이미지),
+   오른쪽은 태그마다 글쓰기(② 원문 · 생각). 칩을 더하면 옆 열에 카드가
+   생기는 것이 한눈에 보입니다. 열 폭은 화면이 아니라 **이 기둥의 폭**으로
+   접습니다(@container) — 책방은 양옆에 패널이 서서 창 폭만으로는 모릅니다. */
+.ht-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  gap: 18px;
+  align-items: start;
+}
+.ht-col { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+/* 한 열로 접힐 때는 열 상자를 풀고 ①②③④ 차례로 다시 세웁니다 — 그대로
+   두면 글쓰기 카드(②)가 이미지(④) 아래 맨 끝으로 밀립니다. */
+@container (max-width: 900px) {
+  .ht-form { grid-template-columns: minmax(0, 1fr); }
+  .ht-col { display: contents; }
+  .ht-sec--tags { order: 1; }
+  .ht-sec--write { order: 2; }
+  .ht-sec--source { order: 3; }
+  .ht-sec--image { order: 4; }
+}
 .ht-sec {
   background: var(--card-bg);
   border: 1px solid var(--border);
@@ -28805,8 +28826,6 @@ h4.attendance-seat-help { margin-top: 16px; }
   overflow: hidden;
 }
 .ht-chip.done { border-color: #a6d8b6; background: #e8f7ed; color: #2f7a4b; }
-.ht-chip.on { box-shadow: 0 0 0 2px var(--primary); }
-.ht-chip.done.on { box-shadow: 0 0 0 2px #6fb98a; }
 .ht-chip-go {
   border: none;
   background: none;
