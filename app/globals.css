@@ -28537,7 +28537,9 @@ h4.attendance-seat-help { margin-top: 16px; }
    미리보기에 따로따로 끼어 들어가서, 한 덩어리 이름이면 서로의 규칙이
    새어 들어갑니다.
    ============================================================= */
-.hashtag-main > *:not(.books-head) { max-width: 1040px; }
+/* 폭을 못 박고 가운데로 — 머리말·폼·보고서·댓글이 한 기둥에 섭니다 */
+.ht-wrap { max-width: 1040px; margin: 0 auto; }
+.ht-tabs-row { margin-bottom: 16px; }
 .ht-guide {
   margin: 0 0 12px;
   padding: 10px 14px;
@@ -28549,7 +28551,7 @@ h4.attendance-seat-help { margin-top: 16px; }
   white-space: pre-wrap;
 }
 .ht-pubnote { margin: 0 0 14px; font-size: 12.5px; color: var(--text-sub); }
-.ht-tabs { margin: 0 0 16px; }
+.ht-tabs { margin: 0; }
 .ht-newc {
   border: none;
   cursor: pointer;
@@ -28649,13 +28651,14 @@ h4.attendance-seat-help { margin-top: 16px; }
      원문     옅은 회색 인용 상자 + 왼쪽 굵은 선 + 기울인 세리프
      알 수 있는 것  흰 바탕 + 초록 왼쪽 선
    보고서의 차례(소제목 → 인용 → 해설)와 같은 모양입니다. */
+/* 한 줄에 한 칸 — 펼친 칸 하나 + 접힌 줄들(누르면 그 칸만 펼침) */
 .ht-entries {
   list-style: none;
   margin: 0;
   padding: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
-  gap: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 .ht-entry {
   display: flex;
@@ -28668,7 +28671,66 @@ h4.attendance-seat-help { margin-top: 16px; }
 }
 .ht-entry.doing { border-color: #f0cdb8; }
 .ht-entry.done { border-color: #a6d8b6; background: #fbfefc; }
-.ht-entry-head { display: flex; align-items: center; gap: 8px; }
+.ht-entry:not(.open) { padding: 0; }
+.ht-entry-head,
+.ht-entry-fold {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  color: inherit;
+}
+.ht-entry-fold { padding: 10px 14px; border-radius: var(--radius-btn); }
+.ht-entry-fold:hover { background: var(--bg-deep); }
+.ht-entry-fold .ht-entry-no { font-size: 16px; }
+.ht-fold-tag { flex-shrink: 0; font-size: 14px; font-weight: 800; color: var(--primary-dark); }
+.ht-fold-tag.empty { color: var(--text-faint); font-weight: 600; }
+.ht-fold-quote {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 13px;
+  color: var(--text-sub);
+}
+.ht-fold-warn {
+  flex-shrink: 0;
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #f6e0bd;
+  color: #9a5e10;
+  font-size: 12px;
+  font-weight: 900;
+}
+.ht-fold-caret { flex-shrink: 0; font-size: 12px; color: var(--text-faint); }
+.ht-fold-caret.up { transform: rotate(180deg); }
+.ht-entry-head .ht-entry-state { margin-left: auto; }
+.ht-entry-fold .ht-entry-state { margin-left: 0; flex-shrink: 0; }
+.ht-add {
+  margin-top: 10px;
+  width: 100%;
+  padding: 11px 14px;
+  border: 1.5px dashed #f0cdb8;
+  border-radius: var(--radius-btn);
+  background: #fffaf6;
+  color: var(--primary-dark);
+  font-size: 14px;
+  font-weight: 800;
+  font-family: inherit;
+  cursor: pointer;
+}
+.ht-add:hover:not(:disabled) { background: var(--primary-light); border-color: var(--primary); }
+.ht-add:disabled { cursor: default; color: var(--text-faint); border-color: var(--border); background: var(--bg-deep); }
 .ht-entry-no {
   font-family: var(--font-serif);
   font-size: 20px;
@@ -28707,7 +28769,21 @@ h4.attendance-seat-help { margin-top: 16px; }
   color: var(--primary-dark);
   outline: none;
 }
-.ht-tag-input:focus-within { border-color: var(--primary); }
+/* 안쪽 입력칸에는 앱 전체의 입력칸 모양(테두리·둥근 모서리·포커스 고리)이
+   겹쳐 알약 안에 상자 하나가 더 보였습니다(잔상 신고). 알약이 곧 입력칸이라
+   안쪽 것은 다 걷고, 포커스 고리는 알약에 둡니다. */
+.ht-tag-input input,
+.ht-tag-input input:focus {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  outline: none;
+  width: auto;
+}
+.ht-tag-input:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(217, 119, 87, 0.18);
+}
 .ht-form .ht-field--quote textarea {
   background: var(--bg-deep);
   border: none;

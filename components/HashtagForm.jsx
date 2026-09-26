@@ -5,8 +5,10 @@
 // -------------------------------------------------------------
 // 위에서 아래로 한 줄기입니다:
 //   ① 보고서 제목  ② 읽은 글(출처)  ③ 대표 이미지
-//   ④ 해시태그 열 칸 — 한 칸에 **입력칸 셋이 따로** 섭니다
-//        태그(# 알약) · 원문 문장(인용 상자) · 알 수 있는 것(→ 해설)
+//   ④ 해시태그(최대 열 개) — 처음에는 한 칸만 서고 '＋ 해시태그 추가'로
+//      하나씩 늘립니다. 새 칸을 열면 앞 칸들은 한 줄로 접힙니다(누르면 폄).
+//      한 칸에 **입력칸 셋이 따로** 섭니다
+//        태그(# 알약) · 원문 문장(인용 상자) · 생각 표현하기(초록 선)
 //      셋의 바탕·테두리·이름표가 다 달라, 무엇을 어디에 쓰는지 헷갈리지
 //      않습니다. 보고서에 실리는 모양(소제목 → 인용 → 해설)과 같은 차례입니다.
 //   ⑤ 요약 — 쓴 태그가 칩으로 켜집니다(해시태그 n/10개 사용)
@@ -98,6 +100,13 @@ export default function HashtagForm({ activity, user, onBack }) {
   const timerRef = useRef(null);
   const fileRef = useRef(null);
   const commentsRef = useRef(null);
+  // 해시태그 칸 — 몇 칸을 세워 둘지와 지금 펼친 칸.
+  // 세워 두는 칸은 '글이 든 마지막 칸'과 '＋로 늘린 칸' 가운데 큰 쪽입니다
+  // (저장은 늘 열 칸 그대로 — 세워 두지 않은 칸은 빈 칸일 뿐입니다).
+  // 펼친 칸이 null이면 세워 둔 마지막 칸을, -1이면 아무것도 펴지 않습니다.
+  const [added, setAdded] = useState(0);
+  const [openIdx, setOpenIdx] = useState(null);
+  const focusTagRef = useRef(null); // 새로 연 칸의 태그 입력칸에 커서를
 
   const locked = !!activity.locked;
   const published = activity.published === true;
@@ -194,6 +203,28 @@ export default function HashtagForm({ activity, user, onBack }) {
   }
 
   const dup = useMemo(() => duplicateTagIndexes(post.tags), [post.tags]);
+  const lastStarted = useMemo(() => {
+    let last = -1;
+    post.tags.forEach((e, i) => { if (isEntryStarted(e)) last = i; });
+    return last;
+  }, [post.tags]);
+  const shownCount = Math.min(HASHTAG_COUNT, Math.max(1, lastStarted + 1, added));
+  const openAt = openIdx === null ? shownCount - 1 : openIdx;
+
+  function addEntry() {
+    if (locked || shownCount >= HASHTAG_COUNT) return;
+    const next = shownCount;
+    setAdded(next + 1);
+    setOpenIdx(next);
+    focusTagRef.current = next;
+  }
+  // ＋로 연 칸 — 그려진 뒤 태그 칸에 커서를 둡니다.
+  useEffect(() => {
+    const i = focusTagRef.current;
+    if (i == null) return;
+    focusTagRef.current = null;
+    document.getElementById(`ht-tag-${i}`)?.focus();
+  }, [shownCount, openAt]);
   const progress = hashtagProgress(post);
   const used = tagsUsedInSummary(post.tags, post.summary);
   const newCount = newCommentCount(myComments, uid, meta?.seenCommentsAt ?? null);
@@ -235,6 +266,9 @@ export default function HashtagForm({ activity, user, onBack }) {
 
   return (
     <main className="books-main hashtag-main">
+      {/* 폭을 못 박고 가운데로 — 넓은 화면에서 왼쪽에 붙어 오른쪽이 텅
+          비었습니다. 보고서도 한 쪽짜리 종이라 가운데가 제자리입니다. */}
+      <div className="ht-wrap">
       <div className="books-head">
         <div className="books-head-title">
           <h1 className="book-group-title">{activity.title}</h1>
@@ -270,6 +304,7 @@ export default function HashtagForm({ activity, user, onBack }) {
       {activity.guide?.trim() && <p className="ht-guide">{activity.guide}</p>}
 
       {published ? (
+        <div className="ht-tabs-row">
         <div className="dash-view-tabs ht-tabs" role="tablist">
           <button
             type="button"
@@ -289,6 +324,7 @@ export default function HashtagForm({ activity, user, onBack }) {
           >
             친구 보고서 {friends.length}
           </button>
+        </div>
         </div>
       ) : (
         <p className="ht-pubnote">친구 보고서는 선생님이 공개하면 서로 보고 댓글을 달 수 있어요.</p>
@@ -471,35 +507,71 @@ export default function HashtagForm({ activity, user, onBack }) {
               </div>
             </section>
 
-            {/* ④ 해시태그 열 칸 */}
+            {/* ④ 해시태그 — 한 칸씩 늘리고, 펼친 칸 하나만 연다 */}
             <section className="ht-sec">
               <h2 className="ht-sec-title">
-                <span>4</span> 해시태그 열 개
-                <em>글을 꿰뚫는 낱말 · 그 낱말이 쓰인 원문 문장 · 그 문장으로 알 수 있는 것</em>
+                <span>4</span> 해시태그
+                <em>글을 꿰뚫는 낱말 · 그 낱말이 쓰인 원문 문장 · 생각 표현하기</em>
                 <b className={`ht-sec-count${progress.done === HASHTAG_COUNT ? " full" : ""}`}>
                   {progress.done} / {HASHTAG_COUNT} 완성
                 </b>
               </h2>
               <ol className="ht-entries">
-                {post.tags.map((e, i) => {
+                {post.tags.slice(0, shownCount).map((e, i) => {
                   const done = isEntryDone(e) && !dup.has(i);
                   const started = isEntryStarted(e);
                   const dupOf = dup.has(i)
                     ? post.tags.findIndex((x, j) => j < i && tagKey(x.tag) === tagKey(e.tag)) + 1
                     : 0;
                   const quoteMiss = !quoteHasTag(e.tag, e.quote);
+                  const open = i === openAt;
+                  const state = done ? "완성" : started ? "쓰는 중" : "비어 있음";
+                  const cls = `ht-entry${done ? " done" : started ? " doing" : ""}${open ? " open" : ""}`;
+                  if (!open) {
+                    // 접힌 칸 — 번호 · 태그 · 원문 한 줄. 누르면 그 칸만 펼칩니다.
+                    return (
+                      <li key={i} className={cls}>
+                        <button
+                          type="button"
+                          className="ht-entry-fold"
+                          onClick={() => setOpenIdx(i)}
+                          aria-expanded="false"
+                          title="눌러서 펼치기"
+                        >
+                          <span className="ht-entry-no">{String(i + 1).padStart(2, "0")}</span>
+                          <b className={`ht-fold-tag${e.tag ? "" : " empty"}`}>
+                            {e.tag ? `#${e.tag}` : "태그 없음"}
+                          </b>
+                          <span className="ht-fold-quote">{e.quote.trim() || e.insight.trim()}</span>
+                          {(dupOf > 0 || quoteMiss) && (
+                            <span className="ht-fold-warn" title="펼쳐서 확인해 주세요">!</span>
+                          )}
+                          <span className="ht-entry-state">{state}</span>
+                          <span className="ht-fold-caret" aria-hidden="true">▾</span>
+                        </button>
+                      </li>
+                    );
+                  }
                   return (
-                    <li key={i} className={`ht-entry${done ? " done" : started ? " doing" : ""}`}>
-                      <header className="ht-entry-head">
+                    <li key={i} className={cls}>
+                      <button
+                        type="button"
+                        className="ht-entry-head"
+                        onClick={() => setOpenIdx(-1)}
+                        aria-expanded="true"
+                        title="눌러서 접기"
+                      >
                         <span className="ht-entry-no">{String(i + 1).padStart(2, "0")}</span>
-                        <span className="ht-entry-state">{done ? "완성" : started ? "쓰는 중" : "비어 있음"}</span>
-                      </header>
+                        <span className="ht-entry-state">{state}</span>
+                        <span className="ht-fold-caret up" aria-hidden="true">▾</span>
+                      </button>
 
                       <label className="ht-field ht-field--tag">
                         <span className="ht-field-lab">해시태그</span>
                         <span className="ht-tag-input">
                           <b aria-hidden="true">#</b>
                           <input
+                            id={`ht-tag-${i}`}
                             type="text"
                             value={e.tag}
                             disabled={locked}
@@ -533,21 +605,33 @@ export default function HashtagForm({ activity, user, onBack }) {
                       </label>
 
                       <label className="ht-field ht-field--insight">
-                        <span className="ht-field-lab">그 문장으로 알 수 있는 것 <em>한두 문장</em></span>
+                        <span className="ht-field-lab">생각 표현하기 <em>해시태그를 활용하여 나의 생각을 표현해 주세요</em></span>
                         <textarea
-                          rows={2}
+                          rows={3}
                           value={e.insight}
                           disabled={locked}
                           maxLength={HASHTAG_INSIGHT_MAX}
                           onChange={(ev) => setEntry(i, "insight", ev.target.value)}
-                          placeholder="이 문장에서 무엇을 알 수 있나요?"
-                          aria-label={`${i + 1}번 알 수 있는 것`}
+                          placeholder="이 해시태그로 떠오른 나의 생각을 적어 보세요."
+                          aria-label={`${i + 1}번 생각 표현하기`}
                         />
                       </label>
                     </li>
                   );
                 })}
               </ol>
+              {!locked && (
+                <button
+                  type="button"
+                  className="ht-add"
+                  onClick={addEntry}
+                  disabled={shownCount >= HASHTAG_COUNT}
+                >
+                  {shownCount >= HASHTAG_COUNT
+                    ? `해시태그 ${HASHTAG_COUNT}개를 모두 만들었어요`
+                    : `＋ 해시태그 추가 (${shownCount + 1}번째)`}
+                </button>
+              )}
             </section>
 
             {/* ⑤ 요약 */}
@@ -618,6 +702,7 @@ export default function HashtagForm({ activity, user, onBack }) {
           </div>
         </>
       )}
+      </div>
     </main>
   );
 }

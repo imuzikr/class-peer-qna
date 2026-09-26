@@ -10,7 +10,7 @@
 //   Keywords  #태그 · #태그 …
 //   요약(Abstract) — 요약문 속 태그 낱말은 칠해 둡니다
 //   그림 1. 설명 — 출처
-//   본문 — 태그마다 소제목 · 인용 블록(원문 문장) · 해설(알 수 있는 것)
+//   본문 — 태그마다 소제목 · 인용 블록(원문 문장) · 해설(생각 표현하기)
 //   참고문헌 — 출처 칸으로 지은 한 줄
 //
 // 같은 한 장을 네 곳이 씁니다: 학생 폼 아래의 미리보기 · 친구 보고서 ·
@@ -140,7 +140,7 @@ export default function HashtagReport({ post, author = "", draft = false }) {
                     {e.insight.trim() ? (
                       <p className="htr-insight">{e.insight.trim()}</p>
                     ) : (
-                      <p className="htr-placeholder">이 문장으로 알 수 있는 것을 아직 쓰지 않았어요.</p>
+                      <p className="htr-placeholder">이 해시태그로 표현한 생각을 아직 쓰지 않았어요.</p>
                     )}
                   </li>
                 ))}
