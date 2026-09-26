@@ -15,6 +15,10 @@
 //    - 수업: 만들어 둔 자료마다 '편집하기'(주제·해설·활동 안내 다듬기)와
 //      '수업 시작하기'(그 자료로 바로 수업 페이지에 들어가기) 버튼.
 //    - 프로젝트: 내 프로젝트 원본(`projectsPane` — 페이지가 그려 넘깁니다).
+//    - 자리 배치: 이 반의 자리표 · 기본 모둠(`seatsPane` — 역시 페이지가
+//      그립니다. 반 관리하기의 '자리 배정 · 모둠 설정' 창과 같은 몸통).
+//      한때 수업 탭 맨 위의 '자리 배정하기' 단추였는데, 누르면 이 창이 닫히고
+//      다른 창이 떴습니다 — 수업을 준비하며 오가는 자리라 탭으로 올렸습니다.
 //      수업 자료와 프로젝트 원본은 **둘 다 반이 아니라 선생님에게 붙은
 //      설계도**라 한 창에 나란히 둡니다. 공부방 머리줄의 '＋ 프로젝트
 //      만들기'가 원본을 만들면 이 탭이 그 줄을 짚은 채로 열립니다.
@@ -29,7 +33,7 @@ import { createUploadPool } from "@/lib/uploadPool";
 import { uploadImageBlob } from "@/lib/storageUpload";
 import { getCurrentUser } from "@/lib/user";
 import ConfirmModal from "./ConfirmModal";
-import { IconTrash, IconChair } from "./StatusIcons";
+import { IconTrash } from "./StatusIcons";
 
 const MAX_SLIDES = 60;
 // 동시에 올릴 장수 — 교실 회선을 다 잡아먹지 않으면서 왕복 대기를 줄이는 선
@@ -39,13 +43,12 @@ export default function LessonManagerModal({
   onStart,
   onEdit,
   onClose,
-  onOpenSeatSetup,
-  seatSetupDisabled = false,
   // 프로젝트 탭 — 탭은 주소(?tab=projects)로 들고 있어 '뒤로 가기'와 맞습니다.
   // `projectsPane`이 없으면 탭 줄을 아예 안 그립니다.
   tab = "lessons",
   onTabChange,
   projectsPane = null,
+  seatsPane = null,
   onCreateProject,
 }) {
   const [lessons, setLessons] = useState([]);
@@ -150,7 +153,7 @@ export default function LessonManagerModal({
 
   return (
     <div className="modal-backdrop" {...backdropClose(busy ? () => {} : onClose)}>
-      <div className="modal modal-lesson" onClick={(e) => e.stopPropagation()}>
+      <div className={`modal modal-lesson${!creating && tab === "seats" && seatsPane ? " is-seats" : ""}`} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           {creating ? (
             <button type="button" className="btn-ghost lesson-back-btn" onClick={() => setCreating(false)} disabled={!!busy}>
@@ -162,26 +165,26 @@ export default function LessonManagerModal({
           {/* 탭 — 이 앱에서 '한 자리에 두 얼굴'을 고르는 알약 줄(.dash-view-tabs)과
               같은 모양입니다(노트 크게 보기 · 닿소리 전체 보기). 제목 바로
               옆에 두어 줄을 하나 더 쓰지 않습니다. */}
-          {!creating && projectsPane && (
+          {!creating && (projectsPane || seatsPane) && (
             <div className="dash-view-tabs lesson-mgr-tabs" role="tablist" aria-label="보는 목록">
-              <button
-                type="button"
-                role="tab"
-                aria-selected={tab !== "projects"}
-                className={`dash-view-tab${tab !== "projects" ? " on" : ""}`}
-                onClick={() => onTabChange?.("lessons")}
-              >
-                수업
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={tab === "projects"}
-                className={`dash-view-tab${tab === "projects" ? " on" : ""}`}
-                onClick={() => onTabChange?.("projects")}
-              >
-                프로젝트
-              </button>
+              {[
+                ["lessons", "수업", true],
+                ["projects", "프로젝트", !!projectsPane],
+                ["seats", "자리 배치", !!seatsPane],
+              ]
+                .filter(([, , shown]) => shown)
+                .map(([key, label]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    role="tab"
+                    aria-selected={tab === key}
+                    className={`dash-view-tab${tab === key ? " on" : ""}`}
+                    onClick={() => onTabChange?.(key)}
+                  >
+                    {label}
+                  </button>
+                ))}
             </div>
           )}
           {!busy && (
@@ -273,23 +276,14 @@ export default function LessonManagerModal({
             </div>
             {projectsPane}
           </>
+        ) : tab === "seats" && seatsPane ? (
+          seatsPane
         ) : (
           <>
             <div className="lesson-list-toolbar">
               <button type="button" className="lesson-create-btn" onClick={() => { setError(""); setCreating(true); }}>
                 ＋ 새 수업 만들기
               </button>
-              {onOpenSeatSetup && (
-                <button
-                  type="button"
-                  className="btn-ghost lesson-seat-btn"
-                  onClick={onOpenSeatSetup}
-                  disabled={seatSetupDisabled}
-                  title={seatSetupDisabled ? "이 반에 입장한 학생이 없어요" : "실제 좌석과 장기 모둠을 미리 정합니다"}
-                >
-                  <IconChair size={15} /> 자리 배정하기
-                </button>
-              )}
             </div>
 
             {/* 자료 목록 */}

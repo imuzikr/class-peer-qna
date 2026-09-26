@@ -92,7 +92,7 @@ import TeacherKwlPanel from "@/components/TeacherKwlPanel";
 import LessonManagerModal from "@/components/LessonManagerModal";
 import StudyAttendanceModal from "@/components/StudyAttendanceModal";
 import CornellNoteViewerModal from "@/components/CornellNoteViewerModal";
-import SeatGroupSetupModal from "@/components/SeatGroupSetupModal";
+import SeatGroupSetupModal, { SeatGroupSetupPanel } from "@/components/SeatGroupSetupModal";
 import MySeatModal from "@/components/MySeatModal";
 import GroupMemoModal from "@/components/GroupMemoModal";
 import ClassNotesTools from "@/components/ClassNotesTools";
@@ -175,7 +175,7 @@ function StudyPageInner() {
   const [attending, setAttending] = useState(false);
   const [lessons, setLessons] = useState([]); // 교사: 내가 만든 수업 자료 목록
   const [seatSetupOpen, setSeatSetupOpen] = useState(false); // 자리 배정·모둠 설정 모달
-  const [seatSetupReturnTo, setSeatSetupReturnTo] = useState(null); // "lessons" | "classManager" | null — 닫을 때 돌아갈 곳
+  const [seatSetupReturnTo, setSeatSetupReturnTo] = useState(null); // "classManager" | null — 닫을 때 돌아갈 곳
   const [seatLayout, setSeatLayout] = useState(null);
   const [askKeyword, setAskKeyword] = useState(null); // "질문하기"로 새 질문 작성
   const [askCode, setAskCode] = useState(null);     // 파이썬 실행기에서 넘어온 코드
@@ -607,7 +607,8 @@ function StudyPageInner() {
   }
   // 수업 관리 창의 탭 — 주소로 들고 있어 '뒤로 가기'가 탭 단위로 돕니다.
   // `newId`는 방금 만든 원본(그 줄을 짚어 둡니다).
-  const lessonTab = searchParams.get("tab") === "projects" ? "projects" : "lessons";
+  // 탭은 셋 — 수업 · 프로젝트 · 자리 배치.
+  const lessonTab = ["projects", "seats"].includes(searchParams.get("tab")) ? searchParams.get("tab") : "lessons";
   const newTemplateId = searchParams.get("new");
   function openProjectsTab(newId = null) {
     router.push(`/study?panel=lessons&tab=projects${newId ? `&new=${newId}` : ""}`);
@@ -622,15 +623,10 @@ function StudyPageInner() {
     router.push("/study");
   }
 
-  // 자리 배정·모둠 설정 모달 — 수업 준비(LessonManagerModal)와 반 관리하기
-  // (ClassManagerModal) 양쪽에서 똑같이 열 수 있습니다. 그 뒤에 있던
-  // 모달을 먼저 닫고 열어야 두 모달이 겹쳐 보이지 않고, 닫을 때는
-  // 원래 있던 곳으로 되돌아갑니다.
-  function openSeatSetupFromLessons() {
-    setSeatSetupReturnTo("lessons");
-    closeLessonNav();
-    setSeatSetupOpen(true);
-  }
+  // 자리 배정·모둠 설정 모달 — 반 관리하기(ClassManagerModal)에서 엽니다.
+  // 그 뒤에 있던 모달을 먼저 닫고 열어야 두 모달이 겹쳐 보이지 않고, 닫을
+  // 때는 원래 있던 곳으로 되돌아갑니다. (수업 관리 창에서는 창을 바꾸지 않고
+  // '자리 배치' 탭이 같은 몸통을 그 자리에 그립니다.)
   function openSeatSetupFromClassManager() {
     setSeatSetupReturnTo("classManager");
     setClassManagerOpen(false);
@@ -638,8 +634,7 @@ function StudyPageInner() {
   }
   function closeSeatSetup() {
     setSeatSetupOpen(false);
-    if (seatSetupReturnTo === "lessons") openLessonPicker();
-    else if (seatSetupReturnTo === "classManager") setClassManagerOpen(true);
+    if (seatSetupReturnTo === "classManager") setClassManagerOpen(true);
     setSeatSetupReturnTo(null);
   }
 
@@ -1451,13 +1446,35 @@ function StudyPageInner() {
           // 쓸 길이 아예 없습니다. 수업 화면이 0장을 스스로 다룹니다(넘기기와
           // 방송 '시작'이 꺼지고 활동 내보내기만 삽니다).
           onStart={(lesson) => openLessonTeach(lesson)}
-          onOpenSeatSetup={openSeatSetupFromLessons}
-          seatSetupDisabled={roster.length === 0}
           // 프로젝트 탭 — 내 프로젝트 원본. 수업 자료와 같이 반에 안 묶인
           // 선생님의 것이라 한 창에 나란히 둡니다(StudyTemplateList).
           tab={lessonTab}
           onTabChange={(t) =>
-            t === "projects" ? openProjectsTab() : router.push("/study?panel=lessons")
+            t === "projects"
+              ? openProjectsTab()
+              : router.push(t === "seats" ? "/study?panel=lessons&tab=seats" : "/study?panel=lessons")
+          }
+          // 자리 배치 탭 — 반 관리하기의 '자리 배정 · 모둠 설정' 창과 같은 몸통.
+          // 저장해도 탭에 머물고 알림만 띄웁니다(창은 닫히지만 탭은 오가는 자리).
+          // key에 반을 넣어 반을 바꾸면 새 명단으로 다시 시작합니다.
+          seatsPane={
+            currentClass ? (
+              roster.length === 0 ? (
+                <p className="empty-note lesson-seats-empty">
+                  이 반에 입장한 학생이 아직 없어요. 학생이 들어오면 자리와 모둠을 정할 수 있습니다.
+                </p>
+              ) : (
+                <SeatGroupSetupPanel
+                  key={classId}
+                  roster={roster}
+                  seatLayout={seatLayout}
+                  groupAssignment={baseGroupAssignment}
+                  onSaveSeats={(seats) => saveStudySeatLayout(classId, "default", seats, getCurrentUser())}
+                  onSaveGroups={(groups) => saveStudyGroupAssignment(classId, groups, getCurrentUser())}
+                  onSaved={(kind) => setToast(kind === "groups" ? "모둠을 저장했어요." : "자리표를 저장했어요.")}
+                />
+              )
+            ) : null
           }
           projectsPane={
             currentClass ? (

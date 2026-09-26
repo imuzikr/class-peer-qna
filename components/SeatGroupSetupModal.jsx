@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { backdropClose } from "@/lib/modal";
 import SeatViewToggle from "./SeatViewToggle";
 import SeatGrid from "./SeatGrid";
@@ -49,23 +49,61 @@ function defaultGroups(groups = [], rosterUids) {
   }));
 }
 
-export default function SeatGroupSetupModal({
+// 창 — 반 관리하기에서 엽니다. 안의 몸통은 수업 관리 창의 '자리 배치' 탭과
+// **같은 것**(SeatGroupSetupPanel)이라, 두 자리에서 모양과 동작이 갈리지 않습니다.
+export default function SeatGroupSetupModal({ onClose, ...rest }) {
+  return (
+    <div className="modal-backdrop" {...backdropClose(onClose)}>
+      <div className="modal seat-setup-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-head">
+          <h3>자리 배정 · 모둠 설정</h3>
+          <button className="btn-close" onClick={onClose} aria-label="닫기">×</button>
+        </div>
+        <SeatGroupSetupPanel {...rest} onCancel={onClose} onSaved={onClose} />
+      </div>
+    </div>
+  );
+}
+
+// 몸통 — 자리 배정하기 · 모둠 설정하기 두 얼굴.
+//  · onCancel: 있으면 '취소' 단추를 답니다(창에서는 닫기). 탭 안에서는 안 줍니다 —
+//    탭을 옮기거나 창을 닫는 것이 곧 취소입니다.
+//  · onSaved(kind): 저장한 뒤 부릅니다("seats" | "groups"). 창은 닫고, 탭은
+//    그 자리에 머문 채 알림만 띄웁니다.
+export function SeatGroupSetupPanel({
   roster = [],
   seatLayout = null,
   groupAssignment = null,
   initialTab = "seats",
   onSaveSeats,
   onSaveGroups,
-  onClose,
+  onCancel,
+  onSaved,
 }) {
   const [tab, setTab] = useState(initialTab);
   // 자리표를 보는 쪽 — 자리표가 나오는 네 화면이 같은 값을 함께 씁니다.
   // 여기서 뒤집어 배정해도 저장되는 배열은 그대로입니다(그림만 돌립니다).
   const [teacherView, toggleSeatView] = useSeatView();
-  const [seats, setSeats] = useState(() => normalizedSeats(seatLayout?.seats ?? roster.map((s) => s.uid)));
-  const [groups, setGroups] = useState(() =>
+  const [seats, setSeatsRaw] = useState(() => normalizedSeats(seatLayout?.seats ?? roster.map((s) => s.uid)));
+  const [groups, setGroupsRaw] = useState(() =>
     defaultGroups(groupAssignment?.groups ?? [], new Set(roster.map((s) => s.uid)))
   );
+  // 아직 손대지 않았으면 저장된 값을 따라갑니다. 탭은 주소로 곧바로 열릴 수
+  // 있어 자리표·모둠 구독이 몸통보다 늦게 도착하기도 하는데, 처음 값으로만
+  // 채우면 저장해 둔 자리표 대신 학번순 빈 배치가 서 있습니다. 손댄 뒤에는
+  // 선생님이 고치던 것을 덮지 않습니다(저장하면 다시 따라갑니다).
+  const seatsTouched = useRef(false);
+  const groupsTouched = useRef(false);
+  const setSeats = (v) => { seatsTouched.current = true; setSeatsRaw(v); };
+  const setGroups = (v) => { groupsTouched.current = true; setGroupsRaw(v); };
+  useEffect(() => {
+    if (!seatsTouched.current) setSeatsRaw(normalizedSeats(seatLayout?.seats ?? roster.map((s) => s.uid)));
+  }, [seatLayout, roster]);
+  useEffect(() => {
+    if (!groupsTouched.current) {
+      setGroupsRaw(defaultGroups(groupAssignment?.groups ?? [], new Set(roster.map((s) => s.uid))));
+    }
+  }, [groupAssignment, roster]);
   const [pickedUid, setPickedUid] = useState(null);
   const [drag, setDrag] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -130,7 +168,8 @@ export default function SeatGroupSetupModal({
     setSaving(true);
     try {
       await onSaveSeats?.(seats);
-      onClose();
+      seatsTouched.current = false;
+      onSaved?.("seats");
     } finally {
       setSaving(false);
     }
@@ -147,7 +186,8 @@ export default function SeatGroupSetupModal({
           name: g.name.trim() || `${i + 1}모둠`,
         }))
       );
-      onClose();
+      groupsTouched.current = false;
+      onSaved?.("groups");
     } finally {
       setSaving(false);
     }
@@ -163,13 +203,7 @@ export default function SeatGroupSetupModal({
   });
 
   return (
-    <div className="modal-backdrop" {...backdropClose(onClose)}>
-      <div className="modal seat-setup-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head">
-          <h3>자리 배정 · 모둠 설정</h3>
-          <button className="btn-close" onClick={onClose} aria-label="닫기">×</button>
-        </div>
-
+      <>
         <div className="seat-setup-tabrow">
           <div className="seat-setup-tabs">
             <button type="button" className={tab === "seats" ? "active" : ""} onClick={() => setTab("seats")}>
@@ -239,7 +273,7 @@ export default function SeatGroupSetupModal({
               </aside>
             </div>
             <div className="seat-setup-foot">
-              <button type="button" className="btn-ghost" onClick={onClose}>취소</button>
+              {onCancel && <button type="button" className="btn-ghost" onClick={onCancel}>취소</button>}
               <button type="button" className="btn-primary" onClick={saveSeats} disabled={saving}>
                 {saving ? "저장 중..." : "자리표 저장"}
               </button>
@@ -318,14 +352,13 @@ export default function SeatGroupSetupModal({
               ))}
             </div>
             <div className="seat-setup-foot">
-              <button type="button" className="btn-ghost" onClick={onClose}>취소</button>
+              {onCancel && <button type="button" className="btn-ghost" onClick={onCancel}>취소</button>}
               <button type="button" className="btn-primary" onClick={saveGroups} disabled={saving}>
                 {saving ? "저장 중..." : "모둠 저장"}
               </button>
             </div>
           </>
         )}
-      </div>
-    </div>
+      </>
   );
 }
