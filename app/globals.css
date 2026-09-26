@@ -22817,17 +22817,9 @@ span.cloud-word { cursor: default; }
 }
 .cast-stage-who em { font-style: normal; font-size: 12.5px; color: var(--text-sub); }
 .cast-stage-count { font-size: 12.5px; color: var(--text-sub); }
-/* 과일 단추와 닫기는 **한 묶음으로** 오른쪽 끝에 붙습니다. 따로 두고
-   저마다 `margin-left: auto`를 주면 남는 폭을 둘이 나눠 가져 그 사이가
-   벌어집니다 — 미는 것은 묶음 하나여야 합니다. 과일을 못 주는 자리
-   (반·로그인이 없을 때)에서는 닫기 하나만 그 자리에 섭니다. */
-.cast-stage-tools {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-left: auto;
-}
-.cast-stage-tools .modal-x { margin: 0; }
+/* 과일 단추는 받는 학생 이름 옆, 닫기만 오른쪽 끝입니다 — 둘을 붙여
+   두었을 때는 창을 닫으려다 과일이 나갈 수 있었습니다(선생님 지적). */
+.cast-stage-close { margin-left: auto; }
 
 .cast-stage-section {
   display: flex;

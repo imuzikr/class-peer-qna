@@ -115,12 +115,10 @@ export default function CastStageModal({
               {studentIndex + 1} / {studentTotal}
             </span>
           )}
-          {/* 오른쪽 끝 두 단추는 **한 묶음**입니다 — 따로 두고 저마다
-              `margin-left: auto`를 주면 남는 폭을 둘이 나눠 가져 과일과
-              닫기 사이가 벌어집니다. */}
-          <span className="cast-stage-tools">
           {/* 과일 단추 — 발표를 듣고 그 자리에서 격려합니다. 값도 길도 카드
-              격자·수업 노트의 단추와 같습니다(`nextFruit(개수)` · 델타). */}
+              격자·수업 노트의 단추와 같습니다(`nextFruit(개수)` · 델타).
+              **받는 학생 이름 바로 옆**에 둡니다 — 닫기(×) 옆에 붙여 두었을
+              때는 창을 닫으려다 과일이 나갈 수 있었습니다(선생님 지적). */}
           {canAward && (
             <button
               type="button"
@@ -137,11 +135,18 @@ export default function CastStageModal({
               {nextFruit(rewardCount)}
             </button>
           )}
-          {/* 닫기는 방송을 안 끕니다 — 창만 걷습니다 */}
-          <button type="button" className="modal-x" onClick={onClose} title="창만 닫기 (수업은 계속됩니다)">
+          {/* 닫기는 방송을 안 끕니다 — 창만 걷습니다. 모양은 다른 창들과 같은
+              `btn-close`입니다(한때 정의 없는 `modal-x`라 브라우저 기본 단추로
+              그려졌습니다). */}
+          <button
+            type="button"
+            className="btn-close cast-stage-close"
+            onClick={onClose}
+            title="창만 닫기 (수업은 계속됩니다)"
+            aria-label="닫기"
+          >
             ×
           </button>
-          </span>
         </div>
 
         {/* 단계 줄 — 무엇을 띄우는 중인지와, 같은 학생 안에서 단계 넘기기.
