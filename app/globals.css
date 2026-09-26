@@ -28569,26 +28569,21 @@ h4.attendance-seat-help { margin-top: 16px; }
 }
 .paratext-saved.err { color: var(--danger); }
 
-/* 두 열 — 왼쪽은 모으는 것(① 해시태그 칩 · ③ 읽은 글 · ④ 대표 이미지),
-   오른쪽은 태그마다 글쓰기(② 생각 표현하기). 칩을 더하면 옆 열에 카드가
-   생기는 것이 한눈에 보입니다. 열 폭은 화면이 아니라 **이 기둥의 폭**으로
-   접습니다(@container) — 책방은 양옆에 패널이 서서 창 폭만으로는 모릅니다. */
+/* 세 덩이 — 위에 **한 열**로 이 글의 공통 정보(① 읽은 글 · ② 대표 이미지),
+   그 아래 **두 열**(왼쪽 ③ 해시태그 칩 · 오른쪽 ④ 태그마다 생각 쓰기),
+   맨 아래 댓글(선생님 요청). 한때 왼쪽 열에 칩 · 읽은 글 · 이미지를 함께
+   쌓았는데, 읽은 글과 이미지는 태그와 무관한 '이 글에 대한 정보'라 따로
+   위로 올렸습니다. 두 열은 화면이 아니라 **이 기둥의 폭**으로 접습니다
+   (@container) — 책방은 양옆에 패널이 서서 창 폭만으로는 모릅니다. */
+.ht-common { display: flex; flex-direction: column; gap: 18px; margin-bottom: 18px; }
 .ht-form {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
   gap: 18px;
   align-items: start;
 }
-.ht-col { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
-/* 한 열로 접힐 때는 열 상자를 풀고 ①②③④ 차례로 다시 세웁니다 — 그대로
-   두면 글쓰기 카드(②)가 이미지(④) 아래 맨 끝으로 밀립니다. */
 @container (max-width: 900px) {
   .ht-form { grid-template-columns: minmax(0, 1fr); }
-  .ht-col { display: contents; }
-  .ht-sec--tags { order: 1; }
-  .ht-sec--write { order: 2; }
-  .ht-sec--source { order: 3; }
-  .ht-sec--image { order: 4; }
 }
 .ht-sec {
   background: var(--card-bg);

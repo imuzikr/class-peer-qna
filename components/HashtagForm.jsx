@@ -3,17 +3,19 @@
 // =============================================================
 // 여섯 개의 해시태그 — 학생 화면
 // -------------------------------------------------------------
-// 위에서 아래로 한 줄기입니다:
-//   ① 내가 찾은 해시태그 — **먼저 태그 목록을 칩으로** 모읍니다(최대 여섯 개).
-//      낱말을 적고 Enter(여러 개를 한꺼번에 붙여 넣어도 낱말마다 칩).
-//      칩의 ×로 빼면 그 태그에 쓴 생각도 함께 빠집니다(글이 있으면 되물음).
-//   ② 해시태그별 생각 — 칩 하나에 카드 한 장. 펼친 카드 하나만 열고
-//      나머지는 한 줄로 접습니다(칩을 누르면 그 카드가 펴짐). 카드 안의 입력칸
-//      둘은 모양이 다릅니다 — 태그(# 알약) · 생각 표현하기(초록 선).
-//      (한때 '원문 문장' 칸이 태그와 생각 사이에 있었는데 선생님이 거두셨습니다.
-//      옛 기록의 원문은 저장 문서에 그대로 남고 화면에만 안 보입니다.)
-//   ③ 읽은 글  ④ 대표 이미지(선택) — 슬라이드 머리에 함께 실립니다.
-//   ⑤ 내 해시태그에 달린 댓글
+// 위에서 아래로 세 덩이입니다(선생님 요청):
+//   [한 열] 이 글에 대한 공통 정보 — 슬라이드 머리에 함께 실립니다.
+//     ① 읽은 글  ② 대표 이미지(선택)
+//   [두 열] 왼쪽 ③ 내가 찾은 해시태그 ｜ 오른쪽 ④ 해시태그별 생각
+//     ③ **먼저 태그 목록을 칩으로** 모읍니다(최대 여섯 개).
+//        낱말을 적고 Enter(여러 개를 한꺼번에 붙여 넣어도 낱말마다 칩).
+//        칩의 ×로 빼면 그 태그에 쓴 생각도 함께 빠집니다(글이 있으면 되물음).
+//     ④ 칩 하나에 카드 한 장. 펼친 카드 하나만 열고
+//        나머지는 한 줄로 접습니다(칩을 누르면 그 카드가 펴짐). 카드 안의 입력칸
+//        둘은 모양이 다릅니다 — 태그(# 알약) · 생각 표현하기(초록 선).
+//        (한때 '원문 문장' 칸이 태그와 생각 사이에 있었는데 선생님이 거두셨습니다.
+//        옛 기록의 원문은 저장 문서에 그대로 남고 화면에만 안 보입니다.)
+//   [한 열] ⑤ 내 해시태그에 달린 댓글
 //
 // 교사가 '수업 시작'을 누르면 한 학생의 것이 **슬라이드 한 장**
 // (HashtagSlide)으로 학급 화면에 뜹니다. 한때 폼 아래에서 학술 보고서로
@@ -456,13 +458,109 @@ export default function HashtagForm({ activity, user, onBack }) {
         )
       ) : (
         <>
+          {/* 읽은 글 · 대표 이미지 — 이 글에 대한 공통 정보라 맨 위에 한 열로
+              쌓습니다(선생님 요청). 그 아래가 해시태그 두 열입니다. */}
+          <div className="ht-common">
+            {/* ① 읽은 글 */}
+            <section className="ht-sec ht-sec--source">
+              <h2 className="ht-sec-title"><span>1</span> 읽은 글 <em>슬라이드 머리에 함께 실립니다</em></h2>
+              <div className="book-seg ht-kinds">
+                {HASHTAG_SOURCE_KINDS.map((k) => (
+                  <button
+                    key={k.key}
+                    type="button"
+                    className={`book-seg-btn${post.source.kind === k.key ? " active" : ""}`}
+                    onClick={() => setSource("kind", k.key)}
+                    aria-pressed={post.source.kind === k.key}
+                    disabled={locked}
+                  >
+                    {k.label}
+                  </button>
+                ))}
+              </div>
+              <div className="ht-grid2">
+                <label className="ht-lab">
+                  <span>제목</span>
+                  <input className="ht-input" type="text" value={post.source.title} disabled={locked}
+                    onChange={(e) => setSource("title", e.target.value)} maxLength={HASHTAG_FIELD_MAX}
+                    placeholder="예: 바다가 뜨거워진다" />
+                </label>
+                <label className="ht-lab">
+                  <span>지은이 · 펴낸 곳</span>
+                  <input className="ht-input" type="text" value={post.source.author} disabled={locked}
+                    onChange={(e) => setSource("author", e.target.value)} maxLength={HASHTAG_FIELD_MAX}
+                    placeholder="예: 김작가 / ○○신문" />
+                </label>
+                <label className="ht-lab">
+                  <span>펴낸 날짜 <em>선택</em></span>
+                  <input className="ht-input" type="text" value={post.source.date} disabled={locked}
+                    onChange={(e) => setSource("date", e.target.value)} maxLength={40}
+                    placeholder="예: 2026-09-20 · 2026년 10월호" />
+                </label>
+                <label className="ht-lab">
+                  <span>주소(URL) <em>선택</em></span>
+                  <input className="ht-input" type="text" inputMode="url" value={post.source.url} disabled={locked}
+                    onChange={(e) => setSource("url", e.target.value)} maxLength={500}
+                    placeholder="예: www.example.com/news/123" />
+                  {urlBad && <em className="ht-warn">열 수 없는 주소예요 — http(s)로 시작하는 주소를 넣어 주세요.</em>}
+                </label>
+              </div>
+            </section>
+
+            {/* ② 대표 이미지 */}
+            <section className="ht-sec ht-sec--image">
+              <h2 className="ht-sec-title"><span>2</span> 대표 이미지 <em>선택 · 슬라이드 오른쪽 위에 실립니다</em></h2>
+              <div className="ht-image">
+                <div className={`ht-image-box${post.image.url ? " has" : ""}`}>
+                  {post.image.url ? (
+                    <img src={post.image.url} alt={post.image.caption || "대표 이미지"} />
+                  ) : (
+                    <span>{imgBusy ? "올리는 중…" : "이미지 없음"}</span>
+                  )}
+                </div>
+                <div className="ht-image-side">
+                  <div className="ht-image-btns">
+                    <button type="button" className="btn-ghost" disabled={locked || imgBusy} onClick={() => fileRef.current?.click()}>
+                      {imgBusy ? "올리는 중…" : post.image.url ? "이미지 바꾸기" : "이미지 넣기"}
+                    </button>
+                    {post.image.url && (
+                      <button type="button" className="btn-ghost qa-delete" disabled={locked || imgBusy} onClick={dropImage}>
+                        빼기
+                      </button>
+                    )}
+                    <input
+                      ref={fileRef}
+                      type="file"
+                      accept={IMAGE_ACCEPT}
+                      hidden
+                      onChange={(e) => { pickImage(e.target.files?.[0]); e.target.value = ""; }}
+                    />
+                  </div>
+                  <label className="ht-lab">
+                    <span>그림 설명</span>
+                    <input className="ht-input" type="text" value={post.image.caption} disabled={locked}
+                      onChange={(e) => setImage({ caption: e.target.value })} maxLength={HASHTAG_FIELD_MAX}
+                      placeholder="예: 1980년 이후 바다 표면 온도의 변화" />
+                  </label>
+                  <label className="ht-lab">
+                    <span>그림 출처</span>
+                    <input className="ht-input" type="text" value={post.image.credit} disabled={locked}
+                      onChange={(e) => setImage({ credit: e.target.value })} maxLength={HASHTAG_FIELD_MAX}
+                      placeholder="예: 기사 본문 · 직접 그림" />
+                  </label>
+                  {imgError && <em className="ht-warn">{imgError}</em>}
+                </div>
+              </div>
+            </section>
+          </div>
+
+          {/* 두 열 — 왼쪽 ③ 해시태그 칩, 오른쪽 ④ 태그마다 생각 쓰기.
+              왼쪽에서 모은 칩이 옆 열의 카드가 됩니다. */}
           <div className="ht-form">
-            {/* 왼쪽 열 — 모으는 것: 해시태그 칩 · 읽은 글 · 대표 이미지 */}
-            <div className="ht-col ht-col--gather">
-            {/* ① 내가 찾은 해시태그 — 먼저 목록부터 */}
+            {/* ③ 내가 찾은 해시태그 — 왼쪽 열 */}
             <section className="ht-sec ht-sec--tags">
               <h2 className="ht-sec-title">
-                <span>1</span> 내가 찾은 해시태그
+                <span>3</span> 내가 찾은 해시태그
                 <em>글을 꿰뚫는 낱말을 먼저 모아요 · 최대 {HASHTAG_COUNT}개</em>
                 <b className={`ht-sec-count${chips.length >= HASHTAG_COUNT ? " full" : ""}`}>
                   {chips.length} / {HASHTAG_COUNT}
@@ -526,105 +624,10 @@ export default function HashtagForm({ activity, user, onBack }) {
               )}
             </section>
 
-            {/* ③ 읽은 글 */}
-            <section className="ht-sec ht-sec--source">
-              <h2 className="ht-sec-title"><span>3</span> 읽은 글 <em>슬라이드 머리에 함께 실립니다</em></h2>
-              <div className="book-seg ht-kinds">
-                {HASHTAG_SOURCE_KINDS.map((k) => (
-                  <button
-                    key={k.key}
-                    type="button"
-                    className={`book-seg-btn${post.source.kind === k.key ? " active" : ""}`}
-                    onClick={() => setSource("kind", k.key)}
-                    aria-pressed={post.source.kind === k.key}
-                    disabled={locked}
-                  >
-                    {k.label}
-                  </button>
-                ))}
-              </div>
-              <div className="ht-grid2">
-                <label className="ht-lab">
-                  <span>제목</span>
-                  <input className="ht-input" type="text" value={post.source.title} disabled={locked}
-                    onChange={(e) => setSource("title", e.target.value)} maxLength={HASHTAG_FIELD_MAX}
-                    placeholder="예: 바다가 뜨거워진다" />
-                </label>
-                <label className="ht-lab">
-                  <span>지은이 · 펴낸 곳</span>
-                  <input className="ht-input" type="text" value={post.source.author} disabled={locked}
-                    onChange={(e) => setSource("author", e.target.value)} maxLength={HASHTAG_FIELD_MAX}
-                    placeholder="예: 김작가 / ○○신문" />
-                </label>
-                <label className="ht-lab">
-                  <span>펴낸 날짜 <em>선택</em></span>
-                  <input className="ht-input" type="text" value={post.source.date} disabled={locked}
-                    onChange={(e) => setSource("date", e.target.value)} maxLength={40}
-                    placeholder="예: 2026-09-20 · 2026년 10월호" />
-                </label>
-                <label className="ht-lab">
-                  <span>주소(URL) <em>선택</em></span>
-                  <input className="ht-input" type="text" inputMode="url" value={post.source.url} disabled={locked}
-                    onChange={(e) => setSource("url", e.target.value)} maxLength={500}
-                    placeholder="예: www.example.com/news/123" />
-                  {urlBad && <em className="ht-warn">열 수 없는 주소예요 — http(s)로 시작하는 주소를 넣어 주세요.</em>}
-                </label>
-              </div>
-            </section>
-
-            {/* ④ 대표 이미지 */}
-            <section className="ht-sec ht-sec--image">
-              <h2 className="ht-sec-title"><span>4</span> 대표 이미지 <em>선택 · 슬라이드 오른쪽 위에 실립니다</em></h2>
-              <div className="ht-image">
-                <div className={`ht-image-box${post.image.url ? " has" : ""}`}>
-                  {post.image.url ? (
-                    <img src={post.image.url} alt={post.image.caption || "대표 이미지"} />
-                  ) : (
-                    <span>{imgBusy ? "올리는 중…" : "이미지 없음"}</span>
-                  )}
-                </div>
-                <div className="ht-image-side">
-                  <div className="ht-image-btns">
-                    <button type="button" className="btn-ghost" disabled={locked || imgBusy} onClick={() => fileRef.current?.click()}>
-                      {imgBusy ? "올리는 중…" : post.image.url ? "이미지 바꾸기" : "이미지 넣기"}
-                    </button>
-                    {post.image.url && (
-                      <button type="button" className="btn-ghost qa-delete" disabled={locked || imgBusy} onClick={dropImage}>
-                        빼기
-                      </button>
-                    )}
-                    <input
-                      ref={fileRef}
-                      type="file"
-                      accept={IMAGE_ACCEPT}
-                      hidden
-                      onChange={(e) => { pickImage(e.target.files?.[0]); e.target.value = ""; }}
-                    />
-                  </div>
-                  <label className="ht-lab">
-                    <span>그림 설명</span>
-                    <input className="ht-input" type="text" value={post.image.caption} disabled={locked}
-                      onChange={(e) => setImage({ caption: e.target.value })} maxLength={HASHTAG_FIELD_MAX}
-                      placeholder="예: 1980년 이후 바다 표면 온도의 변화" />
-                  </label>
-                  <label className="ht-lab">
-                    <span>그림 출처</span>
-                    <input className="ht-input" type="text" value={post.image.credit} disabled={locked}
-                      onChange={(e) => setImage({ credit: e.target.value })} maxLength={HASHTAG_FIELD_MAX}
-                      placeholder="예: 기사 본문 · 직접 그림" />
-                  </label>
-                  {imgError && <em className="ht-warn">{imgError}</em>}
-                </div>
-              </div>
-            </section>
-            </div>
-
-            {/* 오른쪽 열 — 태그마다 생각 쓰기. 왼쪽에서 모은 칩이 여기 카드가 됩니다. */}
-            <div className="ht-col ht-col--write">
-            {/* ② 해시태그별 생각 — 펼친 카드 하나만 연다 */}
+            {/* ④ 해시태그별 생각 — 오른쪽 열, 펼친 카드 하나만 연다 */}
             <section className="ht-sec ht-sec--write">
               <h2 className="ht-sec-title">
-                <span>2</span> 해시태그별 생각 표현하기
+                <span>4</span> 해시태그별 생각 표현하기
                 <em>해시태그를 활용한 나의 생각</em>
                 <b className={`ht-sec-count${progress.done === HASHTAG_COUNT ? " full" : ""}`}>
                   {progress.done} / {HASHTAG_COUNT} 완성
@@ -632,7 +635,7 @@ export default function HashtagForm({ activity, user, onBack }) {
               </h2>
               {entries.length === 0 ? (
                 <p className="ht-entries-empty">
-                  위에서 해시태그를 먼저 찾아 적어 주세요. 태그마다 여기에 카드가 한 장씩 생깁니다.
+                  먼저 ③에 해시태그를 찾아 적어 주세요. 태그마다 여기에 카드가 한 장씩 생깁니다.
                 </p>
               ) : (
                 <ol className="ht-entries">
@@ -725,10 +728,9 @@ export default function HashtagForm({ activity, user, onBack }) {
                 </ol>
               )}
             </section>
-            </div>
           </div>
 
-          {/* ⑤ 내 해시태그에 달린 댓글 */}
+          {/* ⑤ 내 해시태그에 달린 댓글 — 맨 아래 */}
           <div ref={commentsRef}>
             {(published || myComments.length > 0) && (
               <HashtagComments
