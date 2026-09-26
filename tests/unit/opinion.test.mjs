@@ -7,6 +7,7 @@ import {
   opinionNoteMode,
   nextNoteSpot,
   noteAuthorLabel,
+  noteRealLabel,
   noteStackTime,
   noteTilt,
   normalizeZones,
@@ -60,10 +61,20 @@ test("새 메모 자리는 계단식이고 늘 0~1", () => {
   assert.notDeepEqual(spots[0], spots[1]);
 });
 
-test("이름표: 학번 + 이름 · 학번 없으면 이름 · 교사는 '선생님'", () => {
-  assert.equal(noteAuthorLabel({ studentId: "30105", authorName: "홍길동" }), "30105 홍길동");
-  assert.equal(noteAuthorLabel({ authorName: "홍길동" }), "홍길동");
+test("이름표: 새 메모는 익명 닉네임 · 예전(실명) 메모는 '익명' · 교사는 '선생님'", () => {
+  assert.equal(noteAuthorLabel({ anon: true, authorName: "용감한 수달" }), "용감한 수달");
+  assert.equal(noteAuthorLabel({ anon: true, authorName: "" }), "익명");
+  // 예전 메모 — 실명이 들어 있어도 보이지 않습니다
+  assert.equal(noteAuthorLabel({ studentId: "30105", authorName: "홍길동" }), "익명");
   assert.equal(noteAuthorLabel({ byTeacher: true, authorName: "선생님" }), "선생님");
+});
+
+test("실명(교사가 눌러서 봄): 명단 먼저 · 예전 메모는 적힌 학번·이름 · 교사는 '선생님'", () => {
+  assert.equal(noteRealLabel({ anon: true, authorName: "용감한 수달" }, { studentId: "30105", name: "홍길동" }), "30105 홍길동");
+  assert.equal(noteRealLabel({ studentId: "30105", authorName: "홍길동" }), "30105 홍길동");
+  assert.equal(noteRealLabel({ authorName: "홍길동" }), "홍길동");
+  assert.equal(noteRealLabel({ anon: true, authorName: "용감한 수달" }), "명단에 없는 학생");
+  assert.equal(noteRealLabel({ byTeacher: true }, { studentId: "1", name: "x" }), "선생님");
 });
 
 test("색은 여섯 파스텔 — 모르는 값은 첫 색", () => {

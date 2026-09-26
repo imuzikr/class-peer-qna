@@ -31,7 +31,6 @@ import { safeBookUrl } from "@/lib/paratext";
 import { IconBook, IconLock } from "./StatusIcons";
 import KwlsProgressBoard from "./KwlsProgressBoard";
 import BookStudentRail from "./BookStudentRail";
-import EntryProgressPanel from "./EntryProgressPanel";
 import CastStageModal from "./CastStageModal";
 
 // 방송할 수 있는 영역 — 네 칸 그대로
@@ -317,14 +316,8 @@ export default function KwlsBoard({
             )}
           </div>
 
-          <EntryProgressPanel
-            cards={cards}
-            rows={stepRows}
-            cellState={kwlsCellState}
-            pickedUid={openUid}
-            onPick={setOpenUid}
-            extra={(m) => ` · 글 ${kwlsChars(m.entry?.answers)}자`}
-          />
+          {/* 오른쪽 '학생별 진행'은 두지 않습니다 — 모둠이 없는 활동이라 왼쪽
+              목록이 곧 반 전체이고, 같은 조각 바가 왼쪽 카드에 있습니다. */}
         </div>
       )}
 

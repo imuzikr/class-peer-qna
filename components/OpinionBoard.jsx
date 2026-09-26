@@ -32,6 +32,7 @@ import {
   canAddOpinionNote,
   nextNoteSpot,
   noteAuthorLabel,
+  noteRealLabel,
   noteStackTime,
   noteTilt,
   normalizeZones,
@@ -45,7 +46,7 @@ import {
 import { safeBookUrl } from "@/lib/paratext";
 import { backdropClose } from "@/lib/modal";
 import ConfirmModal from "./ConfirmModal";
-import { IconBook, IconLock } from "./StatusIcons";
+import { IconBook, IconLock, IconUnlock } from "./StatusIcons";
 
 // 메모지 크기 — CSS의 .opinion-note와 같은 값이어야 자리 셈이 맞습니다.
 const NOTE_W = 176;
@@ -79,14 +80,23 @@ export default function OpinionBoard({
     });
   }, [activity.id]);
 
-  // 교사 화면의 이름표는 **명단의 이름**을 씁니다 — 메모에 적힌 이름표는
-  // 붙일 때의 것이라, 명단을 고친 뒤에도 옛 이름이 남을 수 있습니다.
+  // 이름표는 **누구에게나 익명**입니다(질문방과 같습니다). 교사만 이름표를
+  // 눌러 실제 학생을 봅니다 — 그때는 **명단의 이름**을 씁니다(메모에 적힌
+  // 것은 붙일 때의 것이라). 연 이름표는 메모 id로 기억해 판과 크게 보기 창이
+  // 함께 따라갑니다.
   const rosterById = useMemo(() => new Map(roster.map((s) => [s.uid, s])), [roster]);
-  const labelOf = (n) => {
-    if (n.byTeacher) return "선생님";
-    const r = isTeacher ? rosterById.get(n.authorId) : null;
-    return r ? noteAuthorLabel({ studentId: r.studentId, authorName: r.name }) : noteAuthorLabel(n);
-  };
+  const [revealed, setRevealed] = useState(() => new Set());
+  const canReveal = (n) => isTeacher && !n.byTeacher;
+  const isRevealed = (n) => canReveal(n) && revealed.has(n.id);
+  const toggleReveal = (n) =>
+    setRevealed((prev) => {
+      const next = new Set(prev);
+      if (next.has(n.id)) next.delete(n.id);
+      else next.add(n.id);
+      return next;
+    });
+  const labelOf = (n) => noteAuthorLabel(n);
+  const realOf = (n) => noteRealLabel(n, rosterById.get(n.authorId) ?? null);
 
   // ── 판 크기 재기 — 자리 셈이 픽셀을 알아야 합니다 ──
   const bodyRef = useRef(null);
@@ -265,33 +275,17 @@ export default function OpinionBoard({
         </div>
       </div>
 
-      {/* 함께 생각할 물음 + 붙이기 — 판 바로 위 한 줄 */}
-      <div className="opinion-bar">
-        {prompt ? (
+      {/* 함께 생각할 물음 — 교사가 적어 두었을 때만 판 바로 위 한 줄.
+          예전에는 이 줄에 안내('메모를 누르면 크게…')·학생 메모 방식·
+          '＋ 메모 붙이기'가 늘 섰는데 걷었습니다(선생님 요청) — 붙이는 길은
+          영역 머리의 ＋이고, 그것이 곧 '어느 영역에' 붙일지까지 정합니다. */}
+      {prompt && (
+        <div className="opinion-bar">
           <p className="opinion-prompt">
             <span aria-hidden="true">💭</span> {prompt}
           </p>
-        ) : (
-          <span className="opinion-bar-hint">
-            메모를 누르면 크게 볼 수 있어요.{(canPost || usedMyOne) && " 내 메모는 끌어서 다른 자리로 옮길 수 있어요."}
-          </span>
-        )}
-        {/* 한 장을 이미 붙인 학생 — 단추 대신 까닭을 적습니다(단추가 그냥
-            사라지면 고장으로 보입니다). */}
-        {usedMyOne && (
-          <span className="opinion-bar-note">메모는 한 사람에 한 장이에요 — 붙인 메모를 눌러 고칠 수 있어요.</span>
-        )}
-        {isTeacher && (
-          <span className="opinion-bar-note">
-            {noteMode === "single" ? "학생 메모: 한 사람에 한 장" : "학생 메모: 여러 장 자유롭게"}
-          </span>
-        )}
-        {canPost && (
-          <button type="button" className="btn-primary opinion-add" onClick={() => setComposeZone(zones[0].key)}>
-            ＋ 메모 붙이기
-          </button>
-        )}
-      </div>
+        </div>
+      )}
       {error && (
         <p className="form-error" role="alert" onClick={() => setError("")}>{error}</p>
       )}
@@ -306,13 +300,20 @@ export default function OpinionBoard({
             <div key={z.key} className={`opinion-zone-head tint-${ZONE_TINTS[i % ZONE_TINTS.length]}`}>
               <strong>{z.name}</strong>
               <span className="opinion-zone-count">{byZone.get(z.key) ?? 0}</span>
-              {canPost && (
+              {/* 한 장을 이미 붙인 학생은 ＋가 꺼지고 까닭을 툴팁으로 —
+                  단추가 그냥 사라지면 고장으로 보입니다. */}
+              {(canPost || usedMyOne) && (
                 <button
                   type="button"
                   className="opinion-zone-add"
-                  onClick={() => setComposeZone(z.key)}
-                  aria-label={`‘${z.name}’에 메모 붙이기`}
-                  title={`‘${z.name}’에 메모 붙이기`}
+                  onClick={() => canPost && setComposeZone(z.key)}
+                  disabled={!canPost}
+                  aria-label={canPost ? `‘${z.name}’에 메모 붙이기` : "메모는 한 사람에 한 장이에요"}
+                  title={
+                    canPost
+                      ? `‘${z.name}’에 메모 붙이기`
+                      : "메모는 한 사람에 한 장이에요 — 붙인 메모를 눌러 고칠 수 있어요"
+                  }
                 >
                   ＋
                 </button>
@@ -331,7 +332,7 @@ export default function OpinionBoard({
           ) : notes.length === 0 ? (
             <p className="opinion-empty">
               아직 붙인 메모가 없어요.
-              {canPost && <> ‘＋ 메모 붙이기’로 첫 생각을 붙여 보세요.</>}
+              {canPost && <> 영역 오른쪽의 ＋로 첫 생각을 붙여 보세요.</>}
             </p>
           ) : (
             box.w > 0 &&
@@ -367,7 +368,12 @@ export default function OpinionBoard({
                   }}
                 >
                   {isMine(n) && <span className="opinion-note-pin" aria-hidden="true" />}
-                  <span className="opinion-note-who">{labelOf(n)}</span>
+                  <NoteWho
+                    note={n}
+                    label={labelOf(n)}
+                    real={isRevealed(n) ? realOf(n) : null}
+                    onToggle={canReveal(n) ? () => toggleReveal(n) : null}
+                  />
                   <p className="opinion-note-text">{n.text}</p>
                 </div>
               );
@@ -381,7 +387,14 @@ export default function OpinionBoard({
           mode="new"
           zones={zones}
           initialZone={composeZone}
-          authorLabel={isTeacher ? "선생님" : noteAuthorLabel({ studentId: user?.studentId, authorName: user?.realName || user?.displayName })}
+          who={
+            <NoteWho
+              note={isTeacher ? { byTeacher: true } : { anon: true, authorName: user?.displayName, authorEmoji: user?.emoji }}
+              label={isTeacher ? "선생님" : noteAuthorLabel({ anon: true, authorName: user?.displayName })}
+              className="opinion-modal-who"
+            />
+          }
+          authorLabel={isTeacher ? "선생님" : noteAuthorLabel({ anon: true, authorName: user?.displayName })}
           onSave={async (v) => { await createNote(v); setComposeZone(null); }}
           onClose={() => setComposeZone(null)}
         />
@@ -391,6 +404,15 @@ export default function OpinionBoard({
           mode="view"
           note={openNote}
           zones={zones}
+          who={
+            <NoteWho
+              note={openNote}
+              label={labelOf(openNote)}
+              real={isRevealed(openNote) ? realOf(openNote) : null}
+              onToggle={canReveal(openNote) ? () => toggleReveal(openNote) : null}
+              className="opinion-modal-who"
+            />
+          }
           authorLabel={labelOf(openNote)}
           canEdit={canEdit(openNote)}
           canRemove={canRemove(openNote)}
@@ -412,6 +434,7 @@ function OpinionNoteModal({
   zones,
   initialZone = null,
   authorLabel,
+  who = null,
   canEdit = false,
   canRemove = false,
   onSave,
@@ -479,7 +502,7 @@ function OpinionNoteModal({
         <span className="opinion-modal-tape" aria-hidden="true" />
         <div className="opinion-modal-head">
           <span className="opinion-modal-zone">{zoneName}</span>
-          <span className="opinion-modal-who">{authorLabel}</span>
+          {who}
           <button type="button" className="btn-close" onClick={onClose} aria-label="닫기">×</button>
         </div>
 
@@ -573,5 +596,42 @@ function OpinionNoteModal({
         />
       )}
     </div>
+  );
+}
+
+// ─── 이름표 — 익명 닉네임 · 교사는 눌러서 실제 학생 ─────────────────
+// 질문방의 AuthorBadge와 같은 약속입니다: 학생에게는 익명만, 교사가 누르면
+// 🔓와 함께 학번·이름으로 바뀌고 다시 누르면 가려집니다.
+// 메모지 위에서는 누르기가 곧 '크게 보기'·끌기라, 이름표를 누른 것은 메모로
+// 번지지 않게 막습니다(pointerdown을 멈추면 끌기가 시작되지 않습니다).
+function NoteWho({ note, label, real = null, onToggle = null, className = "opinion-note-who" }) {
+  const emoji = note?.byTeacher ? null : note?.anon ? note?.authorEmoji : null;
+  const body = real ? (
+    <>
+      <IconUnlock size={12} /> {real}
+    </>
+  ) : (
+    <>
+      {emoji && <span className="opinion-who-emoji" aria-hidden="true">{emoji}</span>}
+      {label}
+    </>
+  );
+  if (!onToggle) return <span className={className}>{body}</span>;
+  return (
+    <button
+      type="button"
+      className={`${className} opinion-who-btn${real ? " is-real" : ""}`}
+      onPointerDown={(e) => e.stopPropagation()}
+      onPointerUp={(e) => e.stopPropagation()}
+      onKeyDown={(e) => e.stopPropagation()}
+      onClick={(e) => {
+        e.stopPropagation();
+        onToggle();
+      }}
+      title={real ? "눌러서 다시 가리기" : "눌러서 누가 썼는지 보기 (교사 전용)"}
+      aria-pressed={!!real}
+    >
+      {body}
+    </button>
   );
 }

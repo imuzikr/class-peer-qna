@@ -303,6 +303,7 @@ export default function ParatextBoard({
         <div className="book-workspace">
           <BookStudentRail
             cards={shownCards}
+            allCards={cards}
             pickedUid={openUid}
             onPick={setOpenUid}
             rows={stepRows}
@@ -391,17 +392,19 @@ export default function ParatextBoard({
             )}
           </div>
 
-          {/* 오른쪽 — 학생별 진행. 모둠으로 좁혀 봐도 **반 전체**를 셉니다
-              (닿소리의 개별 활동과 같습니다 — 한 모둠만 보면 견줄 대상이
-              없습니다). */}
-          <EntryProgressPanel
-            cards={cards}
-            rows={stepRows}
-            cellState={paratextCellState}
-            pickedUid={openUid}
-            onPick={setOpenUid}
-            extra={(m) => ` · ${paratextCharCount(m.entry?.answers)}자`}
-          />
+          {/* 오른쪽 — 학생별 진행. **모둠 활동일 때만** 섭니다: 왼쪽이 한
+              모둠으로 좁혀져도 여기서 반 전체를 견줍니다. 개인 활동이면 같은
+              조각 바가 왼쪽 카드에 이미 있어 두 벌이 됩니다(선생님 요청). */}
+          {grouped && (
+            <EntryProgressPanel
+              cards={cards}
+              rows={stepRows}
+              cellState={paratextCellState}
+              pickedUid={openUid}
+              onPick={setOpenUid}
+              extra={(m) => ` · ${paratextCharCount(m.entry?.answers)}자`}
+            />
+          )}
         </div>
       )}
 

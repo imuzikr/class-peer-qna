@@ -3,8 +3,9 @@
 // =============================================================
 // 물음표로 책 읽기 — 교사 화면 (개인 활동)
 // -------------------------------------------------------------
-// 곁텍스트 · RAFT · KWLS와 **같은 세 칸**입니다(BookStudentRail ·
-// 가운데 그 학생의 답 · EntryProgressPanel — CSS도 그대로).
+// 곁텍스트 · RAFT · KWLS와 **같은 뼈대**입니다(BookStudentRail · 가운데 그
+// 학생의 답 — CSS도 그대로). 오른쪽 '학생별 진행'은 모둠 활동에만 서므로
+// 개인 활동인 여기는 두 칸입니다.
 //
 // 가운데 칸은 '나의 물음표'(궁금증 · 이유) 한 장이 위에 넓게, 다섯 물음이
 // 그 아래 격자로 섭니다. **고르지 않은 물음은 옅게**(점선) 둡니다 — 빈 칸으로
@@ -36,7 +37,6 @@ import { safeBookUrl } from "@/lib/paratext";
 import { IconBook, IconLock } from "./StatusIcons";
 import QmarkProgressBoard from "./QmarkProgressBoard";
 import BookStudentRail from "./BookStudentRail";
-import EntryProgressPanel from "./EntryProgressPanel";
 import CastStageModal from "./CastStageModal";
 
 const REGIONS = QMARK_REGIONS;
@@ -279,14 +279,8 @@ export default function QmarkBoard({
             )}
           </div>
 
-          <EntryProgressPanel
-            cards={cards}
-            rows={stepRows}
-            cellState={qmarkCellState}
-            pickedUid={openUid}
-            onPick={setOpenUid}
-            extra={(m) => ` · 글 ${qmarkChars(m.entry?.answers)}자`}
-          />
+          {/* 오른쪽 '학생별 진행'은 두지 않습니다 — 모둠이 없는 활동이라 왼쪽
+              목록이 곧 반 전체이고, 같은 조각 바가 왼쪽 카드에 있습니다. */}
         </div>
       )}
 

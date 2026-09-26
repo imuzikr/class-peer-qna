@@ -336,6 +336,7 @@ export default function RaftBoard({
         <div className="book-workspace">
           <BookStudentRail
             cards={shownCards}
+            allCards={cards}
             pickedUid={openUid}
             onPick={setOpenUid}
             rows={stepRows}
@@ -432,15 +433,18 @@ export default function RaftBoard({
             )}
           </div>
 
-          {/* 오른쪽 — 학생별 진행. 모둠으로 좁혀 봐도 **반 전체**를 셉니다. */}
-          <EntryProgressPanel
-            cards={cards}
-            rows={stepRows}
-            cellState={raftCellState}
-            pickedUid={openUid}
-            onPick={setOpenUid}
-            extra={(m) => ` · 글 ${raftWritingChars(m.entry?.answers)}자`}
-          />
+          {/* 오른쪽 — 학생별 진행. **모둠 활동일 때만**(곁텍스트와 같음) —
+              모둠으로 좁혀 봐도 반 전체를 셉니다. */}
+          {grouped && (
+            <EntryProgressPanel
+              cards={cards}
+              rows={stepRows}
+              cellState={raftCellState}
+              pickedUid={openUid}
+              onPick={setOpenUid}
+              extra={(m) => ` · 글 ${raftWritingChars(m.entry?.answers)}자`}
+            />
+          )}
         </div>
       )}
 

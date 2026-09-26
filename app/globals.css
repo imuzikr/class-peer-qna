@@ -20553,16 +20553,17 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
    뼈대(.book-workspace·.book-group-rail·.book-workspace-center·.dash-side)는
    닿소리 채우기의 것을 그대로 씁니다 — 네 활동의 교사 화면이 서로 다른
    모양이면 교사가 화면마다 다시 익혀야 합니다. */
-/* 왼쪽 카드 안의 단계 네모 — 학생 카드 격자에 있던 것을 그대로 옮겼습니다.
+/* 왼쪽 카드 안의 단계 네모 — 오른쪽 '학생별 진행'의 조각 바
+   (.dash-heat-cell · .entry-heat-cell--*)를 그대로 옮겼습니다(줄 색 · 완료 점).
    칸 수가 활동마다 달라(여덟·다섯·넷) 개수를 못 박지 않고 고르게 나눕니다. */
 .book-rail-marks {
   display: flex;
   gap: 3px;
 }
-.book-rail-marks .paratext-mark {
+.book-rail-marks .dash-heat-cell {
   flex: 1 1 0;
   min-width: 0;
-  height: 11px;
+  height: 13px;
 }
 .book-rail-topic {
   font-size: 11.5px;
@@ -28188,10 +28189,6 @@ h4.attendance-seat-help { margin-top: 16px; }
   color: var(--text);
   line-height: 1.5;
 }
-.opinion-bar-hint { flex: 1; font-size: 12.5px; color: var(--text-faint); }
-/* 한 장을 이미 붙였다는 까닭(학생) · 이 판의 메모 수 방식(교사) — 붙이기 단추 자리 옆 */
-.opinion-bar-note { flex-shrink: 0; font-size: 12.5px; font-weight: 600; color: var(--text-sub); }
-.opinion-add { flex-shrink: 0; }
 
 /* 영역 띠 색 — 메모 색과 같은 식구에서, 영역끼리 겹치지 않게 */
 .tint-peach { --tint-bg: #ffe4d4; --tint-ink: #b8663f; --tint-wash: rgba(255, 220, 200, 0.18); }
@@ -28254,6 +28251,9 @@ h4.attendance-seat-help { margin-top: 16px; }
   cursor: pointer;
 }
 .opinion-zone-add:hover { background: var(--tint-bg); border-style: solid; }
+/* 한 장을 이미 붙인 학생 — 꺼진 ＋(까닭은 툴팁) */
+.opinion-zone-add:disabled { opacity: 0.4; cursor: not-allowed; }
+.opinion-zone-add:disabled:hover { background: transparent; border-style: dashed; }
 
 /* 메모가 서는 몸통 — 높이가 곧 자리 셈의 zoneH입니다 */
 .opinion-body {
@@ -28375,6 +28375,29 @@ h4.attendance-seat-help { margin-top: 16px; }
   color: #3d352d;
 }
 .opinion-note.is-teacher .opinion-note-who::before { content: "✦ "; }
+/* 이름표 — 익명 닉네임(+ 동물 이모지). 교사에게는 눌러서 실제 학생을 보는
+   단추라 단추 기본 모양을 걷고 글자만 남깁니다. 연 이름표(🔓 학번 이름)는
+   질문방의 실명 칩(.author-real)처럼 옅은 바탕을 깝니다. */
+.opinion-who-emoji { margin-right: 3px; font-size: 1.05em; }
+.opinion-who-btn {
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  line-height: inherit;
+  cursor: pointer;
+  text-align: right;
+}
+.opinion-who-btn:hover { text-decoration: underline; text-underline-offset: 2px; }
+.opinion-who-btn.is-real {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.75);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.opinion-note .opinion-who-btn.is-real { display: block; }
 
 /* 크게 보기 · 쓰기 창 — 창 자체가 그 메모의 색 */
 .modal.opinion-modal {

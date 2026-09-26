@@ -14,11 +14,22 @@
 // 목록을 왼쪽에 세워 두면 옆 학생으로 바로 건너뛰고, 오른쪽 진행 패널이
 // 계속 남습니다.
 //
-// 칸의 네모(marks)는 학생 카드에 있던 것을 그대로 옮긴 것입니다 —
-// 곁텍스트 여덟 · RAFT 다섯 · KWLS 넷.
+// 칸의 네모(조각 바)는 오른쪽 '학생별 진행' 패널(EntryProgressPanel)의 것과
+// **같은 모양**입니다 — 다 쓴 칸은 그 학생의 줄 색, 쓰는 중은 주황, 안 쓴
+// 칸은 회색, 다 채우면 마지막 칸에 붉은 점. 예전에는 왼쪽(초록 네모)과
+// 오른쪽(줄 색 네모)에 같은 뜻의 조각 바가 두 벌 서 있어, 오른쪽 것을 이리로
+// 옮기고 오른쪽 패널은 **모둠 활동일 때만** 둡니다(선생님 요청 — 그때는 왼쪽이
+// 한 모둠으로 좁혀져도 오른쪽이 반 전체를 보여 줍니다).
+//
+// 줄 색은 **반 전체 차례**(allCards)로 매깁니다. 모둠으로 좁힌 목록의 차례로
+// 매기면 같은 학생이 왼쪽과 오른쪽에서 다른 색이 됩니다.
 // =============================================================
+import { useMemo } from "react";
+import { rowColor } from "@/lib/bookColors";
+
 export default function BookStudentRail({
   cards = [],
+  allCards = null,  // 줄 색을 매길 반 전체 목록(없으면 cards)
   pickedUid = null,
   onPick,
   rows = [],        // 단계 정의 — 네모 하나가 한 단계
@@ -26,11 +37,20 @@ export default function BookStudentRail({
   castUid = null,   // 지금 방송 중인 학생 (빨간 점)
   meta,             // (card) => 카드 아래 한 줄 (예: '3 / 8칸 · 120자')
 }) {
+  const colorIdx = useMemo(
+    () => new Map((allCards ?? cards).map((c, i) => [c.uid, i])),
+    [allCards, cards]
+  );
+  const total = rows.length;
+
   return (
     <aside className="book-group-rail" aria-label="학생 목록">
       {cards.map((c) => {
         const answers = c.entry?.answers ?? {};
         const on = c.uid === pickedUid;
+        const color = rowColor(colorIdx.get(c.uid) ?? 0);
+        const states = rows.map((row) => cellState(row, answers));
+        const full = total > 0 && states.every((st) => st === "done");
         return (
           <button
             key={c.uid}
@@ -53,10 +73,13 @@ export default function BookStudentRail({
               <span className="book-rail-topic">{c.entry.topic}</span>
             )}
             <span className="book-rail-marks">
-              {rows.map((row) => (
+              {rows.map((row, i) => (
                 <i
                   key={row.key}
-                  className={`paratext-mark ${cellState(row, answers)}`}
+                  className={`dash-heat-cell entry-heat-cell entry-heat-cell--${states[i]}${
+                    full && i === total - 1 ? " is-done" : ""
+                  }`}
+                  style={states[i] === "done" ? { background: color.border } : undefined}
                   title={`${row.letter ? `${row.letter} · ` : ""}${row.label}`}
                 />
               ))}

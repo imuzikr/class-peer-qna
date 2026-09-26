@@ -1118,11 +1118,13 @@ service cloud.firestore {
       // [쓰기] 쓴 사람은 글·색·자리를, 담당 교사는 **자리만**(칠판 앞에서
       //   모아 정리) 고칩니다. 누가 썼는지(authorId·이름표·byTeacher)는 아무도
       //   못 바꿉니다. 잠긴 활동은 교사만 손댑니다.
-      // [이름표] 메모에 학번·이름을 함께 적어 둡니다(읽는 학생마다 급우
-      //   프로필을 따로 읽지 않게). 남의 이름으로 붙이지 못하게, 프로필에
-      //   학번이 있는 계정은 **그 학번·이름과 같아야** 통과합니다. 학번이 없는
-      //   옛 계정은 화면이 실명 칸에서 학번을 갈라 쓰므로(lib/auth.js) 여기서
-      //   견줄 수 없어 그대로 둡니다 — 교사 화면은 늘 명단의 이름을 씁니다.
+      // [이름표] 지금 앱은 **익명 닉네임**만 적습니다(studentId 없음 ·
+      //   anon: true — 질문방과 같습니다). 반 전체가 읽는 문서라 실명을 적어
+      //   두면 화면에서 가려도 누구나 읽을 수 있기 때문입니다. 누가 썼는지는
+      //   교사가 authorId로 명단에서 찾습니다.
+      //   예전 앱은 학번·실명을 적었고, 그때의 검사(프로필에 학번이 있으면 그
+      //   학번·이름과 같아야)는 **그대로 둡니다** — 배포 직후 옛 화면을 연
+      //   학생의 붙이기가 막히지 않게. 학생은 '선생님'이라는 이름표를 못 씁니다.
       // 글자 수 천장 500은 lib/opinion.js의 OPINION_TEXT_MAX와 같아야 합니다.
       match /opinionNotes/{nId} {
         function validNote(d) {
@@ -1135,9 +1137,11 @@ service cloud.firestore {
         }
         function noteIdentityOk(d) {
           let prof = get(/databases/$(database)/documents/users/$(uid())).data;
-          return prof.get('studentId', null) == null
-                 || (d.get('studentId', null) == prof.get('studentId', null)
-                     && d.authorName == prof.get('realName', d.authorName));
+          return d.authorName != '선생님'
+                 && (d.get('studentId', null) == null
+                     || prof.get('studentId', null) == null
+                     || (d.get('studentId', null) == prof.get('studentId', null)
+                         && d.authorName == prof.get('realName', d.authorName)));
         }
 
         allow read: if signedIn() && (
