@@ -28196,6 +28196,8 @@ h4.attendance-seat-help { margin-top: 16px; }
   line-height: 1.5;
 }
 .opinion-bar-hint { flex: 1; font-size: 12.5px; color: var(--text-faint); }
+/* 한 장을 이미 붙였다는 까닭(학생) · 이 판의 메모 수 방식(교사) — 붙이기 단추 자리 옆 */
+.opinion-bar-note { flex-shrink: 0; font-size: 12.5px; font-weight: 600; color: var(--text-sub); }
 .opinion-add { flex-shrink: 0; }
 
 /* 영역 띠 색 — 메모 색과 같은 식구에서, 영역끼리 겹치지 않게 */

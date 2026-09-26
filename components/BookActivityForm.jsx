@@ -20,10 +20,12 @@ import { useState } from "react";
 import { safeBookUrl } from "@/lib/paratext";
 import { BOOK_STUDENT_TOPIC_TYPES } from "@/lib/store";
 import {
-  DEFAULT_OPINION_ZONES,
+  DEFAULT_OPINION_NOTE_MODE,
+  OPINION_NOTE_MODES,
   OPINION_PROMPT_MAX,
   OPINION_ZONE_MAX,
   OPINION_ZONE_MIN,
+  OPINION_ZONE_EXAMPLES,
   OPINION_ZONE_NAME_MAX,
 } from "@/lib/opinion";
 
@@ -105,7 +107,10 @@ export default function BookActivityForm({
   const [namesRaw, setNamesRaw] = useState("");
   const [warning, setWarning] = useState(null); // 이름 개수 불일치 안내
   // '내 생각은요...' — 영역 이름(2~4개)과 함께 생각할 물음
-  const [zoneNames, setZoneNames] = useState(DEFAULT_OPINION_ZONES);
+  // 영역 이름은 비워 두고 예시는 안내 글(placeholder)로만 — 값으로 채워 두면
+  // 찬성·반대가 아닌 판을 만들 때마다 지우고 다시 써야 했습니다.
+  const [zoneNames, setZoneNames] = useState(["", ""]);
+  const [noteMode, setNoteMode] = useState(DEFAULT_OPINION_NOTE_MODE);
   const [prompt, setPrompt] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -182,6 +187,7 @@ export default function BookActivityForm({
         groupNames: perStudent || fromBase ? [] : names,
         zones: isOpinion ? zoneNames.map((n) => n.trim()) : [],
         prompt: isOpinion ? prompt.trim() : "",
+        noteMode: isOpinion ? noteMode : undefined,
       });
     } finally {
       setSaving(false);
@@ -304,7 +310,7 @@ export default function BookActivityForm({
                       onChange={(e) =>
                         setZoneNames((prev) => prev.map((v, j) => (j === i ? e.target.value : v)))
                       }
-                      placeholder={`영역 ${i + 1} 이름`}
+                      placeholder={`예: ${OPINION_ZONE_EXAMPLES[i] ?? `영역 ${i + 1}`}`}
                       maxLength={OPINION_ZONE_NAME_MAX}
                       aria-label={`영역 ${i + 1} 이름`}
                     />
@@ -334,8 +340,26 @@ export default function BookActivityForm({
               <em className="book-help">
                 {zonesBad
                   ? "영역 이름을 모두 적어 주세요."
-                  : "예: 찬성 · 반대 · 잘 모르겠어요. 만든 뒤에도 ‘편집’에서 이름을 고칠 수 있어요(개수는 그대로)."}
+                  : "만든 뒤에도 ‘편집’에서 이름을 고칠 수 있어요(개수는 그대로)."}
               </em>
+            </div>
+            {/* 학생 한 명이 붙일 수 있는 메모 수 — 만든 뒤 '편집'에서도 바꿉니다 */}
+            <div className="book-field">
+              <span>학생 메모</span>
+              <div className="book-seg">
+                {OPINION_NOTE_MODES.map((m) => (
+                  <button
+                    key={m.key}
+                    type="button"
+                    className={`book-seg-btn${noteMode === m.key ? " active" : ""}`}
+                    onClick={() => setNoteMode(m.key)}
+                    aria-pressed={noteMode === m.key}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+              <em className="book-help">{OPINION_NOTE_MODES.find((m) => m.key === noteMode)?.hint}</em>
             </div>
           </>
         )}

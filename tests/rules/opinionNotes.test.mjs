@@ -147,6 +147,19 @@ describe("내 생각은요 메모 규칙", () => {
     await assertSucceeds(updateDoc(ref(tch, "locked1", "n1"), { x: 0.7 }));
   });
 
+  it("한 장 모드 — 문서 id가 uid라 두 번째 붙이기(덮어쓰기)는 거부된다", async () => {
+    // addOpinionNote가 single일 때 setDoc(opinionNotes/{uid})로 씁니다.
+    // 이미 있으면 update가 되고, createdAt·updatedAt을 새로 찍는 덮어쓰기는
+    // 작성자 update의 changedOnly에 걸립니다 — 규칙을 안 고치고 한 장이 지켜짐.
+    const db = asStudent(env, "stu2").firestore();
+    const first = { ...note("stu2"), createdAt: new Date(1), updatedAt: new Date(1), movedAt: new Date(1) };
+    await assertSucceeds(setDoc(ref(db, "act1", "stu2"), first));
+    const again = { ...note("stu2", { text: "두 번째" }), createdAt: new Date(2), updatedAt: new Date(2), movedAt: new Date(2) };
+    await assertFails(setDoc(ref(db, "act1", "stu2"), again));
+    // 고치기(글·색)는 그대로 된다
+    await assertSucceeds(updateDoc(ref(db, "act1", "stu2"), { text: "고쳐 씀" }));
+  });
+
   it("쓴 사람은 제 메모를 뗀다", async () => {
     const db = asStudent(env, "stu1").firestore();
     await assertSucceeds(deleteDoc(ref(db, "act1", "n1")));

@@ -19,7 +19,14 @@ import { useEffect, useRef, useState } from "react";
 import { backdropClose } from "@/lib/modal";
 import { renameBookActivity, BOOK_SOLO_TYPES, BOOK_STUDENT_TOPIC_TYPES } from "@/lib/store";
 import { safeBookUrl } from "@/lib/paratext";
-import { OPINION_PROMPT_MAX, OPINION_ZONE_NAME_MAX, normalizeZones } from "@/lib/opinion";
+import {
+  OPINION_NOTE_MODES,
+  OPINION_PROMPT_MAX,
+  OPINION_ZONE_EXAMPLES,
+  OPINION_ZONE_NAME_MAX,
+  normalizeZones,
+  opinionNoteMode,
+} from "@/lib/opinion";
 
 export default function BookActivityEditModal({ activity, onClose, onDone }) {
   const [title, setTitle] = useState(activity.title ?? "");
@@ -33,6 +40,7 @@ export default function BookActivityEditModal({ activity, onClose, onDone }) {
   const isOpinion = activity.type === "opinion";
   const [zoneNames, setZoneNames] = useState(() => normalizeZones(activity.zones).map((z) => z.name));
   const [prompt, setPrompt] = useState(activity.prompt ?? "");
+  const [noteMode, setNoteMode] = useState(() => opinionNoteMode(activity));
   const zonesBad = isOpinion && zoneNames.some((n) => !n.trim());
 
   useEffect(() => { titleRef.current?.focus(); }, []);
@@ -55,7 +63,7 @@ export default function BookActivityEditModal({ activity, onClose, onDone }) {
     try {
       await renameBookActivity(
         activity.id,
-        isOpinion ? { title: nextTitle, topic, bookUrl, zoneNames, prompt } : { title: nextTitle, topic, bookUrl },
+        isOpinion ? { title: nextTitle, topic, bookUrl, zoneNames, prompt, noteMode } : { title: nextTitle, topic, bookUrl },
         activity
       );
       onDone?.();
@@ -149,6 +157,7 @@ export default function BookActivityEditModal({ activity, onClose, onDone }) {
                       onChange={(e) =>
                         setZoneNames((prev) => prev.map((v, j) => (j === i ? e.target.value : v)))
                       }
+                      placeholder={`예: ${OPINION_ZONE_EXAMPLES[i] ?? `영역 ${i + 1}`}`}
                       maxLength={OPINION_ZONE_NAME_MAX}
                       aria-label={`영역 ${i + 1} 이름`}
                     />
@@ -159,6 +168,27 @@ export default function BookActivityEditModal({ activity, onClose, onDone }) {
                 {zonesBad
                   ? "영역 이름을 모두 적어 주세요."
                   : "이름만 바뀌고, 붙어 있던 메모는 제 영역에 그대로 남아요."}
+              </em>
+            </div>
+            <div className="book-field">
+              <span>학생 메모</span>
+              <div className="book-seg">
+                {OPINION_NOTE_MODES.map((m) => (
+                  <button
+                    key={m.key}
+                    type="button"
+                    className={`book-seg-btn${noteMode === m.key ? " active" : ""}`}
+                    onClick={() => setNoteMode(m.key)}
+                    aria-pressed={noteMode === m.key}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+              <em className="book-help">
+                {noteMode === "single" && opinionNoteMode(activity) === "multi"
+                  ? "이미 여러 장 붙인 학생의 메모는 그대로 남고, 그 학생은 더 붙이지만 못해요."
+                  : OPINION_NOTE_MODES.find((m) => m.key === noteMode)?.hint}
               </em>
             </div>
           </>

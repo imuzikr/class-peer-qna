@@ -29,12 +29,14 @@ import {
 import {
   OPINION_COLORS,
   OPINION_TEXT_MAX,
+  canAddOpinionNote,
   nextNoteSpot,
   noteAuthorLabel,
   noteStackTime,
   noteTilt,
   normalizeZones,
   opinionColor,
+  opinionNoteMode,
   opinionStats,
   pixelsFromPlace,
   placeFromPixels,
@@ -109,8 +111,13 @@ export default function OpinionBoard({
   const [composeZone, setComposeZone] = useState(null); // 새 메모를 쓰는 중이면 영역 key
   const [error, setError] = useState("");
 
-  const canPost = isTeacher || !locked;
   const isMine = (n) => !!uid && n.authorId === uid;
+  // 붙이기 — 한 사람에 한 장이면 이미 붙인 학생은 더 못 붙입니다(고치고 옮기는
+  // 것은 그대로). 교사 메모(byTeacher)는 세지 않습니다.
+  const noteMode = opinionNoteMode(activity);
+  const myStudentNotes = isTeacher ? 0 : notes.filter((n) => isMine(n) && !n.byTeacher).length;
+  const canPost = canAddOpinionNote({ mode: noteMode, myCount: myStudentNotes, isTeacher, locked });
+  const usedMyOne = !isTeacher && !locked && !canPost;
   const canMove = (n) => isTeacher || (isMine(n) && !locked);
   const canEdit = (n) => isMine(n) && !locked;
   const canRemove = (n) => isTeacher || (isMine(n) && !locked);
@@ -202,7 +209,9 @@ export default function OpinionBoard({
   // ── 붙이기 · 고치기 · 떼어 내기 ──
   async function createNote({ text, color, zone }) {
     const spot = nextNoteSpot(byZone.get(zone) ?? 0);
-    await addOpinionNote(activity.id, user, { text, color, zone, ...spot, byTeacher: isTeacher });
+    await addOpinionNote(activity.id, user, {
+      text, color, zone, ...spot, byTeacher: isTeacher, single: noteMode === "single",
+    });
   }
   async function saveNote(n, { text, color, zone }) {
     await updateOpinionNote(activity.id, n.id, { text, color });
@@ -264,7 +273,17 @@ export default function OpinionBoard({
           </p>
         ) : (
           <span className="opinion-bar-hint">
-            메모를 누르면 크게 볼 수 있어요.{canPost && " 내 메모는 끌어서 다른 자리로 옮길 수 있어요."}
+            메모를 누르면 크게 볼 수 있어요.{(canPost || usedMyOne) && " 내 메모는 끌어서 다른 자리로 옮길 수 있어요."}
+          </span>
+        )}
+        {/* 한 장을 이미 붙인 학생 — 단추 대신 까닭을 적습니다(단추가 그냥
+            사라지면 고장으로 보입니다). */}
+        {usedMyOne && (
+          <span className="opinion-bar-note">메모는 한 사람에 한 장이에요 — 붙인 메모를 눌러 고칠 수 있어요.</span>
+        )}
+        {isTeacher && (
+          <span className="opinion-bar-note">
+            {noteMode === "single" ? "학생 메모: 한 사람에 한 장" : "학생 메모: 여러 장 자유롭게"}
           </span>
         )}
         {canPost && (

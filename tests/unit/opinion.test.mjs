@@ -3,6 +3,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   OPINION_COLORS,
+  canAddOpinionNote,
+  opinionNoteMode,
   nextNoteSpot,
   noteAuthorLabel,
   noteStackTime,
@@ -93,4 +95,17 @@ test("영역별 메모 수 · 쓴 학생 수(교사 메모는 안 셈)", () => {
   );
   assert.deepEqual([byZone.get("z1"), byZone.get("z2")], [2, 2]);
   assert.equal(writers.size, 2);
+});
+
+test("메모 수 — 표시가 없는 옛 활동은 여러 장, 한 장 모드는 한 장까지", () => {
+  assert.equal(opinionNoteMode({}), "multi");
+  assert.equal(opinionNoteMode({ noteMode: "single" }), "single");
+  assert.equal(canAddOpinionNote({ mode: "single", myCount: 0 }), true);
+  assert.equal(canAddOpinionNote({ mode: "single", myCount: 1 }), false);
+  // 여러 장 모드에서 바꿔 둘 이상 가진 학생도 더는 못 붙임
+  assert.equal(canAddOpinionNote({ mode: "single", myCount: 3 }), false);
+  assert.equal(canAddOpinionNote({ mode: "multi", myCount: 5 }), true);
+  // 교사는 모드와 상관없이 · 잠기면 학생은 못 붙임
+  assert.equal(canAddOpinionNote({ mode: "single", myCount: 1, isTeacher: true }), true);
+  assert.equal(canAddOpinionNote({ mode: "multi", myCount: 0, locked: true }), false);
 });
