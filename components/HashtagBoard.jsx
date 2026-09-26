@@ -147,13 +147,17 @@ export default function HashtagBoard({
   cast.useLiveUpdate(livePayload);
 
   function castStudent(card, openStage = true) {
-    // 같은 학생을 다시 누르면 방송이 **꺼집니다**(useEntryCast의 토글) —
-    // 그때는 창도 함께 닫아야 '띄우는 중'이라 적힌 빈 창이 안 남습니다.
-    const stopping = cast.isCasting(card.uid, SLIDE_KEY);
+    // 지금 띄우는 것을 다시 누르면 **수업 화면 창을 엽니다**(끄지 않습니다).
+    // 끄는 길은 그 창 오른쪽 아래 '수업 종료' 한 곳뿐입니다 — 같은 일을 하는
+    // 단추가 여기저기 있으면 무엇을 눌러야 끝나는지 헷갈립니다(선생님 지적).
+    if (cast.isCasting(card.uid, SLIDE_KEY)) {
+      setStageOpen(true);
+      return;
+    }
     cast.cast({ uid: card.uid, key: SLIDE_KEY }, payloadOf(activity, card));
-    setStageOpen(openStage && !stopping);
+    setStageOpen(openStage);
     // 뒤의 화면도 따라옵니다 — 창을 닫았을 때 그 학생이 열려 있어야 합니다.
-    if (!stopping) setOpenUid(card.uid);
+    setOpenUid(card.uid);
   }
   function stopCast() {
     cast.stop();
@@ -242,6 +246,7 @@ export default function HashtagBoard({
               onNext={null}
               onStop={stopCast}
               onOpenStage={stageOpen ? null : () => setStageOpen(true)}
+              stopInStage
             />
           )}
         </div>
@@ -289,14 +294,14 @@ export default function HashtagBoard({
                       disabled={!openHas && !openLive}
                       title={
                         openLive
-                          ? "학생 화면을 원래대로 되돌립니다"
+                          ? "지금 띄우는 중 — 눌러서 수업 화면 창을 엽니다(끝내기는 그 창의 수업 종료)"
                           : openHas
                           ? "이 학생의 해시태그를 슬라이드 한 장으로 학급 화면에 띄웁니다"
                           : "아직 찾은 해시태그가 없어 띄울 것이 없어요"
                       }
                     >
                       {openLive && <span className="broadcast-live-dot" aria-hidden="true" />}
-                      {openLive ? "수업 종료" : "수업 시작"}
+                      {openLive ? "수업 화면 보기" : "수업 시작"}
                     </button>
                   )}
                 </div>

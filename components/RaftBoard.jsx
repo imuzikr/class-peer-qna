@@ -166,16 +166,20 @@ export default function RaftBoard({
   cast.useLiveUpdate(livePayload);
 
   function castRegion(card, index, openStage = true) {
-    // 같은 자리를 다시 누르면 방송이 **꺼집니다**(useEntryCast의 토글) —
-    // 그때는 창도 함께 닫아야 '띄우는 중'이라 적힌 빈 창이 안 남습니다.
-    const stopping = cast.isCasting(card.uid, REGIONS[index].key);
+    // 지금 띄우는 것을 다시 누르면 **수업 화면 창을 엽니다**(끄지 않습니다).
+    // 끄는 길은 그 창 오른쪽 아래 '수업 종료' 한 곳뿐입니다 — 같은 일을 하는
+    // 단추가 여기저기 있으면 무엇을 눌러야 끝나는지 헷갈립니다(선생님 지적).
+    if (cast.isCasting(card.uid, REGIONS[index].key)) {
+      setStageOpen(true);
+      return;
+    }
     cast.cast({ uid: card.uid, key: REGIONS[index].key }, buildPayload(activity, card, index));
     // **영역만 옮길 때는 창 상태를 안 건드립니다** — 닫아 둔 창이
     // '다음 영역 →'에 되살아나면 닫은 뜻이 없어집니다.
-    setStageOpen(openStage && !stopping);
+    setStageOpen(openStage);
     // 뒤의 화면도 따라옵니다 — 창을 닫았을 때 그 학생이 열려 있어야
     // 방금 본 답을 이어서 읽습니다.
-    if (!stopping) setOpenUid(card.uid);
+    setOpenUid(card.uid);
   }
 
   // 창을 닫는 것과 수업을 끝내는 것은 다릅니다 — 끝낼 때만 방송을 끕니다.
@@ -309,6 +313,7 @@ export default function RaftBoard({
               onNext={castIndex < REGION_COUNT - 1 ? () => step(1) : null}
               onStop={stopCast}
               onOpenStage={stageOpen ? null : () => setStageOpen(true)}
+              stopInStage
             />
           )}
           {bookUrl && (
@@ -414,12 +419,12 @@ export default function RaftBoard({
                               onClick={() => castRegion(open, i)}
                               title={
                                 live
-                                  ? "학생 화면을 원래대로 되돌립니다"
+                                  ? "지금 띄우는 중 — 눌러서 수업 화면 창을 엽니다(끝내기는 그 창의 수업 종료)"
                                   : "이 영역을 학급 전체 화면에 띄웁니다"
                               }
                             >
                               {live && <span className="broadcast-live-dot" aria-hidden="true" />}
-                              {live ? "수업 종료" : "수업 시작"}
+                              {live ? "수업 화면 보기" : "수업 시작"}
                             </button>
                           )}
                         </header>
