@@ -220,6 +220,12 @@ export default function HashtagForm({ activity, user, onBack }) {
     [post.tags, openIdx]
   );
   const chips = entries.filter((e) => e.tag);
+  // 옆 열 카드와 같은 번호(01, 02 …) — 카드는 태그 없는 옛 칸까지 세므로
+  // chips의 차례가 아니라 entries의 차례로 매깁니다.
+  const entryNo = useMemo(
+    () => new Map(entries.map((e, n) => [e.index, String(n + 1).padStart(2, "0")])),
+    [entries]
+  );
   const full = entries.length >= HASHTAG_COUNT;
   const firstTodo = entries.find((e) => !isEntryDone(e) || dup.has(e.index));
   const openAt =
@@ -566,33 +572,10 @@ export default function HashtagForm({ activity, user, onBack }) {
                   {chips.length} / {HASHTAG_COUNT}
                 </b>
               </h2>
+              {/* 적는 칸이 먼저, 모은 태그는 그 아래 한 줄에 하나씩(선생님 요청).
+                  태그 줄의 번호는 옆 열 카드의 번호와 같습니다 — 줄과 카드를
+                  번호로 짝지어 찾습니다. */}
               <div className="ht-chips">
-                {chips.map((e) => (
-                  <span
-                    key={e.index}
-                    className={`ht-chip${isEntryDone(e) && !dup.has(e.index) ? " done" : ""}`}
-                  >
-                    <button
-                      type="button"
-                      className="ht-chip-go"
-                      onClick={() => openEntry(e.index)}
-                      title="눌러서 이 해시태그의 생각 쓰기"
-                    >
-                      #{e.tag}
-                    </button>
-                    {!locked && (
-                      <button
-                        type="button"
-                        className="ht-chip-x"
-                        onClick={() => requestRemove(e)}
-                        aria-label={`#${e.tag} 빼기`}
-                        title="빼기"
-                      >
-                        ×
-                      </button>
-                    )}
-                  </span>
-                ))}
                 {!locked && !full && (
                   <span className="ht-chip-add">
                     <b aria-hidden="true">#</b>
@@ -610,18 +593,50 @@ export default function HashtagForm({ activity, user, onBack }) {
                     </button>
                   </span>
                 )}
+                {tagMsg ? (
+                  <em className="ht-warn">{tagMsg}</em>
+                ) : (
+                  !locked && (
+                    <p className="ht-chips-hint">
+                      {full
+                        ? `${HASHTAG_COUNT}개를 모두 찾았어요. 바꾸려면 ×로 하나를 빼세요.`
+                        : "띄어쓰기·쉼표로 여러 개를 한꺼번에 넣을 수 있어요. 두 낱말을 한 태그로 하려면 붙여 쓰세요(기후위기)."}
+                    </p>
+                  )
+                )}
+                {chips.length > 0 && (
+                  <ol className="ht-chip-list">
+                    {chips.map((e) => (
+                      <li
+                        key={e.index}
+                        className={`ht-chip${isEntryDone(e) && !dup.has(e.index) ? " done" : ""}`}
+                      >
+                        <button
+                          type="button"
+                          className="ht-chip-go"
+                          onClick={() => openEntry(e.index)}
+                          title="눌러서 이 해시태그의 생각 쓰기"
+                        >
+                          <span className="ht-chip-no">{entryNo.get(e.index)}</span>
+                          <span className="ht-chip-tag">#{e.tag}</span>
+                          <span className="ht-chip-state">{isEntryDone(e) && !dup.has(e.index) ? "완성" : "쓰는 중"}</span>
+                        </button>
+                        {!locked && (
+                          <button
+                            type="button"
+                            className="ht-chip-x"
+                            onClick={() => requestRemove(e)}
+                            aria-label={`#${e.tag} 빼기`}
+                            title="빼기"
+                          >
+                            ×
+                          </button>
+                        )}
+                      </li>
+                    ))}
+                  </ol>
+                )}
               </div>
-              {tagMsg ? (
-                <em className="ht-warn">{tagMsg}</em>
-              ) : (
-                !locked && (
-                  <p className="ht-chips-hint">
-                    {full
-                      ? `${HASHTAG_COUNT}개를 모두 찾았어요. 바꾸려면 ×로 하나를 빼세요.`
-                      : "띄어쓰기·쉼표로 여러 개를 한꺼번에 넣을 수 있어요. 두 낱말을 한 태그로 하려면 붙여 쓰세요(기후위기)."}
-                  </p>
-                )
-              )}
             </section>
 
             {/* ④ 해시태그별 생각 — 오른쪽 열, 펼친 카드 하나만 연다 */}
