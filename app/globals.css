@@ -22339,6 +22339,29 @@ span.cloud-word { cursor: default; }
   font-weight: 600;
   opacity: 0.7;
 }
+/* 고른 노드 모서리의 '이미지' 단추 — 노드 안에 두어 판을 옮기고 키워도
+   함께 따라갑니다. 노드가 translate(-50%,-50%)로 서 있어 모서리 기준은
+   노드 상자 그대로입니다. */
+.mm-node-imgbtn {
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1.5px solid var(--primary);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--primary-dark);
+  box-shadow: 0 2px 6px rgba(61, 61, 58, 0.18);
+  cursor: pointer;
+  z-index: 3;
+}
+.mm-node-imgbtn:hover { background: var(--primary-light); }
+.mm-node-imgbtn:disabled { opacity: 0.55; cursor: progress; }
 .mm-node.has-img .mm-node-text,
 .mm-node.has-img .mm-node-input { display: block; margin-top: 6px; }
 /* 방사형 편집판에서만 노드를 끌 수 있습니다(계층형은 자리가 자동) */
@@ -28137,4 +28160,363 @@ h4.attendance-seat-help { margin-top: 16px; }
 }
 .py-project-actdel--gap {
   cursor: default;
+}
+
+/* =============================================================
+   내 생각은요... — 영역 위에 붙이는 파스텔 메모판 (OpinionBoard)
+   -------------------------------------------------------------
+   메모지 크기(176×142)는 components/OpinionBoard.jsx의 NOTE_W·NOTE_H와
+   **같아야** 합니다 — 자리 셈(lib/opinion.js)이 그 값으로 영역 안의
+   비율을 픽셀로 바꿉니다. 색은 lib/opinion.js의 OPINION_COLORS(인라인
+   --note-bg · --note-ink)에서 옵니다.
+   ============================================================= */
+.opinion-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 2px 0 12px;
+}
+.opinion-prompt {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 10px 16px;
+  background: #fff8ec;
+  border: 1.5px solid #f2dcc2;
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.5;
+}
+.opinion-bar-hint { flex: 1; font-size: 12.5px; color: var(--text-faint); }
+.opinion-add { flex-shrink: 0; }
+
+/* 영역 띠 색 — 메모 색과 같은 식구에서, 영역끼리 겹치지 않게 */
+.tint-peach { --tint-bg: #ffe4d4; --tint-ink: #b8663f; --tint-wash: rgba(255, 220, 200, 0.18); }
+.tint-mint { --tint-bg: #d9f3e6; --tint-ink: #3f8a68; --tint-wash: rgba(212, 242, 227, 0.22); }
+.tint-sky { --tint-bg: #dcecff; --tint-ink: #4d7fb8; --tint-wash: rgba(215, 234, 255, 0.22); }
+.tint-lavender { --tint-bg: #ebe3fc; --tint-ink: #7b62b8; --tint-wash: rgba(231, 222, 251, 0.22); }
+
+.opinion-board {
+  border: 1.5px solid #eee0cb;
+  border-radius: 18px;
+  background: #fffaf2;
+  /* 영역 하나가 메모지(176px)보다 좁아지면 메모가 옆 영역까지 걸칩니다 —
+     그때는 판을 짜부라뜨리지 않고 옆으로 구르게 둡니다(아래 min-width).
+     창이 넓어도 양옆에 '오늘'·'멋진 순간' 패널이 서면 가운데가 300px대로
+     줄어듭니다(실측 1024px). */
+  overflow-x: auto;
+  overflow-y: hidden;
+  box-shadow: 0 1px 2px rgba(120, 90, 50, 0.05);
+}
+.opinion-heads,
+.opinion-body {
+  display: grid;
+  grid-template-columns: repeat(var(--zones, 2), minmax(0, 1fr));
+  min-width: calc(var(--zones, 2) * 200px);
+}
+.opinion-heads { border-bottom: 1.5px dashed #e9d6bb; }
+.opinion-zone-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px 14px;
+}
+.opinion-zone-head + .opinion-zone-head { border-left: 1.5px dashed #e9d6bb; }
+.opinion-zone-head strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 4px 13px;
+  border-radius: 999px;
+  background: var(--tint-bg);
+  color: var(--tint-ink);
+  font-size: 15px;
+  font-weight: 800;
+}
+.opinion-zone-count { flex-shrink: 0; font-size: 12.5px; font-weight: 700; color: var(--text-sub); }
+.opinion-zone-add {
+  flex-shrink: 0;
+  margin-left: auto;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1.5px dashed var(--tint-ink);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--tint-ink);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+.opinion-zone-add:hover { background: var(--tint-bg); border-style: solid; }
+
+/* 메모가 서는 몸통 — 높이가 곧 자리 셈의 zoneH입니다 */
+.opinion-body {
+  position: relative;
+  height: clamp(420px, calc(100vh - 340px), 780px);
+}
+.opinion-zone {
+  background:
+    radial-gradient(circle at 1px 1px, rgba(150, 120, 80, 0.13) 1px, transparent 0) 0 0 / 22px 22px,
+    linear-gradient(180deg, var(--tint-wash), transparent 60%);
+}
+.opinion-zone + .opinion-zone { border-left: 1.5px dashed #e9d6bb; }
+.opinion-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0 24px;
+  text-align: center;
+  color: var(--text-faint);
+  font-size: 14px;
+  pointer-events: none;
+}
+
+/* 메모지 한 장 — 위에 반투명 테이프, 오른쪽 아래 살짝 접힌 귀 */
+.opinion-note {
+  position: absolute;
+  width: 176px;
+  height: 142px;
+  padding: 26px 13px 12px;
+  background: var(--note-bg);
+  border-radius: 3px 3px 16px 3px;
+  box-shadow:
+    0 1px 1px rgba(90, 60, 30, 0.06),
+    0 8px 16px -8px rgba(110, 75, 40, 0.38);
+  transform: rotate(var(--tilt, 0deg));
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+  cursor: pointer;
+  user-select: none;
+  touch-action: none;
+  outline: none;
+}
+.opinion-note::before {
+  content: "";
+  position: absolute;
+  top: -7px;
+  left: 50%;
+  width: 54px;
+  height: 16px;
+  transform: translateX(-50%) rotate(-3deg);
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 1px 2px rgba(90, 60, 30, 0.08);
+}
+.opinion-note::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 0 0 16px 0;
+  background: linear-gradient(135deg, transparent 50%, rgba(90, 60, 30, 0.08) 50%);
+}
+.opinion-note:hover,
+.opinion-note:focus-visible {
+  transform: rotate(0deg) translateY(-2px) scale(1.03);
+  box-shadow:
+    0 1px 1px rgba(90, 60, 30, 0.06),
+    0 14px 24px -10px rgba(110, 75, 40, 0.45);
+  z-index: 40;
+}
+.opinion-note:focus-visible { outline: 2.5px solid var(--note-ink); outline-offset: 3px; }
+.opinion-note.is-movable { cursor: grab; }
+.opinion-note.is-dragging {
+  cursor: grabbing;
+  transform: rotate(0deg) scale(1.06);
+  box-shadow: 0 22px 34px -12px rgba(110, 75, 40, 0.5);
+  transition: none;
+  z-index: 60;
+}
+/* 이름표 — 오른쪽 위, 그 메모 색의 짙은 톤 */
+.opinion-note-who {
+  position: absolute;
+  top: 7px;
+  right: 11px;
+  max-width: calc(100% - 34px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--note-ink);
+  letter-spacing: -0.01em;
+}
+/* 내 메모 — 왼쪽 위 작은 핀 */
+.opinion-note-pin {
+  position: absolute;
+  top: 8px;
+  left: 10px;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: var(--note-ink);
+  box-shadow: 0 0 0 2.5px rgba(255, 255, 255, 0.7);
+}
+.opinion-note-text {
+  margin: 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+  overflow: hidden;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: #3d352d;
+}
+.opinion-note.is-teacher .opinion-note-who::before { content: "✦ "; }
+
+/* 크게 보기 · 쓰기 창 — 창 자체가 그 메모의 색 */
+.modal.opinion-modal {
+  position: relative;
+  width: min(680px, 94vw);
+  max-width: none;
+  max-height: none;
+  overflow: visible;
+  padding: 34px 32px 26px;
+  background: var(--note-bg);
+  border-radius: 6px 6px 28px 6px;
+  box-shadow: 0 30px 60px -20px rgba(80, 55, 30, 0.5);
+}
+.opinion-modal-tape {
+  position: absolute;
+  top: -13px;
+  left: 50%;
+  width: 124px;
+  height: 28px;
+  transform: translateX(-50%) rotate(-2deg);
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 1px 3px rgba(90, 60, 30, 0.1);
+}
+.opinion-modal-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.opinion-modal-zone {
+  padding: 4px 13px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--note-ink);
+  font-size: 13px;
+  font-weight: 800;
+}
+.opinion-modal-who {
+  margin-left: auto;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--note-ink);
+}
+.opinion-modal-text {
+  margin: 0;
+  min-height: 160px;
+  max-height: 58vh;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 21px;
+  line-height: 1.7;
+  color: #3a322a;
+}
+.opinion-modal-input {
+  width: 100%;
+  min-height: 200px;
+  max-height: 46vh;
+  resize: vertical;
+  padding: 14px 16px;
+  border: 1.5px dashed color-mix(in srgb, var(--note-ink) 55%, transparent);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.55);
+  font: inherit;
+  font-size: 18px;
+  line-height: 1.6;
+  color: #3a322a;
+}
+.opinion-modal-input:focus { outline: none; border-style: solid; border-color: var(--note-ink); background: rgba(255, 255, 255, 0.75); }
+.opinion-modal-count { margin-top: 4px; text-align: right; font-size: 12px; color: var(--note-ink); }
+.opinion-modal-pick {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+.opinion-modal-pick > span {
+  flex-shrink: 0;
+  width: 30px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--note-ink);
+}
+.opinion-zone-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.opinion-zone-chip {
+  padding: 6px 14px;
+  border: 1.5px solid rgba(90, 60, 30, 0.1);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.5);
+  color: #5a4d40;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.opinion-zone-chip.on { background: #fff; border-color: var(--note-ink); color: var(--note-ink); }
+.opinion-swatches { display: flex; flex-wrap: wrap; gap: 9px; }
+.opinion-swatch {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 2px solid rgba(255, 255, 255, 0.95);
+  border-radius: 8px;
+  background: var(--sw);
+  box-shadow: 0 1px 3px rgba(90, 60, 30, 0.2);
+  cursor: pointer;
+}
+.opinion-swatch.on { outline: 2.5px solid var(--sw-ink); outline-offset: 2px; }
+.opinion-modal .modal-actions { margin-top: 20px; }
+.opinion-modal-tools { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+.opinion-modal-remove { color: #b42318; }
+
+/* 만들기 · 편집 창의 영역 이름 칸 — 한 줄에 둘씩 */
+.opinion-zone-inputs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.opinion-zone-input { position: relative; display: flex; }
+.opinion-zone-input input { flex: 1; min-width: 0; padding-right: 32px; }
+.opinion-zone-del {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  transform: translateY(-50%);
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-sub);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+.opinion-zone-del:hover { background: var(--bg-deep); color: var(--text); }
+.opinion-zone-more { justify-self: start; }
+
+/* 좁은 화면 — 영역을 짜부라뜨리지 않고 판이 옆으로 구릅니다 */
+@media (max-width: 768px) {
+  .opinion-bar { flex-wrap: wrap; }
+  .modal.opinion-modal { padding: 30px 20px 20px; }
+  .opinion-modal-text { font-size: 18px; }
+  .opinion-zone-inputs { grid-template-columns: 1fr; }
 }

@@ -244,6 +244,14 @@ async function purgeStudentData(uid, warnings) {
 
   // 4) 책방 — 낱말에는 실명(authorName)이 들어 있어 반드시 지웁니다.
   await deleteByQuery(db.collectionGroup("words").where("authorId", "==", uid), warnings, "책방 낱말");
+  // '내 생각은요...' 메모 — 반 전체가 읽는 판이라 학번·실명을 메모마다 들고
+  // 있습니다. 색인(firestore.indexes.json의 opinionNotes.authorId)을 이 코드보다
+  // **먼저** 배포하세요 — 없으면 이 항목만 FAILED_PRECONDITION으로 실패합니다.
+  await deleteByQuery(
+    db.collectionGroup("opinionNotes").where("authorId", "==", uid),
+    warnings,
+    "책방 메모"
+  );
   // 모둠 명단에서도 빼냅니다(members에 실명 보관).
   try {
     const groups = await db

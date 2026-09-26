@@ -19,6 +19,7 @@ import { useEffect, useRef, useState } from "react";
 import { backdropClose } from "@/lib/modal";
 import { renameBookActivity, BOOK_SOLO_TYPES, BOOK_STUDENT_TOPIC_TYPES } from "@/lib/store";
 import { safeBookUrl } from "@/lib/paratext";
+import { OPINION_PROMPT_MAX, OPINION_ZONE_NAME_MAX, normalizeZones } from "@/lib/opinion";
 
 export default function BookActivityEditModal({ activity, onClose, onDone }) {
   const [title, setTitle] = useState(activity.title ?? "");
@@ -27,26 +28,36 @@ export default function BookActivityEditModal({ activity, onClose, onDone }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const titleRef = useRef(null);
+  // '내 생각은요...' — 영역 **이름만** 고칩니다(개수·key는 그대로라 붙은
+  // 메모가 제 영역에 남습니다). 함께 생각할 물음도 여기서.
+  const isOpinion = activity.type === "opinion";
+  const [zoneNames, setZoneNames] = useState(() => normalizeZones(activity.zones).map((z) => z.name));
+  const [prompt, setPrompt] = useState(activity.prompt ?? "");
+  const zonesBad = isOpinion && zoneNames.some((n) => !n.trim());
 
   useEffect(() => { titleRef.current?.focus(); }, []);
 
-  const isSolo = BOOK_SOLO_TYPES.includes(activity.type);
+  const isSolo = BOOK_SOLO_TYPES.includes(activity.type) || activity.type === "opinion";
   const perStudent = !isSolo && activity.groupMode === "solo";
   // 만들 때와 같은 기준 — 학생이 자기 자리에서 직접 적을 길이 있는 활동만
   // 주제어를 비워 둘 수 있습니다(BookActivityForm의 topicRequired 참고).
   const topicRequired =
-    !perStudent && !BOOK_STUDENT_TOPIC_TYPES.includes(activity.type);
+    !perStudent && activity.type !== "opinion" && !BOOK_STUDENT_TOPIC_TYPES.includes(activity.type);
   const urlBad = bookUrl.trim().length > 0 && !safeBookUrl(bookUrl);
 
   async function handleSubmit(e) {
     e.preventDefault();
     // 조합 중인 한글은 state에 늦게 들어오므로 입력칸의 실제 값을 먼저 읽습니다
     const nextTitle = (titleRef.current?.value ?? title).trim();
-    if (!nextTitle || (topicRequired && !topic.trim()) || urlBad || saving) return;
+    if (!nextTitle || (topicRequired && !topic.trim()) || urlBad || zonesBad || saving) return;
     setSaving(true);
     setError("");
     try {
-      await renameBookActivity(activity.id, { title: nextTitle, topic, bookUrl }, activity);
+      await renameBookActivity(
+        activity.id,
+        isOpinion ? { title: nextTitle, topic, bookUrl, zoneNames, prompt } : { title: nextTitle, topic, bookUrl },
+        activity
+      );
       onDone?.();
       onClose();
     } catch (err) {
@@ -114,6 +125,45 @@ export default function BookActivityEditModal({ activity, onClose, onDone }) {
           </label>
         )}
 
+        {isOpinion && (
+          <>
+            <label className="book-field">
+              <span>
+                함께 생각할 물음 <em className="book-optional">선택</em>
+              </span>
+              <input
+                type="text"
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                maxLength={OPINION_PROMPT_MAX}
+              />
+            </label>
+            <div className="book-field">
+              <span>영역 이름</span>
+              <div className="opinion-zone-inputs">
+                {zoneNames.map((name, i) => (
+                  <div key={i} className="opinion-zone-input">
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) =>
+                        setZoneNames((prev) => prev.map((v, j) => (j === i ? e.target.value : v)))
+                      }
+                      maxLength={OPINION_ZONE_NAME_MAX}
+                      aria-label={`영역 ${i + 1} 이름`}
+                    />
+                  </div>
+                ))}
+              </div>
+              <em className="book-help">
+                {zonesBad
+                  ? "영역 이름을 모두 적어 주세요."
+                  : "이름만 바뀌고, 붙어 있던 메모는 제 영역에 그대로 남아요."}
+              </em>
+            </div>
+          </>
+        )}
+
         {/* 무엇이 그대로인지 — 바꿀 수 없는 것을 빈칸으로 두면 '왜 없지'를
             먼저 묻게 됩니다. 없는 이유를 한 줄로 적어 둡니다. */}
         <p className="modal-book-edit-note">
@@ -128,7 +178,7 @@ export default function BookActivityEditModal({ activity, onClose, onDone }) {
           <button
             type="submit"
             className="btn-primary"
-            disabled={!title.trim() || (topicRequired && !topic.trim()) || urlBad || saving}
+            disabled={!title.trim() || (topicRequired && !topic.trim()) || urlBad || zonesBad || saving}
           >
             {saving ? "저장 중…" : "저장"}
           </button>

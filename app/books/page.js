@@ -69,6 +69,7 @@ import KwlsBoard from "@/components/KwlsBoard";
 import KwlsForm from "@/components/KwlsForm";
 import MindmapBoard from "@/components/MindmapBoard";
 import MindmapForm from "@/components/MindmapForm";
+import OpinionBoard from "@/components/OpinionBoard";
 import { IconBook, IconTrash, IconLockState } from "@/components/StatusIcons";
 
 // 활동 종류의 이름 — 목록 카드에 '무엇을 하는 활동인가'를 적는 데 씁니다.
@@ -81,6 +82,7 @@ const ACTIVITY_KINDS = [
   { key: "raft", label: "RAFT 글쓰기" },
   { key: "kwls", label: "KWLS로 성찰하기" },
   { key: "mindmap", label: "마인드맵" },
+  { key: "opinion", label: "내 생각은요..." },
 ];
 
 const ACTIVITY_KIND_BY_KEY = new Map(ACTIVITY_KINDS.map((k) => [k.key, k]));
@@ -363,7 +365,10 @@ function BooksPageInner() {
   const isRaft = activeActivity?.type === "raft";
   const isKwls = activeActivity?.type === "kwls";
   const isMindmap = activeActivity?.type === "mindmap";
-  const isSolo = isParatext || isRaft || isKwls || isMindmap;
+  // '내 생각은요...' — 반 전체가 한 판을 함께 씁니다(모둠 없음). 교사·학생이
+  // 같은 화면이라 분기가 하나입니다.
+  const isOpinion = activeActivity?.type === "opinion";
+  const isSolo = isParatext || isRaft || isKwls || isMindmap || isOpinion;
 
   // 연 활동의 모둠 — 학생이 '내 판'으로 바로 들어가려면 내 모둠을 알아야 합니다.
   useEffect(() => {
@@ -566,8 +571,20 @@ function BooksPageInner() {
           />
         )}
 
-      {/* 마인드맵(개인 활동) — 교사는 왼쪽 학생 목록+오른쪽 마인드맵, 학생은 자기 판 */}
-      {isMindmap && admin ? (
+      {/* 내 생각은요... — 교사·학생이 같은 메모판(만질 수 있는 것만 다름) */}
+      {isOpinion ? (
+        <OpinionBoard
+          activity={activeActivity}
+          user={user}
+          isTeacher={admin}
+          roster={roster}
+          className={activeClassName}
+          classPicker={admin ? classPicker : null}
+          classTools={admin ? classTools : null}
+          onBack={goToList}
+        />
+      ) : /* 마인드맵(개인 활동) — 교사는 왼쪽 학생 목록+오른쪽 마인드맵, 학생은 자기 판 */
+      isMindmap && admin ? (
         <MindmapBoard
           activity={activeActivity}
           className={activeClassName}
@@ -1062,7 +1079,9 @@ function ActivityCard({ activity, isTeacher, uid, onOpen, onEdit, onDelete, onTo
         <span className="book-activity-meta">
           {kindLabel}
           {" · "}
-          {solo
+          {activity.type === "opinion"
+            ? `영역 ${(activity.zones ?? []).length || 2}개 · 함께 쓰는 판`
+            : solo
             ? "개인 활동"
             : perStudent
               ? `학생 ${groups.length}명 · ${modeLabel}`

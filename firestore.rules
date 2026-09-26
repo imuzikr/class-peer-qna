@@ -1105,6 +1105,66 @@ service cloud.firestore {
         allow delete: if isAdmin() || ownsBookActivityEditable(aId);
       }
 
+      // ── 내 생각은요... — 반 전체가 함께 쓰는 메모판 ─────────────────
+      // 학생이 포스트잇 같은 메모에 제 생각을 적어 교사가 나눈 영역(찬성·
+      // 반대 …) 위에 붙입니다. 한 사람이 여러 장 붙일 수 있습니다(자동 id).
+      //
+      // [읽기] 반 구성원 모두 — 서로의 생각을 읽는 것이 이 활동의 전부입니다
+      //   (entries는 본인·교사만인 것과 반대).
+      // [쓰기] 쓴 사람은 글·색·자리를, 담당 교사는 **자리만**(칠판 앞에서
+      //   모아 정리) 고칩니다. 누가 썼는지(authorId·이름표·byTeacher)는 아무도
+      //   못 바꿉니다. 잠긴 활동은 교사만 손댑니다.
+      // [이름표] 메모에 학번·이름을 함께 적어 둡니다(읽는 학생마다 급우
+      //   프로필을 따로 읽지 않게). 남의 이름으로 붙이지 못하게, 프로필에
+      //   학번이 있는 계정은 **그 학번·이름과 같아야** 통과합니다. 학번이 없는
+      //   옛 계정은 화면이 실명 칸에서 학번을 갈라 쓰므로(lib/auth.js) 여기서
+      //   견줄 수 없어 그대로 둡니다 — 교사 화면은 늘 명단의 이름을 씁니다.
+      // 글자 수 천장 500은 lib/opinion.js의 OPINION_TEXT_MAX와 같아야 합니다.
+      match /opinionNotes/{nId} {
+        function validNote(d) {
+          return d.text is string && d.text.size() > 0 && d.text.size() <= 500
+                 && d.zone is string && d.zone.size() > 0 && d.zone.size() <= 12
+                 && d.x is number && d.x >= 0 && d.x <= 1
+                 && d.y is number && d.y >= 0 && d.y <= 1
+                 && d.color is string && d.color.size() <= 16
+                 && d.authorName is string && d.authorName.size() <= 40;
+        }
+        function noteIdentityOk(d) {
+          let prof = get(/databases/$(database)/documents/users/$(uid())).data;
+          return prof.get('studentId', null) == null
+                 || (d.get('studentId', null) == prof.get('studentId', null)
+                     && d.authorName == prof.get('realName', d.authorName));
+        }
+
+        allow read: if signedIn() && (
+          isAdmin() || ownsBookActivity(aId) || isBookActivityMember(aId)
+        );
+        allow create: if signedIn()
+                      && request.resource.data.authorId == uid()
+                      && validNote(request.resource.data)
+                      && (
+                        (isBookActivityMember(aId)
+                          && !isBookActivityLocked(aId)
+                          && request.resource.data.get('byTeacher', false) == false
+                          && noteIdentityOk(request.resource.data))
+                        || ownsBookActivityEditable(aId)
+                        || isAdmin()
+                      );
+        allow update: if signedIn() && validNote(request.resource.data) && (
+          isAdmin()
+          || (resource.data.authorId == uid()
+              && (isBookActivityMember(aId) || ownsBookActivityEditable(aId))
+              && !isBookActivityLocked(aId)
+              && changedOnly(['text','color','zone','x','y','updatedAt','movedAt']))
+          || (ownsBookActivityEditable(aId)
+              && changedOnly(['zone','x','y','movedAt']))
+        );
+        allow delete: if signedIn() && (
+          isAdmin() || ownsBookActivityEditable(aId)
+          || (resource.data.authorId == uid() && !isBookActivityLocked(aId))
+        );
+      }
+
       // ── 동료 평가 — 모둠 친구의 발표를 듣고 남기는 한 마디 ──────────
       // 문서 ID는 `받는사람_쓴사람`입니다. 한 사람이 한 친구에게 한 장만
       // 쓰고, 그 장을 고쳐 씁니다(같은 친구에게 여러 장이 쌓이면 무엇이

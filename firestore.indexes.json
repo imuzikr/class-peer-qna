@@ -138,6 +138,17 @@
       ]
     },
     {
+      "//": "deleteStudent — 탈퇴 시 '내 생각은요...' 메모 정리: collectionGroup opinionNotes, authorId== (메모에 학번·실명이 있어 반드시 지웁니다)",
+      "collectionGroup": "opinionNotes",
+      "fieldPath": "authorId",
+      "indexes": [
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION_GROUP"
+        }
+      ]
+    },
+    {
       "//": "purgeStudentData — 탈퇴 시 수업 노트 정리: collectionGroup cornellNotes, uid== (이것이 없으면 탈퇴 처리가 '수업 노트: 9 FAILED_PRECONDITION'으로 그 항목만 실패합니다)",
       "collectionGroup": "cornellNotes",
       "fieldPath": "uid",

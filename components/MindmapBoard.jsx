@@ -31,6 +31,7 @@ import {
 } from "@/lib/mindmap";
 import { safeBookUrl } from "@/lib/paratext";
 import MindmapCanvas from "./MindmapCanvas";
+import { readImageAsDataUrl } from "@/lib/image";
 import CastBar from "./CastBar";
 import { IconBook, IconLock } from "./StatusIcons";
 
@@ -280,8 +281,10 @@ export default function MindmapBoard({
                 </header>
                 {/* 교사도 직접 고칠 수 있습니다 — 학생 화면과 같은 판·같은 조작
                     (더블클릭으로 가지 추가, 우클릭으로 글 고치기)입니다.
-                    이미지 넣기만은 안 줍니다(onUploadImage 없음) — 이 편집은
-                    저장되지 않는 임시라, 올린 파일만 Storage에 주인 없이 남습니다.
+                    이미지도 넣을 수 있는데 **Storage에 올리지 않고** 이 화면
+                    안에서만 읽어 씁니다(작은 data URL) — 이 편집은 저장되지 않는
+                    임시라, 올리면 파일만 주인 없이 남습니다. 방송 문서에 실려
+                    가므로 폭 480px로 줄여 문서 한도(1MB)를 넉넉히 비켜 갑니다.
                     아직 학생이 시작 전이어도 판 자체는 그대로 두고, 대신
                     가운데 주제만 있다는 안내만 살짝 얹습니다(교사가 대신
                     가지를 잡아 줄 수 있게). */}
@@ -296,6 +299,7 @@ export default function MindmapBoard({
                   selectedId={selectedId}
                   onSelect={setSelectedId}
                   fitKey={open.uid}
+                  onUploadImage={(file) => readImageAsDataUrl(file, 480)}
                   className="mindmap-view-stage"
                 />
               </>

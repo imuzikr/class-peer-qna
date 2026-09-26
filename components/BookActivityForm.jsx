@@ -9,6 +9,8 @@
 //      (글은 각자 한 장 그대로, 모둠은 화면의 흐름과 동료 평가의 범위).
 //      도서 정보 주소와 모둠 설정을 둘 다 받습니다.
 //  · KWLS로 성찰하기 / 마인드맵 — 혼자 하는 활동. 모둠 설정이 없습니다.
+//  · 내 생각은요... — 반 전체가 한 판에 메모를 붙입니다. 모둠 대신
+//      **영역**(2~4개, 이름은 교사가)과 함께 생각할 물음을 받습니다.
 //
 // 모둠 방식의 기본값은 **반의 기본 모둠**입니다(있을 때). 수업이 대체로 늘
 // 같은 모둠으로 돌아가는데 활동마다 다시 짜면 같은 일을 되풀이하게 됩니다.
@@ -17,6 +19,13 @@ import { backdropClose } from "@/lib/modal";
 import { useState } from "react";
 import { safeBookUrl } from "@/lib/paratext";
 import { BOOK_STUDENT_TOPIC_TYPES } from "@/lib/store";
+import {
+  DEFAULT_OPINION_ZONES,
+  OPINION_PROMPT_MAX,
+  OPINION_ZONE_MAX,
+  OPINION_ZONE_MIN,
+  OPINION_ZONE_NAME_MAX,
+} from "@/lib/opinion";
 
 const TYPES = [
   { key: "consonant", label: "닿소리 채우기", desc: "모둠이 함께 자음 칸을 낱말로 채웁니다", defaultTitle: "닿소리 채우기" },
@@ -24,6 +33,7 @@ const TYPES = [
   { key: "raft", label: "RAFT 글쓰기", desc: "역할·청중·형식·주제를 정해 읽은 뒤 글을 씁니다", defaultTitle: "RAFT 글쓰기" },
   { key: "kwls", label: "KWLS로 성찰하기", desc: "읽기 전 아는 것·궁금한 것, 읽은 뒤 알게 된 것을 적습니다", defaultTitle: "KWLS로 성찰하기" },
   { key: "mindmap", label: "마인드맵", desc: "주제에서 가지를 뻗어 생각을 방사형·계층형으로 펼칩니다", defaultTitle: "마인드맵" },
+  { key: "opinion", label: "내 생각은요...", desc: "영역(찬성·반대 등)을 나눠 두면 학생이 메모지에 생각을 적어 붙입니다", defaultTitle: "내 생각은요..." },
 ];
 // 모둠을 정하는 일은 **세 번의 물음**입니다. 한 줄에 다섯 갈래를 늘어놓았더니
 // '기본 모둠'과 '활동 모둠'이 나란히 있어 무엇이 무엇인지 알기 어려웠습니다.
@@ -94,11 +104,17 @@ export default function BookActivityForm({
   const [maxPerGroup, setMaxPerGroup] = useState(6);
   const [namesRaw, setNamesRaw] = useState("");
   const [warning, setWarning] = useState(null); // 이름 개수 불일치 안내
+  // '내 생각은요...' — 영역 이름(2~4개)과 함께 생각할 물음
+  const [zoneNames, setZoneNames] = useState(DEFAULT_OPINION_ZONES);
+  const [prompt, setPrompt] = useState("");
   const [saving, setSaving] = useState(false);
 
   const names = parseNames(namesRaw);
   // 학생이 눌러볼 도서 정보 주소를 받는 종류 — 혼자 읽고 쓰는 활동들입니다.
-  const hasBookUrl = ["paratext", "raft", "kwls", "mindmap"].includes(type);
+  const hasBookUrl = ["paratext", "raft", "kwls", "mindmap", "opinion"].includes(type);
+  const isOpinion = type === "opinion";
+  // 영역 이름은 모두 적어야 만듭니다 — 빈 영역은 학생이 어디에 붙일지 모릅니다.
+  const zonesBad = isOpinion && zoneNames.some((n) => !n.trim());
   // 모둠으로 진행할 수 있는 종류. 곁텍스트·RAFT도 모둠이 되지만 **글은
   // 학생마다 한 장 그대로**입니다 — 모둠이 정하는 것은 '누구와 함께 보는가'
   // (화면의 흐름과 동료 평가의 범위)입니다.
@@ -136,11 +152,12 @@ export default function BookActivityForm({
   // 그 길이 없는 종류(KWLS·마인드맵)는 비워 두면 무엇을 하는 활동인지 아무도
   // 알 수 없으므로 그대로 필수입니다(어느 종류가 여기 드는지와 그 이유는
   // lib/store.js의 BOOK_STUDENT_TOPIC_TYPES에 적어 두었습니다).
-  const topicRequired = !perStudent && !BOOK_STUDENT_TOPIC_TYPES.includes(type);
+  // '내 생각은요...'는 물음이 주제 노릇을 해서 주제어를 비워 둘 수 있습니다.
+  const topicRequired = !perStudent && !isOpinion && !BOOK_STUDENT_TOPIC_TYPES.includes(type);
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if ((topicRequired && !topic.trim()) || saving || urlBad) return;
+    if ((topicRequired && !topic.trim()) || saving || urlBad || zonesBad) return;
 
     // 이름을 적었는데 모둠 수와 개수가 다르면 만들지 않고 알려 줍니다.
     // (개별 활동은 모둠 이름을 쓰지 않으므로 이 검사를 건너뜁니다)
@@ -163,6 +180,8 @@ export default function BookActivityForm({
         groupCount,
         maxPerGroup,
         groupNames: perStudent || fromBase ? [] : names,
+        zones: isOpinion ? zoneNames.map((n) => n.trim()) : [],
+        prompt: isOpinion ? prompt.trim() : "",
       });
     } finally {
       setSaving(false);
@@ -255,6 +274,70 @@ export default function BookActivityForm({
                 : "넣어 두면 학생 화면에 ‘도서 정보’ 버튼이 생겨 새 탭으로 열립니다."}
             </em>
           </label>
+        )}
+
+        {isOpinion && (
+          <>
+            <label className="book-field">
+              <span>
+                함께 생각할 물음 <em className="book-optional">선택</em>
+              </span>
+              <input
+                type="text"
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                placeholder="예: 주인공이 약속을 어긴 것은 옳았을까요?"
+                maxLength={OPINION_PROMPT_MAX}
+              />
+            </label>
+            {/* 영역 — 2~4개. 이름은 판의 칸 머리에 그대로 섭니다. */}
+            <div className="book-field">
+              <span>
+                영역 <em className="book-optional">{zoneNames.length}개 · 2~4개</em>
+              </span>
+              <div className="opinion-zone-inputs">
+                {zoneNames.map((name, i) => (
+                  <div key={i} className="opinion-zone-input">
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) =>
+                        setZoneNames((prev) => prev.map((v, j) => (j === i ? e.target.value : v)))
+                      }
+                      placeholder={`영역 ${i + 1} 이름`}
+                      maxLength={OPINION_ZONE_NAME_MAX}
+                      aria-label={`영역 ${i + 1} 이름`}
+                    />
+                    {zoneNames.length > OPINION_ZONE_MIN && (
+                      <button
+                        type="button"
+                        className="opinion-zone-del"
+                        onClick={() => setZoneNames((prev) => prev.filter((_, j) => j !== i))}
+                        aria-label={`영역 ${i + 1} 빼기`}
+                        title="이 영역 빼기"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {zoneNames.length < OPINION_ZONE_MAX && (
+                  <button
+                    type="button"
+                    className="btn-ghost opinion-zone-more"
+                    onClick={() => setZoneNames((prev) => [...prev, ""])}
+                  >
+                    ＋ 영역 추가
+                  </button>
+                )}
+              </div>
+              <em className="book-help">
+                {zonesBad
+                  ? "영역 이름을 모두 적어 주세요."
+                  : "예: 찬성 · 반대 · 잘 모르겠어요. 만든 뒤에도 ‘편집’에서 이름을 고칠 수 있어요(개수는 그대로)."}
+              </em>
+            </div>
+          </>
         )}
 
         {canGroup && (
@@ -429,12 +512,15 @@ export default function BookActivityForm({
               (topicRequired && !topic.trim()) ||
               saving ||
               urlBad ||
+              zonesBad ||
               (fromBase && baseGroupCount === 0)
             }
           >
             {saving
               ? "만드는 중…"
-              : !canGroup || perStudent
+              : isOpinion
+                ? `영역 ${zoneNames.length}개로 메모판 만들기`
+                : !canGroup || perStudent
                 ? "학생별 활동으로 만들기"
                 : fromBase
                   ? baseGroupCount > 0

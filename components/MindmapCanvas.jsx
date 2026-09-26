@@ -345,6 +345,7 @@ export default function MindmapCanvas({
   // ── 노드 끌기(방사형 위치 조정, 계층형 1단계 순서 조정) / 선택 ──
   function onNodePointerDown(e, node) {
     if (e.target.tagName === "INPUT") return; // 편집 입력칸 안의 클릭은 그대로 둡니다
+    if (e.target.closest?.(".mm-node-imgbtn")) return; // 노드 위 '이미지' 단추
     if (editingEdgeId) setEditingEdgeId(null);
     if (editingId && editingId !== node.id) setEditingId(null);
     if (onSelect) onSelect(node.id);
@@ -586,6 +587,31 @@ export default function MindmapCanvas({
                     : undefined
                 }
               >
+                {/* 고른 노드 위의 '이미지' 단추 — 아래 막대에도 같은 단추가 있지만
+                    판이 화면 높이를 거의 다 써서 막대가 화면 밖에 있기 쉽습니다
+                    (실제로 '노드를 눌러도 이미지 넣기가 안 생긴다'는 신고).
+                    누른 자리에서 바로 닿게 노드 모서리에 붙여 둡니다. */}
+                {canImage && isSel && !isEditing && (
+                  <button
+                    type="button"
+                    className="mm-node-imgbtn"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onDoubleClick={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      pickImage();
+                    }}
+                    disabled={!!uploadingId}
+                    title={hasImg ? "이미지 바꾸기" : "이미지 넣기"}
+                    aria-label={hasImg ? "이미지 바꾸기" : "이미지 넣기"}
+                  >
+                    <svg viewBox="0 0 20 20" width="15" height="15" aria-hidden="true">
+                      <rect x="2.5" y="4" width="15" height="12" rx="2.2" fill="none" stroke="currentColor" strokeWidth="1.6" />
+                      <circle cx="7.2" cy="8.2" r="1.5" fill="currentColor" />
+                      <path d="M3.5 14.5l4.2-4 3 2.8 2.3-2.1 3.5 3.3" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+                    </svg>
+                  </button>
+                )}
                 {/* 미리보기 — 어느 층이든 같은 크기(CSS .mm-node-img) */}
                 {isUploading ? (
                   <span className="mm-node-img mm-node-img--loading">올리는 중…</span>
@@ -696,7 +722,7 @@ export default function MindmapCanvas({
               노드를 더블클릭하면 가지가 생기고, 마우스 오른쪽 버튼을 누르면 내용을 고칠 수 있어요.
               선을 클릭하면 선 위에 글자를 넣을 수 있어요.
               {map.layout === "radial" && " 노드를 끌어 자리를 옮길 수도 있어요."}
-              {canImage && " 노드를 고르면 이미지도 넣을 수 있어요."}
+              {canImage && " 노드를 누르면 모서리에 생기는 그림 단추로 이미지도 넣을 수 있어요."}
             </span>
           )}
           {canImage && (
