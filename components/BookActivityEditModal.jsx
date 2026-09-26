@@ -27,6 +27,7 @@ import {
   normalizeZones,
   opinionNoteMode,
 } from "@/lib/opinion";
+import { HASHTAG_GUIDE_MAX } from "@/lib/hashtag";
 
 export default function BookActivityEditModal({ activity, onClose, onDone }) {
   const [title, setTitle] = useState(activity.title ?? "");
@@ -42,15 +43,18 @@ export default function BookActivityEditModal({ activity, onClose, onDone }) {
   const [prompt, setPrompt] = useState(activity.prompt ?? "");
   const [noteMode, setNoteMode] = useState(() => opinionNoteMode(activity));
   const zonesBad = isOpinion && zoneNames.some((n) => !n.trim());
+  // 열 개의 해시태그 — 주제어·도서 주소 대신 안내 문구 하나
+  const isHashtag = activity.type === "hashtag";
+  const [guide, setGuide] = useState(activity.guide ?? "");
 
   useEffect(() => { titleRef.current?.focus(); }, []);
 
-  const isSolo = BOOK_SOLO_TYPES.includes(activity.type) || activity.type === "opinion";
+  const isSolo = BOOK_SOLO_TYPES.includes(activity.type) || activity.type === "opinion" || isHashtag;
   const perStudent = !isSolo && activity.groupMode === "solo";
   // 만들 때와 같은 기준 — 학생이 자기 자리에서 직접 적을 길이 있는 활동만
   // 주제어를 비워 둘 수 있습니다(BookActivityForm의 topicRequired 참고).
   const topicRequired =
-    !perStudent && activity.type !== "opinion" && !BOOK_STUDENT_TOPIC_TYPES.includes(activity.type);
+    !perStudent && activity.type !== "opinion" && !isHashtag && !BOOK_STUDENT_TOPIC_TYPES.includes(activity.type);
   const urlBad = bookUrl.trim().length > 0 && !safeBookUrl(bookUrl);
 
   async function handleSubmit(e) {
@@ -63,7 +67,11 @@ export default function BookActivityEditModal({ activity, onClose, onDone }) {
     try {
       await renameBookActivity(
         activity.id,
-        isOpinion ? { title: nextTitle, topic, bookUrl, zoneNames, prompt, noteMode } : { title: nextTitle, topic, bookUrl },
+        isOpinion
+          ? { title: nextTitle, topic, bookUrl, zoneNames, prompt, noteMode }
+          : isHashtag
+          ? { title: nextTitle, topic: "", bookUrl: "", guide }
+          : { title: nextTitle, topic, bookUrl },
         activity
       );
       onDone?.();
@@ -97,22 +105,39 @@ export default function BookActivityEditModal({ activity, onClose, onDone }) {
               maxLength={40}
             />
           </label>
-          <label className="book-field">
-            <span>
-              주제어 · 도서명
-              {!topicRequired && <em className="book-optional">선택</em>}
-            </span>
-            <input
-              type="text"
-              value={topic}
-              onChange={(e) => setTopic(e.target.value)}
-              placeholder={topicRequired ? "예: 어린 왕자" : "비워 두면 학생이 직접 적어요"}
-              maxLength={30}
-            />
-          </label>
+          {!isHashtag && (
+            <label className="book-field">
+              <span>
+                주제어 · 도서명
+                {!topicRequired && <em className="book-optional">선택</em>}
+              </span>
+              <input
+                type="text"
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
+                placeholder={topicRequired ? "예: 어린 왕자" : "비워 두면 학생이 직접 적어요"}
+                maxLength={30}
+              />
+            </label>
+          )}
         </div>
 
-        {isSolo && (
+        {isHashtag && (
+          <label className="book-field">
+            <span>
+              안내 문구 <em className="book-optional">선택</em>
+            </span>
+            <textarea
+              value={guide}
+              onChange={(e) => setGuide(e.target.value)}
+              rows={2}
+              maxLength={HASHTAG_GUIDE_MAX}
+              placeholder="예: 이번 주에 읽은 과학 기사 한 편으로 보고서를 만들어 보세요."
+            />
+          </label>
+        )}
+
+        {isSolo && !isHashtag && (
           <label className="book-field">
             <span>
               도서 정보 사이트 <em className="book-optional">선택</em>

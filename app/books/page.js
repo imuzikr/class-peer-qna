@@ -70,6 +70,9 @@ import KwlsForm from "@/components/KwlsForm";
 import MindmapBoard from "@/components/MindmapBoard";
 import MindmapForm from "@/components/MindmapForm";
 import OpinionBoard from "@/components/OpinionBoard";
+import HashtagBoard from "@/components/HashtagBoard";
+import HashtagForm from "@/components/HashtagForm";
+import HashtagCardBadge from "@/components/HashtagCardBadge";
 import { IconBook, IconTrash, IconLockState } from "@/components/StatusIcons";
 
 // 활동 종류의 이름 — 목록 카드에 '무엇을 하는 활동인가'를 적는 데 씁니다.
@@ -83,6 +86,7 @@ const ACTIVITY_KINDS = [
   { key: "kwls", label: "KWLS로 성찰하기" },
   { key: "mindmap", label: "마인드맵" },
   { key: "opinion", label: "내 생각은요..." },
+  { key: "hashtag", label: "열 개의 해시태그" },
 ];
 
 const ACTIVITY_KIND_BY_KEY = new Map(ACTIVITY_KINDS.map((k) => [k.key, k]));
@@ -368,7 +372,9 @@ function BooksPageInner() {
   // '내 생각은요...' — 반 전체가 한 판을 함께 씁니다(모둠 없음). 교사·학생이
   // 같은 화면이라 분기가 하나입니다.
   const isOpinion = activeActivity?.type === "opinion";
-  const isSolo = isParatext || isRaft || isKwls || isMindmap || isOpinion;
+  // 열 개의 해시태그 — 학생마다 보고서 한 장(모둠 없음). 교사는 세 칸 화면.
+  const isHashtag = activeActivity?.type === "hashtag";
+  const isSolo = isParatext || isRaft || isKwls || isMindmap || isOpinion || isHashtag;
 
   // 연 활동의 모둠 — 학생이 '내 판'으로 바로 들어가려면 내 모둠을 알아야 합니다.
   useEffect(() => {
@@ -571,8 +577,26 @@ function BooksPageInner() {
           />
         )}
 
-      {/* 내 생각은요... — 교사·학생이 같은 메모판(만질 수 있는 것만 다름) */}
-      {isOpinion ? (
+      {/* 열 개의 해시태그 — 교사는 세 칸(학생 목록·보고서·진행), 학생은 제 보고서 */}
+      {isHashtag && admin ? (
+        <HashtagBoard
+          activity={activeActivity}
+          className={activeClassName}
+          classPicker={classPicker}
+          user={user}
+          roster={roster}
+          onBack={goToList}
+          onToast={setToast}
+          classTools={classTools}
+        />
+      ) : isHashtag ? (
+        <HashtagForm
+          activity={activeActivity}
+          user={user}
+          onBack={goToList}
+        />
+      ) : /* 내 생각은요... — 교사·학생이 같은 메모판(만질 수 있는 것만 다름) */
+      isOpinion ? (
         <OpinionBoard
           activity={activeActivity}
           user={user}
@@ -1081,6 +1105,10 @@ function ActivityCard({ activity, isTeacher, uid, onOpen, onEdit, onDelete, onTo
           {" · "}
           {activity.type === "opinion"
             ? `영역 ${(activity.zones ?? []).length || 2}개 · 함께 쓰는 판`
+            : activity.type === "hashtag"
+            ? activity.published
+              ? "개인 보고서 · 친구 보고서 공개 중"
+              : "개인 보고서 · 공개 전"
             : solo
             ? "개인 활동"
             : perStudent
@@ -1092,6 +1120,10 @@ function ActivityCard({ activity, isTeacher, uid, onOpen, onEdit, onDelete, onTo
             **잠겼을 때만이 아니라 늘 답니다** — 배지가 없는 카드는 '열려
             있다'가 아니라 '아직 안 봤다'로도 읽힙니다. 말은 진행 대시보드의
             같은 알약과 맞춥니다(잠김 / 열림). */}
+        {/* 열 개의 해시태그 — 학생 카드에 '새 댓글 n'(내 보고서에 달린 것) */}
+        {!isTeacher && activity.type === "hashtag" && uid && (
+          <HashtagCardBadge activityId={activity.id} uid={uid} />
+        )}
         <span className={`book-activity-state${activity.locked ? " locked" : ""}`}>
           <IconLockState locked={!!activity.locked} size={15} />
           {activity.locked ? "잠김" : "열림"}

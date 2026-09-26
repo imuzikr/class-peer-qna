@@ -1027,6 +1027,10 @@ service cloud.firestore {
     function isBookActivityLocked(aId) {
       return get(/databases/$(database)/documents/bookActivities/$(aId)).data.get('locked', false) == true;
     }
+    // 열 개의 해시태그 — 교사가 '공개하기'를 눌렀나. 표시가 없으면 공개 전.
+    function isBookActivityPublished(aId) {
+      return get(/databases/$(database)/documents/bookActivities/$(aId)).data.get('published', false) == true;
+    }
     // 내가 이 모둠의 구성원인지 (단어 읽기/쓰기 판정)
     function isMyBookGroup(aId, gId) {
       return get(/databases/$(database)/documents/bookActivities/$(aId)/groups/$(gId))
@@ -1162,6 +1166,106 @@ service cloud.firestore {
         allow delete: if signedIn() && (
           isAdmin() || ownsBookActivityEditable(aId)
           || (resource.data.authorId == uid() && !isBookActivityLocked(aId))
+        );
+      }
+
+      // ── 열 개의 해시태그 — 보고서 한 장 + 댓글 ─────────────────────
+      // 학생이 글을 읽고 해시태그 열 개(태그 · 원문 문장 · 알 수 있는 것)와
+      // 요약을 적어 보고서 한 장을 만듭니다. 문서 id가 학생 uid라 한 사람에
+      // 한 장입니다.
+      //
+      // [읽기] 공개 전에는 **제 것만**(+ 담당 교사는 전부). 교사가 활동의
+      //   `published`를 켜면 반 구성원이 서로의 보고서를 읽고 댓글을 답니다.
+      //   공개를 거두면 다시 제 것만 — 댓글은 지우지 않고, 보고서 주인은 제
+      //   보고서에 달린 것을 계속 읽습니다(postUid == 나).
+      // [이름표] 보고서·댓글에 학번·이름을 적어 둡니다(친구 화면이 급우
+      //   프로필을 따로 읽지 않게). 남의 이름으로 쓰지 못하게 '내 생각은요'의
+      //   메모와 같은 검사를 합니다 — 학번이 없는 옛 계정은 견줄 수 없어 둡니다.
+      // [잠금] 잠긴 활동은 고치기·새 댓글이 막힙니다. 다만 '댓글 여기까지
+      //   봤다'(seenCommentsAt) 한 칸과 제 댓글 지우기는 늘 됩니다.
+      // 길이 천장은 lib/hashtag.js의 HASHTAG_*_MAX와 같아야 합니다.
+      function hashtagIdentityOk(d) {
+        let prof = get(/databases/$(database)/documents/users/$(uid())).data;
+        return prof.get('studentId', null) == null
+               || (d.get('studentId', null) == prof.get('studentId', null)
+                   && d.authorName == prof.get('realName', d.authorName));
+      }
+
+      match /hashtagPosts/{sId} {
+        function validPost(d) {
+          return d.authorId == uid()
+                 && d.authorName is string && d.authorName.size() <= 40
+                 && d.title is string && d.title.size() <= 80
+                 && d.summary is string && d.summary.size() <= 5000
+                 && d.tags is list && d.tags.size() <= 10
+                 && d.source is map && d.image is map
+                 && d.image.get('url', '') is string
+                 && d.image.get('url', '').size() <= 2000;
+        }
+
+        // 아직 안 쓴 제 보고서를 열어 볼 때 문서가 없어도 되도록 get은 id로.
+        allow get: if signedIn() && (
+          isAdmin() || ownsBookActivity(aId) || sId == uid()
+          || (isBookActivityMember(aId) && isBookActivityPublished(aId))
+        );
+        allow list: if signedIn() && (
+          isAdmin() || ownsBookActivity(aId)
+          || (isBookActivityMember(aId) && isBookActivityPublished(aId))
+        );
+        allow create: if signedIn()
+                      && sId == uid()
+                      && isBookActivityMember(aId)
+                      && !isBookActivityLocked(aId)
+                      && validPost(request.resource.data)
+                      && hashtagIdentityOk(request.resource.data);
+        allow update: if signedIn()
+                      && sId == uid()
+                      && resource.data.authorId == uid()
+                      && (
+                        (isBookActivityMember(aId)
+                          && !isBookActivityLocked(aId)
+                          && validPost(request.resource.data)
+                          && hashtagIdentityOk(request.resource.data))
+                        || changedOnly(['seenCommentsAt'])
+                      );
+        // 지우기는 담당 교사만 — 학생이 실수로 보고서를 통째로 날리지 못하게.
+        allow delete: if isAdmin() || ownsBookActivityEditable(aId);
+      }
+
+      match /hashtagComments/{cId} {
+        function validComment(d) {
+          return d.authorId == uid()
+                 && d.authorName is string && d.authorName.size() <= 40
+                 && d.postUid is string && d.postUid.size() > 0 && d.postUid.size() <= 128
+                 && d.kind in ['like', 'ask', 'suggest']
+                 && d.text is string && d.text.size() > 0 && d.text.size() <= 500;
+        }
+
+        allow read: if signedIn() && (
+          isAdmin() || ownsBookActivity(aId)
+          || resource.data.postUid == uid()
+          || resource.data.authorId == uid()
+          || (isBookActivityMember(aId) && isBookActivityPublished(aId))
+        );
+        // 학생은 공개된 뒤에만 · 제 이름으로만 · '선생님' 댓글 흉내 불가.
+        // 교사는 공개 전에도 답니다(보고서 주인은 제 보고서에서 읽습니다).
+        allow create: if signedIn()
+                      && validComment(request.resource.data)
+                      && (
+                        (isBookActivityMember(aId)
+                          && isBookActivityPublished(aId)
+                          && !isBookActivityLocked(aId)
+                          && request.resource.data.get('byTeacher', false) == false
+                          && hashtagIdentityOk(request.resource.data))
+                        || ownsBookActivityEditable(aId)
+                        || isAdmin()
+                      );
+        // 고치기는 없습니다 — 답이 달린 뒤 원래 글이 바뀌면 대화가 어긋납니다.
+        allow update: if false;
+        // 지우기는 쓴 사람과 담당 교사. **보고서 주인은 못 지웁니다** —
+        // 마음에 안 드는 '제안합니다'를 주인이 걷어 내면 댓글의 뜻이 없어집니다.
+        allow delete: if signedIn() && (
+          isAdmin() || ownsBookActivityEditable(aId) || resource.data.authorId == uid()
         );
       }
 

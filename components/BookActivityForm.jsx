@@ -11,6 +11,8 @@
 //  · KWLS로 성찰하기 / 마인드맵 — 혼자 하는 활동. 모둠 설정이 없습니다.
 //  · 내 생각은요... — 반 전체가 한 판에 메모를 붙입니다. 모둠 대신
 //      **영역**(2~4개, 이름은 교사가)과 함께 생각할 물음을 받습니다.
+//  · 열 개의 해시태그 — 학생마다 다른 글을 읽으므로 주제어를 받지 않고,
+//      안내 문구(선택)만 받습니다. 친구 보고서는 만든 뒤 '공개하기'로 엽니다.
 //
 // 모둠 방식의 기본값은 **반의 기본 모둠**입니다(있을 때). 수업이 대체로 늘
 // 같은 모둠으로 돌아가는데 활동마다 다시 짜면 같은 일을 되풀이하게 됩니다.
@@ -28,6 +30,7 @@ import {
   OPINION_ZONE_EXAMPLES,
   OPINION_ZONE_NAME_MAX,
 } from "@/lib/opinion";
+import { HASHTAG_GUIDE_MAX } from "@/lib/hashtag";
 
 const TYPES = [
   { key: "consonant", label: "닿소리 채우기", desc: "모둠이 함께 자음 칸을 낱말로 채웁니다", defaultTitle: "닿소리 채우기" },
@@ -36,6 +39,7 @@ const TYPES = [
   { key: "kwls", label: "KWLS로 성찰하기", desc: "읽기 전 아는 것·궁금한 것, 읽은 뒤 알게 된 것을 적습니다", defaultTitle: "KWLS로 성찰하기" },
   { key: "mindmap", label: "마인드맵", desc: "주제에서 가지를 뻗어 생각을 방사형·계층형으로 펼칩니다", defaultTitle: "마인드맵" },
   { key: "opinion", label: "내 생각은요...", desc: "영역(찬성·반대 등)을 나눠 두면 학생이 메모지에 생각을 적어 붙입니다", defaultTitle: "내 생각은요..." },
+  { key: "hashtag", label: "열 개의 해시태그", desc: "글을 읽고 해시태그 열 개와 요약으로 보고서를 만들어 친구와 댓글을 나눕니다", defaultTitle: "열 개의 해시태그" },
 ];
 // 모둠을 정하는 일은 **세 번의 물음**입니다. 한 줄에 다섯 갈래를 늘어놓았더니
 // '기본 모둠'과 '활동 모둠'이 나란히 있어 무엇이 무엇인지 알기 어려웠습니다.
@@ -112,12 +116,17 @@ export default function BookActivityForm({
   const [zoneNames, setZoneNames] = useState(["", ""]);
   const [noteMode, setNoteMode] = useState(DEFAULT_OPINION_NOTE_MODE);
   const [prompt, setPrompt] = useState("");
+  // '열 개의 해시태그'의 안내 문구 — 학생 화면 맨 위에 한 줄로 섭니다
+  const [guide, setGuide] = useState("");
   const [saving, setSaving] = useState(false);
 
   const names = parseNames(namesRaw);
   // 학생이 눌러볼 도서 정보 주소를 받는 종류 — 혼자 읽고 쓰는 활동들입니다.
   const hasBookUrl = ["paratext", "raft", "kwls", "mindmap", "opinion"].includes(type);
   const isOpinion = type === "opinion";
+  // 열 개의 해시태그 — 학생마다 읽는 글이 달라 주제어를 받지 않습니다
+  // (읽은 글은 학생이 보고서의 '출처' 칸에 적습니다).
+  const isHashtag = type === "hashtag";
   // 영역 이름은 모두 적어야 만듭니다 — 빈 영역은 학생이 어디에 붙일지 모릅니다.
   const zonesBad = isOpinion && zoneNames.some((n) => !n.trim());
   // 모둠으로 진행할 수 있는 종류. 곁텍스트·RAFT도 모둠이 되지만 **글은
@@ -158,7 +167,8 @@ export default function BookActivityForm({
   // 알 수 없으므로 그대로 필수입니다(어느 종류가 여기 드는지와 그 이유는
   // lib/store.js의 BOOK_STUDENT_TOPIC_TYPES에 적어 두었습니다).
   // '내 생각은요...'는 물음이 주제 노릇을 해서 주제어를 비워 둘 수 있습니다.
-  const topicRequired = !perStudent && !isOpinion && !BOOK_STUDENT_TOPIC_TYPES.includes(type);
+  const topicRequired =
+    !perStudent && !isOpinion && !isHashtag && !BOOK_STUDENT_TOPIC_TYPES.includes(type);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -188,6 +198,7 @@ export default function BookActivityForm({
         zones: isOpinion ? zoneNames.map((n) => n.trim()) : [],
         prompt: isOpinion ? prompt.trim() : "",
         noteMode: isOpinion ? noteMode : undefined,
+        guide: isHashtag ? guide.trim() : "",
       });
     } finally {
       setSaving(false);
@@ -240,21 +251,43 @@ export default function BookActivityForm({
               maxLength={40}
             />
           </label>
+          {!isHashtag && (
+            <label className="book-field">
+              <span>
+                주제어 · 도서명
+                {!topicRequired && <em className="book-optional">선택</em>}
+              </span>
+              <input
+                type="text"
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
+                placeholder={topicRequired ? "예: 어린 왕자" : "비워 두면 학생이 직접 적어요"}
+                maxLength={30}
+                autoFocus
+              />
+            </label>
+          )}
+        </div>
+
+        {isHashtag && (
           <label className="book-field">
             <span>
-              주제어 · 도서명
-              {!topicRequired && <em className="book-optional">선택</em>}
+              안내 문구 <em className="book-optional">선택</em>
             </span>
-            <input
-              type="text"
-              value={topic}
-              onChange={(e) => setTopic(e.target.value)}
-              placeholder={topicRequired ? "예: 어린 왕자" : "비워 두면 학생이 직접 적어요"}
-              maxLength={30}
-              autoFocus
+            <textarea
+              value={guide}
+              onChange={(e) => setGuide(e.target.value)}
+              rows={2}
+              maxLength={HASHTAG_GUIDE_MAX}
+              placeholder="예: 이번 주에 읽은 과학 기사 한 편으로 보고서를 만들어 보세요."
             />
+            <em className="book-help">
+              학생은 읽은 글의 출처 · 대표 이미지 · 해시태그 열 개(태그 · 원문 문장 · 알 수 있는 것) ·
+              요약을 적고, 아래에서 보고서가 저절로 짜여 보입니다. 친구 보고서는 만든 뒤
+              ‘공개하기’를 눌러야 서로 보이고 댓글을 달 수 있어요.
+            </em>
           </label>
-        </div>
+        )}
 
         {/* 혼자 읽고 쓰는 활동에는 학생이 눌러볼 도서 정보 주소를 받습니다.
             곁텍스트·RAFT는 이 칸과 모둠 설정을 **둘 다** 씁니다 — 모둠으로
@@ -544,6 +577,8 @@ export default function BookActivityForm({
               ? "만드는 중…"
               : isOpinion
                 ? `영역 ${zoneNames.length}개로 메모판 만들기`
+                : isHashtag
+                ? "해시태그 보고서 활동 만들기"
                 : !canGroup || perStudent
                 ? "학생별 활동으로 만들기"
                 : fromBase

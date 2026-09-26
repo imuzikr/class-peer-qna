@@ -149,6 +149,26 @@
       ]
     },
     {
+      "//": "purgeStudentData — 탈퇴 시 '열 개의 해시태그' 보고서 정리: collectionGroup hashtagPosts, authorId== (보고서에 학번·실명). 컬렉션 범위도 함께 적어 둡니다 — 단일 필드 예외는 그 필드의 자동 색인을 통째로 갈아 끼웁니다",
+      "collectionGroup": "hashtagPosts",
+      "fieldPath": "authorId",
+      "indexes": [
+        { "order": "ASCENDING", "queryScope": "COLLECTION" },
+        { "order": "DESCENDING", "queryScope": "COLLECTION" },
+        { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }
+      ]
+    },
+    {
+      "//": "purgeStudentData — 탈퇴 시 '열 개의 해시태그' 댓글 정리: collectionGroup hashtagComments, authorId== (댓글에 학번·실명)",
+      "collectionGroup": "hashtagComments",
+      "fieldPath": "authorId",
+      "indexes": [
+        { "order": "ASCENDING", "queryScope": "COLLECTION" },
+        { "order": "DESCENDING", "queryScope": "COLLECTION" },
+        { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }
+      ]
+    },
+    {
       "//": "purgeStudentData — 탈퇴 시 수업 노트 정리: collectionGroup cornellNotes, uid== (이것이 없으면 탈퇴 처리가 '수업 노트: 9 FAILED_PRECONDITION'으로 그 항목만 실패합니다)",
       "collectionGroup": "cornellNotes",
       "fieldPath": "uid",

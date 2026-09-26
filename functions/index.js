@@ -252,6 +252,29 @@ async function purgeStudentData(uid, warnings) {
     warnings,
     "책방 메모"
   );
+  // '열 개의 해시태그' — 보고서와 댓글에 학번·실명이 있어 반드시 지웁니다.
+  // 보고서를 지울 때 **그 보고서에 달린 남의 댓글**도 함께 지웁니다(가리킬
+  // 보고서가 없어진 댓글). 그 셈은 활동 안의 컬렉션 질의라 따로 색인이
+  // 필요 없습니다. 색인(hashtagPosts·hashtagComments.authorId)을 이 코드보다
+  // **먼저** 배포하세요.
+  try {
+    const posts = await db.collectionGroup("hashtagPosts").where("authorId", "==", uid).get();
+    for (const p of posts.docs) {
+      const actRef = p.ref.parent.parent;
+      if (actRef) {
+        const onMine = await actRef.collection("hashtagComments").where("postUid", "==", uid).get();
+        await Promise.all(onMine.docs.map((c) => c.ref.delete()));
+      }
+      await p.ref.delete();
+    }
+  } catch (e) {
+    warnings.push(`해시태그 보고서: ${e && e.message}`);
+  }
+  await deleteByQuery(
+    db.collectionGroup("hashtagComments").where("authorId", "==", uid),
+    warnings,
+    "해시태그 댓글"
+  );
   // 모둠 명단에서도 빼냅니다(members에 실명 보관).
   try {
     const groups = await db
