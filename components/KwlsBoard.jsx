@@ -241,11 +241,7 @@ export default function KwlsBoard({
             rows={stepRows}
             cellState={kwlsCellState}
             castUid={cast.target?.uid ?? null}
-            meta={(c) =>
-              !kwlsStarted(c.entry?.answers)
-                ? "아직 시작 전"
-                : `${kwlsFilledCount(c.entry?.answers)} / ${KWLS_COLUMN_COUNT}칸 · 글 ${kwlsChars(c.entry?.answers)}자`
-            }
+            extra={(c) => ` · 글 ${kwlsChars(c.entry?.answers)}자`}
           />
 
           <div className="book-workspace-center">

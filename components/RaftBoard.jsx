@@ -342,11 +342,7 @@ export default function RaftBoard({
             rows={stepRows}
             cellState={raftCellState}
             castUid={cast.target?.uid ?? null}
-            meta={(c) =>
-              !raftStarted(c.entry?.answers)
-                ? "아직 시작 전"
-                : `${raftPlanCount(c.entry?.answers)} / ${RAFT_COLUMN_COUNT}칸 · 글 ${raftWritingChars(c.entry?.answers)}자`
-            }
+            extra={(c) => ` · 글 ${raftWritingChars(c.entry?.answers)}자`}
           />
 
           <div className="book-workspace-center">

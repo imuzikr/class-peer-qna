@@ -309,12 +309,7 @@ export default function ParatextBoard({
             rows={stepRows}
             cellState={paratextCellState}
             castUid={cast.target?.uid ?? null}
-            meta={(c) => {
-              const n = paratextCharCount(c.entry?.answers);
-              return n === 0
-                ? "아직 시작 전"
-                : `${paratextDoneCount(c.entry?.answers)} / ${PARATEXT_SECTION_COUNT}칸 · ${n}자`;
-            }}
+            extra={(c) => ` · ${paratextCharCount(c.entry?.answers)}자`}
           />
 
           <div className="book-workspace-center">
