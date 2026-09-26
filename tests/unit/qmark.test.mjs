@@ -3,11 +3,9 @@ import assert from "node:assert/strict";
 import {
   QMARK_PROMPTS,
   QMARK_MIN_PICKS,
-  QMARK_ASK_MAX,
+  QMARK_ASK_COUNT,
   emptyQmarkAnswers,
   normalizeQmarkAnswers,
-  addQmarkAsk,
-  removeQmarkAsk,
   editQmarkAsk,
   toggleQmarkPick,
   qmarkQuestionDone,
@@ -27,14 +25,21 @@ test("다섯 물음 · 두 개 이상 · 영역 둘", () => {
   assert.deepEqual(QMARK_REGIONS.map((r) => r.key), ["question", "thought"]);
 });
 
-test("빈 값 · 이상한 값도 같은 모양으로 — 물음표는 늘 한 쌍 이상", () => {
-  assert.deepEqual(emptyQmarkAnswers(), { asks: [{ question: "", reason: "" }], picks: [], thought: "" });
+const EMPTY = { question: "", reason: "" };
+
+test("빈 값 · 이상한 값도 같은 모양으로 — 물음표는 늘 다섯 쌍", () => {
+  assert.equal(QMARK_ASK_COUNT, 5);
+  assert.deepEqual(emptyQmarkAnswers(), { asks: [EMPTY, EMPTY, EMPTY, EMPTY, EMPTY], picks: [], thought: "" });
   const n = normalizeQmarkAnswers({ asks: [], picks: ["change", "zzz", "knowledge", "change"], thought: "t" });
   assert.deepEqual(n.picks, ["knowledge", "change"]);
-  assert.equal(n.asks.length, 1);
-  assert.equal(normalizeQmarkAnswers(null).asks.length, 1);
+  assert.equal(n.asks.length, QMARK_ASK_COUNT);
+  assert.equal(normalizeQmarkAnswers(null).asks.length, QMARK_ASK_COUNT);
   const many = normalizeQmarkAnswers({ asks: Array.from({ length: 9 }, () => ({ question: "q" })), thought: "" });
-  assert.equal(many.asks.length, QMARK_ASK_MAX);
+  assert.equal(many.asks.length, QMARK_ASK_COUNT);
+  // 두 쌍만 적어 둔 기록은 뒤를 빈 쌍으로 채움 — 적은 자리는 그대로
+  const two = normalizeQmarkAnswers({ asks: [{ question: "a" }, { reason: "b" }], thought: "" });
+  assert.deepEqual(two.asks.slice(0, 2), [{ question: "a", reason: "" }, { question: "", reason: "b" }]);
+  assert.deepEqual(two.asks.slice(2), [EMPTY, EMPTY, EMPTY]);
 });
 
 test("옛 모양 — 물음 하나 · 물음마다 쓴 글을 읽음", () => {
@@ -47,27 +52,20 @@ test("옛 모양 — 물음 하나 · 물음마다 쓴 글을 읽음", () => {
     interest: "안 고른 글",
   };
   const a = normalizeQmarkAnswers(old);
-  assert.deepEqual(a.asks, [{ question: "왜?", reason: "궁금해서" }]);
+  assert.deepEqual(a.asks, [{ question: "왜?", reason: "궁금해서" }, EMPTY, EMPTY, EMPTY, EMPTY]);
   assert.equal(a.thought, `${QMARK_PROMPTS[1].text}\n활용 글`);
   // 한 번 저장해 thought가 생기면(빈 글이라도) 옛 칸은 더 안 봄
   assert.equal(normalizeQmarkAnswers({ ...old, thought: "", asks: [{ question: "새", reason: "" }] }).thought, "");
   assert.equal(normalizeQmarkAnswers({ ...old, asks: [{ question: "새", reason: "" }] }).asks[0].question, "새");
 });
 
-test("물음표 더하기 · 빼기 · 고치기", () => {
+test("물음표 고치기 — 칸 수는 그대로", () => {
   let a = emptyQmarkAnswers();
   a = editQmarkAsk(a, 0, "question", "하나");
-  a = addQmarkAsk(a);
-  a = editQmarkAsk(a, 1, "reason", "둘 이유");
-  assert.deepEqual(a.asks, [{ question: "하나", reason: "" }, { question: "", reason: "둘 이유" }]);
-  a = removeQmarkAsk(a, 0);
-  assert.deepEqual(a.asks, [{ question: "", reason: "둘 이유" }]);
-  // 하나뿐이면 비우기
-  assert.deepEqual(removeQmarkAsk(a, 0).asks, [{ question: "", reason: "" }]);
-  // 천장
-  let b = emptyQmarkAnswers();
-  for (let i = 0; i < 10; i += 1) b = addQmarkAsk(b);
-  assert.equal(b.asks.length, QMARK_ASK_MAX);
+  a = editQmarkAsk(a, 4, "reason", "다섯 이유");
+  assert.deepEqual(a.asks, [{ question: "하나", reason: "" }, EMPTY, EMPTY, EMPTY, { question: "", reason: "다섯 이유" }]);
+  // 없는 자리 · 모르는 칸은 그대로
+  assert.deepEqual(editQmarkAsk(a, 5, "question", "x"), a);
   assert.deepEqual(editQmarkAsk(a, 0, "zzz", "x"), a);
 });
 

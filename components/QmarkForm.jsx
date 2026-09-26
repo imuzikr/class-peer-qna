@@ -5,9 +5,11 @@
 // -------------------------------------------------------------
 // 종이 활동지를 옮기되, 두 군데를 넓혔습니다(선생님 요청).
 //   ① 나의 물음표 — 읽으며 물음표를 붙인 곳 가운데 중요한 물음과 그 이유를
-//      **여러 쌍**(QMARK_ASK_MAX까지) 적습니다. '＋ 물음표 더하기'로 늘리고
-//      쌍마다 ✕로 뺍니다(글이 든 쌍은 되묻습니다). 쌍은 **접었다 폅니다** —
-//      펼친 것은 하나, 나머지는 번호 · 궁금증 한 줄 · 상태로 접힙니다.
+//      적습니다. 칸은 **처음부터 다섯 쌍**(QMARK_ASK_COUNT)이 서 있고 학생은
+//      내용만 적습니다 — 더하기 · 빼기 단추가 없습니다(선생님 요청). 쌍은
+//      **접었다 폅니다** — 펼친 것은 하나, 나머지는 번호 · 궁금증 한 줄 ·
+//      상태로 접힙니다. 접힌 줄은 오른쪽 '물음 고르기'의 줄과 **같은 높이**라
+//      다섯 줄씩 나란히 맞습니다.
 //   ② 물음 고르기 — 다섯 물음 가운데 **두 개 이상** 체크합니다.
 //   ③ 나의 생각 정리 — 체크한 물음을 길잡이 삼아 **한 칸에** 씁니다. 예전에는
 //      체크한 물음마다 칸이 따로 열렸는데, 생각이 물음마다 조각나 한 편의
@@ -24,17 +26,14 @@
 import { useEffect, useRef, useState } from "react";
 import { subscribeMyParatextEntry, saveParatextEntry, saveParatextTopic } from "@/lib/store";
 import TopicAskModal from "./TopicAskModal";
-import ConfirmModal from "./ConfirmModal";
 import {
   QMARK_PROMPTS,
   QMARK_MIN_PICKS,
-  QMARK_ASK_MAX,
+  QMARK_ASK_COUNT,
   QMARK_TEXT_MAX,
   QMARK_THOUGHT_MAX,
   emptyQmarkAnswers,
   normalizeQmarkAnswers,
-  addQmarkAsk,
-  removeQmarkAsk,
   editQmarkAsk,
   toggleQmarkPick,
   qmarkChars,
@@ -57,10 +56,6 @@ export default function QmarkForm({ activity, user, onBack }) {
   // 내가 고친 뒤로는 서버 값이 와도 덮어쓰지 않습니다(입력 중 글자가 튀지 않게)
   const dirtyRef = useRef(false);
   const timerRef = useRef(null);
-  // 방금 더한 물음표 쌍의 번호 — 그려진 뒤 그 칸으로 커서를 데려갑니다
-  const focusRef = useRef(null);
-  // 빼기 전에 되묻는 쌍 { index, question, reason }
-  const [askRemove, setAskRemove] = useState(null);
   // 펼친 물음표 쌍(하나만, 없으면 null) — 나머지는 한 줄로 접힙니다.
   // 처음에는 아직 다 안 쓴 첫 쌍을 폅니다(해시태그 카드와 같은 약속).
   const [openAsk, setOpenAsk] = useState(null);
@@ -119,29 +114,6 @@ export default function QmarkForm({ activity, user, onBack }) {
     dirtyRef.current = true;
     setAnswers((prev) => ({ ...prev, thought: value }));
   }
-  function addAsk() {
-    if (locked || answers.asks.length >= QMARK_ASK_MAX) return;
-    dirtyRef.current = true;
-    focusRef.current = answers.asks.length; // 새 쌍의 궁금증 칸으로
-    setOpenAsk(answers.asks.length); // 새 쌍만 펴고 앞의 것은 접습니다
-    setAnswers((prev) => addQmarkAsk(prev));
-  }
-  function removeAsk(index) {
-    dirtyRef.current = true;
-    setAnswers((prev) => removeQmarkAsk(prev, index));
-    // 펼친 쌍의 번호를 뺀 자리만큼 당깁니다(하나뿐이라 비운 경우는 그대로)
-    if (answers.asks.length > 1) {
-      setOpenAsk((o) => (o == null || o < index ? o : o === index ? null : o - 1));
-    }
-    setAskRemove(null);
-  }
-  // 글이 든 쌍은 되묻고, 빈 쌍은 곧바로 뺍니다(해시태그 칩과 같은 약속)
-  function askToRemove(index) {
-    const x = answers.asks[index];
-    if (!x) return;
-    if (x.question.trim() || x.reason.trim()) setAskRemove({ index, ...x });
-    else removeAsk(index);
-  }
   function togglePick(key) {
     if (locked) return;
     dirtyRef.current = true;
@@ -153,13 +125,6 @@ export default function QmarkForm({ activity, user, onBack }) {
     const i = answers.asks.findIndex((x) => !(x.question.trim() && x.reason.trim()));
     setOpenAsk(i >= 0 ? i : null);
   }, [loaded, answers.asks]);
-  useEffect(() => {
-    const i = focusRef.current;
-    if (i == null) return;
-    focusRef.current = null;
-    document.getElementById(`qmark-ask-${i}`)?.focus();
-  }, [answers.asks.length]);
-
   const picked = answers.picks.length;
   const askDone = qmarkQuestionDone(answers);
   const thoughtDone = qmarkThoughtDone(answers);
@@ -261,14 +226,15 @@ export default function QmarkForm({ activity, user, onBack }) {
               <h2 className="qmark-sec-title">
                 <span className="qmark-badge" aria-hidden="true">?</span>
                 나의 물음표
-                <em>여백에 적은 물음 가운데 중요하다고 생각하는 물음</em>
+                <em title="여백에 적은 물음 가운데 중요하다고 생각하는 물음">여백에 적은 물음 가운데 중요하다고 생각하는 물음</em>
                 <b className="qmark-count">
-                  {answers.asks.length} / {QMARK_ASK_MAX}
+                  {askCount} / {QMARK_ASK_COUNT}
                 </b>
               </h2>
               {/* 쌍마다 접었다 폅니다 — 펼친 것은 하나. 접힌 줄에는 번호 · 궁금증
                   한 줄 · 상태만 서서, 여러 개를 적어도 목록이 한눈에 듭니다.
-                  머리줄 전체가 여닫는 단추이고 ×만 따로 섭니다. */}
+                  머리줄 전체가 여닫는 단추입니다. 칸은 늘 다섯이라 더하고
+                  빼는 단추가 없습니다. */}
               <ol className="qmark-asks">
                 {answers.asks.map((x, i) => {
                   const q = x.question.trim();
@@ -297,17 +263,6 @@ export default function QmarkForm({ activity, user, onBack }) {
                           )}
                           <span className={`qmark-ask-state${filled ? " done" : q || r ? " doing" : ""}`}>{state}</span>
                         </button>
-                        {!locked && (answers.asks.length > 1 || x.question || x.reason) && (
-                          <button
-                            type="button"
-                            className="qmark-ask-del"
-                            onClick={() => askToRemove(i)}
-                            aria-label={`물음표 ${i + 1} 빼기`}
-                            title={answers.asks.length > 1 ? "이 물음표 빼기" : "이 물음표 비우기"}
-                          >
-                            ×
-                          </button>
-                        )}
                       </div>
                       {open && (
                         <div className="qmark-ask-body" id={`qmark-ask-body-${i}`}>
@@ -340,21 +295,6 @@ export default function QmarkForm({ activity, user, onBack }) {
                   );
                 })}
               </ol>
-              {!locked && (
-                <button
-                  type="button"
-                  className="btn-ghost qmark-ask-add"
-                  onClick={addAsk}
-                  disabled={answers.asks.length >= QMARK_ASK_MAX}
-                  title={
-                    answers.asks.length >= QMARK_ASK_MAX
-                      ? `물음표는 ${QMARK_ASK_MAX}개까지 적을 수 있어요`
-                      : "궁금증 · 이유 한 쌍을 더 적습니다"
-                  }
-                >
-                  ＋ 물음표 더하기
-                </button>
-              )}
             </section>
 
             <section className={`qmark-sec qmark-sec--pick${picked >= QMARK_MIN_PICKS ? " filled" : ""}`}>
@@ -419,21 +359,6 @@ export default function QmarkForm({ activity, user, onBack }) {
         </div>
       )}
 
-      {askRemove && (
-        <ConfirmModal
-          title={`물음표 ${askRemove.index + 1}번을 뺄까요?`}
-          preview={(askRemove.question.trim() || askRemove.reason.trim()).slice(0, 60)}
-          description={
-            answers.asks.length > 1
-              ? "이 물음표에 쓴 궁금증과 이유가 함께 지워집니다."
-              : "하나뿐인 물음표라 칸은 남기고 쓴 글만 비웁니다."
-          }
-          confirmLabel="빼기"
-          danger
-          onConfirm={() => removeAsk(askRemove.index)}
-          onClose={() => setAskRemove(null)}
-        />
-      )}
     </main>
   );
 }

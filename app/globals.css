@@ -29443,7 +29443,8 @@ h4.attendance-seat-help { margin-top: 16px; }
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
   gap: 16px;
-  align-items: start;
+  /* 두 장이 늘 같은 높이 — 왼쪽 쌍을 펴면 오른쪽 장도 함께 늘어 바닥이 맞습니다 */
+  align-items: stretch;
 }
 @container (max-width: 860px) {
   .qmark-form { grid-template-columns: minmax(0, 1fr); }
@@ -29474,6 +29475,18 @@ h4.attendance-seat-help { margin-top: 16px; }
   font-weight: 500;
   color: var(--text-faint);
 }
+/* 두 열의 제목 줄은 한 줄로 — 왼쪽 딸림글이 길어 접히면 그 열만 줄이 한 칸
+   내려앉아 다섯 줄씩 나란히 맞던 것이 어긋납니다(실측 1100px에서 23px).
+   넘치는 딸림글은 말줄임으로 접고 전체는 툴팁(title)에 둡니다. */
+.qmark-form .qmark-sec-title { flex-wrap: nowrap; white-space: nowrap; } /* 제목 글자도 — 한글은 글자마다 줄이 바뀔 수 있어 이름이 두 줄로 쪼개집니다 */
+.qmark-form .qmark-sec-title em {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.qmark-form .qmark-count { flex-shrink: 0; }
 /* 물음표 배지 — 이 활동의 얼굴. 다 쓰면 초록(다른 활동의 칸 배지와 같은 뜻) */
 .qmark-badge {
   display: inline-grid;
@@ -29521,9 +29534,13 @@ h4.attendance-seat-help { margin-top: 16px; }
 .qmark-sec textarea:disabled { background: var(--bg-deep); color: var(--text-sub); }
 /* ③ 나의 생각 정리 — 두 열 아래 따로 선 한 줄(가로를 다 씀) */
 .qmark-sec--think { margin-top: 16px; }
-/* ① 물음표 여러 쌍 — 쌍마다 옅은 상자, 다 쓰면 초록 테두리.
+/* ① 물음표 다섯 쌍 — 쌍마다 옅은 상자, 다 쓰면 초록 테두리.
    접었다 폅니다: 머리줄(번호 · 궁금증 한 줄 · 상태)이 곧 여닫는 단추이고,
-   펼친 쌍만 두 칸이 섭니다. */
+   펼친 쌍만 두 칸이 섭니다.
+   접힌 줄과 오른쪽 '물음 고르기'의 줄은 **같은 높이(46px, 테두리 포함)**
+   입니다 — 둘 다 다섯 줄이라 높이만 같으면 줄이 나란히 맞습니다. 한쪽의
+   여백·글자 크기를 고치면 --qmark-row-h 아래로 줄어드는지 함께 보세요. */
+.qmark-form { --qmark-row-h: 46px; }
 .qmark-asks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .qmark-ask {
   border: 1px solid var(--border);
@@ -29534,14 +29551,15 @@ h4.attendance-seat-help { margin-top: 16px; }
 .qmark-ask.filled { border-color: #a6d8b6; background: #f6fbf8; }
 .qmark-ask.open { border-color: #efc19a; }
 .qmark-ask.open.filled { border-color: #8cc79f; }
-.qmark-ask-head { display: flex; align-items: center; gap: 4px; padding-right: 6px; }
+.qmark-ask-head { display: flex; align-items: center; }
 .qmark-ask-toggle {
   flex: 1;
   min-width: 0;
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 6px 10px 12px;
+  min-height: calc(var(--qmark-row-h) - 2px); /* 상자 테두리 1px × 2 */
+  padding: 8px 12px;
   border: none;
   background: transparent;
   font-family: inherit;
@@ -29575,20 +29593,6 @@ h4.attendance-seat-help { margin-top: 16px; }
 .qmark-ask-state.doing { background: #fff1e0; color: #b3621b; }
 .qmark-ask-state.done { background: #e8f7ed; color: #2f7a4b; }
 .qmark-ask-body { display: flex; flex-direction: column; gap: 8px; padding: 0 12px 12px; }
-.qmark-ask-del {
-  flex-shrink: 0;
-  width: 26px;
-  height: 26px;
-  border: none;
-  border-radius: 50%;
-  background: transparent;
-  color: var(--text-faint);
-  font-size: 18px;
-  line-height: 1;
-  cursor: pointer;
-}
-.qmark-ask-del:hover { background: var(--bg-deep); color: var(--text); }
-.qmark-ask-add { align-self: flex-start; }
 /* ③ 위에 체크한 물음을 한 줄씩 — 무엇을 길잡이로 쓰는지 쓰는 자리에서 보이게 */
 .qmark-picked {
   margin: 0;
@@ -29615,8 +29619,10 @@ h4.attendance-seat-help { margin-top: 16px; }
 .qmark-prompt {
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 8px;
-  padding: 10px 12px;
+  min-height: var(--qmark-row-h); /* 왼쪽 접힌 줄과 같은 높이 */
+  padding: 8px 12px;
   border: 1px solid var(--border);
   border-radius: 10px;
   background: #fff;
