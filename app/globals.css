@@ -29390,3 +29390,166 @@ h4.attendance-seat-help { margin-top: 16px; }
   .ht-teacher-center .hts-grid { grid-template-columns: 1fr; }
   .ht-teacher-center .htc { padding: 14px 14px 16px; }
 }
+
+/* =============================================================
+   물음표로 책 읽기 (QmarkForm · QmarkBoard)
+   학생 화면은 두 열(① 나의 물음표 ｜ ② 나의 생각). 접는 기준은 창이 아니라
+   `.qmark-wrap`의 폭입니다 — 책방은 양옆에 '오늘'·'멋진 순간' 패널이 서서
+   창 폭으로는 가운데가 얼마나 남는지 모릅니다(해시태그 폼과 같은 까닭).
+   ============================================================= */
+.qmark-wrap { max-width: 1240px; margin: 0 auto; container-type: inline-size; }
+.qmark-guide {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin: 14px 0 12px;
+  padding: 10px 14px;
+  border-radius: var(--radius-btn);
+  background: var(--bg-deep);
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--text-sub);
+}
+.qmark-guide-step.done { color: #2f7a4b; }
+.qmark-guide-step.done b { color: #2f7a4b; }
+.qmark-guide b { color: var(--text); }
+.qmark-guide .qmark-q { color: var(--primary-dark); font-size: 15px; }
+.qmark-guide-arrow { color: var(--text-faint); }
+
+.qmark-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+  gap: 16px;
+  align-items: start;
+}
+@container (max-width: 860px) {
+  .qmark-form { grid-template-columns: minmax(0, 1fr); }
+}
+.qmark-sec {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 18px 18px;
+  background: var(--card-bg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  transition: border-color 0.15s;
+}
+.qmark-sec.filled { border-color: #8cc79f; }
+.qmark-sec-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 9px;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+}
+.qmark-sec-title em {
+  font-style: normal;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-faint);
+}
+/* 물음표 배지 — 이 활동의 얼굴. 다 쓰면 초록(다른 활동의 칸 배지와 같은 뜻) */
+.qmark-badge {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 900;
+  flex-shrink: 0;
+}
+.qmark-sec.filled .qmark-badge { background: #3d8a72; }
+.qmark-count {
+  margin-left: auto;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  font-size: 12.5px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.qmark-count.full { background: #e8f7ed; color: #2f7a4b; }
+.qmark-field { display: flex; flex-direction: column; gap: 5px; }
+.qmark-field-lab { font-size: 13px; font-weight: 800; color: var(--text); }
+.qmark-sec textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: var(--text);
+  background: #fff;
+  resize: vertical;
+}
+.qmark-sec textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+.qmark-sec textarea:disabled { background: var(--bg-deep); color: var(--text-sub); }
+/* 무엇에 대한 생각인지 — 위에 적은 물음을 인용처럼 한 줄 */
+.qmark-myq {
+  margin: 0;
+  padding: 8px 12px;
+  border-left: 4px solid var(--primary);
+  border-radius: 4px;
+  background: var(--primary-light);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.6;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.qmark-myq.empty { font-weight: 500; color: var(--text-faint); border-left-color: var(--border); background: var(--bg-deep); }
+.qmark-prompts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.qmark-prompt {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+  transition: border-color 0.15s, background 0.15s;
+}
+.qmark-prompt.on { border-color: #f0cdb8; background: #fffaf6; }
+.qmark-prompt.filled { border-color: #a6d8b6; background: #f6fbf8; }
+.qmark-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  cursor: pointer;
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--text);
+}
+.qmark-check input {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+.qmark-prompt.filled .qmark-check input { accent-color: #3d8a72; }
+.qmark-prompt.on .qmark-check-text { font-weight: 700; }
+.qmark-check input:disabled { cursor: default; }
+
+/* 교사 상세 — 물음표 한 장이 위에 가로로 넓게, 다섯 물음은 그 아래 격자.
+   고르지 않은 물음은 옅게(빈 칸이 아니라 '고르지 않음'이라는 뜻). */
+.entry-detail-grid.qmark-detail-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.qmark-detail-grid .entry-region.wide { grid-column: 1 / -1; }
+.qmark-detail-grid .entry-region.skipped { opacity: 0.55; border-style: dashed; }
+@container (max-width: 700px) {
+  .entry-detail-grid.qmark-detail-grid { grid-template-columns: minmax(0, 1fr); }
+}

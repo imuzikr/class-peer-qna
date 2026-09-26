@@ -73,6 +73,8 @@ import OpinionBoard from "@/components/OpinionBoard";
 import HashtagBoard from "@/components/HashtagBoard";
 import HashtagForm from "@/components/HashtagForm";
 import HashtagCardBadge from "@/components/HashtagCardBadge";
+import QmarkBoard from "@/components/QmarkBoard";
+import QmarkForm from "@/components/QmarkForm";
 import { IconBook, IconTrash, IconLockState } from "@/components/StatusIcons";
 
 // 활동 종류의 이름 — 목록 카드에 '무엇을 하는 활동인가'를 적는 데 씁니다.
@@ -87,6 +89,7 @@ const ACTIVITY_KINDS = [
   { key: "mindmap", label: "마인드맵" },
   { key: "opinion", label: "내 생각은요..." },
   { key: "hashtag", label: "여섯 개의 해시태그" },
+  { key: "qmark", label: "물음표로 책 읽기" },
 ];
 
 const ACTIVITY_KIND_BY_KEY = new Map(ACTIVITY_KINDS.map((k) => [k.key, k]));
@@ -374,7 +377,9 @@ function BooksPageInner() {
   const isOpinion = activeActivity?.type === "opinion";
   // 여섯 개의 해시태그 — 학생마다 한 장(모둠 없음). 교사는 두 칸 화면.
   const isHashtag = activeActivity?.type === "hashtag";
-  const isSolo = isParatext || isRaft || isKwls || isMindmap || isOpinion || isHashtag;
+  // 물음표로 책 읽기 — 학생마다 한 장(entries/{uid}), KWLS와 같은 개인 활동
+  const isQmark = activeActivity?.type === "qmark";
+  const isSolo = isParatext || isRaft || isKwls || isMindmap || isOpinion || isHashtag || isQmark;
 
   // 연 활동의 모둠 — 학생이 '내 판'으로 바로 들어가려면 내 모둠을 알아야 합니다.
   useEffect(() => {
@@ -623,6 +628,24 @@ function BooksPageInner() {
         />
       ) : isMindmap ? (
         <MindmapForm
+          activity={activeActivity}
+          user={user}
+          onBack={goToList}
+        />
+      ) : /* 물음표로 책 읽기(개인 활동) — 교사는 세 칸 + 칸별 방송, 학생은 두 열 폼 */
+      isQmark && admin ? (
+        <QmarkBoard
+          activity={activeActivity}
+          className={activeClassName}
+          classPicker={classPicker}
+          classId={activeClassId}
+          user={user}
+          roster={roster}
+          onBack={goToList}
+          classTools={classTools}
+        />
+      ) : isQmark ? (
+        <QmarkForm
           activity={activeActivity}
           user={user}
           onBack={goToList}

@@ -40,6 +40,7 @@ const TYPES = [
   { key: "mindmap", label: "마인드맵", desc: "주제에서 가지를 뻗어 생각을 방사형·계층형으로 펼칩니다", defaultTitle: "마인드맵" },
   { key: "opinion", label: "내 생각은요...", desc: "영역(찬성·반대 등)을 나눠 두면 학생이 메모지에 생각을 적어 붙입니다", defaultTitle: "내 생각은요..." },
   { key: "hashtag", label: "여섯 개의 해시태그", desc: "글을 읽고 해시태그를 찾아 태그마다 생각을 쓰고, 한 사람씩 슬라이드로 띄워 나눕니다", defaultTitle: "여섯 개의 해시태그" },
+  { key: "qmark", label: "물음표로 책 읽기", desc: "읽으며 궁금한 곳에 물음표를 붙이고, 가장 중요한 물음과 그 이유 · 고른 물음에 대한 생각을 씁니다", defaultTitle: "물음표로 책 읽기" },
 ];
 // 모둠을 정하는 일은 **세 번의 물음**입니다. 한 줄에 다섯 갈래를 늘어놓았더니
 // '기본 모둠'과 '활동 모둠'이 나란히 있어 무엇이 무엇인지 알기 어려웠습니다.
@@ -122,7 +123,7 @@ export default function BookActivityForm({
 
   const names = parseNames(namesRaw);
   // 학생이 눌러볼 도서 정보 주소를 받는 종류 — 혼자 읽고 쓰는 활동들입니다.
-  const hasBookUrl = ["paratext", "raft", "kwls", "mindmap", "opinion"].includes(type);
+  const hasBookUrl = ["paratext", "raft", "kwls", "mindmap", "opinion", "qmark"].includes(type);
   const isOpinion = type === "opinion";
   // 여섯 개의 해시태그 — 학생마다 읽는 글이 달라 주제어를 받지 않습니다
   // (읽은 글은 학생이 '읽은 글' 칸에 적습니다).
