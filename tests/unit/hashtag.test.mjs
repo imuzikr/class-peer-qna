@@ -1,4 +1,4 @@
-// 열 개의 해시태그(lib/hashtag.js) — 칸 손질 · 중복 · 인용 확인 · 진행 · 참고문헌.
+// 열 개의 해시태그(lib/hashtag.js) — 칸 손질 · 중복 · 인용 확인 · 진행 · 칩 · 슬라이드.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
@@ -7,15 +7,18 @@ import {
   hashtagCloud,
   hashtagPostForSave,
   hashtagProgress,
-  hashtagReference,
-  hashtagReportTitle,
-  hasHashtagTitle,
+  addTagsTo,
+  hasHashtagEntries,
+  hashtagEntries,
+  hashtagSlide,
+  hashtagSlideSize,
+  hashtagSourceLine,
+  normalizeHashtagSlide,
+  removeTagAt,
   newCommentCount,
   normalizeHashtagPost,
   normalizeTag,
   quoteHasTag,
-  summarySegments,
-  tagsUsedInSummary,
   commentAuthorLabel,
   sortComments,
 } from "@/lib/hashtag";
@@ -62,29 +65,6 @@ test("진행 — 세 칸이 다 찬 칸만, 중복 칸은 빼고", () => {
   assert.equal(pr.complete, false);
 });
 
-test("보고서 제목 — 적은 것, 없으면 읽은 글로 짓습니다", () => {
-  assert.equal(hashtagReportTitle({ title: "내 보고서" }), "내 보고서");
-  assert.equal(hashtagReportTitle({ source: { kind: "book", title: "어린 왕자" } }), "『어린 왕자』를 읽고");
-  assert.equal(hashtagReportTitle({ source: { kind: "article", title: "바다의 변화" } }), "「바다의 변화」를 읽고");
-  assert.equal(hashtagReportTitle({ source: { kind: "article", title: "탄소 중립" } }), "「탄소 중립」을 읽고");
-  assert.equal(hasHashtagTitle({}), false);
-  assert.equal(hasHashtagTitle({ source: { title: "  " } }), false);
-});
-
-test("참고문헌 한 줄", () => {
-  assert.equal(
-    hashtagReference({ kind: "book", title: "어린 왕자", author: "생텍쥐페리", date: "2015" }),
-    "생텍쥐페리. (2015). 『어린 왕자』."
-  );
-  assert.equal(
-    hashtagReference({ kind: "article", title: "바다", author: "한겨레", url: "www.example.com/a" }),
-    "한겨레. 「바다」 [기사]. https://www.example.com/a"
-  );
-  assert.equal(hashtagReference({ kind: "book", title: "" }), "");
-  // 스크립트 주소는 안 붙입니다
-  assert.equal(hashtagReference({ kind: "etc", title: "x", url: "javascript:alert(1)" }), "「x」 [기타].");
-});
-
 test("저장 모양 — 위험한 그림 주소는 걷습니다", () => {
   const s = hashtagPostForSave({ image: { url: "javascript:1" }, title: "  제목  " });
   assert.equal(s.image.url, "");
@@ -92,18 +72,66 @@ test("저장 모양 — 위험한 그림 주소는 걷습니다", () => {
   assert.equal(hashtagPostForSave({ image: { url: "https://a/b.jpg" } }).image.url, "https://a/b.jpg");
 });
 
-test("요약에 쓴 태그 · 칠할 조각", () => {
-  const tags = [{ tag: "기후위기" }, { tag: "탄소" }, { tag: "바다" }];
-  const used = tagsUsedInSummary(tags, "기후 위기로 탄소가 늘었다");
-  assert.deepEqual([...used].sort(), ["기후위기", "탄소"]);
-  const seg = summarySegments("탄소가 바다로", tags);
-  assert.deepEqual(seg, [
-    { text: "탄소", tag: true },
-    { text: "가 ", tag: false },
-    { text: "바다", tag: true },
-    { text: "로", tag: false },
-  ]);
-  assert.deepEqual(summarySegments("", tags), []);
+test("칩 더하기 — 붙여 넣은 여러 개 · 같은 태그 막기 · 열 칸 넘침", () => {
+  const r = addTagsTo([], "#기후위기 #바다, 탄소 #AI");
+  assert.deepEqual(r.tags.slice(0, 4).map((e) => e.tag), ["기후위기", "바다", "탄소", "AI"]);
+  assert.deepEqual(r.added, [0, 1, 2, 3]);
+  const r2 = addTagsTo(r.tags, "ai 바다 산호");
+  assert.deepEqual(r2.dupes, ["ai", "바다"]);
+  assert.equal(r2.tags[4].tag, "산호");
+  const full = addTagsTo([], "a b c d e f g h i j k l");
+  assert.equal(full.added.length, 10);
+  assert.deepEqual(full.overflow, ["k", "l"]);
+});
+
+test("칩 더하기 — 태그 없이 글만 있는 옛 칸은 건너뜁니다", () => {
+  const r = addTagsTo([{ tag: "", quote: "옛 문장" }], "새태그");
+  assert.equal(r.tags[0].quote, "옛 문장");
+  assert.equal(r.tags[0].tag, "");
+  assert.equal(r.tags[1].tag, "새태그");
+});
+
+test("칩 빼기 — 그 칸이 글째로 빠지고 뒤가 당겨집니다", () => {
+  const tags = [
+    { tag: "가", quote: "q1", insight: "i1" },
+    { tag: "나", quote: "q2", insight: "" },
+    { tag: "다" },
+  ];
+  const out = removeTagAt(tags, 1);
+  assert.equal(out.length, 10);
+  assert.deepEqual(out.slice(0, 3).map((e) => e.tag), ["가", "다", ""]);
+  assert.equal(out[0].quote, "q1");
+  assert.equal(removeTagAt(tags, 99).length, 10);
+});
+
+test("쓴 칸 · 친구 목록 판정", () => {
+  const post = { tags: [{ tag: "바다" }, { tag: "" }, { tag: "", quote: "옛 글" }, { tag: "바다", quote: "중복" }] };
+  const list = hashtagEntries(post);
+  assert.deepEqual(list.map((e) => e.index), [0, 2]);
+  assert.equal(hasHashtagEntries(post), true);
+  assert.equal(hasHashtagEntries({ tags: [{ quote: "글만" }] }), false);
+  assert.equal(hasHashtagEntries({}), false);
+});
+
+test("슬라이드 한 장 — 실어 보낼 모양 · 위험한 그림 주소 걷기 · 크기", () => {
+  const slide = hashtagSlide(
+    {
+      source: { kind: "article", title: " 바다의 변화 ", author: "한겨레" },
+      image: { url: "javascript:1", caption: "그림" },
+      tags: [{ tag: "바다", quote: " 바다가 뜨겁다 ", insight: "걱정된다" }, { tag: "" }],
+    },
+    { writerName: "30105 홍길동", activityTitle: "해시태그" }
+  );
+  assert.equal(slide.writerName, "30105 홍길동");
+  assert.equal(slide.image.url, "");
+  assert.deepEqual(slide.entries, [{ tag: "바다", quote: "바다가 뜨겁다", insight: "걱정된다" }]);
+  assert.equal(hashtagSourceLine(slide.source), "「바다의 변화」 기사 · 한겨레");
+  assert.equal(hashtagSourceLine({ kind: "book", title: "어린 왕자" }), "『어린 왕자』");
+  assert.equal(hashtagSourceLine({ title: "" }), "");
+  assert.equal(hashtagSlideSize(slide), "lg");
+  assert.equal(hashtagSlideSize({ entries: Array.from({ length: 10 }, () => ({ quote: "가".repeat(200) })) }), "sm");
+  // 방송으로 받은 값은 열 칸까지만
+  assert.equal(normalizeHashtagSlide({ entries: Array.from({ length: 15 }, () => ({ tag: "x" })) }).entries.length, 10);
 });
 
 test("반의 해시태그 구름 — 한 보고서 안의 같은 태그는 한 번", () => {

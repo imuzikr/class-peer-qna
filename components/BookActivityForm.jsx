@@ -12,7 +12,7 @@
 //  · 내 생각은요... — 반 전체가 한 판에 메모를 붙입니다. 모둠 대신
 //      **영역**(2~4개, 이름은 교사가)과 함께 생각할 물음을 받습니다.
 //  · 열 개의 해시태그 — 학생마다 다른 글을 읽으므로 주제어를 받지 않고,
-//      안내 문구(선택)만 받습니다. 친구 보고서는 만든 뒤 '공개하기'로 엽니다.
+//      안내 문구(선택)만 받습니다. 친구 해시태그는 만든 뒤 '공개하기'로 엽니다.
 //
 // 모둠 방식의 기본값은 **반의 기본 모둠**입니다(있을 때). 수업이 대체로 늘
 // 같은 모둠으로 돌아가는데 활동마다 다시 짜면 같은 일을 되풀이하게 됩니다.
@@ -39,7 +39,7 @@ const TYPES = [
   { key: "kwls", label: "KWLS로 성찰하기", desc: "읽기 전 아는 것·궁금한 것, 읽은 뒤 알게 된 것을 적습니다", defaultTitle: "KWLS로 성찰하기" },
   { key: "mindmap", label: "마인드맵", desc: "주제에서 가지를 뻗어 생각을 방사형·계층형으로 펼칩니다", defaultTitle: "마인드맵" },
   { key: "opinion", label: "내 생각은요...", desc: "영역(찬성·반대 등)을 나눠 두면 학생이 메모지에 생각을 적어 붙입니다", defaultTitle: "내 생각은요..." },
-  { key: "hashtag", label: "열 개의 해시태그", desc: "글을 읽고 해시태그 열 개와 요약으로 보고서를 만들어 친구와 댓글을 나눕니다", defaultTitle: "열 개의 해시태그" },
+  { key: "hashtag", label: "열 개의 해시태그", desc: "글을 읽고 해시태그를 찾아 원문과 생각을 쓰고, 한 사람씩 슬라이드로 띄워 나눕니다", defaultTitle: "열 개의 해시태그" },
 ];
 // 모둠을 정하는 일은 **세 번의 물음**입니다. 한 줄에 다섯 갈래를 늘어놓았더니
 // '기본 모둠'과 '활동 모둠'이 나란히 있어 무엇이 무엇인지 알기 어려웠습니다.
@@ -125,7 +125,7 @@ export default function BookActivityForm({
   const hasBookUrl = ["paratext", "raft", "kwls", "mindmap", "opinion"].includes(type);
   const isOpinion = type === "opinion";
   // 열 개의 해시태그 — 학생마다 읽는 글이 달라 주제어를 받지 않습니다
-  // (읽은 글은 학생이 보고서의 '출처' 칸에 적습니다).
+  // (읽은 글은 학생이 '읽은 글' 칸에 적습니다).
   const isHashtag = type === "hashtag";
   // 영역 이름은 모두 적어야 만듭니다 — 빈 영역은 학생이 어디에 붙일지 모릅니다.
   const zonesBad = isOpinion && zoneNames.some((n) => !n.trim());
@@ -279,12 +279,12 @@ export default function BookActivityForm({
               onChange={(e) => setGuide(e.target.value)}
               rows={2}
               maxLength={HASHTAG_GUIDE_MAX}
-              placeholder="예: 이번 주에 읽은 과학 기사 한 편으로 보고서를 만들어 보세요."
+              placeholder="예: 이번 주에 읽은 과학 기사 한 편에서 해시태그를 찾아보세요."
             />
             <em className="book-help">
-              학생은 읽은 글의 출처 · 대표 이미지 · 해시태그 최대 열 개(태그 · 원문 문장 · 생각 표현하기) ·
-              요약을 적고, 아래에서 보고서가 저절로 짜여 보입니다. 친구 보고서는 만든 뒤
-              ‘공개하기’를 눌러야 서로 보이고 댓글을 달 수 있어요.
+              학생은 먼저 찾은 해시태그(최대 열 개)를 적고, 태그마다 원문 문장과 생각을 씁니다.
+              선생님이 학생을 골라 ‘수업 시작’을 누르면 그 학생의 것이 슬라이드 한 장으로 학급
+              화면에 뜹니다. 친구 해시태그는 ‘공개하기’를 눌러야 서로 보이고 댓글을 달 수 있어요.
             </em>
           </label>
         )}
@@ -578,7 +578,7 @@ export default function BookActivityForm({
               : isOpinion
                 ? `영역 ${zoneNames.length}개로 메모판 만들기`
                 : isHashtag
-                ? "해시태그 보고서 활동 만들기"
+                ? "해시태그 활동 만들기"
                 : !canGroup || perStudent
                 ? "학생별 활동으로 만들기"
                 : fromBase

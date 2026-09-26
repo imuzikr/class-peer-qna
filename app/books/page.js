@@ -372,7 +372,7 @@ function BooksPageInner() {
   // '내 생각은요...' — 반 전체가 한 판을 함께 씁니다(모둠 없음). 교사·학생이
   // 같은 화면이라 분기가 하나입니다.
   const isOpinion = activeActivity?.type === "opinion";
-  // 열 개의 해시태그 — 학생마다 보고서 한 장(모둠 없음). 교사는 세 칸 화면.
+  // 열 개의 해시태그 — 학생마다 한 장(모둠 없음). 교사는 두 칸 화면.
   const isHashtag = activeActivity?.type === "hashtag";
   const isSolo = isParatext || isRaft || isKwls || isMindmap || isOpinion || isHashtag;
 
@@ -577,12 +577,14 @@ function BooksPageInner() {
           />
         )}
 
-      {/* 열 개의 해시태그 — 교사는 세 칸(학생 목록·보고서·진행), 학생은 제 보고서 */}
+      {/* 열 개의 해시태그 — 교사는 두 칸(학생 목록·슬라이드, '수업 시작'으로
+          방송), 학생은 제 해시태그 */}
       {isHashtag && admin ? (
         <HashtagBoard
           activity={activeActivity}
           className={activeClassName}
           classPicker={classPicker}
+          classId={activeClassId}
           user={user}
           roster={roster}
           onBack={goToList}
@@ -1107,8 +1109,8 @@ function ActivityCard({ activity, isTeacher, uid, onOpen, onEdit, onDelete, onTo
             ? `영역 ${(activity.zones ?? []).length || 2}개 · 함께 쓰는 판`
             : activity.type === "hashtag"
             ? activity.published
-              ? "개인 보고서 · 친구 보고서 공개 중"
-              : "개인 보고서 · 공개 전"
+              ? "개인 활동 · 친구 해시태그 공개 중"
+              : "개인 활동 · 공개 전"
             : solo
             ? "개인 활동"
             : perStudent
@@ -1120,7 +1122,7 @@ function ActivityCard({ activity, isTeacher, uid, onOpen, onEdit, onDelete, onTo
             **잠겼을 때만이 아니라 늘 답니다** — 배지가 없는 카드는 '열려
             있다'가 아니라 '아직 안 봤다'로도 읽힙니다. 말은 진행 대시보드의
             같은 알약과 맞춥니다(잠김 / 열림). */}
-        {/* 열 개의 해시태그 — 학생 카드에 '새 댓글 n'(내 보고서에 달린 것) */}
+        {/* 열 개의 해시태그 — 학생 카드에 '새 댓글 n'(내 해시태그에 달린 것) */}
         {!isTeacher && activity.type === "hashtag" && uid && (
           <HashtagCardBadge activityId={activity.id} uid={uid} />
         )}

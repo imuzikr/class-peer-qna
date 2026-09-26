@@ -132,7 +132,7 @@ export default function BookActivityEditModal({ activity, onClose, onDone }) {
               onChange={(e) => setGuide(e.target.value)}
               rows={2}
               maxLength={HASHTAG_GUIDE_MAX}
-              placeholder="예: 이번 주에 읽은 과학 기사 한 편으로 보고서를 만들어 보세요."
+              placeholder="예: 이번 주에 읽은 과학 기사 한 편에서 해시태그를 찾아보세요."
             />
           </label>
         )}

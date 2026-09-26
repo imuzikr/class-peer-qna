@@ -46,6 +46,13 @@ export default function CastStageModal({
   user = null,
   onStop,
   onClose,
+  // 본문을 따로 그리는 활동 — 열 개의 해시태그는 영역이 아니라 **학생 한 명의
+  // 슬라이드 한 장**이라 fields 목록으로 담을 수 없습니다. 주면 아래 본문 자리에
+  // 이것을 그리고, 영역 줄(단계 축)은 꾸러미에 label이 없으면 안 그립니다.
+  body = null,
+  // 학생 축 단추의 툴팁('홍길동의 같은 영역으로') · 안내 줄
+  stepTo = "같은 영역으로",
+  hint = "같은 영역을 학생별로 넘깁니다 · 키보드 ← →",
 }) {
   const [rewardCount, setRewardCount] = useState(0);
   const [awarding, setAwarding] = useState(false);
@@ -139,6 +146,7 @@ export default function CastStageModal({
 
         {/* 단계 줄 — 무엇을 띄우는 중인지와, 같은 학생 안에서 단계 넘기기.
             창이 머리말 막대를 덮으므로 그 축도 여기 있어야 합니다. */}
+        {payload?.label && (
         <div className="cast-stage-section">
           {payload?.letter && (
             <span className="paratext-letter" aria-hidden="true">{payload.letter}</span>
@@ -161,11 +169,13 @@ export default function CastStageModal({
             </span>
           )}
         </div>
+        )}
 
         {/* 본문 — **학생 화면과 같은 것**을 씁니다(`.entry-cast-body`).
             교사가 보는 것이 곧 칠판에 뜬 것이어야 하므로 글자 크기도 그쪽
             것을 그대로 물려받습니다. 칸을 가르는 가로줄도 따라옵니다. */}
         <div className="cast-stage-body">
+          {body ?? (<>
           {payload?.prompt && <p className="entry-cast-prompt">{payload.prompt}</p>}
           {/* RAFT는 낱말 하나만 뜨면 무슨 말인지 몰라 문장을 함께 보여 줍니다 */}
           {payload?.note && <p className="raft-sentence done">{payload.note}</p>}
@@ -183,6 +193,7 @@ export default function CastStageModal({
               ))
             )}
           </div>
+          </>)}
         </div>
 
         {/* 학생 축 — 이 창의 주인공이라 아래를 통째로 씁니다.
@@ -194,19 +205,17 @@ export default function CastStageModal({
             className="btn-ghost cast-stage-step"
             onClick={() => onStudent?.(prevStudent)}
             disabled={!prevStudent}
-            title={prevStudent ? `${prevStudent.name}의 같은 영역으로` : "앞에 학생이 없어요"}
+            title={prevStudent ? `${prevStudent.name}의 ${stepTo}` : "앞에 학생이 없어요"}
           >
             ← 이전 학생
           </button>
-          <span className="cast-stage-hint">
-            같은 영역을 학생별로 넘깁니다 · 키보드 ← →
-          </span>
+          <span className="cast-stage-hint">{hint}</span>
           <button
             type="button"
             className="btn-ghost cast-stage-step"
             onClick={() => onStudent?.(nextStudent)}
             disabled={!nextStudent}
-            title={nextStudent ? `${nextStudent.name}의 같은 영역으로` : "뒤에 학생이 없어요"}
+            title={nextStudent ? `${nextStudent.name}의 ${stepTo}` : "뒤에 학생이 없어요"}
           >
             다음 학생 →
           </button>

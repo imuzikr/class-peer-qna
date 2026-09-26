@@ -11,10 +11,11 @@ import { CONSONANT_LABELS, GRID_SLOTS, CELL_COUNT, cellKey, groupColorOf } from 
 import { normalizeMindmap } from "@/lib/mindmap";
 import MindmapCanvas from "./MindmapCanvas";
 import WordCloud from "./WordCloud";
+import HashtagSlide from "./HashtagSlide";
 import { IconGroup } from "./StatusIcons";
 
 // 이 화면이 그릴 줄 아는 방송 종류. 새 종류를 추가하면 여기에도 넣어야 합니다.
-const KNOWN_MODES = ["consonant", "entry", "wall", "mindmap", "lesson", "carousel", "single"];
+const KNOWN_MODES = ["consonant", "entry", "wall", "mindmap", "lesson", "carousel", "single", "hashtag"];
 
 // noteOpen — 학생이 수업 노트 서랍을 열어 두었는지. 열려 있으면 발표 화면을
 // 그만큼 좁힙니다(덮는 게 아니라 밀어냅니다). 서랍은 이 컴포넌트 밖에서
@@ -231,6 +232,31 @@ export default function PresentationOverlay({ broadcast, noteOpen = false, noteW
               ))}
             </div>
           )}
+        </div>
+      </div>
+    );
+  }
+
+  // 열 개의 해시태그 — 학생 한 명의 것을 슬라이드 한 장으로. 교사 화면의
+  // 수업 화면 창(CastStageModal)이 **같은 컴포넌트**로 같은 꾸러미를 그립니다.
+  // 누구의 것인지는 슬라이드 머리가 크게 말하므로 막대에는 안 적습니다.
+  if (broadcast.mode === "hashtag") {
+    return (
+      <div
+        className={`broadcast-overlay broadcast-overlay--hashtag${shrink}`}
+        role="alertdialog"
+        aria-modal="true"
+        aria-label="선생님이 보여주는 친구의 해시태그"
+      >
+        <div className="broadcast-bar">
+          <span className="broadcast-live-dot" aria-hidden="true" />
+          선생님이 친구의 해시태그를 보여주고 있어요
+          {broadcast.activityTitle && (
+            <span className="broadcast-board">{broadcast.activityTitle}</span>
+          )}
+        </div>
+        <div className="broadcast-body">
+          <HashtagSlide slide={broadcast} variant="cast" />
         </div>
       </div>
     );
