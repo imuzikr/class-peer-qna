@@ -20553,18 +20553,9 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
    뼈대(.book-workspace·.book-group-rail·.book-workspace-center·.dash-side)는
    닿소리 채우기의 것을 그대로 씁니다 — 네 활동의 교사 화면이 서로 다른
    모양이면 교사가 화면마다 다시 익혀야 합니다. */
-/* 왼쪽 카드 안의 단계 네모 — 오른쪽 '학생별 진행'의 조각 바
-   (.dash-heat-cell · .entry-heat-cell--*)를 그대로 옮겼습니다(줄 색 · 완료 점).
-   칸 수가 활동마다 달라(여덟·다섯·넷) 개수를 못 박지 않고 고르게 나눕니다. */
-.book-rail-marks {
-  display: flex;
-  gap: 3px;
-}
-.book-rail-marks .dash-heat-cell {
-  flex: 1 1 0;
-  min-width: 0;
-  height: 13px;
-}
+/* 왼쪽 카드 안의 단계 네모는 오른쪽 '학생별 진행'의 조각 바와 **같은 규칙**
+   (.dash-heat · .dash-heat-cell · .entry-heat-cell--*)을 그대로 씁니다 —
+   여기에 따로 덧대지 마세요(BookStudentRail 머리글 참고). */
 .book-rail-topic {
   font-size: 11.5px;
   color: var(--text-sub);

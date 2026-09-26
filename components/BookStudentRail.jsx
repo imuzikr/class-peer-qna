@@ -14,9 +14,12 @@
 // 목록을 왼쪽에 세워 두면 옆 학생으로 바로 건너뛰고, 오른쪽 진행 패널이
 // 계속 남습니다.
 //
-// 칸의 네모(조각 바)는 오른쪽 '학생별 진행' 패널(EntryProgressPanel)의 것과
-// **같은 모양**입니다 — 다 쓴 칸은 그 학생의 줄 색, 쓰는 중은 주황, 안 쓴
-// 칸은 회색, 다 채우면 마지막 칸에 붉은 점. 예전에는 왼쪽(초록 네모)과
+// 칸의 네모(조각 바)는 오른쪽 '학생별 진행' 패널(EntryProgressPanel)의 것을
+// **클래스째 그대로** 씁니다(`.dash-heat` · `.dash-heat-cell` ·
+// `.entry-heat-cell--*` — 14칸 격자 · 15px · 틈 2px · 칸 이름 툴팁). 다 쓴
+// 칸은 그 학생의 줄 색, 쓰는 중은 주황, 잠김은 빗금, 안 쓴 칸은 회색, 다
+// 채우면 마지막 칸에 붉은 점. **이 자리에만 덧대는 CSS를 두지 마세요** —
+// 한때 칸을 줄 폭에 늘여(flex) 그렸더니 오른쪽과 다른 모양이 되었습니다. 예전에는 왼쪽(초록 네모)과
 // 오른쪽(줄 색 네모)에 같은 뜻의 조각 바가 두 벌 서 있어, 오른쪽 것을 이리로
 // 옮기고 오른쪽 패널은 **모둠 활동일 때만** 둡니다(선생님 요청 — 그때는 왼쪽이
 // 한 모둠으로 좁혀져도 오른쪽이 반 전체를 보여 줍니다).
@@ -72,7 +75,9 @@ export default function BookStudentRail({
             {c.entry?.topic && (
               <span className="book-rail-topic">{c.entry.topic}</span>
             )}
-            <span className="book-rail-marks">
+            {/* 카드 전체가 이미 '그 학생 열기' 단추라 네모 줄은 span입니다
+                (단추 안의 단추를 피함) — 누르면 오른쪽 패널의 네모와 같은 일. */}
+            <span className="dash-heat entry-heat">
               {rows.map((row, i) => (
                 <i
                   key={row.key}
@@ -80,7 +85,7 @@ export default function BookStudentRail({
                     full && i === total - 1 ? " is-done" : ""
                   }`}
                   style={states[i] === "done" ? { background: color.border } : undefined}
-                  title={`${row.letter ? `${row.letter} · ` : ""}${row.label}`}
+                  title={row.label}
                 />
               ))}
             </span>
