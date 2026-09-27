@@ -208,7 +208,7 @@ export default function BookActivityForm({
 
   return (
     <div className="modal-backdrop" {...backdropClose(onClose)}>
-      <form className="modal book-form" onClick={(e) => e.stopPropagation()} onSubmit={handleSubmit}>
+      <form className={`modal book-form${fixedType ? "" : " book-form--fixed"}`} onClick={(e) => e.stopPropagation()} onSubmit={handleSubmit}>
         <div className="modal-head">
           <h3>독서 활동 만들기</h3>
           <button type="button" className="btn-close" onClick={onClose} aria-label="닫기">×</button>

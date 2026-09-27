@@ -19939,6 +19939,28 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
      900px 화면에서 모둠 설정까지 스크롤 없이 들게(실측). */
   max-height: 94vh;
 }
+/* 종류를 바꿔도 창 크기가 그대로입니다(선생님 요청) — 종류마다 설정 칸이 달라
+   창이 553 ↔ 840px로 늘었다 줄었다 하며 아래 단추가 오르내렸습니다. 가장 긴
+   종류('내 생각은요...' 840px, 실측)에 높이를 못 박고, 짧은 종류는 가운데가
+   빈 채 단추가 늘 바닥에 섭니다. 화면이 낮으면(94vh) **가운데 칸만** 구르고
+   머리줄과 단추는 제자리입니다. 종류 고르기가 있는 만들기 창에만 겁니다
+   (`fixedType`이면 종류가 하나라 못 박을 까닭이 없습니다). */
+.modal.book-form.book-form--fixed {
+  height: min(94vh, 840px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.book-form--fixed > .modal-head,
+.book-form--fixed > .modal-actions { flex-shrink: 0; }
+.book-form--fixed > .book-form-cols {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  /* 입력칸의 포커스 고리(3px)가 구르는 칸 가장자리에서 잘리지 않게 */
+  padding: 3px;
+  margin: -3px;
+}
 .book-form-cols { display: flex; flex-direction: column; }
 /* 위 — 활동 종류. 아래 설정과 선으로 가릅니다. */
 .book-form-side {
