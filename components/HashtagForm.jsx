@@ -464,8 +464,8 @@ export default function HashtagForm({ activity, user, onBack }) {
         )
       ) : (
         <>
-          {/* 읽은 글 · 대표 이미지 — 이 글에 대한 공통 정보라 맨 위에 한 열로
-              쌓습니다(선생님 요청). 그 아래가 해시태그 두 열입니다. */}
+          {/* 읽은 글 · 대표 이미지 — 이 글에 대한 공통 정보라 맨 위에 두 열로
+              나란히 둡니다(선생님 요청). 그 아래가 해시태그 두 열입니다. */}
           <div className="ht-common">
             {/* ① 읽은 글 */}
             <section className="ht-sec ht-sec--source">

@@ -28630,14 +28630,24 @@ h4.attendance-seat-help { margin-top: 16px; }
    쌓았는데, 읽은 글과 이미지는 태그와 무관한 '이 글에 대한 정보'라 따로
    위로 올렸습니다. 두 열은 화면이 아니라 **이 기둥의 폭**으로 접습니다
    (@container) — 책방은 양옆에 패널이 서서 창 폭만으로는 모릅니다. */
-.ht-common { display: flex; flex-direction: column; gap: 18px; margin-bottom: 18px; }
+/* 위아래 두 덩이가 **저마다 두 열, 같은 폭**입니다(선생님 요청) — 위는
+   ① 읽은 글 ｜ ② 대표 이미지, 아래는 ③ 해시태그 ｜ ④ 생각 표현하기. 두 덩이는
+   서로 다른 격자라 열 경계를 맞추지 않아도 되지만, 둘 다 `1fr 1fr`이라
+   결국 같은 자리에서 갈립니다.
+   **`align-items: stretch`** — 두 장이 늘 같은 높이입니다. ④의 카드를 펴고
+   접을 때 오른쪽만 늘었다 줄었다 하면 왼쪽 장의 바닥이 들쭉날쭉했습니다
+   (물음표로 책 읽기의 두 장과 같은 방식). 한때 아래 덩이는 `1 : 1.15`에
+   `start`였습니다. */
+.ht-common,
 .ht-form {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 18px;
-  align-items: start;
+  align-items: stretch;
 }
+.ht-common { margin-bottom: 18px; }
 @container (max-width: 900px) {
+  .ht-common,
   .ht-form { grid-template-columns: minmax(0, 1fr); }
 }
 .ht-sec {
@@ -28703,7 +28713,9 @@ h4.attendance-seat-help { margin-top: 16px; }
 /* 대표 이미지 — 왼쪽 미리보기, 오른쪽 단추·설명·출처 */
 .ht-image { display: flex; gap: 16px; align-items: flex-start; }
 .ht-image-box {
-  flex: 0 0 240px;
+  /* 두 열이 된 뒤로 칸이 좁아(1100px 창에서 안쪽 470px 남짓) 그림을 고정
+     240px로 두면 옆의 입력칸이 200px로 눌립니다 — 칸의 42%까지 줄입니다. */
+  flex: 0 0 clamp(160px, 42%, 240px);
   aspect-ratio: 4 / 3;
   border: 1.5px dashed var(--border);
   border-radius: var(--radius-btn);
