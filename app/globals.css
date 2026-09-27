@@ -29418,7 +29418,15 @@ h4.attendance-seat-help { margin-top: 16px; }
 /* ── 친구 보고서 ── */
 .ht-friends { display: flex; flex-direction: column; gap: 18px; }
 .ht-cloud h3, .ht-teacher-cloud h3 { margin: 0 0 8px; font-size: 15px; font-weight: 800; color: var(--dark); }
-.ht-cloud .cloud-box { min-height: 240px; height: 260px; }
+/* 학생의 '친구 해시태그' 구름 — 화면 높이를 따라 키웁니다. 260px 띠에 가둬
+   두었을 때는 낱말 몇 개가 그 띠를 꽉 채워 위아래가 잘린 듯 답답했고, 정작
+   아래 절반은 비어 있었습니다(선생님 지적 — 교사 화면 구름과 같은 문제).
+   **`flex: none`이 있어야 height가 듣습니다** — `.cloud-box`의 `flex: 1`은
+   기준 폭 0이라, 높이가 정해지지 않은 부모 안에서는 height를 버리고
+   min-height로 내려앉았습니다(실측 260 → 240px). 폼 페이지는 통째로 구르는
+   자리라 '남는 높이'가 따로 없어 창 높이(vh)로 잡고, 아래 친구 목록이 한참
+   밀리지 않게 천장을 둡니다. */
+.ht-cloud .cloud-box { flex: none; min-height: 0; height: clamp(300px, 56vh, 580px); }
 .ht-friend-grid {
   list-style: none;
   margin: 0;
