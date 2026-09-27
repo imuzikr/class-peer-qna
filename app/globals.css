@@ -29542,7 +29542,8 @@ h4.attendance-seat-help { margin-top: 16px; }
 
 .qmark-form {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+  /* 두 열은 같은 폭입니다(선생님 요청 — 한때 1 : 1.25) */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 16px;
   /* 두 장이 늘 같은 높이 — 왼쪽 쌍을 펴면 오른쪽 장도 함께 늘어 바닥이 맞습니다 */
   align-items: stretch;

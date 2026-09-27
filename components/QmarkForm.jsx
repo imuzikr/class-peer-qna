@@ -213,7 +213,7 @@ export default function QmarkForm({ activity, user, onBack }) {
             </span>
             <span className="qmark-guide-arrow" aria-hidden="true">→</span>
             <span className={`qmark-guide-step${picked >= QMARK_MIN_PICKS ? " done" : ""}`}>
-              <b>②</b> 다섯 물음 가운데 <b>{QMARK_MIN_PICKS}개 이상</b> 체크해요
+              <b>②</b> {QMARK_PROMPTS.length}개의 체크리스트에서 <b>{QMARK_MIN_PICKS}개 이상</b> 선택하세요
             </span>
             <span className="qmark-guide-arrow" aria-hidden="true">→</span>
             <span className={`qmark-guide-step${thoughtDone ? " done" : ""}`}>
