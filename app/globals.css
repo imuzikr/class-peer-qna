@@ -29696,7 +29696,32 @@ h4.attendance-seat-help { margin-top: 16px; }
 .entry-detail-grid.qmark-detail-grid { grid-template-columns: minmax(0, 1fr); }
 .qmark-read-asks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .qmark-read-ask { padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: #fff; }
-.qmark-read-ask .paratext-read-field + .paratext-read-field { margin-top: 6px; }
+/* 한 쌍 = 한 줄 — 궁금증 왼쪽 · 이유는 오른쪽(선생님 요청). 위아래로 쌓으면
+   다섯 쌍이 열 칸으로 길게 늘어서 어느 이유가 어느 궁금증의 것인지 눈으로
+   다시 짝지어야 했습니다. 두 칸은 같은 폭이고 가운데 세로선이 가릅니다.
+   가운데 칸이 좁으면(@container — 책방 가운데 칸이 폭의 기준) 위아래로 풉니다. */
+.qmark-read-ask {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: 16px;
+}
+.qmark-read-ask .paratext-read-field + .paratext-read-field {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+  padding-left: 16px;
+  border-left: 1px solid var(--border);
+}
+@container (max-width: 560px) {
+  .qmark-read-ask { grid-template-columns: minmax(0, 1fr); }
+  .qmark-read-ask .paratext-read-field + .paratext-read-field {
+    margin-top: 6px;
+    padding-top: 8px;
+    padding-left: 0;
+    border-left: none;
+    border-top: 1px solid var(--border);
+  }
+}
 .qmark-read-picks { list-style: none; margin: 0 0 10px; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 .qmark-read-pick { display: flex; gap: 8px; font-size: 14px; line-height: 1.55; color: var(--text-faint); }
 .qmark-read-pick::before { content: "☐"; flex-shrink: 0; }

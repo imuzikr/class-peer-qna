@@ -40,15 +40,12 @@ import RewardCelebration from "./RewardCelebration";
 import AppMarquee from "./AppMarquee";
 import { useRewardCelebration } from "@/lib/useRewardCelebration";
 import { useClassMembers } from "@/lib/useClassRoster";
-import { useCastStopElsewhere } from "@/lib/castPresence";
 import { IconReport, IconPythonRunner, IconLogo, IconAnswer, IconBlackboard, IconBook } from "./StatusIcons";
 
 export default function TopNav({ active, onPython, pyActive = false, onStudyExport = null }) {
   const router = useRouter();
   const user = useCurrentUser();
   const admin = user ? isTeacher(user) : false;      // 교사+관리자 (대시보드 접근)
-  // 이 화면에 제 '수업 종료'가 있으면 방송 종료 알약을 감춥니다(아래)
-  const castStopElsewhere = useCastStopElsewhere();
   const isStrictAdmin = user ? isAdmin(user) : false; // 최고 관리자만 (역할 관리)
   const [roleMgrOpen, setRoleMgrOpen] = useState(false);
   const [directory, setDirectory] = useState([]);
@@ -476,10 +473,10 @@ export default function TopNav({ active, onPython, pyActive = false, onStudyExpo
     <RewardCelebration amount={cheerAmount} onDone={clearCheer} />
 
     {/* 교사 화면 — 자기 반에 방송이 켜져 있으면 어디서든 바로 끌 수 있는 안전장치.
-        책방 활동의 수업 화면 창처럼 **제 '수업 종료'를 가진 화면**이 떠 있는
-        동안은 비킵니다 — 같은 일을 하는 단추가 둘이면 헷갈립니다
-        (lib/castPresence.js). */}
-    {admin && broadcast && !castStopElsewhere && (
+        책방 활동의 수업 화면 창이 떠 있어도 **비키지 않습니다**(선생님 요청 —
+        창 바깥 오른쪽 아래에 늘 같은 자리). 한때 그 창의 '수업 종료'와 겹친다고
+        감췄는데, 늘 그 자리에서 끄던 손이 창이 뜨면 길을 잃었습니다. */}
+    {admin && broadcast && (
       <button
         type="button"
         className="broadcast-stop-pill"
