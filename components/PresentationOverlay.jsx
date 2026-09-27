@@ -268,7 +268,16 @@ export default function PresentationOverlay({ broadcast, noteOpen = false, noteW
     // KWLS 한 칸은 흔히 열댓 자라, 한 크기로 맞춰 두면 넓은 화면에 작은
     // 글씨 한 줄만 덩그러니 놓입니다. 길이에 따라 네 단계로 나눕니다.
     const chars = fields.reduce((n, f) => n + String(f.text ?? "").length, 0);
-    const size = chars <= 40 ? "xl" : chars <= 160 ? "lg" : chars <= 450 ? "md" : "sm";
+    // 두 칸으로 나란히 세우는 꾸러미(물음표로 책 읽기)는 'md'가 천장입니다.
+    // 칸 하나가 화면 폭의 절반이고 칸 수도 많아(물음표 다섯 쌍 = 열 칸),
+    // 짧은 답이라고 xl(120px)로 키우면 한 화면에 한 칸밖에 안 들어와
+    // 무엇에 대한 글인지 알 수 없었습니다(실제 신고).
+    // 한 줄뿐이면(나의 생각: 고른 물음 | 나의 생각) md, 여러 줄이면(물음표 다섯
+    // 쌍) sm — 두 칸 sm은 한 화면에 다섯 줄이 다 들도록 CSS가 따로 잡습니다.
+    const cols = broadcast.columns === 2;
+    const size = cols
+      ? (fields.length <= 2 && chars <= 240 ? "md" : "sm")
+      : chars <= 40 ? "xl" : chars <= 160 ? "lg" : chars <= 450 ? "md" : "sm";
     return (
       <div
         className={`broadcast-overlay broadcast-overlay--entry${shrink}`}
@@ -286,7 +295,7 @@ export default function PresentationOverlay({ broadcast, noteOpen = false, noteW
         </div>
 
         <div className="broadcast-body">
-          <div className="entry-cast" data-size={size}>
+          <div className="entry-cast" data-size={size} data-cols={cols ? "2" : undefined}>
             <header className="entry-cast-head">
               {broadcast.letter && (
                 <span className="paratext-letter" aria-hidden="true">{broadcast.letter}</span>
@@ -306,7 +315,7 @@ export default function PresentationOverlay({ broadcast, noteOpen = false, noteW
             {/* RAFT는 낱말 하나만 뜨면 무슨 말인지 몰라 문장을 함께 보여 줍니다 */}
             {broadcast.note && <p className="raft-sentence done">{broadcast.note}</p>}
 
-            <div className="entry-cast-body">
+            <div className={`entry-cast-body${cols ? " entry-cast-body--cols" : ""}`}>
               {fields.map((f, i) => (
                 <div key={i} className="paratext-read-field">
                   {f.label && <span className="paratext-read-label">{f.label}</span>}

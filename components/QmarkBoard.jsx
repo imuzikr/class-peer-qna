@@ -279,7 +279,9 @@ export default function QmarkBoard({
                               </ol>
                             )
                           ) : (
-                            <>
+                            // 두 칸 — 왼쪽 체크한 물음 · 오른쪽 나의 생각(선생님 요청).
+                            // 위 '나의 물음표'의 쌍과 같은 모양이라 두 장이 한 결로 읽힙니다.
+                            <div className="qmark-read-thought">
                               <ul className="qmark-read-picks">
                                 {QMARK_PROMPTS.map((p) => (
                                   <li
@@ -296,7 +298,7 @@ export default function QmarkBoard({
                                   {thought || "아직 쓰지 않았어요"}
                                 </p>
                               </div>
-                            </>
+                            </div>
                           )}
                         </div>
                       </section>
@@ -374,6 +376,10 @@ function buildPayload(activity, card, index) {
     note,
     index,
     total: REGION_COUNT,
+    // 칸을 두 줄로 나란히 — 물음표는 '궁금증 | 이유는' 한 쌍이 한 줄,
+    // 나의 생각은 '고른 물음 | 나의 생각'(교사 가운데 칸과 같은 모양).
+    // 모르는 옛 화면은 이 값을 흘려보내고 위아래로 그대로 그립니다.
+    columns: 2,
     fields: qmarkRegionFields(answers, r.key),
   };
 }

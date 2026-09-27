@@ -189,7 +189,8 @@ export default function CastStageModal({
           {payload?.prompt && <p className="entry-cast-prompt">{payload.prompt}</p>}
           {/* RAFT는 낱말 하나만 뜨면 무슨 말인지 몰라 문장을 함께 보여 줍니다 */}
           {payload?.note && <p className="raft-sentence done">{payload.note}</p>}
-          <div className="entry-cast-body">
+          {/* 두 칸 꾸러미(물음표로 책 읽기)는 학생 화면과 같이 나란히 */}
+          <div className={`entry-cast-body${payload?.columns === 2 ? " entry-cast-body--cols" : ""}`}>
             {fields.length === 0 ? (
               <p className="paratext-read-text empty">아직 쓰지 않았어요</p>
             ) : (
