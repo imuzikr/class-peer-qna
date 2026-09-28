@@ -367,7 +367,21 @@ export default function StudyRewardPanel({
             »
           </button>
         </div>
-        <span className="reward-sub">자리를 눌러 과일 주기·누가기록 · 20개마다 ⭐</span>
+        <span className="reward-sub">
+          자리를 눌러 과일 주기·누가기록 · 20개마다 ⭐
+          {/* 출석을 끝낸 뒤에만 — 오늘 몇 명이 왔나. 한때 아래 단추 줄에
+              섰는데, 출석을 마치는 순간 그 줄에 한 칸이 더 끼어 '⤢ 확대'가
+              둘째 줄로 밀려났습니다. 누르는 것이 아니라 알려 주는 글이라
+              설명 줄에 둡니다 — 단추 줄은 늘 셋이라 한 줄에 섭니다. */}
+          {attendanceDone && roster.length > 0 && (
+            <span
+              className="reward-seat-att"
+              title={`오늘 출석 ${presentCount}명 / 전체 ${roster.length}명`}
+            >
+              {" · "}출석 <b>{presentCount}</b>/{roster.length}
+            </span>
+          )}
+        </span>
       </div>
 
       {roster.length === 0 ? (
@@ -379,15 +393,6 @@ export default function StudyRewardPanel({
           compact
           headLead={
             <span className="reward-seat-head-btns">
-              {/* 출석을 끝낸 뒤에만 — 오늘 몇 명이 왔나 */}
-              {attendanceDone && (
-                <span
-                  className="reward-seat-att"
-                  title={`오늘 출석 ${presentCount}명 / 전체 ${roster.length}명`}
-                >
-                  출석 <b>{presentCount}</b>/{roster.length}
-                </span>
-              )}
               {/* 다 함께 — 반이 통째로 잘한 순간에 누릅니다. 옆의 둘은
                   '보는 방법'을 바꿀 뿐이지만 이것은 **스물몇 명의 기록을
                   건드립니다.** 그래서 같은 알약이되 혼자 색이 있습니다
