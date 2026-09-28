@@ -27139,12 +27139,13 @@ ul.checklist > li.done {
    넷이 한 줄에 서느냐는 **기기의 한글 폰트에 달렸습니다** — 이 앱은
    Pretendard를 먼저 부르지만 없는 기기(학교 크롬북 등)는 Malgun Gothic·시스템
    폰트로 떨어지고, 그중 넓은 것에서는 못 섭니다. 접어 두면 그럴 때 **패널
-   밖으로 삐져나가는 대신** 둘째 줄로 내려갑니다. 손바닥 뱃지는 그 옆에서
-   세로 가운데에 섭니다.
-   **'출석 n/N'은 이 묶음에 넣지 마세요** — 출석을 마치는 순간 한 칸이 더 끼어
-   '⤢ 확대'가 둘째 줄로 밀려났습니다(실제 신고). 지금은 패널 설명 줄
-   (`.reward-sub`) 끝에 섭니다. 묶음은 늘 셋(다 함께 · 보기 방향 · 확대)이라
-   대체 폰트(WenQuanYi)에서도 한 줄입니다(실측). */
+   밖으로 삐져나가는 대신** 둘째 줄로 내려갑니다.
+   **'멋진 순간' 패널의 이 줄에는 단추 셋만 둡니다** — 다 함께 · 보기 방향 ·
+   확대. '출석 n/N'과 손바닥 뱃지(🖐️)는 패널 설명 줄(`.reward-sub`) 끝으로
+   옮겼습니다(`SeatPickGrid`의 `showHands={false}`). 넷·다섯이 함께 서면
+   '선생님 보기'처럼 긴 글자에서 넘쳐 두 줄로 접혔습니다(실제 신고, 두 번).
+   셋이면 대체 폰트(WenQuanYi)의 '선생님 보기'에서도 한 줄이고 61px이
+   남습니다(실측). */
 .reward-seat-head-btns {
   margin-left: auto;
   display: inline-flex;
@@ -27302,6 +27303,22 @@ ul.checklist > li.done {
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
+/* 설명 줄 끝의 손바닥 인원 — 단추 줄에 있던 뱃지를 옮겨 왔습니다(그 줄이
+   넘쳐 두 줄로 접혀서). 없을 때는 설명 글과 같은 옅은 글자, 손을 들면
+   예전 뱃지의 켜짐과 같은 살구빛으로 눈에 띕니다. 설명 줄 높이를 늘리지
+   않게 세로 여백 없이 둡니다. */
+.reward-sub-hands {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.reward-sub-hands.on {
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  font-weight: 800;
+}
+.reward-sub { white-space: nowrap; }
 .reward-seat-att b { font-weight: 800; color: var(--text); }
 
 /* ── KWLS 종합 격자 (/admin 종합 분석 맨 아래) ──

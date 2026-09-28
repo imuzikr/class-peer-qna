@@ -367,12 +367,16 @@ export default function StudyRewardPanel({
             »
           </button>
         </div>
-        <span className="reward-sub">
-          자리를 눌러 과일 주기·누가기록 · 20개마다 ⭐
-          {/* 출석을 끝낸 뒤에만 — 오늘 몇 명이 왔나. 한때 아래 단추 줄에
-              섰는데, 출석을 마치는 순간 그 줄에 한 칸이 더 끼어 '⤢ 확대'가
-              둘째 줄로 밀려났습니다. 누르는 것이 아니라 알려 주는 글이라
-              설명 줄에 둡니다 — 단추 줄은 늘 셋이라 한 줄에 섭니다. */}
+        {/* 설명 줄은 **한 줄에 드는 것만** — '과일 20개마다 ⭐ · 출석 20/22 ·
+            🖐️ 0'. 한때 '자리를 눌러 과일 주기·누가기록 · …'을 앞에 달고
+            '출석 n/N'까지 붙였더니 두 줄로 접혔고, 아래 단추 줄도 손바닥
+            뱃지와 '선생님 보기'가 함께 서면 넘쳐 두 줄이 됐습니다(실제 신고).
+            자리를 누르는 법은 한 번 알면 그만이라 툴팁으로 내리고, 손바닥
+            인원은 단추 줄에서 여기로 옮겼습니다(`showHands={false}`). */}
+        <span className="reward-sub" title="자리를 눌러 과일 주기·누가기록">
+          과일 20개마다 ⭐
+          {/* 출석을 끝낸 뒤에만 — 오늘 몇 명이 왔나(받는 중에 띄우면 오는
+              중인 학생이 결석 수처럼 읽힙니다). */}
           {attendanceDone && roster.length > 0 && (
             <span
               className="reward-seat-att"
@@ -380,6 +384,17 @@ export default function StudyRewardPanel({
             >
               {" · "}출석 <b>{presentCount}</b>/{roster.length}
             </span>
+          )}
+          {roster.length > 0 && (
+            <>
+              {" · "}
+              <span
+                className={`reward-sub-hands${raisedCount > 0 ? " on" : ""}`}
+                title={raisedCount > 0 ? `손든 학생 ${raisedCount}명` : "손든 학생 없음"}
+              >
+                🖐️ {raisedCount}
+              </span>
+            </>
           )}
         </span>
       </div>
@@ -421,6 +436,7 @@ export default function StudyRewardPanel({
               </button>
             </span>
           }
+          showHands={false}
           flipped={teacherView}
           seats={seats}
           byUid={byUid}

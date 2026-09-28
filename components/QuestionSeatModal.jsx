@@ -124,6 +124,10 @@ export function SeatPickGrid({
   // 여기 섭니다. 패널·확대 창의 그것과 같은 자리라, 같은 단추를 화면마다 다른
   // 데서 찾지 않아도 됩니다(`headLead`는 줄 맨 앞입니다).
   headTrail = null,
+  // 손바닥 뱃지를 머리줄에 둘까. '멋진 순간' 패널은 끕니다 — 312px 머리줄에
+  // 단추 셋과 함께 서면 넘쳐 두 줄로 접혀서, 그 패널은 설명 줄 끝에 손바닥
+  // 인원을 따로 적습니다(`StudyRewardPanel`).
+  showHands = true,
   // 선생님 자리에서 본 배치 — 자리 번호를 거꾸로 세워 그립니다(`seatOrder`).
   // 번호 자체는 그대로 넘기므로 빈 칸은 제자리를 지키고, 끌어 옮기기·자리
   // 누르기도 같은 번호를 씁니다. 예전처럼 CSS로 그림을 돌리면 글자가
@@ -149,9 +153,11 @@ export function SeatPickGrid({
           <span className="attend-seatmap-hint">자리를 누르면 과일·누가기록을 열 수 있어요</span>
         )}
         {headTrail}
-        <span className={`attend-seatmap-hands${raisedCount > 0 ? " on" : ""}`}>
-          🖐️ {compact ? raisedCount : `질문 ${raisedCount}`}
-        </span>
+        {showHands && (
+          <span className={`attend-seatmap-hands${raisedCount > 0 ? " on" : ""}`}>
+            🖐️ {compact ? raisedCount : `질문 ${raisedCount}`}
+          </span>
+        )}
       </div>
       <SeatGrid className="attend-seatmap-grid">
         {seatOrder(seats.length, flipped).map((i, pos) => {
