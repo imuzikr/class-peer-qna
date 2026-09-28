@@ -37,3 +37,26 @@ test("자리표가 비었을 때 빈자리는 학번순으로 채워집니다 �
   assert.deepEqual(a.slice(0, 3), ["u1", "u2", "u3"]);
   assert.deepEqual(a, b);
 });
+
+// ── 선생님 보기의 자리 차례(seatOrder) ─────────────────────────────
+import { seatOrder } from "@/lib/seats";
+
+test("학생 보기는 자리 번호 그대로입니다", () => {
+  assert.deepEqual(seatOrder(4, false), [0, 1, 2, 3]);
+});
+
+test("선생님 보기는 통째로 거꾸로 — 6칸 격자를 180도 돌린 그림입니다", () => {
+  const order = seatOrder(30, true);
+  assert.equal(order.length, 30);
+  assert.deepEqual(order.slice(0, 6), [29, 28, 27, 26, 25, 24]);
+  assert.deepEqual(order.slice(-6), [5, 4, 3, 2, 1, 0]);
+  // 자리 (줄 r, 칸 c)가 (마지막 줄 − r, 5 − c)로 갑니다
+  for (let i = 0; i < 30; i += 1) {
+    const r = Math.floor(i / 6), c = i % 6;
+    assert.equal(order[(4 - r) * 6 + (5 - c)], i);
+  }
+});
+
+test("마지막 줄이 덜 차면 모자란 칸을 null로 채워 돌립니다(맨 위 줄의 왼쪽)", () => {
+  assert.deepEqual(seatOrder(8, true), [null, null, null, null, 7, 6, 5, 4, 3, 2, 1, 0]);
+});

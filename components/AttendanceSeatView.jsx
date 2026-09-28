@@ -1,7 +1,7 @@
 "use client";
 
 import { toDate, formatClockMs } from "@/lib/store";
-import { normalizeSeats } from "@/lib/seats";
+import { normalizeSeats, seatOrder } from "@/lib/seats";
 import SeatGrid from "./SeatGrid";
 import SeatViewToggle from "./SeatViewToggle";
 import { useSeatView } from "@/lib/seatView";
@@ -43,9 +43,12 @@ export default function AttendanceSeatView({ rows, seatLayout }) {
       <div className="attendance-seat-help">
         <SeatViewToggle teacherView={teacherView} onToggle={toggleSeatView} />
       </div>
-      <SeatGrid className={`attendance-seat-grid${teacherView ? " seat-flipped" : ""}`} ariaLabel="출석 자리표">
-        {seats.map((uid, index) => uid && byUid.has(uid) ? (
-          <AttendanceSeat key={uid} student={byUid.get(uid)} />
+      <SeatGrid className="attendance-seat-grid" ariaLabel="출석 자리표">
+        {/* 선생님 보기는 차례만 거꾸로 — 그림을 돌리면 글자가 흐려집니다(lib/seats.js) */}
+        {seatOrder(seats.length, teacherView).map((index, pos) => index == null ? (
+          <div key={`pad-${pos}`} className="attend-seat-pad" aria-hidden="true" />
+        ) : seats[index] && byUid.has(seats[index]) ? (
+          <AttendanceSeat key={seats[index]} student={byUid.get(seats[index])} />
         ) : (
           <div key={`empty-${index}`} className="attendance-seat attendance-seat--empty" aria-label={`${index + 1}번 빈자리`}>
             <span>빈자리</span>

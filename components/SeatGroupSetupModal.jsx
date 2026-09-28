@@ -6,6 +6,7 @@ import SeatViewToggle from "./SeatViewToggle";
 import SeatGrid from "./SeatGrid";
 import { useSeatView } from "@/lib/seatView";
 import { STUDY_SEAT_COUNT } from "@/lib/store";
+import { seatOrder } from "@/lib/seats";
 
 const GROUP_COLORS = ["#2563eb", "#16a34a", "#f97316", "#9333ea", "#dc2626", "#0891b2"];
 
@@ -222,8 +223,12 @@ export function SeatGroupSetupPanel({
         {tab === "seats" ? (
           <>
             <div className="seat-setup-body">
-              <SeatGrid className={`seat-setup-grid${teacherView ? " seat-flipped" : ""}`}>
-                {seats.map((uid, i) => {
+              <SeatGrid className="seat-setup-grid">
+                {/* 선생님 보기는 차례만 거꾸로 — 번호(i)는 그대로라 놓기·비우기가
+                    같은 자리를 짚습니다. 그림을 돌리면 글자가 흐려집니다(lib/seats.js) */}
+                {seatOrder(seats.length, teacherView).map((i, pos) => {
+                  if (i == null) return <div key={`pad-${pos}`} className="attend-seat-pad" aria-hidden="true" />;
+                  const uid = seats[i];
                   const s = studentOf(uid);
                   return (
                     <button

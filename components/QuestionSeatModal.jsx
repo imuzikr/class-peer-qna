@@ -23,7 +23,7 @@ import {
   subscribeUserDirectory,
   todayDateKey,
 } from "@/lib/store";
-import { normalizeSeats } from "@/lib/seats";
+import { normalizeSeats, seatOrder } from "@/lib/seats";
 import { useSeatView } from "@/lib/seatView";
 import { useTodayRewardCounts } from "@/lib/useTodayRewards";
 import { useClassRoster } from "@/lib/useClassRoster";
@@ -124,10 +124,10 @@ export function SeatPickGrid({
   // 여기 섭니다. 패널·확대 창의 그것과 같은 자리라, 같은 단추를 화면마다 다른
   // 데서 찾지 않아도 됩니다(`headLead`는 줄 맨 앞입니다).
   headTrail = null,
-  // 선생님 자리에서 본 배치 — 자리표를 통째로 180도 돌립니다.
-  // 자리 순서를 뒤집는 대신 그림을 돌리는 이유: 자리는 빈 칸이 섞인 격자라
-  // 배열을 뒤집으면 빈 칸이 엉뚱한 곳으로 갑니다. 그림을 돌리면 빈 칸까지
-  // 있는 그대로 돌아가고, 끌어 옮기기의 자리 번호(index)도 안 흔들립니다.
+  // 선생님 자리에서 본 배치 — 자리 번호를 거꾸로 세워 그립니다(`seatOrder`).
+  // 번호 자체는 그대로 넘기므로 빈 칸은 제자리를 지키고, 끌어 옮기기·자리
+  // 누르기도 같은 번호를 씁니다. 예전처럼 CSS로 그림을 돌리면 글자가
+  // 흐려졌습니다(lib/seats.js).
   flipped = false,
 }) {
   const draggable = !!(onDragStart && onDragEnd && onDropTo);
@@ -153,8 +153,10 @@ export function SeatPickGrid({
           🖐️ {compact ? raisedCount : `질문 ${raisedCount}`}
         </span>
       </div>
-      <SeatGrid className={`attend-seatmap-grid${flipped ? " attend-seatmap-grid--flipped" : ""}`}>
-        {seats.map((uid, i) => {
+      <SeatGrid className="attend-seatmap-grid">
+        {seatOrder(seats.length, flipped).map((i, pos) => {
+          if (i == null) return <div key={`pad-${pos}`} className="attend-seat-pad" aria-hidden="true" />;
+          const uid = seats[i];
           const s = uid ? byUid.get(uid) : null;
           if (!s) {
             return (
