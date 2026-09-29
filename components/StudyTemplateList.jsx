@@ -34,6 +34,7 @@ export default function StudyTemplateList({
   className = "",
   classBoards = [],   // 지금 이 반의 프로젝트 — 복사본이 이미 있는지 봅니다
   usedIn = {},        // 원본 id → 그 원본을 쓰는 다른 반 이름들
+  copiesOf = {},      // 원본 id → 그 원본의 복사본(보관 안 된 내 반) — 예시 코드를 함께 적습니다
   keywords = [],      // 질문방 키워드 목록 — 편집 창의 연계 칩
   highlightId = null, // 방금 만든 원본 — 그 줄을 짚어 둡니다
   readOnly = false,   // 보관된 반 — 시작할 수 없습니다
@@ -182,6 +183,7 @@ export default function StudyTemplateList({
             ...(instanceOf.has(editing.id) && className ? [className] : []),
             ...(usedIn[editing.id] ?? []),
           ]}
+          copies={copiesOf[editing.id] ?? []}
           onClose={() => setEditing(null)}
         />
       )}

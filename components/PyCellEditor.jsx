@@ -78,11 +78,12 @@ export default function PyCellEditor({
   initialHtml = "",
   onChange,
 }) {
-  // 셀 목록 — 처음에는 저장된 글을 풀어서. 빈 칸이면 글 셀 하나로 시작합니다
-  // (빈 셀은 저장되지 않으므로 아무것도 안 쓰면 아무 일도 없습니다).
+  // 셀 목록 — 처음에는 저장된 글을 풀어서. 빈 칸이면 **코드 셀** 하나로
+  // 시작합니다(선생님 요청 — 파이썬 연계 활동은 대개 코드부터 짭니다). 빈 셀은
+  // 저장되지 않으므로 아무것도 안 쓰면 아무 일도 없습니다.
   const [cells, setCells] = useState(() => {
     const got = initCells(initialHtml);
-    return got.length ? got : [{ id: newId(), type: "text", html: "" }];
+    return got.length ? got : [{ id: newId(), type: "code", code: "", output: null }];
   });
   const cellsRef = useRef(cells);
   // 마지막으로 올린(또는 처음 받은) 모양 — 이것과 같으면 올리지 않습니다.
@@ -96,7 +97,13 @@ export default function PyCellEditor({
   }, []);
 
   const [activeId, setActiveId] = useState(null); // 지금 고른 셀(테두리)
-  const [focus, setFocus] = useState(null); // { id, n } — 초점을 줄 코드 셀
+  // { id, n } — 초점을 줄 코드 셀. 빈 칸으로 열었으면 그 첫 코드 셀에 곧바로
+  // 커서를 둡니다(창을 연 것이 곧 쓰려고 연 것이라서요).
+  const [focus, setFocus] = useState(() =>
+    cells.length === 1 && cells[0].type === "code" && !cells[0].code
+      ? { id: cells[0].id, n: 1 }
+      : null
+  );
   const [undo, setUndo] = useState(null); // { cell, index }
   const undoTimer = useRef(null);
   useEffect(() => () => clearTimeout(undoTimer.current), []);
@@ -168,9 +175,9 @@ export default function PyCellEditor({
     const cell = list[index];
     if (runningId === id) { stopPython(); setRunningId(null); }
     const next = list.filter((c) => c.id !== id);
-    // 마지막 셀까지 지우면 빈 글 셀 하나를 남깁니다 — 아무것도 없으면 어디에
+    // 마지막 셀까지 지우면 빈 코드 셀 하나를 남깁니다 — 아무것도 없으면 어디에
     // 쓰는지 알 수 없습니다.
-    commit(next.length ? next : [{ id: newId(), type: "text", html: "" }]);
+    commit(next.length ? next : [{ id: newId(), type: "code", code: "", output: null }]);
     if (activeId === id) setActiveId(null);
     // 빈 셀은 되돌릴 것이 없습니다. 글이 든 셀만 잠깐 '되돌리기'를 띄웁니다 —
     // 되묻는 창보다 빠르고, 잘못 눌렀을 때 살릴 길이 있습니다.
@@ -375,7 +382,7 @@ export default function PyCellEditor({
 
 // 코드 셀 — CodeMirror(실행기와 같은 설정: 문법 강조 · 자동 완성 · 들여쓰기).
 // 비제어입니다: 처음 코드로 한 번 만들고, 고친 것은 onCode로 올리기만 합니다.
-function CodeCell({ code, onCode, onRun, focusN }) {
+function CodeCell({ code, onCode, onRun, focusN, placeholder = "코드를 적고 Ctrl+Enter로 실행해 보세요" }) {
   const hostRef = useRef(null);
   const viewRef = useRef(null);
   const onCodeRef = useRef(onCode);
@@ -391,7 +398,8 @@ function CodeCell({ code, onCode, onRun, focusN }) {
       extensions: [
         Prec.highest(
           keymap.of([
-            { key: "Ctrl-Enter", mac: "Cmd-Enter", run: () => { onRunRef.current(); return true; } },
+            // 돌릴 곳이 없는 칸(예시 코드 쓰는 칸)에서는 Ctrl+Enter를 가로채지 않습니다.
+            { key: "Ctrl-Enter", mac: "Cmd-Enter", run: () => { if (!onRunRef.current) return false; onRunRef.current(); return true; } },
             { key: "Tab", run: acceptCompletion },
           ])
         ),
@@ -401,7 +409,7 @@ function CodeCell({ code, onCode, onRun, focusN }) {
         // 들여쓰기는 네 칸 — 파이썬 관례이고, 이 앱의 코드 블록(Tab = 공백 4칸)과
         // 같습니다. CodeMirror 기본값은 두 칸입니다.
         indentUnit.of("    "),
-        cmPlaceholder("코드를 적고 Ctrl+Enter로 실행해 보세요"),
+        cmPlaceholder(placeholder),
         EditorView.updateListener.of((u) => {
           if (u.docChanged) onCodeRef.current(u.state.doc.toString());
         }),
@@ -420,6 +428,21 @@ function CodeCell({ code, onCode, onRun, focusN }) {
   }, [focusN]);
 
   return <div className="pycell-code" ref={hostRef} />;
+}
+
+// 코드 칸 하나만 따로 — 셀 창과 **같은 편집기**(글꼴 · 들여쓰기 네 칸 · 높이)라
+// 교사가 예시를 적는 칸(ExampleCodePanel)이 학생이 쓰는 칸과 같은 모양입니다.
+// 비제어입니다 — 다른 코드로 갈아 끼우려면 key를 바꾸세요.
+export function PyCodeInput({ code = "", onCode, autoFocus = false, placeholder }) {
+  return (
+    <CodeCell
+      code={code}
+      onCode={onCode}
+      onRun={null}
+      focusN={autoFocus ? 1 : 0}
+      placeholder={placeholder}
+    />
+  );
 }
 
 // 결과 — 방금 돌린 것이 있으면 그 줄들(입력한 값은 옅게), 없으면 저장된 결과.

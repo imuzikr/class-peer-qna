@@ -29,6 +29,7 @@ import { addStudyCard, updateStudyCard, deleteStudyCard, formatTime } from "@/li
 import { useEntryCast } from "@/lib/useEntryCast";
 import { sanitizeHtml, stripHtml, htmlHasImage } from "@/lib/html";
 import { tidyCellsHtml } from "@/lib/pyCells";
+import { exampleOf } from "@/lib/activityExamples";
 import {
   parseActivitySections,
   buildActivityHtml,
@@ -728,10 +729,17 @@ export default function StudyMyActivityCard({
                           __html: sanitizeHtml(shownHtml(activityContents[i])),
                         }}
                       />
+                    ) : cellMode && exampleOf(board, act) ? (
+                      // 선생님 예시 코드 — 빈 칸에만 희미하게(placeholder처럼).
+                      // 학생이 셀 창에서 쓰기 시작하면 그 글이 이 자리를 차지합니다.
+                      <div className="study-mycard-example" aria-label="선생님 예시 코드">
+                        <span className="study-mycard-example-tag">선생님 예시</span>
+                        <pre>{exampleOf(board, act)}</pre>
+                      </div>
                     ) : (
                       <p className="study-mycard-preview-empty">
                         {cellMode
-                          ? "눌러서 글과 코드를 써 주세요."
+                          ? "눌러서 코드와 글을 써 주세요."
                           : "눌러서 내용을 입력해 주세요."}
                       </p>
                     )}
@@ -821,6 +829,7 @@ export default function StudyMyActivityCard({
           index={editingAct}
           title={activityTitles[editingAct] ?? activities[editingAct] ?? ""}
           initialHtml={activityContents[editingAct] ?? ""}
+          example={exampleOf(board, activities[editingAct])}
           onChange={(html, o) => {
             if (o?.flush) flushSoonRef.current = true;
             setActivityContents((prev) => {

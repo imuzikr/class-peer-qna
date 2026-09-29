@@ -77,6 +77,7 @@ import {
 import { sanitizeHtml, stripHtml, htmlHasImage, richHtml } from "@/lib/html";
 import RichTextEditor from "./RichTextEditor";
 import PyCellModal from "./PyCellModal";
+import { exampleOf } from "@/lib/activityExamples";
 import { tidyCellsHtml } from "@/lib/pyCells";
 
 const SAVE_DELAY = 1500;
@@ -424,6 +425,11 @@ export default function LessonTaskPanel({ task, user, onType }) {
                       className="study-card-content ltask-cells-peek"
                       dangerouslySetInnerHTML={{ __html: sanitizeHtml(tidyCellsHtml(text)) }}
                     />
+                  ) : exampleOf(board, acts[i]) ? (
+                    <div className="study-mycard-example ltask-cells-peek" aria-label="선생님 예시 코드">
+                      <span className="study-mycard-example-tag">선생님 예시</span>
+                      <pre>{exampleOf(board, acts[i])}</pre>
+                    </div>
                   ) : (
                     <p className="ltask-cells-empty">아직 안 썼어요.</p>
                   )}
@@ -475,6 +481,7 @@ export default function LessonTaskPanel({ task, user, onType }) {
           key={`ltask-big-${boardId}-${bigIdx}`}
           index={bigIdx}
           title={String(acts[bigIdx] ?? "").trim() || `활동 ${bigIdx + 1}`}
+          example={exampleOf(board, acts[bigIdx])}
           initialHtml={pendingRef.current?.t?.boardId === boardId &&
             Object.prototype.hasOwnProperty.call(pendingRef.current.drafts, bigIdx)
             ? pendingRef.current.drafts[bigIdx]

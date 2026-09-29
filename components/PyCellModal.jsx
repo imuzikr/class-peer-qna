@@ -18,6 +18,12 @@
 // (PyCellEditor 그대로 — 결과가 붙을 때 `{ flush: true }`). 닫을 때 남은 것을
 // 쓰는 것도 부르는 쪽의 일입니다.
 //
+// [선생님 예시 코드가 있으면 두 열] 왼쪽은 그 활동의 예시 코드(읽기만 —
+// lib/activityExamples.js), 오른쪽은 학생이 쓰는 셀. 학생이 쓰는 동안 예시가
+// 가려지지 않아야 따라 짜 볼 수 있습니다. 두 열이 저마다 구릅니다. 예시가
+// 없으면 지금까지처럼 한 기둥입니다. 좁은 화면(900px 아래)에서는 예시가 위에
+// 낮게 서고 셀이 그 아래입니다.
+//
 // [Esc] 창을 닫습니다. 다만 CodeMirror가 먼저 쓴 Esc(자동 완성 닫기 따위)는
 // 비켜 줍니다 — 안 그러면 완성 목록을 닫으려다 창이 닫힙니다.
 // =============================================================
@@ -33,7 +39,9 @@ export default function PyCellModal({
   onChange,
   onClose,
   status = null, // 머리의 저장 알약 — "saving" | "saved" | "error" | 그 밖은 안 그림
+  example = "",  // 선생님 예시 코드(글자 그대로) — 있으면 왼쪽 열
 }) {
+  const hasExample = !!String(example ?? "").trim();
   useEffect(() => {
     function onKey(e) {
       if (e.key !== "Escape" || e.defaultPrevented) return;
@@ -48,7 +56,7 @@ export default function PyCellModal({
   return createPortal(
     <div className="modal-backdrop study-act-backdrop" {...backdropClose(onClose)}>
       <div
-        className="modal study-act-modal study-act-modal--cells"
+        className={`modal study-act-modal study-act-modal--cells${hasExample ? " study-act-modal--ex" : ""}`}
         role="dialog"
         aria-modal="true"
         aria-label={`활동 ${index + 1} 쓰기`}
@@ -68,9 +76,24 @@ export default function PyCellModal({
           )}
           <button className="btn-close" onClick={onClose} aria-label="닫기">×</button>
         </div>
-        <div className="study-act-modal-body study-act-cells-body">
-          <PyCellEditor initialHtml={initialHtml} onChange={onChange} />
-        </div>
+        {hasExample ? (
+          <div className="study-act-modal-body pycell-ex-grid">
+            <section className="pycell-ex-side" aria-label="선생님 예시 코드">
+              <div className="pycell-ex-head">
+                <span className="pycell-kind">예시</span>
+                <strong>선생님 예시 코드</strong>
+              </div>
+              <pre className="pycell-ex-code">{example}</pre>
+            </section>
+            <div className="pycell-ex-work study-act-cells-body">
+              <PyCellEditor initialHtml={initialHtml} onChange={onChange} />
+            </div>
+          </div>
+        ) : (
+          <div className="study-act-modal-body study-act-cells-body">
+            <PyCellEditor initialHtml={initialHtml} onChange={onChange} />
+          </div>
+        )}
       </div>
     </div>,
     document.body

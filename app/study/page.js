@@ -509,6 +509,20 @@ function StudyPageInner() {
     return out;
   }, [admin, boards, classId, myClassesAll]);
 
+  // 원본 id → 그 원본의 복사본(내가 맡은 **보관 안 된** 반만 — 보관된 반은
+  // 규칙이 쓰기를 막습니다). 원본 편집 창이 예시 코드를 이미 가져간 반에도
+  // 함께 적는 데 씁니다(StudyTemplateEditModal). 받아 둔 보드로 셉니다(읽기 0).
+  const templateCopies = useMemo(() => {
+    if (!admin) return {};
+    const live = new Set(myClassesAll.filter((c) => !c.archived).map((c) => c.id));
+    const out = {};
+    boards.forEach((b) => {
+      if (!b.templateId || !live.has(b.classId)) return;
+      (out[b.templateId] ??= []).push(b);
+    });
+    return out;
+  }, [admin, boards, myClassesAll]);
+
   // 수업 관리 창의 '반별 현황'(오른쪽 열) — 이미 구독해 둔 반·보드·원본을
   // 그대로 넘깁니다(읽기 0). 보관된 반은 뺍니다(지난 학기라 열이 길어지기만
   // 합니다). 다른 반의 프로젝트를 누르면 그 반으로 옮겨 가 엽니다.
@@ -1484,6 +1498,7 @@ function StudyPageInner() {
                 className={currentClass.name ?? ""}
                 classBoards={classBoards}
                 usedIn={templateUsedIn}
+                copiesOf={templateCopies}
                 keywords={keywordNames}
                 highlightId={newTemplateId}
                 readOnly={!!currentClass.archived}

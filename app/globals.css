@@ -29928,3 +29928,182 @@ h4.attendance-seat-help { margin-top: 16px; }
 .qmark-read-pick::before { content: "☐"; flex-shrink: 0; }
 .qmark-read-pick.on { color: var(--text); font-weight: 700; }
 .qmark-read-pick.on::before { content: "☑"; color: #2f7a4b; }
+
+/* ── 활동 예시 코드 (components/ActivityExamples.jsx · lib/activityExamples.js) ──
+   만들기 창 · 원본 편집 창의 활동 줄마다 '예시 코드' 단추 → 창 오른쪽에서
+   예시 칸이 미끄러져 나옵니다. 창과 예시 칸이 한 줄(.act-ex-shell)에 서서,
+   예시 칸의 폭이 0 → 452px로 벌어지는 동안 둘이 함께 가운데를 다시 잡습니다.
+   길이 0.25s는 옆에서 나오는 다른 서랍(수업 노트 · 파이썬 실행기)과 같은 값. */
+.act-ex-shell {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  width: 100%;
+  max-height: 85vh;
+  position: relative;
+}
+.act-ex-shell > .modal {
+  flex: 0 1 520px;
+  min-width: 0;
+}
+.act-ex-panel {
+  flex: 0 0 auto;
+  width: 0;
+  max-height: 85vh;
+  overflow: hidden;
+  transition: width 0.25s ease;
+}
+.act-ex-shell.open > .act-ex-panel { width: 452px; }
+.act-ex-inner {
+  width: 440px;
+  height: 100%;
+  margin-left: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 20px;
+  background: #fff;
+  border-radius: 20px;
+  box-sizing: border-box;
+  transform: translateX(-24px);
+  opacity: 0;
+  transition: transform 0.25s ease, opacity 0.2s ease;
+}
+.act-ex-shell.open .act-ex-inner { transform: none; opacity: 1; }
+.act-ex-head { display: flex; align-items: center; gap: 8px; }
+.act-ex-head strong {
+  flex: 1;
+  min-width: 0;
+  font-size: 15px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.act-ex-hint {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--text-sub);
+}
+.act-ex-hint b { color: var(--text); }
+/* 편집기가 남는 높이를 씁니다(셀 창의 코드 칸과 같은 편집기 — .pycell-code) */
+.act-ex-editor { flex: 1; min-height: 0; overflow-y: auto; }
+.act-ex-editor .pycell-code .cm-editor { max-height: none; }
+.act-ex-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.act-ex-count { font-size: 12px; color: var(--text-faint); font-variant-numeric: tabular-nums; }
+.act-ex-count.warn { color: #c0392b; }
+/* 활동 줄의 '예시 코드' 단추 — 꺼짐은 옅게, 적어 둔 것은 점, 여는 중은 살구 */
+.act-ex-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 32px;
+  padding: 0 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.act-ex-btn:hover { border-color: var(--primary); color: var(--primary-dark); }
+.act-ex-btn.has { color: var(--dark); }
+.act-ex-btn.on {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  color: var(--primary-dark);
+}
+.act-ex-dot { width: 7px; height: 7px; border-radius: 50%; background: #2f7a4b; }
+/* 좁은 화면 — 창 곁에 설 자리가 없어 창 위에 겹쳐 오른쪽에서 나옵니다 */
+@media (max-width: 1060px) {
+  .act-ex-panel {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 2;
+  }
+  .act-ex-shell.open > .act-ex-panel { width: min(440px, 100%); }
+  .act-ex-inner {
+    width: min(440px, 100vw - 48px);
+    margin-left: 0;
+    box-shadow: -8px 0 28px rgba(38, 38, 37, 0.18);
+  }
+}
+
+/* 학생 카드의 빈 활동 칸 — 선생님 예시 코드를 희미하게(placeholder처럼) */
+.study-mycard-example {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+  overflow: hidden;
+}
+.study-mycard-example-tag {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-faint);
+}
+.study-mycard-example pre {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--text-faint);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow: hidden;
+}
+
+/* 셀 창 두 열 — 왼쪽 선생님 예시(읽기만) · 오른쪽 학생이 쓰는 셀.
+   두 열이 저마다 구릅니다(머리줄은 제자리). */
+.modal.study-act-modal.study-act-modal--ex { width: min(1320px, 96vw); }
+.pycell-ex-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
+  gap: 18px;
+}
+.pycell-ex-side {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--bg-deep);
+}
+.pycell-ex-head { display: flex; align-items: center; gap: 8px; min-height: 28px; }
+.pycell-ex-head strong { font-size: 14px; color: var(--text-sub); }
+.pycell-ex-side .pycell-kind { background: #fff; border-color: #fff; }
+.pycell-ex-code {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 12px 14px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-sub);
+  white-space: pre;
+  tab-size: 4;
+}
+.pycell-ex-work {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 2px 4px 8px;
+}
+@media (max-width: 900px) {
+  .pycell-ex-grid {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 32%) minmax(0, 1fr);
+  }
+}

@@ -13,7 +13,8 @@
 // · '연계하기' 칸 — 두 누름 단추가 한 줄에 반씩 섭니다
 //   (ProjectLinkOptions — 편집 창과 같은 조각).
 //     - 키워드와 연계하기: 켜면 질문방 키워드 칩을 복수로 선택
-//     - 파이썬 실행기와 연계하기: 학생 카드 활동 칸에 '파이썬 실행기' 단추
+//     - 파이썬 실행기와 연계하기: 학생 카드의 활동 칸을 셀 창에서 씁니다 —
+//       켜면 활동 줄마다 '예시 코드' 단추가 섭니다(components/ActivityExamples.jsx)
 //
 // [여기서 만드는 것은 **원본**입니다] 수업 관리의 프로젝트 탭에서 열면 반에는
 // 아직 아무것도 안 생깁니다. 공부방 '프로젝트 가져오기' 창에서 열면
@@ -32,6 +33,8 @@ import { IconIndividual, IconGroup } from "./StatusIcons";
 import { findSameNameProject } from "@/lib/projectNames";
 import ProjectNameDupModal from "./ProjectNameDupModal";
 import ProjectLinkOptions from "./ProjectLinkOptions";
+import { ActivityListField, ExampleCodePanel } from "./ActivityExamples";
+import { examplesToMap } from "@/lib/activityExamples";
 
 export default function StudyProjectForm({
   keywords = [],
@@ -55,17 +58,15 @@ export default function StudyProjectForm({
   const [pyLinked, setPyLinked] = useState(false);
   // 활동 — 빈 칸 하나로 시작해, 교사가 바로 첫 활동을 적을 수 있게 합니다.
   const [activities, setActivities] = useState([""]);
+  // 활동 줄과 나란한 예시 코드 — 저장할 때 이름 → 코드 맵으로(lib/activityExamples.js)
+  const [examples, setExamples] = useState([""]);
+  const [exIdx, setExIdx] = useState(null);
   const [saving, setSaving] = useState(false);
   // 같은 이름이 있을 때 — { name, hit }
   const [dup, setDup] = useState(null);
   const titleRef = useRef(null);
 
-  function setActivityAt(i, value) {
-    setActivities((prev) => prev.map((a, j) => (j === i ? value : a)));
-  }
-  function removeActivityAt(i) {
-    setActivities((prev) => (prev.length === 1 ? [""] : prev.filter((_, j) => j !== i)));
-  }
+  const withExamples = pyLinked && activityType !== "group";
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -88,6 +89,7 @@ export default function StudyProjectForm({
         activities: acts,
         // 모둠 프로젝트에는 아직 안 씁니다(ProjectLinkOptions 머리 주석)
         pyLinked: pyLinked && activityType !== "group",
+        activityExamples: examplesToMap(activities, examples),
       };
       if (openInClass && classId) {
         const { templateId, boardId } = await createStudyProjectInClass(me, classId, fields);
@@ -104,7 +106,11 @@ export default function StudyProjectForm({
 
   return (
     <div className="modal-backdrop" {...backdropClose(onClose)}>
-      <div className="modal modal-study-board" onClick={(e) => e.stopPropagation()}>
+      <div
+        className={`act-ex-shell${withExamples && exIdx != null ? " open" : ""}`}
+        onClick={(e) => e.stopPropagation()}
+      >
+      <div className="modal modal-study-board">
         <div className="modal-head">
           <h3>➕ 새 프로젝트 만들기</h3>
           <button className="btn-close" onClick={onClose} aria-label="닫기">
@@ -173,34 +179,15 @@ export default function StudyProjectForm({
               <span>활동</span>
               <small>학생 개인 카드에 이 순서대로 입력 칸이 만들어져요. (선택)</small>
             </div>
-            <div className="study-activity-list">
-              {activities.map((act, i) => (
-                <div key={i} className="study-activity-item">
-                  <span className="study-activity-label">활동 {i + 1}</span>
-                  <input
-                    className="study-activity-input"
-                    value={act}
-                    onChange={(e) => setActivityAt(i, e.target.value)}
-                    placeholder={`활동 ${i + 1} 내용을 입력하세요`}
-                  />
-                  <button
-                    type="button"
-                    className="study-activity-del"
-                    onClick={() => removeActivityAt(i)}
-                    aria-label={`활동 ${i + 1} 삭제`}
-                  >
-                    ✕
-                  </button>
-                </div>
-              ))}
-            </div>
-            <button
-              type="button"
-              className="study-activity-add"
-              onClick={() => setActivities((prev) => [...prev, ""])}
-            >
-              + 활동 추가
-            </button>
+            <ActivityListField
+              activities={activities}
+              onActivities={setActivities}
+              examples={examples}
+              onExamples={setExamples}
+              withExamples={withExamples}
+              exIdx={exIdx}
+              onExIdx={setExIdx}
+            />
           </div>
 
           {/* 누르기 전에 무엇이 생기는지 말해 둡니다 — 예전에는 누르면 곧장
@@ -244,6 +231,16 @@ export default function StudyProjectForm({
             }}
           />
         )}
+      </div>
+      {withExamples && (
+        <ExampleCodePanel
+          index={exIdx}
+          activityName={exIdx != null ? String(activities[exIdx] ?? "").trim() : ""}
+          code={exIdx != null ? examples[exIdx] ?? "" : ""}
+          onCode={(v) => setExamples((prev) => prev.map((x, j) => (j === exIdx ? v : x)))}
+          onClose={() => setExIdx(null)}
+        />
+      )}
       </div>
     </div>
   );
