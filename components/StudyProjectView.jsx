@@ -642,6 +642,15 @@ export default function StudyProjectView({
             ? (i) => onOpenPython?.(board.id, i)
             : null
         }
+        // 교사 안내 카드에는 같은 단추를 **보여 주기만** 합니다 — 학생에게
+        // 예시를 띄울 때 학생 카드와 같은 모습이어야 해서요. 교사에게는 서랍이
+        // 없어 눌러도 아무 일이 없습니다.
+        pythonDemo={
+          isTeacher &&
+          detailSeat.isTeacherCard &&
+          !!board.pyLinked &&
+          board.activityType !== "group"
+        }
         relatedQuestions={relatedQuestions}
         // 활동 칸 머리의 과일 단추 — 학생 카드 격자의 단추와 **같은 값·같은
         // 길**입니다(`classRoster`의 누적 개수 → 델타로 주기). 교사 카드와

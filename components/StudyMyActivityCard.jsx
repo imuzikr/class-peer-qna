@@ -93,6 +93,11 @@ export default function StudyMyActivityCard({
   // 옵니다(StudyProjectView가 거릅니다: 모둠 프로젝트·교사·남의 카드는 null).
   // 누르면 그 활동을 보낼 곳으로 잡은 실행기 서랍이 열립니다.
   onOpenPython = null,
+  // 교사 안내 카드에 **보여 주기만 하는** '파이썬 실행기' 단추 — 학생에게
+  // 예시를 띄울 때 학생 카드와 같은 모습이어야 해서 답니다. 교사에게는 수업
+  // 노트 서랍이 없어 눌러도 아무 일이 없고, 칸도 지금까지처럼 교사가 크게
+  // 쓰기로 씁니다(drawerOnly가 아님).
+  pythonDemo = false,
 }) {
   const isNew = card === null;
   const activities = board.activities ?? [];
@@ -703,16 +708,21 @@ export default function StudyMyActivityCard({
                         (위 drawerOnly). 이름은 그대로 '파이썬 실행기'입니다 —
                         학생에게는 '여기서 파이썬을 돌린다'가 그 이름으로 익어
                         있습니다. */}
-                    {onOpenPython && (
+                    {(onOpenPython || pythonDemo) && (
                       <button
                         type="button"
                         className="study-mycard-py"
                         onClick={(e) => {
                           e.stopPropagation();
-                          onOpenPython(i);
+                          onOpenPython?.(i);
                         }}
                         onKeyDown={(e) => e.stopPropagation()}
-                        title="오른쪽 서랍에 이 활동을 열어 코드를 쓰고 돌려 봐요"
+                        aria-disabled={onOpenPython ? undefined : "true"}
+                        title={
+                          onOpenPython
+                            ? "오른쪽 서랍에 이 활동을 열어 코드를 쓰고 돌려 봐요"
+                            : "보여 주기용 단추예요 — 학생 화면에서는 오른쪽 서랍에 이 활동을 열어 코드를 쓰고 돌려 봅니다(선생님 화면에는 서랍이 없어요)"
+                        }
                       >
                         <IconPythonRunner size={16} /> 파이썬 실행기
                       </button>
