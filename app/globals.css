@@ -27955,9 +27955,19 @@ ul.checklist > li.done {
   color: var(--primary-dark);
   cursor: pointer;
 }
-.pycell-add { display: flex; gap: 6px; }
+/* ＋ 글 · ＋ 코드 — **정확히 반씩**(격자 1fr 1fr)이고, 셀 상자와 **같은 폭**에
+   섭니다. 셀은 고른 표시 띠(3px) + 여백(8px)만큼 안으로 들어가 있어, 이 줄이
+   그만큼 왼쪽으로 삐져나오면 왼쪽 단추만 커 보였습니다(선생님 지적).
+   .pycell의 padding-left · border-left를 고치면 이 11px도 함께 고치세요. */
+.pycell-add {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-left: 11px;
+}
 .pycell-add button {
-  flex: 1 1 0;
+  box-sizing: border-box;
+  min-width: 0;
   padding: 7px 10px;
   border: 1px dashed var(--border);
   border-radius: 10px;
