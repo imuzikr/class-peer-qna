@@ -63,7 +63,15 @@
 // =============================================================
 import { useEffect, useRef, useState } from "react";
 
-const LIFE_MS = 3200;
+// 4.2초 — 3.2초에서 1초 늘렸습니다(선생님 요청). 늘린 만큼 하늘이 비지 않게
+// 발사마다 1초 뒤 작은 뒤풀이(`ENCORE_MS`)를 함께 쏩니다. 뱃지의 사라지는
+// 동작(globals.css `.reward-cheer-badge`의 4.2s)도 **같은 값**이어야 합니다.
+const LIFE_MS = 4200;
+// 뒤풀이 발사가 앞 발사보다 늦는 시간. 첫 발사의 불티가 한풀 꺾일 무렵 다음
+// 발이 솟아 끝까지 하늘을 채웁니다. 1000으로 두면 뒤풀이가 첫 발사에 겹쳐
+// 3.4초에 불티가 다 지고 마지막 0.8초는 빈 밤하늘이었습니다(실측). 1800이면
+// 불티가 4.1초까지 남아 밤하늘과 함께 걷힙니다.
+const ENCORE_MS = 1800;
 // 끝에서 옅어지는 구간. 캔버스의 `fade`와 밤하늘의 transition이 **같은 값**을
 // 봐야 둘이 함께 걷힙니다(globals.css의 `.reward-cheer-sky` 참고).
 const FADE_MS = 640;
@@ -220,17 +228,29 @@ export default function RewardCelebration({ amount = 0, onDone }) {
         1,
         Math.min(volleySize(n, first), MAX_LIVE_SHELLS - shells.length)
       );
+      // 뒤풀이 — 본 발사의 절반, ENCORE_MS 뒤. 천장을 넘기지 않는 만큼만.
+      const encore = Math.min(
+        Math.ceil(count / 2),
+        Math.max(0, MAX_LIVE_SHELLS - shells.length - count)
+      );
 
       // 발사 위치를 그냥 난수로 뽑았더니 열한 발이 오른쪽에 몰리고 왼쪽 절반이
       // 비는 일이 있었습니다(실측). 폭을 발수만큼의 띠로 나눠 띠마다 한 발씩
       // 두고, 그 순서를 섞습니다 — 고르게 퍼지되 좌에서 우로 훑는 것처럼
-      // 보이지는 않습니다. 띠 안에서는 여전히 아무 자리나 잡습니다.
-      const slots = Array.from({ length: count }, (_, i) => (i + Math.random()) / count);
-      for (let i = slots.length - 1; i > 0; i -= 1) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [slots[i], slots[j]] = [slots[j], slots[i]];
-      }
-      for (let i = 0; i < count; i += 1) {
+      // 보이지는 않습니다. 띠 안에서는 여전히 아무 자리나 잡습니다. 뒤풀이 발도
+      // 제 띠를 따로 나눠 가집니다.
+      const shuffled = (k) => {
+        const s = Array.from({ length: k }, (_, i) => (i + Math.random()) / k);
+        for (let i = s.length - 1; i > 0; i -= 1) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [s[i], s[j]] = [s[j], s[i]];
+        }
+        return s;
+      };
+      const slots = [...shuffled(count), ...shuffled(encore)];
+      for (let i = 0; i < slots.length; i += 1) {
+        const late = i >= count; // 뒤풀이 발
+        const k = late ? i - count : i;
         // 가운데 76% 안에서 올라갑니다(가장자리에서 터지면 절반이 잘립니다).
         const x = w * (0.12 + slots[i] * 0.76);
         const apex = h * (0.12 + Math.random() * 0.36);
@@ -247,7 +267,8 @@ export default function RewardCelebration({ amount = 0, onDone }) {
           color: COLORS[colorSeq % COLORS.length],
           inner: COLORS[(colorSeq + 3) % COLORS.length], // 이중 고리의 안쪽 색
           kind: KINDS[Math.floor(Math.random() * KINDS.length)],
-          at: now + i * 88 + Math.random() * 70, // 발마다 시차 — 쉬지 않고 이어지게
+          // 발마다 시차 — 쉬지 않고 이어지게. 뒤풀이 발은 ENCORE_MS 뒤부터.
+          at: now + (late ? ENCORE_MS : 0) + k * 88 + Math.random() * 70,
           burst: false,
         });
       }

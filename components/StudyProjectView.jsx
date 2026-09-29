@@ -651,6 +651,9 @@ export default function StudyProjectView({
           !!board.pyLinked &&
           board.activityType !== "group"
         }
+        // 활동 칸 머리의 여닫기 — 교사가 어느 카드(안내 카드 · 학생 카드)를
+        // 보든 섭니다. 보드의 activityLocks를 고치므로 카드 격자 위 칩과 같은 값입니다.
+        onToggleActivityLock={isTeacher ? toggleActivityLock : null}
         relatedQuestions={relatedQuestions}
         // 활동 칸 머리의 과일 단추 — 학생 카드 격자의 단추와 **같은 값·같은
         // 길**입니다(`classRoster`의 누적 개수 → 델타로 주기). 교사 카드와

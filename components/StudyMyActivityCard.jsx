@@ -33,6 +33,7 @@ import {
   parseActivitySections,
   buildActivityHtml,
   isActivityLocked,
+  isTeacherAuthoredCard,
   boardMaterials,
   materialLabel,
   DONE_MIN_CHARS,
@@ -44,7 +45,14 @@ import ZoomableImage from "./ZoomableImage";
 import UploadProgress from "./UploadProgress";
 import StudyQuestionPeek from "./StudyQuestionPeek";
 import { nextFruit } from "./RewardFruits";
-import { IconAsk, IconSolved, IconLock, IconTrash, IconPythonRunner } from "./StatusIcons";
+import {
+  IconAsk,
+  IconSolved,
+  IconLock,
+  IconLockState,
+  IconTrash,
+  IconPythonRunner,
+} from "./StatusIcons";
 
 const FILE_EXTS = {
   html: "HTML", htm: "HTML", txt: "TXT", csv: "CSV",
@@ -98,6 +106,10 @@ export default function StudyMyActivityCard({
   // 노트 서랍이 없어 눌러도 아무 일이 없고, 칸도 지금까지처럼 교사가 크게
   // 쓰기로 씁니다(drawerOnly가 아님).
   pythonDemo = false,
+  // (활동 번호, 잠글까) => Promise — 교사가 카드를 볼 때 활동 칸 머리의
+  // 여닫기 단추. 보드의 activityLocks를 고치므로 **반 전체 학생 카드**에 한꺼번에
+  // 걸립니다(카드 격자 위 '활동 열기' 칩과 같은 값). 없으면 단추도 안 섭니다.
+  onToggleActivityLock = null,
 }) {
   const isNew = card === null;
   const activities = board.activities ?? [];
@@ -586,7 +598,10 @@ export default function StudyMyActivityCard({
       <div className="raft-grid study-mycard-grid">
         {activities.map((act, i) => {
           const actLocked = isActivityLocked(board, i);
-          const readOnly = !canEdit || actLocked;
+          // 활동 잠금은 **학생에게** 거는 것입니다 — 선생님의 안내 카드까지
+          // 막으면, 잠가 둔 채 다음 활동의 예시를 미리 써 둘 수가 없습니다.
+          const readOnly =
+            !canEdit || (actLocked && !(isTeacher && isTeacherAuthoredCard(card)));
           const n = stripHtml(activityContents[i] ?? "").length;
           const done = n >= DONE_MIN_CHARS;
           return (
@@ -617,7 +632,9 @@ export default function StudyMyActivityCard({
                     </button>
                   )}
                 </span>
-                {actLocked ? (
+                {/* 여닫기 단추가 있으면 잠김은 그 단추가 말하므로 여기는
+                    글자 수 그대로 — 같은 사실을 한 줄에 두 번 적지 않습니다. */}
+                {actLocked && !onToggleActivityLock ? (
                   <span className="activity-dash-lock">
                     <IconLock size={12} /> 잠김
                   </span>
@@ -626,24 +643,49 @@ export default function StudyMyActivityCard({
                     {n}/{DONE_MIN_CHARS}자
                   </span>
                 )}
-                {/* 교사 — 이 활동만 학급 전체 화면에 띄우기 */}
-                {isTeacher && cast.canCast && (
-                  <button
-                    type="button"
-                    className={`btn-ghost dash-cast-btn${cast.isCasting(castUid, i) ? " on" : ""}`}
-                    onClick={() => cast.cast({ uid: castUid, key: i }, buildCastPayload(i))}
-                    title={
-                      cast.isCasting(castUid, i)
-                        ? "학생 화면을 원래대로 되돌립니다"
-                        : "이 활동을 학급 전체 화면에 띄웁니다"
-                    }
-                  >
-                    {cast.isCasting(castUid, i) && (
-                      <span className="broadcast-live-dot" aria-hidden="true" />
-                    )}
-                    {cast.isCasting(castUid, i) ? "발표 종료" : "발표 모드"}
-                  </button>
-                )}
+                {/* 여닫기 · 발표 모드는 한 덩이로 오른쪽 끝에 섭니다(margin-left:
+                    auto). 칸이 좁으면 이 덩이째 다음 줄 오른쪽으로 내려갑니다. */}
+                <span className="study-mycard-col-tools">
+                  {/* 교사 — 이 활동 열기/잠그기. 반 전체 학생 카드에 걸립니다
+                      (카드 격자 위 '활동 열기' 칩과 같은 값). 그림(자물쇠)과
+                      바탕색이 지금 상태, 툴팁이 할 일입니다. 글자를 안 다는
+                      까닭: 양옆 패널이 서면 칸이 180px 남짓이라 '열림' 두 글자만
+                      더해도 이 줄이 칸 밖으로 35px 넘쳤습니다(실측 1440px). */}
+                  {onToggleActivityLock && (
+                    <button
+                      type="button"
+                      className={`btn-ghost study-mycard-lock${actLocked ? " is-locked" : ""}`}
+                      onClick={() => onToggleActivityLock(i, !actLocked)}
+                      aria-pressed={actLocked}
+                      aria-label={actLocked ? "활동 잠김 — 눌러서 열기" : "활동 열림 — 눌러서 잠그기"}
+                      title={
+                        actLocked
+                          ? "눌러서 이 활동을 엽니다 — 학생들이 쓸 수 있게 됩니다"
+                          : "눌러서 이 활동을 잠급니다 — 학생 카드 모두에서 이 칸이 읽기 전용이 됩니다"
+                      }
+                    >
+                      <IconLockState locked={actLocked} size={15} />
+                    </button>
+                  )}
+                  {/* 교사 — 이 활동만 학급 전체 화면에 띄우기 */}
+                  {isTeacher && cast.canCast && (
+                    <button
+                      type="button"
+                      className={`btn-ghost dash-cast-btn${cast.isCasting(castUid, i) ? " on" : ""}`}
+                      onClick={() => cast.cast({ uid: castUid, key: i }, buildCastPayload(i))}
+                      title={
+                        cast.isCasting(castUid, i)
+                          ? "학생 화면을 원래대로 되돌립니다"
+                          : "이 활동을 학급 전체 화면에 띄웁니다"
+                      }
+                    >
+                      {cast.isCasting(castUid, i) && (
+                        <span className="broadcast-live-dot" aria-hidden="true" />
+                      )}
+                      {cast.isCasting(castUid, i) ? "발표 종료" : "발표 모드"}
+                    </button>
+                  )}
+                </span>
               </header>
 
               {readOnly ? (
