@@ -3381,6 +3381,40 @@ button.footer-link:hover {
   padding: 28px;
 }
 
+/* 창의 스크롤바 — 둥근 모서리를 깎지 않게.
+   브라우저 기본 스크롤바는 창의 border-radius에 안 잘려, 회색 궤도와 위아래
+   화살표(▲▼)가 오른쪽 두 모서리를 네모로 채웠습니다(선생님 지적 — 원본 편집 ·
+   반 관리하기 창). 궤도를 비우고 **위아래를 모서리 둥글기만큼 띄워**
+   (margin 18px ≈ radius 20px) 손잡이가 모서리에 닿지 않게 하고, 화살표를
+   걷고, 손잡이를 둥근 알약으로 그립니다.
+   **`.modal`에 scrollbar-width·scrollbar-color를 주지 마세요** — 크롬(121~)은
+   그 둘이 있으면 아래 ::-webkit-scrollbar 규칙을 통째로 무시해, 궤도 띄우기가
+   사라지고 모서리가 다시 깎입니다. 파이어폭스는 webkit 의사요소를 모르므로
+   그쪽에만 표준 속성을 줍니다(@supports). */
+.modal::-webkit-scrollbar { width: 12px; }
+.modal::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 18px 0;
+}
+.modal::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
+.modal::-webkit-scrollbar-corner { background: transparent; }
+.modal::-webkit-scrollbar-thumb {
+  background: #d9d5ca;
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+.modal::-webkit-scrollbar-thumb:hover {
+  background: #bdb8ab;
+  background-clip: padding-box;
+}
+@supports not selector(::-webkit-scrollbar) {
+  .modal {
+    scrollbar-width: thin;
+    scrollbar-color: #d9d5ca transparent;
+  }
+}
+
 .modal-head {
   display: flex;
   justify-content: space-between;
