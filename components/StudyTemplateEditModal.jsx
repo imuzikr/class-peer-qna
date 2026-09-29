@@ -31,6 +31,7 @@ import { createPortal } from "react-dom";
 import { updateStudyTemplate } from "@/lib/store";
 import { backdropClose } from "@/lib/modal";
 import { projectNameKey } from "@/lib/projectNames";
+import { withAckTimeout, saveErrorMessage } from "@/lib/ackTimeout";
 import ProjectLinkOptions from "./ProjectLinkOptions";
 
 // 복사본 편집 창(StudyProjectEditModal)과 같은 길이 — 두 자리가 다르면 한쪽에서
@@ -84,18 +85,23 @@ export default function StudyTemplateEditModal({
     setSaving(true);
     setError("");
     try {
-      await updateStudyTemplate(template.id, {
-        title: trimmed,
-        description: description.trim(),
-        activities: activities.map((a) => a.trim()).filter(Boolean),
-        keywords: kwOn ? selectedKeywords : [],
-        pyLinked: pyOn && !isGroup,
-      });
+      // 서버 답을 끝없이 기다리지 않습니다 — 답이 안 오면 단추가 '저장 중…'에
+      // 멈춘 채 아무 말도 없었습니다(실제 신고, lib/ackTimeout.js).
+      await withAckTimeout(
+        updateStudyTemplate(template.id, {
+          title: trimmed,
+          description: description.trim(),
+          activities: activities.map((a) => a.trim()).filter(Boolean),
+          keywords: kwOn ? selectedKeywords : [],
+          pyLinked: pyOn && !isGroup,
+        })
+      );
       onSaved?.();
       onClose?.();
     } catch (err) {
       // 실패하면 창을 닫지 않습니다 — 고친 것을 잃지 않게.
-      setError(`저장하지 못했어요: ${err?.message ?? "알 수 없는 오류"}`);
+      console.warn("[공부방] 원본 저장:", err?.code, err?.message);
+      setError(saveErrorMessage(err));
     } finally {
       setSaving(false);
     }

@@ -40,6 +40,7 @@
 // =============================================================
 import { useState } from "react";
 import { updateStudyBoard, deleteStudyBoard, syncTemplateLinks } from "@/lib/store";
+import { withAckTimeout, saveErrorMessage } from "@/lib/ackTimeout";
 import { backdropClose } from "@/lib/modal";
 import ConfirmModal from "./ConfirmModal";
 import { IconTrash } from "./StatusIcons";
@@ -87,18 +88,23 @@ export default function StudyProjectEditModal({
         keywords: kwOn ? selectedKeywords : [],
         pyLinked: pyOn && !isGroup,
       };
-      await updateStudyBoard(board.id, {
-        title: trimmed,
-        description: description.trim(),
-        ...links,
-      });
+      // 서버 답을 끝없이 기다리지 않습니다(lib/ackTimeout.js — 원본 편집 창과 같음).
+      await withAckTimeout(
+        updateStudyBoard(board.id, {
+          title: trimmed,
+          description: description.trim(),
+          ...links,
+        })
+      );
       // 원본에도 — 다음에 불러오는 반부터 고친 연계로 옵니다(실패해도 반은 그대로).
-      await syncTemplateLinks(board, links);
+      // 딸린 일이라 답이 늦어도 창을 붙잡지 않습니다(쓰기는 줄에 남아 나중에 나감).
+      await withAckTimeout(syncTemplateLinks(board, links)).catch(() => {});
       onSaved?.();
       onClose?.();
     } catch (err) {
       // 실패하면 창을 닫지 않습니다 — 쓴 글을 잃지 않게.
-      setError(`저장하지 못했어요: ${err?.message ?? "알 수 없는 오류"}`);
+      console.warn("[공부방] 프로젝트 저장:", err?.code, err?.message);
+      setError(saveErrorMessage(err));
     } finally {
       setSaving(false);
     }
