@@ -20,7 +20,9 @@
 //
 // [선생님 예시 코드가 있으면 두 열] 왼쪽은 그 활동의 예시 코드(읽기만 —
 // lib/activityExamples.js), 오른쪽은 학생이 쓰는 셀. 학생이 쓰는 동안 예시가
-// 가려지지 않아야 따라 짜 볼 수 있습니다. 두 열이 저마다 구릅니다. 예시가
+// 가려지지 않아야 따라 짜 볼 수 있습니다. 두 열이 저마다 구릅니다.
+// 이름표는 두 열 다 **블록 아래**라, 예시 코드와 첫 셀이 같은 높이에서
+// 시작합니다. 예시가
 // 없으면 지금까지처럼 한 기둥입니다. 좁은 화면(900px 아래)에서는 예시가 위에
 // 낮게 서고 셀이 그 아래입니다.
 //
@@ -79,11 +81,12 @@ export default function PyCellModal({
         {hasExample ? (
           <div className="study-act-modal-body pycell-ex-grid">
             <section className="pycell-ex-side" aria-label="선생님 예시 코드">
+              <pre className="pycell-ex-code">{example}</pre>
+              {/* 이름표는 아래 — 오른쪽 셀과 같은 자리(셀 아래 줄 왼쪽) */}
               <div className="pycell-ex-head">
                 <span className="pycell-kind">예시</span>
                 <strong>선생님 예시 코드</strong>
               </div>
-              <pre className="pycell-ex-code">{example}</pre>
             </section>
             <div className="pycell-ex-work study-act-cells-body">
               <PyCellEditor initialHtml={initialHtml} onChange={onChange} />

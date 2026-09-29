@@ -27855,25 +27855,20 @@ ul.checklist > li.done {
 
 /* ── 파이썬 연계 활동의 셀 편집기(components/PyCellEditor.jsx) ──
    셀마다 테두리를 두르지 않습니다 — 글 셀의 서식 에디터와 코드 셀의 코드 칸이
-   이미 제 테두리가 있어, 한 겹 더 두르면 380px 서랍에서 선이 겹겹이 섭니다.
-   고른 셀은 **왼쪽 띠**로 짚습니다(코랩과 같은 모양). '＋ 글 / ＋ 코드'가 그
-   셀 바로 아래에 넣습니다. */
-.pycells { display: flex; flex-direction: column; gap: 10px; }
-.pycell {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding-left: 8px;
-  border-left: 3px solid transparent;
-}
-.pycell.active { border-left-color: var(--primary); }
-.pycell-head { display: flex; align-items: center; gap: 6px; min-height: 28px; }
-/* 셀 종류 이름표와 ▶ 실행 · ■ 중단은 **같은 알약 크기**입니다 — 높이 28px ·
-   글자 12.5px · 좌우 여백 12px. 이름표만 작으면(11px · 2/9) 옆 단추가 머리줄을
-   혼자 차지해 둘이 한 줄로 안 읽혔습니다(선생님 지적). 테두리 1px도 함께
-   둡니다(이름표는 바탕과 같은 색) — 빼면 단추보다 2px 작아집니다. */
+   이미 제 테두리가 있어, 한 겹 더 두르면 선이 겹겹이 섭니다.
+   셀 **위에는 아무것도 없고** 칸이 곧바로 시작합니다. 이름표와 단추는 칸
+   **아래 한 줄**(.pycell-foot)입니다 — 왼쪽 이름표 · ↑ ↓ ✕, 오른쪽 ＋ 글 ·
+   ＋ 코드 · ▶ 실행. 그래야 두 열 셀 창에서 왼쪽 예시 코드와 오른쪽 첫 셀이
+   같은 높이에서 시작합니다(선생님 요청).
+   고른 셀을 짚던 **왼쪽 띠는 걷었습니다**(선생님 요청) — 되살리지 마세요.
+   초점은 코드 칸의 테두리(:focus-within)가 이미 말합니다. */
+.pycells { display: flex; flex-direction: column; gap: 14px; }
+.pycell { display: flex; flex-direction: column; gap: 6px; }
+.pycell-foot { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; min-height: 28px; }
+.pycell-acts { margin-left: auto; display: flex; align-items: center; gap: 6px; }
 .pycell-kind,
-.pycell .pycell-run {
+.pycell .pycell-run,
+.pycell .pycell-add-btn {
   box-sizing: border-box;
   display: inline-flex;
   align-items: center;
@@ -27892,7 +27887,7 @@ ul.checklist > li.done {
   color: var(--text-sub);
 }
 .pycell--code .pycell-kind { background: var(--dark); border-color: var(--dark); color: #ede9e0; }
-.pycell-tools { margin-left: auto; display: flex; gap: 2px; }
+.pycell-tools { display: flex; gap: 2px; }
 .pycell-tool {
   width: 24px;
   height: 24px;
@@ -27955,30 +27950,18 @@ ul.checklist > li.done {
   color: var(--primary-dark);
   cursor: pointer;
 }
-/* ＋ 글 · ＋ 코드 — **정확히 반씩**(격자 1fr 1fr)이고, 셀 상자와 **같은 폭**에
-   섭니다. 셀은 고른 표시 띠(3px) + 여백(8px)만큼 안으로 들어가 있어, 이 줄이
-   그만큼 왼쪽으로 삐져나오면 왼쪽 단추만 커 보였습니다(선생님 지적).
-   .pycell의 padding-left · border-left를 고치면 이 11px도 함께 고치세요. */
-.pycell-add {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
-  margin-left: 11px;
-}
-.pycell-add button {
-  box-sizing: border-box;
-  min-width: 0;
-  padding: 7px 10px;
+/* ＋ 글 · ＋ 코드 — 셀 아래 줄 오른쪽, ▶ 실행 왼쪽. 크기는 위 알약 규칙
+   그대로(28px)이고 점선으로 '새로 넣는 단추'임을 말합니다. 한때 셀 목록 맨
+   아래에 반씩 나눈 줄로 따로 섰습니다(.pycell-add — 걷음). */
+.pycell .pycell-add-btn {
   border: 1px dashed var(--border);
-  border-radius: 10px;
   background: transparent;
   font-family: inherit;
-  font-size: 12.5px;
   font-weight: 700;
   color: var(--text-sub);
   cursor: pointer;
 }
-.pycell-add button:hover {
+.pycell .pycell-add-btn:hover {
   border-color: var(--primary);
   background: var(--primary-light);
   color: var(--primary-dark);
@@ -30076,7 +30059,7 @@ h4.attendance-seat-help { margin-top: 16px; }
   border-radius: 12px;
   background: var(--bg-deep);
 }
-.pycell-ex-head { display: flex; align-items: center; gap: 8px; min-height: 28px; }
+.pycell-ex-head { display: flex; align-items: center; gap: 8px; min-height: 28px; flex: none; }
 .pycell-ex-head strong { font-size: 14px; color: var(--text-sub); }
 .pycell-ex-side .pycell-kind { background: #fff; border-color: #fff; }
 .pycell-ex-code {
@@ -30095,11 +30078,13 @@ h4.attendance-seat-help { margin-top: 16px; }
   white-space: pre;
   tab-size: 4;
 }
+/* 위 여백 12px은 왼쪽 판(.pycell-ex-side)의 안쪽 여백과 같은 값 — 예시
+   코드와 첫 셀이 같은 높이에서 시작합니다. 한쪽을 고치면 함께 고치세요. */
 .pycell-ex-work {
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 2px 4px 8px;
+  padding: 12px 4px 8px;
 }
 @media (max-width: 900px) {
   .pycell-ex-grid {

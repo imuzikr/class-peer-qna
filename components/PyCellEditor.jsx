@@ -6,7 +6,7 @@
 // **파이썬 실행기와 연계한 프로젝트**(`board.pyLinked`)의 활동 칸을 쓰는 큰 창
 // (PyCellModal)의 몸통입니다 — 공부방 카드와 서랍의 오늘의 활동이 그 창을 엽니다.
 // 학생이 셀의 종류를 **직접 고릅니다** — '＋ 글'은 설명을 쓰는 서식 칸,
-// '＋ 코드'는 코드를 짜고 ▶로 돌리는 칸입니다.
+// '＋ 코드'는 코드를 짜고 ▶로 돌리는 칸입니다(둘 다 셀 아래 줄에 있습니다).
 //
 // [왜 셀인가] 예전에는 글과 코드 블록이 한 에디터 안에 섞여 있어, ▶ 실행이
 // 돌릴 블록을 추측했고(커서가 든 블록 · 마지막 블록 · 결과 블록 건너뛰기)
@@ -32,6 +32,13 @@
 // 안 나갑니다(열었다고 옛 카드가 새 모양으로 바뀌어 저장되면 안 됩니다 —
 // 옛 카드는 고칠 때 비로소 새 모양이 됩니다). 결과가 붙을 때만
 // `{ flush: true }`로 곧바로 저장을 부탁합니다.
+//
+// [셀 아래 한 줄] 셀 위에는 아무것도 두지 않습니다 — 코드·글 칸이 곧바로
+// 시작해, 셀 창 두 열에서 왼쪽 예시 코드와 오른쪽 첫 셀이 같은 높이에서
+// 시작합니다(선생님 요청). 아래 줄 왼쪽은 종류 이름표(코드 · 글)와 ↑ ↓ ✕,
+// 오른쪽은 ＋ 글 · ＋ 코드 · ▶ 실행입니다. '＋'는 그 셀 바로 아래에 넣고,
+// 결과는 이 줄 **아래**에 붙습니다(결과가 생겨도 ▶ 자리가 안 움직이게).
+// 고른 셀을 짚던 왼쪽 띠는 걷었습니다(선생님 요청 — 초점은 코드 칸 테두리가 말함).
 //
 // [입력값] 코드에 `input(`이 보이면 그 셀 아래에 입력값 칸이 섭니다. 값은
 // 셀마다 따로이고 **저장하지 않습니다**(돌릴 때만 씁니다) — 대신 input()이
@@ -96,7 +103,6 @@ export default function PyCellEditor({
     return () => { aliveRef.current = false; };
   }, []);
 
-  const [activeId, setActiveId] = useState(null); // 지금 고른 셀(테두리)
   // { id, n } — 초점을 줄 코드 셀. 빈 칸으로 열었으면 그 첫 코드 셀에 곧바로
   // 커서를 둡니다(창을 연 것이 곧 쓰려고 연 것이라서요).
   const [focus, setFocus] = useState(() =>
@@ -145,17 +151,17 @@ export default function PyCellEditor({
   }
 
   // ── 셀 더하기 · 옮기기 · 지우기 ──
-  // 더하는 자리는 **고른 셀 바로 아래**, 고른 것이 없으면 맨 끝(코랩과 같음).
-  function addCell(type) {
+  // 더하는 자리는 **단추를 누른 그 셀 바로 아래**입니다(셀마다 아래 줄에
+  // '＋ 글 · ＋ 코드'가 있습니다).
+  function addCell(type, afterId) {
     const cell =
       type === "code"
         ? { id: newId(), type: "code", code: "", output: null }
         : { id: newId(), type: "text", html: "" };
     const list = cellsRef.current;
-    const at = list.findIndex((c) => c.id === activeId);
+    const at = list.findIndex((c) => c.id === afterId);
     const next = at < 0 ? [...list, cell] : [...list.slice(0, at + 1), cell, ...list.slice(at + 1)];
     commit(next);
-    setActiveId(cell.id);
     setFocus({ id: cell.id, n: Date.now() });
   }
 
@@ -178,7 +184,6 @@ export default function PyCellEditor({
     // 마지막 셀까지 지우면 빈 코드 셀 하나를 남깁니다 — 아무것도 없으면 어디에
     // 쓰는지 알 수 없습니다.
     commit(next.length ? next : [{ id: newId(), type: "code", code: "", output: null }]);
-    if (activeId === id) setActiveId(null);
     // 빈 셀은 되돌릴 것이 없습니다. 글이 든 셀만 잠깐 '되돌리기'를 띄웁니다 —
     // 되묻는 창보다 빠르고, 잘못 눌렀을 때 살릴 길이 있습니다.
     clearTimeout(undoTimer.current);
@@ -263,32 +268,47 @@ export default function PyCellEditor({
   return (
     <div className="pycells">
       {cells.map((c, n) => (
-        <div
-          key={c.id}
-          className={`pycell pycell--${c.type}${activeId === c.id ? " active" : ""}`}
-          onFocusCapture={() => setActiveId(c.id)}
-          onMouseDown={() => setActiveId(c.id)}
-        >
-          <div className="pycell-head">
+        <div key={c.id} className={`pycell pycell--${c.type}`}>
+          {c.type === "code" ? (
+            <>
+              <CodeCell
+                code={c.code}
+                onCode={(v) => onCode(c.id, v)}
+                onRun={() => run(c.id)}
+                focusN={focus?.id === c.id ? focus.n : 0}
+              />
+              {codeUsesInput(c.code) && (
+                <label className="ltask-stdin">
+                  <span>입력값 <em>한 줄에 하나씩 — 실행 전에 미리</em></span>
+                  <textarea
+                    rows={2}
+                    value={stdins[c.id] ?? ""}
+                    onChange={(e) => setStdins((prev) => ({ ...prev, [c.id]: e.target.value }))}
+                    placeholder={"홍길동\n7"}
+                  />
+                </label>
+              )}
+            </>
+          ) : (
+            <RichTextEditor
+              className="pycell-text"
+              tools={TEXT_TOOLS}
+              initialHtml={c.html}
+              // 마운트 때 한 번 처음 글로 불리는데, 같은 값이라 commit이 걸러 냅니다.
+              onChange={(html) => {
+                const cur = cellsRef.current.find((x) => x.id === c.id);
+                if (cur && cur.html !== html) patch(c.id, { html });
+              }}
+              placeholder="설명을 써 주세요."
+              // '＋ 글'로 막 넣은 셀에 곧바로 커서를 둡니다(새 셀이라 마운트 때 한 번이면 됩니다)
+              autoFocus={focus?.id === c.id}
+            />
+          )}
+
+          {/* 셀 아래 한 줄 — 왼쪽은 종류 이름표와 옮기기·지우기, 오른쪽은
+              ＋ 글 · ＋ 코드 · ▶ 실행(머리 주석의 '아래 줄') */}
+          <div className="pycell-foot">
             <span className="pycell-kind">{c.type === "code" ? "코드" : "글"}</span>
-            {c.type === "code" && (
-              <>
-                <button
-                  type="button"
-                  className="ltask-run-btn pycell-run"
-                  onClick={() => run(c.id)}
-                  disabled={!!runningId}
-                  title="이 셀의 코드만 돌립니다 — Ctrl+Enter (Mac: Cmd+Enter)"
-                >
-                  {runningId === c.id ? "실행 중…" : "▶ 실행"}
-                </button>
-                {runningId === c.id && (
-                  <button type="button" className="ltask-run-stop pycell-run" onClick={() => stop(c.id)}>
-                    ⏹ 중단
-                  </button>
-                )}
-              </>
-            )}
             <span className="pycell-tools">
               <button
                 type="button"
@@ -320,44 +340,43 @@ export default function PyCellEditor({
                 ✕
               </button>
             </span>
+            <span className="pycell-acts">
+              <button
+                type="button"
+                className="pycell-add-btn"
+                onClick={() => addCell("text", c.id)}
+                title="이 셀 아래에 글 셀을 넣어요"
+              >
+                ＋ 글
+              </button>
+              <button
+                type="button"
+                className="pycell-add-btn"
+                onClick={() => addCell("code", c.id)}
+                title="이 셀 아래에 코드 셀을 넣어요"
+              >
+                ＋ 코드
+              </button>
+              {c.type === "code" &&
+                (runningId === c.id ? (
+                  <button type="button" className="ltask-run-stop pycell-run" onClick={() => stop(c.id)}>
+                    ⏹ 중단
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="ltask-run-btn pycell-run"
+                    onClick={() => run(c.id)}
+                    disabled={!!runningId}
+                    title="이 셀의 코드만 돌립니다 — Ctrl+Enter (Mac: Cmd+Enter)"
+                  >
+                    ▶ 실행
+                  </button>
+                ))}
+            </span>
           </div>
 
-          {c.type === "code" ? (
-            <>
-              <CodeCell
-                code={c.code}
-                onCode={(v) => onCode(c.id, v)}
-                onRun={() => run(c.id)}
-                focusN={focus?.id === c.id ? focus.n : 0}
-              />
-              {codeUsesInput(c.code) && (
-                <label className="ltask-stdin">
-                  <span>입력값 <em>한 줄에 하나씩 — 실행 전에 미리</em></span>
-                  <textarea
-                    rows={2}
-                    value={stdins[c.id] ?? ""}
-                    onChange={(e) => setStdins((prev) => ({ ...prev, [c.id]: e.target.value }))}
-                    placeholder={"홍길동\n7"}
-                  />
-                </label>
-              )}
-              <CellOutput lines={live[c.id]} output={c.output} />
-            </>
-          ) : (
-            <RichTextEditor
-              className="pycell-text"
-              tools={TEXT_TOOLS}
-              initialHtml={c.html}
-              // 마운트 때 한 번 처음 글로 불리는데, 같은 값이라 commit이 걸러 냅니다.
-              onChange={(html) => {
-                const cur = cellsRef.current.find((x) => x.id === c.id);
-                if (cur && cur.html !== html) patch(c.id, { html });
-              }}
-              placeholder="설명을 써 주세요."
-              // '＋ 글'로 막 넣은 셀에 곧바로 커서를 둡니다(새 셀이라 마운트 때 한 번이면 됩니다)
-              autoFocus={focus?.id === c.id}
-            />
-          )}
+          {c.type === "code" && <CellOutput lines={live[c.id]} output={c.output} />}
         </div>
       ))}
 
@@ -367,15 +386,6 @@ export default function PyCellEditor({
           <button type="button" onClick={undoRemove}>되돌리기</button>
         </div>
       )}
-
-      <div className="pycell-add">
-        <button type="button" onClick={() => addCell("text")} title="고른 셀 아래에 글 셀을 넣어요">
-          ＋ 글
-        </button>
-        <button type="button" onClick={() => addCell("code")} title="고른 셀 아래에 코드 셀을 넣어요">
-          ＋ 코드
-        </button>
-      </div>
     </div>
   );
 }
