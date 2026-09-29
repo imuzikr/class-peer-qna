@@ -99,6 +99,7 @@ import GroupMemoModal from "@/components/GroupMemoModal";
 import ClassNotesTools from "@/components/ClassNotesTools";
 import { IconArchive } from "@/components/StatusIcons";
 import { updateLesson } from "@/lib/store";
+import PageTagline from "@/components/PageTagline";
 
 // 파이썬 실행기(CodeMirror 등)는 무거워 지연 로딩 → 초기 로드/전환 속도 개선
 const PythonRunner = dynamic(() => import("@/components/PythonRunner"), {
@@ -918,6 +919,7 @@ function StudyPageInner() {
               {/* 제목 영역 — cols-wrap 안에 위치해 보드 컬럼과 정렬됨 */}
               <div className="study-head">
                 <div className="study-head-main">
+                  <PageTagline />
                   <div className="study-title-row">
                     <h1>🧩 공부방</h1>
                     {!admin && currentClass && (

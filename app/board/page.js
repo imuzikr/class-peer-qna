@@ -29,6 +29,7 @@ import { sortPinnedQuestions } from "@/lib/questionRanking";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import AuthGate from "@/components/AuthGate";
 import { isTeacher } from "@/lib/user";
+import PageTagline from "@/components/PageTagline";
 
 // 파이썬 실행기(CodeMirror 등)는 무거워 지연 로딩 → 초기 로드/전환 속도 개선
 const PythonRunner = dynamic(() => import("@/components/PythonRunner"), {
@@ -183,12 +184,18 @@ function BoardPageInner() {
         {/* 2단: 질문 게시판 */}
         <main className="feed-col">
           <div className="feed-head">
-            <h2>
-              {keyword === "전체" ? "전체 질문" : `# ${keyword} 질문`}{" "}
-              <span style={{ color: "var(--text-sub)", fontSize: 14 }}>
-                {filtered.length}개
-              </span>
-            </h2>
+            {/* 문구는 제목 **왼쪽**입니다(공부방·책방은 제목 위) — 이 머리줄은
+                스크롤해도 붙어 있는 줄이라 한 줄을 더 쌓으면 그만큼 질문
+                목록이 늘 가려집니다. */}
+            <div className="feed-head-title">
+              <PageTagline />
+              <h2>
+                {keyword === "전체" ? "전체 질문" : `# ${keyword} 질문`}{" "}
+                <span style={{ color: "var(--text-sub)", fontSize: 14 }}>
+                  {filtered.length}개
+                </span>
+              </h2>
+            </div>
             <div className="feed-actions">
               <FilterMenu value={filter} onChange={setFilter} />
               <button

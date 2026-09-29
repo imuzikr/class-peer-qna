@@ -76,6 +76,7 @@ import HashtagCardBadge from "@/components/HashtagCardBadge";
 import QmarkBoard from "@/components/QmarkBoard";
 import QmarkForm from "@/components/QmarkForm";
 import { IconBook, IconTrash, IconLockState } from "@/components/StatusIcons";
+import PageTagline from "@/components/PageTagline";
 
 // 활동 종류의 이름 — 목록 카드에 '무엇을 하는 활동인가'를 적는 데 씁니다.
 // 설명과 '추가하기' 문구는 종류 그리드를 없애면서 함께 뺐습니다. 종류를
@@ -746,6 +747,7 @@ function BooksPageInner() {
       ) : (
         <main className="books-main">
           <div className="books-head">
+            <PageTagline />
             <div className="books-head-main">
               <h1>
                 <IconBook size={26} /> 책방
