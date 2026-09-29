@@ -41,6 +41,7 @@ import {
 import { formatFileSize } from "@/lib/image";
 import { uploadImage, uploadFile, uploadDataUrl } from "@/lib/storageUpload";
 import RichTextEditor from "./RichTextEditor";
+import PyCellModal from "./PyCellModal";
 import ZoomableImage from "./ZoomableImage";
 import UploadProgress from "./UploadProgress";
 import StudyQuestionPeek from "./StudyQuestionPeek";
@@ -97,15 +98,6 @@ export default function StudyMyActivityCard({
   rewardCount = 0,
   rewardMax = Infinity,
   onAward = null,
-  // (활동 번호) => void — 파이썬 실행기와 연계한 프로젝트의 **내 카드**에서만
-  // 옵니다(StudyProjectView가 거릅니다: 모둠 프로젝트·교사·남의 카드는 null).
-  // 누르면 그 활동을 보낼 곳으로 잡은 실행기 서랍이 열립니다.
-  onOpenPython = null,
-  // 교사 안내 카드에 **보여 주기만 하는** '파이썬 실행기' 단추 — 학생에게
-  // 예시를 띄울 때 학생 카드와 같은 모습이어야 해서 답니다. 교사에게는 수업
-  // 노트 서랍이 없어 눌러도 아무 일이 없고, 칸도 지금까지처럼 교사가 크게
-  // 쓰기로 씁니다(drawerOnly가 아님).
-  pythonDemo = false,
   // (활동 번호, 잠글까) => Promise — 교사가 카드를 볼 때 활동 칸 머리의
   // 여닫기 단추. 보드의 activityLocks를 고치므로 **반 전체 학생 카드**에 한꺼번에
   // 걸립니다(카드 격자 위 '활동 열기' 칩과 같은 값). 없으면 단추도 안 섭니다.
@@ -113,13 +105,12 @@ export default function StudyMyActivityCard({
 }) {
   const isNew = card === null;
   const activities = board.activities ?? [];
-  // 파이썬 실행기와 연계한 프로젝트의 **내 카드** — 글·코드는 수업 노트 서랍의
-  // 셀 편집기(PyCellEditor)에서만 씁니다. 여기서는 보기만 하고(크게 보기),
-  // 첨부만 다룹니다. 쓰는 자리가 둘이면 서로의 글을 덮어쓸 길이 생기고,
-  // 서식 에디터로 셀 모양(코드 · 결과 짝)을 고치면 셀이 흐트러집니다.
-  // 판정은 서랍 단추가 오는가(`onOpenPython`) — StudyProjectView가 이미
-  // '연계 · 내 카드 · 모둠 아님 · 학생'을 걸러 줍니다.
-  const drawerOnly = !!onOpenPython;
+  // 파이썬 실행기와 연계한 프로젝트(모둠 아님)는 활동 칸을 **셀 편집기**로
+  // 씁니다 — 칸을 누르면 뜨는 큰 창(PyCellModal)의 몸통이 서식 에디터 대신
+  // 글 셀 · 코드 셀입니다. 한때 이 카드는 보기만 하고 글·코드는 수업 노트
+  // 서랍에서만 썼는데, 서랍(380px)이 코드를 짜기에 너무 좁아 되돌렸습니다
+  // (선생님 요청). 쓰는 사람(학생 · 선생님 안내 카드)이 누구든 같은 창입니다.
+  const cellMode = !!board.pyLinked && board.activityType !== "group";
   // 파이썬 연계 프로젝트의 칸은 **읽는 자리에서** 셀 모양으로 맞춰 그립니다
   // (lib/pyCells.js의 tidyCellsHtml) — 옛 '결과 붙이기'가 두 번 붙인 결과나 끝에
   // 남은 빈 코드 블록이 서랍에서 보는 모양(코드 하나에 결과 하나)과 같아집니다.
@@ -152,6 +143,12 @@ export default function StudyMyActivityCard({
   const [confirmDelete, setConfirmDelete] = useState(false);
   // 지금 크게 열어 쓰고 있는 활동 번호 (null이면 닫힘)
   const [editingAct, setEditingAct] = useState(null);
+  // 셀 창을 '파이썬 실행기' 단추로 열었나 — 그러면 맨 끝 빈 코드 셀에 커서를 둡니다
+  const [editInCode, setEditInCode] = useState(false);
+  function openAct(i, inCode = false) {
+    setEditInCode(inCode);
+    setEditingAct(i);
+  }
   const [peekQuestion, setPeekQuestion] = useState(null);
 
   const cardIdRef = useRef(card?.id ?? null);
@@ -166,6 +163,11 @@ export default function StudyMyActivityCard({
   const pendingRef = useRef(false);
   const dirtyRef = useRef(false);
   const flushRef = useRef(null);
+  // 다음 자동 저장을 기다리지 않고 곧바로 — 셀 편집기가 실행 결과를 붙일 때
+  // (`{ flush: true }`). 1초를 기다리면 카드에 결과가 늦게 나타나 한 번 더
+  // 돌리게 됩니다. 상태가 바뀐 **뒤에** 저장해야 새 결과가 담기므로 표시만 해
+  // 두고 아래 자동 저장 효과가 지연 0으로 씁니다.
+  const flushSoonRef = useRef(false);
   const idleTimerRef = useRef(null);
   const baselineSigRef = useRef(null);
 
@@ -191,23 +193,11 @@ export default function StudyMyActivityCard({
     return {
       htmlToSave,
       parts: { titles, contents },
-      // 서랍 전용 카드는 첨부만 저장하므로, 카드가 이미 있으면 첨부를 다 지운
-      // 것도 저장해야 합니다(안 그러면 지운 파일이 되살아납니다).
-      valid:
-        hasContent || !!imageUrl || attachments.length > 0 ||
-        (drawerOnly && !!cardIdRef.current),
+      valid: hasContent || !!imageUrl || attachments.length > 0,
     };
   }
 
   async function persist(htmlToSave, parts) {
-    // 서랍 전용 카드는 **첨부만** 씁니다 — 글은 서랍이 쓰는 자리라, 여기서
-    // 들고 있던 글(구독으로 늦게 들어왔을 수 있는)을 함께 쓰면 방금 서랍에서
-    // 쓴 것을 되돌립니다. 카드가 아직 없을 때만 글까지 넣어 만듭니다(규칙과
-    // addStudyCard가 content를 요구합니다 — 그때는 덮을 글도 없습니다).
-    if (drawerOnly && cardIdRef.current) {
-      await updateStudyCard(board.id, cardIdRef.current, { imageUrl, attachments });
-      return;
-    }
     const payload = { title: "", content: htmlToSave, imageUrl, attachments };
     lastSavedHtmlRef.current = htmlToSave;
     if (parts) lastSavedPartsRef.current = parts;
@@ -252,7 +242,9 @@ export default function StudyMyActivityCard({
     const { valid } = buildPayload();
     if (!canEdit || !valid) return;
     dirtyRef.current = true;
-    const t = setTimeout(() => flushRef.current?.(), 1000);
+    const delay = flushSoonRef.current ? 0 : 1000;
+    flushSoonRef.current = false;
+    const t = setTimeout(() => flushRef.current?.(), delay);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activityContents, activityTitles, imageUrl, attachments, canEdit]);
@@ -288,9 +280,8 @@ export default function StudyMyActivityCard({
     if (card?.id) cardIdRef.current = card.id;
     if (incoming === lastSavedHtmlRef.current) return;
     if (savingRef.current) return;
-    // 크게 쓰는 창이 떠 있으면 비켜 줍니다 — 서랍 전용 카드의 창은 **보기만**
-    // 하므로 그대로 들여 창이 서랍을 따라가게 합니다.
-    if (editingAct !== null && !drawerOnly) return;
+    // 크게 쓰는 창이 떠 있으면 비켜 줍니다(창을 닫으면 그때 들여옵니다).
+    if (editingAct !== null) return;
 
     const secs = parseActivitySections(incoming);
     savedSections.current = secs;
@@ -704,24 +695,18 @@ export default function StudyMyActivityCard({
                 </>
               ) : (
                 <>
-                  {/* 서랍 전용 카드는 활동 이름도 보기만 — 글과 한 덩이로
-                      저장되는 값이라, 여기서 고치려면 글까지 함께 써야 합니다. */}
-                  {drawerOnly ? (
-                    <p className="study-mycard-col-title">{activityTitles[i] ?? act}</p>
-                  ) : (
-                    <input
-                      type="text"
-                      className="study-card-title-input"
-                      value={activityTitles[i] ?? act}
-                      onChange={(e) => {
-                        const next = [...activityTitles];
-                        next[i] = e.target.value;
-                        setActivityTitles(next);
-                      }}
-                      placeholder={`활동 ${i + 1}`}
-                      maxLength={80}
-                    />
-                  )}
+                  <input
+                    type="text"
+                    className="study-card-title-input"
+                    value={activityTitles[i] ?? act}
+                    onChange={(e) => {
+                      const next = [...activityTitles];
+                      next[i] = e.target.value;
+                      setActivityTitles(next);
+                    }}
+                    placeholder={`활동 ${i + 1}`}
+                    maxLength={80}
+                  />
                   {/* 칸 안에서 바로 쓰던 것을 미리보기로 바꿨습니다 — 글이
                       길어지면 칸이 한없이 늘어나 옆 활동과 높이가 어긋나고
                       화면 밖으로 밀렸습니다. 누르면 큰 모달에서 씁니다. */}
@@ -732,39 +717,29 @@ export default function StudyMyActivityCard({
                     className="study-mycard-preview"
                     role="button"
                     tabIndex={0}
-                    onClick={() => setEditingAct(i)}
+                    onClick={() => openAct(i)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") {
                         e.preventDefault();
-                        setEditingAct(i);
+                        openAct(i);
                       }
                     }}
-                    title={drawerOnly ? "눌러서 크게 보기" : "눌러서 크게 쓰기"}
+                    title="눌러서 크게 쓰기"
                   >
-                    {/* 파이썬 실행기 — 칸 오른쪽 위. 이 단추만은 크게 보기 창을
-                        열지 않고 곧바로 **수업 노트 서랍**에 이 활동 칸을
-                        엽니다(칸을 여는 클릭까지 번지지 않게 막습니다). 거기서
-                        글 셀 · 코드 셀로 쓰고 돌리며, 쓴 것은 이 카드에 곧바로
-                        저장됩니다(CornellNoteDrawer의 '프로젝트 활동'). 이
-                        프로젝트에서는 **글·코드를 쓰는 곳이 서랍 하나**입니다
-                        (위 drawerOnly). 이름은 그대로 '파이썬 실행기'입니다 —
-                        학생에게는 '여기서 파이썬을 돌린다'가 그 이름으로 익어
-                        있습니다. */}
-                    {(onOpenPython || pythonDemo) && (
+                    {/* 파이썬 실행기 — 칸 오른쪽 위. 칸을 누르는 것과 같은 큰 창을
+                        열되 **맨 끝 빈 코드 셀에 커서를** 둡니다(누른 뜻이 '코드를
+                        짜겠다'라서요). 이름은 그대로 '파이썬 실행기' — 학생에게
+                        '여기서 파이썬을 돌린다'가 그 이름으로 익어 있습니다. */}
+                    {cellMode && (
                       <button
                         type="button"
                         className="study-mycard-py"
                         onClick={(e) => {
                           e.stopPropagation();
-                          onOpenPython?.(i);
+                          openAct(i, true);
                         }}
                         onKeyDown={(e) => e.stopPropagation()}
-                        aria-disabled={onOpenPython ? undefined : "true"}
-                        title={
-                          onOpenPython
-                            ? "오른쪽 서랍에 이 활동을 열어 코드를 쓰고 돌려 봐요"
-                            : "보여 주기용 단추예요 — 학생 화면에서는 오른쪽 서랍에 이 활동을 열어 코드를 쓰고 돌려 봅니다(선생님 화면에는 서랍이 없어요)"
-                        }
+                        title="크게 열어 코드를 쓰고 돌려 봐요"
                       >
                         <IconPythonRunner size={16} /> 파이썬 실행기
                       </button>
@@ -779,13 +754,13 @@ export default function StudyMyActivityCard({
                       />
                     ) : (
                       <p className="study-mycard-preview-empty">
-                        {drawerOnly
-                          ? "'파이썬 실행기'를 눌러 오른쪽 서랍에서 써 주세요."
+                        {cellMode
+                          ? "눌러서 글과 코드를 써 주세요."
                           : "눌러서 내용을 입력해 주세요."}
                       </p>
                     )}
                     <span className="study-mycard-preview-open">
-                      {drawerOnly ? "⤢ 크게 보기" : "✎ 크게 쓰기"}
+                      ✎ 크게 쓰기
                     </span>
                   </div>
                 </>
@@ -865,20 +840,33 @@ export default function StudyMyActivityCard({
 
       {/* 활동 하나를 큰 화면에서 쓰기 — 칸 미리보기를 누르면 열립니다.
           같은 state를 쓰므로 여기서 쓴 내용도 그대로 자동 저장됩니다. */}
-      {editingAct !== null && drawerOnly && (
-        <ActivityViewModal
+      {editingAct !== null && cellMode && (
+        <PyCellModal
           index={editingAct}
           title={activityTitles[editingAct] ?? activities[editingAct] ?? ""}
-          html={shownHtml(activityContents[editingAct])}
-          onClose={() => setEditingAct(null)}
-          onOpenPython={() => {
-            const i = editingAct;
-            setEditingAct(null);
-            onOpenPython(i);
+          onTitleChange={(v) =>
+            setActivityTitles((prev) => {
+              const next = [...prev];
+              next[editingAct] = v;
+              return next;
+            })
+          }
+          initialHtml={activityContents[editingAct] ?? ""}
+          onChange={(html, o) => {
+            if (o?.flush) flushSoonRef.current = true;
+            setActivityContents((prev) => {
+              const next = [...prev];
+              next[editingAct] = html;
+              return next;
+            });
           }}
+          status={autoStatus}
+          codeAtEnd={editInCode ? 1 : 0}
+          startInCode={editInCode}
+          onClose={() => setEditingAct(null)}
         />
       )}
-      {editingAct !== null && !drawerOnly && (
+      {editingAct !== null && !cellMode && (
         <ActivityEditorModal
           index={editingAct}
           title={activityTitles[editingAct] ?? activities[editingAct] ?? ""}
@@ -973,59 +961,6 @@ function ActivityEditorModal({
             onChange={onChange}
             placeholder="내용을 입력해 주세요."
           />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// 활동 하나를 크게 **보는** 창 — 파이썬 실행기와 연계한 내 카드(drawerOnly).
-// 글·코드는 서랍의 셀 편집기에서만 쓰므로 여기서는 읽기만 합니다. 쓰러 가는
-// 길은 머리의 '파이썬 실행기' 하나(창을 닫고 서랍에 이 활동을 엽니다).
-// 부모가 카드를 구독해 넘겨 주므로, 창을 띄운 채 서랍에서 쓴 것도 따라옵니다.
-function ActivityViewModal({ index, title, html, onClose, onOpenPython }) {
-  useEffect(() => {
-    function onKey(e) { if (e.key === "Escape") { e.preventDefault(); onClose(); } }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
-  const has = !!(stripHtml(html ?? "").trim() || htmlHasImage(html ?? ""));
-  return (
-    <div className="modal-backdrop study-act-backdrop" {...backdropClose(onClose)}>
-      <div
-        className="modal study-act-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-label={`활동 ${index + 1} 크게 보기`}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="study-act-modal-head">
-          <span className="activity-dash-no">활동 {index + 1}</span>
-          <strong className="study-act-modal-title study-act-modal-title--view">
-            {title || `활동 ${index + 1}`}
-          </strong>
-          <button
-            type="button"
-            className="study-mycard-py study-act-view-py"
-            onClick={onOpenPython}
-            title="창을 닫고 오른쪽 서랍에 이 활동을 열어요 — 거기서 쓰고 돌려 봐요"
-          >
-            <IconPythonRunner size={16} /> 파이썬 실행기
-          </button>
-          <button className="btn-close" onClick={onClose} aria-label="닫기">×</button>
-        </div>
-        <div className="study-act-modal-body study-act-view-body">
-          {has ? (
-            <div
-              className="study-card-content"
-              dangerouslySetInnerHTML={{ __html: sanitizeHtml(html ?? "") }}
-            />
-          ) : (
-            <p className="study-mycard-preview-empty">
-              아직 쓰지 않았어요 — &apos;파이썬 실행기&apos;를 눌러 서랍에서 써 주세요.
-            </p>
-          )}
         </div>
       </div>
     </div>

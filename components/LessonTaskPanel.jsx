@@ -32,19 +32,14 @@
 // 공부방으로 건너가야 했습니다. 잠긴 활동은 깔지 않습니다 — 학생이 아직 쓰면
 // 안 되는 자리입니다.
 //
-// [수업 밖에서도 — '프로젝트 활동']
-// 파이썬 실행기와 연계된 프로젝트에서 학생이 활동 칸의 '파이썬 실행기' 단추를
-// 누르면 이 칸이 같은 모습으로 열립니다(`task.local` — CornellNoteDrawer의
-// '프로젝트 활동' 절). 그때는 선생님이 보낸 것이 아니므로 머리말이 '오늘의
-// 활동'이 아니라 '프로젝트 활동'이고, 방송 점을 달지 않습니다.
-//
-// [파이썬 연계 프로젝트는 셀 편집기]
-// `board.pyLinked`이면 활동 칸이 서식 에디터 대신 PyCellEditor(글 셀 · 코드
-// 셀)입니다. 파이썬을 **돌리는 곳은 이 셀뿐**입니다 — 연계하지 않은 프로젝트의
-// 칸은 코드 블록을 적을 수는 있어도 ▶ 실행 줄이 없습니다. 예전에는 그 칸에도
-// 실행 줄이 있어 돌릴 블록을 커서로 추측하고(결과 블록 건너뛰기) '결과 붙이기'가
-// 결과를 덧붙이기만 했는데, 셀이 그 일을 구조로 맡으면서 걷었습니다. 코드를
-// 돌리게 하려면 프로젝트 편집에서 '파이썬 실행기'와 연계하면 됩니다.
+// [파이썬 연계 프로젝트는 큰 창에서]
+// `board.pyLinked`이면 활동 칸을 서랍 안에서 쓰지 않습니다 — 펼친 칸에는 쓴 것의
+// 미리보기와 '크게 열어 쓰기' 단추만 서고, 누르면 공부방 카드와 **같은 큰 창**
+// (PyCellModal — 글 셀 · 코드 셀)이 서랍 위로 뜹니다. 한때 서랍 안에 셀 편집기를
+// 그대로 두었는데, 380px에서 코드를 짜기가 너무 좁았습니다(선생님 요청).
+// 저장 길은 서랍 칸 그대로입니다(onDraft → save, 닫을 때 한 번 더).
+// 파이썬을 **돌리는 곳은 그 셀뿐**입니다 — 연계하지 않은 프로젝트의 칸은 코드
+// 블록을 적을 수는 있어도 ▶ 실행 줄이 없습니다.
 //
 // [읽는 문서]
 // 프로젝트 1건(`fetchStudyBoard`) + 내 카드 **구독** 1건(`subscribeStudyCard`).
@@ -81,7 +76,8 @@ import {
 } from "@/lib/activities";
 import { sanitizeHtml, stripHtml, htmlHasImage, richHtml } from "@/lib/html";
 import RichTextEditor from "./RichTextEditor";
-import PyCellEditor from "@/components/PyCellEditor";
+import PyCellModal from "./PyCellModal";
+import { tidyCellsHtml } from "@/lib/pyCells";
 
 const SAVE_DELAY = 1500;
 
@@ -123,8 +119,12 @@ export default function LessonTaskPanel({ task, user, onType }) {
 
   const boardId = task?.boardId ?? "";
   const idx = task?.actIndex ?? 0;
-  const local = !!task?.local; // 수업 밖 — 학생이 스스로 연 '프로젝트 활동'
-  const tagWord = local ? "프로젝트 활동" : "오늘의 활동";
+  const tagWord = "오늘의 활동";
+  // 셀 창을 연 활동 번호(파이썬 연계 프로젝트 — null이면 닫힘)
+  const [bigIdx, setBigIdx] = useState(null);
+  // 다른 프로젝트가 내려오면 창을 닫습니다 — 열린 창이 앞 프로젝트의 칸을 쥐고
+  // 있으면 거기서 쓴 것이 새 프로젝트의 같은 자리로 갑니다.
+  useEffect(() => { setBigIdx(null); }, [boardId]);
 
   // 칸마다 에디터가 지금 담고 있는 글 — 서버 값이 이것과 다를 때만 갈아
   // 끼웁니다(ver를 올려 다시 마운트). 저장한 값은 **쓰기 전에** 되읽은
@@ -204,25 +204,6 @@ export default function LessonTaskPanel({ task, user, onType }) {
     return () => { alive = false; };
   }, [boardId, idx, task?.at]);
 
-  // 수업 밖에서 연 칸은 **누른 활동의 맨 끝 빈 코드 셀에 커서를** 둡니다
-  // (PyCellEditor의 `codeAtEnd`) — 카드의 '파이썬 실행기' 단추를 누른 뜻이
-  // '여기에 코드를 짜겠다'라서요. 커서만 옮기면 글 맨 앞에 서서 학생이 코드
-  // 자리를 손수 찾아 만들어야 했습니다(실제 신고).
-  // 수업 중에는 안 합니다 — 선생님이 보낼 때마다 스물몇 명의 커서를 옮기면
-  // 다른 칸에 쓰던 학생의 손이 끊기고, 보낸 활동이 코드 활동이 아닐 수도
-  // 있습니다.
-  const [codeSeq, setCodeSeq] = useState(0);
-  // 단추로 연 것(`task.focus`)에만 — 손잡이로 서랍을 연 뒤 탭을 편 것은
-  // 코드를 짜겠다는 뜻이 아닐 수 있어(앞서 쓴 글을 보러 온 것일 수도) 안 넣습니다.
-  const wantsCode = local && !!task?.focus;
-  useEffect(() => {
-    if (!wantsCode || !loaded) return undefined;
-    // 서랍이 미끄러져 들어온 뒤에 — 움직이는 동안 초점을 주면 브라우저가
-    // 그 칸을 화면 안으로 끌어오느라 서랍이 튑니다.
-    const t = setTimeout(() => setCodeSeq((n) => n + 1), 300);
-    return () => clearTimeout(t);
-  }, [wantsCode, loaded, idx, task?.at]);
-
   const acts = Array.isArray(board?.activities) ? board.activities : [];
   // 탭 머리의 '오늘의 활동 N'이 이미 차례를 말하므로, 이름이 기본값
   // ('활동 N')뿐이면 같은 말을 두 번 적지 않습니다.
@@ -233,9 +214,8 @@ export default function LessonTaskPanel({ task, user, onType }) {
   const locked = board ? boardLocked || isActivityLocked(board, idx) : false;
   const isGroup = board?.type === "group";
   const canWrite = !!board && !locked && !isGroup;
-  // 파이썬 실행기와 연계한 프로젝트는 활동 칸이 **셀 편집기**입니다(글 셀 ·
-  // 코드 셀 — components/PyCellEditor.jsx). 수업 중 '오늘의 활동'도 같습니다 —
-  // 같은 카드의 같은 칸이 보내는 길에 따라 두 모양이면 안 됩니다.
+  // 파이썬 실행기와 연계한 프로젝트는 활동 칸을 **큰 셀 창**에서 씁니다
+  // (머리 주석) — 공부방 카드와 같은 창이라 같은 칸이 두 모양이 되지 않습니다.
   const cellMode = !!board?.pyLinked && !isGroup;
 
   // 카드에서 활동 칸들을 떠 옵니다. 자리(index)로 읽고 자리로 씁니다 —
@@ -249,46 +229,6 @@ export default function LessonTaskPanel({ task, user, onType }) {
   const openActs = acts
     .map((name, i) => ({ name, i }))
     .filter(({ i }) => board && !isActivityLocked(board, i));
-
-  // ── 프로젝트 활동: 어느 칸을 펼쳐 둘까 ──────────────────────────
-  // 수업 중에는 선생님이 보낸 칸 하나가 늘 펼쳐져 있고 못 접습니다(`on`).
-  // 학생이 스스로 연 **프로젝트 활동**은 다릅니다 — 칸마다 펴고 접으며,
-  // 처음 펼칠 칸은 **마지막으로 손댄 활동**입니다. 늘 첫 활동만 펼쳐 두던
-  // 때는 3번을 쓰다 서랍을 다시 열면 1번이 크게 서고 3번은 접혀 있었습니다.
-  //
-  // '손댐'은 셋 — 그 칸에 글을 씀 · 카드의 단추로 그 활동을 엶 · 접힌 줄을
-  // 눌러 폄. 기억은 **이 기기에만**(localStorage, 학생·프로젝트마다) 둡니다 —
-  // 화면을 여는 편의라 서버에 적을 일이 아니고, 없거나 못 읽으면 처음 열린
-  // 활동을 펼칩니다(페이지가 넘겨 준 `actIndex`).
-  // 단추로 연 것(`task.focus`)은 기억보다 **누른 활동**이 먼저입니다.
-  const lastKey = local && user?.uid && boardId ? `ptask_last:${user.uid}:${boardId}` : "";
-  const rememberedRef = useRef(null);
-  function remember(i) {
-    if (!lastKey || rememberedRef.current === i) return;
-    rememberedRef.current = i;
-    try { localStorage.setItem(lastKey, String(i)); } catch {}
-  }
-  useEffect(() => {
-    if (!local || !board) return;
-    let start = idx;
-    if (!task?.focus && lastKey) {
-      try {
-        const raw = localStorage.getItem(lastKey);
-        const v = raw === null ? NaN : Number(raw);
-        if (Number.isInteger(v) && v >= 0 && v < acts.length && !isActivityLocked(board, v)) {
-          start = v;
-        }
-      } catch {}
-    }
-    if (start >= acts.length || isActivityLocked(board, start)) return;
-    // 단추로 연 것은 기억에 적고(누른 활동이 곧 '손댄 활동'), 기억에서 꺼낸
-    // 것은 적었다는 표시만 합니다. **순서를 바꾸지 마세요** — 표시를 먼저
-    // 세우면 remember가 '이미 적었다'로 보고 건너뜁니다(실측).
-    if (task?.focus) remember(start);
-    else rememberedRef.current = start;
-    setOpenIdx((prev) => (prev.has(start) ? prev : new Set(prev).add(start)));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [local, board?.id, boardId, idx, task?.at]);
 
   const timerRef = useRef(null);
   // 아직 저장 안 된 글 — { t: 쓸 곳, drafts: { 활동자리: 쓴 글 } }.
@@ -355,7 +295,6 @@ export default function LessonTaskPanel({ task, user, onType }) {
   function onDraft(i, html) {
     const t = loadedRef.current;
     if (!t?.boardId || t.isGroup) return;
-    if (local) remember(i);
     const prev = pendingRef.current;
     const drafts =
       prev && prev.t.boardId === t.boardId ? { ...prev.drafts } : {};
@@ -425,9 +364,8 @@ export default function LessonTaskPanel({ task, user, onType }) {
           곁텍스트와 같은 모양). 프로젝트 활동은 모든 칸이 접히는 줄입니다. */}
       {!isGroup &&
         openActs.map(({ name, i }) => {
-          // 늘 펼쳐 두고 못 접는 칸 — 수업 중 선생님이 보낸 것뿐입니다.
-          // 프로젝트 활동은 모든 칸을 학생이 펴고 접습니다(위 절).
-          const on = !local && i === idx;
+          // 늘 펼쳐 두고 못 접는 칸 — 선생님이 보낸 것입니다.
+          const on = i === idx;
           const open = on || openIdx.has(i);
           const text = secs[i]?.content ?? "";
           const label = String(name ?? "").trim() || `활동 ${i + 1}`;
@@ -443,8 +381,7 @@ export default function LessonTaskPanel({ task, user, onType }) {
                 <div className="ltask-fold open now">
                   <span className="ltask-fold-no">{i + 1}</span>
                   <span className="ltask-fold-name">{label}</span>
-                  {/* 방송 점은 선생님이 보낸 것에만 — 스스로 연 칸은 방송이 아닙니다 */}
-                  {!local && <span className="broadcast-live-dot" aria-hidden="true" />}
+                  <span className="broadcast-live-dot" aria-hidden="true" />
                 </div>
               ) : (
                 <button
@@ -454,7 +391,6 @@ export default function LessonTaskPanel({ task, user, onType }) {
                     // 접기 전에 남은 글을 씁니다 — 접으면 쓰던 칸이 사라지고,
                     // 곧바로 다시 펴면 아직 저장 안 된 글이 없는 셈이 됩니다.
                     if (open) save();
-                    else if (local) remember(i);
                     setOpenIdx((prev) => {
                       const next = new Set(prev);
                       if (next.has(i)) next.delete(i);
@@ -479,18 +415,26 @@ export default function LessonTaskPanel({ task, user, onType }) {
                   프로젝트가 바뀌면 열쇠가 바뀌어 그 칸의 글로 갈아 끼웁니다.
                   밖(카드 화면)에서 이 칸이 고쳐지면 ver가 올라 새 글로
                   다시 그립니다 — 쓰는 중인 칸은 올리지 않습니다. */}
+              {/* 파이썬 연계 — 서랍에서는 쓴 것을 보여 주기만 하고, 쓰는 것은
+                  큰 창에서(머리 주석). 누르는 자리는 미리보기 전체와 단추 둘 다. */}
               {open && cellMode && (
-                <PyCellEditor
-                  key={`ltask-${boardId}-${i}-${ver[i] ?? 0}`}
-                  initialHtml={text}
-                  onChange={(html, o) => {
-                    onDraft(i, html);
-                    // 결과가 붙을 때는 곧바로 씁니다 — 1.5초를 기다리면 카드에
-                    // 결과가 늦게 나타나 한 번 더 돌리게 됩니다.
-                    if (o?.flush) save();
-                  }}
-                  codeAtEnd={wantsCode && i === idx ? codeSeq : 0}
-                />
+                <div className="ltask-cells">
+                  {text && (stripHtml(text).trim() || htmlHasImage(text)) ? (
+                    <div
+                      className="study-card-content ltask-cells-peek"
+                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(tidyCellsHtml(text)) }}
+                    />
+                  ) : (
+                    <p className="ltask-cells-empty">아직 안 썼어요.</p>
+                  )}
+                  <button
+                    type="button"
+                    className="btn-primary ltask-cells-open"
+                    onClick={() => setBigIdx(i)}
+                  >
+                    ⤢ 크게 열어 쓰기
+                  </button>
+                </div>
               )}
               {open && !cellMode && (
                 <RichTextEditor
@@ -519,11 +463,35 @@ export default function LessonTaskPanel({ task, user, onType }) {
       )}
 
       <p className="ltask-note">
-        {local
-          ? "쓴 내용은 이 프로젝트의 내 카드에 곧바로 저장돼요."
-          : "쓴 내용은 공부방의 내 카드에 저장돼요 — 수업이 끝난 뒤에도 이어서 쓸 수 있어요."}
+        쓴 내용은 공부방의 내 카드에 저장돼요 — 수업이 끝난 뒤에도 이어서 쓸 수 있어요.
       </p>
       {error && <p className="form-error" role="alert">{error}</p>}
+
+      {/* 셀 창 — 열어 둔 동안 이 칸의 글은 창이 쥡니다(열쇠는 활동 자리뿐이라
+          구독으로 새 값이 와도 창이 다시 그려지지 않습니다). 닫을 때 남은 것을
+          곧바로 씁니다 — 미리보기가 저장된 카드를 따라오므로. */}
+      {bigIdx !== null && cellMode && (
+        <PyCellModal
+          key={`ltask-big-${boardId}-${bigIdx}`}
+          index={bigIdx}
+          title={String(acts[bigIdx] ?? "").trim() || `활동 ${bigIdx + 1}`}
+          initialHtml={pendingRef.current?.t?.boardId === boardId &&
+            Object.prototype.hasOwnProperty.call(pendingRef.current.drafts, bigIdx)
+            ? pendingRef.current.drafts[bigIdx]
+            : secs[bigIdx]?.content ?? ""}
+          onChange={(html, o) => {
+            onDraft(bigIdx, html);
+            // 결과가 붙을 때는 곧바로 씁니다 — 1.5초를 기다리면 카드에 결과가
+            // 늦게 나타나 한 번 더 돌리게 됩니다.
+            if (o?.flush) save();
+          }}
+          status={status}
+          onClose={() => {
+            save();
+            setBigIdx(null);
+          }}
+        />
+      )}
     </div>
   );
 }

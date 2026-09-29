@@ -3,8 +3,8 @@
 // =============================================================
 // 파이썬 연계 활동의 셀 편집기 — 글 셀 · 코드 셀 (코랩과 같은 생각)
 // -------------------------------------------------------------
-// 수업 노트 서랍의 활동 칸(LessonTaskPanel)이 **파이썬 실행기와 연계한
-// 프로젝트**(`board.pyLinked`)일 때 서식 에디터 한 칸 대신 이것을 씁니다.
+// **파이썬 실행기와 연계한 프로젝트**(`board.pyLinked`)의 활동 칸을 쓰는 큰 창
+// (PyCellModal)의 몸통입니다 — 공부방 카드와 서랍의 오늘의 활동이 그 창을 엽니다.
 // 학생이 셀의 종류를 **직접 고릅니다** — '＋ 글'은 설명을 쓰는 서식 칸,
 // '＋ 코드'는 코드를 짜고 ▶로 돌리는 칸입니다.
 //
@@ -74,7 +74,14 @@ function initCells(html) {
 const isEmptyCell = (c) =>
   c.type === "code" ? !String(c.code ?? "").trim() : !serializeCells([c]);
 
-export default function PyCellEditor({ initialHtml = "", onChange, codeAtEnd = 0 }) {
+export default function PyCellEditor({
+  initialHtml = "",
+  onChange,
+  codeAtEnd = 0,
+  // 마운트하자마자 맨 끝 빈 코드 셀에 커서를 둘까 — 카드의 '파이썬 실행기'
+  // 단추로 창을 열 때(아래 codeAtEnd 절 — 보통은 마운트 때 번호를 건너뜁니다).
+  startInCode = false,
+}) {
   // 셀 목록 — 처음에는 저장된 글을 풀어서. 빈 칸이면 글 셀 하나로 시작합니다
   // (빈 셀은 저장되지 않으므로 아무것도 안 쓰면 아무 일도 없습니다).
   const [cells, setCells] = useState(() => {
@@ -189,8 +196,9 @@ export default function PyCellEditor({ initialHtml = "", onChange, codeAtEnd = 0
   // ── 카드의 '파이썬 실행기' 단추 → 맨 끝 빈 코드 셀에 커서 ──
   // 맨 끝이 이미 빈 코드 셀이면 새로 안 만듭니다(누를 때마다 늘면 안 됩니다).
   // **마운트 때 받은 번호는 건너뜁니다** — 밖에서 칸이 바뀌어 다시 마운트될
-  // 때 같은 번호로 또 돌면 빈 셀이 또 생깁니다(RichTextEditor의 codeAtEnd와 같음).
-  const codeSeenRef = useRef(codeAtEnd);
+  // 때 같은 번호로 또 돌면 빈 셀이 또 생깁니다. 창을 그 단추로 **여는** 때만
+  // (`startInCode`) 마운트 때 한 번 돕니다 — 창이 열리는 것이 곧 누른 것이라서요.
+  const codeSeenRef = useRef(startInCode ? 0 : codeAtEnd);
   useEffect(() => {
     if (!codeAtEnd || codeAtEnd === codeSeenRef.current) return;
     codeSeenRef.current = codeAtEnd;

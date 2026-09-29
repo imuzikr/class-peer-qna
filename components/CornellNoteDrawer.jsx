@@ -52,7 +52,6 @@ import {
 import CornellNoteViewerModal from "./CornellNoteViewerModal";
 import { richHtml, stripHtml } from "@/lib/html";
 import { IconRecord } from "./StatusIcons";
-import { onOpenProjectTask, subscribeProjectContext } from "@/lib/projectTask";
 
 const SAVE_DELAY = 2000; // ms — 이만큼 입력이 없으면 저장
 const OPEN_KEY = "cornell-drawer-open";
@@ -90,44 +89,11 @@ export default function CornellNoteDrawer({
   task: classTask = null,
 }) {
   const [open, setOpen] = useState(false);
-  // ── '프로젝트 활동' — 수업 밖에서 학생이 스스로 연 활동 칸 ──
-  // 파이썬 실행기와 연계된 프로젝트에서 활동 칸의 '파이썬 실행기' 단추를
-  // 누르면(lib/projectTask.js) 이 서랍이 열리고 그 활동 칸이 섭니다. 수업 중
-  // '오늘의 활동'과 **같은 칸**(LessonTaskPanel)이라 코드 블록·▶ 실행·결과
-  // 붙이기가 그대로이고, 쓴 것은 그 프로젝트의 내 카드에 곧바로 저장됩니다.
-  // - **단추를 눌렀을 때만** 섭니다. 연계된 프로젝트에 들어가기만 해도 서랍이
-  //   열리면 코드를 안 쓰는 날에도 매번 닫아야 합니다.
-  // - **선생님이 새로 보내면 그것이 이깁니다** — 아래 '활동이 새로 도착했을
-  //   때'가 이 값을 비웁니다('새 활동이 오면 그 활동으로'와 같은 규칙).
-  // - **서랍을 닫으면 비웁니다.** 단추로 연 것이라, 손잡이로 다시 열면 노트로
-  //   돌아옵니다(선생님이 보낸 활동은 닫아도 남습니다 — 오늘 것이라서요).
-  const [projTask, setProjTask] = useState(null);
-  // **지금 머무는 프로젝트**(파이썬 실행기와 연계된 것) — 손잡이로 서랍을
-  // 직접 열어도 '프로젝트 활동' 탭이 서게 합니다. 단추로 연 것과 달리 칸을
-  // 저절로 켜거나 코드 블록을 넣지 않습니다(학생이 탭을 눌러 폅니다).
-  // 차례는 **단추로 연 것 → 선생님이 보낸 오늘의 활동 → 머무는 프로젝트**.
-  const [projCtx, setProjCtx] = useState(null);
-  useEffect(() => subscribeProjectContext(setProjCtx), []);
-  const ctxTask = useMemo(
-    () =>
-      projCtx
-        ? { kind: "study", boardId: projCtx.boardId, actIndex: projCtx.actIndex, local: true }
-        : null,
-    [projCtx]
-  );
-  const task = projTask ?? classTask ?? ctxTask;
-  const taskWord = task?.local ? "프로젝트 활동" : "오늘의 활동";
-  useEffect(
-    () =>
-      onOpenProjectTask(({ boardId, actIndex }) => {
-        // focus — 단추로 연 것이라 그 활동 끝에 코드 블록을 두고 커서를 둡니다
-        setProjTask({ kind: "study", boardId, actIndex, at: Date.now(), local: true, focus: true });
-        setPanes(new Set(["task"]));
-        setOpen(true);
-        try { localStorage.setItem(OPEN_KEY, "1"); } catch {}
-      }),
-    []
-  );
+  // 선생님이 보낸 오늘의 활동 하나뿐입니다. 한때 수업 밖에서 학생이 스스로 여는
+  // '프로젝트 활동'(파이썬 연계 프로젝트)도 이 자리에 섰는데 걷었습니다 — 그
+  // 프로젝트는 공부방 카드의 큰 창에서 씁니다(선생님 요청).
+  const task = classTask;
+  const taskWord = "오늘의 활동";
   // 펼친 칸 — 'note'(수업 노트) · 'task'(오늘의 활동). **둘 다 켤 수 있습니다**
   // (날개 펴기). 활동이 없는 날에는 탭 줄을 아예 안 그립니다(지금까지와 같은
   // 모습) — 누를 수 없는 탭이 늘 서 있으면 '왜 안 눌리지'를 매번 겪습니다.
@@ -245,12 +211,7 @@ export default function CornellNoteDrawer({
   useEffect(() => {
     if (!open) {
       setSlidIn(false);
-      // 프로젝트 활동은 **다 미끄러져 나간 뒤에** 비웁니다 — 곧바로 비우면
-      // 나가는 동안 칸이 먼저 사라집니다(위 '프로젝트 활동' 절).
-      const t = setTimeout(() => {
-        setRendered(false);
-        setProjTask(null);
-      }, SLIDE_MS);
+      const t = setTimeout(() => setRendered(false), SLIDE_MS);
       return () => clearTimeout(t);
     }
     setRendered(true);
@@ -308,13 +269,10 @@ export default function CornellNoteDrawer({
   // 벌어지지 않습니다 — 필기가 필요한 학생은 노트 탭을 더 눌러 날개를 폅니다.
   // 같은 활동을 두 번 보낼 수도 있어 `boardId`·`actIndex`가 아니라
   // **보낸 시각**을 견줍니다.
-  // **선생님이 보낸 것만** 봅니다 — 학생이 스스로 연 프로젝트 활동은 위에서
-  // 따로 엽니다. 새로 보낸 것이 오면 스스로 연 칸을 걷고 그것으로 갑니다.
   const seenTaskRef = useRef(0);
   useEffect(() => {
     if (!classTask?.at || classTask.at <= seenTaskRef.current) return;
     seenTaskRef.current = classTask.at;
-    setProjTask(null);
     setPanes(new Set(["task"]));
     setOpen(true);
     try { localStorage.setItem(OPEN_KEY, "1"); } catch {}
@@ -484,8 +442,8 @@ export default function CornellNoteDrawer({
     function onKey(e) {
       if (e.key !== "Escape") return;
       // 페이지에 창이 떠 있으면 그 창의 Esc입니다 — 공부방 카드의 '크게 쓰기'
-      // 창이 서랍 위로 뜨는 경우가 있습니다(프로젝트 활동을 연 채로 칸을
-      // 누를 때). 이 리스너는 캡처 단계라 여기서 멈추면 창이 Esc를 못 받습니다.
+      // 창이나 오늘의 활동의 큰 셀 창이 서랍 위로 뜹니다. 이 리스너는 캡처
+      // 단계라 여기서 멈추면 창이 Esc를 못 받습니다.
       if (document.querySelector(".modal-backdrop")) return;
       e.preventDefault();
       e.stopPropagation();
@@ -581,7 +539,7 @@ export default function CornellNoteDrawer({
         title={
           open
             ? "수업 노트 닫기 (Esc)"
-            : task && !task.local
+            : task
               ? "오늘의 활동이 있어요 — 눌러서 쓰기"
               : unreadCount > 0
                 ? `선생님이 한 마디를 남겼어요 (${unreadCount}개)`

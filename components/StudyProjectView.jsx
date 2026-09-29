@@ -106,7 +106,6 @@ export default function StudyProjectView({
   attendanceRecords = [],
   onBack,
   onAsk,
-  onOpenPython, // (boardId, actIndex) — 학생 카드의 '파이썬 실행기' 단추
   onModalChange,
   onDeleted,
   onDuplicated,
@@ -601,6 +600,12 @@ export default function StudyProjectView({
       const next = walk[at + delta];
       if (next) setDetailSeat(next);
     };
+    // 카드는 **지금 구독으로 든 자리**에서 꺼냅니다. `detailSeat`는 누른 순간의
+    // 자리를 그대로 들고 있어, 남의 카드(안내 카드 · 교사가 연 학생 카드)는 그
+    // 뒤 저장해도 옛 내용이 내려왔습니다 — 크게 쓰는 창을 닫는 순간 카드가 그
+    // 옛 값을 '밖에서 바뀐 것'으로 보고 화면을 되돌렸습니다(실측).
+    const liveCard =
+      (seats ?? []).find((s) => s.key === detailSeat.key)?.card ?? detailSeat.card;
     return (
       <StudyMyActivityCard
         // 학생을 바꾸면 **다시 세웁니다.** 이 컴포넌트는 카드 내용을
@@ -609,11 +614,11 @@ export default function StudyProjectView({
         key={detailSeat.key}
         board={board}
         user={user}
-        card={detailSeat.mine ? myCard : detailSeat.card}
+        card={detailSeat.mine ? myCard : liveCard}
         canEdit={
           detailSeat.mine
             ? !locked
-            : !!detailSeat.card && canEditCard(detailSeat.card)
+            : !!liveCard && canEditCard(liveCard)
         }
         canDelete={isTeacher}
         isTeacher={isTeacher}
@@ -634,23 +639,6 @@ export default function StudyProjectView({
         // '프로젝트 목록으로'를 누르는 두 단계를 한 번으로 줄입니다.
         onBackToList={onBack}
         onAsk={onAsk}
-        // 파이썬 실행기와 연계한 프로젝트에서, **내 카드**에만 — 실행기의
-        // '활동으로 보내기'는 자기 카드로만 보냅니다(교사 카드는 자동 ID라
-        // 보낼 때마다 새 카드가 생기고, 모둠 카드는 규칙이 막습니다).
-        onOpenPython={
-          detailSeat.mine && !isTeacher && board.pyLinked && board.activityType !== "group"
-            ? (i) => onOpenPython?.(board.id, i)
-            : null
-        }
-        // 교사 안내 카드에는 같은 단추를 **보여 주기만** 합니다 — 학생에게
-        // 예시를 띄울 때 학생 카드와 같은 모습이어야 해서요. 교사에게는 서랍이
-        // 없어 눌러도 아무 일이 없습니다.
-        pythonDemo={
-          isTeacher &&
-          detailSeat.isTeacherCard &&
-          !!board.pyLinked &&
-          board.activityType !== "group"
-        }
         // 활동 칸 머리의 여닫기 — 교사가 어느 카드(안내 카드 · 학생 카드)를
         // 보든 섭니다. 보드의 activityLocks를 고치므로 카드 격자 위 칩과 같은 값입니다.
         onToggleActivityLock={isTeacher ? toggleActivityLock : null}

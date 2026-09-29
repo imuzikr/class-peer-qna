@@ -62,8 +62,6 @@ import { useCurrentUser } from "@/lib/useCurrentUser";
 import { useClassRoster } from "@/lib/useClassRoster";
 import AuthGate from "@/components/AuthGate";
 import { codeBlockHtml } from "@/lib/html";
-import { openProjectTask, setProjectContext } from "@/lib/projectTask";
-import { isActivityLocked } from "@/lib/activities";
 import {
   loadSameNameProject,
   groupLegacyProjects,
@@ -603,28 +601,6 @@ function StudyPageInner() {
     router.push("/study");
   }
 
-  // 파이썬 실행기와 연계된 프로젝트에 **머무는 동안** 수업 노트 서랍이 그
-  // 프로젝트를 알게 합니다(lib/projectTask.js의 '지금 머무는 프로젝트') —
-  // 손잡이로 서랍을 직접 열어도 '프로젝트 활동' 탭이 섭니다. 서랍을 저절로
-  // 열지는 않습니다(선생님이 고름 — 단추를 눌렀을 때만 엶).
-  // 펼칠 활동은 **처음으로 열린 활동**입니다 — 잠긴 활동을 짚으면 칸이
-  // '선생님이 열어 주면…'에서 멈춥니다. 모둠 프로젝트는 학생이 서랍에서
-  // 쓸 수 없어(규칙이 카드 생성을 막음) 알리지 않습니다.
-  // 프로젝트 전체가 잠겼으면(editMode) 알리지 않습니다 — 쓸 수 없는 칸이라서요.
-  const pyCtxBoardId =
-    !admin && activeProject?.pyLinked && activeProject.activityType !== "group" &&
-    activeProject.editMode !== "locked"
-      ? activeProject.id
-      : null;
-  const pyCtxAct = pyCtxBoardId
-    ? Math.max(0, (activeProject.activities ?? []).findIndex((_, i) => !isActivityLocked(activeProject, i)))
-    : 0;
-  useEffect(() => {
-    setProjectContext(pyCtxBoardId ? { boardId: pyCtxBoardId, actIndex: pyCtxAct } : null);
-  }, [pyCtxBoardId, pyCtxAct]);
-  // 공부방을 떠나면(다른 화면으로) 비웁니다 — 서랍은 상단바라 남아 있습니다.
-  useEffect(() => () => setProjectContext(null), []);
-
   function openLessonPicker() {
     router.push("/study?panel=lessons");
   }
@@ -1105,13 +1081,6 @@ function StudyPageInner() {
                   attendanceRecords={admin ? attendanceRecords : []}
                   onBack={closeProject}
                   onAsk={(kw) => setAskKeyword(kw)}
-                  // 학생 카드의 '파이썬 실행기' 단추 — 실행기가 아니라 **수업
-                  // 노트 서랍**에 그 활동 칸을 엽니다(lib/projectTask.js).
-                  // 실행기가 떠 있으면 접습니다 — 둘 다 오른쪽에서 나와 겹칩니다.
-                  onOpenPython={(boardId, actIndex) => {
-                    setPyOpen(false);
-                    openProjectTask(boardId, actIndex);
-                  }}
                   onModalChange={setCardModalOpen}
                   onDeleted={() => {
                     closeProject();
