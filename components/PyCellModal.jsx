@@ -5,7 +5,7 @@
 // -------------------------------------------------------------
 // 파이썬 실행기와 연계한 프로젝트(`board.pyLinked`, 모둠 아님)의 활동 칸은
 // **이 창에서만** 씁니다. 두 자리가 함께 씁니다.
-//   · 공부방 카드(StudyMyActivityCard) — 칸을 누르거나 '파이썬 실행기' 단추
+//   · 공부방 카드(StudyMyActivityCard) — 칸을 누르면
 //   · 수업 노트 서랍의 오늘의 활동(LessonTaskPanel) — '크게 열어 쓰기'
 // 한때 서랍(380px) 안의 셀 편집기에서 썼는데, 코드를 짜기에 너무 좁아 걷었습니다
 // (선생님 요청). 서식 에디터로 쓰는 '크게 쓰기' 창과 **같은 껍데기**
@@ -28,14 +28,11 @@ import PyCellEditor from "./PyCellEditor";
 
 export default function PyCellModal({
   index,
-  title,
-  onTitleChange = null, // 없으면 제목은 글자로만(서랍 — 제목은 카드에서 고칩니다)
+  title, // 글자로만 — 학생이 활동 이름을 고칠 일이 없습니다(선생님 요청)
   initialHtml,
   onChange,
   onClose,
   status = null, // 머리의 저장 알약 — "saving" | "saved" | "error" | 그 밖은 안 그림
-  codeAtEnd = 0,
-  startInCode = false,
 }) {
   useEffect(() => {
     function onKey(e) {
@@ -59,20 +56,9 @@ export default function PyCellModal({
       >
         <div className="study-act-modal-head">
           <span className="activity-dash-no">활동 {index + 1}</span>
-          {onTitleChange ? (
-            <input
-              type="text"
-              className="study-act-modal-title"
-              value={title}
-              onChange={(e) => onTitleChange(e.target.value)}
-              placeholder={`활동 ${index + 1}`}
-              maxLength={80}
-            />
-          ) : (
-            <strong className="study-act-modal-title study-act-modal-title--view">
-              {title || `활동 ${index + 1}`}
-            </strong>
-          )}
+          <strong className="study-act-modal-title study-act-modal-title--view">
+            {title || `활동 ${index + 1}`}
+          </strong>
           {(status === "saving" || status === "saved" || status === "error") && (
             <span className={`study-autosave-pill study-autosave-pill--${status}`}>
               {status === "saving" && "저장 중…"}
@@ -83,12 +69,7 @@ export default function PyCellModal({
           <button className="btn-close" onClick={onClose} aria-label="닫기">×</button>
         </div>
         <div className="study-act-modal-body study-act-cells-body">
-          <PyCellEditor
-            initialHtml={initialHtml}
-            onChange={onChange}
-            codeAtEnd={codeAtEnd}
-            startInCode={startInCode}
-          />
+          <PyCellEditor initialHtml={initialHtml} onChange={onChange} />
         </div>
       </div>
     </div>,

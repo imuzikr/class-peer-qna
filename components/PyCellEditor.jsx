@@ -77,10 +77,6 @@ const isEmptyCell = (c) =>
 export default function PyCellEditor({
   initialHtml = "",
   onChange,
-  codeAtEnd = 0,
-  // 마운트하자마자 맨 끝 빈 코드 셀에 커서를 둘까 — 카드의 '파이썬 실행기'
-  // 단추로 창을 열 때(아래 codeAtEnd 절 — 보통은 마운트 때 번호를 건너뜁니다).
-  startInCode = false,
 }) {
   // 셀 목록 — 처음에는 저장된 글을 풀어서. 빈 칸이면 글 셀 하나로 시작합니다
   // (빈 셀은 저장되지 않으므로 아무것도 안 쓰면 아무 일도 없습니다).
@@ -192,29 +188,6 @@ export default function PyCellEditor({
     clearTimeout(undoTimer.current);
     setUndo(null);
   }
-
-  // ── 카드의 '파이썬 실행기' 단추 → 맨 끝 빈 코드 셀에 커서 ──
-  // 맨 끝이 이미 빈 코드 셀이면 새로 안 만듭니다(누를 때마다 늘면 안 됩니다).
-  // **마운트 때 받은 번호는 건너뜁니다** — 밖에서 칸이 바뀌어 다시 마운트될
-  // 때 같은 번호로 또 돌면 빈 셀이 또 생깁니다. 창을 그 단추로 **여는** 때만
-  // (`startInCode`) 마운트 때 한 번 돕니다 — 창이 열리는 것이 곧 누른 것이라서요.
-  const codeSeenRef = useRef(startInCode ? 0 : codeAtEnd);
-  useEffect(() => {
-    if (!codeAtEnd || codeAtEnd === codeSeenRef.current) return;
-    codeSeenRef.current = codeAtEnd;
-    const list = cellsRef.current;
-    const last = list[list.length - 1];
-    let target = last;
-    if (!(last?.type === "code" && !last.code.trim())) {
-      // 빈 글 셀 하나뿐이면 그것을 코드 셀로 바꿔 씁니다(빈 글 셀 + 빈 코드 셀이
-      // 나란히 서면 첫 칸이 쓸모없이 남습니다).
-      const lone = list.length === 1 && list[0].type === "text" && isEmptyCell(list[0]);
-      target = { id: newId(), type: "code", code: "", output: null };
-      commit(lone ? [target] : [...list, target]);
-    }
-    setActiveId(target.id);
-    setFocus({ id: target.id, n: Date.now() });
-  }, [codeAtEnd, commit]);
 
   // ── 실행 ──
   function finish(id) {

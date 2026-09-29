@@ -27867,17 +27867,31 @@ ul.checklist > li.done {
   border-left: 3px solid transparent;
 }
 .pycell.active { border-left-color: var(--primary); }
-.pycell-head { display: flex; align-items: center; gap: 6px; min-height: 26px; }
-.pycell-kind {
-  padding: 2px 9px;
+.pycell-head { display: flex; align-items: center; gap: 6px; min-height: 28px; }
+/* 셀 종류 이름표와 ▶ 실행 · ■ 중단은 **같은 알약 크기**입니다 — 높이 28px ·
+   글자 12.5px · 좌우 여백 12px. 이름표만 작으면(11px · 2/9) 옆 단추가 머리줄을
+   혼자 차지해 둘이 한 줄로 안 읽혔습니다(선생님 지적). 테두리 1px도 함께
+   둡니다(이름표는 바탕과 같은 색) — 빼면 단추보다 2px 작아집니다. */
+.pycell-kind,
+.pycell .pycell-run {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  padding: 0 12px;
   border-radius: 999px;
-  background: var(--bg-deep);
-  font-size: 11px;
+  font-size: 12.5px;
   font-weight: 800;
+  line-height: 1;
+}
+.pycell-kind {
+  min-width: 52px;
+  border: 1px solid var(--bg-deep);
+  background: var(--bg-deep);
   color: var(--text-sub);
 }
-.pycell--code .pycell-kind { background: var(--dark); color: #ede9e0; }
-.pycell-run { padding: 3px 11px; }
+.pycell--code .pycell-kind { background: var(--dark); border-color: var(--dark); color: #ede9e0; }
 .pycell-tools { margin-left: auto; display: flex; gap: 2px; }
 .pycell-tool {
   width: 24px;
@@ -27901,9 +27915,16 @@ ul.checklist > li.done {
   background: var(--card-bg);
 }
 .pycell-code:focus-within { border-color: var(--primary); }
-.pycell-code .cm-editor { font-size: 13px; max-height: 360px; }
+.pycell-code .cm-editor { font-size: 13px; max-height: 480px; }
 .pycell-code .cm-editor.cm-focused { outline: none; }
-.pycell-code .cm-scroller { font-family: var(--font-mono); line-height: 1.6; min-height: 60px; }
+.pycell-code .cm-scroller { font-family: var(--font-mono); line-height: 1.6; }
+/* 빈 코드 셀도 **열 줄 남짓** 높이로 섭니다 — 코드는 여러 줄에 걸쳐 쓰는데
+   두 줄 높이로 시작하면 짜기 전부터 좁아 보였습니다(선생님 지적). 높이는
+   scroller가 아니라 내용·줄 번호 칸에 줘야 줄 번호 띠가 바닥까지 이어지고,
+   아래 빈 곳을 눌러도 커서가 갑니다. 글이 넘치면 480px까지 늘고 그 뒤로는
+   셀 안에서 구릅니다. */
+.pycell-code .cm-content,
+.pycell-code .cm-gutter { min-height: 216px; }
 .pycell-code .cm-gutters {
   background: var(--bg-deep);
   color: #a8a69d;
@@ -28161,35 +28182,8 @@ h4.attendance-seat-help { margin-top: 16px; }
   .project-link-grid { grid-template-columns: 1fr; }
 }
 
-/* ── 학생 카드의 '파이썬 실행기' 단추 ──
-   활동 칸(미리보기) 오른쪽 위. 띄워 두면(absolute) 첫 줄 글이 그 밑에 깔려,
-   오른쪽으로 흘려(float) 글이 비켜 가게 합니다. */
-.study-mycard-py {
-  float: right;
-  position: relative;
-  z-index: 2;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  margin: -2px -4px 6px 10px;
-  padding: 4px 10px;
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--dark);
-  background: var(--neutral);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  cursor: pointer;
-}
-.study-mycard-py:hover,
-.study-mycard-py:focus-visible {
-  border-color: var(--primary);
-  background: var(--primary-light);
-  outline: none;
-}
-/* 셀 창(PyCellModal)을 서랍에서 열 때 — 제목은 입력칸이 아니라 글자입니다
-   (제목은 공부방 카드에서 고칩니다). */
+/* 셀 창(PyCellModal)의 제목은 입력칸이 아니라 글자입니다 — 학생이 활동
+   이름을 고칠 일이 없습니다(선생님 요청). */
 .study-act-modal-title.study-act-modal-title--view {
   border-color: transparent;
   background: none;
@@ -28197,14 +28191,6 @@ h4.attendance-seat-help { margin-top: 16px; }
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-/* 칸 미리보기는 세로 flex라(본문이 제 안에서 구르게) 흘리기가 안 듣습니다 —
-   오른쪽 끝에 제 줄로 섭니다. */
-.study-mycard-preview > .study-mycard-py {
-  float: none;
-  align-self: flex-end;
-  flex: none;
-  margin: -2px -4px 6px 0;
 }
 /* 셀 창의 몸통 — 셀이 쌓이면 이 칸만 구릅니다(머리줄은 제자리). 셀 편집기는
    서랍 폭(380px)에 맞춰 만든 것이라 넓은 창에서는 가운데 한 기둥으로 둡니다 —

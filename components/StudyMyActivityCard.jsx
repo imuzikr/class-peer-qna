@@ -52,7 +52,6 @@ import {
   IconLock,
   IconLockState,
   IconTrash,
-  IconPythonRunner,
 } from "./StatusIcons";
 
 const FILE_EXTS = {
@@ -143,12 +142,7 @@ export default function StudyMyActivityCard({
   const [confirmDelete, setConfirmDelete] = useState(false);
   // 지금 크게 열어 쓰고 있는 활동 번호 (null이면 닫힘)
   const [editingAct, setEditingAct] = useState(null);
-  // 셀 창을 '파이썬 실행기' 단추로 열었나 — 그러면 맨 끝 빈 코드 셀에 커서를 둡니다
-  const [editInCode, setEditInCode] = useState(false);
-  function openAct(i, inCode = false) {
-    setEditInCode(inCode);
-    setEditingAct(i);
-  }
+  const openAct = (i) => setEditingAct(i);
   const [peekQuestion, setPeekQuestion] = useState(null);
 
   const cardIdRef = useRef(card?.id ?? null);
@@ -726,24 +720,6 @@ export default function StudyMyActivityCard({
                     }}
                     title="눌러서 크게 쓰기"
                   >
-                    {/* 파이썬 실행기 — 칸 오른쪽 위. 칸을 누르는 것과 같은 큰 창을
-                        열되 **맨 끝 빈 코드 셀에 커서를** 둡니다(누른 뜻이 '코드를
-                        짜겠다'라서요). 이름은 그대로 '파이썬 실행기' — 학생에게
-                        '여기서 파이썬을 돌린다'가 그 이름으로 익어 있습니다. */}
-                    {cellMode && (
-                      <button
-                        type="button"
-                        className="study-mycard-py"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openAct(i, true);
-                        }}
-                        onKeyDown={(e) => e.stopPropagation()}
-                        title="크게 열어 코드를 쓰고 돌려 봐요"
-                      >
-                        <IconPythonRunner size={16} /> 파이썬 실행기
-                      </button>
-                    )}
                     {stripHtml(activityContents[i] ?? "").trim() ||
                     htmlHasImage(activityContents[i] ?? "") ? (
                       <div
@@ -844,13 +820,6 @@ export default function StudyMyActivityCard({
         <PyCellModal
           index={editingAct}
           title={activityTitles[editingAct] ?? activities[editingAct] ?? ""}
-          onTitleChange={(v) =>
-            setActivityTitles((prev) => {
-              const next = [...prev];
-              next[editingAct] = v;
-              return next;
-            })
-          }
           initialHtml={activityContents[editingAct] ?? ""}
           onChange={(html, o) => {
             if (o?.flush) flushSoonRef.current = true;
@@ -861,8 +830,6 @@ export default function StudyMyActivityCard({
             });
           }}
           status={autoStatus}
-          codeAtEnd={editInCode ? 1 : 0}
-          startInCode={editInCode}
           onClose={() => setEditingAct(null)}
         />
       )}
