@@ -77,9 +77,9 @@ test("이벤트 선택 · 초록 점 · 응모 가능", () => {
   assert.equal(eventChoiceOf({ entered: true }), "entered");
   assert.equal(eventChoiceOf({ declined: true }), "declined");
   assert.equal(eventChoiceOf({}), null);
-  // 초록 점 = 골랐는데 아직 접수 안 됨
+  // 초록 점 = 응모했는데 아직 접수 안 됨('응모하지 않기'는 켜지 않음)
   assert.equal(isEventPending({ entered: true }), true);
-  assert.equal(isEventPending({ declined: true }), true);
+  assert.equal(isEventPending({ declined: true }), false);
   assert.equal(isEventPending({ entered: true, receivedBy: "t", receivedAt: null }), false); // 서버 시각 전이어도 접수함
   assert.equal(isEventPending({ donated: 3 }), false);
   // 응모 — 과일 1개 이상 · 목표 도달 · 아직 안 고름 · 접수 전
@@ -87,7 +87,8 @@ test("이벤트 선택 · 초록 점 · 응모 가능", () => {
   assert.equal(canEnterEvent(mine(), true), true);
   assert.equal(canEnterEvent(mine({ donated: 0 }), true), false);
   assert.equal(canEnterEvent(mine(), false), false);
-  assert.equal(canEnterEvent(mine({ choice: "declined" }), true), false);
+  assert.equal(canEnterEvent(mine({ choice: "declined" }), true), true);   // 응모 안 함 → 응모로 바꾸기
+  assert.equal(canEnterEvent(mine({ choice: "entered" }), true), false);
   assert.equal(canEnterEvent(mine({ received: true }), true), false);
 });
 
@@ -104,5 +105,5 @@ test("basketSummary: 응모 안 함 · 모두 답함 · 접수할 학생", () =>
   assert.equal(s.declinedCount, 1);
   assert.equal(s.allEntered, false);
   assert.equal(s.allResponded, true);
-  assert.deepEqual(s.pendingUids.sort(), ["a", "gone"]);
+  assert.deepEqual(s.pendingUids.sort(), ["a", "gone"]);   // 응모한 학생만
 });

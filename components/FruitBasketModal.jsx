@@ -122,7 +122,7 @@ function BasketTotal({ sum, loading }) {
 }
 
 // 교사 — 이벤트 현황(응모 · 응모 안 함 · 아직) + '이벤트 접수'.
-// 접수하면 학생들이 고른 것을 받아 두어 '멋진 순간' 자리표의 초록 점이 꺼지고,
+// 접수하면 응모한 학생들을 받아 두어 '멋진 순간' 자리표의 초록 점이 꺼지고,
 // 그 학생의 선택은 그 뒤로 못 바꿉니다. 접수 뒤에 새로 고른 학생은 다시 점이
 // 켜지므로 한 번 더 누르면 됩니다.
 function TeacherPanel({ classId, sum, roster }) {
@@ -140,7 +140,7 @@ function TeacherPanel({ classId, sum, roster }) {
     setMsg(null);
     try {
       const n = await receiveFruitEvent(classId, sum.pendingUids);
-      setMsg({ ok: true, text: `${n}명의 선택을 접수했어요.` });
+      setMsg({ ok: true, text: `${n}명의 응모를 접수했어요.` });
     } catch (e) {
       console.error("[fruitBasket] 접수 실패:", e?.code ?? e);
       setMsg({ ok: false, text: "접수하지 못했어요. 다시 시도해 주세요." });
@@ -174,14 +174,14 @@ function TeacherPanel({ classId, sum, roster }) {
         className="btn-primary fb-enter-btn fb-receive"
         onClick={receive}
         disabled={busy || !pending}
-        title={pending ? "고른 학생들의 선택을 받아 둡니다 — 자리표의 초록 점이 꺼지고, 그 뒤로는 바꿀 수 없어요" : "새로 고른 학생이 없어요"}
+        title={pending ? "응모한 학생들을 접수합니다 — 자리표의 초록 점이 꺼지고, 그 뒤로는 바꿀 수 없어요" : "새로 응모한 학생이 없어요"}
       >
         {busy ? "접수하는 중…" : pending ? `이벤트 접수 (${pending}명)` : "이벤트 접수"}
       </button>
       <p className="fb-help">
         {pending
-          ? "자리표의 초록 점은 응모 여부를 골랐지만 아직 접수하지 않은 학생이에요."
-          : "학생이 응모 여부를 고르면 자리표에 초록 점이 켜져요."}
+          ? "자리표의 초록 점은 응모했지만 아직 접수하지 않은 학생이에요."
+          : "학생이 응모하면 자리표에 초록 점이 켜져요."}
       </p>
       {msg && <p className={`fb-msg ${msg.ok ? "ok" : "err"}`}>{msg.text}</p>}
     </section>
@@ -191,7 +191,8 @@ function TeacherPanel({ classId, sum, roster }) {
 // 학생 — 내 과일(내놓기 · 거두기) + 이벤트(응모하기 · 응모하지 않기)
 // 입력칸 하나에 단추 둘 — 적은 개수만큼 내놓거나 거둡니다. 이벤트는 따로 한
 // 칸: 응모하기(과일 1개 이상 · 반 바구니 100개) · 응모하지 않기(내놓은 과일을
-// 모두 되돌려 받음). 고른 뒤에는 선생님이 접수하기 전까지 거둘 수 있습니다.
+// 모두 되돌려 받음). 두 단추는 고른 뒤에도 그대로 서서, 선생님이 접수하기
+// 전까지 바꾸거나(다른 단추) 거둘 수 있습니다(고른 단추를 다시 누름).
 // 응모한 동안은 과일을 거둘 수 없습니다(응모를 취소하면 다시 거둘 수 있음).
 function StudentPanel({ classId, uid, myFruit, mine, goalReached, total }) {
   const [raw, setRaw] = useState("1"); // 개수 — −/＋ 단추로 고치고, 칸에 직접 적어도 됨
@@ -244,7 +245,7 @@ function StudentPanel({ classId, uid, myFruit, mine, goalReached, total }) {
     "응모하지 못했어요. 다시 시도해 주세요.",
     setEventMsg
   );
-  const decline = () => !mine.choice && run(
+  const decline = () => !mine.received && run(
     () => declineFruitEvent(classId, uid),
     (back) => (back > 0 ? `응모하지 않기로 했어요. 내놓은 과일 ${back}개를 돌려받았어요.` : "응모하지 않기로 했어요."),
     "고르지 못했어요. 다시 시도해 주세요.",
@@ -322,7 +323,7 @@ function StudentPanel({ classId, uid, myFruit, mine, goalReached, total }) {
             onClick={take}
             disabled={busy || !takeAmt}
             title={
-              mine.entered ? "응모한 동안은 과일을 거둘 수 없어요 — 응모를 취소하면 거둘 수 있어요"
+              mine.entered ? "응모한 동안은 과일을 거둘 수 없어요 — 응모하기를 다시 눌러 취소하면 거둘 수 있어요"
                 : mine.donated <= 0 ? "아직 내놓은 과일이 없어요"
                 : `내놓은 과일 ${mine.donated}개 안에서 거둬요`
             }
@@ -347,51 +348,45 @@ function StudentPanel({ classId, uid, myFruit, mine, goalReached, total }) {
           <span className="fb-label">이벤트</span>
           {mine.received && <strong className="fb-received">선생님이 접수했어요</strong>}
         </div>
-        {mine.choice ? (
-          <>
-            <p className={`fb-entered${mine.choice === "declined" ? " fb-declined" : ""}`}>
-              {mine.choice === "entered" ? "✓ 이벤트에 응모했어요." : "응모하지 않기로 했어요."}
-            </p>
-            {!mine.received && (
-              <button
-                type="button"
-                className="btn-primary fb-enter-btn"
-                onClick={cancelChoice}
-                disabled={busy}
-              >
-                {mine.choice === "entered" ? "응모 취소" : "응모하지 않기 취소"}
-              </button>
-            )}
-          </>
-        ) : (
-          <>
-            <div className="fb-choice">
-              <button
-                type="button"
-                className="btn-primary fb-enter-btn"
-                onClick={enter}
-                disabled={busy || !canEnter}
-              >
-                응모하기
-              </button>
-              <button
-                type="button"
-                className="btn-primary fb-enter-btn"
-                onClick={decline}
-                disabled={busy}
-                title={mine.donated > 0 ? `내놓은 과일 ${mine.donated}개는 자동으로 돌려받아요` : "응모하지 않습니다"}
-              >
-                응모하지 않기
-              </button>
-            </div>
-            <p className="fb-help fb-enter-wait">
-              {enterWhy ??
+        {/* 두 단추는 고른 뒤에도 그대로 섭니다(선생님 요청) — 고른 쪽에 ✓,
+            다른 쪽은 옅게. 다른 쪽을 누르면 바꾸고, 고른 쪽을 다시 누르면
+            거둡니다. 선생님이 접수하면 둘 다 잠깁니다. */}
+        <div className="fb-choice">
+          <button
+            type="button"
+            className={`btn-primary fb-enter-btn${mine.choice === "declined" ? " fb-choice-off" : ""}`}
+            aria-pressed={mine.choice === "entered"}
+            onClick={mine.choice === "entered" ? cancelChoice : enter}
+            disabled={busy || mine.received || (mine.choice !== "entered" && !canEnter)}
+            title={mine.choice === "entered" ? "다시 누르면 응모를 취소해요" : undefined}
+          >
+            {mine.choice === "entered" ? "✓ 응모하기" : "응모하기"}
+          </button>
+          <button
+            type="button"
+            className={`btn-primary fb-enter-btn${mine.choice === "entered" ? " fb-choice-off" : ""}`}
+            aria-pressed={mine.choice === "declined"}
+            onClick={mine.choice === "declined" ? cancelChoice : decline}
+            disabled={busy || mine.received}
+            title={
+              mine.choice === "declined" ? "다시 누르면 응모하지 않기를 취소해요"
+                : mine.donated > 0 ? `내놓은 과일 ${mine.donated}개는 자동으로 돌려받아요`
+                : "응모하지 않습니다"
+            }
+          >
+            {mine.choice === "declined" ? "✓ 응모하지 않기" : "응모하지 않기"}
+          </button>
+        </div>
+        <p className="fb-help fb-enter-wait">
+          {mine.received
+            ? "선생님이 접수해서 더 바꿀 수 없어요."
+            : mine.choice
+              ? "고른 단추를 다시 누르면 취소되고, 다른 단추를 누르면 바뀌어요."
+              : enterWhy ??
                 (mine.donated > 0
                   ? `응모하지 않기를 고르면 내놓은 과일 ${mine.donated}개를 자동으로 돌려받아요.`
                   : "응모 여부를 골라 주세요.")}
-            </p>
-          </>
-        )}
+        </p>
         {eventMsg && <p className={`fb-msg ${eventMsg.ok ? "ok" : "err"}`}>{eventMsg.text}</p>}
       </section>
     </>
