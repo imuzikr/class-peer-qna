@@ -3498,14 +3498,19 @@ button.footer-link:hover {
   white-space: nowrap;
 }
 .fb-help { margin: 8px 0 0; font-size: 12px; line-height: 1.6; color: var(--text-faint); }
-.fb-confirm { margin-top: 10px; }
-.fb-confirm p { margin: 0 0 8px; font-size: 13px; line-height: 1.6; }
-.fb-confirm-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .fb-msg { margin: 8px 0 0; font-size: 12.5px; }
 .fb-msg.ok { color: #276b3d; }
 .fb-msg.err { color: #c0392b; }
 .fb-enter-btn { width: 100%; height: 40px; }
 .fb-enter-wait { text-align: center; }
+/* 이벤트 칸 — 제목 '이벤트' 아래 응모하기 · 응모하지 않기가 반씩(같은 모양).
+   고른 뒤에는 고른 것 한 줄과 거두는 단추 하나. */
+.fb-enter .fb-entry-head { margin-bottom: 10px; }
+.fb-choice { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.fb-enter .fb-entered { margin: 0 0 10px; }
+.fb-entered.fb-declined { color: var(--text-sub); }
+.fb-received { font-size: 12px; color: #276b3d; }
+.fb-receive { margin-top: 12px; }
 .fb-entered { margin: 0; font-size: 13.5px; font-weight: 700; color: #276b3d; text-align: center; }
 @media (max-width: 720px) {
   .fruit-basket-body { grid-template-columns: 1fr; }
@@ -15231,6 +15236,23 @@ button.lesson-usage-row:hover { background: var(--primary-light); }
 .attend-seat-live--on { background: #4caf6f; }
 .attend-seat-live--away { background: #f0b483; }
 .attend-seat-live--off { background: #b8b4ab; }
+
+/* 과일 바구니 이벤트 — 응모 여부를 골랐는데 선생님이 아직 접수하지 않은
+   학생(lib/fruitBasket.js의 isEventPending). 자리 칸 오른쪽 위 모서리에 초록
+   점 하나. 같은 자리의 손바닥은 점 왼쪽으로 비켜 섭니다. 초록은 이 앱에서
+   '됐다'는 뜻(출석 · 과일 준 노트)과 같은 계열입니다. */
+.attend-seat-event {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #2f9e5a;
+  border: 1.5px solid #fff;
+  box-shadow: 0 0 0 1px rgba(47, 158, 90, 0.35);
+}
+.attend-seat--event .attend-seat-hand { right: 14px; }
 
 /* 수업 노트에 필기 중 — 손들기(오른쪽 위)와 겹치지 않게 왼쪽 위에 둡니다.
    '보는 중' 점이 화면이 켜져 있다는 말이라면, 이것은 손이 움직인다는 말입니다. */

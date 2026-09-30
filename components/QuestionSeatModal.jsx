@@ -67,6 +67,9 @@ import { IconMyPost } from "./StatusIcons";
 export function SeatCell({
   student, raised = false, top = false, att = "unchecked", live = null,
   noting = false, todayCount = 0,
+  // 과일 바구니 이벤트에서 고른 것("entered" | "declined") — 선생님이 아직
+  // 접수하지 않았을 때만 넘어옵니다(오른쪽 위 초록 점).
+  eventChoice = null,
   onPick, draggable = false, index = null, onDragStart, onDragEnd, onDropTo,
 }) {
   const s = student;
@@ -79,18 +82,24 @@ export function SeatCell({
   return (
     <button
       type="button"
-      className={`attend-seat attend-seat--pick attend-seat--${att}${raised ? " attend-seat--raised" : ""}${top ? " attend-seat--top" : ""}`}
+      className={`attend-seat attend-seat--pick attend-seat--${att}${raised ? " attend-seat--raised" : ""}${top ? " attend-seat--top" : ""}${eventChoice ? " attend-seat--event" : ""}`}
       /* 누른 칸(e.currentTarget)을 함께 넘깁니다 — 과일·누가기록 창이 모달이
          아니라 **이 자리 옆에 붙는 팝오버**라, 어디에 뜰지 정하려면 누른
          칸이 어디인지 알아야 합니다. */
       onClick={(e) => onPick?.(s, e.currentTarget)}
-      title={`${s.name}${s.studentId ? ` · ${s.studentId}` : ""}${attLabel}${liveLabel}${notingLabel}${raised ? " · 질문 있어요" : ""}${todayCount > 0 ? ` · 오늘 과일 ${todayCount}개` : ""}${top ? " · 오늘 과일 1등" : ""} — 눌러서 과일 주기·누가기록${draggable ? ", 끌어서 자리 이동" : ""}`}
+      title={`${s.name}${s.studentId ? ` · ${s.studentId}` : ""}${attLabel}${liveLabel}${notingLabel}${raised ? " · 질문 있어요" : ""}${todayCount > 0 ? ` · 오늘 과일 ${todayCount}개` : ""}${top ? " · 오늘 과일 1등" : ""}${eventChoice === "entered" ? " · 이벤트 응모(접수 전)" : eventChoice === "declined" ? " · 이벤트 응모 안 함(접수 전)" : ""} — 눌러서 과일 주기·누가기록${draggable ? ", 끌어서 자리 이동" : ""}`}
       draggable={draggable}
       onDragStart={draggable ? (e) => { onDragStart(index); e.dataTransfer.effectAllowed = "move"; } : undefined}
       onDragEnd={draggable ? onDragEnd : undefined}
       onDragOver={draggable ? (e) => e.preventDefault() : undefined}
       onDrop={draggable ? (e) => { e.preventDefault(); onDropTo(index); } : undefined}
     >
+      {eventChoice && (
+        <span
+          className="attend-seat-event"
+          aria-label={eventChoice === "entered" ? "이벤트 응모" : "이벤트 응모 안 함"}
+        />
+      )}
       {raised && (
         <span className="attend-seat-hand" aria-label="질문 있어요">🖐️</span>
       )}
@@ -120,6 +129,8 @@ export function SeatPickGrid({
   seats, byUid, raisedUids, raisedCount, onPick, compact = false,
   onDragStart, onDragEnd, onDropTo, topUids = null, presentUids = null,
   liveState = null, notingUids = null, headLead = null, todayCountByUid = null,
+  // 과일 바구니 이벤트 — uid → "entered" | "declined"(접수 전인 학생만)
+  eventChoiceByUid = null,
   // 머리줄에서 손바닥 뱃지 **바로 왼쪽**에 끼우는 것 — 지금은 보기 방향 단추가
   // 여기 섭니다. 패널·확대 창의 그것과 같은 자리라, 같은 단추를 화면마다 다른
   // 데서 찾지 않아도 됩니다(`headLead`는 줄 맨 앞입니다).
@@ -184,6 +195,7 @@ export function SeatPickGrid({
               live={liveState?.get(s.uid) ?? null}
               noting={!!notingUids?.has(s.uid)}
               todayCount={todayCountByUid?.get(s.uid) ?? 0}
+              eventChoice={eventChoiceByUid?.get(s.uid) ?? null}
               onPick={onPick}
               draggable={draggable}
               index={i}

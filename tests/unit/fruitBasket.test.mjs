@@ -6,6 +6,9 @@ import {
   withdrawAmount,
   basketSummary,
   myBasketEntry,
+  eventChoiceOf,
+  isEventPending,
+  canEnterEvent,
 } from "@/lib/fruitBasket";
 
 test("donationAmount: 가진 것 안에서 양의 정수만", () => {
@@ -63,6 +66,43 @@ test("basketSummary: 모두 응모 · 빈 명단", () => {
 });
 
 test("myBasketEntry", () => {
-  assert.deepEqual(myBasketEntry([{ uid: "a", donated: 7, entered: true }], "a"), { donated: 7, entered: true });
-  assert.deepEqual(myBasketEntry([], "a"), { donated: 0, entered: false });
+  assert.deepEqual(myBasketEntry([{ uid: "a", donated: 7, entered: true }], "a"),
+    { donated: 7, entered: true, declined: false, choice: "entered", received: false });
+  assert.deepEqual(myBasketEntry([], "a"),
+    { donated: 0, entered: false, declined: false, choice: null, received: false });
+  assert.equal(myBasketEntry([{ uid: "a", declined: true, receivedBy: "t" }], "a").received, true);
+});
+
+test("이벤트 선택 · 초록 점 · 응모 가능", () => {
+  assert.equal(eventChoiceOf({ entered: true }), "entered");
+  assert.equal(eventChoiceOf({ declined: true }), "declined");
+  assert.equal(eventChoiceOf({}), null);
+  // 초록 점 = 골랐는데 아직 접수 안 됨
+  assert.equal(isEventPending({ entered: true }), true);
+  assert.equal(isEventPending({ declined: true }), true);
+  assert.equal(isEventPending({ entered: true, receivedBy: "t", receivedAt: null }), false); // 서버 시각 전이어도 접수함
+  assert.equal(isEventPending({ donated: 3 }), false);
+  // 응모 — 과일 1개 이상 · 목표 도달 · 아직 안 고름 · 접수 전
+  const mine = (o) => ({ donated: 1, choice: null, received: false, ...o });
+  assert.equal(canEnterEvent(mine(), true), true);
+  assert.equal(canEnterEvent(mine({ donated: 0 }), true), false);
+  assert.equal(canEnterEvent(mine(), false), false);
+  assert.equal(canEnterEvent(mine({ choice: "declined" }), true), false);
+  assert.equal(canEnterEvent(mine({ received: true }), true), false);
+});
+
+test("basketSummary: 응모 안 함 · 모두 답함 · 접수할 학생", () => {
+  const s = basketSummary(
+    [
+      { uid: "a", donated: 60, entered: true },
+      { uid: "b", donated: 0, declined: true, receivedBy: "t" },
+      { uid: "gone", donated: 50, entered: true },   // 명단 밖이어도 접수 대상
+    ],
+    ["a", "b"]
+  );
+  assert.equal(s.enteredCount, 1);
+  assert.equal(s.declinedCount, 1);
+  assert.equal(s.allEntered, false);
+  assert.equal(s.allResponded, true);
+  assert.deepEqual(s.pendingUids.sort(), ["a", "gone"]);
 });

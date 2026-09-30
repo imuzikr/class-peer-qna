@@ -9,7 +9,7 @@
 // =============================================================
 import { describe, it, before, after, beforeEach } from "node:test";
 import { assertFails, assertSucceeds } from "@firebase/rules-unit-testing";
-import { doc, setDoc, getDoc, getDocs, collection, deleteDoc, writeBatch } from "firebase/firestore";
+import { doc, setDoc, getDoc, getDocs, collection, deleteDoc, writeBatch, updateDoc, serverTimestamp } from "firebase/firestore";
 import { makeEnv, seed, asStudent, asTeacher } from "./helpers.mjs";
 
 const C = "classA";
@@ -68,10 +68,59 @@ describe("fruitBasket — 과일 내놓기", () => {
     await assertFails(b.commit());
   });
 
-  it("응모 — 과일 없이 참으로, 다시 거짓으로는 못 되돌림", async () => {
+  it("응모 — 과일을 1개 이상 내놓아야 되고, 접수 전에는 취소할 수 있음", async () => {
     const db = asStudent(env, "s1").firestore();
-    await assertSucceeds(setDoc(basket(db, "s1"), entry("s1", 0, true)));
-    await assertFails(setDoc(basket(db, "s1"), entry("s1", 0, false)));
+    await assertFails(setDoc(basket(db, "s1"), entry("s1", 0, true)));
+    await assertSucceeds(donate(db, "s1", { from: 10, to: 9, after: 1 }));
+    await assertSucceeds(updateDoc(basket(db, "s1"), { entered: true }));
+    await assertSucceeds(updateDoc(basket(db, "s1"), { entered: false }));
+  });
+
+  it("응모와 응모 안 함을 함께 참으로는 거부", async () => {
+    const db = asStudent(env, "s1").firestore();
+    await assertSucceeds(donate(db, "s1", { from: 10, to: 8, after: 2 }));
+    await assertFails(updateDoc(basket(db, "s1"), { entered: true, declined: true }));
+  });
+
+  it("응모하지 않기 — 내놓은 과일을 모두 되돌려 받으며 응모 안 함으로", async () => {
+    const db = asStudent(env, "s1").firestore();
+    await assertSucceeds(donate(db, "s1", { from: 10, to: 6, after: 4 }));
+    const b = writeBatch(db);
+    b.update(reward(db, "s1"), { count: 10 });
+    b.update(basket(db, "s1"), { donated: 0, declined: true });
+    await assertSucceeds(b.commit());
+    // 과일이 없어도 '응모 안 함'만 적는 것은 됨
+    const db2 = asStudent(env, "s2").firestore();
+    await assertSucceeds(setDoc(basket(db2, "s2"), { ...entry("s2", 0), declined: true }));
+  });
+
+  it("학생은 접수 칸을 못 씀", async () => {
+    const db = asStudent(env, "s1").firestore();
+    await assertFails(setDoc(basket(db, "s1"), { ...entry("s1", 0), declined: true, receivedBy: "s1" }));
+    await assertSucceeds(setDoc(basket(db, "s1"), { ...entry("s1", 0), declined: true }));
+    await assertFails(updateDoc(basket(db, "s1"), { receivedBy: "s1" }));
+  });
+
+  it("교사 접수 — 고른 학생 문서만, 담당 교사만, 그 뒤로 선택은 못 바꿈", async () => {
+    await seed(env, async (db) => {
+      await setDoc(basket(db, "s1"), { ...entry("s1", 3, true) });
+      await setDoc(basket(db, "s2"), { ...entry("s2", 2) });
+    });
+    const t = asTeacher(env, "teacherA").firestore();
+    const stamp = () => ({ receivedAt: serverTimestamp(), receivedBy: "teacherA" });
+    await assertFails(updateDoc(basket(t, "s2"), stamp()));           // 아무것도 안 고름
+    await assertFails(updateDoc(basket(t, "s1"), { receivedAt: serverTimestamp(), receivedBy: "someone" }));
+    await assertFails(updateDoc(basket(asTeacher(env, "teacherB").firestore(), "s1"),
+      { receivedAt: serverTimestamp(), receivedBy: "teacherB" }));    // 남의 반 교사
+    await assertSucceeds(updateDoc(basket(t, "s1"), stamp()));
+    const s1 = asStudent(env, "s1").firestore();
+    await assertFails(updateDoc(basket(s1, "s1"), { entered: false }));           // 접수 뒤 취소 불가
+    await assertFails(updateDoc(basket(s1, "s1"), { receivedBy: null }));         // 접수 지우기 불가
+    // 접수 뒤에도 과일을 더 내놓는 것은 됨(선택은 그대로)
+    const more = writeBatch(s1);
+    more.update(reward(s1, "s1"), { count: 9 });
+    more.update(basket(s1, "s1"), { donated: 4 });
+    await assertSucceeds(more.commit());
   });
 
   it("기부 취소 — 응모 전에는 줄어든 만큼 과일이 돌아오면 통과", async () => {

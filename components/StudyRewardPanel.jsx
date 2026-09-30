@@ -24,7 +24,8 @@
 // 헤더의 « 버튼으로 접기 — 접으면 세로 슬림 바(개인 설정, localStorage).
 // =============================================================
 import { useEffect, useRef, useState } from "react";
-import { subscribeQuestionSignals, REWARD_MAX } from "@/lib/store";
+import { subscribeQuestionSignals, subscribeFruitBasket, REWARD_MAX } from "@/lib/store";
+import { eventChoiceOf, isEventPending } from "@/lib/fruitBasket";
 import { backdropClose } from "@/lib/modal";
 import { normalizeSeats } from "@/lib/seats";
 import { useTodayRewardCounts } from "@/lib/useTodayRewards";
@@ -104,6 +105,18 @@ export default function StudyRewardPanel({
     if (!classId) { setRaisedUids(new Set()); return; }
     return subscribeQuestionSignals(classId, (list) =>
       setRaisedUids(new Set(list.map((s) => s.uid).filter(Boolean)))
+    );
+  }, [classId]);
+
+  // 과일 바구니 이벤트 — 응모 여부를 골랐는데 아직 접수 안 한 학생에게
+  // 자리 칸 오른쪽 위 초록 점. 읽는 것은 그 반의 바구니 문서(학생 수만큼)뿐.
+  const [eventChoiceByUid, setEventChoiceByUid] = useState(() => new Map());
+  useEffect(() => {
+    if (!classId) { setEventChoiceByUid(new Map()); return; }
+    return subscribeFruitBasket(classId, (list) =>
+      setEventChoiceByUid(new Map(
+        (list ?? []).filter(isEventPending).map((e) => [e.uid, eventChoiceOf(e)])
+      ))
     );
   }, [classId]);
 
@@ -448,6 +461,7 @@ export default function StudyRewardPanel({
           onDropTo={(toIndex) => moveSeat(dragIndex, toIndex)}
           topUids={topRewardUids}
           todayCountByUid={todayCountByUid}
+          eventChoiceByUid={eventChoiceByUid}
           presentUids={presentUids}
         />
       )}
@@ -495,6 +509,7 @@ export default function StudyRewardPanel({
               onDropTo={(toIndex) => moveSeat(dragIndex, toIndex)}
               topUids={topRewardUids}
               todayCountByUid={todayCountByUid}
+              eventChoiceByUid={eventChoiceByUid}
               presentUids={presentUids}
             />
           </div>

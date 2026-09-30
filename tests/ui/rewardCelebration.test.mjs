@@ -16,6 +16,9 @@ function loadHook() {
       + "\nuseRewardCelebration;",
     {
       ...hooks,
+      // 과일 바구니에서 스스로 되찾은 몫 — 이 시험은 교사가 준 과일만 다루므로
+      // 늘어난 만큼을 그대로 돌려줍니다(덜어 내는 셈은 tests/unit/selfFruitGain).
+      takeSelfGain: (classId, uid, gain) => gain,
       subscribeMyClassRewardCount: (classId, uid, onCount) => {
         const subscription = { classId, uid, onCount, active: true };
         activeSubscription = subscription;

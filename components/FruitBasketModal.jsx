@@ -20,8 +20,13 @@
 // =============================================================
 import { useEffect, useMemo, useState } from "react";
 import { backdropClose } from "@/lib/modal";
-import { subscribeFruitBasket, donateFruits, withdrawFruits, enterFruitEvent } from "@/lib/store";
-import { FRUIT_GOAL, basketSummary, donationAmount, withdrawAmount, myBasketEntry } from "@/lib/fruitBasket";
+import {
+  subscribeFruitBasket, donateFruits, withdrawFruits,
+  enterFruitEvent, declineFruitEvent, cancelFruitEventChoice, receiveFruitEvent,
+} from "@/lib/store";
+import {
+  FRUIT_GOAL, basketSummary, donationAmount, withdrawAmount, myBasketEntry, canEnterEvent,
+} from "@/lib/fruitBasket";
 
 // 바구니 그림 — public/fruit-basket.webp(색연필 그림, 1200×800 · 약 270KB).
 // 크기를 적어 두어 그림이 오기 전에도 자리가 잡혀 창이 흔들리지 않습니다.
@@ -77,7 +82,7 @@ export default function FruitBasketModal({
           <div className="fruit-basket-side">
             <BasketTotal sum={sum} loading={entries === null} />
             {isTeacher ? (
-              <TeacherPanel sum={sum} roster={roster} />
+              <TeacherPanel classId={classId} sum={sum} roster={roster} />
             ) : (
               <StudentPanel
                 classId={classId}
@@ -85,6 +90,7 @@ export default function FruitBasketModal({
                 myFruit={myFruit}
                 mine={mine}
                 goalReached={sum.goalReached}
+                total={sum.total}
               />
             )}
           </div>
@@ -115,65 +121,99 @@ function BasketTotal({ sum, loading }) {
   );
 }
 
-// 교사 — 합계(위) + 응모 현황. 모두 응모하면 그 사실을 크게 알립니다.
-function TeacherPanel({ sum, roster }) {
+// 교사 — 이벤트 현황(응모 · 응모 안 함 · 아직) + '이벤트 접수'.
+// 접수하면 학생들이 고른 것을 받아 두어 '멋진 순간' 자리표의 초록 점이 꺼지고,
+// 그 학생의 선택은 그 뒤로 못 바꿉니다. 접수 뒤에 새로 고른 학생은 다시 점이
+// 켜지므로 한 번 더 누르면 됩니다.
+function TeacherPanel({ classId, sum, roster }) {
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState(null); // { ok, text }
   const nameOf = (u) => {
     const r = (roster ?? []).find((x) => x.uid === u);
     return r ? `${r.studentId ? `${r.studentId} ` : ""}${r.name ?? ""}`.trim() || "이름 없음" : "이름 없음";
   };
-  // 목표에 닿기 전이어도 응모한 학생이 있으면 현황을 보입니다 — 응모 뒤에
-  // 다른 학생이 기부를 취소해 합계가 100 아래로 내려갈 수 있습니다.
-  if (!sum.goalReached && sum.enteredCount === 0) {
-    return (
-      <p className="fb-note">
-        학생이 제 과일을 바구니에 내놓으면 여기 합계가 늘어요. {sum.goal}개가 모이면
-        학생들이 이벤트에 응모할 수 있어요.
-      </p>
-    );
+  const pending = sum.pendingUids.length;
+
+  async function receive() {
+    if (busy || !pending) return;
+    setBusy(true);
+    setMsg(null);
+    try {
+      const n = await receiveFruitEvent(classId, sum.pendingUids);
+      setMsg({ ok: true, text: `${n}명의 선택을 접수했어요.` });
+    } catch (e) {
+      console.error("[fruitBasket] 접수 실패:", e?.code ?? e);
+      setMsg({ ok: false, text: "접수하지 못했어요. 다시 시도해 주세요." });
+    } finally {
+      setBusy(false);
+    }
   }
+
   return (
     <section className="fb-entry">
       <div className="fb-entry-head">
-        <span className="fb-label">이벤트 응모</span>
-        <strong>{sum.enteredCount} / {sum.memberCount}명</strong>
+        <span className="fb-label">이벤트</span>
+        <strong>응모 {sum.enteredCount} / {sum.memberCount}명</strong>
       </div>
+      <p className="fb-note">
+        응모하지 않기 {sum.declinedCount}명 · 아직 고르지 않음 {sum.waitingUids.length}명
+      </p>
       {sum.allEntered ? (
         <p className="fb-all">✅ 전체 학생이 이벤트에 응모했습니다.</p>
+      ) : sum.allResponded ? (
+        <p className="fb-all">✅ 전체 학생이 응모 여부를 골랐습니다.</p>
       ) : (
         sum.waitingUids.length > 0 && (
           <p className="fb-note">
-            아직 응모하지 않은 학생 {sum.waitingUids.length}명 —{" "}
-            {sum.waitingUids.map(nameOf).join(", ")}
+            아직 고르지 않은 학생 — {sum.waitingUids.map(nameOf).join(", ")}
           </p>
         )
       )}
+      <button
+        type="button"
+        className="btn-primary fb-enter-btn fb-receive"
+        onClick={receive}
+        disabled={busy || !pending}
+        title={pending ? "고른 학생들의 선택을 받아 둡니다 — 자리표의 초록 점이 꺼지고, 그 뒤로는 바꿀 수 없어요" : "새로 고른 학생이 없어요"}
+      >
+        {busy ? "접수하는 중…" : pending ? `이벤트 접수 (${pending}명)` : "이벤트 접수"}
+      </button>
+      <p className="fb-help">
+        {pending
+          ? "자리표의 초록 점은 응모 여부를 골랐지만 아직 접수하지 않은 학생이에요."
+          : "학생이 응모 여부를 고르면 자리표에 초록 점이 켜져요."}
+      </p>
+      {msg && <p className={`fb-msg ${msg.ok ? "ok" : "err"}`}>{msg.text}</p>}
     </section>
   );
 }
 
-// 학생 — 내 과일 · 내놓기 · 기부 취소 · 응모
-// 입력칸 하나에 단추 둘 — 적은 개수만큼 내놓거나(기부하기) 되돌려 받습니다
-// (과일 거두기). 취소가 있으니 내놓을 때는 되묻지 않고, 대신 되돌릴 수
-// 없는 **응모**에서 한 번 묻습니다(응모하면 취소가 닫힙니다).
-function StudentPanel({ classId, uid, myFruit, mine, goalReached }) {
+// 학생 — 내 과일(내놓기 · 거두기) + 이벤트(응모하기 · 응모하지 않기)
+// 입력칸 하나에 단추 둘 — 적은 개수만큼 내놓거나 거둡니다. 이벤트는 따로 한
+// 칸: 응모하기(과일 1개 이상 · 반 바구니 100개) · 응모하지 않기(내놓은 과일을
+// 모두 되돌려 받음). 고른 뒤에는 선생님이 접수하기 전까지 거둘 수 있습니다.
+// 응모한 동안은 과일을 거둘 수 없습니다(응모를 취소하면 다시 거둘 수 있음).
+function StudentPanel({ classId, uid, myFruit, mine, goalReached, total }) {
   const [raw, setRaw] = useState("");
-  const [confirmEnter, setConfirmEnter] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState(null); // { ok, text }
+  const [msg, setMsg] = useState(null);       // 과일 칸 { ok, text }
+  const [eventMsg, setEventMsg] = useState(null); // 이벤트 칸 { ok, text }
   const giveAmt = donationAmount(raw, myFruit);
   const takeAmt = withdrawAmount(raw, mine.donated, myFruit, mine.entered);
   const canTake = !mine.entered && mine.donated > 0;
+  const canEnter = canEnterEvent(mine, goalReached);
 
-  async function run(fn, okText, failText) {
+  async function run(fn, okText, failText, setOut = setMsg) {
     if (busy) return;
     setBusy(true);
     setMsg(null);
+    setEventMsg(null);
     try {
-      const left = await fn();
-      setMsg({ ok: true, text: okText(left) });
-      setRaw("");
+      const out = await fn();
+      setOut({ ok: true, text: okText(out) });
+      if (setOut === setMsg) setRaw("");
     } catch (e) {
-      setMsg({ ok: false, text: e?.message || failText });
+      setOut({ ok: false, text: e?.message || failText });
     } finally {
       setBusy(false);
     }
@@ -188,20 +228,24 @@ function StudentPanel({ classId, uid, myFruit, mine, goalReached }) {
     (left) => `과일 ${takeAmt}개를 거뒀어요. 가진 과일 ${left}개.`,
     "거두지 못했어요. 다시 시도해 주세요."
   );
-
-  async function enter() {
-    if (busy) return;
-    setBusy(true);
-    setMsg(null);
-    try {
-      await enterFruitEvent(classId, uid);
-    } catch (e) {
-      setMsg({ ok: false, text: e?.message || "응모하지 못했어요. 다시 시도해 주세요." });
-    } finally {
-      setBusy(false);
-      setConfirmEnter(false);
-    }
-  }
+  const enter = () => canEnter && run(
+    () => enterFruitEvent(classId, uid),
+    () => "이벤트에 응모했어요.",
+    "응모하지 못했어요. 다시 시도해 주세요.",
+    setEventMsg
+  );
+  const decline = () => !mine.choice && run(
+    () => declineFruitEvent(classId, uid),
+    (back) => (back > 0 ? `응모하지 않기로 했어요. 내놓은 과일 ${back}개를 돌려받았어요.` : "응모하지 않기로 했어요."),
+    "고르지 못했어요. 다시 시도해 주세요.",
+    setEventMsg
+  );
+  const cancelChoice = () => run(
+    () => cancelFruitEventChoice(classId, uid),
+    () => (mine.entered ? "응모를 취소했어요." : "응모하지 않기를 취소했어요."),
+    "취소하지 못했어요. 다시 시도해 주세요.",
+    setEventMsg
+  );
 
   // 적은 개수가 어느 쪽에도 안 맞으면 까닭을 적습니다.
   const typed = raw.trim() !== "";
@@ -210,6 +254,13 @@ function StudentPanel({ classId, uid, myFruit, mine, goalReached }) {
     hint = canTake
       ? `내놓기는 가진 과일(${myFruit}개), 거두기는 내놓은 과일(${mine.donated}개) 안에서 적어 주세요.`
       : `가진 과일(${myFruit}개) 안에서 1개 이상 적어 주세요.`;
+  }
+  // 응모하기가 꺼진 까닭 — 아직 고르지 않았을 때만 적습니다.
+  let enterWhy = null;
+  if (!mine.choice && !canEnter) {
+    enterWhy = mine.donated < 1
+      ? "과일을 1개 이상 내놓아야 응모할 수 있어요."
+      : `반 바구니에 과일 ${FRUIT_GOAL}개가 모이면 응모할 수 있어요(지금 ${total}개).`;
   }
   return (
     <>
@@ -242,7 +293,7 @@ function StudentPanel({ classId, uid, myFruit, mine, goalReached }) {
             onClick={take}
             disabled={busy || !takeAmt}
             title={
-              mine.entered ? "이벤트에 응모한 뒤에는 과일을 거둘 수 없어요"
+              mine.entered ? "응모한 동안은 과일을 거둘 수 없어요 — 응모를 취소하면 거둘 수 있어요"
                 : mine.donated <= 0 ? "아직 내놓은 과일이 없어요"
                 : `내놓은 과일 ${mine.donated}개 안에서 거둬요`
             }
@@ -254,47 +305,65 @@ function StudentPanel({ classId, uid, myFruit, mine, goalReached }) {
         {!hint && !msg && (
           <p className="fb-help">
             {mine.entered
-              ? "이벤트에 응모해서 내놓은 과일은 더 거둘 수 없어요. 과일을 더 내놓을 수는 있어요."
+              ? "응모한 동안은 과일을 거둘 수 없어요. 과일을 더 내놓을 수는 있어요."
               : "개수를 적고 내놓거나 거둬요. 이벤트에 응모하기 전까지는 언제든 거둘 수 있어요."}
           </p>
         )}
         {msg && <p className={`fb-msg ${msg.ok ? "ok" : "err"}`}>{msg.text}</p>}
       </section>
 
-      {/* 응모 칸은 늘 섭니다 — 100개가 모이기 전에는 꺼진 단추와 조건 한 줄.
-          모이기 전에 감춰 두었더니 '응모 단추가 어디 있나'를 찾게 되었습니다. */}
+      {/* 이벤트 칸은 늘 섭니다 — 조건이 안 되면 꺼진 단추와 까닭 한 줄. */}
       <section className="fb-enter">
-          {mine.entered ? (
-            <p className="fb-entered">✓ 이벤트에 응모했어요.</p>
-          ) : confirmEnter ? (
-            <div className="fb-confirm" role="group" aria-label="응모 확인">
-              <p>응모하면 내놓은 과일 <b>{mine.donated}개</b>는 더 거둘 수 없어요. 응모할까요?</p>
-              <div className="fb-confirm-btns">
-                <button type="button" className="btn-ghost" onClick={() => setConfirmEnter(false)} disabled={busy}>
-                  아니요
-                </button>
-                <button type="button" className="btn-primary" onClick={enter} disabled={busy}>
-                  {busy ? "응모하는 중…" : "응모하기"}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <>
+        <div className="fb-entry-head">
+          <span className="fb-label">이벤트</span>
+          {mine.received && <strong className="fb-received">선생님이 접수했어요</strong>}
+        </div>
+        {mine.choice ? (
+          <>
+            <p className={`fb-entered${mine.choice === "declined" ? " fb-declined" : ""}`}>
+              {mine.choice === "entered" ? "✓ 이벤트에 응모했어요." : "응모하지 않기로 했어요."}
+            </p>
+            {!mine.received && (
               <button
                 type="button"
                 className="btn-primary fb-enter-btn"
-                onClick={() => setConfirmEnter(true)}
-                disabled={busy || !goalReached}
+                onClick={cancelChoice}
+                disabled={busy}
               >
-                이벤트 응모
+                {mine.choice === "entered" ? "응모 취소" : "응모하지 않기 취소"}
               </button>
-              {!goalReached && (
-                <p className="fb-help fb-enter-wait">
-                  과일 {FRUIT_GOAL}개가 모이면 응모할 수 있어요.
-                </p>
-              )}
-            </>
-          )}
+            )}
+          </>
+        ) : (
+          <>
+            <div className="fb-choice">
+              <button
+                type="button"
+                className="btn-primary fb-enter-btn"
+                onClick={enter}
+                disabled={busy || !canEnter}
+              >
+                응모하기
+              </button>
+              <button
+                type="button"
+                className="btn-primary fb-enter-btn"
+                onClick={decline}
+                disabled={busy}
+                title={mine.donated > 0 ? `내놓은 과일 ${mine.donated}개는 자동으로 돌려받아요` : "응모하지 않습니다"}
+              >
+                응모하지 않기
+              </button>
+            </div>
+            <p className="fb-help fb-enter-wait">
+              {enterWhy ??
+                (mine.donated > 0
+                  ? `응모하지 않기를 고르면 내놓은 과일 ${mine.donated}개를 자동으로 돌려받아요.`
+                  : "응모 여부를 골라 주세요.")}
+            </p>
+          </>
+        )}
+        {eventMsg && <p className={`fb-msg ${eventMsg.ok ? "ok" : "err"}`}>{eventMsg.text}</p>}
       </section>
     </>
   );
