@@ -184,15 +184,14 @@ service cloud.firestore {
              && !(d.entered == true && d.get('declined', false) == true)
              && (d.entered != true || d.donated >= 1);
     }
-    // 학생 쓰기에서 접수 칸은 못 건드리고, 접수된 뒤에는 선택도 못 바꿉니다.
+    // 학생 쓰기에서 접수 칸은 못 건드리고, **접수된 뒤에는 아무것도** 못 바꿉니다
+    // — 선생님이 응모를 접수하면 내놓은 과일과 선택이 최종 제출됩니다.
     function fruitEventStudentOk() {
       let d = request.resource.data;
       let o = resource.data;
-      return d.get('receivedAt', null) == o.get('receivedAt', null)
-             && d.get('receivedBy', null) == o.get('receivedBy', null)
-             && (o.get('receivedBy', null) == null
-                 || (d.entered == o.entered
-                     && d.get('declined', false) == o.get('declined', false)));
+      return o.get('receivedBy', null) == null
+             && d.get('receivedAt', null) == null
+             && d.get('receivedBy', null) == null;
     }
     // 바구니가 늘어난 만큼(after − before) 같은 묶음에서 제 과일이 줄었는지.
     // 줄었으면(기부 취소) 그만큼 제 과일이 늘었는지 — 식 하나가 양쪽을 다
@@ -611,7 +610,8 @@ service cloud.firestore {
       //    제 과일이 늘어야 합니다(같은 fruitDonationMatches — 부호만 반대).
       //  · 이벤트 — entered(응모)는 과일이 1개 이상일 때만 참. declined(응모
       //    안 함)와 둘 중 하나. 학생은 선생님이 **접수**(receivedAt·receivedBy)
-      //    하기 전까지 선택을 거둘 수 있고, 접수된 뒤에는 못 바꿉니다. 접수
+      //    하기 전까지 선택을 거둘 수 있고, 접수된 뒤에는 그 문서를 아예 못
+      //    씁니다(내놓은 과일이 최종 제출 — 내놓기·거두기·선택 모두 막힘). 접수
       //    칸은 담당 교사만 씁니다. 목표(100개)는 여러 문서의 합이라 규칙이
       //    셀 수 없어 화면이 판정합니다(lib/fruitBasket.js).
       //  · 지우기는 담당 교사(다시 모을 때). 시험 tests/rules/fruitBasket.test.mjs.

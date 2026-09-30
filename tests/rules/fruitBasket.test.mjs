@@ -101,14 +101,14 @@ describe("fruitBasket — 과일 내놓기", () => {
     await assertFails(updateDoc(basket(db, "s1"), { receivedBy: "s1" }));
   });
 
-  it("교사 접수 — 고른 학생 문서만, 담당 교사만, 그 뒤로 선택은 못 바꿈", async () => {
+  it("교사 접수 — 고른 학생 문서만, 담당 교사만, 그 뒤로 선택·과일 모두 굳음", async () => {
     await seed(env, async (db) => {
       await setDoc(basket(db, "s1"), { ...entry("s1", 3, true) });
       await setDoc(basket(db, "s2"), { ...entry("s2", 2) });
     });
     const t = asTeacher(env, "teacherA").firestore();
     const stamp = () => ({ receivedAt: serverTimestamp(), receivedBy: "teacherA" });
-    await assertFails(updateDoc(basket(t, "s2"), stamp()));           // 아무것도 안 고름
+    await assertFails(updateDoc(basket(t, "s2"), stamp()));           // 아무것도 안 고름(아직)
     await assertFails(updateDoc(basket(t, "s1"), { receivedAt: serverTimestamp(), receivedBy: "someone" }));
     await assertFails(updateDoc(basket(asTeacher(env, "teacherB").firestore(), "s1"),
       { receivedAt: serverTimestamp(), receivedBy: "teacherB" }));    // 남의 반 교사
@@ -116,11 +116,18 @@ describe("fruitBasket — 과일 내놓기", () => {
     const s1 = asStudent(env, "s1").firestore();
     await assertFails(updateDoc(basket(s1, "s1"), { entered: false }));           // 접수 뒤 취소 불가
     await assertFails(updateDoc(basket(s1, "s1"), { receivedBy: null }));         // 접수 지우기 불가
-    // 접수 뒤에도 과일을 더 내놓는 것은 됨(선택은 그대로)
+    // 접수 뒤에는 과일도 최종 제출 — 더 내놓기 · 거두기 모두 거부
     const more = writeBatch(s1);
     more.update(reward(s1, "s1"), { count: 9 });
     more.update(basket(s1, "s1"), { donated: 4 });
-    await assertSucceeds(more.commit());
+    await assertFails(more.commit());
+    const back = writeBatch(s1);
+    back.update(reward(s1, "s1"), { count: 11 });
+    back.update(basket(s1, "s1"), { donated: 2 });
+    await assertFails(back.commit());
+    // 응모하지 않기를 고른 학생도 접수 대상
+    await seed(env, (db) => setDoc(basket(db, "s2"), { ...entry("s2", 0), declined: true }));
+    await assertSucceeds(updateDoc(basket(t, "s2"), stamp()));
   });
 
   it("기부 취소 — 응모 전에는 줄어든 만큼 과일이 돌아오면 통과", async () => {
