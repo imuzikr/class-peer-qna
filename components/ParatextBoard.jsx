@@ -14,30 +14,25 @@
 // 위쪽 방송 막대에서 이전/다음 영역으로 넘기거나 방송을 끝낼 수 있습니다.
 // =============================================================
 import { useEffect, useMemo, useState } from "react";
-import { subscribeParatextEntries, updateBookActivity, composeBookGroups } from "@/lib/store";
+import { subscribeParatextEntries, composeBookGroups } from "@/lib/store";
 import { useEntryCast } from "@/lib/useEntryCast";
 import GroupComposer from "./GroupComposer";
 import GroupFilterRow from "./GroupFilterRow";
 import ParatextProgressBoard from "./ParatextProgressBoard";
 import BookStudentRail from "./BookStudentRail";
-import EntryProgressPanel from "./EntryProgressPanel";
 import { isGroupedActivity, useBookGroups } from "@/lib/bookGroups";
 import {
   PARATEXT_SECTIONS,
   PARATEXT_SECTION_COUNT,
   isSectionDone,
   isSectionStarted,
-  isSectionLocked,
-  openSectionCount,
-  sectionLocksWith,
-  sectionLocksUpTo,
   paratextDoneCount,
   paratextCharCount,
   paratextRows,
   paratextCellState,
   safeBookUrl,
 } from "@/lib/paratext";
-import { IconBook, IconLock, IconLockState, IconPeople } from "./StatusIcons";
+import { IconBook, IconLock, IconPeople } from "./StatusIcons";
 import CastStageModal from "./CastStageModal";
 
 export default function ParatextBoard({
@@ -132,7 +127,7 @@ export default function ParatextBoard({
   // 왼쪽 목록의 네모·오른쪽 패널의 칸이 쓰는 단계 정의 — 전광판과 **같은**
   // 것입니다(lib/paratext.js). 한쪽만 고치면 같은 학생이 두 화면에서 다른
   // 상태로 보입니다.
-  const stepRows = useMemo(() => paratextRows(activity), [activity]);
+  const stepRows = useMemo(() => paratextRows(), []);
 
   const castIndex = cast.target
     ? PARATEXT_SECTIONS.findIndex((s) => s.key === cast.target.key)
@@ -273,10 +268,6 @@ export default function ParatextBoard({
             </a>
           )}
         </div>
-        {/* 단계 열기 — 공부방 프로젝트의 활동 잠금과 같은 생각입니다.
-            여덟 칩이 학생이 보는 여덟 카드와 1:1이라, '지금 어디까지 열렸나'가
-            한눈에 들어옵니다. 수업 중 실제로 하는 동작(다음 열기)은 버튼 하나로. */}
-        <SectionGate activity={activity} />
       </div>
 
       {/* 모둠 고르는 줄 — 그 끝(마지막 모둠 뒤)에 전광판을 엽니다.
@@ -298,8 +289,10 @@ export default function ParatextBoard({
           아직 이 반에 들어온 학생이 없어요. 학생이 반에 들어오면 카드가 생깁니다.
         </p>
       ) : (
-        /* ── 세 칸 — 왼쪽 학생 목록 · 가운데 그 학생의 여덟 영역 · 오른쪽 진행 ──
-           닿소리 채우기(BookGroupBoard)와 **같은 뼈대·같은 CSS**입니다. */
+        /* ── 두 칸 — 왼쪽 학생 목록 · 가운데 그 학생의 여덟 영역 ──
+           닿소리 채우기(BookGroupBoard)와 **같은 뼈대·같은 CSS**입니다.
+           오른쪽 '학생별 진행'은 걷었습니다 — 같은 조각 바가 왼쪽 카드에
+           이미 있어, 모둠 활동이어도 두 벌이었습니다(선생님 요청). */
         <div className="book-workspace">
           <BookStudentRail
             cards={shownCards}
@@ -387,19 +380,6 @@ export default function ParatextBoard({
             )}
           </div>
 
-          {/* 오른쪽 — 학생별 진행. **모둠 활동일 때만** 섭니다: 왼쪽이 한
-              모둠으로 좁혀져도 여기서 반 전체를 견줍니다. 개인 활동이면 같은
-              조각 바가 왼쪽 카드에 이미 있어 두 벌이 됩니다(선생님 요청). */}
-          {grouped && (
-            <EntryProgressPanel
-              cards={cards}
-              rows={stepRows}
-              cellState={paratextCellState}
-              pickedUid={openUid}
-              onPick={setOpenUid}
-              extra={(m) => ` · ${paratextCharCount(m.entry?.answers)}자`}
-            />
-          )}
         </div>
       )}
 
@@ -488,55 +468,3 @@ function buildPayload(activity, card, index) {
   };
 }
 
-// 학생 한 명의 카드 — 이름 + 항목별 네모 + 채운 칸 수
-// 단계 열기 (교사) — 여덟 칩 + '다음 단계 열기'
-// -------------------------------------------------------------
-// 활동 문서 하나(sectionLocks)만 고칩니다. 이 화면도 학생 화면도 그 문서를
-// 이미 구독하고 있어서 읽기가 1건도 늘지 않고, 어느 화면에서 눌러도 같은
-// 상태를 봅니다(공부방의 activityLocks와 같은 방식).
-function SectionGate({ activity }) {
-  const openCount = openSectionCount(activity);
-  const allOpen = openCount === PARATEXT_SECTION_COUNT;
-
-  function setLocks(locks) {
-    return updateBookActivity(activity.id, { sectionLocks: locks });
-  }
-
-  return (
-    <div className="section-gate">
-      <span className="section-gate-label">
-        단계 열기 <b>{openCount} / {PARATEXT_SECTION_COUNT}</b>
-      </span>
-      <div className="section-gate-chips">
-        {PARATEXT_SECTIONS.map((s, i) => {
-          const locked = isSectionLocked(activity, s.key);
-          return (
-            <button
-              key={s.key}
-              type="button"
-              className={`section-gate-chip${locked ? "" : " open"}`}
-              onClick={() => setLocks(sectionLocksWith(activity, s.key, !locked))}
-              title={`${i + 1}. ${s.ko} — ${locked ? "눌러서 열기" : "눌러서 닫기"}`}
-              aria-pressed={!locked}
-            >
-              <span className="section-gate-letter">{s.letter}</span>
-              <span className="section-gate-ko">{s.ko}</span>
-              {/* 열림/잠김은 테두리·바탕색으로도 갈리지만 둘 다 옅은 색이라,
-                  칠판에 띄우면 그 차이가 좁아집니다. 자물쇠를 함께 답니다. */}
-              <IconLockState locked={locked} size={13} className="section-gate-lock" />
-            </button>
-          );
-        })}
-      </div>
-      {/* '다음 단계 열기'는 뺐습니다 — 칩을 바로 눌러 여는 길이 이미 있어
-          같은 일을 두 자리에서 하고, 채워진 단추라 줄에서 혼자 튀었습니다. */}
-      <button
-        type="button"
-        className="btn-ghost section-gate-all"
-        onClick={() => setLocks(sectionLocksUpTo(allOpen ? 1 : PARATEXT_SECTION_COUNT))}
-      >
-        {allOpen ? "1단계만 남기기" : "모두 열기"}
-      </button>
-    </div>
-  );
-}

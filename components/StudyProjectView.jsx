@@ -481,8 +481,7 @@ export default function StudyProjectView({
     await updateStudyBoard(board.id, { activityLocks: next });
   }
 
-  // 앞에서부터 openCount개만 열어 둡니다 — 곁텍스트 읽기의 '모두 열기 /
-  // 1단계만 남기기'와 같은 규칙입니다(lib/paratext.js의 sectionLocksUpTo).
+  // 앞에서부터 openCount개만 열어 둡니다('모두 열기 / 1번만 남기기').
   async function setActivityLocksUpTo(openCount) {
     const next = activities.map((_, j) => j >= openCount);
     await updateStudyBoard(board.id, { activityLocks: next });
@@ -1084,8 +1083,7 @@ export default function StudyProjectView({
       )}
 
       {/* ── 활동 열기 — 카드 그리드 바로 위 ──
-          곁텍스트 읽기의 '단계 열기'와 같은 자리·같은 칩입니다. 수업 중
-          가장 자주 쓰는 조작이라, 설정 패널을 펼쳐야 닿는 자리에 두면 매번
+          수업 중 가장 자주 쓰는 조작이라, 설정 패널을 펼쳐야 닿는 자리에 두면 매번
           두 번 눌러야 했습니다. 칩 하나가 학생이 보는 활동 하나라 '지금
           어디까지 열렸나'가 카드를 보기 직전에 눈에 들어옵니다. */}
       {isTeacher && activities.length > 0 && (

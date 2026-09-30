@@ -21648,25 +21648,8 @@ span.cloud-word { cursor: default; }
 .paratext-card.done { border-color: #8cc79f; }
 /* 아직 시작조차 안 한 항목 — 배경으로만 구분(테두리는 hover와 겹쳐 혼동될 수 있어) */
 .paratext-card.empty { background: var(--bg-deep); }
-/* 선생님이 아직 열지 않은 단계 — 숨기지 않고 흐리게. 눌러서 열어 볼 수는
-   있습니다(읽기 전용). 무엇이 남았는지 보이는 편이 CATAPULT처럼 순서 자체가
-   내용인 활동에서는 낫습니다. 이미 쓴 답이 있으면 그건 또렷하게 둡니다. */
-.paratext-card.step-locked {
-  background: var(--bg-deep);
-  border-style: dashed;
-}
-.paratext-card.step-locked .paratext-letter,
-.paratext-card.step-locked .paratext-card-title,
-.paratext-card.step-locked .paratext-prompt { opacity: 0.5; }
-.paratext-card.step-locked .paratext-preview.empty {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  color: var(--text-sub);
-  font-weight: 700;
-}
-
-/* ── 단계 열기 (교사) ── 머리말 아래 한 줄 */
+/* ── 칩 줄 — 공부방 '활동 열기'(.study-act-gate)가 씁니다.
+   이름의 section-은 곁텍스트 '단계 열기'에서 온 것입니다(그 기능은 걷었습니다). */
 .section-gate {
   display: flex;
   align-items: center;

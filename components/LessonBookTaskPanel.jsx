@@ -21,17 +21,16 @@
 //   RAFT   — 네 칸이 늘 다 섭니다. 원래 잠금이 없는 활동이라 학생은 언제나
 //            넷 다 쓸 수 있고, 보낸 칸만 도드라지며 커서가 갑니다. 글쓰기는
 //            칸이 커서 따로 보냅니다(그때는 문장 + 글칸).
-//   곁텍스트 — **선생님이 연 단계만** 보입니다. 안 연 단계는 학생이 쓰면 안
-//            되는 자리라 서랍에 깔 수 없습니다. 보낸 단계가 펼쳐지고 나머지
-//            열린 단계는 접혀 있다가 누르면 펴집니다.
+//   곁텍스트 — 여덟 단계가 다 섭니다(단계별 열기는 걷었습니다). 보낸 단계가
+//            펼쳐지고 나머지는 접혀 있다가 누르면 펴집니다.
 //
 // [읽는 문서]
 // 활동 1건 + 내 기록 1건. 내보낸 것이 바뀔 때만 다시 읽습니다. 앞 칸을
 // 함께 그리는 데 드는 읽기는 **없습니다** — 답이 한 문서에 다 들어 있습니다.
 // =============================================================
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { fetchBookActivity, fetchMyBookEntry, saveParatextEntry } from "@/lib/store";
-import { PARATEXT_SECTIONS, isSectionLocked } from "@/lib/paratext";
+import { PARATEXT_SECTIONS } from "@/lib/paratext";
 import {
   RAFT_COLUMNS,
   RAFT_FORMATS,
@@ -87,44 +86,20 @@ export default function LessonBookTaskPanel({ task, user, onType }) {
     return () => { alive = false; };
   }, [actId, user?.uid]);
 
-  // 보낸 칸이 바뀌면 **활동 문서를 다시 읽습니다**(1건).
-  // 교사는 보내면서 그 단계를 여는데, 같은 활동의 다음 단계를 보내면 위
-  // 효과는 다시 안 돕니다(활동이 그대로라서). 그러면 학생 화면은 방금 연
-  // 단계를 아직 잠긴 것으로 알고 '선생님이 이 단계를 열어 주면 쓸 수 있어요'를
-  // 띄운 채 멈춥니다(실제로 그랬습니다). 답(entry)은 다시 읽지 않습니다 —
-  // 지금 화면에 든 것이 더 새것이고, 덮어쓰면 방금 친 글자가 날아갑니다.
-  // 활동이 통째로 바뀐 경우는 위 효과가 이미 읽으므로 여기서는 건너뜁니다
-  // (안 그러면 활동을 바꿀 때마다 같은 문서를 두 번 읽습니다).
-  const readActIdRef = useRef("");
+  // 보낸 칸이 바뀌면 펼쳐 둔 단계를 접습니다(보낸 단계만 펼친 채로).
+  // 한때 여기서 활동 문서를 다시 읽었는데, 방금 연 단계를 학생 화면이 아직
+  // 잠긴 것으로 알지 않게 하려는 것이었습니다 — 곁텍스트의 단계별 열기를
+  // 걷으면서 다시 읽을 까닭이 없어졌습니다.
   useEffect(() => {
     setOpenKeys(new Set());
-    if (!actId) return undefined;
-    const sameActivity = readActIdRef.current === actId;
-    readActIdRef.current = actId;
-    if (!sameActivity) return undefined;
-    let alive = true;
-    fetchBookActivity(actId)
-      .then((a) => { if (alive && a) setActivity(a); })
-      .catch(() => {});
-    return () => { alive = false; };
   }, [actId, sectionKey]);
 
   const kind = activity?.type ?? "";
   const locked = activity?.locked === true;
 
-  // 곁텍스트 — 선생님이 연 단계만. 안 연 것은 서랍에 깔지 않습니다.
-  const openSections = useMemo(
-    () =>
-      activity && kind === "paratext"
-        ? PARATEXT_SECTIONS.filter((s) => !isSectionLocked(activity, s.key))
-        : [],
-    [activity, kind]
-  );
-  // 보낸 단계가 아직 안 열렸을 때(교사가 보내면서 열지만, 그 사이 다시 잠근
-  // 경우) — 화면이 빈 채로 있지 않게 까닭을 적습니다.
-  const stepLocked =
-    kind === "paratext" && activity ? isSectionLocked(activity, sectionKey) : false;
-  const canWrite = !!activity && !locked && !stepLocked;
+  // 곁텍스트 — 여덟 단계가 다 섭니다(단계별 열기는 걷었습니다).
+  const openSections = activity && kind === "paratext" ? PARATEXT_SECTIONS : [];
+  const canWrite = !!activity && !locked;
 
   const timerRef = useRef(null);
   // 아직 저장 안 된 답 — **어느 활동의 것인지 함께** 붙들어 둡니다. 쓰는
@@ -244,18 +219,16 @@ export default function LessonBookTaskPanel({ task, user, onType }) {
           <span className="ltask-tag">오늘의 활동 · {stepNo}단계</span>
           {/* 이름은 아래 단계 줄이 말합니다 — 그 줄이 안 서는 때(잠김)에만
               여기에 적습니다. 둘 다 적으면 같은 말이 두 줄입니다. */}
-          {(locked || stepLocked) && (
+          {locked && (
             <strong className="ltask-name">{current?.ko ?? "단계"}</strong>
           )}
           <span className="ltask-board">{actName}</span>
           {current?.prompt && <p className="ltask-guide">{current.prompt}</p>}
         </section>
 
-        {locked ? (
+        {locked && (
           <p className="ltask-blocked">선생님이 이 활동을 마무리해서 지금은 쓸 수 없어요.</p>
-        ) : stepLocked ? (
-          <p className="ltask-blocked">선생님이 이 단계를 열어 주면 쓸 수 있어요.</p>
-        ) : null}
+        )}
 
         {/* 열린 단계만 차례대로. 보낸 것은 펼치고 나머지는 접습니다 —
             누르면 그 자리에서 펴져 앞서 쓴 것을 고칠 수 있습니다. */}
@@ -310,9 +283,6 @@ export default function LessonBookTaskPanel({ task, user, onType }) {
             </section>
           );
         })}
-        {openSections.length === 0 && !locked && (
-          <p className="ltask-blocked">선생님이 단계를 열어 주면 쓸 수 있어요.</p>
-        )}
       </>
     );
   }

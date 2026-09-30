@@ -40,7 +40,6 @@ import {
   setClassTask,
   classTaskOf,
   fetchBookActivities,
-  updateBookActivity,
   dailySeatLayoutId,
   todayDateKey,
   PRESENCE_STALE_MS,
@@ -57,7 +56,6 @@ import {
   materialSizeLimit,
   isTeacherAuthoredCard,
 } from "@/lib/activities";
-import { isSectionLocked, sectionLocksWith } from "@/lib/paratext";
 import {
   bookPushSteps,
   isPushableBookActivity,
@@ -281,26 +279,14 @@ export default function LessonMode({
     }
   }
 
-  // 책방 — 독서 활동의 단계 하나를 보냅니다. 잠긴 단계는 **함께 엽니다**
-  // (공부방 활동과 같은 이유 — 누르는 순간의 뜻이 '지금 이걸 쓰세요'입니다).
-  // 활동 전체 잠금은 다릅니다: 그건 '수업 끝'이라 규칙이 저장을 막으므로
-  // 위 목록에서 아예 빼 두었습니다.
+  // 책방 — 독서 활동의 단계 하나를 보냅니다. 단계마다 잠그는 일은 없고
+  // (곁텍스트의 단계별 열기는 걷었습니다), 활동 전체 잠금은 '수업 끝'이라
+  // 규칙이 저장을 막으므로 위 목록에서 아예 빼 두었습니다.
   async function pushBookStep(activity, sectionKey) {
     if (!activity || pushBusy) return;
     setPushBusy(true);
     setActError("");
     try {
-      // 단계 잠금은 곁텍스트에만 있습니다. RAFT는 네 칸 어느 것도 잠기지
-      // 않아 열 것이 없고, 잠금 맵을 써 넣으면 없던 개념이 문서에 생깁니다.
-      if (activity.type === "paratext" && isSectionLocked(activity, sectionKey)) {
-        const next = sectionLocksWith(activity, sectionKey, false);
-        await updateBookActivity(activity.id, { sectionLocks: next });
-        // 방금 연 것을 손에 들고 있어야 이어서 보낼 때 또 열지 않습니다
-        // (목록은 한 번 읽고 마는 값이라 서버가 다시 알려 주지 않습니다).
-        setBookActs((prev) =>
-          (prev ?? []).map((a) => (a.id === activity.id ? { ...a, sectionLocks: next } : a))
-        );
-      }
       await setClassTask(classId, { kind: "book", activityId: activity.id, sectionKey });
     } catch (e) {
       setActError(`독서 활동을 내보내지 못했어요: ${e?.message ?? "알 수 없는 오류"}`);
@@ -1401,11 +1387,6 @@ export default function LessonMode({
                       {pickedBook && (
                         <div className="lesson-lock-row lesson-step-row">
                           {pickedSteps.map((s, i) => {
-                            // 단계 잠금은 곁텍스트에만 있습니다 — RAFT는 네 칸
-                            // 어느 것도 잠기지 않아 늘 '열림' 색입니다.
-                            const locked =
-                              pickedBook.type === "paratext" &&
-                              isSectionLocked(pickedBook, s.key);
                             const live =
                               task?.kind === "book" &&
                               task.activityId === pickedBook.id &&
@@ -1414,10 +1395,10 @@ export default function LessonMode({
                               <button
                                 key={s.key}
                                 type="button"
-                                className={`lesson-act-chip lesson-step-chip${locked ? " locked" : ""}${live ? " live" : ""}`}
+                                className={`lesson-act-chip lesson-step-chip${live ? " live" : ""}`}
                                 onClick={() => pushBookStep(pickedBook, s.key)}
                                 disabled={pushBusy}
-                                title={`${s.ko} — 학생 화면으로 보내기${locked ? " (잠긴 단계는 함께 열려요)" : ""}`}
+                                title={`${s.ko} — 학생 화면으로 보내기`}
                               >
                                 {live && (
                                   <span className="broadcast-live-dot" aria-hidden="true" />
