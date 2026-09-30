@@ -21,7 +21,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { backdropClose } from "@/lib/modal";
 import { subscribeFruitBasket, donateFruits, withdrawFruits, enterFruitEvent } from "@/lib/store";
-import { basketSummary, donationAmount, withdrawAmount, myBasketEntry } from "@/lib/fruitBasket";
+import { FRUIT_GOAL, basketSummary, donationAmount, withdrawAmount, myBasketEntry } from "@/lib/fruitBasket";
 
 // 바구니 그림 — public/fruit-basket.webp(색연필 그림, 1200×800 · 약 270KB).
 // 크기를 적어 두어 그림이 오기 전에도 자리가 잡혀 창이 흔들리지 않습니다.
@@ -238,7 +238,7 @@ function StudentPanel({ classId, uid, myFruit, mine, goalReached }) {
           </button>
           <button
             type="button"
-            className="btn-ghost fb-take"
+            className="btn-primary fb-take"
             onClick={take}
             disabled={busy || !takeAmt}
             title={
@@ -261,8 +261,9 @@ function StudentPanel({ classId, uid, myFruit, mine, goalReached }) {
         {msg && <p className={`fb-msg ${msg.ok ? "ok" : "err"}`}>{msg.text}</p>}
       </section>
 
-      {(goalReached || mine.entered) && (
-        <section className="fb-enter">
+      {/* 응모 칸은 늘 섭니다 — 100개가 모이기 전에는 꺼진 단추와 조건 한 줄.
+          모이기 전에 감춰 두었더니 '응모 단추가 어디 있나'를 찾게 되었습니다. */}
+      <section className="fb-enter">
           {mine.entered ? (
             <p className="fb-entered">✓ 이벤트에 응모했어요.</p>
           ) : confirmEnter ? (
@@ -278,12 +279,23 @@ function StudentPanel({ classId, uid, myFruit, mine, goalReached }) {
               </div>
             </div>
           ) : (
-            <button type="button" className="btn-primary fb-enter-btn" onClick={() => setConfirmEnter(true)} disabled={busy}>
-              이벤트 응모
-            </button>
+            <>
+              <button
+                type="button"
+                className="btn-primary fb-enter-btn"
+                onClick={() => setConfirmEnter(true)}
+                disabled={busy || !goalReached}
+              >
+                이벤트 응모
+              </button>
+              {!goalReached && (
+                <p className="fb-help fb-enter-wait">
+                  과일 {FRUIT_GOAL}개가 모이면 응모할 수 있어요.
+                </p>
+              )}
+            </>
           )}
-        </section>
-      )}
+      </section>
     </>
   );
 }
