@@ -20049,14 +20049,36 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
   font-weight: 800;
   color: var(--text);
 }
-/* 만들기 단추 줄 — 제목 줄 아래, 오른쪽 끝. 공부방의 '＋ 프로젝트 만들기'와
-   같은 자리라 두 화면에서 '새로 만드는 곳'을 같은 데서 찾습니다. 제목 줄에
-   함께 두었을 때는 반 고르개·KWLS 차트·기록 관리 사이에 섞여 '보는 단추'와
-   '새로 만드는 단추'가 구분되지 않았습니다. .books-head 안에 두어 단추 크기
-   (아래 38px 규칙)와 본문과의 사이(margin-bottom)를 그대로 물려받습니다. */
-.books-head-make {
-  display: flex;
-  justify-content: flex-end;
+/* ── 활동 목록 맨 위 — 왼쪽 카드 격자 · 오른쪽 '＋ 독서 활동 만들기' ──
+   공부방의 .study-project-dash-top과 같은 모양입니다 — 둘이 같은 높이에서
+   시작합니다(align-items: start). 한때 단추가 제목 줄 아래 제 줄
+   (.books-head-make)을 차지해 카드가 그만큼 내려앉았습니다.
+   단추 크기는 머리말의 38px 규칙(.books-head .btn-primary)과 같은 값입니다 —
+   머리말 밖으로 나와 그 규칙을 못 받으므로 여기서 다시 줍니다.
+   768px 아래에서는 단추가 목록 위 오른쪽으로 올라갑니다. */
+.book-activity-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.book-activity-top.has-make {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.book-activity-top > .empty-note { margin: 0; }
+.book-activity-make {
+  height: 38px;
+  padding: 0 14px;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-sizing: border-box;
+  white-space: nowrap;
+}
+@media (max-width: 768px) {
+  .book-activity-top.has-make { grid-template-columns: minmax(0, 1fr); }
+  .book-activity-top .book-activity-make { order: -1; justify-self: end; }
 }
 /* 제목 옆 컨트롤(반 선택 등) 높이 통일 — 공부방 제목 줄
    (.study-title-row)과 같은 방식·같은 값입니다. 버튼은 크기가 padding으로만

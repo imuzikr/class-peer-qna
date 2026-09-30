@@ -804,20 +804,6 @@ function BooksPageInner() {
               )}
               {classTools}
             </div>
-
-            {/* 만들기 단추는 제목 줄에서 빼 아래 오른쪽 끝에 따로 둡니다 —
-                공부방의 '＋ 프로젝트 만들기'와 같은 자리입니다. 제목 줄에
-                함께 두었을 때는 반 고르개·KWLS 차트·기록 관리 사이에 섞여
-                '보는 단추'와 '새로 만드는 단추'가 구분되지 않았습니다.
-                종류는 이 창을 열어 고릅니다 — 목록을 종류별로 나누지 않게
-                되면서 종류를 고르는 자리가 여기 하나로 모였습니다. */}
-            {admin && classId && (
-              <div className="books-head-make">
-                <button className="btn-primary" onClick={() => setCreatingType("consonant")}>
-                  ＋ 독서 활동 만들기
-                </button>
-              </div>
-            )}
           </div>
 
           {admin && myClasses.length === 0 ? (
@@ -826,6 +812,23 @@ function BooksPageInner() {
             </p>
           ) : (
             <ActivityList
+              /* 만들기 단추는 제목 줄이 아니라 목록 오른쪽, 첫 카드와 같은
+                 높이에 섭니다 — 공부방의 '＋ 프로젝트 가져오기'와 같은
+                 자리입니다. 제목 줄에 함께 두었을 때는 반 고르개·KWLS
+                 차트·기록 관리 사이에 섞여 '보는 단추'와 '새로 만드는
+                 단추'가 구분되지 않았고, 제목 줄 아래 제 줄에 두었을 때는
+                 그 줄만큼 카드가 내려앉았습니다. 종류는 이 창을 열어
+                 고릅니다. */
+              makeButton={
+                admin && classId ? (
+                  <button
+                    className="btn-primary book-activity-make"
+                    onClick={() => setCreatingType("consonant")}
+                  >
+                    ＋ 독서 활동 만들기
+                  </button>
+                ) : null
+              }
               activities={liveActivities}
               trashed={admin ? trashedActivities : []}
               trashOpen={trashOpen}
@@ -974,9 +977,11 @@ function ActivityList({
   onPurge,
   onEmptyTrash,
   emptying = false,
+  makeButton = null,
 }) {
   return (
     <>
+      <div className={`book-activity-top${makeButton ? " has-make" : ""}`}>
       {activities.length === 0 ? (
         <p className="empty-note">
           {isTeacher
@@ -999,6 +1004,8 @@ function ActivityList({
           ))}
         </div>
       )}
+      {makeButton}
+      </div>
 
       {/* 휴지통 — 지운 활동이 있을 때만 나타납니다. 접어 두는 이유는
           평소에 볼 것이 아니어서이고, 건수를 겉에 적어 두는 이유는
