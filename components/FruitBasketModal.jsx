@@ -10,7 +10,7 @@
 //
 // [과일 기부] 학생은 제 과일을 몇 개 **내놓아**(과일 내놓기) 반의 바구니를
 // 채웁니다 — 내놓은 만큼 제 과일이 줄고, 몇 번이든 더 내놓을 수 있습니다.
-// **응모하기 전까지는 '기부 취소하기'로 되돌려 받습니다**(같은 입력칸의 개수만큼).
+// **응모하기 전까지는 '과일 거두기'로 되돌려 받습니다**(같은 입력칸의 개수만큼).
 // 바구니가 100개에 닿으면 학생마다 '이벤트 응모'를 누르고, 교사 화면은 합계와
 // 응모 현황(모두 응모하면 그 사실)을 봅니다. 셈은 lib/fruitBasket.js, 저장은
 // lib/data/rewards.js(donateFruits · withdrawFruits · enterFruitEvent), 규칙은 firestore.rules의
@@ -153,7 +153,7 @@ function TeacherPanel({ sum, roster }) {
 
 // 학생 — 내 과일 · 내놓기 · 기부 취소 · 응모
 // 입력칸 하나에 단추 둘 — 적은 개수만큼 내놓거나(기부하기) 되돌려 받습니다
-// (기부 취소하기). 취소가 있으니 내놓을 때는 되묻지 않고, 대신 되돌릴 수
+// (과일 거두기). 취소가 있으니 내놓을 때는 되묻지 않고, 대신 되돌릴 수
 // 없는 **응모**에서 한 번 묻습니다(응모하면 취소가 닫힙니다).
 function StudentPanel({ classId, uid, myFruit, mine, goalReached }) {
   const [raw, setRaw] = useState("");
@@ -185,8 +185,8 @@ function StudentPanel({ classId, uid, myFruit, mine, goalReached }) {
   );
   const take = () => takeAmt && run(
     () => withdrawFruits(classId, uid, takeAmt),
-    (left) => `기부를 취소해 과일 ${takeAmt}개를 돌려받았어요. 가진 과일 ${left}개.`,
-    "취소하지 못했어요. 다시 시도해 주세요."
+    (left) => `과일 ${takeAmt}개를 거뒀어요. 가진 과일 ${left}개.`,
+    "거두지 못했어요. 다시 시도해 주세요."
   );
 
   async function enter() {
@@ -208,7 +208,7 @@ function StudentPanel({ classId, uid, myFruit, mine, goalReached }) {
   let hint = null;
   if (typed && !giveAmt && !takeAmt) {
     hint = canTake
-      ? `내놓기는 가진 과일(${myFruit}개), 취소는 내놓은 과일(${mine.donated}개) 안에서 적어 주세요.`
+      ? `내놓기는 가진 과일(${myFruit}개), 거두기는 내놓은 과일(${mine.donated}개) 안에서 적어 주세요.`
       : `가진 과일(${myFruit}개) 안에서 1개 이상 적어 주세요.`;
   }
   return (
@@ -231,7 +231,7 @@ function StudentPanel({ classId, uid, myFruit, mine, goalReached }) {
             onChange={(e) => { setRaw(e.target.value); setMsg(null); }}
             placeholder="개수"
             disabled={busy || (myFruit <= 0 && !canTake)}
-            aria-label="내놓거나 되돌려 받을 과일 수"
+            aria-label="내놓거나 거둘 과일 수"
           />
           <button type="submit" className="btn-primary" disabled={busy || !giveAmt}>
             과일 내놓기
@@ -242,20 +242,20 @@ function StudentPanel({ classId, uid, myFruit, mine, goalReached }) {
             onClick={take}
             disabled={busy || !takeAmt}
             title={
-              mine.entered ? "이벤트에 응모한 뒤에는 취소할 수 없어요"
+              mine.entered ? "이벤트에 응모한 뒤에는 과일을 거둘 수 없어요"
                 : mine.donated <= 0 ? "아직 내놓은 과일이 없어요"
-                : `내놓은 과일 ${mine.donated}개 안에서 되돌려 받아요`
+                : `내놓은 과일 ${mine.donated}개 안에서 거둬요`
             }
           >
-            기부 취소하기
+            과일 거두기
           </button>
         </form>
         {hint && <p className="fb-msg err">{hint}</p>}
         {!hint && !msg && (
           <p className="fb-help">
             {mine.entered
-              ? "이벤트에 응모해서 기부는 더 취소할 수 없어요. 과일을 더 내놓을 수는 있어요."
-              : "개수를 적고 기부하거나 취소해요. 이벤트에 응모하기 전까지는 언제든 되돌려 받을 수 있어요."}
+              ? "이벤트에 응모해서 내놓은 과일은 더 거둘 수 없어요. 과일을 더 내놓을 수는 있어요."
+              : "개수를 적고 내놓거나 거둬요. 이벤트에 응모하기 전까지는 언제든 거둘 수 있어요."}
           </p>
         )}
         {msg && <p className={`fb-msg ${msg.ok ? "ok" : "err"}`}>{msg.text}</p>}
@@ -267,7 +267,7 @@ function StudentPanel({ classId, uid, myFruit, mine, goalReached }) {
             <p className="fb-entered">✓ 이벤트에 응모했어요.</p>
           ) : confirmEnter ? (
             <div className="fb-confirm" role="group" aria-label="응모 확인">
-              <p>응모하면 내놓은 과일 <b>{mine.donated}개</b>는 더 되돌려 받을 수 없어요. 응모할까요?</p>
+              <p>응모하면 내놓은 과일 <b>{mine.donated}개</b>는 더 거둘 수 없어요. 응모할까요?</p>
               <div className="fb-confirm-btns">
                 <button type="button" className="btn-ghost" onClick={() => setConfirmEnter(false)} disabled={busy}>
                   아니요
