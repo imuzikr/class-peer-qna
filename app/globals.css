@@ -15749,20 +15749,23 @@ button.study-cal-cell.has-record:not(:disabled):hover {
   padding-bottom: 24px;
 }
 
-/* ── 대시보드 머리말 — 안내 문구 + 프로젝트 만들기 ── */
-.study-project-dash-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+/* ── 대시보드 맨 위 — 왼쪽 프로젝트 목록 · 오른쪽 '＋ 프로젝트 가져오기' ──
+   둘이 같은 높이에서 시작합니다(align-items: start). 안내 문구 줄은 걷었습니다.
+   768px 아래에서는 단추가 목록 위로 올라가 한 줄을 차지합니다. */
+.study-project-dash-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
-  flex-wrap: wrap;
+  align-items: start;
 }
-.study-project-intro {
-  flex: 1;
-  min-width: 240px;
-  font-size: 13.5px;
-  line-height: 1.5;
-  color: var(--text-sub);
+.study-project-dash-top.has-import {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.study-project-dash-top > .empty-note { margin: 0; }
+.study-project-import { white-space: nowrap; }
+@media (max-width: 768px) {
+  .study-project-dash-top.has-import { grid-template-columns: minmax(0, 1fr); }
+  .study-project-dash-top .study-project-import { order: -1; justify-self: end; }
 }
 
 /* ── 수업 자료(선생님 보드) — 프로젝트 그리드 위에 넓은 한 줄 ── */

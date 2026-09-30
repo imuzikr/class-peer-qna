@@ -180,60 +180,60 @@ export default function StudyProjectDashboard({
 
   return (
     <div className="study-project-dash">
-      <div className="study-project-dash-head">
-        <p className="study-project-intro">
-          {isTeacher
-            ? "이 반에서 진행 중인 프로젝트예요. 반 학생마다 개인 카드가 한 장씩 생기고, 여기서 정한 활동을 학생이 순서대로 수행해요."
-            : "선생님이 연 프로젝트예요. 카드를 누르면 내 개인 카드에서 활동을 시작할 수 있어요."}
-        </p>
-        {/* 프로젝트는 원본(선생님의 것)이고 반에서는 복사본을 씁니다. 반
-            화면의 단추는 **이 반에 꺼내 오는 일**만 합니다 — 한때 '＋ 프로젝트
-            만들기'였는데, 눌러도 반에는 아무것도 안 생기고(원본만) 수업 관리
-            창이 떠서 '만들었는데 왜 없지?'가 되었습니다. 새로 만드는 길은 그
-            창 아래의 '＋ 프로젝트 만들기'(만들면 곧바로 이 반에 열림)와, 반과
-            무관하게 원본만 만드는 수업 관리의 프로젝트 탭입니다
-            (StudyProjectImportModal). */}
+      {/* 맨 위 한 줄 — 왼쪽 프로젝트 목록 · 오른쪽 '＋ 프로젝트 가져오기'.
+          둘이 **같은 높이에서 시작**합니다(선생님 요청). 한때 그 위에 안내
+          문구('이 반에서 진행 중인 프로젝트예요 …')가 한 줄을 차지해 카드가
+          그만큼 내려앉았는데, 카드 자체가 무엇인지 말해 주어 걷었습니다.
+          단추가 없는 학생 화면은 목록 한 칸뿐입니다.
+
+          프로젝트는 원본(선생님의 것)이고 반에서는 복사본을 씁니다. 반
+          화면의 단추는 **이 반에 꺼내 오는 일**만 합니다 — 한때 '＋ 프로젝트
+          만들기'였는데, 눌러도 반에는 아무것도 안 생기고(원본만) 수업 관리
+          창이 떠서 '만들었는데 왜 없지?'가 되었습니다. 새로 만드는 길은 그
+          창 아래의 '＋ 프로젝트 만들기'(만들면 곧바로 이 반에 열림)와, 반과
+          무관하게 원본만 만드는 수업 관리의 프로젝트 탭입니다
+          (StudyProjectImportModal). */}
+      <div className={`study-project-dash-top${canManage ? " has-import" : ""}`}>
+        {projects.length === 0 ? (
+          <p className="empty-note">
+            {isTeacher
+              ? "이 반에 연 프로젝트가 아직 없어요. ‘＋ 프로젝트 가져오기’에서 원본을 골라 가져오거나, 새로 만들어 보세요."
+              : "아직 열린 프로젝트가 없어요. 선생님이 프로젝트를 열면 여기에 나타납니다."}
+          </p>
+        ) : (
+          <div className="study-project-grid">
+            {projects.map((board) => (
+              <ProjectCard
+                key={board.id}
+                board={board}
+                user={user}
+                isTeacher={isTeacher}
+                rosterCount={roster.length}
+                onOpen={() => onOpen?.(board)}
+                canEdit={canManage}
+                onEdit={() => setEditing(board)}
+                onToggleLock={() => handleToggleLock(board)}
+                lockBusy={lockBusyId === board.id}
+                onDelete={() => setConfirmDel(board)}
+                draggable={canManage}
+                isDragging={draggingId === board.id}
+                onDragStart={() => setDraggingId(board.id)}
+                onDragEnd={() => setDraggingId(null)}
+                onDrop={() => {
+                  const from = draggingId;
+                  setDraggingId(null);
+                  if (from && from !== board.id) onReorder?.(from, board.id);
+                }}
+              />
+            ))}
+          </div>
+        )}
         {canManage && (
-          <button type="button" className="btn-primary" onClick={onImport}>
+          <button type="button" className="btn-primary study-project-import" onClick={onImport}>
             ＋ 프로젝트 가져오기
           </button>
         )}
       </div>
-
-      {projects.length === 0 ? (
-        <p className="empty-note">
-          {isTeacher
-            ? "이 반에 연 프로젝트가 아직 없어요. ‘＋ 프로젝트 가져오기’에서 원본을 골라 가져오거나, 새로 만들어 보세요."
-            : "아직 열린 프로젝트가 없어요. 선생님이 프로젝트를 열면 여기에 나타납니다."}
-        </p>
-      ) : (
-        <div className="study-project-grid">
-          {projects.map((board) => (
-            <ProjectCard
-              key={board.id}
-              board={board}
-              user={user}
-              isTeacher={isTeacher}
-              rosterCount={roster.length}
-              onOpen={() => onOpen?.(board)}
-              canEdit={canManage}
-              onEdit={() => setEditing(board)}
-              onToggleLock={() => handleToggleLock(board)}
-              lockBusy={lockBusyId === board.id}
-              onDelete={() => setConfirmDel(board)}
-              draggable={canManage}
-              isDragging={draggingId === board.id}
-              onDragStart={() => setDraggingId(board.id)}
-              onDragEnd={() => setDraggingId(null)}
-              onDrop={() => {
-                const from = draggingId;
-                setDraggingId(null);
-                if (from && from !== board.id) onReorder?.(from, board.id);
-              }}
-            />
-          ))}
-        </div>
-      )}
 
       {/* 휴지통 — 교사만. 지운 프로젝트에는 반 학생 전원의 카드가 달려 있어
           되돌릴 자리가 필요합니다. 평소엔 접혀 있고, 열 때만 읽습니다. */}
