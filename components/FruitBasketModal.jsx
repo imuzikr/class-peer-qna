@@ -194,7 +194,7 @@ function TeacherPanel({ classId, sum, roster }) {
 // 모두 되돌려 받음). 고른 뒤에는 선생님이 접수하기 전까지 거둘 수 있습니다.
 // 응모한 동안은 과일을 거둘 수 없습니다(응모를 취소하면 다시 거둘 수 있음).
 function StudentPanel({ classId, uid, myFruit, mine, goalReached, total }) {
-  const [raw, setRaw] = useState("");
+  const [raw, setRaw] = useState("1"); // 개수 — −/＋ 단추로 고치고, 칸에 직접 적어도 됨
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState(null);       // 과일 칸 { ok, text }
   const [eventMsg, setEventMsg] = useState(null); // 이벤트 칸 { ok, text }
@@ -202,6 +202,16 @@ function StudentPanel({ classId, uid, myFruit, mine, goalReached, total }) {
   const takeAmt = withdrawAmount(raw, mine.donated, myFruit, mine.entered);
   const canTake = !mine.entered && mine.donated > 0;
   const canEnter = canEnterEvent(mine, goalReached);
+  // −/＋ 단추의 범위 — 1부터, 내놓을 수 있는 수(가진 과일)와 거둘 수 있는 수
+  // (내놓은 과일) 가운데 큰 쪽까지. 한 칸이 두 단추에 함께 쓰이기 때문입니다.
+  const stepMax = Math.max(1, myFruit, canTake ? mine.donated : 0);
+  const stepNow = Math.max(0, Math.floor(Number(raw)) || 0);
+  const noFruitAtAll = myFruit <= 0 && !canTake;
+  const step = (d) => {
+    const next = Math.min(stepMax, Math.max(1, (stepNow || (d > 0 ? 0 : 2)) + d));
+    setRaw(String(next));
+    setMsg(null);
+  };
 
   async function run(fn, okText, failText, setOut = setMsg) {
     if (busy) return;
@@ -211,7 +221,7 @@ function StudentPanel({ classId, uid, myFruit, mine, goalReached, total }) {
     try {
       const out = await fn();
       setOut({ ok: true, text: okText(out) });
-      if (setOut === setMsg) setRaw("");
+      if (setOut === setMsg) setRaw("1");
     } catch (e) {
       setOut({ ok: false, text: e?.message || failText });
     } finally {
@@ -273,17 +283,36 @@ function StudentPanel({ classId, uid, myFruit, mine, goalReached, total }) {
           className="fb-give"
           onSubmit={(e) => { e.preventDefault(); give(); }}
         >
-          <input
-            type="number"
-            inputMode="numeric"
-            min={1}
-            max={Math.max(1, myFruit, canTake ? mine.donated : 0)}
-            value={raw}
-            onChange={(e) => { setRaw(e.target.value); setMsg(null); }}
-            placeholder="개수"
-            disabled={busy || (myFruit <= 0 && !canTake)}
-            aria-label="내놓거나 거둘 과일 수"
-          />
+          {/* 개수 — 가운데 칸 양옆의 −/＋로 하나씩(선생님 요청). 칸에 직접
+              적을 수도 있습니다(숫자만 남김). */}
+          <div className="fb-stepper" role="group" aria-label="내놓거나 거둘 과일 수">
+            <button
+              type="button"
+              className="fb-step"
+              onClick={() => step(-1)}
+              disabled={busy || noFruitAtAll || stepNow <= 1}
+              aria-label="하나 줄이기"
+            >
+              −
+            </button>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={raw}
+              onChange={(e) => { setRaw(e.target.value.replace(/[^0-9]/g, "").slice(0, 3)); setMsg(null); }}
+              disabled={busy || noFruitAtAll}
+              aria-label="과일 수"
+            />
+            <button
+              type="button"
+              className="fb-step"
+              onClick={() => step(1)}
+              disabled={busy || noFruitAtAll || stepNow >= stepMax}
+              aria-label="하나 늘리기"
+            >
+              ＋
+            </button>
+          </div>
           <button type="submit" className="btn-primary" disabled={busy || !giveAmt}>
             과일 내놓기
           </button>
