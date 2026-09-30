@@ -3416,7 +3416,7 @@ button.footer-link:hover {
 }
 
 /* 과일 바구니 창(components/FruitBasketModal.jsx) — 왼쪽 그림 · 오른쪽 칸
-   (바구니 합계 + 학생: 과일 기부하기·응모 / 교사: 응모 현황). 그림은 높이에
+   (바구니 합계 + 학생: 과일 내놓기·응모 / 교사: 응모 현황). 그림은 높이에
    맞춰 줄어 창 안에서 구르지 않게 둡니다. 720px 아래에서는 위아래로. */
 .modal.fruit-basket-modal {
   width: min(960px, 96vw);

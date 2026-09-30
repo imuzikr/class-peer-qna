@@ -8,7 +8,7 @@
 // SVG로 여기서 그렸는데, 주신 그림으로 바꿨습니다. 종이 바탕이 흰 창과
 // 어긋나지 않게 CSS에서 multiply로 섞습니다(.fruit-basket-art).
 //
-// [과일 기부] 학생은 제 과일을 몇 개 **내놓아**(과일 기부하기) 반의 바구니를
+// [과일 기부] 학생은 제 과일을 몇 개 **내놓아**(과일 내놓기) 반의 바구니를
 // 채웁니다 — 내놓은 만큼 제 과일이 줄고, 몇 번이든 더 내놓을 수 있습니다.
 // **응모하기 전까지는 '기부 취소하기'로 되돌려 받습니다**(같은 입력칸의 개수만큼).
 // 바구니가 100개에 닿으면 학생마다 '이벤트 응모'를 누르고, 교사 화면은 합계와
@@ -234,7 +234,7 @@ function StudentPanel({ classId, uid, myFruit, mine, goalReached }) {
             aria-label="내놓거나 되돌려 받을 과일 수"
           />
           <button type="submit" className="btn-primary" disabled={busy || !giveAmt}>
-            과일 기부하기
+            과일 내놓기
           </button>
           <button
             type="button"
