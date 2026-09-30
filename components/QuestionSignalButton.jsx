@@ -6,10 +6,20 @@ import {
   confirmQuestionSignal,
   dismissQuestionSignal,
   formatTime,
+  markSignalReplySeen,
+  sendSignalReply,
   setQuestionSignal,
   subscribeMyQuestionSignal,
+  subscribeMySignalReply,
   subscribeQuestionSignals,
+  subscribeSignalReplies,
 } from "@/lib/store";
+import {
+  SIGNAL_REPLY_MAX,
+  isSignalReplyUnread,
+  replyMatchesSignal,
+  signalReplyTime,
+} from "@/lib/signalReplies";
 import QuestionSeatModal from "./QuestionSeatModal";
 import {
   QUESTION_TAGS,
@@ -37,6 +47,15 @@ export default function QuestionSignalButton({
   const [note, setNote] = useState("");
   // 확인 처리 중인 학생 uid — 그 항목의 확인 버튼만 잠가 중복 클릭을 막습니다.
   const [dismissing, setDismissing] = useState(() => new Set());
+  // 손들기 답변 — 교사: 이 반의 답변 { uid: reply } · 지금 쓰는 학생과 글.
+  // 학생: 내게 온 답변 · 이 기기에서 방금 읽은 답의 시각(빨간 불 끄기).
+  const [replies, setReplies] = useState({});
+  const [replyTo, setReplyTo] = useState(null); // 교사가 답을 쓰는 학생 uid
+  const [replyText, setReplyText] = useState("");
+  const [replyBusy, setReplyBusy] = useState(false);
+  const [replyErr, setReplyErr] = useState(null);
+  const [myReply, setMyReply] = useState(null);
+  const [seenLocal, setSeenLocal] = useState(null);
   const wrapRef = useRef(null);
 
   useEffect(() => {
@@ -47,8 +66,28 @@ export default function QuestionSignalButton({
       return;
     }
     if (isTeacher) return subscribeQuestionSignals(classId, setSignals, setReadError);
-    return subscribeMyQuestionSignal(classId, user.uid, setMine);
+    const offSignal = subscribeMyQuestionSignal(classId, user.uid, setMine);
+    // 학생은 내게 온 답변도 늘 듣습니다 — 창을 닫아 둔 동안 답이 오면 손바닥에
+    // 빨간 불이 켜져야 하므로(문서 한 건).
+    const offReply = subscribeMySignalReply(classId, user.uid, setMyReply);
+    return () => { offSignal(); offReply(); };
   }, [classId, user?.uid, isTeacher]);
+
+  // 교사는 목록을 펼쳤을 때만 답변을 받습니다('답변함' 표시와 보낸 글).
+  useEffect(() => {
+    if (!isTeacher || !open || !classId) return;
+    return subscribeSignalReplies(classId, setReplies);
+  }, [isTeacher, open, classId]);
+
+  // 학생이 창을 열어 답을 보면 읽음으로 적습니다(창이 열린 채 새 답이 와도).
+  const replyUnread = !isTeacher && isSignalReplyUnread(myReply, seenLocal);
+  useEffect(() => {
+    if (isTeacher || !open || !replyUnread || !classId || !user?.uid) return;
+    setSeenLocal(signalReplyTime(myReply));
+    markSignalReplySeen(classId, user.uid).catch((e) =>
+      console.warn("[손들기] 답변 읽음을 적지 못했어요:", e?.code, e?.message)
+    );
+  }, [isTeacher, open, replyUnread, classId, user?.uid, myReply]);
 
   useEffect(() => {
     if (!open) return;
@@ -70,6 +109,10 @@ export default function QuestionSignalButton({
 
   const count = isTeacher ? signals.length : mine ? 1 : 0;
   const active = count > 0;
+  // 빨간 점 — 교사는 '손든 학생이 있다', 학생은 **'선생님 답이 왔다'**.
+  // 학생 쪽은 한때 '내가 손을 들었다'에 켰는데, 이제 그것은 기울어진 손바닥
+  // (.on)이 말하고 점은 '봐 달라'는 뜻 하나만 맡습니다(교사 쪽과 같은 뜻).
+  const dot = isTeacher ? active : replyUnread;
 
   // [교사 화면에는 손든 학생이 있을 때만]
   // 한동안 흐린 채로 늘 두어 봤습니다. 아이콘이 없을 때 '아무도 안 들었다'인지
@@ -148,6 +191,23 @@ export default function QuestionSignalButton({
     }
   }
 
+  async function sendReply(s) {
+    const text = replyText.trim();
+    if (!classId || !text || replyBusy) return;
+    setReplyBusy(true);
+    setReplyErr(null);
+    try {
+      await sendSignalReply(classId, s, text);
+      setReplyTo(null);
+      setReplyText("");
+    } catch (e) {
+      console.error("[손들기] 답변을 보내지 못했어요:", e?.code, e?.message);
+      setReplyErr("보내지 못했어요. 다시 눌러 주세요.");
+    } finally {
+      setReplyBusy(false);
+    }
+  }
+
   // 훅을 모두 지나온 자리입니다(구독은 계속 돌아야 손들면 바로 나타납니다).
   //
   // 손이 없으면 **보이지는 않되 자리는 비워 둡니다**(빈 상자 하나). 위 설명대로
@@ -172,16 +232,20 @@ export default function QuestionSignalButton({
         title={
           isTeacher
             ? `질문하려고 손든 학생 ${signals.length}명${className ? ` · ${className}` : ""}`
-            : mine
-              ? "질문 취소"
-              : "질문하기"
+            : replyUnread
+              ? "선생님 답변이 왔어요"
+              : mine
+                ? "든 손 고치기 · 내리기"
+                : "질문하기"
         }
         aria-label={
           isTeacher
             ? `질문하려고 손든 학생 ${signals.length}명 보기`
-            : mine
-              ? "질문 취소"
-              : "질문하기"
+            : replyUnread
+              ? "선생님 답변이 왔어요 — 열어 보기"
+              : mine
+                ? "든 손 고치기 · 내리기"
+                : "질문하기"
         }
       >
         <span className="question-signal-hand" aria-hidden="true">🖐️</span>
@@ -190,7 +254,7 @@ export default function QuestionSignalButton({
             '손이 올라왔다'가 잘 안 읽혔습니다. 몇 명인지는 눌러서 여는 목록에
             이름까지 함께 있고, 툴팁(title)·스크린리더(aria-label)에도 그대로
             남겨 두었습니다. */}
-        {active && <span className="question-signal-dot" aria-hidden="true" />}
+        {dot && <span className="question-signal-dot" aria-hidden="true" />}
       </button>
 
       {/* 학생 — 손바닥 옆에 뜨는 작은 창. 태그 하나와 짧은 메모를 함께
@@ -211,6 +275,25 @@ export default function QuestionSignalButton({
               ×
             </button>
           </div>
+
+          {/* 선생님 답변 — 가장 최근 것 한 장. 무엇에 대한 답인지 그때 든
+              손(태그·메모)을 작게 함께 보여 줍니다. */}
+          {myReply && String(myReply.text ?? "").trim() && (
+            <section className="qsig-reply" aria-label="선생님 답변">
+              <div className="qsig-reply-head">
+                <strong>💬 선생님 답변</strong>
+                {myReply.at && <small>{formatTime(myReply.at)}</small>}
+              </div>
+              {(questionTagOf(myReply.tag) || String(myReply.note ?? "").trim()) && (
+                <p className="qsig-reply-quote">
+                  {questionTagOf(myReply.tag)?.label}
+                  {questionTagOf(myReply.tag) && String(myReply.note ?? "").trim() ? " · " : ""}
+                  {String(myReply.note ?? "").trim()}
+                </p>
+              )}
+              <p className="qsig-reply-text">{myReply.text}</p>
+            </section>
+          )}
 
           {/* 태그 — 셋 다 같은 크기(한 줄 3칸 격자). 고르는 데 시간이 들면
               손드는 일 자체가 부담이 되므로 갈래를 셋으로 못 박아 둡니다.
@@ -359,6 +442,21 @@ export default function QuestionSignalButton({
                       )}
                     </span>
                   )}
+                  {/* 답하기 — 학생 손바닥에 빨간 불이 켜지고, 학생이 손바닥을
+                      누르면 이 글이 맨 위에 섭니다. 손은 그대로 두고(확인·닫기는
+                      따로), 이미 답한 손이면 보낸 글과 '고치기'가 섭니다. */}
+                  <ReplyArea
+                    signal={s}
+                    reply={replyMatchesSignal(replies[s.uid], s) ? replies[s.uid] : null}
+                    editing={replyTo === s.uid}
+                    text={replyText}
+                    busy={replyBusy}
+                    error={replyTo === s.uid ? replyErr : null}
+                    onStart={(prev) => { setReplyTo(s.uid); setReplyText(prev ?? ""); setReplyErr(null); }}
+                    onChange={setReplyText}
+                    onCancel={() => { setReplyTo(null); setReplyErr(null); }}
+                    onSend={() => sendReply(s)}
+                  />
                 </li>
               ))}
             </ul>
@@ -370,5 +468,65 @@ export default function QuestionSignalButton({
         <QuestionSeatModal classId={classId} onClose={() => setSeatOpen(false)} />
       )}
     </div>
+  );
+}
+
+// 교사 목록의 답하기 칸 — 한 학생 줄 아래.
+function ReplyArea({ signal, reply, editing, text, busy, error, onStart, onChange, onCancel, onSend }) {
+  const name = signal.name || "이 학생";
+  if (editing) {
+    return (
+      <span className="qsig-reply-edit">
+        <textarea
+          className="qsig-note"
+          value={text}
+          onChange={(e) => onChange(e.target.value.slice(0, SIGNAL_REPLY_MAX))}
+          onKeyDown={(e) => {
+            // Ctrl(⌘)+Enter로 보내기 — 채팅 입력과 같은 약속
+            if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); onSend(); }
+            if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); onCancel(); }
+          }}
+          placeholder={`${name}에게 답해 주세요.`}
+          rows={3}
+          autoFocus
+          aria-label={`${name}에게 보낼 답변`}
+        />
+        {error && <span className="qsig-reply-err">{error}</span>}
+        <span className="qsig-reply-btns">
+          <button type="button" className="question-signal-close" onClick={onCancel} disabled={busy}>
+            취소
+          </button>
+          <button
+            type="button"
+            className="question-signal-confirm"
+            onClick={onSend}
+            disabled={busy || !text.trim()}
+            title="학생 손바닥에 빨간 불이 켜지고, 누르면 이 글을 봅니다"
+          >
+            {busy ? "보내는 중…" : "답변 보내기"}
+          </button>
+        </span>
+      </span>
+    );
+  }
+  if (reply) {
+    return (
+      <span className="qsig-replied">
+        <span className="qsig-replied-label">
+          💬 보낸 답변{reply.seenAt ? " · 학생이 읽음" : ""}
+        </span>
+        <span className="qsig-replied-text">{reply.text}</span>
+        <button type="button" className="qsig-reply-start" onClick={() => onStart(reply.text)}>
+          고치기
+        </button>
+      </span>
+    );
+  }
+  return (
+    <span className="qsig-reply-row">
+      <button type="button" className="qsig-reply-start" onClick={() => onStart("")}>
+        💬 답변하기
+      </button>
+    </span>
   );
 }

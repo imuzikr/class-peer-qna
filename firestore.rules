@@ -222,6 +222,23 @@ service cloud.firestore {
              && request.resource.data.get('note', '').size() <= 1000;
     }
 
+    // 손들기 답변 — 교사가 쓰는 한 장의 모양. 길이는 lib/signalReplies.js의
+    // SIGNAL_REPLY_MAX와, tag·note는 위 questionSignalSaid와 같은 값입니다.
+    // 교사가 쓸 때마다 읽음(seenAt)이 풀립니다 — 새 답은 다시 빨간 불.
+    function signalReplyOk(cId, sUid) {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['classId', 'uid', 'text', 'tag', 'note', 'raisedAt',
+                               'byUid', 'at', 'seenAt'])
+             && d.classId == cId && d.uid == sUid
+             && d.text is string && d.text.size() > 0 && d.text.size() <= 1000
+             && d.get('tag', '') is string && d.get('tag', '').size() <= 20
+             && d.get('note', '') is string && d.get('note', '').size() <= 1000
+             && (d.get('raisedAt', null) == null || d.raisedAt is timestamp)
+             && d.byUid == uid()
+             && d.at == request.time
+             && d.get('seenAt', null) == null;
+    }
+
     function isMyCornellNote(cId, nId) {
       return request.resource.data.uid == uid()
              && request.resource.data.classId == cId
@@ -575,6 +592,30 @@ service cloud.firestore {
           || isAdmin()
           || ownsClassEditable(cId)
         );
+      }
+
+      // ── 손들기 답변 ───────────────────────────────────────
+      //  · 경로 = classes/{classId}/signalReplies/{학생 uid} — 학생마다 가장
+      //    최근 답 한 장. 손들기 문서는 '확인'·'닫기'에서 지워지므로 답을 거기
+      //    두면 학생이 읽기도 전에 사라집니다.
+      //  · 읽기: 그 학생 본인과 담당 교사. 목록은 교사만.
+      //  · 쓰기: 담당 교사(모양은 signalReplyOk). 학생은 읽음(seenAt) 한 칸만,
+      //    서버 시각으로. 시험 tests/rules/signalReplies.test.mjs.
+      match /signalReplies/{studentUid} {
+        allow get: if signedIn() && (
+          isAdmin()
+          || ownsClass(cId)
+          || studentUid == uid()
+        );
+        allow list: if signedIn() && (isAdmin() || ownsClass(cId));
+        allow create, update: if signedIn() && (isAdmin() || ownsClassEditable(cId))
+                              && signalReplyOk(cId, studentUid);
+        allow update: if signedIn()
+                      && studentUid == uid()
+                      && resource.data.uid == uid()
+                      && changedOnly(['seenAt'])
+                      && request.resource.data.seenAt == request.time;
+        allow delete: if isAdmin() || ownsClassEditable(cId);
       }
 
       // ── 공부방 출석부 ─────────────────────────────────────

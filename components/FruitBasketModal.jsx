@@ -181,6 +181,19 @@ function TeacherPanel({ classId, sum }) {
   );
 }
 
+// 저장 실패 문구 — 우리가 던진 우리말 오류는 그대로, Firebase 오류는 까닭별로.
+function fruitErrorText(e, fallback) {
+  const code = String(e?.code ?? "");
+  if (code.endsWith("permission-denied")) {
+    return "권한이 없어 저장하지 못했어요. 페이지를 새로고침한 뒤 다시 해 보고, 계속되면 선생님께 알려 주세요.";
+  }
+  if (code.endsWith("unavailable") || code.endsWith("deadline-exceeded")) {
+    return "연결이 불안정해 저장하지 못했어요. 잠시 뒤 다시 해 주세요.";
+  }
+  if (code) return fallback; // 그 밖의 Firebase 오류 — 영어 문구 대신
+  return e?.message || fallback;
+}
+
 // 학생 — 내 과일(내놓기 · 거두기) + 이벤트(응모하기 · 응모하지 않기)
 // 입력칸 하나에 단추 둘 — 적은 개수만큼 내놓거나 거둡니다. 이벤트는 따로 한
 // 칸: 응모하기(과일 1개 이상 · 반 바구니 100개) · 응모하지 않기(내놓은 과일을
@@ -188,7 +201,10 @@ function TeacherPanel({ classId, sum }) {
 // 전까지 바꾸거나(다른 단추) 거둘 수 있습니다(고른 단추를 다시 누름).
 // 응모한 동안은 과일을 거둘 수 없습니다(응모를 취소하면 다시 거둘 수 있음).
 function StudentPanel({ classId, uid, myFruit, mine, goalReached, total }) {
-  const [raw, setRaw] = useState("1"); // 개수 — −/＋ 단추로 고치고, 칸에 직접 적어도 됨
+  // 개수 — −/＋ 단추로 고치고, 칸에 직접 적어도 됨. **0에서 시작합니다**
+  // (선생님 요청) — 창을 열자마자 1이 들어 있으면 '내놓기'를 한 번 누르는 것만으로
+  // 과일이 나갑니다. 0이면 두 단추가 꺼져 있다가 ＋를 눌러야 켜집니다.
+  const [raw, setRaw] = useState("0");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState(null);       // 과일 칸 { ok, text }
   const [eventMsg, setEventMsg] = useState(null); // 이벤트 칸 { ok, text }
@@ -196,13 +212,13 @@ function StudentPanel({ classId, uid, myFruit, mine, goalReached, total }) {
   const takeAmt = withdrawAmount(raw, mine.donated, myFruit, mine.entered);
   const canTake = !mine.entered && mine.donated > 0;
   const canEnter = canEnterEvent(mine, goalReached);
-  // −/＋ 단추의 범위 — 1부터, 내놓을 수 있는 수(가진 과일)와 거둘 수 있는 수
+  // −/＋ 단추의 범위 — 0부터, 내놓을 수 있는 수(가진 과일)와 거둘 수 있는 수
   // (내놓은 과일) 가운데 큰 쪽까지. 한 칸이 두 단추에 함께 쓰이기 때문입니다.
-  const stepMax = Math.max(1, myFruit, canTake ? mine.donated : 0);
+  const stepMax = Math.max(0, myFruit, canTake ? mine.donated : 0);
   const stepNow = Math.max(0, Math.floor(Number(raw)) || 0);
   const noFruitAtAll = mine.received || (myFruit <= 0 && !canTake);
   const step = (d) => {
-    const next = Math.min(stepMax, Math.max(1, (stepNow || (d > 0 ? 0 : 2)) + d));
+    const next = Math.min(stepMax, Math.max(0, stepNow + d));
     setRaw(String(next));
     setMsg(null);
   };
@@ -215,9 +231,13 @@ function StudentPanel({ classId, uid, myFruit, mine, goalReached, total }) {
     try {
       const out = await fn();
       setOut({ ok: true, text: okText(out) });
-      if (setOut === setMsg) setRaw("1");
+      if (setOut === setMsg) setRaw("0");
     } catch (e) {
-      setOut({ ok: false, text: e?.message || failText });
+      // 규칙 거부는 Firebase의 영어 문구('Missing or insufficient
+      // permissions.')가 그대로 올라와 학생이 읽을 수 없었습니다. 우리말로
+      // 바꾸고, 원인을 좁힐 단서(code)는 콘솔에 남깁니다.
+      console.error("[fruitBasket] 실패:", e?.code ?? "", e?.message ?? e);
+      setOut({ ok: false, text: fruitErrorText(e, failText) });
     } finally {
       setBusy(false);
     }
@@ -251,8 +271,8 @@ function StudentPanel({ classId, uid, myFruit, mine, goalReached, total }) {
     setEventMsg
   );
 
-  // 적은 개수가 어느 쪽에도 안 맞으면 까닭을 적습니다.
-  const typed = raw.trim() !== "";
+  // 적은 개수가 어느 쪽에도 안 맞으면 까닭을 적습니다(0은 '아직 안 정함').
+  const typed = stepNow > 0;
   let hint = null;
   if (typed && !giveAmt && !takeAmt) {
     hint = canTake
@@ -284,7 +304,7 @@ function StudentPanel({ classId, uid, myFruit, mine, goalReached, total }) {
               type="button"
               className="fb-step"
               onClick={() => step(-1)}
-              disabled={busy || noFruitAtAll || stepNow <= 1}
+              disabled={busy || noFruitAtAll || stepNow <= 0}
               aria-label="하나 줄이기"
             >
               −

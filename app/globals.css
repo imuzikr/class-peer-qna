@@ -2231,6 +2231,8 @@ button.footer-link:hover {
 .question-signal-dropdown.question-signal-ask {
   width: 400px;
   padding: 10px 12px 12px;
+  /* 맨 위에 '선생님 답변'이 서면 360px로는 아래 단추가 밀려 구릅니다. */
+  max-height: min(600px, 80vh);
 }
 .question-signal-ask .question-signal-head { padding: 0 0 8px; }
 .question-signal-ask .btn-close { font-size: 20px; line-height: 1; }
@@ -2360,6 +2362,74 @@ button.footer-link:hover {
   word-break: break-word;
 }
 
+/* ── 손들기 답변 ─────────────────────────────────────────────
+   교사: 학생 줄 아래 '💬 답변하기' → 그 자리에서 쓰는 칸 → 보낸 뒤에는 보낸
+   글 + '고치기'. 학생: 손바닥 창 맨 위의 '선생님 답변' 상자. 들여쓰기는
+   위 .qsig-said와 같이 아바타 폭(38px)만큼 — 이름 · 메모 · 답이 한 세로선. */
+.qsig-reply-row,
+.qsig-reply-edit,
+.qsig-replied {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  margin: 4px 0 6px 38px;
+}
+.qsig-reply-edit { align-items: stretch; }
+.qsig-reply-edit .qsig-note { min-height: 64px; }
+.qsig-reply-btns { display: flex; justify-content: flex-end; gap: 6px; }
+.qsig-reply-btns .question-signal-confirm { margin-left: 0; }
+.qsig-reply-err { font-size: 12px; color: #c0392b; }
+.qsig-reply-start {
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-sub);
+  cursor: pointer;
+}
+.qsig-reply-start:hover { border-color: var(--primary); color: var(--primary-dark); background: var(--primary-light); }
+.qsig-replied { align-items: stretch; }
+.qsig-replied .qsig-reply-start { align-self: flex-end; }
+.qsig-replied-label { font-size: 11.5px; font-weight: 700; color: #276b3d; }
+/* 보낸 답 — 학생 메모(회색 바탕)와 갈리게 연한 초록. 초록은 이 앱에서 '됐다'. */
+.qsig-replied-text,
+.qsig-reply-text {
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: #e8f7ed;
+  border: 1px solid #a6d8b6;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+/* 학생 창 맨 위의 '선생님 답변' */
+.qsig-reply {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.qsig-reply-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.qsig-reply-head strong { font-size: 13px; color: var(--dark); }
+.qsig-reply-head small { font-size: 11px; color: var(--text-faint); }
+.qsig-reply-quote {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-sub);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.qsig-reply-text { margin: 0; font-size: 13px; }
+
 .question-signal-dropdown {
   position: absolute;
   top: calc(100% + 6px);
@@ -2368,7 +2438,8 @@ button.footer-link:hover {
   /* 280px일 때는 버튼이 하나였습니다. '확인'과 '닫기' 둘이 되면서 이름 칸이
      71px로 눌려 '20223 · 방금 전'이 두 줄로 접혔습니다(실측). */
   width: 330px;
-  max-height: 360px;
+  /* 학생 줄마다 답변 칸이 붙어 360px에서 올렸습니다 */
+  max-height: min(520px, 78vh);
   overflow-y: auto;
   background: #fff;
   border: 1px solid var(--border);
@@ -3418,23 +3489,42 @@ button.footer-link:hover {
 /* 과일 바구니 창(components/FruitBasketModal.jsx) — 왼쪽 그림 · 오른쪽 칸
    (바구니 합계 + 학생: 과일 내놓기·응모 / 교사: 응모 현황). 그림은 높이에
    맞춰 줄어 창 안에서 구르지 않게 둡니다. 720px 아래에서는 위아래로. */
+/* **창 크기는 못 박습니다**(선생님 요청) — 오른쪽 칸은 안내·결과 한 줄이
+   생겼다 사라지고(목표 도달 · 내놓은 결과 · 오류 · 접수 결과) 교사와 학생의
+   내용도 달라, 내용에 맞춰 두면 누를 때마다 창이 늘었다 줄었습니다. 가장 긴
+   경우(학생: 목표 도달 줄 + 과일 칸 결과 + 이벤트 칸 결과)에 맞춘 높이이고,
+   그보다 낮은 화면에서는 오른쪽 칸만 제 안에서 구릅니다.
+   그림은 예전의 2/3 크기로 가운데에 둡니다(선생님 요청) — 오른쪽 칸이 주인공. */
 .modal.fruit-basket-modal {
   width: min(960px, 96vw);
   max-width: 960px;
+  height: min(680px, 94vh);
+  max-height: none;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   padding: 22px 24px 20px;
 }
 .fruit-basket-body {
+  flex: 1;
+  min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
+  grid-template-columns: minmax(0, 1fr) 340px;
   gap: 20px;
-  align-items: start;
+  align-items: stretch;
 }
-.fruit-basket-artbox { min-width: 0; }
+.fruit-basket-artbox {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 .fruit-basket-art {
   display: block;
-  width: 100%;
+  width: min(100%, 410px);
   height: auto;
-  max-height: calc(85vh - 110px);
+  max-height: 100%;
   margin: 0 auto;
   /* 높이에 걸려 줄어도 찌그러지지 않게 — 비율 그대로 칸 안에 담습니다. */
   object-fit: contain;
@@ -3443,7 +3533,10 @@ button.footer-link:hover {
   mix-blend-mode: multiply;
   user-select: none;
 }
-.fruit-basket-side { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.fruit-basket-side {
+  display: flex; flex-direction: column; gap: 14px; min-width: 0;
+  min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+}
 .fb-label { font-size: 12.5px; font-weight: 700; color: var(--text-sub); }
 .fb-total, .fb-mine, .fb-entry, .fb-enter {
   border: 1px solid var(--border);
@@ -3543,8 +3636,11 @@ button.footer-link:hover {
 .fb-receive { margin-top: 12px; }
 .fb-entered { margin: 0; font-size: 13.5px; font-weight: 700; color: #276b3d; text-align: center; }
 @media (max-width: 720px) {
+  /* 좁은 화면은 위아래로 풀어 창 전체가 구릅니다(높이 못 박기를 풂). */
+  .modal.fruit-basket-modal { height: auto; max-height: 92vh; overflow-y: auto; display: block; }
   .fruit-basket-body { grid-template-columns: 1fr; }
-  .fruit-basket-art { max-height: 38vh; }
+  .fruit-basket-side { overflow: visible; }
+  .fruit-basket-art { max-height: 26vh; width: auto; }
 }
 
 .modal-head {

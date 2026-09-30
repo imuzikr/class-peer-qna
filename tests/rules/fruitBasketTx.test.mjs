@@ -1,0 +1,56 @@
+// =============================================================
+// 과일 바구니 — 앱과 **똑같은 트랜잭션**으로 내놓기·거두기
+// -------------------------------------------------------------
+// fruitBasket.test.mjs는 같은 효과를 writeBatch로 시험합니다. 여기는 앱
+// (lib/data/rewards.js의 donateFruits · withdrawFruits)이 실제로 보내는
+// 모양 그대로 — 트랜잭션 안에서 두 문서를 읽고, updatedAt에 서버 시각,
+// 바구니는 merge로 — 보냅니다. 실서비스에서 '권한 없음'이 신고됐을 때
+// 규칙 쪽 원인인지 가르려고 둔 시험입니다(교사가 준 과일 문서 모양 그대로).
+// =============================================================
+import { describe, it, before, after, beforeEach } from "node:test";
+import { assertSucceeds } from "@firebase/rules-unit-testing";
+import { doc, setDoc, runTransaction, serverTimestamp } from "firebase/firestore";
+import { makeEnv, seed, asStudent } from "./helpers.mjs";
+
+const C = "classA";
+
+async function move(db, uid, n) {
+  const rewardRef = doc(db, "rewards", `${C}_${uid}`);
+  const basketRef = doc(db, "classes", C, "fruitBasket", uid);
+  return runTransaction(db, async (tx) => {
+    const r = await tx.get(rewardRef);
+    const b = await tx.get(basketRef);
+    const have = r.data().count;
+    const before = b.exists() ? b.data().donated : 0;
+    tx.update(rewardRef, { count: have - n, updatedAt: serverTimestamp() });
+    tx.set(
+      basketRef,
+      { classId: C, uid, donated: before + n, entered: b.exists() ? b.data().entered === true : false, updatedAt: serverTimestamp() },
+      { merge: true }
+    );
+  });
+}
+
+describe("fruitBasket — 앱과 같은 트랜잭션", () => {
+  let env;
+  before(async () => { env = await makeEnv("demo-rules-fruit-basket-tx"); });
+  after(async () => { await env.cleanup(); });
+  beforeEach(async () => {
+    await env.clearFirestore();
+    await seed(env, async (db) => {
+      await setDoc(doc(db, "classes", C), { name: "A", createdBy: "teacherA", archived: false });
+      await setDoc(doc(db, "memberships", `s1_${C}`), { uid: "s1", classId: C });
+      // 교사의 addStudentReward가 남기는 모양 그대로(이름표 · 서버 시각)
+      await setDoc(doc(db, "rewards", `${C}_s1`), {
+        classId: C, uid: "s1", count: 2, name: "학생", emoji: "🙂", updatedAt: serverTimestamp(),
+      });
+    });
+  });
+
+  it("처음 내놓기(바구니 문서가 없을 때) · 이어서 내놓기 · 거두기", async () => {
+    const db = asStudent(env, "s1").firestore();
+    await assertSucceeds(move(db, "s1", 1));
+    await assertSucceeds(move(db, "s1", 1));
+    await assertSucceeds(move(db, "s1", -2));
+  });
+});
