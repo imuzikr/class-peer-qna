@@ -3415,6 +3415,22 @@ button.footer-link:hover {
   }
 }
 
+/* 과일 바구니 창(components/FruitBasketModal.jsx) — 그림 한 장이라 보통
+   창(640px)보다 넓게 두고, 낮은 화면에서는 그림이 높이에 맞춰 줄어 창 안에
+   다 들어옵니다(구르지 않게). SVG는 비율을 지키며 가운데에 섭니다. */
+.modal.fruit-basket-modal {
+  width: min(760px, 94vw);
+  max-width: 760px;
+  padding: 22px 24px 18px;
+}
+.fruit-basket-art {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: calc(85vh - 110px);
+  margin: 0 auto;
+}
+
 .modal-head {
   display: flex;
   justify-content: space-between;

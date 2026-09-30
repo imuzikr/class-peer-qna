@@ -93,6 +93,7 @@ import StudyAttendanceModal from "@/components/StudyAttendanceModal";
 import CornellNoteViewerModal from "@/components/CornellNoteViewerModal";
 import SeatGroupSetupModal, { SeatGroupSetupPanel } from "@/components/SeatGroupSetupModal";
 import MySeatModal from "@/components/MySeatModal";
+import FruitBasketModal from "@/components/FruitBasketModal";
 import GroupMemoModal from "@/components/GroupMemoModal";
 import ClassNotesTools from "@/components/ClassNotesTools";
 import { IconArchive } from "@/components/StatusIcons";
@@ -168,6 +169,7 @@ function StudyPageInner() {
   const [attendanceOpen, setAttendanceOpen] = useState(false); // 출석부 모달
   const [noteViewerOpen, setNoteViewerOpen] = useState(false); // 내 수업 노트 크게 보기(학생)
   const [mySeatOpen, setMySeatOpen] = useState(false); // 자리 배치 보기(학생)
+  const [fruitBasketOpen, setFruitBasketOpen] = useState(false); // 과일 바구니 그림(교사·학생)
   // 우리 모둠 — 열려 있으면 `{ uid | null }`(누구의 메모를 펴 둘지). 닫힘은 null.
   const [groupMemo, setGroupMemo] = useState(null);
   const [attendanceRecords, setAttendanceRecords] = useState([]);
@@ -956,6 +958,17 @@ function StudyPageInner() {
                         >
                           출석부 보기
                         </button>
+                        {/* 내 수업 노트 — 수업 중에는 오른쪽 서랍에서 쓰지만,
+                            지난 노트를 넘겨 보고 PDF로 내려받는 자리가 서랍
+                            안에만 있어 찾기 어려웠습니다. 여기서도 같은 창을
+                            엽니다(서랍의 '노트 전체 보기'와 같은 것). */}
+                        <button
+                          className="btn-ghost"
+                          onClick={() => setNoteViewerOpen(true)}
+                          title="지난 수업 노트를 넘겨 보고 PDF로 저장합니다"
+                        >
+                          수업 노트
+                        </button>
                         <button
                           className={`btn-ghost${kwlPanelOpen ? " active" : ""}`}
                           onClick={() => setKwlPanelOpen((v) => !v)}
@@ -967,17 +980,6 @@ function StudyPageInner() {
                           }
                         >
                           KWLS 차트
-                        </button>
-                        {/* 내 수업 노트 — 수업 중에는 오른쪽 서랍에서 쓰지만,
-                            지난 노트를 넘겨 보고 PDF로 내려받는 자리가 서랍
-                            안에만 있어 찾기 어려웠습니다. 여기서도 같은 창을
-                            엽니다(서랍의 '노트 전체 보기'와 같은 것). */}
-                        <button
-                          className="btn-ghost"
-                          onClick={() => setNoteViewerOpen(true)}
-                          title="지난 수업 노트를 넘겨 보고 PDF로 저장합니다"
-                        >
-                          수업 노트
                         </button>
                       </>
                     )}
@@ -1049,6 +1051,17 @@ function StudyPageInner() {
                         }
                       >
                         KWLS 차트
+                      </button>
+                    )}
+                    {/* 과일 바구니 — 교사·학생 모두 줄의 맨 끝. 과일이 수북한
+                        바구니 그림을 띄웁니다(components/FruitBasketModal.jsx). */}
+                    {currentClass && (
+                      <button
+                        className="btn-ghost"
+                        onClick={() => setFruitBasketOpen(true)}
+                        title="과일이 수북한 바구니를 크게 봅니다"
+                      >
+                        과일 바구니
                       </button>
                     )}
                   </div>
@@ -1296,6 +1309,11 @@ function StudyPageInner() {
           roster={studentClassRoster}
           onClose={() => setMySeatOpen(false)}
         />
+      )}
+
+      {/* 과일 바구니 — 그림만 그리는 창이라 읽는 문서가 없습니다. */}
+      {fruitBasketOpen && (
+        <FruitBasketModal onClose={() => setFruitBasketOpen(false)} />
       )}
 
       {/* 우리 모둠 (학생) — 모둠 문서 하나와 그 친구와 주고받은 메모만
