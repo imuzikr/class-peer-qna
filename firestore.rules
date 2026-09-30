@@ -168,6 +168,30 @@ service cloud.firestore {
              && cls.get('attendanceOpenDate', '') == date;
     }
 
+    // ── 과일 바구니 ──────────────────────────────────────────
+    // 문서 모양 — 정해 둔 칸만, 제 반·제 uid로.
+    function fruitBasketShapeOk(cId, sUid) {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['classId', 'uid', 'donated', 'entered', 'enteredAt', 'updatedAt'])
+             && d.classId == cId && d.uid == sUid
+             && d.donated is int && d.donated >= 0 && d.donated <= 100000
+             && d.entered is bool;
+    }
+    // 바구니가 늘어난 만큼(after − before) 같은 묶음에서 제 과일이 줄었는지.
+    // 늘지 않았으면(응모만) 과일을 볼 까닭이 없습니다.
+    function fruitDonationMatches(cId, sUid, before, after) {
+      let p = /databases/$(database)/documents/rewards/$(cId + '_' + sUid);
+      return after == before
+             || (get(p).data.count - getAfter(p).data.count == after - before);
+    }
+    // 학생이 제 과일을 줄이는 쓰기 — 줄어든 만큼 제 바구니가 같은 묶음에서
+    // 늘어야 합니다(위 함수의 짝).
+    function fruitBasketGainMatches(cId, sUid, d) {
+      let p = /databases/$(database)/documents/classes/$(cId)/fruitBasket/$(sUid);
+      return existsAfter(p)
+             && getAfter(p).data.donated - (exists(p) ? get(p).data.donated : 0) == d;
+    }
+
     // ── 수업 노트(코넬) 본문 검사 ─────────────────────────────
     // 학생이 자기 노트에, 문서 ID가 정한 자리에 쓰는지. 칸마다 길이도 봅니다.
     // (필기 칸은 서식이 붙은 HTML이라 넉넉히 둡니다 — 태그가 길이를 먹습니다)
@@ -556,6 +580,29 @@ service cloud.firestore {
         allow update, delete: if false;
       }
 
+      // ── 과일 바구니 — 학생이 제 과일을 내놓아 반이 함께 모읍니다 ──
+      //  · 경로 = classes/{classId}/fruitBasket/{학생 uid}
+      //    { classId, uid, donated(지금까지 내놓은 합), entered, enteredAt?, updatedAt }
+      //  · 읽기는 반 학생 모두와 담당 교사 — 바구니 합계를 학생도 봅니다.
+      //  · 쓰기는 **본인 문서만**. donated는 늘기만 하고, 늘어난 만큼 같은
+      //    쓰기 묶음(트랜잭션)에서 rewards의 count가 줄어야 합니다(getAfter로
+      //    맞대어 봄). 그래야 '과일은 그대로인데 바구니만 느는' 쓰기가 막힙니다.
+      //  · 응모(entered)는 거짓 → 참만. 목표(100개)는 여러 문서의 합이라 규칙이
+      //    셀 수 없어 화면이 판정합니다(lib/fruitBasket.js).
+      //  · 지우기는 담당 교사(다시 모을 때). 시험 tests/rules/fruitBasket.test.mjs.
+      match /fruitBasket/{sUid} {
+        allow read: if signedIn() && (isAdmin() || ownsClass(cId) || isClassMember(cId));
+        allow create: if signedIn() && sUid == uid() && isClassMember(cId)
+                      && fruitBasketShapeOk(cId, sUid)
+                      && fruitDonationMatches(cId, sUid, 0, request.resource.data.donated);
+        allow update: if signedIn() && sUid == uid() && isClassMember(cId)
+                      && fruitBasketShapeOk(cId, sUid)
+                      && request.resource.data.donated >= resource.data.donated
+                      && (resource.data.entered != true || request.resource.data.entered == true)
+                      && fruitDonationMatches(cId, sUid, resource.data.donated, request.resource.data.donated);
+        allow delete: if isAdmin() || ownsClassEditable(cId);
+      }
+
       // ── 과일 지급 이력 ─────────────────────────────────────
       //  · 경로 = classes/{classId}/rewardEvents/{auto}
       //  · rewards는 누적 총계 하나뿐이라 '언제 몇 개 받았나'가 남지 않습니다.
@@ -852,6 +899,19 @@ service cloud.firestore {
                    && request.resource.data.count <= 100
                    && rId == (request.resource.data.classId + '_' + request.resource.data.uid);
       allow delete: if isAdmin() || ownsClassEditable(resource.data.classId);
+      // 학생이 과일 바구니에 **내놓을 때만** 제 과일을 줄입니다 — 늘릴 수는
+      // 없고, 줄어든 만큼 같은 묶음에서 제 바구니가 늘어야 합니다
+      // (classes/{cId}/fruitBasket 규칙과 짝).
+      allow update: if signedIn()
+                    && resource.data.uid == uid()
+                    && rId == (resource.data.classId + '_' + uid())
+                    && isClassMember(resource.data.classId)
+                    && changedOnly(['count', 'updatedAt'])
+                    && request.resource.data.count is int
+                    && request.resource.data.count >= 0
+                    && request.resource.data.count < resource.data.count
+                    && fruitBasketGainMatches(resource.data.classId, uid(),
+                         resource.data.count - request.resource.data.count);
     }
 
     // ── 수업 자료(수업하기) — 만든 선생님 본인만. 학생은 읽지 않습니다. ──

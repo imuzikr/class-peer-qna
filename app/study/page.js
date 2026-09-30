@@ -1059,7 +1059,7 @@ function StudyPageInner() {
                       <button
                         className="btn-ghost"
                         onClick={() => setFruitBasketOpen(true)}
-                        title="과일이 수북한 바구니를 크게 봅니다"
+                        title={admin ? "반 학생들이 내놓은 과일 합계와 이벤트 응모 현황을 봅니다" : "내 과일을 바구니에 내놓고 이벤트에 응모합니다"}
                       >
                         과일 바구니
                       </button>
@@ -1311,9 +1311,18 @@ function StudyPageInner() {
         />
       )}
 
-      {/* 과일 바구니 — 그림만 그리는 창이라 읽는 문서가 없습니다. */}
-      {fruitBasketOpen && (
-        <FruitBasketModal onClose={() => setFruitBasketOpen(false)} />
+      {/* 과일 바구니 — 학생은 과일을 내놓고(기부) 응모하고, 교사는 합계와
+          응모 현황을 봅니다. 읽는 것은 그 반의 바구니 문서들뿐입니다. */}
+      {fruitBasketOpen && classId && user && (
+        <FruitBasketModal
+          onClose={() => setFruitBasketOpen(false)}
+          classId={classId}
+          uid={user.uid}
+          isTeacher={admin}
+          /* 내 과일 수 — 이미 구독해 둔 반 rewards에서(읽기 0) */
+          myFruit={rewards.find((r) => r.uid === user.uid)?.count ?? 0}
+          roster={admin ? teacherRoster : []}
+        />
       )}
 
       {/* 우리 모둠 (학생) — 모둠 문서 하나와 그 친구와 주고받은 메모만

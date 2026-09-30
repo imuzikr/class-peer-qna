@@ -13,9 +13,19 @@
 // 굴러 나온 사과. 앞줄 과일의 아랫부분을 몸통이 덮어 '담겨 있는' 모양이
 // 됩니다.
 //
-// 읽는 문서는 없습니다(그림뿐). 닫기는 다른 창과 같은 backdropClose(Esc·배경).
+// [과일 기부] 학생은 제 과일을 몇 개 **내놓아**(과일 기부하기) 반의 바구니를
+// 채웁니다 — 내놓은 만큼 제 과일이 줄고, 몇 번이든 더 내놓을 수 있습니다.
+// 바구니가 100개에 닿으면 학생마다 '이벤트 응모'를 누르고, 교사 화면은 합계와
+// 응모 현황(모두 응모하면 그 사실)을 봅니다. 셈은 lib/fruitBasket.js, 저장은
+// lib/data/rewards.js(donateFruits · enterFruitEvent), 규칙은 firestore.rules의
+// fruitBasket 절. 읽는 문서는 그 반의 바구니 문서들(학생 수만큼)뿐입니다 —
+// 내 과일 수는 페이지가 이미 받아 둔 rewards에서 넘겨받습니다.
+// 닫기는 다른 창과 같은 backdropClose(Esc·배경).
 // =============================================================
+import { useEffect, useMemo, useState } from "react";
 import { backdropClose } from "@/lib/modal";
+import { subscribeFruitBasket, donateFruits, enterFruitEvent } from "@/lib/store";
+import { basketSummary, donationAmount, myBasketEntry } from "@/lib/fruitBasket";
 
 // 과일 한 알씩 — 그라디언트 id는 이 창 안에서만 쓰므로 접두사 fb-
 function Apple({ x, y, r, tone = "red" }) {
@@ -318,7 +328,24 @@ function BasketArt() {
   );
 }
 
-export default function FruitBasketModal({ onClose }) {
+export default function FruitBasketModal({
+  onClose,
+  classId,
+  uid,                 // 지금 사용자 uid
+  isTeacher = false,
+  myFruit = 0,         // 학생: 지금 가진 과일(rewards.count — 내놓으면 줄어든 값)
+  roster = [],         // 교사: 반 명단 [{ uid, name, studentId }] — '모두 응모' 판정·이름
+}) {
+  const [entries, setEntries] = useState(null); // null = 아직 안 옴
+  useEffect(() => subscribeFruitBasket(classId, setEntries), [classId]);
+
+  const memberUids = useMemo(() => (roster ?? []).map((r) => r.uid), [roster]);
+  const sum = useMemo(
+    () => basketSummary(entries ?? [], memberUids),
+    [entries, memberUids]
+  );
+  const mine = useMemo(() => myBasketEntry(entries ?? [], uid), [entries, uid]);
+
   return (
     <div className="modal-backdrop" {...backdropClose(onClose)}>
       <div
@@ -332,8 +359,181 @@ export default function FruitBasketModal({ onClose }) {
           <h3>🧺 과일 바구니</h3>
           <button className="btn-close" onClick={onClose} aria-label="닫기">×</button>
         </div>
-        <BasketArt />
+        <div className="fruit-basket-body">
+          <div className="fruit-basket-artbox">
+            <BasketArt />
+          </div>
+          <div className="fruit-basket-side">
+            <BasketTotal sum={sum} loading={entries === null} />
+            {isTeacher ? (
+              <TeacherPanel sum={sum} roster={roster} />
+            ) : (
+              <StudentPanel
+                classId={classId}
+                uid={uid}
+                myFruit={myFruit}
+                mine={mine}
+                goalReached={sum.goalReached}
+              />
+            )}
+          </div>
+        </div>
       </div>
     </div>
+  );
+}
+
+// 반 바구니 합계 — 교사·학생 공통. 목표에 닿으면 알림 한 줄을 함께 답니다.
+function BasketTotal({ sum, loading }) {
+  return (
+    <section className="fb-total" aria-live="polite">
+      <div className="fb-total-head">
+        <span className="fb-label">우리 반 바구니</span>
+        <strong className="fb-total-num">
+          {loading ? "…" : sum.total}
+          <em> / {sum.goal}개</em>
+        </strong>
+      </div>
+      <div className="fb-bar" role="progressbar" aria-valuemin={0} aria-valuemax={sum.goal} aria-valuenow={Math.min(sum.total, sum.goal)}>
+        <span style={{ width: `${sum.percent}%` }} />
+      </div>
+      {sum.goalReached && (
+        <p className="fb-goal">🎉 과일 {sum.goal}개가 모였습니다. 이벤트에 응모할 수 있습니다.</p>
+      )}
+    </section>
+  );
+}
+
+// 교사 — 합계(위) + 응모 현황. 모두 응모하면 그 사실을 크게 알립니다.
+function TeacherPanel({ sum, roster }) {
+  const nameOf = (u) => {
+    const r = (roster ?? []).find((x) => x.uid === u);
+    return r ? `${r.studentId ? `${r.studentId} ` : ""}${r.name ?? ""}`.trim() || "이름 없음" : "이름 없음";
+  };
+  if (!sum.goalReached) {
+    return (
+      <p className="fb-note">
+        학생이 제 과일을 바구니에 내놓으면 여기 합계가 늘어요. {sum.goal}개가 모이면
+        학생들이 이벤트에 응모할 수 있어요.
+      </p>
+    );
+  }
+  return (
+    <section className="fb-entry">
+      <div className="fb-entry-head">
+        <span className="fb-label">이벤트 응모</span>
+        <strong>{sum.enteredCount} / {sum.memberCount}명</strong>
+      </div>
+      {sum.allEntered ? (
+        <p className="fb-all">✅ 전체 학생이 이벤트에 응모했습니다.</p>
+      ) : (
+        sum.waitingUids.length > 0 && (
+          <p className="fb-note">
+            아직 응모하지 않은 학생 {sum.waitingUids.length}명 —{" "}
+            {sum.waitingUids.map(nameOf).join(", ")}
+          </p>
+        )
+      )}
+    </section>
+  );
+}
+
+// 학생 — 내 과일 · 내놓기 · 응모
+// 내놓은 과일은 돌아오지 않으므로, 한 번 더 묻고 내놓습니다(창 대신 이 칸 안에서).
+function StudentPanel({ classId, uid, myFruit, mine, goalReached }) {
+  const [raw, setRaw] = useState("");
+  const [confirming, setConfirming] = useState(0); // 내놓을 개수(0 = 묻는 중 아님)
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState(null); // { ok, text }
+  const amount = donationAmount(raw, myFruit);
+
+  async function give() {
+    if (!confirming || busy) return;
+    setBusy(true);
+    setMsg(null);
+    try {
+      const left = await donateFruits(classId, uid, confirming);
+      setMsg({ ok: true, text: `과일 ${confirming}개를 내놓았어요. 남은 과일 ${left}개.` });
+      setRaw("");
+    } catch (e) {
+      setMsg({ ok: false, text: e?.message || "내놓지 못했어요. 다시 시도해 주세요." });
+    } finally {
+      setBusy(false);
+      setConfirming(0);
+    }
+  }
+
+  async function enter() {
+    if (busy) return;
+    setBusy(true);
+    setMsg(null);
+    try {
+      await enterFruitEvent(classId, uid);
+    } catch (e) {
+      setMsg({ ok: false, text: e?.message || "응모하지 못했어요. 다시 시도해 주세요." });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const tooMany = raw.trim() !== "" && amount === 0;
+  return (
+    <>
+      <section className="fb-mine">
+        <div className="fb-mine-stats">
+          <span>내가 가진 과일 <b>🍊 {myFruit}</b></span>
+          <span>내가 내놓은 과일 <b>{mine.donated}</b></span>
+        </div>
+        {confirming ? (
+          <div className="fb-confirm" role="group" aria-label="내놓기 확인">
+            <p>과일 <b>{confirming}개</b>를 바구니에 내놓을까요? 내놓은 과일은 돌아오지 않아요.</p>
+            <div className="fb-confirm-btns">
+              <button type="button" className="btn-ghost" onClick={() => setConfirming(0)} disabled={busy}>
+                취소
+              </button>
+              <button type="button" className="btn-primary" onClick={give} disabled={busy}>
+                {busy ? "내놓는 중…" : "내놓기"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <form
+            className="fb-give"
+            onSubmit={(e) => { e.preventDefault(); if (amount) setConfirming(amount); }}
+          >
+            <input
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={Math.max(1, myFruit)}
+              value={raw}
+              onChange={(e) => { setRaw(e.target.value); setMsg(null); }}
+              placeholder={myFruit > 0 ? `1~${myFruit}` : "과일이 없어요"}
+              disabled={myFruit <= 0}
+              aria-label="내놓을 과일 수"
+            />
+            <button type="submit" className="btn-primary" disabled={!amount}>
+              과일 기부하기
+            </button>
+          </form>
+        )}
+        {tooMany && !confirming && (
+          <p className="fb-msg err">가진 과일({myFruit}개) 안에서 1개 이상 적어 주세요.</p>
+        )}
+        {msg && <p className={`fb-msg ${msg.ok ? "ok" : "err"}`}>{msg.text}</p>}
+      </section>
+
+      {goalReached && (
+        <section className="fb-enter">
+          {mine.entered ? (
+            <p className="fb-entered">✓ 이벤트에 응모했어요.</p>
+          ) : (
+            <button type="button" className="btn-primary fb-enter-btn" onClick={enter} disabled={busy}>
+              이벤트 응모
+            </button>
+          )}
+        </section>
+      )}
+    </>
   );
 }

@@ -3415,20 +3415,77 @@ button.footer-link:hover {
   }
 }
 
-/* 과일 바구니 창(components/FruitBasketModal.jsx) — 그림 한 장이라 보통
-   창(640px)보다 넓게 두고, 낮은 화면에서는 그림이 높이에 맞춰 줄어 창 안에
-   다 들어옵니다(구르지 않게). SVG는 비율을 지키며 가운데에 섭니다. */
+/* 과일 바구니 창(components/FruitBasketModal.jsx) — 왼쪽 그림 · 오른쪽 칸
+   (바구니 합계 + 학생: 과일 기부하기·응모 / 교사: 응모 현황). 그림은 높이에
+   맞춰 줄어 창 안에서 구르지 않게 둡니다. 720px 아래에서는 위아래로. */
 .modal.fruit-basket-modal {
-  width: min(760px, 94vw);
-  max-width: 760px;
-  padding: 22px 24px 18px;
+  width: min(960px, 96vw);
+  max-width: 960px;
+  padding: 22px 24px 20px;
 }
+.fruit-basket-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 20px;
+  align-items: start;
+}
+.fruit-basket-artbox { min-width: 0; }
 .fruit-basket-art {
   display: block;
   width: 100%;
   height: auto;
   max-height: calc(85vh - 110px);
   margin: 0 auto;
+}
+.fruit-basket-side { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.fb-label { font-size: 12.5px; font-weight: 700; color: var(--text-sub); }
+.fb-total, .fb-mine, .fb-entry, .fb-enter {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  background: #fff;
+}
+.fb-total-head, .fb-entry-head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+}
+.fb-total-num { font-size: 24px; font-variant-numeric: tabular-nums; color: var(--dark); }
+.fb-total-num em { font-style: normal; font-size: 13px; color: var(--text-sub); font-weight: 600; }
+.fb-bar {
+  margin-top: 8px; height: 10px; border-radius: 999px;
+  background: var(--neutral); overflow: hidden;
+}
+.fb-bar span {
+  display: block; height: 100%; border-radius: inherit;
+  background: linear-gradient(90deg, #f5b041, #e8743b);
+  transition: width 0.4s ease;
+}
+.fb-goal, .fb-all {
+  margin: 10px 0 0; padding: 8px 10px; border-radius: 10px;
+  font-size: 13.5px; font-weight: 700; line-height: 1.5;
+}
+.fb-goal { background: #fff4df; color: #9a5a08; }
+.fb-all { background: #e8f7ed; color: #276b3d; border: 1px solid #a6d8b6; margin-top: 8px; }
+.fb-note { margin: 0; font-size: 12.5px; color: var(--text-sub); line-height: 1.6; }
+.fb-entry .fb-note { margin-top: 8px; }
+.fb-mine-stats {
+  display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap;
+  font-size: 13px; color: var(--text-sub);
+}
+.fb-mine-stats b { color: var(--dark); font-variant-numeric: tabular-nums; margin-left: 4px; }
+.fb-give { display: flex; gap: 8px; margin-top: 10px; }
+.fb-give input { flex: 1 1 0; min-width: 0; height: 36px; }
+.fb-give .btn-primary { flex-shrink: 0; height: 36px; }
+.fb-confirm { margin-top: 10px; }
+.fb-confirm p { margin: 0 0 8px; font-size: 13px; line-height: 1.6; }
+.fb-confirm-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.fb-msg { margin: 8px 0 0; font-size: 12.5px; }
+.fb-msg.ok { color: #276b3d; }
+.fb-msg.err { color: #c0392b; }
+.fb-enter-btn { width: 100%; height: 40px; font-size: 14px; }
+.fb-entered { margin: 0; font-size: 13.5px; font-weight: 700; color: #276b3d; text-align: center; }
+@media (max-width: 720px) {
+  .fruit-basket-body { grid-template-columns: 1fr; }
+  .fruit-basket-art { max-height: 38vh; }
 }
 
 .modal-head {
