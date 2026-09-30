@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   FRUIT_GOAL,
   donationAmount,
+  withdrawAmount,
   basketSummary,
   myBasketEntry,
 } from "@/lib/fruitBasket";
@@ -17,6 +18,18 @@ test("donationAmount: 가진 것 안에서 양의 정수만", () => {
   assert.equal(donationAmount("", 5), 0);
   assert.equal(donationAmount("2.9", 5), 2);  // 소수는 버림
   assert.equal(donationAmount("1", 0), 0);    // 과일이 없으면 못 냄
+});
+
+test("withdrawAmount: 내놓은 것 안에서 · 천장 안에서 · 응모 전에만", () => {
+  assert.equal(withdrawAmount("3", 5, 10), 3);
+  assert.equal(withdrawAmount("5", 5, 10), 5);
+  assert.equal(withdrawAmount("6", 5, 10), 0);          // 내놓은 것보다 많음
+  assert.equal(withdrawAmount("0", 5, 10), 0);
+  assert.equal(withdrawAmount("", 5, 10), 0);
+  assert.equal(withdrawAmount("2", 0, 10), 0);          // 내놓은 것이 없음
+  assert.equal(withdrawAmount("3", 5, 98), 0);          // 돌려받으면 101 — 천장 넘음
+  assert.equal(withdrawAmount("2", 5, 98), 2);          // 딱 100
+  assert.equal(withdrawAmount("1", 5, 10, true), 0);    // 응모한 뒤에는 없음
 });
 
 test("basketSummary: 합계 · 목표 · 응모", () => {

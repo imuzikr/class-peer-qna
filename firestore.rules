@@ -178,14 +178,16 @@ service cloud.firestore {
              && d.entered is bool;
     }
     // 바구니가 늘어난 만큼(after − before) 같은 묶음에서 제 과일이 줄었는지.
-    // 늘지 않았으면(응모만) 과일을 볼 까닭이 없습니다.
+    // 줄었으면(기부 취소) 그만큼 제 과일이 늘었는지 — 식 하나가 양쪽을 다
+    // 봅니다. 그대로면(응모만) 과일을 볼 까닭이 없습니다.
     function fruitDonationMatches(cId, sUid, before, after) {
       let p = /databases/$(database)/documents/rewards/$(cId + '_' + sUid);
       return after == before
              || (get(p).data.count - getAfter(p).data.count == after - before);
     }
-    // 학생이 제 과일을 줄이는 쓰기 — 줄어든 만큼 제 바구니가 같은 묶음에서
-    // 늘어야 합니다(위 함수의 짝).
+    // 학생이 제 과일을 바꾸는 쓰기 — 줄어든 만큼 제 바구니가 같은 묶음에서
+    // 늘어야 하고, 늘어난 만큼(기부 취소) 바구니가 줄어야 합니다(위 함수의 짝).
+    // d = 줄어든 과일 수(취소면 음수).
     function fruitBasketGainMatches(cId, sUid, d) {
       let p = /databases/$(database)/documents/classes/$(cId)/fruitBasket/$(sUid);
       return existsAfter(p)
@@ -584,9 +586,12 @@ service cloud.firestore {
       //  · 경로 = classes/{classId}/fruitBasket/{학생 uid}
       //    { classId, uid, donated(지금까지 내놓은 합), entered, enteredAt?, updatedAt }
       //  · 읽기는 반 학생 모두와 담당 교사 — 바구니 합계를 학생도 봅니다.
-      //  · 쓰기는 **본인 문서만**. donated는 늘기만 하고, 늘어난 만큼 같은
-      //    쓰기 묶음(트랜잭션)에서 rewards의 count가 줄어야 합니다(getAfter로
-      //    맞대어 봄). 그래야 '과일은 그대로인데 바구니만 느는' 쓰기가 막힙니다.
+      //  · 쓰기는 **본인 문서만**. donated가 늘어난 만큼 같은 쓰기 묶음
+      //    (트랜잭션)에서 rewards의 count가 줄어야 합니다(getAfter로 맞대어 봄).
+      //    그래야 '과일은 그대로인데 바구니만 느는' 쓰기가 막힙니다.
+      //  · **기부 취소** — donated를 줄이는 쓰기는 **응모하기 전에만**(지금도,
+      //    쓰고 난 뒤에도 entered가 참이 아닐 때). 줄어든 만큼 같은 묶음에서
+      //    제 과일이 늘어야 합니다(같은 fruitDonationMatches — 부호만 반대).
       //  · 응모(entered)는 거짓 → 참만. 목표(100개)는 여러 문서의 합이라 규칙이
       //    셀 수 없어 화면이 판정합니다(lib/fruitBasket.js).
       //  · 지우기는 담당 교사(다시 모을 때). 시험 tests/rules/fruitBasket.test.mjs.
@@ -597,7 +602,9 @@ service cloud.firestore {
                       && fruitDonationMatches(cId, sUid, 0, request.resource.data.donated);
         allow update: if signedIn() && sUid == uid() && isClassMember(cId)
                       && fruitBasketShapeOk(cId, sUid)
-                      && request.resource.data.donated >= resource.data.donated
+                      && (request.resource.data.donated >= resource.data.donated
+                          || (resource.data.entered != true
+                              && request.resource.data.entered != true))
                       && (resource.data.entered != true || request.resource.data.entered == true)
                       && fruitDonationMatches(cId, sUid, resource.data.donated, request.resource.data.donated);
         allow delete: if isAdmin() || ownsClassEditable(cId);
@@ -899,8 +906,10 @@ service cloud.firestore {
                    && request.resource.data.count <= 100
                    && rId == (request.resource.data.classId + '_' + request.resource.data.uid);
       allow delete: if isAdmin() || ownsClassEditable(resource.data.classId);
-      // 학생이 과일 바구니에 **내놓을 때만** 제 과일을 줄입니다 — 늘릴 수는
-      // 없고, 줄어든 만큼 같은 묶음에서 제 바구니가 늘어야 합니다
+      // 학생이 제 과일을 바꾸는 길은 과일 바구니뿐입니다 — **내놓으면** 줄고
+      // 줄어든 만큼 같은 묶음에서 제 바구니가 늘어야 하며, **기부를 취소하면**
+      // 늘고 늘어난 만큼 제 바구니가 줄어야 합니다(바구니 쪽 규칙이 응모 전에만
+      // 줄이게 막습니다). 천장 100은 교사 쓰기와 같습니다
       // (classes/{cId}/fruitBasket 규칙과 짝).
       allow update: if signedIn()
                     && resource.data.uid == uid()
@@ -909,7 +918,8 @@ service cloud.firestore {
                     && changedOnly(['count', 'updatedAt'])
                     && request.resource.data.count is int
                     && request.resource.data.count >= 0
-                    && request.resource.data.count < resource.data.count
+                    && request.resource.data.count <= 100
+                    && request.resource.data.count != resource.data.count
                     && fruitBasketGainMatches(resource.data.classId, uid(),
                          resource.data.count - request.resource.data.count);
     }

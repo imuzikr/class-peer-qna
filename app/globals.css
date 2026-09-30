@@ -3472,9 +3472,12 @@ button.footer-link:hover {
   font-size: 13px; color: var(--text-sub);
 }
 .fb-mine-stats b { color: var(--dark); font-variant-numeric: tabular-nums; margin-left: 4px; }
-.fb-give { display: flex; gap: 8px; margin-top: 10px; }
-.fb-give input { flex: 1 1 0; min-width: 0; height: 36px; }
-.fb-give .btn-primary { flex-shrink: 0; height: 36px; }
+/* 입력칸 한 줄 + 아래에 기부하기 · 기부 취소하기가 반씩(모달 단추와 같은
+   균등 두 칸). 오른쪽 칸이 300px이라 셋을 한 줄에 두면 글자가 접힙니다. */
+.fb-give { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.fb-give input { grid-column: 1 / -1; min-width: 0; height: 36px; }
+.fb-give button { height: 36px; min-width: 0; padding-left: 8px; padding-right: 8px; white-space: nowrap; }
+.fb-help { margin: 8px 0 0; font-size: 12px; line-height: 1.6; color: var(--text-faint); }
 .fb-confirm { margin-top: 10px; }
 .fb-confirm p { margin: 0 0 8px; font-size: 13px; line-height: 1.6; }
 .fb-confirm-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }

@@ -15,17 +15,18 @@
 //
 // [과일 기부] 학생은 제 과일을 몇 개 **내놓아**(과일 기부하기) 반의 바구니를
 // 채웁니다 — 내놓은 만큼 제 과일이 줄고, 몇 번이든 더 내놓을 수 있습니다.
+// **응모하기 전까지는 '기부 취소하기'로 되돌려 받습니다**(같은 입력칸의 개수만큼).
 // 바구니가 100개에 닿으면 학생마다 '이벤트 응모'를 누르고, 교사 화면은 합계와
 // 응모 현황(모두 응모하면 그 사실)을 봅니다. 셈은 lib/fruitBasket.js, 저장은
-// lib/data/rewards.js(donateFruits · enterFruitEvent), 규칙은 firestore.rules의
+// lib/data/rewards.js(donateFruits · withdrawFruits · enterFruitEvent), 규칙은 firestore.rules의
 // fruitBasket 절. 읽는 문서는 그 반의 바구니 문서들(학생 수만큼)뿐입니다 —
 // 내 과일 수는 페이지가 이미 받아 둔 rewards에서 넘겨받습니다.
 // 닫기는 다른 창과 같은 backdropClose(Esc·배경).
 // =============================================================
 import { useEffect, useMemo, useState } from "react";
 import { backdropClose } from "@/lib/modal";
-import { subscribeFruitBasket, donateFruits, enterFruitEvent } from "@/lib/store";
-import { basketSummary, donationAmount, myBasketEntry } from "@/lib/fruitBasket";
+import { subscribeFruitBasket, donateFruits, withdrawFruits, enterFruitEvent } from "@/lib/store";
+import { basketSummary, donationAmount, withdrawAmount, myBasketEntry } from "@/lib/fruitBasket";
 
 // 과일 한 알씩 — 그라디언트 id는 이 창 안에서만 쓰므로 접두사 fb-
 function Apple({ x, y, r, tone = "red" }) {
@@ -410,7 +411,9 @@ function TeacherPanel({ sum, roster }) {
     const r = (roster ?? []).find((x) => x.uid === u);
     return r ? `${r.studentId ? `${r.studentId} ` : ""}${r.name ?? ""}`.trim() || "이름 없음" : "이름 없음";
   };
-  if (!sum.goalReached) {
+  // 목표에 닿기 전이어도 응모한 학생이 있으면 현황을 보입니다 — 응모 뒤에
+  // 다른 학생이 기부를 취소해 합계가 100 아래로 내려갈 수 있습니다.
+  if (!sum.goalReached && sum.enteredCount === 0) {
     return (
       <p className="fb-note">
         학생이 제 과일을 바구니에 내놓으면 여기 합계가 늘어요. {sum.goal}개가 모이면
@@ -438,30 +441,43 @@ function TeacherPanel({ sum, roster }) {
   );
 }
 
-// 학생 — 내 과일 · 내놓기 · 응모
-// 내놓은 과일은 돌아오지 않으므로, 한 번 더 묻고 내놓습니다(창 대신 이 칸 안에서).
+// 학생 — 내 과일 · 내놓기 · 기부 취소 · 응모
+// 입력칸 하나에 단추 둘 — 적은 개수만큼 내놓거나(기부하기) 되돌려 받습니다
+// (기부 취소하기). 취소가 있으니 내놓을 때는 되묻지 않고, 대신 되돌릴 수
+// 없는 **응모**에서 한 번 묻습니다(응모하면 취소가 닫힙니다).
 function StudentPanel({ classId, uid, myFruit, mine, goalReached }) {
   const [raw, setRaw] = useState("");
-  const [confirming, setConfirming] = useState(0); // 내놓을 개수(0 = 묻는 중 아님)
+  const [confirmEnter, setConfirmEnter] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState(null); // { ok, text }
-  const amount = donationAmount(raw, myFruit);
+  const giveAmt = donationAmount(raw, myFruit);
+  const takeAmt = withdrawAmount(raw, mine.donated, myFruit, mine.entered);
+  const canTake = !mine.entered && mine.donated > 0;
 
-  async function give() {
-    if (!confirming || busy) return;
+  async function run(fn, okText, failText) {
+    if (busy) return;
     setBusy(true);
     setMsg(null);
     try {
-      const left = await donateFruits(classId, uid, confirming);
-      setMsg({ ok: true, text: `과일 ${confirming}개를 내놓았어요. 남은 과일 ${left}개.` });
+      const left = await fn();
+      setMsg({ ok: true, text: okText(left) });
       setRaw("");
     } catch (e) {
-      setMsg({ ok: false, text: e?.message || "내놓지 못했어요. 다시 시도해 주세요." });
+      setMsg({ ok: false, text: e?.message || failText });
     } finally {
       setBusy(false);
-      setConfirming(0);
     }
   }
+  const give = () => giveAmt && run(
+    () => donateFruits(classId, uid, giveAmt),
+    (left) => `과일 ${giveAmt}개를 내놓았어요. 남은 과일 ${left}개.`,
+    "내놓지 못했어요. 다시 시도해 주세요."
+  );
+  const take = () => takeAmt && run(
+    () => withdrawFruits(classId, uid, takeAmt),
+    (left) => `기부를 취소해 과일 ${takeAmt}개를 돌려받았어요. 가진 과일 ${left}개.`,
+    "취소하지 못했어요. 다시 시도해 주세요."
+  );
 
   async function enter() {
     if (busy) return;
@@ -473,10 +489,18 @@ function StudentPanel({ classId, uid, myFruit, mine, goalReached }) {
       setMsg({ ok: false, text: e?.message || "응모하지 못했어요. 다시 시도해 주세요." });
     } finally {
       setBusy(false);
+      setConfirmEnter(false);
     }
   }
 
-  const tooMany = raw.trim() !== "" && amount === 0;
+  // 적은 개수가 어느 쪽에도 안 맞으면 까닭을 적습니다.
+  const typed = raw.trim() !== "";
+  let hint = null;
+  if (typed && !giveAmt && !takeAmt) {
+    hint = canTake
+      ? `내놓기는 가진 과일(${myFruit}개), 취소는 내놓은 과일(${mine.donated}개) 안에서 적어 주세요.`
+      : `가진 과일(${myFruit}개) 안에서 1개 이상 적어 주세요.`;
+  }
   return (
     <>
       <section className="fb-mine">
@@ -484,51 +508,67 @@ function StudentPanel({ classId, uid, myFruit, mine, goalReached }) {
           <span>내가 가진 과일 <b>🍊 {myFruit}</b></span>
           <span>내가 내놓은 과일 <b>{mine.donated}</b></span>
         </div>
-        {confirming ? (
-          <div className="fb-confirm" role="group" aria-label="내놓기 확인">
-            <p>과일 <b>{confirming}개</b>를 바구니에 내놓을까요? 내놓은 과일은 돌아오지 않아요.</p>
-            <div className="fb-confirm-btns">
-              <button type="button" className="btn-ghost" onClick={() => setConfirming(0)} disabled={busy}>
-                취소
-              </button>
-              <button type="button" className="btn-primary" onClick={give} disabled={busy}>
-                {busy ? "내놓는 중…" : "내놓기"}
-              </button>
-            </div>
-          </div>
-        ) : (
-          <form
-            className="fb-give"
-            onSubmit={(e) => { e.preventDefault(); if (amount) setConfirming(amount); }}
+        <form
+          className="fb-give"
+          onSubmit={(e) => { e.preventDefault(); give(); }}
+        >
+          <input
+            type="number"
+            inputMode="numeric"
+            min={1}
+            max={Math.max(1, myFruit, canTake ? mine.donated : 0)}
+            value={raw}
+            onChange={(e) => { setRaw(e.target.value); setMsg(null); }}
+            placeholder="개수"
+            disabled={busy || (myFruit <= 0 && !canTake)}
+            aria-label="내놓거나 되돌려 받을 과일 수"
+          />
+          <button type="submit" className="btn-primary" disabled={busy || !giveAmt}>
+            과일 기부하기
+          </button>
+          <button
+            type="button"
+            className="btn-ghost fb-take"
+            onClick={take}
+            disabled={busy || !takeAmt}
+            title={
+              mine.entered ? "이벤트에 응모한 뒤에는 취소할 수 없어요"
+                : mine.donated <= 0 ? "아직 내놓은 과일이 없어요"
+                : `내놓은 과일 ${mine.donated}개 안에서 되돌려 받아요`
+            }
           >
-            <input
-              type="number"
-              inputMode="numeric"
-              min={1}
-              max={Math.max(1, myFruit)}
-              value={raw}
-              onChange={(e) => { setRaw(e.target.value); setMsg(null); }}
-              placeholder={myFruit > 0 ? `1~${myFruit}` : "과일이 없어요"}
-              disabled={myFruit <= 0}
-              aria-label="내놓을 과일 수"
-            />
-            <button type="submit" className="btn-primary" disabled={!amount}>
-              과일 기부하기
-            </button>
-          </form>
-        )}
-        {tooMany && !confirming && (
-          <p className="fb-msg err">가진 과일({myFruit}개) 안에서 1개 이상 적어 주세요.</p>
+            기부 취소하기
+          </button>
+        </form>
+        {hint && <p className="fb-msg err">{hint}</p>}
+        {!hint && !msg && (
+          <p className="fb-help">
+            {mine.entered
+              ? "이벤트에 응모해서 기부는 더 취소할 수 없어요. 과일을 더 내놓을 수는 있어요."
+              : "개수를 적고 기부하거나 취소해요. 이벤트에 응모하기 전까지는 언제든 되돌려 받을 수 있어요."}
+          </p>
         )}
         {msg && <p className={`fb-msg ${msg.ok ? "ok" : "err"}`}>{msg.text}</p>}
       </section>
 
-      {goalReached && (
+      {(goalReached || mine.entered) && (
         <section className="fb-enter">
           {mine.entered ? (
             <p className="fb-entered">✓ 이벤트에 응모했어요.</p>
+          ) : confirmEnter ? (
+            <div className="fb-confirm" role="group" aria-label="응모 확인">
+              <p>응모하면 내놓은 과일 <b>{mine.donated}개</b>는 더 되돌려 받을 수 없어요. 응모할까요?</p>
+              <div className="fb-confirm-btns">
+                <button type="button" className="btn-ghost" onClick={() => setConfirmEnter(false)} disabled={busy}>
+                  아니요
+                </button>
+                <button type="button" className="btn-primary" onClick={enter} disabled={busy}>
+                  {busy ? "응모하는 중…" : "응모하기"}
+                </button>
+              </div>
+            </div>
           ) : (
-            <button type="button" className="btn-primary fb-enter-btn" onClick={enter} disabled={busy}>
+            <button type="button" className="btn-primary fb-enter-btn" onClick={() => setConfirmEnter(true)} disabled={busy}>
               이벤트 응모
             </button>
           )}
