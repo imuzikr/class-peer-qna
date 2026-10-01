@@ -3,25 +3,26 @@
 import { useEffect, useRef, useState } from "react";
 import {
   addStudentReward,
+  clearSignalMessages,
   confirmQuestionSignal,
   dismissQuestionSignal,
   formatTime,
-  markSignalReplySeen,
-  sendSignalReply,
+  markSignalSeen,
+  sendSignalMessage,
   setQuestionSignal,
   subscribeMyQuestionSignal,
-  subscribeMySignalReply,
+  subscribeMySignalMessages,
   subscribeQuestionSignals,
-  subscribeSignalReplies,
+  subscribeSignalMessages,
 } from "@/lib/store";
 import {
-  SIGNAL_REPLY_MAX,
-  canFollowUp,
-  isFollowUpSignal,
-  isSignalReplyUnread,
-  replyMatchesSignal,
-  signalReplyTime,
-} from "@/lib/signalReplies";
+  SIGNAL_MESSAGE_MAX,
+  awaitsTeacher,
+  lastTeacherEntry,
+  studentLight,
+  threadEntries,
+  unreadByStudent,
+} from "@/lib/signalThread";
 import QuestionSeatModal from "./QuestionSeatModal";
 import {
   QUESTION_TAGS,
@@ -49,47 +50,93 @@ export default function QuestionSignalButton({
   const [note, setNote] = useState("");
   // 확인 처리 중인 학생 uid — 그 항목의 확인 버튼만 잠가 중복 클릭을 막습니다.
   const [dismissing, setDismissing] = useState(() => new Set());
-  // 손들기 답변 — 교사: 이 반의 답변 { uid: reply } · 지금 쓰는 학생과 글.
-  // 학생: 내게 온 답변 · 이 기기에서 방금 읽은 답의 시각(빨간 불 끄기).
-  const [replies, setReplies] = useState({});
+  // 손들기 대화(lib/signalThread.js) — 손든 학생과 교사가 주고받는 말.
+  //   교사: 이 반의 대화 말 전부 · 지금 답을 쓰는 학생과 글.
+  //   학생: 내 대화의 말 · 이 기기에서 방금 읽은 선생님 말 id(불 끄기) ·
+  //         닫힌 대화를 열어 본 그 모습(읽은 뒤 지워도 창을 닫을 때까지 보이게) ·
+  //         이어서 적는 글.
+  const [messages, setMessages] = useState([]);
   const [replyTo, setReplyTo] = useState(null); // 교사가 답을 쓰는 학생 uid
   const [replyText, setReplyText] = useState("");
   const [replyBusy, setReplyBusy] = useState(false);
   const [replyErr, setReplyErr] = useState(null);
-  const [myReply, setMyReply] = useState(null);
+  const [mineLoaded, setMineLoaded] = useState(false);
   const [seenLocal, setSeenLocal] = useState(null);
+  const [closedView, setClosedView] = useState(null);
+  const [draft, setDraft] = useState("");
+  const [draftErr, setDraftErr] = useState(null);
   const wrapRef = useRef(null);
 
   useEffect(() => {
+    setMineLoaded(false);
     if (!classId || !user?.uid) {
       setSignals([]);
       setMine(null);
+      setMessages([]);
       setReadError(null);
       return;
     }
-    if (isTeacher) return subscribeQuestionSignals(classId, setSignals, setReadError);
-    const offSignal = subscribeMyQuestionSignal(classId, user.uid, setMine);
-    // 학생은 내게 온 답변도 늘 듣습니다 — 창을 닫아 둔 동안 답이 오면 손바닥에
-    // 빨간 불이 켜져야 하므로(문서 한 건).
-    const offReply = subscribeMySignalReply(classId, user.uid, setMyReply);
-    return () => { offSignal(); offReply(); };
+    // 대화의 말도 늘 듣습니다 — 창을 닫아 둔 동안 말이 오가도 손바닥 불이
+    // 바뀌어야 하므로. 교사는 이 반 전체(열린 대화는 손든 학생 수만큼),
+    // 학생은 제 대화만.
+    if (isTeacher) {
+      const offSignals = subscribeQuestionSignals(classId, setSignals, setReadError);
+      const offMsgs = subscribeSignalMessages(classId, setMessages);
+      return () => { offSignals(); offMsgs(); };
+    }
+    const offSignal = subscribeMyQuestionSignal(classId, user.uid, (s) => {
+      setMine(s);
+      setMineLoaded(true);
+    });
+    const offMsgs = subscribeMySignalMessages(classId, user.uid, setMessages);
+    return () => { offSignal(); offMsgs(); };
   }, [classId, user?.uid, isTeacher]);
 
-  // 교사는 목록을 펼쳤을 때만 답변을 받습니다('답변함' 표시와 보낸 글).
-  useEffect(() => {
-    if (!isTeacher || !open || !classId) return;
-    return subscribeSignalReplies(classId, setReplies);
-  }, [isTeacher, open, classId]);
+  // ── 학생의 대화 ──
+  // 손이 올라가 있으면 그 손의 대화. 손이 내려갔는데(교사가 '확인'·'닫기')
+  // 선생님 말이 남아 있으면 **닫힌 대화** — 아직 못 읽은 답이라 초록 불로 알리고,
+  // 학생이 열어 보면 그때 치웁니다. 손 문서의 첫 답이 오기 전에는 판정하지
+  // 않습니다(그 사이 말만 먼저 와서 '닫힌 대화'로 오인하면 열린 대화를 지웁니다).
+  const myEntries = !isTeacher && mineLoaded ? threadEntries(mine, messages) : [];
+  const closed = !isTeacher && mineLoaded && !mine && !!lastTeacherEntry(myEntries);
+  // 닫힌 대화를 보여 줄 때 첫 물음도 함께 — 손 문서는 이미 지워졌으므로 마지막으로
+  // 알던 손을 붙들어 둡니다(새로 고침하면 없어 남은 말만 섭니다).
+  const lastMineRef = useRef(null);
+  if (mine) lastMineRef.current = mine;
+  const light = isTeacher ? null : studentLight({ signal: mine, entries: myEntries, seenLocal, closed });
 
-  // 학생이 창을 열어 답을 보면 읽음으로 적습니다(창이 열린 채 새 답이 와도).
-  const replyUnread = !isTeacher && isSignalReplyUnread(myReply, seenLocal);
+  // 창을 열어 선생님 말을 보면 읽음으로 적습니다(창이 열린 채 새 말이 와도).
+  // 읽고 나면 불이 **모두** 꺼집니다 — 대화는 열린 채로 둡니다.
+  const unread = !isTeacher && !!mine && unreadByStudent(myEntries, mine.seenAt, seenLocal);
+  const lastTeacherId = lastTeacherEntry(myEntries)?.id ?? null;
   useEffect(() => {
-    if (isTeacher || !open || !replyUnread || !classId || !user?.uid) return;
-    setSeenLocal(signalReplyTime(myReply));
-    markSignalReplySeen(classId, user.uid).catch((e) =>
-      console.warn("[손들기] 답변 읽음을 적지 못했어요:", e?.code, e?.message)
+    if (isTeacher || !open || !unread || !classId || !user?.uid) return;
+    setSeenLocal(lastTeacherId);
+    markSignalSeen(classId, user.uid).catch((e) =>
+      console.warn("[손들기] 읽음을 적지 못했어요:", e?.code, e?.message)
     );
-  }, [isTeacher, open, replyUnread, classId, user?.uid, myReply]);
+  }, [isTeacher, open, unread, lastTeacherId, classId, user?.uid]);
+
+  // 닫힌 대화를 열어 보면 그 모습을 붙들어 두고(창을 닫을 때까지 보임) 치웁니다.
+  useEffect(() => {
+    if (isTeacher || !open || !closed || closedView || !classId || !user?.uid) return;
+    setClosedView(lastMineRef.current ? threadEntries(lastMineRef.current, messages) : myEntries);
+    clearSignalMessages(classId, user.uid).catch((e) =>
+      console.warn("[손들기] 닫힌 대화를 치우지 못했어요:", e?.code, e?.message)
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isTeacher, open, closed, closedView, classId, user?.uid]);
+  useEffect(() => {
+    if (!open) { setClosedView(null); setDraftErr(null); }
+  }, [open]);
+
+  // 학생 대화 칸 — 새 말이 오면 맨 아래로
+  const threadRef = useRef(null);
+  const threadLen = closedView ? closedView.length : myEntries.length;
+  useEffect(() => {
+    const el = threadRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [open, threadLen]);
 
   useEffect(() => {
     if (!open) return;
@@ -100,35 +147,31 @@ export default function QuestionSignalButton({
     return () => document.removeEventListener("pointerdown", onDown);
   }, [open]);
 
-  // 다시 질문 — 학생: 오늘 받은 답이 있고 아직 다시 묻지 않았으면 이 창은
-  // '다시 질문하기'가 됩니다(손을 새로 들어 교사 목록에 새 손으로 섭니다).
-  // 이미 다시 물어 새 손이 올라가 있으면 받은 답은 '지난 답변'입니다.
-  const followUp = !isTeacher && canFollowUp(myReply, mine);
-  const askedAgain = !isTeacher && !!mine && isFollowUpSignal(myReply, mine);
-
-  // 창을 열 때 지금 든 손의 값을 채워 둡니다 — 고쳐 보낼 수 있게.
-  // (창을 닫았다 다시 열면 늘 저장된 값에서 시작합니다)
-  // 다시 질문일 때는 메모를 비웁니다 — 새로 묻는 말이라서요(태그는 이어 받음).
+  // 창을 열 때 손들기 칸은 늘 비어서 시작합니다(손이 올라가 있으면 그 칸
+  // 대신 대화가 서므로 고쳐 쓸 일이 없습니다).
   useEffect(() => {
     if (isTeacher || !open) return;
-    setTag(mine?.tag ?? (followUp ? myReply?.tag ?? "" : ""));
-    setNote(followUp ? "" : mine?.note ?? "");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setTag("");
+    setNote("");
   }, [open, isTeacher]);
+
+  // ── 교사의 대화 ── 손든 학생마다 한 줄기
+  const threads = isTeacher
+    ? signals.map((s) => ({ s, entries: threadEntries(s, messages.filter((m) => m.uid === s.uid)) }))
+    : [];
+  const waiting = threads.filter((t) => awaitsTeacher(t.entries)).length;
 
   const count = isTeacher ? signals.length : mine ? 1 : 0;
   const active = count > 0;
-  // 점 — 교사는 빨간 불 '손든 학생이 있다'. 학생은 **두 색**입니다(선생님 요청):
-  //   빨간 불  내가 손을 들었다(원래 그대로)
-  //   초록 불  선생님 답이 왔다(안 읽음) — 손바닥도 기울어진 채(.on)입니다.
-  //            손이 이미 내려갔어도(선생님이 확인·닫기) 답을 읽기 전까지 켜집니다.
-  // 초록이 이기는 까닭: 손을 든 채 답이 오면 지금 봐야 할 것은 답입니다.
+  // 점과 기울기 — **답을 기다리는 쪽에만** 불이 켜집니다(선생님 요청).
+  //   교사  빨간 불 = 답을 기다리는 대화가 있다(손을 들었거나 학생이 이어 물음).
+  //         다 답했으면 손바닥은 남되(대화가 열려 있으므로) 불이 꺼집니다.
+  //   학생  빨간 불 = 내 말이 답을 기다린다 · 초록 불 = 안 읽은 선생님 말.
+  //         선생님 말을 읽으면 **불이 모두 꺼집니다** — 대화는 '닫기' 전까지
+  //         그대로 열려 있어 손바닥을 누르면 다시 봅니다.
   // 초록은 이 앱에서 늘 '됐다'는 뜻입니다(자리표의 이벤트 점과 같은 값).
-  const dot = isTeacher ? (active ? "red" : null)
-    : replyUnread ? "green"
-    : mine ? "red"
-    : null;
-  const tilted = active || replyUnread;
+  const dot = isTeacher ? (waiting > 0 ? "red" : null) : light;
+  const tilted = !!dot;
 
   // [교사 화면에는 손든 학생이 있을 때만]
   // 한동안 흐린 채로 늘 두어 봤습니다. 아이콘이 없을 때 '아무도 안 들었다'인지
@@ -156,7 +199,6 @@ export default function QuestionSignalButton({
       await setQuestionSignal(classId, user, true, {
         tag,
         note: withNote ? note : "",
-        renew: followUp,
       });
       setOpen(false);
     } finally {
@@ -197,6 +239,15 @@ export default function QuestionSignalButton({
         // '닫기'는 잘못 눌린 손이라 아무것도 남기지 않고 내리기만 합니다.
         await dismissQuestionSignal(classId, uid);
       }
+      // 대화도 여기서 끝납니다. 교사의 말이 없으면 곧바로 치우고, 있으면
+      // 남겨 둡니다 — 답하고 곧바로 '확인'을 누르는 일이 흔한데, 그때 지우면
+      // 학생이 방금 받은 답을 영영 못 봅니다. 학생이 읽은 뒤 스스로 치웁니다.
+      const t = threads.find((x) => x.s.uid === uid);
+      if (t && !lastTeacherEntry(t.entries)) {
+        await clearSignalMessages(classId, uid).catch((e) =>
+          console.warn("[손들기] 대화를 치우지 못했어요:", e?.code, e?.message)
+        );
+      }
     } finally {
       // signals 구독이 곧 목록을 갱신해 이 항목 자체가 사라지므로, 실패했을
       // 때만 다시 누를 수 있게 풀어 주면 됩니다.
@@ -214,14 +265,31 @@ export default function QuestionSignalButton({
     setReplyBusy(true);
     setReplyErr(null);
     try {
-      await sendSignalReply(classId, s, text);
+      await sendSignalMessage(classId, s.uid, "teacher", text);
       setReplyTo(null);
       setReplyText("");
     } catch (e) {
-      console.error("[손들기] 답변을 보내지 못했어요:", e?.code, e?.message);
+      console.error("[손들기] 답을 보내지 못했어요:", e?.code, e?.message);
       setReplyErr("보내지 못했어요. 다시 눌러 주세요.");
     } finally {
       setReplyBusy(false);
+    }
+  }
+
+  // [학생] 대화에 이어 적기 — 손은 그대로 올라가 있고, 교사 쪽에 빨간 불.
+  async function sendFollow() {
+    const text = draft.trim();
+    if (!classId || !user?.uid || !text || busy) return;
+    setBusy(true);
+    setDraftErr(null);
+    try {
+      await sendSignalMessage(classId, user.uid, "student", text);
+      setDraft("");
+    } catch (e) {
+      console.error("[손들기] 말을 보내지 못했어요:", e?.code, e?.message);
+      setDraftErr("보내지 못했어요. 다시 눌러 주세요.");
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -248,20 +316,20 @@ export default function QuestionSignalButton({
         aria-expanded={isTeacher ? open : undefined}
         title={
           isTeacher
-            ? `질문하려고 손든 학생 ${signals.length}명${className ? ` · ${className}` : ""}`
-            : replyUnread
+            ? `질문하려고 손든 학생 ${signals.length}명${waiting ? ` · 답을 기다리는 ${waiting}명` : ""}${className ? ` · ${className}` : ""}`
+            : light === "green"
               ? "선생님 답변이 왔어요"
               : mine
-                ? "든 손 고치기 · 내리기"
+                ? "질문 대화 보기"
                 : "질문하기"
         }
         aria-label={
           isTeacher
-            ? `질문하려고 손든 학생 ${signals.length}명 보기`
-            : replyUnread
+            ? `질문하려고 손든 학생 ${signals.length}명 보기${waiting ? `, 답을 기다리는 ${waiting}명` : ""}`
+            : light === "green"
               ? "선생님 답변이 왔어요 — 열어 보기"
               : mine
-                ? "든 손 고치기 · 내리기"
+                ? "질문 대화 보기"
                 : "질문하기"
         }
       >
@@ -279,14 +347,17 @@ export default function QuestionSignalButton({
         )}
       </button>
 
-      {/* 학생 — 손바닥 옆에 뜨는 작은 창. 태그 하나와 짧은 메모를 함께
-          보냅니다. 이미 손을 들었으면 그 값이 채워져 있어 고쳐 보내거나
-          내릴 수 있습니다. */}
+      {/* 학생 — 손바닥 옆에 뜨는 작은 창.
+          · 손이 내려가 있으면 손들기 칸(태그 하나 + 짧은 메모).
+          · 손이 올라가 있으면 **대화** — 첫 물음부터 선생님과 주고받은 말이
+            시간순으로 서고, 아래에서 이어 적습니다. 교사가 '확인'·'닫기'로
+            손을 내릴 때까지 그대로입니다.
+          · 교사가 닫았는데 못 읽은 답이 있었으면 그 대화를 한 번 보여 줍니다. */}
       {!isTeacher && open && (
         <div className="question-signal-dropdown question-signal-ask">
           <div className="question-signal-head">
             <p className="question-signal-title">
-              {followUp ? "다시 질문하기" : mine ? "든 손 고치기" : "질문하기"}
+              {closedView ? "질문 대화 · 닫힘" : mine ? "질문 대화" : "질문하기"}
             </p>
             <button
               type="button"
@@ -298,103 +369,115 @@ export default function QuestionSignalButton({
             </button>
           </div>
 
-          {/* 선생님 답변 — 가장 최근 것 한 장. 무엇에 대한 답인지 그때 든
-              손(태그·메모)을 작게 함께 보여 줍니다. */}
-          {myReply && String(myReply.text ?? "").trim() && (
-            <section className="qsig-reply" aria-label="선생님 답변">
-              <div className="qsig-reply-head">
-                <strong>{askedAgain ? "💬 지난 답변" : "💬 선생님 답변"}</strong>
-                {myReply.at && <small>{formatTime(myReply.at)}</small>}
+          {closedView ? (
+            <>
+              <SignalThread entries={closedView} viewer="student" listRef={threadRef} />
+              <p className="qsig-thread-closed">
+                선생님이 대화를 닫았어요. 더 궁금한 것이 있으면 새로 손을 들어 주세요.
+              </p>
+              <div className="qsig-actions qsig-actions--one">
+                <button type="button" className="btn-primary" onClick={() => setClosedView(null)}>
+                  새로 질문하기
+                </button>
               </div>
-              {(questionTagOf(myReply.tag) || String(myReply.note ?? "").trim()) && (
-                <p className="qsig-reply-quote">
-                  {questionTagOf(myReply.tag)?.label}
-                  {questionTagOf(myReply.tag) && String(myReply.note ?? "").trim() ? " · " : ""}
-                  {String(myReply.note ?? "").trim()}
-                </p>
-              )}
-              <p className="qsig-reply-text">{myReply.text}</p>
-              {followUp && (
-                <p className="qsig-reply-next">
-                  답변을 보고 더 궁금한 것이 있으면 아래에 적어 다시 질문하세요.
-                  선생님 목록에 새 손으로 올라갑니다.
-                </p>
-              )}
-            </section>
+            </>
+          ) : mine ? (
+            <>
+              <SignalThread entries={myEntries} viewer="student" listRef={threadRef} />
+              <textarea
+                className="qsig-note qsig-follow"
+                value={draft}
+                onChange={(e) => setDraft(e.target.value.slice(0, SIGNAL_MESSAGE_MAX))}
+                onKeyDown={(e) => {
+                  // Ctrl(⌘)+Enter로 보내기 — 채팅 입력과 같은 약속
+                  if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); sendFollow(); }
+                }}
+                placeholder="더 궁금한 점이나 덧붙일 말을 적어 주세요."
+                rows={3}
+                aria-label="이어서 적기"
+              />
+              {draftErr && <span className="qsig-reply-err">{draftErr}</span>}
+              <div className="qsig-actions">
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  onClick={lower}
+                  disabled={busy}
+                  title="해결됐으면 손을 내려 주세요 — 대화도 함께 정리돼요"
+                >
+                  해결됐어요 · 손 내리기
+                </button>
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={sendFollow}
+                  disabled={busy || !draft.trim()}
+                  title={draft.trim() ? "Ctrl+Enter로도 보내져요" : "적으면 보낼 수 있어요"}
+                >
+                  보내기
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* 태그 — 셋 다 같은 크기(한 줄 3칸 격자). 고르는 데 시간이 들면
+                  손드는 일 자체가 부담이 되므로 갈래를 셋으로 못 박아 둡니다.
+                  다시 누르면 고름이 풀립니다(태그 없이도 보낼 수 있습니다). */}
+              <div className="qsig-tags" role="group" aria-label="무엇 때문인가요">
+                {QUESTION_TAGS.map((t) => (
+                  <button
+                    key={t.key}
+                    type="button"
+                    className={`qsig-tag qsig-tag--${t.key}${tag === t.key ? " on" : ""}`}
+                    onClick={() => setTag((v) => (v === t.key ? "" : t.key))}
+                    aria-pressed={tag === t.key}
+                  >
+                    {/* 이모지는 여기 안 답니다 — 셋을 같은 크기로 두려면 알약
+                        하나가 121px인데, 이모지까지 넣으면 글자가 잘립니다.
+                        고른 것은 색이 말해 주고, 교사 목록에서는 알약이 하나뿐이라
+                        자리가 남아 이모지를 답니다. */}
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+
+              <label className="qsig-note-label" htmlFor="qsig-note">
+                메모 <em>(선택)</em>
+              </label>
+              <textarea
+                id="qsig-note"
+                className="qsig-note"
+                value={note}
+                onChange={(e) => setNote(e.target.value.slice(0, QUESTION_NOTE_MAX))}
+                placeholder="어떤 도움이 필요한지 적어 주세요."
+                rows={4}
+              />
+              <span className="qsig-note-count">
+                {note.length.toLocaleString()} / {QUESTION_NOTE_MAX.toLocaleString()}자
+              </span>
+
+              <div className="qsig-actions">
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  onClick={() => raise(false)}
+                  disabled={busy}
+                  title="적은 것 없이 손만 듭니다"
+                >
+                  내용 없이 손들기
+                </button>
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={() => raise(true)}
+                  disabled={busy || !note.trim()}
+                  title={note.trim() ? "" : "메모를 적으면 눌러 보낼 수 있어요"}
+                >
+                  내용과 함께 손들기
+                </button>
+              </div>
+            </>
           )}
-
-          {/* 태그 — 셋 다 같은 크기(한 줄 3칸 격자). 고르는 데 시간이 들면
-              손드는 일 자체가 부담이 되므로 갈래를 셋으로 못 박아 둡니다.
-              다시 누르면 고름이 풀립니다(태그 없이도 보낼 수 있습니다). */}
-          <div className="qsig-tags" role="group" aria-label="무엇 때문인가요">
-            {QUESTION_TAGS.map((t) => (
-              <button
-                key={t.key}
-                type="button"
-                className={`qsig-tag qsig-tag--${t.key}${tag === t.key ? " on" : ""}`}
-                onClick={() => setTag((v) => (v === t.key ? "" : t.key))}
-                aria-pressed={tag === t.key}
-              >
-                {/* 이모지는 여기 안 답니다 — 셋을 같은 크기로 두려면 알약
-                    하나가 121px인데, 이모지까지 넣으면 글자가 잘립니다.
-                    고른 것은 색이 말해 주고, 교사 목록에서는 알약이 하나뿐이라
-                    자리가 남아 이모지를 답니다. */}
-                {t.label}
-              </button>
-            ))}
-          </div>
-
-          <label className="qsig-note-label" htmlFor="qsig-note">
-            메모 <em>(선택)</em>
-          </label>
-          <textarea
-            id="qsig-note"
-            className="qsig-note"
-            value={note}
-            onChange={(e) => setNote(e.target.value.slice(0, QUESTION_NOTE_MAX))}
-            placeholder={
-              followUp
-                ? "답변을 보고 더 궁금한 점을 적어 주세요."
-                : "어떤 도움이 필요한지 적어 주세요."
-            }
-            rows={4}
-          />
-          <span className="qsig-note-count">
-            {note.length.toLocaleString()} / {QUESTION_NOTE_MAX.toLocaleString()}자
-          </span>
-
-          <div className="qsig-actions">
-            {mine ? (
-              <button
-                type="button"
-                className="btn-ghost"
-                onClick={lower}
-                disabled={busy}
-                title={followUp ? "답변으로 해결됐으면 손을 내려 주세요" : ""}
-              >
-                {followUp ? "해결됐어요 · 손 내리기" : "손 내리기"}
-              </button>
-            ) : (
-              <button
-                type="button"
-                className="btn-ghost"
-                onClick={() => raise(false)}
-                disabled={busy}
-                title="적은 것 없이 손만 듭니다"
-              >
-                {followUp ? "내용 없이 다시 손들기" : "내용 없이 손들기"}
-              </button>
-            )}
-            <button
-              type="button"
-              className="btn-primary"
-              onClick={() => raise(true)}
-              disabled={busy || !note.trim()}
-              title={note.trim() ? "" : "메모를 적으면 눌러 보낼 수 있어요"}
-            >
-              {followUp ? "다시 질문하기" : mine ? "고쳐 보내기" : "내용과 함께 손들기"}
-            </button>
-          </div>
         </div>
       )}
 
@@ -429,8 +512,8 @@ export default function QuestionSignalButton({
             <p className="question-signal-empty">손든 학생이 없어요.</p>
           ) : (
             <ul className="question-signal-list">
-              {signals.map((s) => (
-                <li key={s.id}>
+              {threads.map(({ s, entries }) => (
+                <li key={s.id} className={awaitsTeacher(entries) ? "is-waiting" : ""}>
                   <span className="question-signal-item">
                     <span className="question-signal-avatar" aria-hidden="true">
                       {s.emoji || "🙂"}
@@ -440,17 +523,21 @@ export default function QuestionSignalButton({
                       <small>
                         {s.studentId ? `${s.studentId} · ` : ""}
                         {formatTime(s.createdAt)}
+                        {awaitsTeacher(entries) && (
+                          <span className="qsig-waiting"> · 답을 기다려요</span>
+                        )}
                       </small>
                     </span>
                     {/* 두 갈래로 나눠 둡니다 — 손든 것을 격려하는 '확인'과,
                         잘못 눌린 손을 조용히 내리는 '닫기'. 과일이 붙는 쪽에만
-                        🍊를 달아 어느 버튼이 주는 버튼인지 눈으로 갈립니다. */}
+                        🍊를 달아 어느 버튼이 주는 버튼인지 눈으로 갈립니다.
+                        둘 다 **대화를 끝냅니다**(학생 손이 내려감). */}
                     <button
                       type="button"
                       className="question-signal-confirm"
                       onClick={() => handleDismiss(s.uid, true)}
                       disabled={dismissing.has(s.uid)}
-                      title={`${s.name || "이 학생"}의 질문 확인 — 과일 1개를 주고 목록에서 지웁니다`}
+                      title={`${s.name || "이 학생"}의 질문 확인 — 과일 1개를 주고 대화를 닫습니다`}
                     >
                       🍊 확인
                     </button>
@@ -459,45 +546,22 @@ export default function QuestionSignalButton({
                       className="question-signal-close"
                       onClick={() => handleDismiss(s.uid, false)}
                       disabled={dismissing.has(s.uid)}
-                      title={`${s.name || "이 학생"}의 손 내리기 — 과일은 주지 않습니다`}
+                      title={`${s.name || "이 학생"}의 대화 닫기 — 과일은 주지 않습니다`}
                     >
                       닫기
                     </button>
                   </span>
-                  {/* 학생이 함께 보낸 것 — 태그가 먼저, 그 아래 메모.
-                      다가가기 전에 무엇인지 알 수 있게 하는 자리라, 이름
-                      줄 바로 아래에 둡니다. 없으면 줄 자체가 없습니다. */}
-                  {(questionTagOf(s.tag) || String(s.note ?? "").trim()
-                    || isFollowUpSignal(replies[s.uid], s)) && (
-                    <span className="qsig-said">
-                      {isFollowUpSignal(replies[s.uid], s) && (
-                        <span className="qsig-again" title="선생님 답변을 받은 뒤 다시 든 손이에요">
-                          ↩ 다시 질문
-                        </span>
-                      )}
-                      {questionTagOf(s.tag) && (
-                        <span className={`qsig-tag qsig-tag--${s.tag} on`}>
-                          <span aria-hidden="true">{questionTagOf(s.tag).emoji}</span>
-                          {questionTagOf(s.tag).label}
-                        </span>
-                      )}
-                      {String(s.note ?? "").trim() && (
-                        <span className="qsig-said-note">{s.note}</span>
-                      )}
-                    </span>
-                  )}
-                  {/* 답하기 — 학생 손바닥에 초록 불이 켜지고, 학생이 손바닥을
-                      누르면 이 글이 맨 위에 섭니다. 손은 그대로 두고(확인·닫기는
-                      따로), 이미 답한 손이면 보낸 글과 '고치기'가 섭니다. */}
+                  {/* 대화 — 첫 물음(태그·메모)부터 주고받은 말이 시간순으로.
+                      교사의 말이 오른쪽, 학생의 말이 왼쪽입니다. */}
+                  <SignalThread entries={entries} viewer="teacher" compact />
                   <ReplyArea
                     signal={s}
-                    reply={replyMatchesSignal(replies[s.uid], s) ? replies[s.uid] : null}
-                    earlier={isFollowUpSignal(replies[s.uid], s) ? replies[s.uid] : null}
+                    answered={!!lastTeacherEntry(entries)}
                     editing={replyTo === s.uid}
                     text={replyText}
                     busy={replyBusy}
                     error={replyTo === s.uid ? replyErr : null}
-                    onStart={(prev) => { setReplyTo(s.uid); setReplyText(prev ?? ""); setReplyErr(null); }}
+                    onStart={() => { setReplyTo(s.uid); setReplyText(""); setReplyErr(null); }}
                     onChange={setReplyText}
                     onCancel={() => { setReplyTo(null); setReplyErr(null); }}
                     onSend={() => sendReply(s)}
@@ -516,25 +580,43 @@ export default function QuestionSignalButton({
   );
 }
 
-// 교사 목록의 답하기 칸 — 한 학생 줄 아래.
-// earlier  다시 질문이면 그 앞에 단 답 — 무엇에 이어 묻는지 보이게 위에 둡니다.
-function ReplyArea({ earlier, ...rest }) {
-  if (!earlier) return <ReplyBody {...rest} />;
+// 대화 한 줄기 — 시간순. viewer 쪽의 말이 오른쪽(내 말), 상대의 말이 왼쪽.
+// 첫 줄(손든 물음)은 태그 알약 + 메모, 메모가 없으면 '내용 없이 손을 들었어요'.
+function SignalThread({ entries, viewer, compact = false, listRef }) {
   return (
-    <>
-      <span className="qsig-earlier">
-        <span className="qsig-earlier-label">
-          지난 답변{earlier.at ? ` · ${formatTime(earlier.at)}` : ""}
-          {earlier.seenAt ? " · 학생이 읽음" : ""}
-        </span>
-        <span className="qsig-earlier-text">{earlier.text}</span>
-      </span>
-      <ReplyBody {...rest} />
-    </>
+    <ol className={`qsig-thread${compact ? " qsig-thread--compact" : ""}`} ref={listRef}>
+      {entries.map((m) => {
+        const mineSide = m.from === viewer;
+        const tag = m.id === "first" ? questionTagOf(m.tag) : null;
+        const who = m.from === "teacher"
+          ? (viewer === "teacher" ? "나" : "선생님")
+          : (viewer === "student" ? "나" : "학생");
+        return (
+          <li key={m.id} className={`qsig-msg qsig-msg--${m.from}${mineSide ? " qsig-msg--mine" : ""}`}>
+            <span className="qsig-msg-bubble">
+              {tag && (
+                <span className={`qsig-tag qsig-tag--${m.tag} on`}>
+                  <span aria-hidden="true">{tag.emoji}</span>
+                  {tag.label}
+                </span>
+              )}
+              {m.text
+                ? <span className="qsig-msg-text">{m.text}</span>
+                : m.id === "first" && <span className="qsig-msg-empty">내용 없이 손을 들었어요</span>}
+            </span>
+            <span className="qsig-msg-meta">
+              {who} · {m.at ? formatTime(new Date(m.at)) : "보내는 중"}
+            </span>
+          </li>
+        );
+      })}
+    </ol>
   );
 }
 
-function ReplyBody({ signal, reply, editing, text, busy, error, onStart, onChange, onCancel, onSend }) {
+// 교사 목록의 답하기 칸 — 한 학생의 대화 아래. 보낸 말은 위 대화에 쌓이므로
+// 여기는 쓰는 칸 하나뿐입니다(고치기는 없습니다 — 대화는 쌓기만).
+function ReplyArea({ signal, answered, editing, text, busy, error, onStart, onChange, onCancel, onSend }) {
   const name = signal.name || "이 학생";
   if (editing) {
     return (
@@ -542,7 +624,7 @@ function ReplyBody({ signal, reply, editing, text, busy, error, onStart, onChang
         <textarea
           className="qsig-note"
           value={text}
-          onChange={(e) => onChange(e.target.value.slice(0, SIGNAL_REPLY_MAX))}
+          onChange={(e) => onChange(e.target.value.slice(0, SIGNAL_MESSAGE_MAX))}
           onKeyDown={(e) => {
             // Ctrl(⌘)+Enter로 보내기 — 채팅 입력과 같은 약속
             if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); onSend(); }
@@ -551,7 +633,7 @@ function ReplyBody({ signal, reply, editing, text, busy, error, onStart, onChang
           placeholder={`${name}에게 답해 주세요.`}
           rows={3}
           autoFocus
-          aria-label={`${name}에게 보낼 답변`}
+          aria-label={`${name}에게 보낼 답`}
         />
         {error && <span className="qsig-reply-err">{error}</span>}
         <span className="qsig-reply-btns">
@@ -563,31 +645,18 @@ function ReplyBody({ signal, reply, editing, text, busy, error, onStart, onChang
             className="question-signal-confirm"
             onClick={onSend}
             disabled={busy || !text.trim()}
-            title="학생 손바닥에 초록 불이 켜지고, 누르면 이 글을 봅니다"
+            title="학생 손바닥에 초록 불이 켜지고, 누르면 이 대화를 봅니다"
           >
-            {busy ? "보내는 중…" : "답변 보내기"}
+            {busy ? "보내는 중…" : "보내기"}
           </button>
         </span>
       </span>
     );
   }
-  if (reply) {
-    return (
-      <span className="qsig-replied">
-        <span className="qsig-replied-label">
-          💬 보낸 답변{reply.seenAt ? " · 학생이 읽음" : ""}
-        </span>
-        <span className="qsig-replied-text">{reply.text}</span>
-        <button type="button" className="qsig-reply-start" onClick={() => onStart(reply.text)}>
-          고치기
-        </button>
-      </span>
-    );
-  }
   return (
     <span className="qsig-reply-row">
-      <button type="button" className="qsig-reply-start" onClick={() => onStart("")}>
-        💬 답변하기
+      <button type="button" className="qsig-reply-start" onClick={onStart}>
+        💬 {answered ? "이어서 답하기" : "답하기"}
       </button>
     </span>
   );

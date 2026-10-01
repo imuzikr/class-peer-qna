@@ -222,21 +222,16 @@ service cloud.firestore {
              && request.resource.data.get('note', '').size() <= 1000;
     }
 
-    // 손들기 답변 — 교사가 쓰는 한 장의 모양. 길이는 lib/signalReplies.js의
-    // SIGNAL_REPLY_MAX와, tag·note는 위 questionSignalSaid와 같은 값입니다.
-    // 교사가 쓸 때마다 읽음(seenAt)이 풀립니다 — 새 답은 다시 빨간 불.
-    function signalReplyOk(cId, sUid) {
+    // 손들기 대화의 한 마디 — 모양. 길이는 lib/signalThread.js의
+    // SIGNAL_MESSAGE_MAX와 같은 값입니다. 고치기는 없고 쌓기만 합니다.
+    function signalMessageOk(cId) {
       let d = request.resource.data;
-      return d.keys().hasOnly(['classId', 'uid', 'text', 'tag', 'note', 'raisedAt',
-                               'byUid', 'at', 'seenAt'])
-             && d.classId == cId && d.uid == sUid
+      return d.keys().hasOnly(['classId', 'uid', 'from', 'text', 'byUid', 'at'])
+             && d.classId == cId && d.uid is string
+             && d.from in ['student', 'teacher']
              && d.text is string && d.text.size() > 0 && d.text.size() <= 1000
-             && d.get('tag', '') is string && d.get('tag', '').size() <= 20
-             && d.get('note', '') is string && d.get('note', '').size() <= 1000
-             && (d.get('raisedAt', null) == null || d.raisedAt is timestamp)
              && d.byUid == uid()
-             && d.at == request.time
-             && d.get('seenAt', null) == null;
+             && d.at == request.time;
     }
 
     function isMyCornellNote(cId, nId) {
@@ -594,28 +589,35 @@ service cloud.firestore {
         );
       }
 
-      // ── 손들기 답변 ───────────────────────────────────────
-      //  · 경로 = classes/{classId}/signalReplies/{학생 uid} — 학생마다 가장
-      //    최근 답 한 장. 손들기 문서는 '확인'·'닫기'에서 지워지므로 답을 거기
-      //    두면 학생이 읽기도 전에 사라집니다.
-      //  · 읽기: 그 학생 본인과 담당 교사. 목록은 교사만.
-      //  · 쓰기: 담당 교사(모양은 signalReplyOk). 학생은 읽음(seenAt) 한 칸만,
-      //    서버 시각으로. 시험 tests/rules/signalReplies.test.mjs.
-      match /signalReplies/{studentUid} {
-        allow get: if signedIn() && (
+      // ── 손들기 대화 ───────────────────────────────────────
+      //  · 경로 = classes/{classId}/signalMessages/{자동 id}, uid = 그 학생.
+      //    손든 학생과 교사가 주고받는 말 — 손들기 문서의 첫 물음에 이어
+      //    시간순으로 쌓입니다(lib/signalThread.js).
+      //  · 읽기: 담당 교사(목록 전체) · 그 학생 본인(where uid == 나).
+      //  · 쓰기: 학생은 제 대화에, **손이 올라가 있을 때만**. 교사는 담당 반.
+      //    고치기는 없음. 지우기는 그 학생 · 담당 교사(대화를 끝낼 때).
+      //  · 학생의 '읽음'은 제 손들기 문서의 seenAt(위 questionSignals update).
+      //    시험 tests/rules/signalMessages.test.mjs.
+      match /signalMessages/{msgId} {
+        allow get, list: if signedIn() && (
           isAdmin()
           || ownsClass(cId)
-          || studentUid == uid()
+          || resource.data.uid == uid()
         );
-        allow list: if signedIn() && (isAdmin() || ownsClass(cId));
-        allow create, update: if signedIn() && (isAdmin() || ownsClassEditable(cId))
-                              && signalReplyOk(cId, studentUid);
-        allow update: if signedIn()
-                      && studentUid == uid()
-                      && resource.data.uid == uid()
-                      && changedOnly(['seenAt'])
-                      && request.resource.data.seenAt == request.time;
-        allow delete: if isAdmin() || ownsClassEditable(cId);
+        allow create: if signedIn() && signalMessageOk(cId) && (
+          (request.resource.data.from == 'student'
+            && request.resource.data.uid == uid()
+            && isClassMember(cId)
+            && exists(/databases/$(database)/documents/classes/$(cId)/questionSignals/$(uid())))
+          || (request.resource.data.from == 'teacher'
+            && (isAdmin() || ownsClassEditable(cId)))
+        );
+        allow update: if false;
+        allow delete: if signedIn() && (
+          isAdmin()
+          || ownsClassEditable(cId)
+          || resource.data.uid == uid()
+        );
       }
 
       // ── 공부방 출석부 ─────────────────────────────────────
