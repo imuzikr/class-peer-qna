@@ -2221,6 +2221,10 @@ button.footer-link:hover {
   background: #e05a2f;
   box-shadow: 0 0 0 2px #fff;
 }
+/* 학생 손바닥의 초록 불 — 선생님 답변이 왔다(안 읽음). 빨간 불(손 들었음)과
+   크기·자리는 같고 색만 다릅니다. 색은 자리표의 이벤트 점(.attend-seat-event)과
+   같은 초록 — 이 앱에서 초록은 '됐다'. */
+.question-signal-dot.is-reply { background: #2f9e5a; }
 /* ── 손들기: 학생이 함께 보내는 태그·메모 ────────────────────────
    손바닥 하나로는 '질문이 있다'까지만 전해집니다. 태그와 짧은 메모를 함께
    보내면 교사가 다가가기 전에 무엇인지 압니다(lib/questionTags.js).

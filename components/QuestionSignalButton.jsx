@@ -109,10 +109,17 @@ export default function QuestionSignalButton({
 
   const count = isTeacher ? signals.length : mine ? 1 : 0;
   const active = count > 0;
-  // 빨간 점 — 교사는 '손든 학생이 있다', 학생은 **'선생님 답이 왔다'**.
-  // 학생 쪽은 한때 '내가 손을 들었다'에 켰는데, 이제 그것은 기울어진 손바닥
-  // (.on)이 말하고 점은 '봐 달라'는 뜻 하나만 맡습니다(교사 쪽과 같은 뜻).
-  const dot = isTeacher ? active : replyUnread;
+  // 점 — 교사는 빨간 불 '손든 학생이 있다'. 학생은 **두 색**입니다(선생님 요청):
+  //   빨간 불  내가 손을 들었다(원래 그대로)
+  //   초록 불  선생님 답이 왔다(안 읽음) — 손바닥도 기울어진 채(.on)입니다.
+  //            손이 이미 내려갔어도(선생님이 확인·닫기) 답을 읽기 전까지 켜집니다.
+  // 초록이 이기는 까닭: 손을 든 채 답이 오면 지금 봐야 할 것은 답입니다.
+  // 초록은 이 앱에서 늘 '됐다'는 뜻입니다(자리표의 이벤트 점과 같은 값).
+  const dot = isTeacher ? (active ? "red" : null)
+    : replyUnread ? "green"
+    : mine ? "red"
+    : null;
+  const tilted = active || replyUnread;
 
   // [교사 화면에는 손든 학생이 있을 때만]
   // 한동안 흐린 채로 늘 두어 봤습니다. 아이콘이 없을 때 '아무도 안 들었다'인지
@@ -224,7 +231,7 @@ export default function QuestionSignalButton({
     <div className="question-signal-wrap" ref={wrapRef}>
       <button
         type="button"
-        className={`question-signal-btn${active ? " on" : ""}`}
+        className={`question-signal-btn${tilted ? " on" : ""}`}
         onClick={handleClick}
         disabled={!classId || busy}
         aria-haspopup={isTeacher ? "menu" : undefined}
@@ -254,7 +261,12 @@ export default function QuestionSignalButton({
             '손이 올라왔다'가 잘 안 읽혔습니다. 몇 명인지는 눌러서 여는 목록에
             이름까지 함께 있고, 툴팁(title)·스크린리더(aria-label)에도 그대로
             남겨 두었습니다. */}
-        {dot && <span className="question-signal-dot" aria-hidden="true" />}
+        {dot && (
+          <span
+            className={`question-signal-dot${dot === "green" ? " is-reply" : ""}`}
+            aria-hidden="true"
+          />
+        )}
       </button>
 
       {/* 학생 — 손바닥 옆에 뜨는 작은 창. 태그 하나와 짧은 메모를 함께
