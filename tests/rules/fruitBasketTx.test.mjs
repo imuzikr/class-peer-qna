@@ -42,10 +42,12 @@ async function enterWith(db, uid, n) {
     const have = r.data().count;
     const diff = n - (b.exists() ? b.data().donated : 0);
     if (diff > 0) tx.update(rewardRef, { count: have - diff, updatedAt: serverTimestamp() });
+    // 이미 응모했으면(더 담기) 처음 응모한 시각을 그대로 둡니다 — 앱과 같음.
+    const again = b.exists() && b.data().entered === true;
     tx.set(
       basketRef,
       { classId: C, uid, donated: n, entered: true, declined: false,
-        decidedAt: serverTimestamp(), updatedAt: serverTimestamp() },
+        ...(again ? {} : { decidedAt: serverTimestamp() }), updatedAt: serverTimestamp() },
       { merge: true }
     );
   });
@@ -100,6 +102,18 @@ describe("fruitBasket — 앱과 같은 트랜잭션", () => {
     const db = asStudent(env, "s1").firestore();
     await assertSucceeds(move(db, "s1", 2));
     await assertSucceeds(enterWith(db, "s1", 2));
+  });
+
+  it("응모한 뒤 나머지 과일을 더 담아 다시 응모하기", async () => {
+    const db = asStudent(env, "s1").firestore();
+    await assertSucceeds(enterWith(db, "s1", 1));   // 과일 2 → 1개 담아 응모
+    await assertSucceeds(enterWith(db, "s1", 2));   // 남은 1개를 더 담음
+  });
+
+  it("응모한 동안 바구니를 줄여 돌려받는 쓰기는 거부(응모하지 않기로 먼저 거둬야 함)", async () => {
+    const db = asStudent(env, "s1").firestore();
+    await assertSucceeds(enterWith(db, "s1", 2));
+    await assertFails(move(db, "s1", -1));
   });
 
   it("응모하며 바구니를 줄이는 한 번의 쓰기는 거부(앱은 먼저 돌려받음)", async () => {

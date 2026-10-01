@@ -9,6 +9,7 @@ import {
   eventChoiceOf,
   isEventPending,
   canEnterEvent,
+  entryAddition,
 } from "@/lib/fruitBasket";
 
 test("entryAmount: 가진 것 + 담아 둔 것 안에서 1개 이상", () => {
@@ -27,6 +28,12 @@ test("entryAmount: 가진 것 + 담아 둔 것 안에서 1개 이상", () => {
   assert.equal(entryAmount("2", m(5), 10), 2);    // 적게 고르면 남는 3을 돌려받음
   assert.equal(entryAmount("2", m(5), 98), 0);    // 돌려받으면 101 — 천장 넘음
   assert.equal(entryAmount("3", m(5), 98), 3);    // 딱 100
+  // 응모한 동안에는 담아 둔 것보다 적게 못 고름(더 담기만)
+  const e = (donated) => ({ donated, choice: "entered" });
+  assert.equal(entryAmount("2", e(3), 5), 0);
+  assert.equal(entryAmount("3", e(3), 5), 3);
+  assert.equal(entryAmount("6", e(3), 5), 6);
+  assert.equal(entryAmount("9", e(3), 5), 0);
   assert.equal(entryMax(m(3), 5), 8);
   assert.equal(entryMax(m(), 0), 0);
 });
@@ -83,7 +90,14 @@ test("이벤트 선택 · 초록 점 · 응모 가능", () => {
   assert.equal(canEnterEvent(mine(), 1), true);
   assert.equal(canEnterEvent(mine(), 0), false);
   assert.equal(canEnterEvent(mine({ choice: "declined" }), 2), true);   // 응모 안 함 → 응모로 바꾸기
-  assert.equal(canEnterEvent(mine({ choice: "entered" }), 2), false);
+  // 응모한 뒤 — 담아 둔 것보다 많이 정하면 다시 눌러 더 담음
+  assert.equal(canEnterEvent(mine({ choice: "entered", donated: 2 }), 2), false);
+  assert.equal(canEnterEvent(mine({ choice: "entered", donated: 2 }), 1), false);
+  assert.equal(canEnterEvent(mine({ choice: "entered", donated: 2 }), 5), true);
+  assert.equal(canEnterEvent(mine({ choice: "entered", donated: 2, received: true }), 5), false);
+  assert.equal(entryAddition(mine({ choice: "entered", donated: 2 }), 5), 3);
+  assert.equal(entryAddition(mine({ choice: "entered", donated: 2 }), 2), 0);
+  assert.equal(entryAddition(mine({ donated: 2 }), 5), 0);         // 처음 응모는 더하기가 아님
   assert.equal(canEnterEvent(mine({ received: true }), 2), false);
 });
 
