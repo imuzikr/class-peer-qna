@@ -289,6 +289,14 @@ export default function QuestionSignalButton({
     }
   }
 
+  // 못 보낸 까닭 — 규칙 거부는 다시 눌러도 같으므로 그렇게 말합니다
+  // (배포된 규칙이 앱보다 옛것일 때 실제로 이 모양으로 났습니다).
+  function sendErrorText(e) {
+    return e?.code === "permission-denied"
+      ? "권한이 없어 보내지 못했어요 — 서버 규칙이 최신인지 확인해 주세요."
+      : "보내지 못했어요. 다시 눌러 주세요.";
+  }
+
   async function sendReply(s) {
     const text = replyText.trim();
     if (!classId || !text || replyBusy) return;
@@ -300,7 +308,7 @@ export default function QuestionSignalButton({
       setReplyText("");
     } catch (e) {
       console.error("[손들기] 답을 보내지 못했어요:", e?.code, e?.message);
-      setReplyErr("보내지 못했어요. 다시 눌러 주세요.");
+      setReplyErr(sendErrorText(e));
     } finally {
       setReplyBusy(false);
     }
@@ -317,7 +325,7 @@ export default function QuestionSignalButton({
       setDraft("");
     } catch (e) {
       console.error("[손들기] 말을 보내지 못했어요:", e?.code, e?.message);
-      setDraftErr("보내지 못했어요. 다시 눌러 주세요.");
+      setDraftErr(sendErrorText(e));
     } finally {
       setBusy(false);
     }
