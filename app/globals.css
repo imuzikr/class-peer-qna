@@ -2417,22 +2417,57 @@ button.footer-link:hover {
   padding: 2px 2px 6px;
 }
 .signal-history-thread {
+  flex-shrink: 0;
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 10px 12px 12px;
   background: #fff;
+  overflow: hidden;
 }
-.signal-history-date {
+/* 접고 펴는 머리줄 — 줄 전체가 단추(반별 현황의 반 머리줄과 같은 모양) */
+.signal-history-head {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
+  align-items: center;
   gap: 8px;
-  margin: 0 0 8px;
+  width: 100%;
+  min-width: 0;
+  padding: 11px 12px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.signal-history-head:hover { background: var(--bg); }
+.signal-history-caret {
+  flex-shrink: 0;
+  color: var(--text-sub);
+  transition: transform 0.15s;
+}
+.signal-history-thread.open .signal-history-caret { transform: rotate(90deg); }
+.signal-history-date {
+  flex-shrink: 0;
   font-size: 13px;
   font-weight: 800;
   color: var(--dark);
 }
-.signal-history-date small { font-size: 11.5px; font-weight: 600; color: var(--text-faint); }
+/* 접힌 줄의 첫 물음 한 줄 — 남는 폭을 다 받고 넘치면 말줄임 */
+.signal-history-preview {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12.5px;
+  color: var(--text-sub);
+}
+.signal-history-count {
+  flex-shrink: 0;
+  margin-left: auto;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-faint);
+}
+.signal-history-thread-body { padding: 0 12px 12px; }
 .signal-history-thread .qsig-thread { max-height: none; overflow: visible; margin: 0; }
 .signal-history-empty { margin: 24px 0; text-align: center; font-size: 13px; color: var(--text-sub); }
 .signal-history-note { margin: 10px 0 0; font-size: 11.5px; color: var(--text-faint); }
