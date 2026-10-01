@@ -74,6 +74,17 @@ describe("fruitBasket — 앱과 같은 트랜잭션", () => {
     await assertSucceeds(move(db, "s1", -2));
   });
 
+  it("이벤트 취소의 반납 표시(fruitReturn)가 남은 과일 문서에서도 응모하기 · 응모하지 않기", async () => {
+    await seed(env, async (db) => {
+      await setDoc(doc(db, "rewards", `${C}_s1`), {
+        classId: C, uid: "s1", count: 6, fruitReturn: { id: "r1", n: 4 }, updatedAt: serverTimestamp(),
+      });
+    });
+    const db = asStudent(env, "s1").firestore();
+    await assertSucceeds(move(db, "s1", 2));
+    await assertSucceeds(move(db, "s1", -2));
+  });
+
   it("응모하기: 담으며 응모(바구니 문서가 없을 때)", async () => {
     const db = asStudent(env, "s1").firestore();
     await assertSucceeds(enterWith(db, "s1", 2));

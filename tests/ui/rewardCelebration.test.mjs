@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { runInNewContext } from "node:vm";
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { returnedGain } from "../../lib/selfFruitGain.js";
 
 const source = readFileSync(new URL("../../lib/useRewardCelebration.js", import.meta.url), "utf8");
 
@@ -19,6 +20,8 @@ function loadHook() {
       // 과일 바구니에서 스스로 되찾은 몫 — 이 시험은 교사가 준 과일만 다루므로
       // 늘어난 만큼을 그대로 돌려줍니다(덜어 내는 셈은 tests/unit/selfFruitGain).
       takeSelfGain: (classId, uid, gain) => gain,
+      // 이벤트 취소의 반납 표시 — 진짜 셈을 그대로 씁니다(순수 함수)
+      returnedGain,
       subscribeMyClassRewardCount: (classId, uid, onCount) => {
         const subscription = { classId, uid, onCount, active: true };
         activeSubscription = subscription;
@@ -35,9 +38,9 @@ function loadHook() {
     render: (props) => runner.render(props),
     amount: () => runner.result?.[0] ?? 0,
     clear: () => runner.result?.[1]?.(),
-    emit: (count) => {
+    emit: (count, mark = null) => {
       if (!activeSubscription?.active) throw new Error("No active reward subscription");
-      activeSubscription.onCount(count);
+      activeSubscription.onCount(count, mark);
     },
     active: () => activeSubscription && { classId: activeSubscription.classId, uid: activeSubscription.uid },
     unsubscribes: () => [...unsubscribes],
@@ -201,5 +204,27 @@ test("changing class user or enabled state clears pending amount and reward base
   hook.emit(20);
   assert.equal(hook.amount(), 0);
   hook.emit(21);
+  assert.equal(hook.amount(), 1);
+});
+
+test("이벤트 취소로 돌려받은 과일에는 축포가 안 터지고, 그 뒤 교사가 준 것만 터짐", () => {
+  const hook = loadHook();
+  hook.render({ classId: "class-a", uid: "student-a", enabled: true });
+
+  const old = { id: "r0", n: 3 };
+  hook.emit(2, old);            // 처음 값 — 지난 반납 표시는 기준점일 뿐
+  hook.emit(3, old);            // 교사가 1개 줌 → 축포 1
+  assert.equal(hook.amount(), 1);
+  hook.clear();
+
+  const back = { id: "r1", n: 4 };
+  hook.emit(7, back);           // 이벤트 취소로 4개 돌려받음 → 축포 없음
+  assert.equal(hook.amount(), 0);
+
+  hook.emit(8, back);           // 같은 표시 그대로 교사가 1개 → 축포 1
+  assert.equal(hook.amount(), 1);
+  hook.clear();
+
+  hook.emit(11, { id: "r2", n: 2 }); // 반납 2 + 같은 순간 교사 1 → 축포 1
   assert.equal(hook.amount(), 1);
 });

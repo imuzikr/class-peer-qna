@@ -186,7 +186,7 @@ describe("fruitBasket — 과일 내놓기", () => {
       for (const u of rows) got.push([u, await tx.get(basket(db, u)), await tx.get(reward(db, u))]);
       for (const [u, b, r] of got) {
         const back = Math.min(b.data().donated, 100 - r.data().count);
-        if (back > 0) tx.set(reward(db, u), { classId: C, uid: u, count: r.data().count + back, updatedAt: serverTimestamp() }, { merge: true });
+        if (back > 0) tx.set(reward(db, u), { classId: C, uid: u, count: r.data().count + back, fruitReturn: { id: "r1", n: back }, updatedAt: serverTimestamp() }, { merge: true });
         tx.delete(basket(db, u));
       }
     });
