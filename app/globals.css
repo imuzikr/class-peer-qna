@@ -2392,6 +2392,51 @@ button.footer-link:hover {
 .qsig-thread-closed { margin: 0 0 10px; font-size: 12px; line-height: 1.5; color: var(--text-sub); }
 .qsig-actions--one { grid-template-columns: 1fr; }
 
+/* 손들고 대화한 이력(교사) — 자리표 과일 창에서 엽니다. 과일 팝오버(320)
+   위에 떠야 하고, 그 팝오버가 다른 모달 안에서 열릴 때도 있습니다. 창 높이를
+   못 박고 본문만 구릅니다(머리줄·아래 안내는 제자리). */
+.modal-backdrop.signal-history-backdrop { z-index: 340; }
+.modal.signal-history-modal {
+  width: min(560px, 94vw);
+  max-width: min(560px, 94vw);
+  height: min(640px, 88vh);
+  max-height: none;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.signal-history-who { margin-left: 8px; font-size: 13.5px; font-weight: 700; color: var(--text-sub); }
+.signal-history-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 2px 2px 6px;
+}
+.signal-history-thread {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px 12px;
+  background: #fff;
+}
+.signal-history-date {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--dark);
+}
+.signal-history-date small { font-size: 11.5px; font-weight: 600; color: var(--text-faint); }
+.signal-history-thread .qsig-thread { max-height: none; overflow: visible; margin: 0; }
+.signal-history-empty { margin: 24px 0; text-align: center; font-size: 13px; color: var(--text-sub); }
+.signal-history-note { margin: 10px 0 0; font-size: 11.5px; color: var(--text-faint); }
+
 /* 교사 — 대화 아래 '💬 답하기' → 그 자리에서 쓰는 칸 */
 .qsig-reply-row,
 .qsig-reply-edit {
@@ -3621,6 +3666,8 @@ button.footer-link:hover {
 /* 고르지 않은 쪽 — 크기는 같고 옅게(고른 쪽이 눈에 먼저 들어오게). */
 .fb-choice .fb-choice-off:not(:disabled) { background: var(--primary-light); color: var(--primary-dark); }
 .fb-choice .fb-choice-off:hover:not(:disabled) { background: #f3dccf; }
+/* 고른 쪽 — 둘 중 하나를 고르는 단추라 다시 눌러도 아무 일이 없습니다(토글 아님). */
+.fb-choice .fb-choice-on { cursor: default; }
 .fb-enter .fb-entered { margin: 0 0 10px; }
 .fb-entered.fb-declined { color: var(--text-sub); }
 .fb-received { font-size: 12px; color: #276b3d; }

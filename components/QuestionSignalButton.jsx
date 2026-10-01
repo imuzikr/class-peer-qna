@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
   addStudentReward,
-  clearSignalMessages,
   confirmQuestionSignal,
   dismissQuestionSignal,
   formatTime,
@@ -11,9 +10,9 @@ import {
   sendSignalMessage,
   setQuestionSignal,
   subscribeMyQuestionSignal,
-  subscribeMySignalMessages,
+  subscribeMySignalThread,
   subscribeQuestionSignals,
-  subscribeSignalMessages,
+  subscribeSignalThreads,
 } from "@/lib/store";
 import {
   SIGNAL_MESSAGE_MAX,
@@ -21,14 +20,11 @@ import {
   lastTeacherEntry,
   studentLight,
   threadEntries,
-  unreadByStudent,
+  threadKeyOf,
 } from "@/lib/signalThread";
 import QuestionSeatModal from "./QuestionSeatModal";
-import {
-  QUESTION_TAGS,
-  QUESTION_NOTE_MAX,
-  questionTagOf,
-} from "@/lib/questionTags";
+import SignalThread from "./SignalThread";
+import { QUESTION_TAGS, QUESTION_NOTE_MAX } from "@/lib/questionTags";
 import { IconChair } from "./StatusIcons";
 
 export default function QuestionSignalButton({
@@ -51,11 +47,12 @@ export default function QuestionSignalButton({
   // 확인 처리 중인 학생 uid — 그 항목의 확인 버튼만 잠가 중복 클릭을 막습니다.
   const [dismissing, setDismissing] = useState(() => new Set());
   // 손들기 대화(lib/signalThread.js) — 손든 학생과 교사가 주고받는 말.
-  //   교사: 이 반의 대화 말 전부 · 지금 답을 쓰는 학생과 글.
-  //   학생: 내 대화의 말 · 이 기기에서 방금 읽은 선생님 말 id(불 끄기) ·
-  //         닫힌 대화를 열어 본 그 모습(읽은 뒤 지워도 창을 닫을 때까지 보이게) ·
-  //         이어서 적는 글.
+  //   교사: 열린 대화들의 말 · 지금 답을 쓰는 학생과 글.
+  //   학생: 내 대화의 말({ key, rows } — 어느 줄기의 답인지 함께 들어 '아직 안
+  //         왔다'와 '없다'를 가름) · 이 기기에서 방금 본 마지막 말 id(불 끄기) ·
+  //         닫힌 대화를 열어 본 그 모습 · 이어서 적는 글.
   const [messages, setMessages] = useState([]);
+  const [myMsgs, setMyMsgs] = useState({ key: null, rows: [] });
   const [replyTo, setReplyTo] = useState(null); // 교사가 답을 쓰는 학생 uid
   const [replyText, setReplyText] = useState("");
   const [replyBusy, setReplyBusy] = useState(false);
@@ -63,6 +60,7 @@ export default function QuestionSignalButton({
   const [mineLoaded, setMineLoaded] = useState(false);
   const [seenLocal, setSeenLocal] = useState(null);
   const [closedView, setClosedView] = useState(null);
+  const [lastThread, setLastThread] = useState(null); // 학생: 마지막 대화 { key, seen }
   const [draft, setDraft] = useState("");
   const [draftErr, setDraftErr] = useState(null);
   const wrapRef = useRef(null);
@@ -72,60 +70,96 @@ export default function QuestionSignalButton({
     if (!classId || !user?.uid) {
       setSignals([]);
       setMine(null);
-      setMessages([]);
       setReadError(null);
       return;
     }
-    // 대화의 말도 늘 듣습니다 — 창을 닫아 둔 동안 말이 오가도 손바닥 불이
-    // 바뀌어야 하므로. 교사는 이 반 전체(열린 대화는 손든 학생 수만큼),
-    // 학생은 제 대화만.
-    if (isTeacher) {
-      const offSignals = subscribeQuestionSignals(classId, setSignals, setReadError);
-      const offMsgs = subscribeSignalMessages(classId, setMessages);
-      return () => { offSignals(); offMsgs(); };
-    }
-    const offSignal = subscribeMyQuestionSignal(classId, user.uid, (s) => {
+    if (isTeacher) return subscribeQuestionSignals(classId, setSignals, setReadError);
+    setLastThread(readLastThread(classId, user.uid));
+    return subscribeMyQuestionSignal(classId, user.uid, (s) => {
       setMine(s);
       setMineLoaded(true);
     });
-    const offMsgs = subscribeMySignalMessages(classId, user.uid, setMessages);
-    return () => { offSignal(); offMsgs(); };
   }, [classId, user?.uid, isTeacher]);
 
+  // ── 교사: 열린 대화들의 말 ── 손든 학생들의 줄기만 듣습니다(이력이 쌓여도
+  // 읽는 양이 손든 학생 수만큼). 목록을 펼치지 않아도 늘 듣습니다 — 손바닥
+  // 불(답을 기다리는 대화가 있나)이 그것으로 켜지므로.
+  const threadIdsKey = isTeacher ? signals.map(threadKeyOf).filter(Boolean).sort().join(",") : "";
+  useEffect(() => {
+    if (!isTeacher || !classId) { setMessages([]); return; }
+    return subscribeSignalThreads(classId, threadIdsKey ? threadIdsKey.split(",") : [], setMessages);
+  }, [isTeacher, classId, threadIdsKey]);
+
   // ── 학생의 대화 ──
-  // 손이 올라가 있으면 그 손의 대화. 손이 내려갔는데(교사가 '확인'·'닫기')
-  // 선생님 말이 남아 있으면 **닫힌 대화** — 아직 못 읽은 답이라 초록 불로 알리고,
-  // 학생이 열어 보면 그때 치웁니다. 손 문서의 첫 답이 오기 전에는 판정하지
-  // 않습니다(그 사이 말만 먼저 와서 '닫힌 대화'로 오인하면 열린 대화를 지웁니다).
-  const myEntries = !isTeacher && mineLoaded ? threadEntries(mine, messages) : [];
-  const closed = !isTeacher && mineLoaded && !mine && !!lastTeacherEntry(myEntries);
-  // 닫힌 대화를 보여 줄 때 첫 물음도 함께 — 손 문서는 이미 지워졌으므로 마지막으로
-  // 알던 손을 붙들어 둡니다(새로 고침하면 없어 남은 말만 섭니다).
-  const lastMineRef = useRef(null);
-  if (mine) lastMineRef.current = mine;
+  // 손이 올라가 있으면 그 손의 줄기. 손이 내려갔는데(교사가 '확인'·'닫기')
+  // 마지막 줄기에 아직 못 본 선생님 말이 있으면 **닫힌 대화** — 초록 불로 알리고
+  // 한 번 보여 줍니다. 마지막 줄기는 이 기기에 적어 둡니다(손 문서가 지워지면
+  // 줄기 id를 알 길이 없어서) — 다른 기기에서는 닫힌 대화 알림이 안 뜹니다.
+  const mineKey = !isTeacher ? threadKeyOf(mine) : null;
+  useEffect(() => {
+    if (isTeacher || !mineKey || !classId || !user?.uid) return;
+    if (lastThread?.key === mineKey) return;
+    const next = { key: mineKey, seen: null };
+    setLastThread(next);
+    writeLastThread(classId, user.uid, next);
+  }, [isTeacher, mineKey, lastThread?.key, classId, user?.uid]);
+  const myKey = isTeacher || !mineLoaded ? null : mineKey || lastThread?.key || null;
+  useEffect(() => {
+    if (isTeacher || !classId || !user?.uid || !myKey) { setMyMsgs({ key: null, rows: [] }); return; }
+    return subscribeMySignalThread(classId, user.uid, myKey, (rows) => setMyMsgs({ key: myKey, rows }));
+  }, [isTeacher, classId, user?.uid, myKey]);
+  const myRows = myMsgs.key === myKey ? myMsgs.rows : [];
+  const myEntries = !isTeacher && myKey ? threadEntries(mine, myRows) : [];
+  const lastTeacherId = lastTeacherEntry(myEntries)?.id ?? null;
+  const closed = !isTeacher && mineLoaded && !mine && myMsgs.key === myKey && !!lastTeacherId
+    && lastThread?.seen !== lastTeacherId;
   const light = isTeacher ? null : studentLight({ signal: mine, entries: myEntries, seenLocal, closed });
 
-  // 창을 열어 선생님 말을 보면 읽음으로 적습니다(창이 열린 채 새 말이 와도).
-  // 읽고 나면 불이 **모두** 꺼집니다 — 대화는 열린 채로 둡니다.
-  const unread = !isTeacher && !!mine && unreadByStudent(myEntries, mine.seenAt, seenLocal);
-  const lastTeacherId = lastTeacherEntry(myEntries)?.id ?? null;
+  // 닫힌 대화에 볼 것이 없으면(선생님 말 없음 · 이미 봄) 적어 둔 줄기를 놓습니다.
   useEffect(() => {
-    if (isTeacher || !open || !unread || !classId || !user?.uid) return;
-    setSeenLocal(lastTeacherId);
-    markSignalSeen(classId, user.uid).catch((e) =>
-      console.warn("[손들기] 읽음을 적지 못했어요:", e?.code, e?.message)
-    );
-  }, [isTeacher, open, unread, lastTeacherId, classId, user?.uid]);
+    if (isTeacher || !mineLoaded || mine || !lastThread || myMsgs.key !== lastThread.key) return;
+    if (lastTeacherId && lastThread.seen !== lastTeacherId) return;
+    setLastThread(null);
+    writeLastThread(classId, user?.uid, null);
+  }, [isTeacher, mineLoaded, mine, lastThread, myMsgs.key, lastTeacherId, classId, user?.uid]);
 
-  // 닫힌 대화를 열어 보면 그 모습을 붙들어 두고(창을 닫을 때까지 보임) 치웁니다.
-  useEffect(() => {
-    if (isTeacher || !open || !closed || closedView || !classId || !user?.uid) return;
-    setClosedView(lastMineRef.current ? threadEntries(lastMineRef.current, messages) : myEntries);
-    clearSignalMessages(classId, user.uid).catch((e) =>
-      console.warn("[손들기] 닫힌 대화를 치우지 못했어요:", e?.code, e?.message)
+  // 본 것으로 적기 — **손바닥을 눌러 창을 열면 불이 모두 꺼집니다**(선생님 요청).
+  // 창이 열린 채 선생님 말이 오면 그것도 곧바로 봄. 학생이 창에서 이어 적은
+  // 말은 봄으로 치지 않아, 창을 닫으면 '답을 기다림' 빨간 불이 섭니다.
+  const lastEntry = myEntries[myEntries.length - 1] ?? null;
+  function markSeen() {
+    if (!mine || !lastEntry || !classId || !user?.uid) return;
+    setSeenLocal(lastEntry.id);
+    // 손이 올라가 있는 동안 본 선생님 말은 닫힌 뒤에 다시 알리지 않습니다.
+    if (lastTeacherId && mineKey) {
+      const next = { key: mineKey, seen: lastTeacherId };
+      setLastThread(next);
+      writeLastThread(classId, user.uid, next);
+    }
+    markSignalSeen(classId, user.uid).catch((e) =>
+      console.warn("[손들기] 본 것을 적지 못했어요:", e?.code, e?.message)
     );
+  }
+  useEffect(() => {
+    if (isTeacher || !open || !light || !mine) return;
+    markSeen();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isTeacher, open, closed, closedView, classId, user?.uid]);
+  }, [open]);
+  useEffect(() => {
+    if (isTeacher || !open || light !== "green") return;
+    markSeen();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastEntry?.id]);
+
+  // 닫힌 대화를 열어 보면 그 모습을 붙들어 두고(창을 닫을 때까지 보임) 봤다고 적습니다.
+  useEffect(() => {
+    if (isTeacher || !open || !closed || closedView) return;
+    setClosedView(myEntries);
+    const next = { key: lastThread?.key ?? myKey, seen: lastTeacherId };
+    setLastThread(next);
+    writeLastThread(classId, user?.uid, next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isTeacher, open, closed, closedView]);
   useEffect(() => {
     if (!open) { setClosedView(null); setDraftErr(null); }
   }, [open]);
@@ -157,7 +191,10 @@ export default function QuestionSignalButton({
 
   // ── 교사의 대화 ── 손든 학생마다 한 줄기
   const threads = isTeacher
-    ? signals.map((s) => ({ s, entries: threadEntries(s, messages.filter((m) => m.uid === s.uid)) }))
+    ? signals.map((s) => {
+        const key = threadKeyOf(s);
+        return { s, key, entries: threadEntries(s, messages.filter((m) => key && m.threadId === key)) };
+      })
     : [];
   const waiting = threads.filter((t) => awaitsTeacher(t.entries)).length;
 
@@ -166,8 +203,8 @@ export default function QuestionSignalButton({
   // 점과 기울기 — **답을 기다리는 쪽에만** 불이 켜집니다(선생님 요청).
   //   교사  빨간 불 = 답을 기다리는 대화가 있다(손을 들었거나 학생이 이어 물음).
   //         다 답했으면 손바닥은 남되(대화가 열려 있으므로) 불이 꺼집니다.
-  //   학생  빨간 불 = 내 말이 답을 기다린다 · 초록 불 = 안 읽은 선생님 말.
-  //         선생님 말을 읽으면 **불이 모두 꺼집니다** — 대화는 '닫기' 전까지
+  //   학생  빨간 불 = 내 말이 답을 기다린다 · 초록 불 = 안 본 선생님 말.
+  //         **손바닥을 눌러 보면 불이 모두 꺼집니다** — 대화는 '닫기' 전까지
   //         그대로 열려 있어 손바닥을 누르면 다시 봅니다.
   // 초록은 이 앱에서 늘 '됐다'는 뜻입니다(자리표의 이벤트 점과 같은 값).
   const dot = isTeacher ? (waiting > 0 ? "red" : null) : light;
@@ -239,15 +276,8 @@ export default function QuestionSignalButton({
         // '닫기'는 잘못 눌린 손이라 아무것도 남기지 않고 내리기만 합니다.
         await dismissQuestionSignal(classId, uid);
       }
-      // 대화도 여기서 끝납니다. 교사의 말이 없으면 곧바로 치우고, 있으면
-      // 남겨 둡니다 — 답하고 곧바로 '확인'을 누르는 일이 흔한데, 그때 지우면
-      // 학생이 방금 받은 답을 영영 못 봅니다. 학생이 읽은 뒤 스스로 치웁니다.
-      const t = threads.find((x) => x.s.uid === uid);
-      if (t && !lastTeacherEntry(t.entries)) {
-        await clearSignalMessages(classId, uid).catch((e) =>
-          console.warn("[손들기] 대화를 치우지 못했어요:", e?.code, e?.message)
-        );
-      }
+      // 대화도 여기서 끝납니다 — 말은 지우지 않고 이력으로 남깁니다(자리표의
+      // '손들고 대화한 이력'). 방금 단 답은 학생이 '닫힌 대화'로 한 번 봅니다.
     } finally {
       // signals 구독이 곧 목록을 갱신해 이 항목 자체가 사라지므로, 실패했을
       // 때만 다시 누를 수 있게 풀어 주면 됩니다.
@@ -265,7 +295,7 @@ export default function QuestionSignalButton({
     setReplyBusy(true);
     setReplyErr(null);
     try {
-      await sendSignalMessage(classId, s.uid, "teacher", text);
+      await sendSignalMessage(classId, s.uid, "teacher", text, threadKeyOf(s));
       setReplyTo(null);
       setReplyText("");
     } catch (e) {
@@ -283,7 +313,7 @@ export default function QuestionSignalButton({
     setBusy(true);
     setDraftErr(null);
     try {
-      await sendSignalMessage(classId, user.uid, "student", text);
+      await sendSignalMessage(classId, user.uid, "student", text, threadKeyOf(mine));
       setDraft("");
     } catch (e) {
       console.error("[손들기] 말을 보내지 못했어요:", e?.code, e?.message);
@@ -580,40 +610,6 @@ export default function QuestionSignalButton({
   );
 }
 
-// 대화 한 줄기 — 시간순. viewer 쪽의 말이 오른쪽(내 말), 상대의 말이 왼쪽.
-// 첫 줄(손든 물음)은 태그 알약 + 메모, 메모가 없으면 '내용 없이 손을 들었어요'.
-function SignalThread({ entries, viewer, compact = false, listRef }) {
-  return (
-    <ol className={`qsig-thread${compact ? " qsig-thread--compact" : ""}`} ref={listRef}>
-      {entries.map((m) => {
-        const mineSide = m.from === viewer;
-        const tag = m.id === "first" ? questionTagOf(m.tag) : null;
-        const who = m.from === "teacher"
-          ? (viewer === "teacher" ? "나" : "선생님")
-          : (viewer === "student" ? "나" : "학생");
-        return (
-          <li key={m.id} className={`qsig-msg qsig-msg--${m.from}${mineSide ? " qsig-msg--mine" : ""}`}>
-            <span className="qsig-msg-bubble">
-              {tag && (
-                <span className={`qsig-tag qsig-tag--${m.tag} on`}>
-                  <span aria-hidden="true">{tag.emoji}</span>
-                  {tag.label}
-                </span>
-              )}
-              {m.text
-                ? <span className="qsig-msg-text">{m.text}</span>
-                : m.id === "first" && <span className="qsig-msg-empty">내용 없이 손을 들었어요</span>}
-            </span>
-            <span className="qsig-msg-meta">
-              {who} · {m.at ? formatTime(new Date(m.at)) : "보내는 중"}
-            </span>
-          </li>
-        );
-      })}
-    </ol>
-  );
-}
-
 // 교사 목록의 답하기 칸 — 한 학생의 대화 아래. 보낸 말은 위 대화에 쌓이므로
 // 여기는 쓰는 칸 하나뿐입니다(고치기는 없습니다 — 대화는 쌓기만).
 function ReplyArea({ signal, answered, editing, text, busy, error, onStart, onChange, onCancel, onSend }) {
@@ -660,4 +656,21 @@ function ReplyArea({ signal, answered, editing, text, busy, error, onStart, onCh
       </button>
     </span>
   );
+}
+
+// 학생 — 마지막 대화 줄기를 이 기기에 적어 둡니다({ key, seen }). 손들기 문서가
+// 지워진 뒤에도(교사가 닫음) 그 줄기를 찾아 '닫힌 대화'를 한 번 보여 주려고요.
+const lastThreadKey = (classId, uid) => `qsig_thread:${classId}:${uid}`;
+function readLastThread(classId, uid) {
+  try {
+    const v = JSON.parse(localStorage.getItem(lastThreadKey(classId, uid)) || "null");
+    return v && typeof v.key === "string" ? v : null;
+  } catch { return null; }
+}
+function writeLastThread(classId, uid, v) {
+  if (!classId || !uid) return;
+  try {
+    if (v) localStorage.setItem(lastThreadKey(classId, uid), JSON.stringify(v));
+    else localStorage.removeItem(lastThreadKey(classId, uid));
+  } catch { /* 저장소가 막힌 브라우저 — 닫힌 대화 알림만 빠짐 */ }
 }

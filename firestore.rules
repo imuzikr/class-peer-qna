@@ -224,12 +224,19 @@ service cloud.firestore {
 
     // 손들기 대화의 한 마디 — 모양. 길이는 lib/signalThread.js의
     // SIGNAL_MESSAGE_MAX와 같은 값입니다. 고치기는 없고 쌓기만 합니다.
+    // threadId = 그 대화 줄기(손을 새로 들 때마다 새 값). 첫 물음
+    // (kind 'first')만 글이 비어도 됩니다 — '내용 없이 손들기'.
     function signalMessageOk(cId) {
       let d = request.resource.data;
-      return d.keys().hasOnly(['classId', 'uid', 'from', 'text', 'byUid', 'at'])
+      return d.keys().hasOnly(['classId', 'uid', 'threadId', 'from', 'kind', 'tag',
+                               'text', 'byUid', 'at'])
              && d.classId == cId && d.uid is string
+             && d.threadId is string && d.threadId.size() > 0 && d.threadId.size() <= 40
              && d.from in ['student', 'teacher']
-             && d.text is string && d.text.size() > 0 && d.text.size() <= 1000
+             && (!('kind' in d) || (d.kind == 'first' && d.from == 'student'))
+             && d.get('tag', '') is string && d.get('tag', '').size() <= 20
+             && d.text is string && d.text.size() <= 1000
+             && (d.text.size() > 0 || d.get('kind', '') == 'first')
              && d.byUid == uid()
              && d.at == request.time;
     }
@@ -591,11 +598,12 @@ service cloud.firestore {
 
       // ── 손들기 대화 ───────────────────────────────────────
       //  · 경로 = classes/{classId}/signalMessages/{자동 id}, uid = 그 학생.
-      //    손든 학생과 교사가 주고받는 말 — 손들기 문서의 첫 물음에 이어
-      //    시간순으로 쌓입니다(lib/signalThread.js).
+      //    손든 학생과 교사가 주고받는 말 — 같은 threadId가 한 줄기(첫 물음
+      //    kind 'first' + 오간 말, lib/signalThread.js). **지우지 않고 쌓아**
+      //    교사가 자리표에서 '손들고 대화한 이력'으로 다시 봅니다.
       //  · 읽기: 담당 교사(목록 전체) · 그 학생 본인(where uid == 나).
       //  · 쓰기: 학생은 제 대화에, **손이 올라가 있을 때만**. 교사는 담당 반.
-      //    고치기는 없음. 지우기는 그 학생 · 담당 교사(대화를 끝낼 때).
+      //    고치기는 없음. 지우기는 담당 교사(앱에는 아직 그 화면이 없음).
       //  · 학생의 '읽음'은 제 손들기 문서의 seenAt(위 questionSignals update).
       //    시험 tests/rules/signalMessages.test.mjs.
       match /signalMessages/{msgId} {
@@ -613,11 +621,7 @@ service cloud.firestore {
             && (isAdmin() || ownsClassEditable(cId)))
         );
         allow update: if false;
-        allow delete: if signedIn() && (
-          isAdmin()
-          || ownsClassEditable(cId)
-          || resource.data.uid == uid()
-        );
+        allow delete: if isAdmin() || ownsClassEditable(cId);
       }
 
       // ── 공부방 출석부 ─────────────────────────────────────
