@@ -84,12 +84,13 @@ test("이벤트 선택 · 초록 점 · 응모 가능", () => {
   assert.equal(isEventPending({ donated: 3 }), false);
   // 응모 — 과일 1개 이상 · 목표 도달 · 아직 안 고름 · 접수 전
   const mine = (o) => ({ donated: 1, choice: null, received: false, ...o });
-  assert.equal(canEnterEvent(mine(), true), true);
-  assert.equal(canEnterEvent(mine({ donated: 0 }), true), false);
-  assert.equal(canEnterEvent(mine(), false), false);
-  assert.equal(canEnterEvent(mine({ choice: "declined" }), true), true);   // 응모 안 함 → 응모로 바꾸기
-  assert.equal(canEnterEvent(mine({ choice: "entered" }), true), false);
-  assert.equal(canEnterEvent(mine({ received: true }), true), false);
+  assert.equal(canEnterEvent(mine()), true);
+  assert.equal(canEnterEvent(mine({ donated: 0 })), false);
+  // 반 바구니가 100개 아래여도 — 내놓기와 응모는 따로(선생님 요청)
+  assert.equal(canEnterEvent(mine({ donated: 1 })), true);
+  assert.equal(canEnterEvent(mine({ choice: "declined" })), true);   // 응모 안 함 → 응모로 바꾸기
+  assert.equal(canEnterEvent(mine({ choice: "entered" })), false);
+  assert.equal(canEnterEvent(mine({ received: true })), false);
 });
 
 test("basketSummary: 응모 안 함 · 모두 답함 · 접수할 학생", () => {

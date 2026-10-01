@@ -11,8 +11,8 @@
 // [과일 기부] 학생은 제 과일을 몇 개 **내놓아**(과일 내놓기) 반의 바구니를
 // 채웁니다 — 내놓은 만큼 제 과일이 줄고, 몇 번이든 더 내놓을 수 있습니다.
 // **응모하기 전까지는 '과일 거두기'로 되돌려 받습니다**(같은 입력칸의 개수만큼).
-// 바구니가 100개에 닿으면 학생마다 '이벤트 응모'를 누르고, 교사 화면은 합계와
-// 응모 현황(모두 응모하면 그 사실)을 봅니다. 셈은 lib/fruitBasket.js, 저장은
+// 과일을 1개 이상 내놓은 학생은 언제든 '이벤트 응모'를 누릅니다(반 바구니
+// 100개와는 별개 — 선생님 요청). 교사 화면은 합계와 응모 현황을 봅니다. 셈은 lib/fruitBasket.js, 저장은
 // lib/data/rewards.js(donateFruits · withdrawFruits · enterFruitEvent), 규칙은 firestore.rules의
 // fruitBasket 절. 읽는 문서는 그 반의 바구니 문서들(학생 수만큼)뿐입니다 —
 // 내 과일 수는 페이지가 이미 받아 둔 rewards에서 넘겨받습니다.
@@ -25,7 +25,7 @@ import {
   enterFruitEvent, declineFruitEvent, cancelFruitEventChoice, receiveFruitEvent,
 } from "@/lib/store";
 import {
-  FRUIT_GOAL, basketSummary, donationAmount, withdrawAmount, myBasketEntry, canEnterEvent,
+  basketSummary, donationAmount, withdrawAmount, myBasketEntry, canEnterEvent,
 } from "@/lib/fruitBasket";
 
 // 바구니 그림 — public/fruit-basket.webp(색연필 그림, 1200×800 · 약 270KB).
@@ -89,8 +89,6 @@ export default function FruitBasketModal({
                 uid={uid}
                 myFruit={myFruit}
                 mine={mine}
-                goalReached={sum.goalReached}
-                total={sum.total}
               />
             )}
           </div>
@@ -115,7 +113,7 @@ function BasketTotal({ sum, loading }) {
         <span style={{ width: `${sum.percent}%` }} />
       </div>
       {sum.goalReached && (
-        <p className="fb-goal">🎉 과일 {sum.goal}개가 모였습니다. 이벤트에 응모할 수 있습니다.</p>
+        <p className="fb-goal">🎉 우리 반 바구니에 과일 {sum.goal}개가 모였습니다.</p>
       )}
     </section>
   );
@@ -196,11 +194,11 @@ function fruitErrorText(e, fallback) {
 
 // 학생 — 내 과일(내놓기 · 거두기) + 이벤트(응모하기 · 응모하지 않기)
 // 입력칸 하나에 단추 둘 — 적은 개수만큼 내놓거나 거둡니다. 이벤트는 따로 한
-// 칸: 응모하기(과일 1개 이상 · 반 바구니 100개) · 응모하지 않기(내놓은 과일을
+// 칸: 응모하기(과일 1개 이상 — 반 바구니 합계와 무관) · 응모하지 않기(내놓은 과일을
 // 모두 되돌려 받음). 두 단추는 고른 뒤에도 그대로 서서, 선생님이 접수하기
 // 전까지 바꾸거나(다른 단추) 거둘 수 있습니다(고른 단추를 다시 누름).
 // 응모한 동안은 과일을 거둘 수 없습니다(응모를 취소하면 다시 거둘 수 있음).
-function StudentPanel({ classId, uid, myFruit, mine, goalReached, total }) {
+function StudentPanel({ classId, uid, myFruit, mine }) {
   // 개수 — −/＋ 단추로 고치고, 칸에 직접 적어도 됨. **0에서 시작합니다**
   // (선생님 요청) — 창을 열자마자 1이 들어 있으면 '내놓기'를 한 번 누르는 것만으로
   // 과일이 나갑니다. 0이면 두 단추가 꺼져 있다가 ＋를 눌러야 켜집니다.
@@ -211,7 +209,7 @@ function StudentPanel({ classId, uid, myFruit, mine, goalReached, total }) {
   const giveAmt = donationAmount(raw, myFruit);
   const takeAmt = withdrawAmount(raw, mine.donated, myFruit, mine.entered);
   const canTake = !mine.entered && mine.donated > 0;
-  const canEnter = canEnterEvent(mine, goalReached);
+  const canEnter = canEnterEvent(mine);
   // −/＋ 단추의 범위 — 0부터, 내놓을 수 있는 수(가진 과일)와 거둘 수 있는 수
   // (내놓은 과일) 가운데 큰 쪽까지. 한 칸이 두 단추에 함께 쓰이기 때문입니다.
   const stepMax = Math.max(0, myFruit, canTake ? mine.donated : 0);
@@ -281,10 +279,8 @@ function StudentPanel({ classId, uid, myFruit, mine, goalReached, total }) {
   }
   // 응모하기가 꺼진 까닭 — 아직 고르지 않았을 때만 적습니다.
   let enterWhy = null;
-  if (!mine.choice && !canEnter) {
-    enterWhy = mine.donated < 1
-      ? "과일을 1개 이상 내놓아야 응모할 수 있어요."
-      : `반 바구니에 과일 ${FRUIT_GOAL}개가 모이면 응모할 수 있어요(지금 ${total}개).`;
+  if (!mine.choice && !canEnter && !mine.received) {
+    enterWhy = "과일을 1개 이상 내놓으면 응모할 수 있어요.";
   }
   return (
     <>
