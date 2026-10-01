@@ -16,6 +16,8 @@ import {
 } from "@/lib/store";
 import {
   SIGNAL_REPLY_MAX,
+  canFollowUp,
+  isFollowUpSignal,
   isSignalReplyUnread,
   replyMatchesSignal,
   signalReplyTime,
@@ -98,12 +100,19 @@ export default function QuestionSignalButton({
     return () => document.removeEventListener("pointerdown", onDown);
   }, [open]);
 
+  // 다시 질문 — 학생: 오늘 받은 답이 있고 아직 다시 묻지 않았으면 이 창은
+  // '다시 질문하기'가 됩니다(손을 새로 들어 교사 목록에 새 손으로 섭니다).
+  // 이미 다시 물어 새 손이 올라가 있으면 받은 답은 '지난 답변'입니다.
+  const followUp = !isTeacher && canFollowUp(myReply, mine);
+  const askedAgain = !isTeacher && !!mine && isFollowUpSignal(myReply, mine);
+
   // 창을 열 때 지금 든 손의 값을 채워 둡니다 — 고쳐 보낼 수 있게.
   // (창을 닫았다 다시 열면 늘 저장된 값에서 시작합니다)
+  // 다시 질문일 때는 메모를 비웁니다 — 새로 묻는 말이라서요(태그는 이어 받음).
   useEffect(() => {
     if (isTeacher || !open) return;
-    setTag(mine?.tag ?? "");
-    setNote(mine?.note ?? "");
+    setTag(mine?.tag ?? (followUp ? myReply?.tag ?? "" : ""));
+    setNote(followUp ? "" : mine?.note ?? "");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, isTeacher]);
 
@@ -147,6 +156,7 @@ export default function QuestionSignalButton({
       await setQuestionSignal(classId, user, true, {
         tag,
         note: withNote ? note : "",
+        renew: followUp,
       });
       setOpen(false);
     } finally {
@@ -276,7 +286,7 @@ export default function QuestionSignalButton({
         <div className="question-signal-dropdown question-signal-ask">
           <div className="question-signal-head">
             <p className="question-signal-title">
-              {mine ? "든 손 고치기" : "질문하기"}
+              {followUp ? "다시 질문하기" : mine ? "든 손 고치기" : "질문하기"}
             </p>
             <button
               type="button"
@@ -293,7 +303,7 @@ export default function QuestionSignalButton({
           {myReply && String(myReply.text ?? "").trim() && (
             <section className="qsig-reply" aria-label="선생님 답변">
               <div className="qsig-reply-head">
-                <strong>💬 선생님 답변</strong>
+                <strong>{askedAgain ? "💬 지난 답변" : "💬 선생님 답변"}</strong>
                 {myReply.at && <small>{formatTime(myReply.at)}</small>}
               </div>
               {(questionTagOf(myReply.tag) || String(myReply.note ?? "").trim()) && (
@@ -304,6 +314,12 @@ export default function QuestionSignalButton({
                 </p>
               )}
               <p className="qsig-reply-text">{myReply.text}</p>
+              {followUp && (
+                <p className="qsig-reply-next">
+                  답변을 보고 더 궁금한 것이 있으면 아래에 적어 다시 질문하세요.
+                  선생님 목록에 새 손으로 올라갑니다.
+                </p>
+              )}
             </section>
           )}
 
@@ -336,7 +352,11 @@ export default function QuestionSignalButton({
             className="qsig-note"
             value={note}
             onChange={(e) => setNote(e.target.value.slice(0, QUESTION_NOTE_MAX))}
-            placeholder="어떤 도움이 필요한지 적어 주세요."
+            placeholder={
+              followUp
+                ? "답변을 보고 더 궁금한 점을 적어 주세요."
+                : "어떤 도움이 필요한지 적어 주세요."
+            }
             rows={4}
           />
           <span className="qsig-note-count">
@@ -345,8 +365,14 @@ export default function QuestionSignalButton({
 
           <div className="qsig-actions">
             {mine ? (
-              <button type="button" className="btn-ghost" onClick={lower} disabled={busy}>
-                손 내리기
+              <button
+                type="button"
+                className="btn-ghost"
+                onClick={lower}
+                disabled={busy}
+                title={followUp ? "답변으로 해결됐으면 손을 내려 주세요" : ""}
+              >
+                {followUp ? "해결됐어요 · 손 내리기" : "손 내리기"}
               </button>
             ) : (
               <button
@@ -356,7 +382,7 @@ export default function QuestionSignalButton({
                 disabled={busy}
                 title="적은 것 없이 손만 듭니다"
               >
-                내용 없이 손들기
+                {followUp ? "내용 없이 다시 손들기" : "내용 없이 손들기"}
               </button>
             )}
             <button
@@ -366,7 +392,7 @@ export default function QuestionSignalButton({
               disabled={busy || !note.trim()}
               title={note.trim() ? "" : "메모를 적으면 눌러 보낼 수 있어요"}
             >
-              {mine ? "고쳐 보내기" : "내용과 함께 손들기"}
+              {followUp ? "다시 질문하기" : mine ? "고쳐 보내기" : "내용과 함께 손들기"}
             </button>
           </div>
         </div>
@@ -441,8 +467,14 @@ export default function QuestionSignalButton({
                   {/* 학생이 함께 보낸 것 — 태그가 먼저, 그 아래 메모.
                       다가가기 전에 무엇인지 알 수 있게 하는 자리라, 이름
                       줄 바로 아래에 둡니다. 없으면 줄 자체가 없습니다. */}
-                  {(questionTagOf(s.tag) || String(s.note ?? "").trim()) && (
+                  {(questionTagOf(s.tag) || String(s.note ?? "").trim()
+                    || isFollowUpSignal(replies[s.uid], s)) && (
                     <span className="qsig-said">
+                      {isFollowUpSignal(replies[s.uid], s) && (
+                        <span className="qsig-again" title="선생님 답변을 받은 뒤 다시 든 손이에요">
+                          ↩ 다시 질문
+                        </span>
+                      )}
                       {questionTagOf(s.tag) && (
                         <span className={`qsig-tag qsig-tag--${s.tag} on`}>
                           <span aria-hidden="true">{questionTagOf(s.tag).emoji}</span>
@@ -454,12 +486,13 @@ export default function QuestionSignalButton({
                       )}
                     </span>
                   )}
-                  {/* 답하기 — 학생 손바닥에 빨간 불이 켜지고, 학생이 손바닥을
+                  {/* 답하기 — 학생 손바닥에 초록 불이 켜지고, 학생이 손바닥을
                       누르면 이 글이 맨 위에 섭니다. 손은 그대로 두고(확인·닫기는
                       따로), 이미 답한 손이면 보낸 글과 '고치기'가 섭니다. */}
                   <ReplyArea
                     signal={s}
                     reply={replyMatchesSignal(replies[s.uid], s) ? replies[s.uid] : null}
+                    earlier={isFollowUpSignal(replies[s.uid], s) ? replies[s.uid] : null}
                     editing={replyTo === s.uid}
                     text={replyText}
                     busy={replyBusy}
@@ -484,7 +517,24 @@ export default function QuestionSignalButton({
 }
 
 // 교사 목록의 답하기 칸 — 한 학생 줄 아래.
-function ReplyArea({ signal, reply, editing, text, busy, error, onStart, onChange, onCancel, onSend }) {
+// earlier  다시 질문이면 그 앞에 단 답 — 무엇에 이어 묻는지 보이게 위에 둡니다.
+function ReplyArea({ earlier, ...rest }) {
+  if (!earlier) return <ReplyBody {...rest} />;
+  return (
+    <>
+      <span className="qsig-earlier">
+        <span className="qsig-earlier-label">
+          지난 답변{earlier.at ? ` · ${formatTime(earlier.at)}` : ""}
+          {earlier.seenAt ? " · 학생이 읽음" : ""}
+        </span>
+        <span className="qsig-earlier-text">{earlier.text}</span>
+      </span>
+      <ReplyBody {...rest} />
+    </>
+  );
+}
+
+function ReplyBody({ signal, reply, editing, text, busy, error, onStart, onChange, onCancel, onSend }) {
   const name = signal.name || "이 학생";
   if (editing) {
     return (
@@ -513,7 +563,7 @@ function ReplyArea({ signal, reply, editing, text, busy, error, onStart, onChang
             className="question-signal-confirm"
             onClick={onSend}
             disabled={busy || !text.trim()}
-            title="학생 손바닥에 빨간 불이 켜지고, 누르면 이 글을 봅니다"
+            title="학생 손바닥에 초록 불이 켜지고, 누르면 이 글을 봅니다"
           >
             {busy ? "보내는 중…" : "답변 보내기"}
           </button>

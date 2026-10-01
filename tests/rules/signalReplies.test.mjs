@@ -69,3 +69,37 @@ describe("손들기 답변 규칙", () => {
     await assertSucceeds(getDoc(ref(asStudent(env, "stu1").firestore(), "stu1")));
   });
 });
+
+// 앱과 같은 길 — 학생이 답이 오기 **전에** 제 자리를 구독해 두고(onSnapshot),
+// 그 뒤 교사가 답을 쓰면 학생 쪽에 그 답이 도착하는가. get 한 번이 통과해도
+// 실시간 구독이 거부되거나 갱신이 안 오면 손바닥 불이 안 바뀝니다.
+describe("손들기 답변 — 학생 구독", () => {
+  let env;
+  before(async () => { env = await makeEnv("demo-rules-signal-replies-live"); });
+  after(async () => { await env.cleanup(); });
+  beforeEach(async () => {
+    await env.clearFirestore();
+    await seed(env, async (db) => {
+      await setDoc(doc(db, "classes", "cA"), { createdBy: "teacherA", archived: false });
+      await setDoc(doc(db, "memberships", "stu1_cA"), { uid: "stu1", classId: "cA" });
+    });
+  });
+
+  it("미리 걸어 둔 구독에 교사의 답이 도착한다", async () => {
+    const { onSnapshot } = await import("firebase/firestore");
+    const s1 = asStudent(env, "stu1").firestore();
+    const got = [];
+    let fail = null;
+    const off = onSnapshot(ref(s1, "stu1"),
+      (snap) => got.push(snap.exists() ? snap.data().text : null),
+      (e) => { fail = e; });
+    await new Promise((r) => setTimeout(r, 400));
+    await setDoc(ref(asTeacher(env, "teacherA").firestore(), "stu1"), reply("stu1", "teacherA"));
+    for (let i = 0; i < 40 && !got.includes("쉬는 시간에 같이 봐요"); i++) {
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    off();
+    if (fail) throw fail;
+    if (!got.includes("쉬는 시간에 같이 봐요")) throw new Error(`답이 안 옴: ${JSON.stringify(got)}`);
+  });
+});
