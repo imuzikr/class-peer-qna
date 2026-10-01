@@ -26,7 +26,7 @@ import {
   cancelFruitEvent,
 } from "@/lib/store";
 import {
-  basketSummary, entryAmount, entryMax, myBasketEntry, canEnterEvent, entryAddition,
+  basketSummary, entryAmount, entryMax, myBasketEntry, canEnterEvent,
 } from "@/lib/fruitBasket";
 import { flyFruits } from "@/components/fruitFly";
 import ConfirmModal from "@/components/ConfirmModal";
@@ -263,31 +263,25 @@ function fruitErrorText(e, fallback) {
 // (토글이 아님), 다른 쪽을 누르면 바뀝니다. 응모한 동안은 개수를 못 바꿉니다
 // (응모하지 않기로 돌려받은 뒤 다시 응모). 선생님이 접수하면 모두 잠깁니다.
 function StudentPanel({ classId, uid, myFruit, mine, basketRef }) {
-  // 개수 — −/＋ 단추로 고치고, 칸에 직접 적어도 됨. 처음에는 **이미 담아 둔
-  // 수**(대개 0)입니다 — 창을 열자마자 1이 들어 있으면 응모하기 한 번에 과일이
-  // 나갑니다. 담은 수가 바뀌면(응모 · 돌려받기) 그 값으로 다시 맞춥니다.
-  const [raw, setRaw] = useState(String(mine.donated));
+  // 개수 — **이번에 담을 수**(선생님 요청). −/＋ 단추로 고치고, 칸에 직접
+  // 적어도 됨. 0에서 시작하고 응모하기를 누를 때마다(돌려받을 때도) 0으로
+  // 돌아갑니다 — 응모한 뒤에 더 담으려면 다시 정해 누르면 됩니다.
+  const [raw, setRaw] = useState("0");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState(null); // { ok, text }
   // 내 과일 수 자리 — 날아가는 과일이 여기서 출발하고(응모) 여기로 돌아옵니다.
   const myFruitRef = useRef(null);
-  useEffect(() => { setRaw(String(mine.donated)); }, [mine.donated, mine.choice]);
+  useEffect(() => { setRaw("0"); }, [mine.donated, mine.choice]);
 
   const entered = mine.choice === "entered";
-  const max = entryMax(mine, myFruit);
-  const amt = entryAmount(raw, mine, myFruit);
-  const canEnter = canEnterEvent(mine, amt);
-  // 이미 응모한 학생이 더 담는 개수(0이면 처음 응모이거나 그대로)
-  const add = entryAddition(mine, amt);
+  const max = entryMax(myFruit);
+  const add = entryAmount(raw, myFruit);
+  const canEnter = canEnterEvent(mine, add);
   const stepNow = Math.max(0, Math.floor(Number(raw)) || 0);
-  // 응모한 동안에는 **늘리기만** 됩니다(선생님 요청 — 나머지 과일을 더 담기).
-  // 담아 둔 수가 바닥이고, 줄이려면 응모하지 않기로 돌려받은 뒤 다시 정합니다
-  // (규칙이 응모한 동안 바구니를 줄이는 쓰기를 막음).
-  const floor = entered ? mine.donated : 0;
-  // 접수된 뒤 · 담을 과일이 아예 없으면 개수 칸을 잠급니다.
+  // 접수된 뒤 · 가진 과일이 없으면 개수 칸을 잠급니다.
   const locked = busy || mine.received || max <= 0;
   const step = (d) => {
-    setRaw(String(Math.min(max, Math.max(floor, stepNow + d))));
+    setRaw(String(Math.min(max, Math.max(0, stepNow + d))));
     setMsg(null);
   };
 
@@ -312,14 +306,19 @@ function StudentPanel({ classId, uid, myFruit, mine, basketRef }) {
       setBusy(false);
     }
   }
-  const enter = () => canEnter && run(
-    () => enterFruitEvent(classId, uid, amt),
-    (left) => (add > 0
-      ? `과일 ${add}개를 더 담았어요. 바구니에 담은 과일 ${amt}개, 남은 과일 ${left}개.`
-      : `응모했어요. 과일 ${amt}개를 바구니에 담았어요. 남은 과일 ${left}개.`),
-    "응모하지 못했어요. 다시 시도해 주세요.",
-    () => ({ dir: "in", n: add > 0 ? add : amt })
-  );
+  // 응모 · 더 담기가 같은 단추입니다(이미 응모했으면 '더 담았어요').
+  const enter = () => {
+    if (!canEnter) return;
+    const again = entered;
+    return run(
+      () => enterFruitEvent(classId, uid, add),
+      (out) => (again
+        ? `과일 ${add}개를 더 담았어요. 바구니에 담은 과일 ${out.donated}개, 남은 과일 ${out.left}개.`
+        : `응모했어요. 바구니에 담은 과일 ${out.donated}개, 남은 과일 ${out.left}개.`),
+      "응모하지 못했어요. 다시 시도해 주세요.",
+      () => ({ dir: "in", n: add })
+    );
+  };
   const decline = () => !mine.received && run(
     () => declineFruitEvent(classId, uid),
     (back) => (back > 0 ? `응모하지 않기로 했어요. 담아 둔 과일 ${back}개를 돌려받았어요.` : "응모하지 않기로 했어요."),
@@ -328,28 +327,21 @@ function StudentPanel({ classId, uid, myFruit, mine, basketRef }) {
   );
 
   // 적은 개수가 담을 수 없는 값이면 까닭을 적습니다(0은 '아직 안 정함').
-  let hint = null;
-  if (!locked && stepNow > 0 && !amt) {
-    hint = stepNow > max
-      ? `가진 과일${mine.donated > 0 ? ` ${myFruit}개와 담아 둔 과일 ${mine.donated}개` : ` ${myFruit}개`} 안에서 정해 주세요.`
-      : entered && stepNow < mine.donated
-        ? `응모한 과일은 줄일 수 없어요. ${mine.donated}개 이상으로 정하거나, 응모하지 않기로 돌려받은 뒤 다시 응모하세요.`
-        : "돌려받으면 과일이 100개를 넘어요. 개수를 늘려 주세요.";
-  }
+  const hint = !locked && stepNow > max ? `가진 과일 ${myFruit}개 안에서 정해 주세요.` : null;
   const help = mine.received
     ? "선생님이 응모를 접수해서 담은 과일이 최종 제출됐어요."
-    : entered
-      ? myFruit > 0
-        ? `응모해서 과일 ${mine.donated}개가 바구니에 담겼어요. ＋로 늘리고 응모하기를 다시 누르면 더 담겨요.`
-        : `응모해서 과일 ${mine.donated}개가 바구니에 담겼어요. 줄이려면 응모하지 않기로 돌려받은 뒤 다시 응모하세요.`
-      : max <= 0
-        ? "가진 과일이 없어요. 선생님께 과일을 받으면 응모할 수 있어요."
+    : max <= 0
+      ? entered
+        ? `응모해서 과일 ${mine.donated}개가 바구니에 담겼어요.`
+        : "가진 과일이 없어요. 선생님께 과일을 받으면 응모할 수 있어요."
+      : entered
+        ? "더 담으려면 −/＋로 개수를 정하고 응모하기를 다시 누르세요."
         : "−/＋로 담을 과일 수를 정하고 응모하기를 누르면 그만큼 바구니에 담겨요.";
   const eventHelp = mine.received
     ? "선생님이 접수해서 더 바꿀 수 없어요."
     : entered
       ? add > 0
-        ? `응모하기를 누르면 과일 ${add}개를 더 담아요(모두 ${amt}개).`
+        ? `응모하기를 누르면 과일 ${add}개를 더 담아요(모두 ${mine.donated + add}개).`
         : `응모했어요. 응모하지 않기를 누르면 담은 과일 ${mine.donated}개를 돌려받아요.`
       : !canEnter && max > 0
         ? "담을 과일을 1개 이상 정하면 응모할 수 있어요."
@@ -371,12 +363,12 @@ function StudentPanel({ classId, uid, myFruit, mine, basketRef }) {
           className="fb-give"
           onSubmit={(e) => { e.preventDefault(); enter(); }}
         >
-          <div className="fb-stepper" role="group" aria-label="바구니에 담을 과일 수">
+          <div className="fb-stepper" role="group" aria-label="이번에 담을 과일 수">
             <button
               type="button"
               className="fb-step"
               onClick={() => step(-1)}
-              disabled={locked || stepNow <= floor}
+              disabled={locked || stepNow <= 0}
               aria-label="하나 줄이기"
             >
               −
@@ -387,7 +379,7 @@ function StudentPanel({ classId, uid, myFruit, mine, basketRef }) {
               value={raw}
               onChange={(e) => { setRaw(e.target.value.replace(/[^0-9]/g, "").slice(0, 3)); setMsg(null); }}
               disabled={locked}
-              aria-label="담을 과일 수"
+              aria-label="이번에 담을 과일 수"
               data-esc-ignore=""
             />
             <button
@@ -413,7 +405,7 @@ function StudentPanel({ classId, uid, myFruit, mine, basketRef }) {
         {/* **둘 중 하나를 고르는 단추** — 고른 쪽은 진한 살구 + ✓, 다른 쪽은
             살구(선생님 요청). 고른 쪽은 다시 눌러도 아무 일이 없고, 다른 쪽을
             누르면 바뀝니다. 선생님이 접수하면 둘 다 잠깁니다.
-            응모한 뒤 ＋로 개수를 늘리면 응모하기가 다시 살아나 **더 담기**가
+            응모한 뒤 −/＋로 담을 수를 정하면 응모하기가 다시 살아나 **더 담기**가
             됩니다(`＋n개 더 응모하기` — 살구로 돌아와 누를 수 있음을 보임). */}
         <div className="fb-choice" role="radiogroup" aria-label="이벤트 응모 여부">
           <button
@@ -424,12 +416,12 @@ function StudentPanel({ classId, uid, myFruit, mine, basketRef }) {
             onClick={entered && add === 0 ? undefined : enter}
             disabled={busy || mine.received || (!(entered && add === 0) && !canEnter)}
             title={
-              add > 0 ? `과일 ${add}개를 바구니에 더 담아요(모두 ${amt}개)`
-                : entered ? "응모했어요 — ＋로 늘리면 더 담을 수 있어요"
-                : canEnter ? `과일 ${amt}개를 바구니에 담고 응모해요` : undefined
+              entered && add > 0 ? `과일 ${add}개를 바구니에 더 담아요(모두 ${mine.donated + add}개)`
+                : entered ? "응모했어요 — 개수를 정하면 더 담을 수 있어요"
+                : canEnter ? `과일 ${mine.donated + add}개를 바구니에 담고 응모해요` : undefined
             }
           >
-            {add > 0 ? `＋${add}개 더 응모하기` : entered ? "✓ 응모하기" : "응모하기"}
+            {entered ? (add > 0 ? `＋${add}개 더 응모하기` : "✓ 응모하기") : "응모하기"}
           </button>
           <button
             type="button"
