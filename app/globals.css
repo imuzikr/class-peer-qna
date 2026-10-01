@@ -3573,6 +3573,19 @@ button.footer-link:hover {
   display: flex; flex-direction: column; gap: 14px; min-width: 0;
   min-height: 0; overflow-y: auto; overscroll-behavior: contain;
 }
+/* 응모하기 · 응모하지 않기에 날아가는 과일(components/fruitFly.js) — body에
+   붙는 span이라 창(100) · 서랍(3001) 위에 섭니다. 자리는 transform만 움직입니다. */
+.fb-fly {
+  position: fixed;
+  z-index: 3200;
+  font-size: 26px;
+  line-height: 1;
+  pointer-events: none;
+  user-select: none;
+  transform: translate(-50%, -50%);
+  will-change: transform, opacity;
+  filter: drop-shadow(0 2px 2px rgba(58, 49, 46, 0.18));
+}
 .fb-label { font-size: 12.5px; font-weight: 700; color: var(--text-sub); }
 .fb-total, .fb-mine, .fb-entry, .fb-enter {
   border: 1px solid var(--border);

@@ -18,7 +18,7 @@
 // 내 과일 수는 페이지가 이미 받아 둔 rewards에서 넘겨받습니다.
 // 닫기는 다른 창과 같은 backdropClose(Esc·배경).
 // =============================================================
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { backdropClose } from "@/lib/modal";
 import {
   subscribeFruitBasket, enterFruitEvent, declineFruitEvent, receiveFruitEvent,
@@ -26,12 +26,14 @@ import {
 import {
   basketSummary, entryAmount, entryMax, myBasketEntry, canEnterEvent,
 } from "@/lib/fruitBasket";
+import { flyFruits } from "@/components/fruitFly";
 
 // 바구니 그림 — public/fruit-basket.webp(색연필 그림, 1200×800 · 약 270KB).
 // 크기를 적어 두어 그림이 오기 전에도 자리가 잡혀 창이 흔들리지 않습니다.
-function BasketArt() {
+function BasketArt({ artRef }) {
   return (
     <img
+      ref={artRef}
       className="fruit-basket-art"
       src="/fruit-basket.webp"
       width={1200}
@@ -60,6 +62,9 @@ export default function FruitBasketModal({
     [entries, memberUids]
   );
   const mine = useMemo(() => myBasketEntry(entries ?? [], uid), [entries, uid]);
+  // 바구니 그림 — 학생이 응모하면 과일이 여기로 날아와 담기고, 응모하지 않기를
+  // 고르면 여기서 튀어나와 돌아갑니다(components/fruitFly.js).
+  const artRef = useRef(null);
 
   return (
     <div className="modal-backdrop" {...backdropClose(onClose)}>
@@ -76,7 +81,7 @@ export default function FruitBasketModal({
         </div>
         <div className="fruit-basket-body">
           <div className="fruit-basket-artbox">
-            <BasketArt />
+            <BasketArt artRef={artRef} />
           </div>
           <div className="fruit-basket-side">
             <BasketTotal sum={sum} loading={entries === null} />
@@ -88,6 +93,7 @@ export default function FruitBasketModal({
                 uid={uid}
                 myFruit={myFruit}
                 mine={mine}
+                basketRef={artRef}
               />
             )}
           </div>
@@ -200,13 +206,15 @@ function fruitErrorText(e, fallback) {
 // **둘 중 하나를 고르는 단추**입니다 — 고른 쪽은 다시 눌러도 아무 일이 없고
 // (토글이 아님), 다른 쪽을 누르면 바뀝니다. 응모한 동안은 개수를 못 바꿉니다
 // (응모하지 않기로 돌려받은 뒤 다시 응모). 선생님이 접수하면 모두 잠깁니다.
-function StudentPanel({ classId, uid, myFruit, mine }) {
+function StudentPanel({ classId, uid, myFruit, mine, basketRef }) {
   // 개수 — −/＋ 단추로 고치고, 칸에 직접 적어도 됨. 처음에는 **이미 담아 둔
   // 수**(대개 0)입니다 — 창을 열자마자 1이 들어 있으면 응모하기 한 번에 과일이
   // 나갑니다. 담은 수가 바뀌면(응모 · 돌려받기) 그 값으로 다시 맞춥니다.
   const [raw, setRaw] = useState(String(mine.donated));
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState(null); // { ok, text }
+  // 내 과일 수 자리 — 날아가는 과일이 여기서 출발하고(응모) 여기로 돌아옵니다.
+  const myFruitRef = useRef(null);
   useEffect(() => { setRaw(String(mine.donated)); }, [mine.donated, mine.choice]);
 
   const entered = mine.choice === "entered";
@@ -221,13 +229,17 @@ function StudentPanel({ classId, uid, myFruit, mine }) {
     setMsg(null);
   };
 
-  async function run(fn, okText, failText) {
+  // fly(out) → 날릴 { dir, n } — 저장이 **끝난 뒤에** 날립니다(실패했는데
+  // 과일이 담기는 그림을 보여 주면 거짓말이 됩니다).
+  async function run(fn, okText, failText, fly) {
     if (busy) return;
     setBusy(true);
     setMsg(null);
     try {
       const out = await fn();
       setMsg({ ok: true, text: okText(out) });
+      const f = fly?.(out);
+      if (f?.n > 0) flyFruits({ from: myFruitRef.current, basket: basketRef?.current, ...f });
     } catch (e) {
       // 규칙 거부는 Firebase의 영어 문구('Missing or insufficient
       // permissions.')가 그대로 올라와 학생이 읽을 수 없었습니다. 우리말로
@@ -241,12 +253,14 @@ function StudentPanel({ classId, uid, myFruit, mine }) {
   const enter = () => canEnter && run(
     () => enterFruitEvent(classId, uid, amt),
     (left) => `응모했어요. 과일 ${amt}개를 바구니에 담았어요. 남은 과일 ${left}개.`,
-    "응모하지 못했어요. 다시 시도해 주세요."
+    "응모하지 못했어요. 다시 시도해 주세요.",
+    () => ({ dir: "in", n: amt })
   );
   const decline = () => !mine.received && run(
     () => declineFruitEvent(classId, uid),
     (back) => (back > 0 ? `응모하지 않기로 했어요. 담아 둔 과일 ${back}개를 돌려받았어요.` : "응모하지 않기로 했어요."),
-    "고르지 못했어요. 다시 시도해 주세요."
+    "고르지 못했어요. 다시 시도해 주세요.",
+    (back) => ({ dir: "out", n: back })
   );
 
   // 적은 개수가 담을 수 없는 값이면 까닭을 적습니다(0은 '아직 안 정함').
@@ -278,7 +292,7 @@ function StudentPanel({ classId, uid, myFruit, mine }) {
     <>
       <section className="fb-mine">
         <div className="fb-mine-stats">
-          <span>내가 가진 과일 <b>🍊 {myFruit}</b></span>
+          <span>내가 가진 과일 <b ref={myFruitRef}>🍊 {myFruit}</b></span>
           <span>바구니에 담은 과일 <b>{mine.donated}</b></span>
         </div>
         {/* 개수 — 가운데 칸 양옆의 −/＋로 하나씩(선생님 요청). 칸에 직접
