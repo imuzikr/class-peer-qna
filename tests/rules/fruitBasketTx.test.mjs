@@ -2,13 +2,13 @@
 // 과일 바구니 — 앱과 **똑같은 트랜잭션**으로 내놓기·거두기
 // -------------------------------------------------------------
 // fruitBasket.test.mjs는 같은 효과를 writeBatch로 시험합니다. 여기는 앱
-// (lib/data/rewards.js의 donateFruits · withdrawFruits)이 실제로 보내는
+// (lib/data/rewards.js의 enterFruitEvent · withdrawFruits)이 실제로 보내는
 // 모양 그대로 — 트랜잭션 안에서 두 문서를 읽고, updatedAt에 서버 시각,
 // 바구니는 merge로 — 보냅니다. 실서비스에서 '권한 없음'이 신고됐을 때
 // 규칙 쪽 원인인지 가르려고 둔 시험입니다(교사가 준 과일 문서 모양 그대로).
 // =============================================================
 import { describe, it, before, after, beforeEach } from "node:test";
-import { assertSucceeds } from "@firebase/rules-unit-testing";
+import { assertSucceeds, assertFails } from "@firebase/rules-unit-testing";
 import { doc, setDoc, runTransaction, serverTimestamp } from "firebase/firestore";
 import { makeEnv, seed, asStudent } from "./helpers.mjs";
 
@@ -26,6 +26,26 @@ async function move(db, uid, n) {
     tx.set(
       basketRef,
       { classId: C, uid, donated: before + n, entered: b.exists() ? b.data().entered === true : false, updatedAt: serverTimestamp() },
+      { merge: true }
+    );
+  });
+}
+
+// 응모하기 — 정한 개수(n)만큼 담으며 응모(enterFruitEvent의 두 번째 단계와
+// 같은 모양). 모자란 만큼만 제 과일에서 덜고, 같으면 과일 문서를 안 건드립니다.
+async function enterWith(db, uid, n) {
+  const rewardRef = doc(db, "rewards", `${C}_${uid}`);
+  const basketRef = doc(db, "classes", C, "fruitBasket", uid);
+  return runTransaction(db, async (tx) => {
+    const r = await tx.get(rewardRef);
+    const b = await tx.get(basketRef);
+    const have = r.data().count;
+    const diff = n - (b.exists() ? b.data().donated : 0);
+    if (diff > 0) tx.update(rewardRef, { count: have - diff, updatedAt: serverTimestamp() });
+    tx.set(
+      basketRef,
+      { classId: C, uid, donated: n, entered: true, declined: false,
+        decidedAt: serverTimestamp(), updatedAt: serverTimestamp() },
       { merge: true }
     );
   });
@@ -52,5 +72,36 @@ describe("fruitBasket — 앱과 같은 트랜잭션", () => {
     await assertSucceeds(move(db, "s1", 1));
     await assertSucceeds(move(db, "s1", 1));
     await assertSucceeds(move(db, "s1", -2));
+  });
+
+  it("응모하기: 담으며 응모(바구니 문서가 없을 때)", async () => {
+    const db = asStudent(env, "s1").firestore();
+    await assertSucceeds(enterWith(db, "s1", 2));
+  });
+
+  it("응모하기: 담아 둔 것에 더 담으며 응모", async () => {
+    const db = asStudent(env, "s1").firestore();
+    await assertSucceeds(move(db, "s1", 1));
+    await assertSucceeds(enterWith(db, "s1", 2));
+  });
+
+  it("응모하기: 담아 둔 것과 같은 수면 과일 문서를 안 건드리고 응모", async () => {
+    const db = asStudent(env, "s1").firestore();
+    await assertSucceeds(move(db, "s1", 2));
+    await assertSucceeds(enterWith(db, "s1", 2));
+  });
+
+  it("응모하며 바구니를 줄이는 한 번의 쓰기는 거부(앱은 먼저 돌려받음)", async () => {
+    const db = asStudent(env, "s1").firestore();
+    await assertSucceeds(move(db, "s1", 2));
+    await assertFails(runTransaction(db, async (tx) => {
+      const rewardRef = doc(db, "rewards", `${C}_s1`);
+      const basketRef = doc(db, "classes", C, "fruitBasket", "s1");
+      const r = await tx.get(rewardRef);
+      await tx.get(basketRef);
+      tx.update(rewardRef, { count: r.data().count + 1, updatedAt: serverTimestamp() });
+      tx.set(basketRef, { classId: C, uid: "s1", donated: 1, entered: true, declined: false,
+        decidedAt: serverTimestamp(), updatedAt: serverTimestamp() }, { merge: true });
+    }));
   });
 });

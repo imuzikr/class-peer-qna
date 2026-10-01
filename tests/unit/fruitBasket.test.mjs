@@ -2,8 +2,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   FRUIT_GOAL,
-  donationAmount,
-  withdrawAmount,
+  entryAmount,
+  entryMax,
   basketSummary,
   myBasketEntry,
   eventChoiceOf,
@@ -11,28 +11,24 @@ import {
   canEnterEvent,
 } from "@/lib/fruitBasket";
 
-test("donationAmount: 가진 것 안에서 양의 정수만", () => {
-  assert.equal(donationAmount("3", 5), 3);
-  assert.equal(donationAmount(" 5 ", 5), 5);
-  assert.equal(donationAmount("6", 5), 0);   // 가진 것보다 많음
-  assert.equal(donationAmount("0", 5), 0);
-  assert.equal(donationAmount("-2", 5), 0);
-  assert.equal(donationAmount("abc", 5), 0);
-  assert.equal(donationAmount("", 5), 0);
-  assert.equal(donationAmount("2.9", 5), 2);  // 소수는 버림
-  assert.equal(donationAmount("1", 0), 0);    // 과일이 없으면 못 냄
-});
-
-test("withdrawAmount: 내놓은 것 안에서 · 천장 안에서 · 응모 전에만", () => {
-  assert.equal(withdrawAmount("3", 5, 10), 3);
-  assert.equal(withdrawAmount("5", 5, 10), 5);
-  assert.equal(withdrawAmount("6", 5, 10), 0);          // 내놓은 것보다 많음
-  assert.equal(withdrawAmount("0", 5, 10), 0);
-  assert.equal(withdrawAmount("", 5, 10), 0);
-  assert.equal(withdrawAmount("2", 0, 10), 0);          // 내놓은 것이 없음
-  assert.equal(withdrawAmount("3", 5, 98), 0);          // 돌려받으면 101 — 천장 넘음
-  assert.equal(withdrawAmount("2", 5, 98), 2);          // 딱 100
-  assert.equal(withdrawAmount("1", 5, 10, true), 0);    // 응모한 뒤에는 없음
+test("entryAmount: 가진 것 + 담아 둔 것 안에서 1개 이상", () => {
+  const m = (donated = 0) => ({ donated });
+  assert.equal(entryAmount("3", m(), 5), 3);
+  assert.equal(entryAmount(" 5 ", m(), 5), 5);
+  assert.equal(entryAmount("6", m(), 5), 0);      // 가진 것보다 많음
+  assert.equal(entryAmount("0", m(), 5), 0);
+  assert.equal(entryAmount("-2", m(), 5), 0);
+  assert.equal(entryAmount("abc", m(), 5), 0);
+  assert.equal(entryAmount("", m(), 5), 0);
+  assert.equal(entryAmount("2.9", m(), 5), 2);    // 소수는 버림
+  assert.equal(entryAmount("1", m(), 0), 0);      // 과일이 없으면 못 담음
+  assert.equal(entryAmount("7", m(3), 5), 7);     // 담아 둔 3 + 가진 5 = 8까지
+  assert.equal(entryAmount("9", m(3), 5), 0);
+  assert.equal(entryAmount("2", m(5), 10), 2);    // 적게 고르면 남는 3을 돌려받음
+  assert.equal(entryAmount("2", m(5), 98), 0);    // 돌려받으면 101 — 천장 넘음
+  assert.equal(entryAmount("3", m(5), 98), 3);    // 딱 100
+  assert.equal(entryMax(m(3), 5), 8);
+  assert.equal(entryMax(m(), 0), 0);
 });
 
 test("basketSummary: 합계 · 목표 · 응모", () => {
@@ -82,15 +78,13 @@ test("이벤트 선택 · 초록 점 · 응모 가능", () => {
   assert.equal(isEventPending({ declined: true }), true);
   assert.equal(isEventPending({ entered: true, receivedBy: "t", receivedAt: null }), false); // 서버 시각 전이어도 접수함
   assert.equal(isEventPending({ donated: 3 }), false);
-  // 응모 — 과일 1개 이상 · 목표 도달 · 아직 안 고름 · 접수 전
-  const mine = (o) => ({ donated: 1, choice: null, received: false, ...o });
-  assert.equal(canEnterEvent(mine()), true);
-  assert.equal(canEnterEvent(mine({ donated: 0 })), false);
-  // 반 바구니가 100개 아래여도 — 내놓기와 응모는 따로(선생님 요청)
-  assert.equal(canEnterEvent(mine({ donated: 1 })), true);
-  assert.equal(canEnterEvent(mine({ choice: "declined" })), true);   // 응모 안 함 → 응모로 바꾸기
-  assert.equal(canEnterEvent(mine({ choice: "entered" })), false);
-  assert.equal(canEnterEvent(mine({ received: true })), false);
+  // 응모 — 담을 과일 1개 이상 · 아직 응모 안 함 · 접수 전(반 바구니 100개와 무관)
+  const mine = (o) => ({ donated: 0, choice: null, received: false, ...o });
+  assert.equal(canEnterEvent(mine(), 1), true);
+  assert.equal(canEnterEvent(mine(), 0), false);
+  assert.equal(canEnterEvent(mine({ choice: "declined" }), 2), true);   // 응모 안 함 → 응모로 바꾸기
+  assert.equal(canEnterEvent(mine({ choice: "entered" }), 2), false);
+  assert.equal(canEnterEvent(mine({ received: true }), 2), false);
 });
 
 test("basketSummary: 응모 안 함 · 모두 답함 · 접수할 학생", () => {

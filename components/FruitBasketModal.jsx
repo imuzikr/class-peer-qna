@@ -8,12 +8,12 @@
 // SVG로 여기서 그렸는데, 주신 그림으로 바꿨습니다. 종이 바탕이 흰 창과
 // 어긋나지 않게 CSS에서 multiply로 섞습니다(.fruit-basket-art).
 //
-// [과일 기부] 학생은 제 과일을 몇 개 **내놓아**(과일 내놓기) 반의 바구니를
-// 채웁니다 — 내놓은 만큼 제 과일이 줄고, 몇 번이든 더 내놓을 수 있습니다.
-// **응모하기 전까지는 '과일 거두기'로 되돌려 받습니다**(같은 입력칸의 개수만큼).
-// 과일을 1개 이상 내놓은 학생은 언제든 '이벤트 응모'를 누릅니다(반 바구니
-// 100개와는 별개 — 선생님 요청). 교사 화면은 합계와 응모 현황을 봅니다. 셈은 lib/fruitBasket.js, 저장은
-// lib/data/rewards.js(donateFruits · withdrawFruits · enterFruitEvent), 규칙은 firestore.rules의
+// [과일 담기 · 이벤트] 학생은 −/＋로 담을 과일 수를 정하고 **응모하기**를
+// 누르면 그만큼 제 과일이 반의 바구니에 담깁니다. **응모하지 않기**를 고르면
+// 담아 둔 과일을 모두 돌려받습니다 — '내놓기 · 거두기' 단추는 걷었습니다
+// (선생님 요청). 응모는 반 바구니 100개와는 별개입니다. 교사 화면은 합계와 응모
+// 현황을 봅니다. 셈은 lib/fruitBasket.js, 저장은
+// lib/data/rewards.js(enterFruitEvent · declineFruitEvent), 규칙은 firestore.rules의
 // fruitBasket 절. 읽는 문서는 그 반의 바구니 문서들(학생 수만큼)뿐입니다 —
 // 내 과일 수는 페이지가 이미 받아 둔 rewards에서 넘겨받습니다.
 // 닫기는 다른 창과 같은 backdropClose(Esc·배경).
@@ -21,11 +21,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { backdropClose } from "@/lib/modal";
 import {
-  subscribeFruitBasket, donateFruits, withdrawFruits,
-  enterFruitEvent, declineFruitEvent, receiveFruitEvent,
+  subscribeFruitBasket, enterFruitEvent, declineFruitEvent, receiveFruitEvent,
 } from "@/lib/store";
 import {
-  basketSummary, donationAmount, withdrawAmount, myBasketEntry, canEnterEvent,
+  basketSummary, entryAmount, entryMax, myBasketEntry, canEnterEvent,
 } from "@/lib/fruitBasket";
 
 // 바구니 그림 — public/fruit-basket.webp(색연필 그림, 1200×800 · 약 270KB).
@@ -192,112 +191,108 @@ function fruitErrorText(e, fallback) {
   return e?.message || fallback;
 }
 
-// 학생 — 내 과일(내놓기 · 거두기) + 이벤트(응모하기 · 응모하지 않기)
-// 입력칸 하나에 단추 둘 — 적은 개수만큼 내놓거나 거둡니다. 이벤트는 따로 한
-// 칸: 응모하기(과일 1개 이상 — 반 바구니 합계와 무관) · 응모하지 않기(내놓은 과일을
-// 모두 되돌려 받음). **둘 중 하나를 고르는 단추**입니다(선생님 요청) — 고른
-// 쪽을 다시 눌러도 아무 일이 없고(한때 그것이 '취소'였습니다 — 걷음), 다른
-// 쪽을 누르면 바뀝니다. 선생님이 접수하기 전까지 몇 번이든 바꿀 수 있습니다.
-// 응모한 동안은 과일을 거둘 수 없습니다(응모하지 않기로 바꾸면 모두 돌려받음).
+// 학생 — 담을 과일 수(−/＋) + 이벤트(응모하기 · 응모하지 않기)
+// '과일 내놓기 · 과일 거두기' 단추는 없습니다(선생님 요청 — −/＋로 정한 개수가
+// 곧 담을 과일이고, 담고 돌려받는 것은 두 선택이 합니다).
+//  · **응모하기** — 정한 개수만큼 제 과일이 바구니에 담기며 응모합니다
+//    (enterFruitEvent). 반 바구니 100개와는 별개입니다.
+//  · **응모하지 않기** — 담아 둔 과일을 모두 돌려받습니다(declineFruitEvent).
+// **둘 중 하나를 고르는 단추**입니다 — 고른 쪽은 다시 눌러도 아무 일이 없고
+// (토글이 아님), 다른 쪽을 누르면 바뀝니다. 응모한 동안은 개수를 못 바꿉니다
+// (응모하지 않기로 돌려받은 뒤 다시 응모). 선생님이 접수하면 모두 잠깁니다.
 function StudentPanel({ classId, uid, myFruit, mine }) {
-  // 개수 — −/＋ 단추로 고치고, 칸에 직접 적어도 됨. **0에서 시작합니다**
-  // (선생님 요청) — 창을 열자마자 1이 들어 있으면 '내놓기'를 한 번 누르는 것만으로
-  // 과일이 나갑니다. 0이면 두 단추가 꺼져 있다가 ＋를 눌러야 켜집니다.
-  const [raw, setRaw] = useState("0");
+  // 개수 — −/＋ 단추로 고치고, 칸에 직접 적어도 됨. 처음에는 **이미 담아 둔
+  // 수**(대개 0)입니다 — 창을 열자마자 1이 들어 있으면 응모하기 한 번에 과일이
+  // 나갑니다. 담은 수가 바뀌면(응모 · 돌려받기) 그 값으로 다시 맞춥니다.
+  const [raw, setRaw] = useState(String(mine.donated));
   const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState(null);       // 과일 칸 { ok, text }
-  const [eventMsg, setEventMsg] = useState(null); // 이벤트 칸 { ok, text }
-  const giveAmt = donationAmount(raw, myFruit);
-  const takeAmt = withdrawAmount(raw, mine.donated, myFruit, mine.entered);
-  const canTake = !mine.entered && mine.donated > 0;
-  const canEnter = canEnterEvent(mine);
-  // −/＋ 단추의 범위 — 0부터, 내놓을 수 있는 수(가진 과일)와 거둘 수 있는 수
-  // (내놓은 과일) 가운데 큰 쪽까지. 한 칸이 두 단추에 함께 쓰이기 때문입니다.
-  const stepMax = Math.max(0, myFruit, canTake ? mine.donated : 0);
+  const [msg, setMsg] = useState(null); // { ok, text }
+  useEffect(() => { setRaw(String(mine.donated)); }, [mine.donated, mine.choice]);
+
+  const entered = mine.choice === "entered";
+  const max = entryMax(mine, myFruit);
+  const amt = entryAmount(raw, mine, myFruit);
+  const canEnter = canEnterEvent(mine, amt);
   const stepNow = Math.max(0, Math.floor(Number(raw)) || 0);
-  const noFruitAtAll = mine.received || (myFruit <= 0 && !canTake);
+  // 응모한 동안 · 접수된 뒤 · 담을 과일이 아예 없으면 개수 칸을 잠급니다.
+  const locked = busy || mine.received || entered || max <= 0;
   const step = (d) => {
-    const next = Math.min(stepMax, Math.max(0, stepNow + d));
-    setRaw(String(next));
+    setRaw(String(Math.min(max, Math.max(0, stepNow + d))));
     setMsg(null);
   };
 
-  async function run(fn, okText, failText, setOut = setMsg) {
+  async function run(fn, okText, failText) {
     if (busy) return;
     setBusy(true);
     setMsg(null);
-    setEventMsg(null);
     try {
       const out = await fn();
-      setOut({ ok: true, text: okText(out) });
-      if (setOut === setMsg) setRaw("0");
+      setMsg({ ok: true, text: okText(out) });
     } catch (e) {
       // 규칙 거부는 Firebase의 영어 문구('Missing or insufficient
       // permissions.')가 그대로 올라와 학생이 읽을 수 없었습니다. 우리말로
       // 바꾸고, 원인을 좁힐 단서(code)는 콘솔에 남깁니다.
       console.error("[fruitBasket] 실패:", e?.code ?? "", e?.message ?? e);
-      setOut({ ok: false, text: fruitErrorText(e, failText) });
+      setMsg({ ok: false, text: fruitErrorText(e, failText) });
     } finally {
       setBusy(false);
     }
   }
-  const give = () => giveAmt && run(
-    () => donateFruits(classId, uid, giveAmt),
-    (left) => `과일 ${giveAmt}개를 내놓았어요. 남은 과일 ${left}개.`,
-    "내놓지 못했어요. 다시 시도해 주세요."
-  );
-  const take = () => takeAmt && run(
-    () => withdrawFruits(classId, uid, takeAmt),
-    (left) => `과일 ${takeAmt}개를 거뒀어요. 가진 과일 ${left}개.`,
-    "거두지 못했어요. 다시 시도해 주세요."
-  );
   const enter = () => canEnter && run(
-    () => enterFruitEvent(classId, uid),
-    () => "이벤트에 응모했어요.",
-    "응모하지 못했어요. 다시 시도해 주세요.",
-    setEventMsg
+    () => enterFruitEvent(classId, uid, amt),
+    (left) => `응모했어요. 과일 ${amt}개를 바구니에 담았어요. 남은 과일 ${left}개.`,
+    "응모하지 못했어요. 다시 시도해 주세요."
   );
   const decline = () => !mine.received && run(
     () => declineFruitEvent(classId, uid),
-    (back) => (back > 0 ? `응모하지 않기로 했어요. 내놓은 과일 ${back}개를 돌려받았어요.` : "응모하지 않기로 했어요."),
-    "고르지 못했어요. 다시 시도해 주세요.",
-    setEventMsg
+    (back) => (back > 0 ? `응모하지 않기로 했어요. 담아 둔 과일 ${back}개를 돌려받았어요.` : "응모하지 않기로 했어요."),
+    "고르지 못했어요. 다시 시도해 주세요."
   );
 
-  // 적은 개수가 어느 쪽에도 안 맞으면 까닭을 적습니다(0은 '아직 안 정함').
-  const typed = stepNow > 0;
+  // 적은 개수가 담을 수 없는 값이면 까닭을 적습니다(0은 '아직 안 정함').
   let hint = null;
-  if (typed && !giveAmt && !takeAmt) {
-    hint = canTake
-      ? `내놓기는 가진 과일(${myFruit}개), 거두기는 내놓은 과일(${mine.donated}개) 안에서 적어 주세요.`
-      : `가진 과일(${myFruit}개) 안에서 1개 이상 적어 주세요.`;
+  if (!locked && stepNow > 0 && !amt) {
+    hint = stepNow > max
+      ? `가진 과일${mine.donated > 0 ? ` ${myFruit}개와 담아 둔 과일 ${mine.donated}개` : ` ${myFruit}개`} 안에서 정해 주세요.`
+      : "돌려받으면 과일이 100개를 넘어요. 개수를 늘려 주세요.";
   }
-  // 응모하기가 꺼진 까닭 — 아직 응모하지 않았는데 못 누를 때만 적습니다.
-  let enterWhy = null;
-  if (mine.choice !== "entered" && !canEnter && !mine.received) {
-    enterWhy = mine.choice === "declined"
-      ? "과일을 1개 이상 내놓으면 응모하기로 바꿀 수 있어요."
-      : "과일을 1개 이상 내놓으면 응모할 수 있어요.";
-  }
+  const help = mine.received
+    ? "선생님이 응모를 접수해서 담은 과일이 최종 제출됐어요."
+    : entered
+      ? `응모해서 과일 ${mine.donated}개가 바구니에 담겼어요. 개수를 바꾸려면 응모하지 않기로 돌려받은 뒤 다시 응모하세요.`
+      : max <= 0
+        ? "가진 과일이 없어요. 선생님께 과일을 받으면 응모할 수 있어요."
+        : "−/＋로 담을 과일 수를 정하고 응모하기를 누르면 그만큼 바구니에 담겨요.";
+  const eventHelp = mine.received
+    ? "선생님이 접수해서 더 바꿀 수 없어요."
+    : entered
+      ? `응모했어요. 응모하지 않기를 누르면 담은 과일 ${mine.donated}개를 돌려받아요.`
+      : !canEnter && max > 0
+        ? "담을 과일을 1개 이상 정하면 응모할 수 있어요."
+        : mine.choice === "declined"
+          ? "응모하지 않기를 골랐어요. 응모하기를 누르면 바뀌어요."
+          : mine.donated > 0
+            ? `둘 중 하나를 골라 주세요. 응모하지 않기를 고르면 담아 둔 과일 ${mine.donated}개를 돌려받아요.`
+            : "둘 중 하나를 골라 주세요.";
   return (
     <>
       <section className="fb-mine">
         <div className="fb-mine-stats">
           <span>내가 가진 과일 <b>🍊 {myFruit}</b></span>
-          <span>내가 내놓은 과일 <b>{mine.donated}</b></span>
+          <span>바구니에 담은 과일 <b>{mine.donated}</b></span>
         </div>
+        {/* 개수 — 가운데 칸 양옆의 −/＋로 하나씩(선생님 요청). 칸에 직접
+            적을 수도 있습니다(숫자만 남김). Enter는 응모하기와 같습니다. */}
         <form
           className="fb-give"
-          onSubmit={(e) => { e.preventDefault(); give(); }}
+          onSubmit={(e) => { e.preventDefault(); enter(); }}
         >
-          {/* 개수 — 가운데 칸 양옆의 −/＋로 하나씩(선생님 요청). 칸에 직접
-              적을 수도 있습니다(숫자만 남김). */}
-          <div className="fb-stepper" role="group" aria-label="내놓거나 거둘 과일 수">
+          <div className="fb-stepper" role="group" aria-label="바구니에 담을 과일 수">
             <button
               type="button"
               className="fb-step"
               onClick={() => step(-1)}
-              disabled={busy || noFruitAtAll || stepNow <= 0}
+              disabled={locked || stepNow <= 0}
               aria-label="하나 줄이기"
             >
               −
@@ -307,49 +302,22 @@ function StudentPanel({ classId, uid, myFruit, mine }) {
               inputMode="numeric"
               value={raw}
               onChange={(e) => { setRaw(e.target.value.replace(/[^0-9]/g, "").slice(0, 3)); setMsg(null); }}
-              disabled={busy || noFruitAtAll}
-              aria-label="과일 수"
+              disabled={locked}
+              aria-label="담을 과일 수"
               data-esc-ignore=""
             />
             <button
               type="button"
               className="fb-step"
               onClick={() => step(1)}
-              disabled={busy || noFruitAtAll || stepNow >= stepMax}
+              disabled={locked || stepNow >= max}
               aria-label="하나 늘리기"
             >
               ＋
             </button>
           </div>
-          <button type="submit" className="btn-primary" disabled={busy || mine.received || !giveAmt}>
-            과일 내놓기
-          </button>
-          <button
-            type="button"
-            className="btn-primary fb-take"
-            onClick={take}
-            disabled={busy || mine.received || !takeAmt}
-            title={
-              mine.received ? "선생님이 접수해서 과일이 최종 제출됐어요"
-                : mine.entered ? "응모한 동안은 과일을 거둘 수 없어요 — 응모하지 않기를 고르면 내놓은 과일을 모두 돌려받아요"
-                : mine.donated <= 0 ? "아직 내놓은 과일이 없어요"
-                : `내놓은 과일 ${mine.donated}개 안에서 거둬요`
-            }
-          >
-            과일 거두기
-          </button>
         </form>
-        {hint && <p className="fb-msg err">{hint}</p>}
-        {!hint && !msg && (
-          <p className="fb-help">
-            {mine.received
-              ? "선생님이 응모를 접수해서 내놓은 과일이 최종 제출됐어요."
-              : mine.entered
-              ? "응모한 동안은 과일을 거둘 수 없어요. 과일을 더 내놓을 수는 있어요(응모하지 않기를 고르면 모두 돌려받아요)."
-              : "개수를 적고 내놓거나 거둬요. 이벤트에 응모하기 전까지는 언제든 거둘 수 있어요."}
-          </p>
-        )}
-        {msg && <p className={`fb-msg ${msg.ok ? "ok" : "err"}`}>{msg.text}</p>}
+        {hint ? <p className="fb-msg err">{hint}</p> : <p className="fb-help">{help}</p>}
       </section>
 
       {/* 이벤트 칸은 늘 섭니다 — 조건이 안 되면 꺼진 단추와 까닭 한 줄. */}
@@ -358,50 +326,39 @@ function StudentPanel({ classId, uid, myFruit, mine }) {
           <span className="fb-label">이벤트</span>
           {mine.received && <strong className="fb-received">선생님이 접수했어요</strong>}
         </div>
-        {/* **둘 중 하나를 고르는 단추**입니다(선생님 요청) — 고른 쪽에 ✓,
-            다른 쪽은 옅게. 고른 쪽은 다시 눌러도 아무 일이 없고(토글이
-            아님), 다른 쪽을 누르면 바뀝니다. 선생님이 접수하면 둘 다 잠깁니다. */}
+        {/* **둘 중 하나를 고르는 단추** — 고른 쪽은 진한 살구 + ✓, 다른 쪽은
+            살구(선생님 요청). 고른 쪽은 다시 눌러도 아무 일이 없고, 다른 쪽을
+            누르면 바뀝니다. 선생님이 접수하면 둘 다 잠깁니다. */}
         <div className="fb-choice" role="radiogroup" aria-label="이벤트 응모 여부">
           <button
             type="button"
             role="radio"
-            className={`btn-primary fb-enter-btn${mine.choice === "entered" ? " fb-choice-on" : ""}${mine.choice === "declined" ? " fb-choice-off" : ""}`}
-            aria-checked={mine.choice === "entered"}
-            onClick={mine.choice === "entered" ? undefined : enter}
-            disabled={busy || mine.received || (mine.choice !== "entered" && !canEnter)}
-            title={mine.choice === "entered" ? "응모했어요 — 바꾸려면 응모하지 않기를 누르세요" : undefined}
+            className={`btn-primary fb-enter-btn${entered ? " fb-choice-on" : ""}${mine.choice === "declined" ? " fb-choice-off" : ""}`}
+            aria-checked={entered}
+            onClick={entered ? undefined : enter}
+            disabled={busy || mine.received || (!entered && !canEnter)}
+            title={entered ? "응모했어요 — 바꾸려면 응모하지 않기를 누르세요" : canEnter ? `과일 ${amt}개를 바구니에 담고 응모해요` : undefined}
           >
-            {mine.choice === "entered" ? "✓ 응모하기" : "응모하기"}
+            {entered ? "✓ 응모하기" : "응모하기"}
           </button>
           <button
             type="button"
             role="radio"
-            className={`btn-primary fb-enter-btn${mine.choice === "declined" ? " fb-choice-on" : ""}${mine.choice === "entered" ? " fb-choice-off" : ""}`}
+            className={`btn-primary fb-enter-btn${mine.choice === "declined" ? " fb-choice-on" : ""}${entered ? " fb-choice-off" : ""}`}
             aria-checked={mine.choice === "declined"}
             onClick={mine.choice === "declined" ? undefined : decline}
             disabled={busy || mine.received}
             title={
               mine.choice === "declined" ? "응모하지 않기를 골랐어요 — 바꾸려면 응모하기를 누르세요"
-                : mine.donated > 0 ? `내놓은 과일 ${mine.donated}개는 자동으로 돌려받아요`
+                : mine.donated > 0 ? `담아 둔 과일 ${mine.donated}개를 돌려받아요`
                 : "응모하지 않습니다"
             }
           >
             {mine.choice === "declined" ? "✓ 응모하지 않기" : "응모하지 않기"}
           </button>
         </div>
-        <p className="fb-help fb-enter-wait">
-          {mine.received
-            ? "선생님이 접수해서 더 바꿀 수 없어요."
-            : enterWhy ??
-              (mine.choice === "entered"
-                ? `응모했어요. 응모하지 않기를 누르면 바뀌고, 내놓은 과일 ${mine.donated}개를 돌려받아요.`
-                : mine.choice === "declined"
-                  ? "응모하지 않기를 골랐어요. 응모하기를 누르면 바뀌어요."
-                  : mine.donated > 0
-                    ? `둘 중 하나를 골라 주세요. 응모하지 않기를 고르면 내놓은 과일 ${mine.donated}개를 돌려받아요.`
-                    : "응모 여부를 골라 주세요.")}
-        </p>
-        {eventMsg && <p className={`fb-msg ${eventMsg.ok ? "ok" : "err"}`}>{eventMsg.text}</p>}
+        <p className="fb-help fb-enter-wait">{eventHelp}</p>
+        {msg && <p className={`fb-msg ${msg.ok ? "ok" : "err"}`}>{msg.text}</p>}
       </section>
     </>
   );
