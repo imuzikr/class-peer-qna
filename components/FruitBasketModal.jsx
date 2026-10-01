@@ -19,14 +19,17 @@
 // 닫기는 다른 창과 같은 backdropClose(Esc·배경).
 // =============================================================
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { backdropClose } from "@/lib/modal";
 import {
   subscribeFruitBasket, enterFruitEvent, declineFruitEvent, receiveFruitEvent,
+  cancelFruitEvent,
 } from "@/lib/store";
 import {
   basketSummary, entryAmount, entryMax, myBasketEntry, canEnterEvent,
 } from "@/lib/fruitBasket";
 import { flyFruits } from "@/components/fruitFly";
+import ConfirmModal from "@/components/ConfirmModal";
 
 // 바구니 그림 — public/fruit-basket.webp(색연필 그림, 1200×800 · 약 270KB).
 // 크기를 적어 두어 그림이 오기 전에도 자리가 잡혀 창이 흔들리지 않습니다.
@@ -86,7 +89,7 @@ export default function FruitBasketModal({
           <div className="fruit-basket-side">
             <BasketTotal sum={sum} loading={entries === null} />
             {isTeacher ? (
-              <TeacherPanel classId={classId} sum={sum} />
+              <TeacherPanel classId={classId} sum={sum} entryCount={(entries ?? []).length} />
             ) : (
               <StudentPanel
                 classId={classId}
@@ -124,13 +127,16 @@ function BasketTotal({ sum, loading }) {
   );
 }
 
-// 교사 — 이벤트 현황(응모 · 응모 안 함 · 아직 — 수만) + '응모 접수'.
-// 접수하면 고른 학생들(응모하기 · 응모하지 않기)의 선택과 내놓은 과일이 최종
+// 교사 — 이벤트 현황(응모 · 응모 안 함 · 아직 — 수만) + '이벤트 접수' · '이벤트 취소'.
+// 접수하면 고른 학생들(응모하기 · 응모하지 않기)의 선택과 담은 과일이 최종
 // 제출되고 '멋진 순간' 자리표의 초록 점이 꺼집니다. 그 학생은 그 뒤로 아무것도
 // 못 바꿉니다. 접수 뒤에 새로 고른 학생은 다시 점이 켜지므로 한 번 더 누르면 됩니다.
-function TeacherPanel({ classId, sum }) {
+// 취소하면 바구니에 든 과일을 학생마다 모두 돌려주고 바구니를 0개로 비웁니다
+// (응모 선택 · 접수 표시도 함께 걷힘 — cancelFruitEvent). 되묻고 합니다.
+function TeacherPanel({ classId, sum, entryCount = 0 }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState(null); // { ok, text }
+  const [asking, setAsking] = useState(false);
   // 아직 안 고른 학생의 이름은 적지 않습니다(선생님 요청 — 자리표의 초록 점이
   // 그 일을 합니다: 점이 꺼진 자리가 곧 안 고른 학생).
   const pending = sum.pendingUids.length;
@@ -146,6 +152,27 @@ function TeacherPanel({ classId, sum }) {
     } catch (e) {
       console.error("[fruitBasket] 접수 실패:", e?.code ?? e);
       setMsg({ ok: false, text: "접수하지 못했어요. 다시 시도해 주세요." });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function cancelEvent() {
+    if (busy) return;
+    setAsking(false);
+    setBusy(true);
+    setMsg(null);
+    try {
+      const r = await cancelFruitEvent(classId);
+      setMsg({
+        ok: true,
+        text:
+          `이벤트를 취소했어요. ${r.students}명에게 과일 ${r.fruit}개를 돌려주고 바구니를 비웠어요.` +
+          (r.capped > 0 ? ` (과일이 100개를 넘는 학생이 있어 ${r.capped}개는 돌려주지 못했어요.)` : ""),
+      });
+    } catch (e) {
+      console.error("[fruitBasket] 이벤트 취소 실패:", e?.code ?? e);
+      setMsg({ ok: false, text: "이벤트를 취소하지 못했어요. 다시 시도해 주세요." });
     } finally {
       setBusy(false);
     }
@@ -170,9 +197,19 @@ function TeacherPanel({ classId, sum }) {
         className="btn-primary fb-enter-btn fb-receive"
         onClick={receive}
         disabled={busy || !pending}
-        title={pending ? "고른 학생들의 선택과 내놓은 과일을 최종 제출로 받습니다 — 자리표의 초록 점이 꺼지고, 그 뒤로는 바꿀 수 없어요" : "새로 고른 학생이 없어요"}
+        title={pending ? "고른 학생들의 선택과 담은 과일을 최종 제출로 받습니다 — 자리표의 초록 점이 꺼지고, 그 뒤로는 바꿀 수 없어요" : "새로 고른 학생이 없어요"}
       >
-        {busy ? "접수하는 중…" : pending ? `응모 접수 (${pending}명 · 과일 ${fruit}개)` : "응모 접수"}
+        {busy ? "처리하는 중…" : pending ? `이벤트 접수 (${pending}명 · 과일 ${fruit}개)` : "이벤트 접수"}
+      </button>
+      {/* 이벤트 취소 — 되돌리기 어려운 일이라 접수와 갈라 옅은 단추로 두고 되묻습니다. */}
+      <button
+        type="button"
+        className="btn-ghost fb-enter-btn fb-cancel-event"
+        onClick={() => setAsking(true)}
+        disabled={busy || entryCount === 0}
+        title={entryCount ? "바구니의 과일을 학생마다 모두 돌려주고 바구니를 0개로 비웁니다" : "아직 바구니에 든 것이 없어요"}
+      >
+        이벤트 취소
       </button>
       <p className="fb-help">
         {pending
@@ -180,6 +217,25 @@ function TeacherPanel({ classId, sum }) {
           : "학생이 응모하기나 응모하지 않기를 고르면 자리표에 초록 점이 켜져요."}
       </p>
       {msg && <p className={`fb-msg ${msg.ok ? "ok" : "err"}`}>{msg.text}</p>}
+      {/* body에 포털 — 창(.modal) 안에 그리면 그 창의 클릭 · 스크롤 칸에 갇힙니다. */}
+      {asking && createPortal(
+        <ConfirmModal
+          icon="🧺"
+          title="이벤트 취소"
+          preview={`바구니의 과일 ${sum.total}개`}
+          description={
+            "학생들이 바구니에 담은 과일을 모두 각자에게 돌려주고, 바구니를 0개로 비웁니다.\n" +
+            "응모하기 · 응모하지 않기 선택과 접수 표시도 함께 지워집니다.\n" +
+            "접수한 학생의 과일도 돌아갑니다."
+          }
+          confirmLabel="이벤트 취소"
+          cancelLabel="닫기"
+          danger
+          onConfirm={cancelEvent}
+          onClose={() => setAsking(false)}
+        />,
+        document.body
+      )}
     </section>
   );
 }

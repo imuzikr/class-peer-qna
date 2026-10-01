@@ -9,7 +9,7 @@
 // =============================================================
 import { describe, it, before, after, beforeEach } from "node:test";
 import { assertFails, assertSucceeds } from "@firebase/rules-unit-testing";
-import { doc, setDoc, getDoc, getDocs, collection, deleteDoc, writeBatch, updateDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, getDoc, getDocs, collection, deleteDoc, writeBatch, updateDoc, serverTimestamp, runTransaction } from "firebase/firestore";
 import { makeEnv, seed, asStudent, asTeacher } from "./helpers.mjs";
 
 const C = "classA";
@@ -176,5 +176,36 @@ describe("fruitBasket — 과일 내놓기", () => {
     await seed(env, (db) => setDoc(basket(db, "s1"), entry("s1", 4)));
     await assertFails(deleteDoc(basket(asStudent(env, "s1").firestore(), "s1")));
     await assertSucceeds(deleteDoc(basket(asTeacher(env, "teacherA").firestore(), "s1")));
+  });
+
+  // 이벤트 취소(lib/data/rewards.js의 cancelFruitEvent) — 앱과 같은 트랜잭션:
+  // 학생마다 담은 만큼 과일을 돌려주고(merge) 바구니 문서를 지웁니다.
+  function cancelAll(db, rows) {
+    return runTransaction(db, async (tx) => {
+      const got = [];
+      for (const u of rows) got.push([u, await tx.get(basket(db, u)), await tx.get(reward(db, u))]);
+      for (const [u, b, r] of got) {
+        const back = Math.min(b.data().donated, 100 - r.data().count);
+        if (back > 0) tx.set(reward(db, u), { classId: C, uid: u, count: r.data().count + back, updatedAt: serverTimestamp() }, { merge: true });
+        tx.delete(basket(db, u));
+      }
+    });
+  }
+
+  it("이벤트 취소 — 담당 교사는 과일을 돌려주고 바구니를 비움(접수한 학생도)", async () => {
+    await seed(env, async (db) => {
+      await setDoc(basket(db, "s1"), { ...entry("s1", 4, true), receivedBy: "teacherA" });
+      await setDoc(basket(db, "s2"), { ...entry("s2", 0), declined: true });
+    });
+    await assertSucceeds(cancelAll(asTeacher(env, "teacherA").firestore(), ["s1", "s2"]));
+  });
+
+  it("이벤트 취소 — 다른 반 교사 · 학생은 거부", async () => {
+    await seed(env, async (db) => {
+      await setDoc(doc(db, "classes", "classZ"), { name: "Z", createdBy: "teacherZ", archived: false });
+      await setDoc(basket(db, "s1"), entry("s1", 4, true));
+    });
+    await assertFails(cancelAll(asTeacher(env, "teacherZ").firestore(), ["s1"]));
+    await assertFails(cancelAll(asStudent(env, "s2").firestore(), ["s1"]));
   });
 });

@@ -3686,6 +3686,9 @@ button.footer-link:hover {
 .fb-entered.fb-declined { color: var(--text-sub); }
 .fb-received { font-size: 12px; color: #276b3d; }
 .fb-receive { margin-top: 12px; }
+/* 이벤트 취소 — 접수 아래 옅은 단추(되묻는 창이 뜹니다). 높이는 접수와 같은 40px. */
+.fb-cancel-event { margin-top: 8px; color: #b0412e; }
+.fb-cancel-event:hover:not(:disabled) { border-color: #e4a99c; background: #fdf1ee; }
 .fb-entered { margin: 0; font-size: 13.5px; font-weight: 700; color: #276b3d; text-align: center; }
 @media (max-width: 720px) {
   /* 좁은 화면은 위아래로 풀어 창 전체가 구릅니다(높이 못 박기를 풂). */
