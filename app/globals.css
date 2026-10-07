@@ -30004,6 +30004,13 @@ h4.attendance-seat-help { margin-top: 16px; }
 }
 .pq-past-del:hover { background: #fdecea; color: var(--danger); }
 .pq-past-list > li.asking { border-color: #f1b8b0; }
+/* 지금 위 칸에 보고 있는 퀴즈 — 목록에서도 짚어 둡니다. */
+.pq-past-list > li.on { border-color: var(--primary); background: var(--primary-light); }
+.pq-past-list > li.on .pq-past-head:hover { background: transparent; }
+/* 진행 중인 퀴즈는 지울 수 없음 — 자리는 지켜 줄이 맞게. */
+.pq-past-del--off { opacity: 0.3; cursor: not-allowed; }
+.pq-past-del--off:hover { background: none; color: var(--text-faint); }
+.pq-now-idle { margin: 0; font-size: 13px; line-height: 1.6; color: var(--text-sub); }
 .pq-past-confirm { display: flex; flex-direction: column; gap: 8px; padding: 2px 12px 12px; }
 .pq-past-confirm p { margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--text); }
 .pq-past-confirm p span { display: block; color: var(--text-sub); }

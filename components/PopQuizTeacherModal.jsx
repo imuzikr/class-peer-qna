@@ -87,9 +87,11 @@ export default function PopQuizTeacherModal({ classId, board = null, startNew = 
   );
 
   const openQuiz = (quizzes ?? []).find((q) => q.open) ?? null;
-  // 지금 보는 퀴즈 — 고른 것이 없으면 열린 것, 그것도 없으면 가장 최근 것.
+  // 지금 보는 퀴즈 — 고른 것, 없으면 진행 중인 것. 마친 퀴즈를 저절로 위 칸에
+  // 올리지 않습니다 — 한때 가장 최근 것을 올렸는데, 그러면 그 퀴즈가 목록에서
+  // 빠져 지울 길이 없었습니다(선생님 지적). 마친 퀴즈는 모두 목록에 섭니다.
   const quiz =
-    (quizzes ?? []).find((q) => q.id === selectedId) ?? openQuiz ?? (quizzes ?? [])[0] ?? null;
+    (quizzes ?? []).find((q) => q.id === selectedId) ?? openQuiz ?? null;
   const quizId = quiz?.id ?? null;
 
   useEffect(() => {
@@ -118,7 +120,11 @@ export default function PopQuizTeacherModal({ classId, board = null, startNew = 
 
   // 아직 아무 퀴즈도 없으면 곧바로 쓰는 칸
   const showCompose = composing || (quizzes !== null && quizzes.length === 0);
-  const past = (quizzes ?? []).filter((q) => q.id !== quiz?.id);
+  // 목록 — 진행 중인 것까지 모두(보는 중인 줄은 칠해 둠). 지우기는 마친 퀴즈만 —
+  // 진행 중인 것은 '퀴즈 마치기' 뒤에 지웁니다(답을 쓰던 학생 화면이 사라지지 않게).
+  const past = quizzes ?? [];
+  // 위 칸이 비었으면(진행 중 없음 · 고른 것 없음) 목록을 펴 둡니다.
+  const listOpen = pastOpen || (!showCompose && !quiz);
   const pickedStudent = picked ? byUid.get(picked.uid) ?? null : null;
   const closePicked = useCallback(() => setPicked(null), []);
 
@@ -185,11 +191,24 @@ export default function PopQuizTeacherModal({ classId, board = null, startNew = 
                   <span>🍊 {counts.rewarded}</span>
                 </div>
                 {quiz.open && (
-                  <CloseQuizButton classId={classId} quiz={quiz} />
+                  // 마친 뒤에도 그 퀴즈를 그대로 봅니다 — 이미 온 답에 과일을 줘야 합니다.
+                  <CloseQuizButton classId={classId} quiz={quiz} onClosed={() => setSelectedId(quiz.id)} />
                 )}
               </section>
-            ) : (
+            ) : quizzes === null ? (
               <p className="pq-empty">불러오는 중…</p>
+            ) : (
+              <section className="pq-now pq-now--idle">
+                <div className="pq-now-head">
+                  <span className="pq-state">대기</span>
+                  <button type="button" className="pq-new-btn" onClick={() => setComposing(true)}>
+                    ＋ 새 퀴즈
+                  </button>
+                </div>
+                <p className="pq-now-idle">
+                  진행 중인 퀴즈가 없어요. 아래 목록에서 퀴즈를 고르면 그 퀴즈의 답과 자리표를 볼 수 있어요.
+                </p>
+              </section>
             )}
 
 
@@ -198,23 +217,29 @@ export default function PopQuizTeacherModal({ classId, board = null, startNew = 
                 <button
                   type="button"
                   className="pq-past-toggle"
-                  onClick={() => setPastOpen((v) => !v)}
-                  aria-expanded={pastOpen}
+                  onClick={() => setPastOpen(!listOpen)}
+                  aria-expanded={listOpen}
                 >
-                  <Caret open={pastOpen} />
-                  지난 퀴즈
+                  <Caret open={listOpen} />
+                  퀴즈 목록
                   <span className="pq-past-count">{past.length}</span>
                 </button>
-                {pastOpen && (
+                {listOpen && (
                   <ul className="pq-past-list">
-                    {past.map((q) => (
-                      <li key={q.id} className={delAsk === q.id ? "asking" : ""}>
+                    {past.map((q) => {
+                      const viewing = !showCompose && q.id === quiz?.id;
+                      return (
+                      <li
+                        key={q.id}
+                        className={[delAsk === q.id && "asking", viewing && "on"].filter(Boolean).join(" ")}
+                      >
                         <div className="pq-past-row">
                           <button
                             type="button"
                             className="pq-past-head"
-                            onClick={() => { setSelectedId(q.id); setComposing(false); setPicked(null); setDelAsk(null); }}
-                            title="이 퀴즈의 자리표와 답 보기"
+                            onClick={() => { setSelectedId(q.id); setComposing(false); setPicked(null); setDelAsk(null); setPastOpen(true); }}
+                            aria-current={viewing ? "true" : undefined}
+                            title={viewing ? "지금 보고 있는 퀴즈" : "이 퀴즈의 자리표와 답 보기"}
                           >
                             <span className={`pq-state pq-state--sm${q.open ? " open" : ""}`}>
                               {q.open ? "진행" : "마침"}
@@ -222,15 +247,21 @@ export default function PopQuizTeacherModal({ classId, board = null, startNew = 
                             <span className="pq-past-title">{q.title}</span>
                             <span className="pq-past-date">{formatTime(q.createdAt)}</span>
                           </button>
-                          <button
-                            type="button"
-                            className="pq-past-del"
-                            onClick={() => { setDelAsk(delAsk === q.id ? null : q.id); setDelErr(null); }}
-                            aria-label={`‘${q.title}’ 퀴즈 지우기`}
-                            title="이 퀴즈 지우기"
-                          >
-                            <IconTrash size={15} />
-                          </button>
+                          {q.open ? (
+                            <span className="pq-past-del pq-past-del--off" title="진행 중인 퀴즈는 마친 뒤에 지울 수 있어요" aria-hidden="true">
+                              <IconTrash size={15} />
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              className="pq-past-del"
+                              onClick={() => { setDelAsk(delAsk === q.id ? null : q.id); setDelErr(null); }}
+                              aria-label={`‘${q.title}’ 퀴즈 지우기`}
+                              title="이 퀴즈 지우기"
+                            >
+                              <IconTrash size={15} />
+                            </button>
+                          )}
                         </div>
                         {/* 되묻기는 그 줄 안에서 — 확인 창(ConfirmModal)은 이 창(z 3010)
                             아래에 깔립니다. */}
@@ -252,7 +283,8 @@ export default function PopQuizTeacherModal({ classId, board = null, startNew = 
                           </div>
                         )}
                       </li>
-                    ))}
+                      );
+                    })}
                   </ul>
                 )}
               </section>
@@ -267,9 +299,13 @@ export default function PopQuizTeacherModal({ classId, board = null, startNew = 
                 seats={seats}
                 byUid={byUid}
                 onPick={(s, el) => { if (!showCompose && quiz) setPicked({ uid: s.uid, el }); }}
-                quizStateByUid={showCompose ? null : quizStateByUid}
+                quizStateByUid={showCompose || !quiz ? null : quizStateByUid}
                 action="답 보기"
-                hint={showCompose ? "퀴즈를 보내면 답을 보낸 자리에 메모지가 떠요" : "메모지 = 답을 보냄 · 초록 = 과일을 줌 — 눌러서 답 보기"}
+                hint={
+                  showCompose ? "퀴즈를 보내면 답을 보낸 자리에 메모지가 떠요"
+                  : !quiz ? "목록에서 퀴즈를 고르면 그 퀴즈의 답이 자리표에 떠요"
+                  : "메모지 = 답을 보냄 · 초록 = 과일을 줌 — 눌러서 답 보기"
+                }
                 headTrail={<SeatViewToggle teacherView={teacherView} onToggle={toggleSeatView} />}
                 flipped={teacherView}
               />
@@ -406,7 +442,7 @@ function ComposeQuiz({ classId, board, openQuiz, canCancel, onCancel, onSent }) 
   );
 }
 
-function CloseQuizButton({ classId, quiz }) {
+function CloseQuizButton({ classId, quiz, onClosed }) {
   const [busy, setBusy] = useState(false);
   return (
     <button
@@ -415,6 +451,7 @@ function CloseQuizButton({ classId, quiz }) {
       disabled={busy}
       onClick={async () => {
         setBusy(true);
+        onClosed?.();
         try { await closePopQuiz(classId, quiz.id); }
         catch (e) { console.error("[돌발 퀴즈] 마치지 못했어요:", e?.code, e?.message); }
         finally { setBusy(false); }
