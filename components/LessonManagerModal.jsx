@@ -351,10 +351,10 @@ export default function LessonManagerModal({
                       </span>
                     </div>
                     <div className="lesson-row-actions">
-                      <button type="button" className="btn-ghost lesson-edit-btn" onClick={() => onEdit?.(l)}>
+                      <button type="button" className="btn-ghost lesson-edit-btn lesson-pair-btn" onClick={() => onEdit?.(l)}>
                         편집하기
                       </button>
-                      <button type="button" className="btn-primary" onClick={() => onStart?.(l)}>
+                      <button type="button" className="btn-primary lesson-pair-btn" onClick={() => onStart?.(l)}>
                         수업 시작하기
                       </button>
                       <button

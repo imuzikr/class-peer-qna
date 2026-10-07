@@ -11787,6 +11787,17 @@ button.lesson-usage-row:hover { background: var(--primary-light); }
 .lesson-row-actions .btn-primary {
   border: 1px solid transparent;
 }
+/* 수업 줄의 '편집하기 · 수업 시작하기'는 **같은 폭**입니다(선생님 요청) —
+   글자 수만큼 차지하게 두면 넉 자와 여섯 자라 두 단추가 짝으로 안 읽힙니다.
+   긴 쪽('수업 시작하기')이 들어가는 폭으로 못 박습니다. 프로젝트 줄의 '열기'
+   등은 이 클래스가 없어 그대로입니다. `min-height: 0`은 768px 아래의
+   터치 규칙(`.btn-primary { min-height: 44px }`)을 풉니다 — 안 풀면 좁은
+   화면에서 '수업 시작하기'만 44px로 커져 옆 단추(36px)보다 높아집니다. */
+.lesson-row-actions .lesson-pair-btn {
+  width: 120px;
+  min-height: 0;
+  padding: 0 8px;
+}
 .lesson-edit-btn {
   background: var(--primary-light);
   border-color: #EDCBB8;
