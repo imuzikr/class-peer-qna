@@ -1015,17 +1015,9 @@ export default function LessonMode({
         {/* 수업 화면은 화면 전체를 덮어(position: fixed) 위쪽 상단바를
             가립니다. 그래서 수업 중에는 반 공지도 알림도 손이 닿지 않았고,
             손든 학생은 자리표를 펼쳐야만 보였습니다. 상단바의 그 자리를
-            여기에 똑같이 둡니다 — 돌발 퀴즈 · 손들기 · 반 공지 · 알림 차례로. */}
+            여기에 똑같이 둡니다 — 손들기 · 돌발 퀴즈 · 반 공지 · 알림 차례로(상단바와 같은 차례). */}
         {!editing && classId && (
           <span className="lesson-nav-tools">
-            {/* 돌발 퀴즈 — 상단바의 메모지와 같은 단추입니다(수업 화면이
-                상단바를 덮으므로). 연결된 프로젝트에서 보낸 것으로 적습니다. */}
-            <PopQuizButton
-              classId={classId}
-              user={me}
-              isTeacher
-              board={board}
-            />
             <button
               type="button"
               className="lesson-hand-chip"
@@ -1046,6 +1038,14 @@ export default function LessonMode({
                 손든 학생 {raisedCount}명 — '우리는 공부중' 열기
               </span>
             </button>
+            {/* 돌발 퀴즈 — 상단바의 메모지와 같은 단추입니다(수업 화면이
+                상단바를 덮으므로). 연결된 프로젝트에서 보낸 것으로 적습니다. */}
+            <PopQuizButton
+              classId={classId}
+              user={me}
+              isTeacher
+              board={board}
+            />
             <ClassNoticeButton classId={classId} memberCount={roster.length} />
             {me?.uid && isFirebaseConfigured && <NotificationBell uid={me.uid} />}
           </span>

@@ -392,17 +392,18 @@ export default function TopNav({ active, onPython, pyActive = false, onStudyExpo
           눈에 덜 들어왔습니다(실제 신고). */}
       <div className="user-area">
         {!isFirebaseConfigured && <RoleSwitcher />}
-        {/* 돌발 퀴즈 → 손들기 → 반 공지(교사) → 알림 순. 퀴즈와 손들기는 반
-            안의 일이라 확성기 왼쪽에 두고, 확성기는 그 반에만 보내는 것이라
-            개인 알림(종) 왼쪽에 둡니다 — 왼쪽으로 갈수록 범위가 좁습니다.
+        {/* 손들기 → 돌발 퀴즈 → 반 공지(교사) → 알림 순 — **교사·학생 같은
+            차례**입니다(선생님 요청). 손들기와 퀴즈는 반 안의 일이라 확성기
+            왼쪽에 두고, 확성기는 그 반에만 보내는 것이라 개인 알림(종) 왼쪽에
+            둡니다 — 왼쪽으로 갈수록 범위가 좁습니다.
             돌발 퀴즈(교사가 묻는 것)와 손들기(학생이 묻는 것)는 방향이 반대라
             둘 다 둡니다 — 한때 손들기를 걷고 퀴즈만 두었더니 학생이 수업 중에
-            먼저 물을 길이 없어졌습니다(선생님 요청으로 되살림). 메모지가 손바닥
-            **왼쪽**입니다(선생님이 처음 정한 자리). 퀴즈는 학생은 늘 보이고
-            (지난 퀴즈를 보는 입구), 교사는 반을 골랐을 때 섭니다. */}
-        {user && broadcastClassId && (
-          <PopQuizButton classId={broadcastClassId} user={user} isTeacher={admin} />
-        )}
+            먼저 물을 길이 없어졌습니다(선생님 요청으로 되살림).
+            **손바닥이 맨 왼쪽**인 까닭: 교사 화면의 손바닥은 학생이 손을 들었을
+            때만 나타나는데(없을 때는 같은 크기의 빈 상자가 자리만 지킴), 줄
+            끝에 있어야 나타나고 사라져도 늘 서 있는 메모지·확성기가 제자리에
+            머뭅니다. 한때 메모지가 손바닥 왼쪽이었습니다. 퀴즈는 학생은 늘
+            보이고(지난 퀴즈를 보는 입구), 교사는 반을 골랐을 때 섭니다. */}
         {user && broadcastClassId && (
           <QuestionSignalButton
             classId={broadcastClassId}
@@ -410,6 +411,9 @@ export default function TopNav({ active, onPython, pyActive = false, onStudyExpo
             isTeacher={admin}
             className={noticeClassName}
           />
+        )}
+        {user && broadcastClassId && (
+          <PopQuizButton classId={broadcastClassId} user={user} isTeacher={admin} />
         )}
         {admin && user && broadcastClassId && (
           <ClassNoticeButton
