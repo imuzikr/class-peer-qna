@@ -230,7 +230,8 @@ export default function StudyProjectView({
 
     // 학생: 내 자리는 항상 맨 앞(카드가 없어도). 급우도 classRoster로 반
     // 전체 자리를 미리 깔아 둡니다 — 아직 카드를 안 쓴 급우도 자리는
-    // 보이되(잠긴 채, "아직 작성 전"), 내용은 볼 수 없습니다. classRoster는
+    // 보이되, '나만 보기'에서는 쓴 급우와 똑같이 잠긴 모습입니다('함께
+    // 보기'에서만 '아직 작성 전'과 진행 막대가 보입니다). classRoster는
     // app/study/page.js가 fetchClassRosterProfiles로 채워 주는데, 방금
     // 반에 들어와 아직 반영 전이면 비어 있을 수 있어 그런 경우엔 아래
     // extras가 '이미 카드가 있는 급우'만이라도 보여 줍니다(예전과 동일).
@@ -259,9 +260,13 @@ export default function StudyProjectView({
           emoji: s.emoji ?? "🙂",
           card,
           mine: false,
-          // 카드가 아직 없으면 '아직 작성 전'일 뿐 잠긴 게 아닙니다 — 카드가
-          // 있을 때만, '나만 보기'에서, 교사 자료가 아닌 경우에 잠급니다.
-          locked: !!card && !shared && !isTeacherAuthored(card),
+          // '나만 보기'에서는 **카드가 없어도 잠급니다**(선생님 요청). 한때
+          // 카드가 있을 때만 잠가, 아직 안 쓴 급우의 자리만 빈 진행 막대와
+          // '아직 작성 전'으로 드러났습니다 — 그러면 잠긴 자리는 '쓴 학생',
+          // 열린 자리는 '안 쓴 학생'으로 읽혀, 누가 썼는지가 그대로 새어
+          // 나갔습니다. 이제 쓴 자리와 안 쓴 자리가 같은 모습입니다.
+          // 교사 자료 카드만 예외입니다(누구에게나 열림).
+          locked: !shared && !(card && isTeacherAuthored(card)),
           isTeacherCard: card ? isTeacherAuthored(card) : false,
         };
       });
