@@ -10,7 +10,8 @@
 //   말은 없지만 활동·성찰은 꼬박 쓰는 아이  → 쓰는 힘은 있고 말할 자리가 필요
 //   손은 들고 질문도 하지만 쓰기에서 막히는 아이 → 그 반대
 //
-// 다섯 갈래: 질문 · 답변 · 활동 · 성찰 · 손들기.
+// 네 갈래: 질문 · 답변 · 활동 · 성찰. (다섯째였던 손들기는 기능과 함께
+// 걷었습니다 — 돌발 퀴즈로 바꿈.)
 //
 // [왜 개수가 아니라 갈래인가] 개수는 이미 다른 칸들이 보여 줍니다. 여기서
 // 켜고 끄는 것만 세는 이유는, '질문 7개'와 '질문 1개'의 차이보다 '질문을
@@ -18,9 +19,6 @@
 //
 // [기간] 다른 칸과 같은 4주. 활동 카드만 성격이 다릅니다 — 카드는 사건이
 // 아니라 계속 고쳐 쓰는 문서라, 마지막으로 손댄 때(updatedAt)로 봅니다.
-//
-// [손들기] 이력이 이제 막 쌓이기 시작해, 한동안 다섯 번째 점은 대부분
-// 꺼져 있습니다. 그것을 '참여 안 함'으로 읽지 않도록 아래에 밝혀 둡니다.
 // =============================================================
 import { useMemo } from "react";
 import { toDate } from "@/lib/store";
@@ -30,7 +28,7 @@ const WEEKS = 4;
 const DAY = 24 * 60 * 60 * 1000;
 // 갈래가 적은 쪽부터 이만큼만 세웁니다 — 다 늘어놓으면 요점이 묻힙니다.
 const SHOW = 8;
-const CHANNELS = ["질문", "답변", "활동", "성찰", "손들기"];
+const CHANNELS = ["질문", "답변", "활동", "성찰"];
 
 export default function ParticipationBreadth({
   roster = [],
@@ -38,7 +36,6 @@ export default function ParticipationBreadth({
   answerEvents = [],
   cards = [],        // 이 반 프로젝트의 학생 카드 전체
   kwl = [],          // 이 반의 KWLS 기록
-  signalEvents = [],
   loaded = false,
 }) {
   const stat = useMemo(() => {
@@ -68,9 +65,6 @@ export default function ParticipationBreadth({
     const reflected = new Set(
       kwl.filter((e) => inWindow(e.createdAt ?? e.updatedAt)).map((e) => e.userId)
     );
-    const raised = new Set(
-      signalEvents.filter((e) => inWindow(e.at)).map((e) => e.uid)
-    );
 
     const rows = roster.map((s) => {
       const uid = s.uid ?? s.id;
@@ -79,7 +73,6 @@ export default function ParticipationBreadth({
         has(answered, uid),
         has(wrote, uid),
         has(reflected, uid),
-        has(raised, uid),
       ];
       return {
         uid,
@@ -107,7 +100,7 @@ export default function ParticipationBreadth({
       // 갈래별로 몇 명이 썼나 — 반 전체가 어느 통로를 안 쓰는지 드러납니다.
       perChannel: CHANNELS.map((_, i) => rows.filter((r) => r.on[i]).length),
     };
-  }, [roster, questions, answerEvents, cards, kwl, signalEvents]);
+  }, [roster, questions, answerEvents, cards, kwl]);
 
   if (!loaded || stat.size === 0) return null;
 
@@ -115,7 +108,7 @@ export default function ParticipationBreadth({
     <section className="admin-chart-panel breadth">
       <div className="admin-panel-head">
         <h2>🧭 참여의 폭</h2>
-        <span>최근 {WEEKS}주 · 다섯 갈래</span>
+        <span>최근 {WEEKS}주 · 네 갈래</span>
       </div>
 
       {/* 반 전체가 어느 통로를 쓰고 있나 — 개인을 보기 전에 판을 봅니다.
@@ -158,14 +151,6 @@ export default function ParticipationBreadth({
         {stat.none > 0
           ? `최근 ${WEEKS}주 참여 흔적이 없는 학생 ${stat.none}명`
           : `모든 학생이 최소 한 갈래로 참여했어요`}
-        {/* 손들기는 이력이 이제 막 쌓이기 시작했습니다. 꺼져 있는 다섯 번째
-            점을 '참여 안 함'으로 읽으면 안 되므로 밝혀 둡니다. */}
-        {stat.perChannel[4] === 0 && (
-          <em className="breadth-note">
-            손들기는 ‘🍊 확인’을 누른 순간부터 쌓입니다 — 아직 기록이 없어
-            다섯 번째 점은 모두 꺼져 있어요.
-          </em>
-        )}
       </p>
     </section>
   );

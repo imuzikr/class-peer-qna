@@ -2,7 +2,7 @@
 // 반에 딸린 데이터 일괄 파기
 // -------------------------------------------------------------
 // Firestore는 부모 문서를 지워도 하위 컬렉션이 함께 사라지지 않습니다.
-// 그래서 반 문서만 지우면 출석부·자리표·기본 모둠·손들기가 그대로 남고,
+// 그래서 반 문서만 지우면 출석부·자리표·기본 모둠·돌발 퀴즈 답이 그대로 남고,
 // 그 안에는 실명·학번이 들어 있습니다(개인정보 파기 누락).
 //
 // db를 주입받는 별도 모듈로 둔 이유는, 에뮬레이터에서 "정말 하나도 남지
@@ -16,9 +16,14 @@ const CLASS_SUBCOLLECTIONS = [
   "attendanceRecords", // 출석부 — 실명·학번 포함
   "seatLayouts",       // 자리표(기본 + 날짜별 임시)
   "groupAssignments",  // 반 기본 모둠 — 실명·학번 포함
-  "questionSignals",   // 손들기 — 실명·학번 포함
+  "popQuizzes",        // 돌발 퀴즈 + submissions(학생 답) — 2단계까지 recursiveDelete
   "rewardEvents",      // 과일 지급 이력 — uid·지급 시각(참여 기록)
-  "signalEvents",      // 손들기 이력 — 실명·학번·손든 시각(참여 기록)
+  // 옛 손들기 자료 — 기능은 걷었지만(돌발 퀴즈로 바꿈) 그 전에 쌓인 문서가
+  // 남아 있을 수 있어 반을 지울 때 함께 정리합니다(실명·학번 포함).
+  "questionSignals",
+  "signalEvents",
+  "signalMessages",
+  "signalReplies",
   "classNotices",      // 반 공지 발송 이력 — 보낸 내용·시각
   "lessonMemos",       // 수업 메모 — 교사가 수업 중 적어 둔 것
 ];

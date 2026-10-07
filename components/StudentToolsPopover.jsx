@@ -3,9 +3,9 @@
 // =============================================================
 // 자리를 누르면 그 옆에 뜨는 작은 창 — 과일 주기 / 누가기록 열기
 // -------------------------------------------------------------
-// 자리표를 쓰는 네 화면이 같은 것을 씁니다: 참여 전광판(AttendanceBoard) ·
-// 손들기 자리 확인(QuestionSeatModal) · 수업 중 자리표(LessonSeatPanel) ·
-// '멋진 순간' 패널(StudyRewardPanel). 네 곳에서 자리를 누르는 동작이
+// 자리표를 쓰는 화면이 같은 것을 씁니다: 참여 전광판(AttendanceBoard) ·
+// 수업 중 자리표(LessonSeatPanel) · '멋진 순간' 패널(StudyRewardPanel).
+// 세 곳에서 자리를 누르는 동작이
 // 똑같아야 해서 컴포넌트를 공유합니다.
 //
 // [모달이 아니라 팝오버입니다]
@@ -19,13 +19,12 @@
 // 걸러 두는 것이 중요합니다 — 안 그러면 옆자리를 누를 때 닫혔다 다시 열리며
 // 한 번 깜빡입니다.
 // =============================================================
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { usePopoverAnchor, usePopoverDismiss } from "@/lib/popover";
 import { REWARD_MAX } from "@/lib/store";
 import StudentRewardTrend from "./StudentRewardTrend";
 import { nextFruit, lastFruit } from "./RewardFruits";
 import { IconMyPost } from "./StatusIcons";
-import SignalHistoryModal from "./SignalHistoryModal";
 
 const POP_W = 300;
 const POP_H = 290;
@@ -54,9 +53,6 @@ export default function StudentToolsPopover({
   const count = student.count ?? 0;
   const maxed = count >= REWARD_MAX;
   const popRef = useRef(null);
-  // 손들고 대화한 이력 — 창을 띄운 동안은 팝오버의 '바깥 누르면 닫기'·Esc를
-  // 쉽니다(그 창은 body에 떠 '바깥'으로 읽힙니다).
-  const [historyOpen, setHistoryOpen] = useState(false);
 
   // 누른 자리를 따라다닙니다 — 자리표가 구르는 모달 안에 있을 때 창만
   // 제자리에 남으면 엉뚱한 자리를 가리킵니다.
@@ -64,7 +60,7 @@ export default function StudentToolsPopover({
   // getBoundingClientRect()는 변형이 적용된 뒤의 자리를 돌려줍니다.
   const pos = usePopoverAnchor(anchor, { w: POP_W, h: POP_H });
 
-  usePopoverDismiss(!historyOpen, popRef, onClose, SEATS);
+  usePopoverDismiss(true, popRef, onClose, SEATS);
 
   return (
     <div
@@ -144,20 +140,7 @@ export default function StudentToolsPopover({
         >
           <IconMyPost size={16} /> 누가기록 열기
         </button>
-        {/* 손들고 대화한 이력 — 교사만(이 팝오버는 교사 화면에만 뜹니다). */}
-        {classId && (
-          <button
-            type="button"
-            className="attend-tools-notes"
-            onClick={() => setHistoryOpen(true)}
-          >
-            <span aria-hidden="true">🖐️</span> 손들고 대화한 이력
-          </button>
-        )}
       </div>
-      {historyOpen && (
-        <SignalHistoryModal classId={classId} student={student} onClose={() => setHistoryOpen(false)} />
-      )}
     </div>
   );
 }

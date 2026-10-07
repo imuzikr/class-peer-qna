@@ -18,7 +18,6 @@ import {
   subscribeStudentNotes,
   subscribeStudentRewardTotal,
   subscribeAllRewards,
-  subscribeClassSignalEvents,
   subscribeRewardsForClasses,
   subscribeClassMembers,
   toDate,
@@ -42,7 +41,6 @@ import KwlClassGrid from "@/components/KwlClassGrid";
 import BookActivityStats from "@/components/BookActivityStats";
 import ClassOverview from "@/components/ClassOverview";
 import ClassRewardTrend from "@/components/ClassRewardTrend";
-import ClassSignalTrend from "@/components/ClassSignalTrend";
 import ParticipationBreadth from "@/components/ParticipationBreadth";
 import StudyRoomStats from "@/components/StudyRoomStats";
 import { IconSchool, IconBlackboard } from "@/components/StatusIcons";
@@ -733,20 +731,6 @@ function AdminDashboardPageInner() {
     return ids;
   }, [selectedClassId, myBoards, cardsByBoard, allKwl]);
 
-  // 손들기 이력 — '손들기 흐름'과 '참여의 폭' 두 칸이 나눠 씁니다.
-  // 컴포넌트마다 구독하면 같은 컬렉션을 두 번 읽게 되어 여기서 한 번만 받습니다.
-  const [signalEvents, setSignalEvents] = useState([]);
-  const [signalsLoaded, setSignalsLoaded] = useState(false);
-  useEffect(() => {
-    setSignalEvents([]);
-    setSignalsLoaded(false);
-    if (!selectedClassId) return;
-    return subscribeClassSignalEvents(selectedClassId, (list) => {
-      setSignalEvents(list);
-      setSignalsLoaded(true);
-    });
-  }, [selectedClassId]);
-
   // 참여의 폭이 쓰는 이 반의 학생 카드·성찰 — 이미 받아 둔 것에서 골라냅니다.
   const classCards = useMemo(() => {
     if (!selectedClassId) return [];
@@ -1178,24 +1162,13 @@ function AdminDashboardPageInner() {
                   rewards={classRewards}
                 />
               )}
-              {/* 손들기도 같은 이유로 반 단위입니다. 과일 흐름 바로 아래에
-                  두어 '내가 준 것'과 '학생이 물은 것'을 나란히 읽습니다. */}
-              {selectedClassId && (
-                <ClassSignalTrend
-                  classId={selectedClassId}
-                  roster={overviewStudents}
-                  events={signalEvents}
-                  loaded={signalsLoaded}
-                />
-              )}
               {/* 배움의 끝자리 — KWLS의 L·S만. classKwl은 이미 받아 둔
-                  배열이라 읽기가 늘지 않습니다. 손들기 흐름 아래에 두어
-                  '학생이 물은 것' 다음에 '학생이 알게 된 것'을 읽습니다. */}
+                  배열이라 읽기가 늘지 않습니다. */}
               {selectedClassId && (
                 <KwlOutcome kwl={classKwl} roster={overviewStudents} loaded />
               )}
-              {/* 참여의 폭 — 다섯 갈래를 모으는 칸이라 이미 받아 둔 자료를
-                  전부 끌어다 씁니다(새 구독은 손들기 하나뿐). */}
+              {/* 참여의 폭 — 네 갈래를 모으는 칸이라 이미 받아 둔 자료를
+                  전부 끌어다 씁니다(새 구독 없음). */}
               {selectedClassId && (
                 <ParticipationBreadth
                   roster={overviewStudents}
@@ -1203,8 +1176,7 @@ function AdminDashboardPageInner() {
                   answerEvents={overviewAnswerEvents}
                   cards={classCards}
                   kwl={classKwl}
-                  signalEvents={signalEvents}
-                  loaded={signalsLoaded}
+                  loaded
                 />
               )}
               {/* 책방도 반 단위 — 게다가 활동 하나씩만 집계할 수 있습니다

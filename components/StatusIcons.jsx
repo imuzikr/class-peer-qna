@@ -667,3 +667,17 @@ export function IconKeyboard({ size = 20, className = "" }) {
     </svg>
   );
 }
+
+// 돌발 퀴즈 — 노란 메모지(포스트잇) 한 장. 위에 테이프, 아래 오른쪽 귀가 접혀
+// 있고 물음표 대신 줄 두 개(답을 적는 종이). 상단바(학생은 늘 · 교사는 반을
+// 골랐을 때)와 교사 자리표의 '답 보냄' 칸에 같은 그림을 씁니다.
+export function IconQuizMemo({ size = 20, className = "" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">
+      <path d="M5.4 6.2c0-.8.65-1.45 1.45-1.45h10.3c.8 0 1.45.65 1.45 1.45v8.15l-4.25 4.9H6.85c-.8 0-1.45-.65-1.45-1.45V6.2Z" fill="#FFE9A8" stroke="#3A312E" strokeWidth="1.55" strokeLinejoin="round"/>
+      <path d="M18.6 14.35h-3.05c-.8 0-1.2.4-1.2 1.2v3.7" fill="#F5CF6B" stroke="#3A312E" strokeWidth="1.35" strokeLinejoin="round"/>
+      <path d="M8.3 9.3h7.4M8.3 12.2h4.6" stroke="#8A6258" strokeWidth="1.3" strokeLinecap="round"/>
+      <path d="M9.6 3.6h4.8v2.3H9.6z" fill="#FFFDF9" fillOpacity=".85" stroke="#8A6258" strokeWidth="1.1" strokeLinejoin="round"/>
+    </svg>
+  );
+}

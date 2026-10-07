@@ -53,7 +53,9 @@ import {
   IconLock,
   IconLockState,
   IconTrash,
+  IconQuizMemo,
 } from "./StatusIcons";
+import PopQuizTeacherModal from "./PopQuizTeacherModal";
 
 const FILE_EXTS = {
   html: "HTML", htm: "HTML", txt: "TXT", csv: "CSV",
@@ -141,6 +143,8 @@ export default function StudyMyActivityCard({
   const [autoStatus, setAutoStatus] = useState("idle"); // idle | saving | saved | error
   const [showRelated, setShowRelated] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  // 돌발 퀴즈 관리 창(교사) — 머리말의 '돌발 퀴즈' 단추가 엽니다.
+  const [quizOpen, setQuizOpen] = useState(false);
   // 지금 크게 열어 쓰고 있는 활동 번호 (null이면 닫힘)
   const [editingAct, setEditingAct] = useState(null);
   const openAct = (i) => setEditingAct(i);
@@ -467,6 +471,19 @@ export default function StudyMyActivityCard({
         {card && (
           <time className="study-mycard-time">{formatTime(card.createdAt)}</time>
         )}
+        {/* 돌발 퀴즈(교사) — 삭제 바로 왼쪽. 누르면 새 퀴즈를 쓰는 칸이 곧바로
+            서는 관리 창이 열리고, 이 프로젝트에서 보낸 것으로 적힙니다. 상단바의
+            메모지와 같은 창입니다(PopQuizTeacherModal). */}
+        {isTeacher && board.classId && (
+          <button
+            type="button"
+            className="study-chip pq-card-btn"
+            onClick={() => setQuizOpen(true)}
+            title="반 학생 모두에게 돌발 퀴즈 보내기"
+          >
+            <IconQuizMemo size={16} /> 돌발 퀴즈
+          </button>
+        )}
         {/* 삭제는 머리말 오른쪽 끝에 둡니다 — 활동 칸이 길어지면서 페이지
             맨 아래에 있던 버튼이 화면 밖으로 밀려 눌리지 않았습니다. */}
         {canDelete && card && (
@@ -483,6 +500,15 @@ export default function StudyMyActivityCard({
           )
         )}
       </div>
+
+      {quizOpen && (
+        <PopQuizTeacherModal
+          classId={board.classId}
+          board={board}
+          startNew
+          onClose={() => setQuizOpen(false)}
+        />
+      )}
 
       {/* 누구의 카드인가 — 제목 줄 바로 아래. 교사가 학생 자리를 눌러
           들어오면 화면 어디에도 이름이 없어, 옆 자리로 옮겨 다니다 보면

@@ -443,12 +443,13 @@ function CodeCell({ code, onCode, onRun, focusN, placeholder = "코드를 적고
 // 코드 칸 하나만 따로 — 셀 창과 **같은 편집기**(글꼴 · 들여쓰기 네 칸 · 높이)라
 // 교사가 예시를 적는 칸(ExampleCodePanel)이 학생이 쓰는 칸과 같은 모양입니다.
 // 비제어입니다 — 다른 코드로 갈아 끼우려면 key를 바꾸세요.
-export function PyCodeInput({ code = "", onCode, autoFocus = false, placeholder }) {
+export function PyCodeInput({ code = "", onCode, autoFocus = false, placeholder, onRun = null }) {
   return (
     <CodeCell
       code={code}
       onCode={onCode}
-      onRun={null}
+      // 돌릴 곳이 있는 칸(돌발 퀴즈의 코드 답)만 Ctrl+Enter를 받습니다.
+      onRun={onRun}
       focusN={autoFocus ? 1 : 0}
       placeholder={placeholder}
     />

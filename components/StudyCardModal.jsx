@@ -32,7 +32,8 @@ const DrawingCanvas = dynamic(() => import("./DrawingCanvas"), { ssr: false });
 import StudyQuestionPeek from "./StudyQuestionPeek";
 import ZoomableImage from "./ZoomableImage";
 import UploadProgress from "./UploadProgress";
-import { IconAsk, IconSolved, IconTrash, IconTeacher, IconLock, IconGroup } from "./StatusIcons";
+import { IconAsk, IconSolved, IconTrash, IconTeacher, IconLock, IconGroup, IconQuizMemo } from "./StatusIcons";
+import PopQuizTeacherModal from "./PopQuizTeacherModal";
 
 export default function StudyCardModal({
   board,
@@ -111,6 +112,7 @@ export default function StudyCardModal({
   const [saving, setSaving] = useState(false);
   const [showRelated, setShowRelated] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [quizOpen, setQuizOpen] = useState(false); // 돌발 퀴즈 창(교사)
   const [peekQuestion, setPeekQuestion] = useState(null);
   const [uploadPct, setUploadPct] = useState(null); // 첨부 업로드 진행률
   const [autoStatus, setAutoStatus] = useState("idle"); // idle | saving | saved | error
@@ -793,6 +795,17 @@ export default function StudyCardModal({
                   저장 실패 · 다시 시도됩니다
                 </span>
               )}
+              {/* 돌발 퀴즈 — 삭제 바로 왼쪽(활동 카드 StudyMyActivityCard와 같은 자리). */}
+              {canDelete && board.classId && !confirmDelete && (
+                <button
+                  type="button"
+                  className="study-chip pq-card-btn"
+                  onClick={() => setQuizOpen(true)}
+                  title="반 학생 모두에게 돌발 퀴즈 보내기"
+                >
+                  <IconQuizMemo size={16} /> 돌발 퀴즈
+                </button>
+              )}
               {/* 삭제는 교사만 — 보드가 잠겨 있어도(canEdit=false) 지울 수 있습니다.
                   모둠 카드는 삭제 불가(위험 방지) — 삭제 버튼 자체를 제거 */}
               {canDelete && !isNew && !card?.groupId && (
@@ -827,6 +840,15 @@ export default function StudyCardModal({
           )}
         </div>
       </div>
+
+      {quizOpen && (
+        <PopQuizTeacherModal
+          classId={board.classId}
+          board={board}
+          startNew
+          onClose={() => setQuizOpen(false)}
+        />
+      )}
 
       {drawing && (
         <DrawingCanvas

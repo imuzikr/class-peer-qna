@@ -49,6 +49,11 @@ describe("반 삭제 시 하위 데이터 정리", () => {
     await db.doc(`classes/${GONE}/questionSignals/stu1`).set({
       classId: GONE, uid: "stu1", name: "학생A", studentId: "30101",
     });
+    // 돌발 퀴즈와 그 아래 학생 답(2단계)
+    await db.doc(`classes/${GONE}/popQuizzes/q1`).set({ classId: GONE, kind: "text", title: "퀴즈", open: true });
+    await db.doc(`classes/${GONE}/popQuizzes/q1/submissions/stu1`).set({
+      classId: GONE, quizId: "q1", uid: "stu1", kind: "text", text: "답", status: "submitted",
+    });
     // 과일 지급 이력 — 규칙상 아무도 못 지우게 잠가 둔 컬렉션이라, 반을
     // 지울 때 여기서 정말 사라지는지 확인해 두어야 합니다.
     await db.doc(`classes/${GONE}/rewardEvents/e1`).set({
@@ -119,11 +124,13 @@ describe("반 삭제 시 하위 데이터 정리", () => {
     await gone(`classes/${GONE}`);
   });
 
-  it("반 하위 컬렉션이 남지 않는다 (출석부·자리표·기본 모둠·손들기·과일 이력·공지 이력·수업 메모)", async () => {
+  it("반 하위 컬렉션이 남지 않는다 (출석부·자리표·기본 모둠·옛 손들기·돌발 퀴즈·과일 이력·공지 이력·수업 메모)", async () => {
     await gone(`classes/${GONE}/attendanceRecords/2026-08-23_stu1`);
     await gone(`classes/${GONE}/seatLayouts/default`);
     await gone(`classes/${GONE}/groupAssignments/default`);
     await gone(`classes/${GONE}/questionSignals/stu1`);
+    await gone(`classes/${GONE}/popQuizzes/q1`);
+    await gone(`classes/${GONE}/popQuizzes/q1/submissions/stu1`);
     await gone(`classes/${GONE}/rewardEvents/e1`);
     await gone(`classes/${GONE}/classNotices/n1`);
     await gone(`classes/${GONE}/lessonMemos/m1`);

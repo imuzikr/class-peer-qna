@@ -4,7 +4,7 @@
 // 공통 상단 내비게이션
 // -------------------------------------------------------------
 // 왼쪽: 배움나눔 로고 ｜ 학습 공간 드롭다운(공부방·질문게시판) ｜ 파이썬 실행기 ｜ (리포트|관리자)
-// 오른쪽: 역할 전환(개발용) ｜ 손들기 ｜ 공지 ｜ 알림 ｜ 사용자 프로필(로그아웃은 그 메뉴 안)
+// 오른쪽: 역할 전환(개발용) ｜ 돌발 퀴즈 ｜ 공지 ｜ 알림 ｜ 사용자 프로필(로그아웃은 그 메뉴 안)
 // =============================================================
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -30,7 +30,7 @@ import { getSelectedClassId } from "@/lib/classroom";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import UserProfile from "./UserProfile";
 import NotificationBell from "./NotificationBell";
-import QuestionSignalButton from "./QuestionSignalButton";
+import PopQuizButton from "./PopQuizButton";
 import ClassNoticeButton from "./ClassNoticeButton";
 import RoleSwitcher from "./RoleSwitcher";
 import RoleManagerModal from "./RoleManagerModal";
@@ -134,10 +134,9 @@ export default function TopNav({ active, onPython, pyActive = false, onStudyExpo
   // 과일을 받은 순간 터지는 축포 — 상단바에서 한 번만 답니다.
   // -------------------------------------------------------------
   // 예전에는 공부방·책방 페이지가 저마다 달고 있었습니다. 그런데 과일을
-  // 주는 자리는 그 두 화면뿐이 아닙니다 — 상단바의 손바닥('🍊 확인')은 어느
-  // 화면에서든 눌리고, 학생도 질문방·리포트·파이썬 실행기 어디에나 있을 수
-  // 있어 축포가 안 터지는 일이 잦았습니다(손들기에 태그·메모가 붙으면서
-  // 이 길로 주는 일이 늘어 눈에 띄었습니다).
+  // 주는 자리는 그 두 화면뿐이 아닙니다 — 상단바의 돌발 퀴즈('🍊 과일 주기')는
+  // 어느 화면에서든 눌리고, 학생도 질문방·리포트·파이썬 실행기 어디에나 있을
+  // 수 있어 페이지에 달아 두면 축포가 안 터지는 일이 잦았습니다.
   // 상단바는 다섯 화면에 모두 떠 있으므로 여기 한 번 달면 어디서 받아도
   // 터집니다. **페이지에는 다시 달지 마세요** — 구독이 둘이 되어 축포가
   // 두 번 겹칩니다.
@@ -258,7 +257,7 @@ export default function TopNav({ active, onPython, pyActive = false, onStudyExpo
   return (
     <>
     {/* 상단바는 넓은 화면(1180px 이상)에서 **한 줄**입니다 —
-          로고 · 이동 메뉴 …… 전광판 …… 손들기·알림·프로필
+          로고 · 이동 메뉴 …… 전광판 …… 돌발 퀴즈·알림·프로필
         그보다 좁으면 이동 메뉴만 2행으로 내려갑니다(globals.css의 1179px
         규칙이 order로 옮김). 768px 이하는 따로(모바일 블록).
         **여기 적힌 차례가 곧 넓은 화면의 보이는 차례이자 탭 이동 차례**입니다
@@ -385,23 +384,20 @@ export default function TopNav({ active, onPython, pyActive = false, onStudyExpo
         <AppMarquee isTeacher={admin} />
       </div>
 
-      {/* ④ 오른쪽 끝: 손들기 + 확성기 + 과일 뱃지 + 알림 + 프로필.
+      {/* ④ 오른쪽 끝: 돌발 퀴즈 + 확성기 + 과일 뱃지 + 알림 + 프로필.
           **늘 눈에 띄어야 하는 것들이라 로고와 같은 줄입니다.** 한때 이동
           메뉴와 함께 둘째 줄로 내렸는데, 그러면 첫 줄 오른쪽이 통째로 비어
           전광판의 '가운데'가 오른쪽으로 치우쳤고 아이콘도 메뉴 줄에 얹혀
           눈에 덜 들어왔습니다(실제 신고). */}
       <div className="user-area">
         {!isFirebaseConfigured && <RoleSwitcher />}
-        {/* 손들기 → 반 공지(교사) → 알림 순. 손들기는 반 안의 일이라 확성기
+        {/* 돌발 퀴즈 → 반 공지(교사) → 알림 순. 퀴즈는 반 안의 일이라 확성기
             왼쪽에 두고, 확성기는 그 반에만 보내는 것이라 개인 알림(종) 왼쪽에
-            둡니다 — 왼쪽으로 갈수록 범위가 좁습니다. */}
+            둡니다 — 왼쪽으로 갈수록 범위가 좁습니다. 손들기가 서던 자리를
+            이어받았습니다(손들기는 돌발 퀴즈로 바꿨습니다). 학생은 늘 보이고
+            (지난 퀴즈를 보는 입구), 교사는 반을 골랐을 때 섭니다. */}
         {user && broadcastClassId && (
-          <QuestionSignalButton
-            classId={broadcastClassId}
-            user={user}
-            isTeacher={admin}
-            className={noticeClassName}
-          />
+          <PopQuizButton classId={broadcastClassId} user={user} isTeacher={admin} />
         )}
         {admin && user && broadcastClassId && (
           <ClassNoticeButton
