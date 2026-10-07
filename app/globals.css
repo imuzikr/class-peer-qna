@@ -30134,7 +30134,7 @@ h4.attendance-seat-help { margin-top: 16px; }
 .pq-review-done { margin: 0; padding: 8px 10px; border-radius: 8px; background: #e8f7ed; color: #22603b; font-size: 13px; font-weight: 700; }
 .pq-return-note { font-family: inherit; font-size: 13.5px; }
 .pq-review-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.pq-review-btns.is-single { grid-template-columns: 1fr; }
+.pq-review-wait { margin: 0; font-size: 12.5px; color: var(--text-sub); }
 .pq-review-btns .btn-ghost,
 .pq-review-btns .btn-primary { padding: 9px 0; }
 /* .btn-ghost는 inline-flex에 가운데 맞춤이 없어 글자가 왼쪽에 붙고 옅어,
@@ -30145,6 +30145,18 @@ h4.attendance-seat-help { margin-top: 16px; }
   font-weight: 700;
   color: var(--text);
   background: #fff;
+}
+/* 꺼진 두 단추는 같은 모습 — 회색 바탕 · 옅은 글자. 반송만 테두리 단추로 두면
+   꺼졌을 때 빈 입력칸처럼 보였습니다. */
+.pq-review-btns button:disabled,
+.pq-review-btns button:disabled:hover {
+  opacity: 1;
+  cursor: not-allowed;
+  background: var(--bg-deep);
+  border-color: var(--bg-deep);
+  color: var(--text-faint);
+  box-shadow: none;
+  transform: none;
 }
 
 @media (max-width: 900px) {

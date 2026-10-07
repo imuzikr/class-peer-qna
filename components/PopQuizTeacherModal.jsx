@@ -432,8 +432,20 @@ function AnswerReview({ classId, quiz, student, answer, onClose }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
   const st = answer?.status;
-  const canReward = st === "submitted" || st === "returned";
+  // 두 단추는 늘 함께 서고, 학생이 '보낸' 상태에서만 켜집니다. 반송한 뒤에는
+  // 학생이 고쳐 다시 보낼 때까지 둘 다 꺼집니다(선생님 요청). 반송은 열린
+  // 퀴즈에서만 — 마친 퀴즈는 학생이 다시 보낼 길이 없습니다.
+  const canReward = st === "submitted";
   const canReturn = st === "submitted" && quiz.open;
+  const rewardTitle = canReward
+    ? "과일 1개를 주고 이 학생의 퀴즈를 마칩니다"
+    : st === "returned" ? "반송한 답이에요 — 학생이 다시 보내면 줄 수 있어요"
+    : "학생이 답을 보내면 줄 수 있어요";
+  const returnTitle = canReturn
+    ? "다시 써서 보내 달라고 돌려보냅니다"
+    : st === "returned" ? "이미 반송했어요 — 학생이 다시 보내면 누를 수 있어요"
+    : st === "submitted" ? "마친 퀴즈는 반송할 수 없어요"
+    : "학생이 답을 보내면 누를 수 있어요";
 
   async function act(fn) {
     if (busy) return;
@@ -475,7 +487,7 @@ function AnswerReview({ classId, quiz, student, answer, onClose }) {
       {err && <p className="form-error">{err}</p>}
       {st === "rewarded" ? (
         <p className="pq-review-done">🍊 과일을 줬어요 — 이 학생의 퀴즈는 끝났어요.</p>
-      ) : canReward && (
+      ) : (
         <>
           {canReturn && (
             <input
@@ -488,30 +500,29 @@ function AnswerReview({ classId, quiz, student, answer, onClose }) {
               aria-label="반송할 때 남길 한 마디"
             />
           )}
-          {/* 반송할 수 없으면(이미 반송 · 마친 퀴즈) 단추를 안 그립니다 — 꺼진
-              테두리 단추가 빈 입력칸처럼 보였습니다(실측). 과일이 줄을 다 씁니다. */}
-          <div className={`pq-review-btns${canReturn ? "" : " is-single"}`}>
-            {canReturn && (
-              <button
-                type="button"
-                className="btn-ghost pq-return-btn"
-                disabled={busy}
-                onClick={() => act(() => returnPopQuizAnswer(classId, quiz.id, student.uid, note))}
-                title="다시 써서 보내 달라고 돌려보냅니다"
-              >
-                반송
-              </button>
-            )}
+          {st === "returned" && (
+            <p className="pq-review-wait">반송했어요 — 학생이 고쳐 다시 보내면 두 단추가 다시 켜져요.</p>
+          )}
+          <div className="pq-review-btns">
+            <button
+              type="button"
+              className="btn-ghost pq-return-btn"
+              disabled={busy || !canReturn}
+              onClick={() => act(() => returnPopQuizAnswer(classId, quiz.id, student.uid, note))}
+              title={returnTitle}
+            >
+              반송
+            </button>
             <button
               type="button"
               className="btn-primary pq-reward-btn"
-              disabled={busy}
+              disabled={busy || !canReward}
               onClick={() =>
                 act(() => rewardPopQuizAnswer(classId, quiz.id, student.uid, {
                   name: student.name, emoji: student.emoji ?? "🙂",
                 }))
               }
-              title="과일 1개를 주고 이 학생의 퀴즈를 마칩니다"
+              title={rewardTitle}
             >
               🍊 과일 주기
             </button>
