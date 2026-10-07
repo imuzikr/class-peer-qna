@@ -92,7 +92,6 @@ export default function StudyMyActivityCard({
   onPrevWriter = null,
   onNextWriter = null,
   onBack,        // 이 프로젝트의 카드 그리드로
-  onBackToList,  // 공부방 첫 화면(프로젝트 목록)으로 — 없으면 버튼도 안 보임
   onAsk,
   relatedQuestions = [],
   // 과일 주기 — 활동 칸 머리의 단추. 줄 수 없는 자리(내 카드·교사 카드·
@@ -440,22 +439,20 @@ export default function StudyMyActivityCard({
   return (
     <section className="study-mycard-page">
       <div className="study-mycard-head">
-        {/* 제목이 맨 앞, 돌아가는 길은 그 뒤에 두 단계로 —
-            '프로젝트로'는 이 프로젝트의 카드 그리드, '프로젝트 목록으로'는
-            공부방 첫 화면입니다. 한 단계씩 되짚지 않고 바로 목록으로
-            나갈 수 있게 둘을 나란히 둡니다. */}
+        {/* 제목 · '← 프로젝트로' · 진행(n / N개) · 만든 날이 한 덩이로 왼쪽에
+            섭니다(선생님 요청). '← 프로젝트 목록으로'는 걷었습니다 — 카드에서
+            곧바로 공부방 첫 화면으로 가는 일이 드물어 단추만 늘었습니다.
+            오른쪽 끝은 돌발 퀴즈 · 삭제(교사)이고 그 사이를 빈 칸이 받습니다. */}
         <h2 className="study-mycard-title">{board.title}</h2>
         <button type="button" className="btn-ghost study-project-back" onClick={onBack}>
           ← 프로젝트로
         </button>
-        {onBackToList && (
-          <button type="button" className="btn-ghost study-project-back" onClick={onBackToList}>
-            ← 프로젝트 목록으로
-          </button>
-        )}
-        <span className="paratext-progress study-mycard-head-rest">
+        <span className="paratext-progress">
           {doneCount} / {activities.length}개
         </span>
+        {card && (
+          <time className="study-mycard-time">{formatTime(card.createdAt)}</time>
+        )}
         {canEdit && autoStatus !== "idle" && (
           <span className={`study-autosave-pill study-autosave-pill--${autoStatus}`}>
             {autoStatus === "saving" && "저장 중…"}
@@ -468,9 +465,7 @@ export default function StudyMyActivityCard({
             <IconLock size={14} /> 보기 전용
           </span>
         )}
-        {card && (
-          <time className="study-mycard-time">{formatTime(card.createdAt)}</time>
-        )}
+        <span className="study-mycard-head-rest" aria-hidden="true" />
         {/* 돌발 퀴즈(교사) — 삭제 바로 왼쪽. 누르면 새 퀴즈를 쓰는 칸이 곧바로
             서는 관리 창이 열리고, 이 프로젝트에서 보낸 것으로 적힙니다. 상단바의
             메모지와 같은 창입니다(PopQuizTeacherModal). */}

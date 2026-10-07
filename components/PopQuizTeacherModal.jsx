@@ -6,8 +6,10 @@
 // 왼쪽은 관리, 오른쪽은 자리표입니다(선생님 요청).
 //   왼쪽  · 새 퀴즈(글/코드 · 제목 · 설명) → 보내기
 //         · 지금 보는 퀴즈 — 보낸 학생 n/N · 퀴즈 마치기
-//         · 자리를 누르면 그 학생의 답 + 🍊 과일 주기 · 반송(한 마디는 선택)
-//         · 지난 퀴즈(접고 펴는 목록) — 누르면 그 퀴즈의 자리표·답으로
+//         · 지난 퀴즈(접고 펴는 목록) — 누르면 그 퀴즈의 자리표·답으로, 🗑로 지우기
+//   자리를 누르면 그 자리 **옆에 팝오버**로 그 학생의 답 + 🍊 과일 주기 · 반송
+//         (한 마디는 선택)이 뜹니다(선생님 요청 — 왼쪽 칸까지 눈을 옮기지 않게).
+//         옆자리를 누르면 그리로 옮겨 가고, 바깥 · Esc · ×로 닫힙니다.
 //   오른쪽 자리표 — 답을 보냈는데 아직 확인 전이면 메모지, 과일을 줬으면
 //         초록 바탕. 반송했거나 안 보냈으면 아무 표시가 없습니다(선생님
 //         요청 — 반송은 '미제출처럼').
@@ -19,12 +21,13 @@
 // 읽는 것: 이 반의 퀴즈 목록 · 고른 퀴즈의 답 · 자리표 둘 · 명단(디렉터리 ·
 // 과일). 창이 떠 있는 동안만 듣습니다.
 // =============================================================
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { backdropClose } from "@/lib/modal";
 import {
   closePopQuiz,
   dailySeatLayoutId,
+  deletePopQuiz,
   returnPopQuizAnswer,
   rewardPopQuizAnswer,
   sendPopQuiz,
@@ -45,19 +48,24 @@ import {
   seatQuizState,
 } from "@/lib/popQuiz";
 import { normalizeSeats } from "@/lib/seats";
+import { usePopoverAnchor, usePopoverDismiss } from "@/lib/popover";
 import { useSeatView } from "@/lib/seatView";
 import { useClassRoster } from "@/lib/useClassRoster";
 import { SeatPickGrid } from "./SeatPickGrid";
 import SeatViewToggle from "./SeatViewToggle";
 import { Caret, PopQuizAnswerBody, PopQuizQuestion, PopQuizStatus } from "./PopQuizParts";
-import { IconQuizMemo } from "./StatusIcons";
+import { IconQuizMemo, IconTrash } from "./StatusIcons";
 
 export default function PopQuizTeacherModal({ classId, board = null, startNew = false, onClose }) {
   const [quizzes, setQuizzes] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
   const [composing, setComposing] = useState(startNew);
   const [answers, setAnswers] = useState([]);
-  const [pickedUid, setPickedUid] = useState(null);
+  // 누른 자리 — { uid, el }(el은 팝오버가 붙을 자리 칸)
+  const [picked, setPicked] = useState(null);
+  const [delAsk, setDelAsk] = useState(null); // 지우기를 되묻는 지난 퀴즈 id
+  const [delBusy, setDelBusy] = useState(false);
+  const [delErr, setDelErr] = useState(null);
   const [pastOpen, setPastOpen] = useState(false);
   const [directory, setDirectory] = useState([]);
   const [rewards, setRewards] = useState([]);
@@ -86,7 +94,7 @@ export default function PopQuizTeacherModal({ classId, board = null, startNew = 
 
   useEffect(() => {
     setAnswers([]);
-    setPickedUid(null);
+    setPicked(null);
     if (!quizId) return;
     return subscribePopQuizAnswers(classId, quizId, setAnswers);
   }, [classId, quizId]);
@@ -111,7 +119,24 @@ export default function PopQuizTeacherModal({ classId, board = null, startNew = 
   // 아직 아무 퀴즈도 없으면 곧바로 쓰는 칸
   const showCompose = composing || (quizzes !== null && quizzes.length === 0);
   const past = (quizzes ?? []).filter((q) => q.id !== quiz?.id);
-  const picked = pickedUid ? byUid.get(pickedUid) ?? null : null;
+  const pickedStudent = picked ? byUid.get(picked.uid) ?? null : null;
+  const closePicked = useCallback(() => setPicked(null), []);
+
+  async function removeQuiz(id) {
+    if (delBusy) return;
+    setDelBusy(true);
+    setDelErr(null);
+    try {
+      await deletePopQuiz(classId, id);
+      setDelAsk(null);
+      if (selectedId === id) setSelectedId(null);
+    } catch (e) {
+      console.error("[돌발 퀴즈] 지우지 못했어요:", e?.code, e?.message);
+      setDelErr("지우지 못했어요. 다시 눌러 주세요.");
+    } finally {
+      setDelBusy(false);
+    }
+  }
 
   return createPortal(
     <div className="modal-backdrop pq-backdrop" {...backdropClose(onClose)}>
@@ -167,22 +192,6 @@ export default function PopQuizTeacherModal({ classId, board = null, startNew = 
               <p className="pq-empty">불러오는 중…</p>
             )}
 
-            {!showCompose && quiz && (
-              picked ? (
-                <AnswerReview
-                  key={`${quiz.id}:${picked.uid}`}
-                  classId={classId}
-                  quiz={quiz}
-                  student={picked}
-                  answer={answerByUid.get(picked.uid) ?? null}
-                  onClose={() => setPickedUid(null)}
-                />
-              ) : (
-                <p className="pq-pick-hint">
-                  자리를 누르면 그 학생의 답을 여기서 보고 과일을 주거나 반송할 수 있어요.
-                </p>
-              )
-            )}
 
             {past.length > 0 && (
               <section className="pq-past pq-past--teacher">
@@ -199,19 +208,49 @@ export default function PopQuizTeacherModal({ classId, board = null, startNew = 
                 {pastOpen && (
                   <ul className="pq-past-list">
                     {past.map((q) => (
-                      <li key={q.id}>
-                        <button
-                          type="button"
-                          className="pq-past-head"
-                          onClick={() => { setSelectedId(q.id); setComposing(false); setPickedUid(null); }}
-                          title="이 퀴즈의 자리표와 답 보기"
-                        >
-                          <span className={`pq-state pq-state--sm${q.open ? " open" : ""}`}>
-                            {q.open ? "진행" : "마침"}
-                          </span>
-                          <span className="pq-past-title">{q.title}</span>
-                          <span className="pq-past-date">{formatTime(q.createdAt)}</span>
-                        </button>
+                      <li key={q.id} className={delAsk === q.id ? "asking" : ""}>
+                        <div className="pq-past-row">
+                          <button
+                            type="button"
+                            className="pq-past-head"
+                            onClick={() => { setSelectedId(q.id); setComposing(false); setPicked(null); setDelAsk(null); }}
+                            title="이 퀴즈의 자리표와 답 보기"
+                          >
+                            <span className={`pq-state pq-state--sm${q.open ? " open" : ""}`}>
+                              {q.open ? "진행" : "마침"}
+                            </span>
+                            <span className="pq-past-title">{q.title}</span>
+                            <span className="pq-past-date">{formatTime(q.createdAt)}</span>
+                          </button>
+                          <button
+                            type="button"
+                            className="pq-past-del"
+                            onClick={() => { setDelAsk(delAsk === q.id ? null : q.id); setDelErr(null); }}
+                            aria-label={`‘${q.title}’ 퀴즈 지우기`}
+                            title="이 퀴즈 지우기"
+                          >
+                            <IconTrash size={15} />
+                          </button>
+                        </div>
+                        {/* 되묻기는 그 줄 안에서 — 확인 창(ConfirmModal)은 이 창(z 3010)
+                            아래에 깔립니다. */}
+                        {delAsk === q.id && (
+                          <div className="pq-past-confirm" role="alert">
+                            <p>
+                              이 퀴즈와 학생들이 보낸 답을 모두 지워요. 되돌릴 수 없어요.
+                              <span>이미 준 과일은 그대로예요.</span>
+                            </p>
+                            {delErr && <p className="form-error">{delErr}</p>}
+                            <div className="pq-past-confirm-btns">
+                              <button type="button" className="btn-ghost" onClick={() => setDelAsk(null)} disabled={delBusy}>
+                                취소
+                              </button>
+                              <button type="button" className="pq-past-confirm-del" onClick={() => removeQuiz(q.id)} disabled={delBusy}>
+                                {delBusy ? "지우는 중…" : "지우기"}
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </li>
                     ))}
                   </ul>
@@ -227,7 +266,7 @@ export default function PopQuizTeacherModal({ classId, board = null, startNew = 
               <SeatPickGrid
                 seats={seats}
                 byUid={byUid}
-                onPick={(s) => !showCompose && quiz && setPickedUid(s.uid)}
+                onPick={(s, el) => { if (!showCompose && quiz) setPicked({ uid: s.uid, el }); }}
                 quizStateByUid={showCompose ? null : quizStateByUid}
                 action="답 보기"
                 hint={showCompose ? "퀴즈를 보내면 답을 보낸 자리에 메모지가 떠요" : "메모지 = 답을 보냄 · 초록 = 과일을 줌 — 눌러서 답 보기"}
@@ -237,7 +276,45 @@ export default function PopQuizTeacherModal({ classId, board = null, startNew = 
             )}
           </div>
         </div>
+
+        {!showCompose && quiz && picked && pickedStudent && (
+          <AnswerPopover anchor={picked.el} onClose={closePicked}>
+            <AnswerReview
+              key={`${quiz.id}:${picked.uid}`}
+              classId={classId}
+              quiz={quiz}
+              student={pickedStudent}
+              answer={answerByUid.get(picked.uid) ?? null}
+              onClose={closePicked}
+            />
+          </AnswerPopover>
+        )}
       </div>
+    </div>,
+    document.body
+  );
+}
+
+// 누른 자리 옆에 붙어 뜨는 답 창 — 자리 잡기와 닫기는 lib/popover.js(자리표의
+// 과일 창 StudentToolsPopover와 같은 길). body에 포털로 띄웁니다: 이 창의
+// `.modal`에 등장 애니메이션(transform)이 걸리면 그 안의 fixed가 창 기준으로
+// 바뀝니다. 클릭은 React 트리를 따라 창 본체의 stopPropagation에 닿아 배경
+// 닫기로 번지지 않습니다. 자리 칸(`.attend-seat--pick`)을 누른 것은 '바깥'이
+// 아니라 옆 학생으로 옮겨 가는 중이라 닫지 않습니다.
+const POP_W = 380;
+const POP_H = 380;
+function AnswerPopover({ anchor, onClose, children }) {
+  const ref = useRef(null);
+  const w = typeof window === "undefined" ? POP_W : Math.min(POP_W, window.innerWidth - 16);
+  const pos = usePopoverAnchor(anchor, { w, h: POP_H });
+  usePopoverDismiss(true, ref, onClose, ".attend-seat--pick");
+  return createPortal(
+    <div
+      ref={ref}
+      className="pq-pop"
+      style={{ left: pos.x, top: pos.y, width: w, maxHeight: pos.maxH }}
+    >
+      {children}
     </div>,
     document.body
   );

@@ -634,9 +634,6 @@ export default function StudyProjectView({
         onPrevWriter={() => step(-1)}
         onNextWriter={() => step(1)}
         onBack={() => setDetailSeat(null)}
-        // 카드에서 곧바로 공부방 첫 화면으로 — '프로젝트로'를 거쳐 다시
-        // '프로젝트 목록으로'를 누르는 두 단계를 한 번으로 줄입니다.
-        onBackToList={onBack}
         onAsk={onAsk}
         // 활동 칸 머리의 여닫기 — 교사가 어느 카드(안내 카드 · 학생 카드)를
         // 보든 섭니다. 보드의 activityLocks를 고치므로 카드 격자 위 칩과 같은 값입니다.

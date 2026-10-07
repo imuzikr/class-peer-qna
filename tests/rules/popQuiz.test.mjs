@@ -160,4 +160,23 @@ describe("돌발 퀴즈 규칙", () => {
     await assertSucceeds(deleteDoc(aRef(t, "stu1")));
     await assertSucceeds(deleteDoc(qRef(t)));
   });
+
+  it("지난 퀴즈 지우기 — 앱과 같은 한 묶음(답 전부 + 퀴즈), 남의 반 교사는 거부", async () => {
+    const s1 = asStudent(env, "stu1").firestore();
+    const s2 = asStudent(env, "stu2").firestore();
+    await assertSucceeds(setDoc(aRef(s1, "stu1"), answer("stu1"), { merge: true }));
+    await assertSucceeds(setDoc(aRef(s2, "stu2"), answer("stu2"), { merge: true }));
+    const del = async (db) => {
+      const subs = await getDocs(collection(db, "classes", C, "popQuizzes", "q1", "submissions"));
+      const b = writeBatch(db);
+      subs.docs.forEach((d) => b.delete(d.ref));
+      b.delete(qRef(db));
+      return b.commit();
+    };
+    await assertFails(del(asTeacher(env, "teacherB").firestore()));
+    const t = asTeacher(env, "teacherA").firestore();
+    await assertSucceeds(del(t));
+    const left = await getDocs(collection(t, "classes", C, "popQuizzes", "q1", "submissions"));
+    if (left.size !== 0) throw new Error(`답이 남음: ${left.size}`);
+  });
 });
