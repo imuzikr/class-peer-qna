@@ -138,22 +138,37 @@ export default function RewardDelta({
             >
               <span className="rdelta-name">{r.name}</span>
               <span className="rdelta-bars">
-                {/* 앞 4주는 테두리만, 최근 4주는 채움 — 두 계열을 밝기로만
-                    가르면 색을 못 가리는 눈에서 겹칩니다(재 보니 1.30:1).
-                    모양이 다르면 색과 무관하게 갈립니다. */}
-                {/* 0이면 요소를 아예 그리지 않습니다. width: 0으로만 두면
-                    테두리 3px이 그대로 남아(box-sizing: border-box) '아주 조금
-                    받았다'로 읽힙니다 — 재 보고 알았습니다. */}
-                {r.before > 0 && (
-                  <span
-                    className="rdelta-before"
-                    style={{ width: `${(r.before / stat.peak) * 100}%` }}
-                  />
-                )}
+                {/* 최근 4주는 막대, 앞 4주는 그 위의 **세로 눈금** 하나 —
+                    한 줄 안에 겹쳐 그립니다. 한때 두 막대를 위아래로 쌓았는데,
+                    앞 4주가 0인 학생은 막대가 하나뿐이라 앞 4주에 받은 학생만
+                    줄이 두 배로 두꺼워지고 채운 막대가 이름 줄 아래로 처져
+                    보였습니다(실제 신고). 모양(막대 · 눈금)이 다르니 색을
+                    못 가리는 눈에서도 갈립니다. */}
+                {/* 0이면 그리지 않습니다 — 막대는 min-width 때문에 '아주 조금
+                    받았다'로 읽히고, 눈금은 0 자리에 서 있으면 막대 시작과
+                    겹쳐 무엇인지 알 수 없습니다. */}
                 {r.after > 0 && (
                   <span
                     className="rdelta-after"
                     style={{ width: `${(r.after / stat.peak) * 100}%` }}
+                  />
+                )}
+                {/* 줄어든 학생은 눈금이 막대 끝 너머 빈 바탕에 홀로 서서
+                    떨어진 점처럼 보입니다 — 막대 끝에서 눈금까지 옅은 점선으로
+                    '여기서 여기로 줄었다'를 잇습니다. */}
+                {r.before > r.after && (
+                  <span
+                    className="rdelta-gap"
+                    style={{
+                      left: `${(Math.max(r.after, 0) / stat.peak) * 100}%`,
+                      width: `${((r.before - Math.max(r.after, 0)) / stat.peak) * 100}%`,
+                    }}
+                  />
+                )}
+                {r.before > 0 && (
+                  <span
+                    className="rdelta-before"
+                    style={{ left: `${(r.before / stat.peak) * 100}%` }}
                   />
                 )}
               </span>

@@ -25081,8 +25081,13 @@ span.cloud-word { cursor: default; }
   margin-left: 8px;
 }
 /* 두 계열을 밝기로만 가르면 색을 못 가리는 눈에서 겹칩니다(측정 1.30:1).
-   앞 4주는 테두리만, 최근 4주는 채움 — 모양으로 갈립니다. */
-.rdelta-key.before { border: 1.5px solid var(--text-sub); }
+   앞 4주는 세로 눈금, 최근 4주는 막대 — 모양으로 갈립니다(목록과 같은 모양). */
+.rdelta-key.before {
+  width: 2px;
+  height: 12px;
+  border-radius: 1px;
+  background: var(--text);
+}
 .rdelta-key.after { background: var(--primary-dark); }
 
 .rdelta-groups {
@@ -25119,30 +25124,44 @@ span.cloud-word { cursor: default; }
   overflow: hidden;
   text-overflow: ellipsis;
 }
-/* 두 막대를 위아래로 겹쳐 놓습니다 — 나란히 두면 한 줄이 두 배로 길어져
-   좁은 칸에서 이름이 밀립니다. */
+/* 한 줄 안에 **최근 4주 막대 + 앞 4주 눈금**을 겹쳐 그립니다. 높이를 못
+   박아 앞 4주에 받은 학생이든 아니든 줄이 같은 두께입니다 — 한때 두 막대를
+   위아래로 쌓아, 앞 4주 값이 있는 학생만 줄이 두꺼워지고 채운 막대가 이름
+   줄 아래로 처져 보였습니다(실제 신고). */
 .rdelta-bars {
+  position: relative;
   flex: 1;
   min-width: 40px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  height: 14px;
 }
-.rdelta-before,
 .rdelta-after {
-  display: block;
+  position: absolute;
+  left: 0;
+  top: 4px;
   height: 6px;
+  /* 값이 있는데 너무 짧아 안 보이는 것만 막습니다(0이면 아예 안 그림). */
+  min-width: 3px;
   border-radius: 0 3px 3px 0;
+  background: var(--primary-dark);
 }
-/* 값이 있는데 너무 짧아 안 보이는 것만 막습니다. 0인 막대는 아예 그리지
-   않으므로(RewardDelta) 이 규칙에 걸릴 일이 없습니다. */
-.rdelta-before,
-.rdelta-after { min-width: 3px; }
-/* 두 막대의 높이를 같게 — 앞 4주는 테두리가 안쪽을 먹어 채움보다 얇아
-   보입니다. box-sizing으로 바깥 높이를 맞춥니다. */
-.rdelta-before { box-sizing: border-box; }
-.rdelta-before { border: 1.5px solid var(--text-sub); }
-.rdelta-after { background: var(--primary-dark); }
+/* 앞 4주 — 막대보다 위아래로 4px씩 길어 막대 위에서도 빈 바탕에서도
+   끝이 보입니다. 가운데가 그 값의 자리라 폭의 반만큼 왼쪽으로 당깁니다. */
+.rdelta-before {
+  position: absolute;
+  top: 0;
+  width: 2px;
+  height: 14px;
+  margin-left: -1px;
+  border-radius: 1px;
+  background: var(--text);
+}
+/* 줄어든 학생 — 막대 끝에서 앞 4주 눈금까지 잇는 옅은 점선 */
+.rdelta-gap {
+  position: absolute;
+  top: 6px;
+  height: 0;
+  border-top: 2px dotted var(--text-faint);
+}
 /* 결석이 잦아 견주기 어려운 학생 — 숫자를 그대로 읽지 말라는 표시입니다 */
 .rdelta-thin {
   flex-shrink: 0;
