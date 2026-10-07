@@ -213,6 +213,34 @@ service cloud.firestore {
     // ── 수업 노트(코넬) 본문 검사 ─────────────────────────────
     // 학생이 자기 노트에, 문서 ID가 정한 자리에 쓰는지. 칸마다 길이도 봅니다.
     // (필기 칸은 서식이 붙은 HTML이라 넉넉히 둡니다 — 태그가 길이를 먹습니다)
+    // 손들기에 함께 오는 태그·메모. 없어도 되지만, 있으면 글자여야 하고
+    // 메모는 1000자까지입니다(교사 화면에 그대로 뿌려지는 글이라서요).
+    function questionSignalSaid() {
+      return request.resource.data.get('tag', '') is string
+             && request.resource.data.get('tag', '').size() <= 20
+             && request.resource.data.get('note', '') is string
+             && request.resource.data.get('note', '').size() <= 1000;
+    }
+
+    // 손들기 대화의 한 마디 — 모양. 길이는 lib/signalThread.js의
+    // SIGNAL_MESSAGE_MAX와 같은 값입니다. 고치기는 없고 쌓기만 합니다.
+    // threadId = 그 대화 줄기(손을 새로 들 때마다 새 값). 첫 물음
+    // (kind 'first')만 글이 비어도 됩니다 — '내용 없이 손들기'.
+    function signalMessageOk(cId) {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['classId', 'uid', 'threadId', 'from', 'kind', 'tag',
+                               'text', 'byUid', 'at'])
+             && d.classId == cId && d.uid is string
+             && d.threadId is string && d.threadId.size() > 0 && d.threadId.size() <= 40
+             && d.from in ['student', 'teacher']
+             && (!('kind' in d) || (d.kind == 'first' && d.from == 'student'))
+             && d.get('tag', '') is string && d.get('tag', '').size() <= 20
+             && d.text is string && d.text.size() <= 1000
+             && (d.text.size() > 0 || d.get('kind', '') == 'first')
+             && d.byUid == uid()
+             && d.at == request.time;
+    }
+
     // ── 돌발 퀴즈 ─────────────────────────────────────────────
     // 길이 천장은 lib/popQuiz.js의 QUIZ_*_MAX와 같은 값입니다.
     function popQuizShapeOk(cId) {
@@ -560,6 +588,75 @@ service cloud.firestore {
                     || (isTeacher() && resource.data.createdBy == uid()
                         && resource.data.get('archived', false) == true);
 
+      // ── 언제든 질문하기(손들기) ─────────────────────────────
+      //  · 경로 = classes/{classId}/questionSignals/{uid}
+      //  · 학생은 자기 손들기만 켜고/끄고, 담당 교사는 반 전체 목록만 확인합니다.
+      //  · 태그(tag)와 메모(note)를 함께 보냅니다 — '무엇 때문에 손을
+      //    들었나'. 둘 다 없어도 손은 올라갑니다(그냥 부르는 손). 메모는
+      //    교사 화면에 그대로 뿌려지므로 길이를 여기서 못 박습니다
+      //    (lib/questionTags.js의 QUESTION_NOTE_MAX와 같은 값).
+      match /questionSignals/{studentUid} {
+        allow get: if signedIn() && (
+          isAdmin()
+          || ownsClass(cId)
+          || studentUid == uid()
+        );
+        allow list: if signedIn() && (
+          isAdmin()
+          || ownsClass(cId)
+        );
+        allow create: if signedIn()
+                      && studentUid == uid()
+                      && request.resource.data.uid == uid()
+                      && request.resource.data.classId == cId
+                      && isClassMember(cId)
+                      && questionSignalSaid()
+                      && request.resource.data.createdAt == request.time
+                      && request.resource.data.updatedAt == request.time;
+        allow update: if signedIn()
+                      && studentUid == uid()
+                      && resource.data.uid == uid()
+                      && request.resource.data.uid == resource.data.uid
+                      && request.resource.data.classId == cId
+                      && request.resource.data.createdAt == resource.data.createdAt
+                      && isClassMember(cId)
+                      && questionSignalSaid()
+                      && request.resource.data.updatedAt == request.time;
+        allow delete: if signedIn() && (
+          studentUid == uid()
+          || isAdmin()
+          || ownsClassEditable(cId)
+        );
+      }
+
+      // ── 손들기 대화 ───────────────────────────────────────
+      //  · 경로 = classes/{classId}/signalMessages/{자동 id}, uid = 그 학생.
+      //    손든 학생과 교사가 주고받는 말 — 같은 threadId가 한 줄기(첫 물음
+      //    kind 'first' + 오간 말, lib/signalThread.js). **지우지 않고 쌓아**
+      //    교사가 자리표에서 '손들고 대화한 이력'으로 다시 봅니다.
+      //  · 읽기: 담당 교사(목록 전체) · 그 학생 본인(where uid == 나).
+      //  · 쓰기: 학생은 제 대화에, **손이 올라가 있을 때만**. 교사는 담당 반.
+      //    고치기는 없음. 지우기는 담당 교사(앱에는 아직 그 화면이 없음).
+      //  · 학생의 '읽음'은 제 손들기 문서의 seenAt(위 questionSignals update).
+      //    시험 tests/rules/signalMessages.test.mjs.
+      match /signalMessages/{msgId} {
+        allow get, list: if signedIn() && (
+          isAdmin()
+          || ownsClass(cId)
+          || resource.data.uid == uid()
+        );
+        allow create: if signedIn() && signalMessageOk(cId) && (
+          (request.resource.data.from == 'student'
+            && request.resource.data.uid == uid()
+            && isClassMember(cId)
+            && exists(/databases/$(database)/documents/classes/$(cId)/questionSignals/$(uid())))
+          || (request.resource.data.from == 'teacher'
+            && (isAdmin() || ownsClassEditable(cId)))
+        );
+        allow update: if false;
+        allow delete: if isAdmin() || ownsClassEditable(cId);
+      }
+
       // ── 돌발 퀴즈 ─────────────────────────────────────────
       //  · 경로 = classes/{classId}/popQuizzes/{qId} (+ submissions/{학생 uid})
       //    셈과 모양은 lib/popQuiz.js. 반마다 열린 퀴즈는 하나 — 보낼 때 앞의
@@ -697,6 +794,30 @@ service cloud.firestore {
                       && request.resource.data.count is int
                       && request.resource.data.count >= 0
                       && request.resource.data.count <= 100
+                      && request.resource.data.byUid == uid()
+                      && request.resource.data.at == request.time;
+        allow update, delete: if false;
+      }
+
+      // ── 손들기 이력 ─────────────────────────────────────────
+      //  · 경로 = classes/{classId}/signalEvents/{auto}
+      //  · questionSignals는 '지금 손든 사람'만 담고, 손이 내려가면 문서가
+      //    지워집니다. 그래서 '누가 언제 손을 들었나'가 전혀 남지 않아
+      //    참여의 변화를 볼 수 없었습니다. 여기에 한 건 남깁니다.
+      //  · 교사가 '확인'을 눌러 받아 준 손만 적습니다. '닫기'로 내린 손은
+      //    잘못 눌린 것이라 세지 않습니다(그래서 create만 있고 종류가 없음).
+      //  · 읽기는 본인·담당 교사·관리자 — rewardEvents와 같은 기준입니다.
+      //  · 이력은 고치거나 지울 수 없습니다. 반을 지울 때는 서버 함수
+      //    (purgeClass)가 규칙을 우회해 정리합니다.
+      match /signalEvents/{eId} {
+        allow read: if signedIn() && (
+          isAdmin()
+          || ownsClass(cId)
+          || resource.data.uid == uid()
+        );
+        allow create: if (isAdmin() || ownsClassEditable(cId))
+                      && request.resource.data.classId == cId
+                      && request.resource.data.uid is string
                       && request.resource.data.byUid == uid()
                       && request.resource.data.at == request.time;
         allow update, delete: if false;

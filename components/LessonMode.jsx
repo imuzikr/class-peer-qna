@@ -32,6 +32,7 @@ import {
   updateStudyCard,
   subscribeStudyCards,
   subscribePresence,
+  subscribeQuestionSignals,
   subscribeStudySeatLayout,
   saveStudySeatLayout,
   subscribeStudyGroupAssignment,
@@ -327,7 +328,23 @@ export default function LessonMode({
     }
   }
 
-  // 자리표('우리는 공부중') 펼침과 보고 있는 탭 — 여기서 쥡니다.
+  // ── 손들기 ──
+  // 자리표(LessonSeatPanel)가 갖고 있던 구독을 여기로 올렸습니다. 머리말의
+  // 손들기 표시와 자리표가 같은 값을 봐야 하는데, 각자 구독하면 같은
+  // 컬렉션에 리스너가 둘이 됩니다. 자리표는 이 화면에서만 쓰므로 위로
+  // 올려도 다른 데 영향이 없습니다.
+  const [raisedUids, setRaisedUids] = useState(() => new Set());
+  useEffect(() => {
+    if (!classId) { setRaisedUids(new Set()); return; }
+    return subscribeQuestionSignals(classId, (list) =>
+      setRaisedUids(new Set(list.map((s) => s.uid).filter(Boolean)))
+    );
+  }, [classId]);
+  const raisedCount = roster.filter((s) => raisedUids.has(s.uid)).length;
+  // 자리표 펼침도 여기서 쥡니다 — 머리말의 손들기를 누르면 자리표가 열려야
+  // 누가 들었는지 바로 보입니다. 보고 있는 탭도 함께 쥡니다: 활동보기를 보던
+  // 중에 손들기를 누르면 **자리표 탭으로 돌아와야** 합니다(안 그러면 손들기를
+  // 눌렀는데 학생 답이 떠 있습니다).
   const [seatOpen, setSeatOpen] = useState(false);
   const [seatView, setSeatView] = useState("seat");
 
@@ -996,9 +1013,9 @@ export default function LessonMode({
         )}
         <span className="lesson-count">{total === 0 ? 0 : idx + 1} / {total}</span>
         {/* 수업 화면은 화면 전체를 덮어(position: fixed) 위쪽 상단바를
-            가립니다. 그래서 수업 중에는 반 공지도 알림도 손이 닿지 않았습니다.
-            상단바의 그 자리를 여기에 똑같이 둡니다 — 돌발 퀴즈 · 반 공지 ·
-            알림 차례로. */}
+            가립니다. 그래서 수업 중에는 반 공지도 알림도 손이 닿지 않았고,
+            손든 학생은 자리표를 펼쳐야만 보였습니다. 상단바의 그 자리를
+            여기에 똑같이 둡니다 — 돌발 퀴즈 · 손들기 · 반 공지 · 알림 차례로. */}
         {!editing && classId && (
           <span className="lesson-nav-tools">
             {/* 돌발 퀴즈 — 상단바의 메모지와 같은 단추입니다(수업 화면이
@@ -1009,6 +1026,26 @@ export default function LessonMode({
               isTeacher
               board={board}
             />
+            <button
+              type="button"
+              className="lesson-hand-chip"
+              onClick={() => { setSeatView("seat"); setSeatOpen(true); }}
+              title={
+                raisedCount > 0
+                  ? `${raisedCount}명이 손을 들었어요 — 눌러서 '우리는 공부중'에서 확인`
+                  : "손든 학생이 없어요 — 눌러서 '우리는 공부중' 열기"
+              }
+            >
+              <span aria-hidden="true">🖐️</span>
+              {/* 0명이면 뱃지를 안 답니다 — 늘 붙어 있으면 신호가 아닙니다.
+                  소리로 읽는 쪽에는 아래 sr-only 글로 늘 알려 줍니다. */}
+              {raisedCount > 0 && (
+                <span className="lesson-hand-badge" aria-hidden="true">{raisedCount}</span>
+              )}
+              <span className="sr-only">
+                손든 학생 {raisedCount}명 — '우리는 공부중' 열기
+              </span>
+            </button>
             <ClassNoticeButton classId={classId} memberCount={roster.length} />
             {me?.uid && isFirebaseConfigured && <NotificationBell uid={me.uid} />}
           </span>
@@ -1447,6 +1484,8 @@ export default function LessonMode({
                   classId={classId}
                   now={presenceNow}
                   onAward={onAward}
+                  // 손들기 구독과 펼침은 머리말과 나눠 쓰므로 위에서 내려 줍니다.
+                  raisedUids={raisedUids}
                   open={seatOpen}
                   onOpenChange={setSeatOpen}
                   view={seatView}

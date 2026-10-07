@@ -124,7 +124,7 @@ describe("반 삭제 시 하위 데이터 정리", () => {
     await gone(`classes/${GONE}`);
   });
 
-  it("반 하위 컬렉션이 남지 않는다 (출석부·자리표·기본 모둠·옛 손들기·돌발 퀴즈·과일 이력·공지 이력·수업 메모)", async () => {
+  it("반 하위 컬렉션이 남지 않는다 (출석부·자리표·기본 모둠·손들기·돌발 퀴즈·과일 이력·공지 이력·수업 메모)", async () => {
     await gone(`classes/${GONE}/attendanceRecords/2026-08-23_stu1`);
     await gone(`classes/${GONE}/seatLayouts/default`);
     await gone(`classes/${GONE}/groupAssignments/default`);

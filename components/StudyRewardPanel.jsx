@@ -3,7 +3,7 @@
 // =============================================================
 // 공부방 오른쪽 "멋진 순간" 패널 — 교사 전용
 // -------------------------------------------------------------
-// 참여 전광판·수업 중 자리표와 같은 자리표(SeatPickGrid)를 패널 폭에
+// 참여 전광판·손들기 자리 확인과 같은 자리표(SeatPickGrid)를 패널 폭에
 // 맞게 축소해 보여줍니다. 이름을 알파벳/학번 순으로 훑어 찾던 예전 목록은
 // 학생 수가 많아지면 특정 학생을 찾기 어려웠는데, 자리표는 교실에서 보이는
 // 위치 그대로라 눈으로 바로 찾을 수 있습니다. 자리를 누르면 참여
@@ -24,7 +24,7 @@
 // 헤더의 « 버튼으로 접기 — 접으면 세로 슬림 바(개인 설정, localStorage).
 // =============================================================
 import { useEffect, useRef, useState } from "react";
-import { subscribeFruitBasket, REWARD_MAX } from "@/lib/store";
+import { subscribeQuestionSignals, subscribeFruitBasket, REWARD_MAX } from "@/lib/store";
 import { eventChoiceOf, isEventPending } from "@/lib/fruitBasket";
 import { backdropClose } from "@/lib/modal";
 import { normalizeSeats } from "@/lib/seats";
@@ -69,6 +69,7 @@ export default function StudyRewardPanel({
   const [toolsFor, setToolsFor] = useState(null);
   const [toolsAt, setToolsAt] = useState(null);
   const [collapsed, setCollapsed] = useState(false);
+  const [raisedUids, setRaisedUids] = useState(() => new Set());
   const [dragIndex, setDragIndex] = useState(null);
   const [seats, setSeats] = useState(() => normalizeSeats(seatLayout?.seats ?? [], roster));
   const [groups, setGroups] = useState(() => groupAssignment?.groups ?? []);
@@ -98,6 +99,14 @@ export default function StudyRewardPanel({
       return !v;
     });
   }
+
+  // 손든 학생 — 참여 전광판·손들기 자리 확인과 같은 신호를 봅니다.
+  useEffect(() => {
+    if (!classId) { setRaisedUids(new Set()); return; }
+    return subscribeQuestionSignals(classId, (list) =>
+      setRaisedUids(new Set(list.map((s) => s.uid).filter(Boolean)))
+    );
+  }, [classId]);
 
   // 과일 바구니 이벤트 — 응모 여부를 골랐는데 아직 접수 안 한 학생에게
   // 자리 칸 오른쪽 위 초록 점. 읽는 것은 그 반의 바구니 문서(학생 수만큼)뿐.
@@ -223,6 +232,7 @@ export default function StudyRewardPanel({
   }
 
   const byUid = new Map(roster.map((s) => [s.uid, s]));
+  const raisedCount = roster.filter((s) => raisedUids.has(s.uid)).length;
   // 출석을 끝냈고 오늘 기록이 있을 때만 '출석 n/N'을 답니다. presentUids가
   // null이면 오늘 출석을 아예 안 한 날이고, attendanceOpen이면 아직 받는
   // 중입니다. 세는 대상은 **지금 명단에 있는 학생**뿐입니다 — 반에서 빠진
@@ -370,10 +380,12 @@ export default function StudyRewardPanel({
             »
           </button>
         </div>
-        {/* 설명 줄은 **한 줄에 드는 것만** — '과일 20개마다 ⭐ · 출석 20/22'.
-            한때 '자리를 눌러 과일 주기·누가기록 · …'을 앞에 달았더니 두 줄로
-            접혔습니다(실제 신고). 자리를 누르는 법은 한 번 알면 그만이라
-            툴팁으로 내렸습니다. */}
+        {/* 설명 줄은 **한 줄에 드는 것만** — '과일 20개마다 ⭐ · 출석 20/22 ·
+            🖐️ 0'. 한때 '자리를 눌러 과일 주기·누가기록 · …'을 앞에 달고
+            '출석 n/N'까지 붙였더니 두 줄로 접혔고, 아래 단추 줄도 손바닥
+            뱃지와 '선생님 보기'가 함께 서면 넘쳐 두 줄이 됐습니다(실제 신고).
+            자리를 누르는 법은 한 번 알면 그만이라 툴팁으로 내리고, 손바닥
+            인원은 단추 줄에서 여기로 옮겼습니다(`showHands={false}`). */}
         <span className="reward-sub" title="자리를 눌러 과일 주기·누가기록">
           과일 20개마다 ⭐
           {/* 출석을 끝낸 뒤에만 — 오늘 몇 명이 왔나(받는 중에 띄우면 오는
@@ -385,6 +397,17 @@ export default function StudyRewardPanel({
             >
               {" · "}출석 <b>{presentCount}</b>/{roster.length}
             </span>
+          )}
+          {roster.length > 0 && (
+            <>
+              {" · "}
+              <span
+                className={`reward-sub-hands${raisedCount > 0 ? " on" : ""}`}
+                title={raisedCount > 0 ? `손든 학생 ${raisedCount}명` : "손든 학생 없음"}
+              >
+                🖐️ {raisedCount}
+              </span>
+            </>
           )}
         </span>
       </div>
@@ -426,9 +449,12 @@ export default function StudyRewardPanel({
               </button>
             </span>
           }
+          showHands={false}
           flipped={teacherView}
           seats={seats}
           byUid={byUid}
+          raisedUids={raisedUids}
+          raisedCount={raisedCount}
           onPick={openTools}
           onDragStart={setDragIndex}
           onDragEnd={() => setDragIndex(null)}
@@ -475,6 +501,8 @@ export default function StudyRewardPanel({
               flipped={teacherView}
               seats={seats}
               byUid={byUid}
+              raisedUids={raisedUids}
+              raisedCount={raisedCount}
               onPick={openTools}
               onDragStart={setDragIndex}
               onDragEnd={() => setDragIndex(null)}

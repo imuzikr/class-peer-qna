@@ -11,7 +11,8 @@
 // 저장은 참여 전광판과 같은 문서(dailySeatLayout)를 그대로 공유합니다 —
 // 두 화면 중 어느 쪽에서 옮기든 서로 어긋나지 않습니다.
 //
-// 자리표(SeatPickGrid)를 그대로 씁니다. 거기 없는 '실시간 시청 여부'만 liveState로 얹어, 출석(배경색)과 시청
+// 손들기 자리 확인(QuestionSeatModal)의 SeatPickGrid를 그대로 씁니다.
+// 거기 없는 '실시간 시청 여부'만 liveState로 얹어, 출석(배경색)과 시청
 // (자리 칸의 작은 점)을 한 자리에서 함께 보여 줍니다.
 //
 // 처음엔 버튼 하나로만 보입니다 — 활동 관리 쪽 내용이 짧은 수업(활동이
@@ -20,7 +21,7 @@
 // 필요할 때만 크게 봅니다.
 // =============================================================
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { todayDateKey } from "@/lib/store";
+import { subscribeQuestionSignals, todayDateKey } from "@/lib/store";
 import { normalizeSeats } from "@/lib/seats";
 import { getCurrentUser } from "@/lib/user";
 import { deskState, attendedTodaySet } from "./AttendanceBoard";
@@ -50,14 +51,18 @@ export default function LessonSeatPanel({
   now = Date.now(),
   onAward = null, // 없으면(학생 화면 등) 자리를 눌러도 아무 일도 안 일어남
   onSaveSeats,    // (seats) => Promise — 참여 전광판과 같은 daily 자리표에 저장
-  // 펼침도 부모가 쥘 수 있게.
+  // 손든 학생 — 수업 화면 머리말의 손들기 표시와 같은 값을 봐야 해서
+  // 구독을 부모(LessonMode)로 올렸습니다. 안 주면 여기서 직접 구독합니다.
+  raisedUids: raisedUidsProp = null,
+  // 펼침도 부모가 쥘 수 있게 — 머리말의 손들기를 누르면 열려야 합니다.
   open: openProp = null,
   onOpenChange = null,
   // 활동보기 — 지금 내보낸 활동에 학생들이 쓴 답(LessonAnswerPanel).
   // 이것을 주면 탭 줄 맨 앞에 '활동보기'가 섭니다. 자리표가 없는 보기라
   // 자리표 머리줄 안이 아니라 이 패널의 탭 줄에 답니다.
   answerView = null,
-  // 보고 있는 탭도 부모가 쥘 수 있게.
+  // 보고 있는 탭도 부모가 쥘 수 있게 — 머리말의 손들기를 누르면 활동보기를
+  // 보던 중이라도 자리표로 돌아와야 '누가 들었나'가 보입니다.
   view: viewProp = null,
   onViewChange = null,
 }) {
@@ -75,6 +80,8 @@ export default function LessonSeatPanel({
   const setView = onViewChange ?? setViewState;
   // 자리표를 보는 쪽 — 자리표가 나오는 네 화면이 같은 값을 함께 씁니다
   const [teacherView, toggleSeatView] = useSeatView();
+  const [ownRaised, setOwnRaised] = useState(() => new Set());
+  const raisedUids = raisedUidsProp ?? ownRaised;
   const [dragIndex, setDragIndex] = useState(null);
   // 자리 클릭 → 과일/누가기록 팝오버. `toolsAt`은 누른 자리 칸으로, 창이 그
   // 옆에 붙습니다(자리표를 덮는 모달이 아닙니다).
@@ -103,6 +110,14 @@ export default function LessonSeatPanel({
   useEffect(() => { setBodyH(0); }, [roster.length]);
 
   useEffect(() => {
+    if (raisedUidsProp) return;            // 부모가 주면 여기서 또 구독하지 않습니다
+    if (!classId) { setOwnRaised(new Set()); return; }
+    return subscribeQuestionSignals(classId, (list) =>
+      setOwnRaised(new Set(list.map((s) => s.uid).filter(Boolean)))
+    );
+  }, [classId, raisedUidsProp]);
+
+  useEffect(() => {
     setSeats(normalizeSeats(dailySeatLayout?.seats ?? seatLayout?.seats ?? [], roster));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dailySeatLayout?.updatedAt, seatLayout?.updatedAt, roster]);
@@ -111,6 +126,7 @@ export default function LessonSeatPanel({
   // 자리 칸의 🍊 뱃지는 오늘 받은 개수(누적 총계는 과일 주기 창에).
   const todayCountByUid = useTodayRewardCounts(classId);
   const presenceByUid = useMemo(() => new Map(presence.map((p) => [p.uid, p])), [presence]);
+  const raisedCount = roster.filter((s) => raisedUids.has(s.uid)).length;
 
   // 출석 색은 참여 전광판과 '같은 함수'로 냅니다(attendedTodaySet).
   // 예전엔 여기서 따로 세면서 "오늘 기록이 하나도 없으면 null"로 두었는데,
@@ -228,6 +244,11 @@ export default function LessonSeatPanel({
       {activeView === "seat" && (
         <SeatViewToggle teacherView={teacherView} onToggle={toggleSeatView} />
       )}
+      {/* 손든 인원은 어느 보기에서든 보여야 합니다 — 궁금한 순간을 보는
+          동안 손을 든 학생이 있어도 놓치지 않게. */}
+      <span className={`attend-seatmap-hands${raisedCount > 0 ? " on" : ""}`}>
+        🖐️ {raisedCount}
+      </span>
     </div>
   );
 
@@ -265,6 +286,9 @@ export default function LessonSeatPanel({
       >
         <IconChair size={18} className="lesson-seat-toggle-icon" />
         {PANEL_NAME}
+        {raisedCount > 0 && (
+          <span className="lesson-seat-toggle-hand">🖐️ {raisedCount}</span>
+        )}
       </button>
     );
   }
@@ -327,7 +351,7 @@ export default function LessonSeatPanel({
         // 이름 칸이 늘 1열에서 시작하므로 앞 모둠이 줄을 덜 채웠어도 다음
         // 모둠은 새 줄에서 시작하고, 그 뒤로 모둠원이 차례로 섭니다.
         <div className="attend-seatmap attend-seatmap--compact">
-          {/* 머리줄이 없습니다 — 탭이 패널 머리로 올라갔습니다. */}
+          {/* 머리줄이 없습니다 — 탭도 손든 인원도 패널 머리로 올라갔습니다. */}
           <div className="attend-seatmap-grid lesson-seat-groupgrid">
             {groupSections.map((g) => (
               <Fragment key={g.key}>
@@ -344,6 +368,7 @@ export default function LessonSeatPanel({
                     <SeatCell
                       key={s.uid}
                       student={s}
+                      raised={raisedUids.has(s.uid)}
                       att={attStateOf(s.uid, presentUids)}
                       live={liveState.get(s.uid) ?? null}
                       noting={notingUids.has(s.uid)}
@@ -361,6 +386,8 @@ export default function LessonSeatPanel({
           compact
           seats={seats}
           byUid={byUid}
+          raisedUids={raisedUids}
+          raisedCount={raisedCount}
           onPick={onAward ? openTools : () => {}}
           onDragStart={setDragIndex}
           onDragEnd={() => setDragIndex(null)}
