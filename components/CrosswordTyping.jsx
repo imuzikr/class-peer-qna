@@ -39,10 +39,18 @@
 //   깨집니다.
 // =============================================================
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { entryCellKeys, nextOpenEntry } from "@/lib/crossword";
+import { crosswordCells, entryCellKeys, entryForCell, nextOpenEntry, stepCell } from "@/lib/crossword";
 import CrosswordGrid from "./CrosswordGrid";
 
 const IDLE_SAVE_MS = 1200;
+
+// 화살표 → 한 칸 옮기는 방향과 그 방향의 낱말 축
+const ARROWS = {
+  ArrowLeft: [0, -1, "across"],
+  ArrowRight: [0, 1, "across"],
+  ArrowUp: [-1, 0, "down"],
+  ArrowDown: [1, 0, "down"],
+};
 
 export default function CrosswordTyping({
   puzzle,
@@ -60,6 +68,7 @@ export default function CrosswordTyping({
   focusTick = 0,      // 올리면 입력칸에 초점(힌트 목록에서 고를 때)
 }) {
   const entries = useMemo(() => puzzle?.entries ?? [], [puzzle]);
+  const cells = useMemo(() => crosswordCells(puzzle), [puzzle]);
   const locked = lockedKeys ?? EMPTY;
 
   const slotsFor = useCallback(
@@ -134,7 +143,8 @@ export default function CrosswordTyping({
     const p = pendingStart.current;
     pendingStart.current = null;
     const start = p && p.sel === sel ? p.start : sel == null ? 0 : firstEmpty(sel);
-    setTyping({ sel, start, value: "", mark: sel == null ? null : slotsFor(sel)[start] ?? null });
+    const mark = p && p.sel === sel && p.mark ? p.mark : sel == null ? null : slotsFor(sel)[start] ?? null;
+    setTyping({ sel, start, value: "", mark });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sel]);
 
@@ -293,10 +303,28 @@ export default function CrosswordTyping({
       if (what !== "Enter") goNext(what === "ShiftTab" ? -1 : 1);
       return;
     }
-    if (composing || !typeable) return;
-    const across = entries[sel]?.dir === "across";
-    const back = across ? "ArrowLeft" : "ArrowUp";
-    const fwd = across ? "ArrowRight" : "ArrowDown";
+    if (composing) return;
+    // 화살표 — 네모 칸에서 그 방향의 **판에 있는 다음 칸**으로(빈자리는 건너뜀).
+    // 방향이 낱말과 달라도 됩니다 — 가로 낱말에서 ↓를 누르면 아래 칸의 세로 낱말로.
+    // 맞힌 낱말 · 우리 모둠 낱말에 서 있어도 옮겨 갈 수 있어야 하므로 typeable보다
+    // 먼저 봅니다(예전에는 낱말 방향의 두 키만, 낱말 안에서만, 적을 수 있는
+    // 낱말에서만 들어 '안 먹을 때'가 잦았습니다).
+    const arrow = ARROWS[e.key];
+    if (arrow) {
+      e.preventDefault();
+      const r = flush();
+      const from = (cur.value ? r.mark : boxKey) ?? entryKeys[0];
+      const [dr, dc, axis] = arrow;
+      const to = stepCell(cells, puzzle, from, dr, dc);
+      if (!to) {
+        // 그 쪽에 칸이 없으면 제자리 — 적던 글자만 넣어 둡니다
+        setTyping({ sel, start: r.start, value: "", mark: from });
+        return;
+      }
+      moveTo(to, axis);
+      return;
+    }
+    if (!typeable) return;
     // Backspace — 네모 칸에 글자가 있으면 그것을, 비어 있으면 앞 칸을 지웁니다
     if (e.key === "Backspace" && !cur.value) {
       e.preventDefault();
@@ -305,15 +333,20 @@ export default function CrosswordTyping({
       const k = slots[idx];
       if (k && letters?.[k]) onWrite({}, [k]);
       setTyping({ sel, start: idx, value: "", mark: k ?? null });
-      return;
     }
-    // 화살표 — 네모 칸에서 한 칸 옮기고, 그 칸부터 다시 적습니다
-    if (e.key === back || e.key === fwd) {
-      e.preventDefault();
-      const r = flush();
-      const from = Math.max(slots.indexOf(cur.value ? r.mark : boxKey), 0);
-      const idx = Math.max(0, Math.min(last, from + (e.key === fwd ? 1 : -1)));
-      setTyping({ sel, start: idx, value: "", mark: slots[idx] ?? null });
+  }
+
+  // 칸 하나로 옮겨 갑니다 — 그 칸을 지나는 낱말(화살표 방향 우선)을 고르고,
+  // 네모는 그 칸에, 다음 글자도 그 칸부터(잠긴 칸이면 그 뒤 첫 빈칸부터).
+  function moveTo(k, axis) {
+    const next = entryForCell(entries, cells.get(k), axis, sel);
+    if (next == null) return;
+    const start = startAt(next, k);
+    if (next === sel) {
+      setTyping({ sel, start, value: "", mark: k });
+    } else {
+      pendingStart.current = { sel: next, start, mark: k };
+      onSelect(next);
     }
   }
 

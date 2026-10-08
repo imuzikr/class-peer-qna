@@ -239,3 +239,28 @@ test("다음 낱말 — 한 바퀴 돌아 적을 수 있는 것", async () => {
   assert.equal(nextOpenEntry(e, null, () => true), 0);
   assert.equal(nextOpenEntry(e, 1, (i) => i === 1), null);
 });
+
+test("화살표 — 빈자리를 건너 다음 칸으로, 방향에 맞는 낱말을 고름", async () => {
+  const { crosswordCells, stepCell, entryForCell } = await import("../../lib/crossword.js");
+  // 가로 0: (0,0)~(0,2) · 세로 1: (0,2)~(2,2) · 가로 2: (2,4)~(2,5) — (2,3)은 빈자리
+  const puzzle = {
+    rows: 3,
+    cols: 6,
+    entries: [
+      { dir: "across", row: 0, col: 0, len: 3 },
+      { dir: "down", row: 0, col: 2, len: 3 },
+      { dir: "across", row: 2, col: 4, len: 2 },
+    ],
+  };
+  const cells = crosswordCells(puzzle);
+  assert.equal(stepCell(cells, puzzle, "0,0", 0, 1), "0,1");
+  assert.equal(stepCell(cells, puzzle, "2,2", 0, 1), "2,4"); // 빈자리 (2,3) 건너뜀
+  assert.equal(stepCell(cells, puzzle, "2,4", 0, -1), "2,2");
+  assert.equal(stepCell(cells, puzzle, "0,1", 1, 0), null); // 아래에 칸 없음
+  assert.equal(stepCell(cells, puzzle, "0,0", 0, -1), null); // 판 끝
+  // (0,2)는 가로 0 · 세로 1이 지남 — ↓면 세로, →면 가로
+  assert.equal(entryForCell(puzzle.entries, cells.get("0,2"), "down", 0), 1);
+  assert.equal(entryForCell(puzzle.entries, cells.get("0,2"), "across", 1), 0);
+  // (1,2)는 세로 1만 — ←를 눌러도 그 낱말
+  assert.equal(entryForCell(puzzle.entries, cells.get("1,2"), "across", 0), 1);
+});
