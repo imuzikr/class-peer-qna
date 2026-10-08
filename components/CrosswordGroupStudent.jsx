@@ -403,7 +403,7 @@ export default function CrosswordGroupStudent({ activity, groupId, user, onBack 
                     : selEntry.clue || "(힌트 없음)"}
               </span>
               <span className="xw-entry-help">
-                칸을 누르고 바로 적으세요 · Enter 넣기 · Tab 다음 낱말 · ← → 칸 옮기기 · Backspace 지우기 · 같은 칸을 한 번 더 누르면 가로 ↔ 세로
+                칸을 누르고 바로 적으세요 · Enter 넣기 · Tab 다음 낱말 · ← → 칸 옮기기 · Backspace · Del 지우기 · 같은 칸을 한 번 더 누르면 가로 ↔ 세로
               </span>
               {note && <span className="xw-pick-warn">{note}</span>}
             </div>

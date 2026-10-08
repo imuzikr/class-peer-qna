@@ -34,6 +34,10 @@
 //   입력이 1.2초 멈추면 · 입력칸을 벗어나면(onWrite). 조합 중에는 저장하지
 //   않습니다(입력칸 값을 비우면 조합이 깨집니다).
 //
+// [Backspace · Delete] Backspace는 네모 칸에 글자가 있으면 그것을, 비어 있으면
+//   앞 칸을 지우고 네모도 그리로 물러납니다. Delete는 네모 칸의 글자만 지우고
+//   네모는 제자리입니다(문서 편집기의 두 키와 같은 나눔 — 선생님 요청).
+//
 // [잠긴 칸] lockedKeys(열쇠 칸 · 이미 맞힌 낱말의 칸)는 건너뜁니다 — 교차하는
 //   칸의 글자는 이미 맞으므로 고칠 까닭이 없고, 실수로 지우면 맞힌 낱말이
 //   깨집니다.
@@ -325,6 +329,26 @@ export default function CrosswordTyping({
       return;
     }
     if (!typeable) return;
+    // Delete — 네모 칸의 글자를 지우고 네모는 제자리(Backspace는 앞으로 물러남).
+    // 적던 글자가 있으면 먼저 넣고, 그 마지막 글자(=네모 칸)를 지웁니다. 다음
+    // 글자는 그 칸에 들어갑니다. 열쇠 칸 · 맞힌 칸은 못 지웁니다.
+    if (e.key === "Delete") {
+      e.preventDefault();
+      const r = flush();
+      const k = cur.value ? r.mark : boxKey;
+      const at = slots.indexOf(k);
+      if (at < 0) {
+        setTyping({ sel, start: r.start, value: "", mark: k ?? null });
+        return;
+      }
+      if (lettersRef.current?.[k]) {
+        lettersRef.current = { ...lettersRef.current };
+        delete lettersRef.current[k];
+        onWrite({}, [k]);
+      }
+      setTyping({ sel, start: at, value: "", mark: k });
+      return;
+    }
     // Backspace — 네모 칸에 글자가 있으면 그것을, 비어 있으면 앞 칸을 지웁니다
     if (e.key === "Backspace" && !cur.value) {
       e.preventDefault();
