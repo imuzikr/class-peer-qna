@@ -54,6 +54,7 @@ export default function FloatingPanel({
   storageKey,
   width = 340,
   defaultTop = 132,
+  maxBody = null,
   className = "",
   children,
 }) {
@@ -121,8 +122,10 @@ export default function FloatingPanel({
 
   if (!mounted || !pos) return null;
 
-  // 몸통은 화면 바닥까지 — 넘치면 몸통 안에서 구릅니다
-  const bodyMax = Math.max(MIN_BODY, vh - pos.y - HEAD_H - MARGIN * 2);
+  // 몸통은 화면 바닥까지(그리고 `maxBody`가 있으면 그 천장까지) — 넘치면 몸통 안에서 구릅니다.
+  // 어차피 구르는 창이라 화면을 위아래로 다 덮을 까닭이 없어 천장을 줄 수 있게 했습니다
+  const roomBelow = Math.max(MIN_BODY, vh - pos.y - HEAD_H - MARGIN * 2);
+  const bodyMax = maxBody ? Math.min(maxBody, roomBelow) : roomBelow;
 
   return createPortal(
     <section

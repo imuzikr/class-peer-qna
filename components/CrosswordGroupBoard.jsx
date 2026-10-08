@@ -526,6 +526,7 @@ export default function CrosswordGroupBoard({ activity, onBack, onPickView, onTo
       <FloatingPanel
         title="낱말 힌트"
         storageKey="xw_hint_float"
+        maxBody={480}
         className="xwg-float"
         badge={puzzle ? <span className="xw-badge">힌트 {hintsDone} / {puzzle.entries.length}</span> : null}
       >
