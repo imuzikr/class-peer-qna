@@ -21386,6 +21386,20 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
   min-height: 0;
   max-height: none;
 }
+/* 격자는 학생 수만큼만 넓어서, 왼쪽에 붙여 두면 넓은 화면에서 오른쪽이 통째로
+   비었습니다(선생님 요청 — 가운데로). 범례와 격자를 한 덩이로 묶어 가운데에 두어
+   범례가 격자의 왼쪽 끝에 맞춰 섭니다. `max-width: 100%`라 격자가 칸보다 넓으면
+   덩이가 칸 폭을 다 쓰고 안의 `.progress-scroll`이 옆으로 구릅니다. 세로는 위에서
+   시작합니다(남는 높이를 그대로 써서 세로로 구름). */
+.dash-grass-inner {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  width: max-content;
+  max-width: 100%;
+  margin: 0 auto;
+}
 
 /* ── 모둠 고르기 줄 (교사) — 곁텍스트·RAFT의 학생 카드를 모둠으로 좁히기 ──
    닿소리의 왼쪽 모둠 목록과 같은 일을 하되 한 줄입니다. 이 화면들은 카드

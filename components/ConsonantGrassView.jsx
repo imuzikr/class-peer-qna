@@ -69,75 +69,79 @@ export default function ConsonantGrassView({ students = [], onPickStudent = null
 
   return (
     <div className="dash-grass">
-      <div className="progress-legend">
-        <span className="progress-legend-item">
-          <i className="progress-mark progress-mark--done" /> 채움
-        </span>
-        <span className="progress-legend-item">
-          <i className="progress-mark progress-mark--empty" /> 아직
-        </span>
-        <span className="progress-legend-sum">
-          다 채운 학생 {doneStudents} / {students.length}
-        </span>
-      </div>
+      {/* 범례와 격자를 한 덩이로 가운데에 — 범례가 격자의 왼쪽 끝에 맞춰 섭니다.
+          격자가 칸보다 넓으면 이 덩이가 칸 폭을 다 쓰고 격자만 옆으로 구릅니다 */}
+      <div className="dash-grass-inner">
+        <div className="progress-legend">
+          <span className="progress-legend-item">
+            <i className="progress-mark progress-mark--done" /> 채움
+          </span>
+          <span className="progress-legend-item">
+            <i className="progress-mark progress-mark--empty" /> 아직
+          </span>
+          <span className="progress-legend-sum">
+            다 채운 학생 {doneStudents} / {students.length}
+          </span>
+        </div>
 
-      <div className="progress-scroll" onScroll={() => setTip(null)}>
-        <div className="progress-grass" style={{ "--students": students.length }}>
-          {/* 이름 줄 — 세로쓰기. 세로로 구를 때 위에 붙어 있어야 어느 칸이
-              누구인지 잃지 않습니다(sticky). */}
-          <span className="grass-act grass-corner" aria-hidden="true" />
-          {students.map((s) => {
-            const filled = (s.counts ?? []).filter((n) => n > 0).length;
-            const done = filled >= CELL_COUNT;
-            return (
-              <button
-                key={s.uid}
-                type="button"
-                // 14칸을 다 채운 학생은 이름 위에 붉은 점. 세로 줄을 하나씩
-                // 눈으로 훑지 않아도 '누가 끝냈나'가 이름 줄에서 바로 읽힙니다
-                // — 다 채운 줄은 초록이 열넷이라 옆줄과 잘 안 갈립니다.
-                className={`grass-name${done ? " is-done" : ""}`}
-                onClick={() => onPickStudent?.(s.uid)}
-                title={
-                  `${s.studentId ? `${s.studentId} ` : ""}${s.name}` +
-                  ` — ${filled}/${CELL_COUNT}칸${done ? " · 다 채움" : ""}` +
-                  `${s.groupName ? ` · ${s.groupName}` : ""}`
-                }
-              >
-                {s.name}
-              </button>
-            );
-          })}
+        <div className="progress-scroll" onScroll={() => setTip(null)}>
+          <div className="progress-grass" style={{ "--students": students.length }}>
+            {/* 이름 줄 — 세로쓰기. 세로로 구를 때 위에 붙어 있어야 어느 칸이
+                누구인지 잃지 않습니다(sticky). */}
+            <span className="grass-act grass-corner" aria-hidden="true" />
+            {students.map((s) => {
+              const filled = (s.counts ?? []).filter((n) => n > 0).length;
+              const done = filled >= CELL_COUNT;
+              return (
+                <button
+                  key={s.uid}
+                  type="button"
+                  // 14칸을 다 채운 학생은 이름 위에 붉은 점. 세로 줄을 하나씩
+                  // 눈으로 훑지 않아도 '누가 끝냈나'가 이름 줄에서 바로 읽힙니다
+                  // — 다 채운 줄은 초록이 열넷이라 옆줄과 잘 안 갈립니다.
+                  className={`grass-name${done ? " is-done" : ""}`}
+                  onClick={() => onPickStudent?.(s.uid)}
+                  title={
+                    `${s.studentId ? `${s.studentId} ` : ""}${s.name}` +
+                    ` — ${filled}/${CELL_COUNT}칸${done ? " · 다 채움" : ""}` +
+                    `${s.groupName ? ` · ${s.groupName}` : ""}`
+                  }
+                >
+                  {s.name}
+                </button>
+              );
+            })}
 
-          {CONSONANT_LABELS.map((label, i) => (
-            <Fragment key={label}>
-              <span className="grass-act">
-                <span className="grass-act-letter" aria-hidden="true">{label}</span>
-                <span className="grass-act-count">
-                  {doneCounts[i]}/{students.length}
+            {CONSONANT_LABELS.map((label, i) => (
+              <Fragment key={label}>
+                <span className="grass-act">
+                  <span className="grass-act-letter" aria-hidden="true">{label}</span>
+                  <span className="grass-act-count">
+                    {doneCounts[i]}/{students.length}
+                  </span>
                 </span>
-              </span>
-              {students.map((s) => {
-                const n = s.counts?.[i] ?? 0;
-                const text =
-                  `${s.name} · ${label} — ` +
-                  (n > 0 ? `낱말 ${n}개` : "아직 안 채움");
-                return (
-                  <button
-                    key={s.uid}
-                    type="button"
-                    className={`grass-cell grass-cell--${n > 0 ? "done" : "empty"}`}
-                    onClick={() => onPickStudent?.(s.uid)}
-                    onMouseEnter={(e) => showTip(e, text)}
-                    onMouseLeave={() => setTip(null)}
-                    onFocus={(e) => showTip(e, text)}
-                    onBlur={() => setTip(null)}
-                    aria-label={text}
-                  />
-                );
-              })}
-            </Fragment>
-          ))}
+                {students.map((s) => {
+                  const n = s.counts?.[i] ?? 0;
+                  const text =
+                    `${s.name} · ${label} — ` +
+                    (n > 0 ? `낱말 ${n}개` : "아직 안 채움");
+                  return (
+                    <button
+                      key={s.uid}
+                      type="button"
+                      className={`grass-cell grass-cell--${n > 0 ? "done" : "empty"}`}
+                      onClick={() => onPickStudent?.(s.uid)}
+                      onMouseEnter={(e) => showTip(e, text)}
+                      onMouseLeave={() => setTip(null)}
+                      onFocus={(e) => showTip(e, text)}
+                      onBlur={() => setTip(null)}
+                      aria-label={text}
+                    />
+                  );
+                })}
+              </Fragment>
+            ))}
+          </div>
         </div>
       </div>
 
