@@ -134,3 +134,98 @@ test("셋을 골라 셋 다 풀이를 써야 다 쓴 것", () => {
   assert.ok(crosswordPicksDone([{ word: "사과", clue: "x" }, { word: "과일", clue: "y" }, { word: "일기", clue: "z" }]));
   assert.equal(normalizeCrosswordPicks([{ word: "a" }, { word: "a" }, { word: "b" }, { word: "c" }, { word: "d" }]).length, 3);
 });
+
+// ─── 모둠 퍼즐 ───────────────────────────────────────────────
+import {
+  xwHash, crosswordWordPool, assignEntriesToGroups, buildGroupCrossword,
+  normalizeGroupCrossword, fixedLettersOf, boardEntrySolved, groupSolveProgress,
+  xwCommitPlan, rankGroupProgress, xwHintDone, entryLen,
+} from "../../lib/crossword.js";
+
+test("지문 — 같은 낱말·같은 salt면 같고, salt가 다르면 다름", () => {
+  assert.equal(xwHash("광합성", "a"), xwHash("광합성", "a"));
+  assert.notEqual(xwHash("광합성", "a"), xwHash("광합성", "b"));
+  assert.notEqual(xwHash("광합성", "a"), xwHash("광합상", "a"));
+});
+
+test("낱말 문서 → 판에 오를 낱말(같은 것 한 번, 안 되는 것 뺌)", () => {
+  const pool = crosswordWordPool([{ text: " 사과 " }, { text: "사과" }, { text: "AI" }, { text: "물" }, { text: "과일" }]);
+  assert.deepEqual(pool, ["사과", "과일"]);
+});
+
+test("모둠 배정 — 모둠마다 구성원 수까지, 모자라면 고르게", () => {
+  const groups = [{ id: "g1", size: 4 }, { id: "g2", size: 4 }, { id: "g3", size: 5 }];
+  const full = assignEntriesToGroups(13, groups, seeded(2));
+  const count = (list, id) => list.filter((x) => x === id).length;
+  assert.equal(count(full, "g1"), 4);
+  assert.equal(count(full, "g2"), 4);
+  assert.equal(count(full, "g3"), 5);
+  const short = assignEntriesToGroups(7, groups, seeded(2));
+  for (const g of groups) assert.ok(count(short, g.id) >= 2 && count(short, g.id) <= 3, `${g.id} ${count(short, g.id)}`);
+  const over = assignEntriesToGroups(15, groups, seeded(2));
+  assert.equal(over.filter((x) => x === null).length, 2);
+});
+
+test("모둠 퍼즐 — 반 문서에는 낱말 없이 지문만, 힌트 문서에 낱말", () => {
+  const groups = [{ id: "g1", size: 4 }, { id: "g2", size: 4 }, { id: "g3", size: 4 }];
+  const built = buildGroupCrossword(WORDS.map((w) => w.word), groups, { salt: "s1", rng: seeded(9) });
+  assert.ok(built);
+  const { puzzle, hints } = built;
+  assert.equal(puzzle.entries.length, hints.length);
+  assert.ok(puzzle.entries.length >= 8 && puzzle.entries.length <= 12);
+  assert.ok(puzzle.entries.every((e) => !("word" in e)), "반 문서에 낱말이 실림");
+  hints.forEach((h, i) => {
+    assert.equal(h.idx, i);
+    assert.equal(h.groupId, puzzle.entries[i].groupId);
+    assert.equal(puzzle.entries[i].hash, xwHash(h.word, "s1"));
+    assert.equal(entryLen(puzzle.entries[i]), h.word.length);
+  });
+  // 판 규칙은 낱말을 다시 붙여 확인합니다
+  check({ ...puzzle, entries: puzzle.entries.map((e, i) => ({ ...e, word: hints[i].word })) });
+  const norm = normalizeGroupCrossword({ ...puzzle, createdAt: 1 });
+  assert.equal(norm.entries.length, puzzle.entries.length);
+  assert.equal(norm.stage, "hint");
+  assert.equal(normalizeGroupCrossword({ rows: 3, cols: 3, entries: [] }), null);
+});
+
+test("풀이 현황 — 우리 모둠 낱말은 열쇠 칸, 점수에서 뺌", () => {
+  const groups = [{ id: "g1", size: 5 }, { id: "g2", size: 5 }];
+  const { puzzle, hints } = buildGroupCrossword(WORDS.map((w) => w.word), groups, { salt: "s2", rng: seeded(4) });
+  const own = hints.filter((h) => h.groupId === "g1");
+  const fixed = fixedLettersOf(puzzle, own);
+  const empty = groupSolveProgress(puzzle, "g1", {}, fixed);
+  assert.ok(empty.total <= puzzle.entries.filter((e) => e.groupId !== "g1").length && empty.total > 0);
+  assert.equal(empty.solved.size, 0);
+  // 다른 모둠 낱말 하나를 칸에 채우면 맞힘
+  const target = hints.find((h) => h.groupId === "g2");
+  const e = puzzle.entries[target.idx];
+  const plan = xwCommitPlan(e, target.word, {}, fixed);
+  assert.ok(boardEntrySolved(e, plan.set, fixed, "s2"));
+  const after = groupSolveProgress(puzzle, "g1", plan.set, fixed);
+  assert.ok(after.solved.has(target.idx));
+  // 틀린 글자는 안 맞힘
+  const wrong = Object.fromEntries(Object.keys(plan.set).map((k) => [k, "가"]));
+  assert.ok(!boardEntrySolved(e, wrong, new Map(), "s2"));
+});
+
+test("넣기 — 열쇠 칸은 안 건드리고, 짧게 적어도 남의 정답 칸은 안 지움", () => {
+  const entry = { dir: "across", row: 0, col: 0, len: 3 };
+  const fixed = new Map([["0,0", "광"]]);
+  const plan = xwCommitPlan(entry, "광합", { "0,2": "성" }, fixed, new Set(["0,2"]));
+  assert.deepEqual(plan.set, { "0,1": "합" });
+  assert.deepEqual(plan.del, []);
+  const plan2 = xwCommitPlan(entry, "", { "0,1": "합", "0,2": "성" }, fixed, new Set());
+  assert.deepEqual(plan2.del.sort(), ["0,1", "0,2"]);
+});
+
+test("모둠 순위와 힌트 제출", () => {
+  const r = rankGroupProgress([
+    { groupId: "a", solved: 2, total: 10, order: 1 },
+    { groupId: "b", solved: 5, total: 10, order: 2 },
+    { groupId: "c", solved: 5, total: 9, order: 3 },
+  ]);
+  assert.deepEqual(r.map((x) => x.groupId), ["c", "b", "a"]);
+  assert.ok(xwHintDone({ writerUid: "u", hint: "뜻" }));
+  assert.ok(!xwHintDone({ writerUid: null, hint: "뜻" }));
+  assert.ok(!xwHintDone({ writerUid: "u", hint: " " }));
+});

@@ -31186,3 +31186,217 @@ h4.attendance-seat-help { margin-top: 16px; }
   font-size: 11px;
   font-weight: 700;
 }
+
+/* =============================================================
+   가로세로 낱말퀴즈 — 모둠 활동 (CrosswordGroupStudent · CrosswordGroupBoard)
+   학생: 왼쪽 우리 모둠 낱말·힌트 쓰기 | 가운데 함께 채우는 판 | 오른쪽 힌트 목록
+   교사: 왼쪽 힌트 제출 / 모둠별 미니맵 | 가운데 판 (오른쪽 패널 없음)
+   접는 기준은 화면이 아니라 이 칸의 폭입니다(책방은 양옆 패널이 섬).
+   ============================================================= */
+.xwg {
+  display: grid;
+  grid-template-columns: minmax(260px, 300px) minmax(0, 1fr) minmax(240px, 290px);
+  gap: 16px;
+  align-items: start;
+  container-type: inline-size;
+}
+.xwg--teacher { grid-template-columns: minmax(260px, 320px) minmax(0, 1fr); }
+.xwg-side { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.xwg-center { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.xwg-center .xw-grid { margin: 0 auto; }
+@media (max-width: 1180px) {
+  .xwg { grid-template-columns: minmax(240px, 300px) minmax(0, 1fr); }
+  .xwg > .xwg-right { grid-column: 1 / -1; }
+}
+@media (max-width: 860px) {
+  .xwg, .xwg--teacher { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* 판 — 열쇠 칸 · 채우는 중 */
+.xw-cell.key { background: #fbf0dc; border-color: #d9b77a; }
+.xw-cell.key .xw-ch { color: #7d5811; }
+.xw-cell.key.right { background: #fbf0dc; border-color: #d9b77a; }
+.xw-cell:disabled { cursor: default; }
+.xw-cell:disabled .xw-ch { color: var(--text); }
+
+/* 미니맵 — 글자 없이 색만. 칸은 작게, 판 모양 그대로 */
+.xw-grid--mini {
+  grid-template-columns: repeat(var(--xw-cols), 11px);
+  gap: 1px;
+  width: max-content;
+  max-width: 100%;
+  margin: 0;
+}
+.xw-grid--mini .xw-cell {
+  border-width: 1px;
+  border-radius: 1.5px;
+  border-color: #d5cfc5;
+  background: #fff;
+  cursor: default;
+}
+.xw-grid--mini .xw-cell--void { border: none; background: transparent; }
+.xw-grid--mini .xw-cell.key { background: #f0e2c4; border-color: #e0cfa8; }
+.xw-grid--mini .xw-cell.filled { background: #e9e6e1; }
+
+.xwg-swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin: 0 4px 0 8px;
+  border-radius: 3px;
+  border: 1px solid #b9b2a6;
+  vertical-align: -1px;
+}
+.xwg-swatch:first-child { margin-left: 0; }
+.xwg-swatch.key { background: #fbf0dc; border-color: #d9b77a; }
+.xwg-swatch.right { background: #e8f7ed; border-color: #a6d8b6; }
+.xwg-swatch.filled { background: #e9e6e1; border-color: #d5cfc5; }
+.xwg-legend { font-size: 12px; }
+
+/* 왼쪽 — 우리 모둠 낱말 */
+.xwg-words { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.xwg-words > li {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+}
+.xwg-words > li.done { border-color: #a6d8b6; background: #f3faf5; }
+.xwg-word-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.xwg-word-head strong { font-size: 15px; color: var(--text); }
+.xwg-word-head .xw-badge { margin-left: auto; height: 22px; }
+.xwg-word-tag { font-size: 11.5px; font-weight: 800; color: var(--primary-dark); white-space: nowrap; }
+.xwg-pills { display: flex; flex-wrap: wrap; gap: 5px; }
+.xwg-pill {
+  height: 28px;
+  padding: 0 11px;
+  border: 1.5px solid var(--border);
+  border-radius: 999px;
+  background: var(--card-bg);
+  color: var(--text-sub);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.xwg-pill.me { color: var(--text); }
+.xwg-pill:hover:not(:disabled) { border-color: var(--primary); }
+.xwg-pill.on { background: var(--primary); border-color: var(--primary); color: #fff; }
+.xwg-pill:disabled { cursor: not-allowed; opacity: 0.55; }
+.xwg-pill.on:disabled { opacity: 1; }
+.xwg-hint-read { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--text); }
+.xwg-writer { font-style: normal; font-size: 12px; color: var(--text-sub); }
+
+.xwg-bar { height: 8px; border-radius: 999px; background: var(--neutral); overflow: hidden; }
+.xwg-bar > span { display: block; height: 100%; background: #6fbf8a; transition: width 0.3s; }
+
+/* 오른쪽 — 힌트 목록 */
+.xw-clue:disabled { cursor: default; }
+.xw-clue:disabled:hover { background: transparent; }
+.xw-clue.own { background: #fdf7ea; }
+.xw-clue-own {
+  font-style: normal;
+  display: inline-block;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #f0e2c4;
+  color: #7d5811;
+  font-size: 11px;
+  font-weight: 700;
+}
+.xw-clue-wait { color: var(--text-faint); }
+.xwg-right .xw-clues { max-height: calc(100vh - 260px); overflow-y: auto; }
+
+/* 교사 — 머리말 단계 표시 */
+.xwg-stage { margin-left: auto; }
+
+/* 교사 왼쪽 — 힌트 제출(모둠별 학생 목록) */
+.xwg-subgroup {
+  border-left: 3px solid var(--xwg-c, var(--border));
+  padding: 2px 0 2px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.xwg-subgroup-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.xwg-subgroup-head strong { font-size: 14px; color: var(--text); }
+.xwg-subgroup-meta { font-size: 12px; color: var(--text-sub); }
+.xwg-subgroup ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+.xwg-stu {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 9px;
+  border-radius: 8px;
+  background: var(--bg);
+  font-size: 13px;
+}
+.xwg-stu-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+.xwg-stu-state {
+  flex-shrink: 0;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  background: var(--neutral);
+  color: var(--text-sub);
+}
+.xwg-stu--done { background: #f3faf5; }
+.xwg-stu--done .xwg-stu-state { background: #e8f7ed; color: #2f7a45; }
+.xwg-stu--doing .xwg-stu-state { background: #fdf0dc; color: #8a5a12; }
+.xwg-stu--free { opacity: 0.6; }
+
+/* 교사 왼쪽 — 모둠별 미니맵(맞힌 순서) */
+.xwg-ranks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.xwg-rank {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1.5px solid var(--border);
+  border-left: 4px solid var(--xwg-c, var(--border));
+  border-radius: 10px;
+  background: var(--card-bg);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.xwg-rank:hover { border-color: var(--xwg-c); }
+.xwg-rank.on { background: var(--xwg-bg, var(--bg)); border-color: var(--xwg-c); }
+.xwg-rank-head { display: flex; align-items: center; gap: 8px; }
+.xwg-rank-head strong { font-size: 14px; color: var(--text); }
+.xwg-rank-head .xw-badge { margin-left: auto; }
+.xwg-rank-no {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--xwg-c);
+  color: #fff;
+  font-size: 12px;
+}
+
+/* 교사 가운데 — 모둠별 낱말과 힌트 */
+.xwg-hint-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+}
+.xwg-hint-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.xwg-hint-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text);
+}
+.xwg-hint-list li > span:not(.xwg-word-tag):not(.xw-used) { flex-basis: 100%; }
