@@ -31139,6 +31139,10 @@ h4.attendance-seat-help { margin-top: 16px; }
 }
 .xw-typing-input:focus { outline: none; box-shadow: none; }
 .xw-cell.cur { box-shadow: inset 0 0 0 2.5px var(--primary); background: #ffe9d6; }
+/* 네모가 맞힌 칸 · 열쇠 칸에 서면 테두리만 — 바탕은 그 칸의 색(초록 · 베이지)을
+   지켜야 '맞혔다'가 그대로 보입니다. */
+.xw-cell.right.cur { background: #e8f7ed; }
+.xw-cell.key.cur { background: #fbf0dc; }
 .xw-cell.typing .xw-ch { color: var(--primary-dark); }
 .xw-cell.filled .xw-ch { color: var(--text); }
 
