@@ -7,11 +7,11 @@
 //   준비     — '가로세로 낱말 퀴즈 생성': 이 활동의 낱말 **전부**로 참여 학생
 //              수만큼 이어 판을 짜고, 모둠마다 구성원 수만큼 무작위로 나눠 줍니다.
 //   힌트 쓰기 — 왼쪽: 학생마다 제출/미제출(한 사람이 낱말 하나를 맡음).
-//              가운데: 정답이 보이는 판 + 모둠별 힌트(누가 썼나).
+//              가운데: 정답이 보이는 판. 오른쪽: 모둠별 낱말 · 힌트(누가 썼나).
 //              '낱말 채우기'를 누르면 힌트가 판의 문제로 들어갑니다.
 //   낱말 채우기 — 왼쪽: 모둠별 미니맵(맞힌 낱말이 모둠 색으로 칠해짐)을 맞힌
 //              순서대로. 누르면 가운데에 그 모둠의 판이 크게 섭니다.
-// 오른쪽 패널은 두지 않습니다.
+// 낱말 힌트는 늘 오른쪽 패널입니다 — 학생 화면의 힌트 목록과 같은 자리(선생님 요청).
 //
 // 실시간: 모둠마다 힌트(컬렉션)와 판(문서 하나)을 구독합니다 — 모둠이 여섯이면
 // 리스너 열두 개이고, 학생이 낱말을 넣을 때마다 그 판 문서 한 건이 옵니다.
@@ -382,13 +382,18 @@ export default function CrosswordGroupBoard({ activity, onBack, onPickView, onTo
               <CrosswordGrid puzzle={puzzle} fixed={answerLetters} />
             )}
           </section>
+        </div>
 
-          {puzzle && (
-            <section className="xw-card">
-              <header className="xw-card-head">
-                <h3>모둠별 낱말과 힌트</h3>
-                <span className="xw-badge">힌트 {hintsDone} / {puzzle.entries.length}</span>
-              </header>
+        {/* 오른쪽 — 낱말 힌트(모둠별 · 누가 썼나). 학생 화면의 힌트 목록과 같은 자리 */}
+        <aside className="xwg-side xwg-right">
+          <section className="xw-card">
+            <header className="xw-card-head">
+              <h3>낱말 힌트</h3>
+              {puzzle && <span className="xw-badge">힌트 {hintsDone} / {puzzle.entries.length}</span>}
+            </header>
+            {!puzzle ? (
+              <p className="xw-card-note">퀴즈를 만들면 모둠마다 맡은 낱말과 학생이 쓴 힌트가 여기에 떠요.</p>
+            ) : (
               <div className="xwg-hint-groups">
                 {liveGroups.map((g, gi) => {
                   const list = hintsOf[g.id] ?? [];
@@ -424,9 +429,9 @@ export default function CrosswordGroupBoard({ activity, onBack, onPickView, onTo
                   );
                 })}
               </div>
-            </section>
-          )}
-        </div>
+            )}
+          </section>
+        </aside>
       </div>
 
       {confirm === "regen" && (

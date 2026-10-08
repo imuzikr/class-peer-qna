@@ -30953,7 +30953,7 @@ h4.attendance-seat-help { margin-top: 16px; }
   white-space: nowrap;
 }
 
-.xw-main { overflow-y: auto; }
+.xw-main { overflow-y: auto; container: xwmain / inline-size; }
 .xw-main > .canvas-head { flex-wrap: wrap; }
 
 /* 학생 화면 — 왼쪽 내 낱말 풀이 · 오른쪽 퀴즈. 좁으면 위아래로. */
@@ -31212,7 +31212,7 @@ h4.attendance-seat-help { margin-top: 16px; }
 /* =============================================================
    가로세로 낱말퀴즈 — 모둠 활동 (CrosswordGroupStudent · CrosswordGroupBoard)
    학생: 왼쪽 우리 모둠 낱말·힌트 쓰기 | 가운데 함께 채우는 판 | 오른쪽 힌트 목록
-   교사: 왼쪽 힌트 제출 / 모둠별 미니맵 | 가운데 판 (오른쪽 패널 없음)
+   교사: 왼쪽 힌트 제출 / 모둠별 미니맵 | 가운데 판 | 오른쪽 낱말 힌트(모둠별)
    접는 기준은 화면이 아니라 이 칸의 폭입니다(책방은 양옆 패널이 섬).
    ============================================================= */
 .xwg {
@@ -31222,7 +31222,6 @@ h4.attendance-seat-help { margin-top: 16px; }
   align-items: start;
   container-type: inline-size;
 }
-.xwg--teacher { grid-template-columns: minmax(260px, 320px) minmax(0, 1fr); }
 .xwg-side { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .xwg-center { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .xwg-center .xw-grid,
@@ -31232,7 +31231,23 @@ h4.attendance-seat-help { margin-top: 16px; }
   .xwg > .xwg-right { grid-column: 1 / -1; }
 }
 @media (max-width: 860px) {
-  .xwg, .xwg--teacher { grid-template-columns: minmax(0, 1fr); }
+  .xwg { grid-template-columns: minmax(0, 1fr); }
+}
+/* 교사 — 세 칸(미니맵·제출 | 판 | 낱말 힌트). 책방 교사 화면은 양옆에 '오늘'·
+   '멋진 순간' 패널이 서서 창 폭과 이 칸의 폭이 따로 놀므로, 창 폭(@media)이 아니라
+   이 화면(.xw-main)의 폭으로 접습니다. 1440px 창에 양옆 패널이 다 서면 이 칸이
+   740px 남짓이라, 양옆 칸을 %로 두어 판에 280px 안팎을 남깁니다.
+   특이도를 한 칸 올려(.xwg.xwg--teacher) 위의 @media 규칙에 지지 않게 합니다. */
+.xwg.xwg--teacher {
+  grid-template-columns: minmax(200px, min(24%, 300px)) minmax(260px, 1fr) minmax(210px, min(26%, 320px));
+}
+.xwg.xwg--teacher > .xwg-right { grid-column: auto; }
+@container xwmain (max-width: 719px) {
+  .xwg.xwg--teacher { grid-template-columns: minmax(200px, 260px) minmax(0, 1fr); }
+  .xwg.xwg--teacher > .xwg-right { grid-column: 1 / -1; }
+}
+@container xwmain (max-width: 520px) {
+  .xwg.xwg--teacher { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* 판 — 열쇠 칸 · 채우는 중 */
@@ -31352,15 +31367,19 @@ h4.attendance-seat-help { margin-top: 16px; }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 2px 8px;
   padding: 5px 9px;
   border-radius: 8px;
   background: var(--bg);
   font-size: 13px;
 }
-.xwg-stu-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+/* 이름이 먼저 — 칸이 좁으면(양옆 패널이 선 1440px 창) 이름을 줄이지 않고 상태
+   알약이 다음 줄 오른쪽으로 내려갑니다. '학…'으로 잘리면 누구인지 모릅니다. */
+.xwg-stu-name { flex-shrink: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
 .xwg-stu-state {
   flex-shrink: 0;
+  margin-left: auto;
   padding: 1px 8px;
   border-radius: 999px;
   font-size: 11.5px;
@@ -31406,11 +31425,16 @@ h4.attendance-seat-help { margin-top: 16px; }
   font-size: 12px;
 }
 
-/* 교사 가운데 — 모둠별 낱말과 힌트 */
+/* 교사 오른쪽 — 모둠별 낱말과 힌트. 패널 폭(260~320px)에서는 한 줄에 한 모둠,
+   1180px 아래에서 패널이 아래로 내려가 가로를 다 쓰면 여러 모둠이 나란히 섭니다. */
 .xwg-hint-groups {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 14px;
+}
+.xwg--teacher .xwg-right .xwg-hint-groups { max-height: calc(100vh - 260px); overflow-y: auto; }
+@container xwmain (max-width: 719px) {
+  .xwg--teacher .xwg-right .xwg-hint-groups { max-height: none; overflow-y: visible; }
 }
 .xwg-hint-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .xwg-hint-list li {
