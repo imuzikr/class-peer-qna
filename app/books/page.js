@@ -97,6 +97,10 @@ const ACTIVITY_KINDS = [
 
 const ACTIVITY_KIND_BY_KEY = new Map(ACTIVITY_KINDS.map((k) => [k.key, k]));
 
+// 닿소리 '전체 보기'의 얼굴 — 주소의 ?face= 값(격자가 기본이라 주소에 안 적음).
+// DashViewTabs의 key와 같아야 합니다(가로세로는 얼굴이 아니라 ?view=cross).
+const DASH_FACES = ["grass", "grid", "cloud"];
+
 function activityTime(activity) {
   const raw = activity?.createdAt;
   if (!raw) return 0;
@@ -191,22 +195,33 @@ function BooksPageInner() {
   const viewParam = searchParams.get("view");
   const allView = viewParam === "all" || viewParam === "cross"; // 교사: 반 전체 집계 화면
   const crossView = viewParam === "cross";
-  function setBooksView(v) {
+  // 주소의 몇 칸만 바꿉니다(값이 null이면 그 칸을 뺌). ?activity=는 그대로.
+  function patchBooksQuery(patch, { replace = false } = {}) {
     const p = new URLSearchParams(searchParams.toString());
-    if (v) p.set("view", v);
-    else p.delete("view");
+    for (const [k, v] of Object.entries(patch)) {
+      if (v) p.set(k, v);
+      else p.delete(k);
+    }
     const qs = p.toString();
-    router.push(qs ? `/books?${qs}` : "/books");
+    const url = qs ? `/books?${qs}` : "/books";
+    if (replace) router.replace(url, { scroll: false });
+    else router.push(url);
   }
-  // 전체 보기에서 보던 얼굴(잔디 · 격자 · 낱말 구름) — 가로세로에 다녀와도
-  // 그 얼굴로 돌아오게 여기서 듭니다(집계 화면은 가로세로로 가면 내려갑니다)
-  const [dashView, setDashView] = useState("grid");
-  useEffect(() => { setDashView("grid"); }, [openActivityId]);
+  function setBooksView(v) {
+    patchBooksQuery({ view: v });
+  }
+  // 전체 보기에서 보던 얼굴(잔디 · 격자 · 낱말 구름)도 URL(?face=)로 듭니다 —
+  // 새로고침해도, 가로세로에 다녀와도 그 얼굴입니다(집계 화면은 가로세로로 가면
+  // 내려갑니다). 전체 보기를 닫아도 face는 남겨, 다시 열면 보던 얼굴입니다.
+  // 다른 활동을 열면(goToActivity) 빠져 격자로 시작합니다.
+  // 알약을 오가는 것은 replace — 누를 때마다 '뒤로 가기' 기록이 쌓이지 않게.
+  const faceParam = searchParams.get("face");
+  const dashView = DASH_FACES.includes(faceParam) ? faceParam : "grid";
+  const setDashView = (v) => patchBooksQuery({ face: v === "grid" ? null : v }, { replace: true });
   // 가로세로 화면의 보는 방법 알약 — 앞의 셋을 누르면 집계 화면 그 얼굴로
   const pickDashView = (v) => {
     if (v === "crossword") return;
-    setDashView(v);
-    setBooksView("all");
+    patchBooksQuery({ view: "all", face: v === "grid" ? null : v });
   };
   const [creatingType, setCreatingType] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);

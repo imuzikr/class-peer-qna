@@ -31332,6 +31332,8 @@ h4.attendance-seat-help { margin-top: 16px; }
   grid-template-columns: repeat(var(--xw-cols), minmax(0, 5px));
   justify-content: center;
 }
+/* 교사 왼쪽 — 모둠별(학생별) 미니맵은 카드 가운데(선생님 요청 — 한때 왼쪽에 붙음) */
+.xwg-rank .xw-grid--mini { align-self: center; }
 .xwg-leader-name { margin: 0 0 8px; }
 .xwg-leader-name strong { color: var(--dark); }
 .xwg-leader-me { color: var(--primary-dark); font-weight: 700; }
@@ -31406,7 +31408,26 @@ h4.attendance-seat-help { margin-top: 16px; }
   font-weight: 700;
 }
 .xw-clue-wait { color: var(--text-faint); }
-.xwg-right .xw-clues { max-height: calc(100vh - 260px); overflow-y: auto; }
+/* 힌트 목록은 낱말판 카드의 바닥까지 — 한때 창 높이(100vh − 260px)로 잘려, 판은
+   한참 아래까지 이어지는데 힌트만 중간에서 끊겼습니다(선생님 지적). 지금은 판 카드와
+   힌트 카드를 줄 높이에 맞춰 늘이고(stretch), 목록은 남는 높이를 다 쓰며 넘치면
+   그 안에서 구릅니다. `contain: size`가 목록의 키를 줄 높이 셈에서 빼 줍니다 —
+   빼지 않으면 힌트가 길수록 줄(과 판 카드)이 늘어나 늘 다 펼쳐집니다.
+   판이 낮아도 목록은 320px까지는 섭니다. */
+.xwg > .xwg-center,
+.xwg > .xwg-right { align-self: stretch; }
+.xwg > .xwg-right > .xw-card { flex: 1; }
+.xwg-right .xw-clues {
+  flex: 1 1 0;
+  min-height: 320px;
+  contain: size;
+  overflow-y: auto;
+}
+/* 힌트 패널이 판 아래로 내려가 가로를 다 쓰면 줄 높이를 맞출 상대가 없으므로 예전처럼 */
+@media (max-width: 1180px) {
+  .xwg:not(.xwg--teacher) > .xwg-center { align-self: start; }
+  .xwg:not(.xwg--teacher) .xwg-right .xw-clues { flex: none; contain: none; min-height: 0; max-height: 70vh; }
+}
 
 /* 교사 — 머리말 단계 표시 */
 .xwg-stage { margin-left: auto; }
@@ -31493,9 +31514,19 @@ h4.attendance-seat-help { margin-top: 16px; }
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 14px;
 }
-.xwg--teacher .xwg-right .xwg-hint-groups { max-height: calc(100vh - 260px); overflow-y: auto; }
+/* 교사도 낱말판 카드의 바닥까지(학생 힌트 목록과 같은 셈 — 위 '.xwg-right .xw-clues').
+   판 카드와 힌트 카드는 이미 한 묶음(.xwg-pair)으로 바닥이 같습니다. */
+.xwg--teacher .xwg-right .xwg-hint-groups,
+.xwg--teacher .xwg-right .xwg-hint-list--solo {
+  flex: 1 1 0;
+  min-height: 320px;
+  contain: size;
+  overflow-y: auto;
+  align-content: start;
+}
 @container xwmain (max-width: 719px) {
-  .xwg--teacher .xwg-right .xwg-hint-groups { max-height: none; overflow-y: visible; }
+  .xwg--teacher .xwg-right .xwg-hint-groups,
+  .xwg--teacher .xwg-right .xwg-hint-list--solo { flex: none; contain: none; min-height: 0; overflow-y: visible; }
 }
 .xwg-hint-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .xwg-hint-list li {
