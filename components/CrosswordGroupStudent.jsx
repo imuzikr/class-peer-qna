@@ -32,10 +32,14 @@ import {
   fixedLettersOf,
   groupSolveProgress,
   entryLen,
+  entryCellKeys as entryKeysOf,
   clueRevealsWord,
 } from "@/lib/crossword";
 import CrosswordGrid from "./CrosswordGrid";
 import CrosswordTyping from "./CrosswordTyping";
+
+// 미니맵의 '맞힌 낱말' 색 — 가운데 판의 초록 · 풀이 막대와 같은 값
+const MAP_TINT = { bg: "#e8f7ed", border: "#6fbf8a" };
 
 const DIR_LABEL = { across: "가로", down: "세로" };
 
@@ -248,6 +252,30 @@ export default function CrosswordGroupStudent({ activity, groupId, user, onBack 
       <div className="xwg">
         {/* 왼쪽 — 우리 모둠 낱말 · 힌트 쓰기 */}
         <aside className="xwg-side xwg-left">
+          {/* 미니맵 — 우리 모둠 판을 한눈에(교사 화면의 모둠별 미니맵과 같은 그림).
+              맞힌 낱말은 초록, 채우는 중은 회색, 우리 모둠 낱말은 베이지 */}
+          {solving && (
+            <section className="xw-card xwg-mymap">
+              <header className="xw-card-head">
+                <h3>우리 모둠 판 한눈에</h3>
+              </header>
+              <CrosswordGrid
+                puzzle={puzzle}
+                letters={letters}
+                fixed={fixed}
+                solvedKeys={progress?.solvedKeys}
+                selKeys={selEntry ? new Set(entryKeysOf(selEntry)) : null}
+                mini
+                tint={MAP_TINT}
+              />
+              <p className="xw-card-note xwg-legend">
+                <span className="xwg-swatch key" /> 우리 모둠 낱말
+                <span className="xwg-swatch filled" /> 채우는 중
+                <span className="xwg-swatch right" /> 맞힌 낱말
+              </p>
+            </section>
+          )}
+
           {solving && (
             <section className="xw-card xwg-score">
               <header className="xw-card-head">

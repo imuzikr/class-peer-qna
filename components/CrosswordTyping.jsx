@@ -374,13 +374,24 @@ export default function CrosswordTyping({
     }
   }
 
+  // 판 어디를 눌러도(빈자리 · 칸 사이 틈 포함) 초점이 숨은 입력칸에 남습니다.
+  // 빈자리는 버튼이 아니라 그냥 span이라, 누르면 브라우저가 초점을 body로
+  // 옮겨 그 뒤의 화살표가 **화면을 굴렸습니다**(네모가 아니라). 칸 버튼은
+  // 제 onMouseDown에서 이미 막고 onClick에서 초점을 줍니다.
+  function onWrapMouseDown(e) {
+    if (!active || e.button !== 0) return;
+    if (e.target.closest?.("button[data-k]")) return;
+    e.preventDefault();
+    focusInput();
+  }
+
   function onBlur() {
     if (composingRef.current) return;
     if (typingRef.current.value) commitNow();
   }
 
   return (
-    <div className="xw-typing" ref={wrapRef}>
+    <div className="xw-typing" ref={wrapRef} onMouseDown={onWrapMouseDown}>
       <CrosswordGrid
         puzzle={puzzle}
         letters={shown}
