@@ -336,6 +336,9 @@ export default function CornellNoteDrawer({
       })
       .catch(() => {});
     return () => { alive = false; };
+    // 자료는 프로젝트가 바뀌거나 다른 노트(날짜)를 열 때만 다시 읽습니다 —
+    // note 전체를 의존하면 글자를 저장할 때마다 문서 1건씩 다시 읽습니다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [boardId, note?.id]);
 
   // 이미 저장된 노트에 자료가 있으면 그것을 씁니다
@@ -402,7 +405,7 @@ export default function CornellNoteDrawer({
     } catch {
       setStatus("idle");
     }
-  }, [classId, user, date, lessonTitle]);
+  }, [classId, user, date]);
 
   // 화면을 벗어날 때 쓰는 마지막 저장 — 언마운트 중일 수 있어 상태는 안 건드립니다
   const flush = useCallback(() => {
@@ -410,7 +413,7 @@ export default function CornellNoteDrawer({
     clearTimeout(timerRef.current);
     savedSeqRef.current = editSeqRef.current;
     saveCornellNote(classId, user, date, latestRef.current).catch(() => {});
-  }, [classId, user, date, lessonTitle]);
+  }, [classId, user, date]);
 
   // 자동 저장 — 입력이 멎으면. 여기서는 상태를 미리 바꾸지 않습니다
   // (그 사이 단추는 '저장'인 채로 살아 있어야 합니다).

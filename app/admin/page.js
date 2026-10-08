@@ -54,6 +54,10 @@ const ActivityHeatmap = dynamic(() => import("@/components/ActivityHeatmap"), {
 
 const DAY_MS = 1000 * 60 * 60 * 24;
 
+// 학급별 분석의 반 버튼 중 첫 줄에 고정할 반(버튼 그리드가 3열이라 앞의 셋이
+// 첫 줄). 컴포넌트 밖에 두어야 렌더마다 새 배열이 생기지 않습니다.
+const PINNED_CLASS_NAMES = ["정보 B", "정보 C", "GUEST ROOM"];
+
 function collectStudent(map, item) {
   if (!item.authorId || item.authorId.startsWith("teacher_")) return;
   const current = map.get(item.authorId) ?? {
@@ -458,9 +462,8 @@ function AdminDashboardPageInner() {
     [myClasses]
   );
 
-  // 학급별 분석의 반 버튼 순서 — 첫 줄에 자주 쓰는 반을 고정으로 놓고,
-  // 나머지는 이름 오름차순. (버튼 그리드가 3열이라 앞의 3개가 첫 줄이 됩니다)
-  const PINNED_CLASS_NAMES = ["정보 B", "정보 C", "GUEST ROOM"];
+  // 학급별 분석의 반 버튼 순서 — PINNED_CLASS_NAMES(파일 위쪽)를 첫 줄에 고정,
+  // 나머지는 이름 오름차순.
   const orderedClasses = useMemo(() => {
     const norm = (s) => (s ?? "").trim().toLowerCase();
     const rank = new Map(PINNED_CLASS_NAMES.map((n, i) => [norm(n), i]));

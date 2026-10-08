@@ -33,6 +33,8 @@ import CornellNotesPanel from "./CornellNotesPanel";
 import LessonMemoPanel from "./LessonMemoPanel";
 import { IconMyPost, IconRecord } from "./StatusIcons";
 
+const NO_STUDENTS = [];
+
 export default function ClassNotesManagerModal({
   classId,
   className = "",
@@ -89,7 +91,8 @@ export default function ClassNotesManagerModal({
     return () => { alive = false; unsub(); };
   }, [pickedId, isHome]);
 
-  const shownRoster = isHome ? roster : otherRoster ?? [];
+  // 아직 안 온 옆 반은 늘 같은 빈 배열 — 렌더마다 새 []면 아래 memo가 매번 다시 돕니다.
+  const shownRoster = isHome ? roster : otherRoster ?? NO_STUDENTS;
   const rosterLoading = !isHome && otherRoster === null;
 
   // 반을 바꾸면 열어 둔 학생 창을 닫습니다 — 앞 반 학생이 그대로 남으면

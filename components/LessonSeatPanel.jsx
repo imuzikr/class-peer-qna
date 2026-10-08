@@ -192,6 +192,10 @@ export default function LessonSeatPanel({
   // 자리표를 보고 있을 때만 잽니다(위 주석 참고). 이 자리에 두는 이유는
   // activeView가 여기서 만들어지기 때문입니다 — const를 선언 전에 읽으면
   // ReferenceError입니다.
+  // 의존성 목록을 일부러 두지 않습니다 — 자리표 안의 무엇이 바뀌어도(명단 ·
+  // 출석 · 창 폭) 렌더마다 다시 재야 합니다. 끝없이 돌지 않는 것은 값이
+  // 그대로면 상태를 안 바꾸기 때문입니다(`h !== bodyH`).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (activeView !== "seat") return;
     const el = bodyRef.current;

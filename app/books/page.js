@@ -143,6 +143,8 @@ export default function BooksPage() {
 
 function BooksPageInner() {
   const user = useCurrentUser();
+  // 구독은 uid가 바뀔 때만 다시 겁니다(user 객체를 통째로 의존하지 않음).
+  const myUid = user?.uid;
   const admin = user ? isTeacher(user) : false;
   const superAdmin = user ? isAdmin(user) : false;
 
@@ -231,17 +233,17 @@ function BooksPageInner() {
   // 기다리는 사이 반에 이미 든 학생에게도 입장 코드 화면이 번쩍 스칩니다
   // (공부방도 같은 이유로 같은 방식을 씁니다).
   useEffect(() => {
-    if (!user || admin) {
+    if (!myUid || admin) {
       setMemberships([]);
       setMembershipsLoaded(true); // 교사·비로그인은 물어볼 것이 없습니다
       return;
     }
     setMembershipsLoaded(false);
-    return subscribeMyMemberships(user.uid, (list) => {
+    return subscribeMyMemberships(myUid, (list) => {
       setMemberships(list);
       setMembershipsLoaded(true);
     });
-  }, [user?.uid, admin]);
+  }, [myUid, admin]);
 
   // 교사: 실명 디렉터리 (모둠 구성에 필요)
   useEffect(() => {
@@ -282,7 +284,7 @@ function BooksPageInner() {
       return;
     }
     return subscribeStudyGroupAssignment(classId, setBaseGroupAssignment);
-  }, [classId]);
+  }, [admin, classId]);
 
   useEffect(() => {
     if (!admin || !classId) { setSeatLayout(null); return; }
@@ -400,10 +402,12 @@ function BooksPageInner() {
   const isSolo = isParatext || isRaft || isKwls || isMindmap || isOpinion || isHashtag || isQmark;
 
   // 연 활동의 모둠 — 학생이 '내 판'으로 바로 들어가려면 내 모둠을 알아야 합니다.
+  // 활동 문서는 고칠 때마다 새 객체로 오므로 id로만 다시 구독합니다.
+  const activeActivityId = activeActivity?.id ?? null;
   useEffect(() => {
-    if (!activeActivity || isSolo) { setOpenGroups([]); return; }
-    return subscribeBookGroups(activeActivity.id, setOpenGroups);
-  }, [activeActivity?.id, isSolo]);
+    if (!activeActivityId || isSolo) { setOpenGroups([]); return; }
+    return subscribeBookGroups(activeActivityId, setOpenGroups);
+  }, [activeActivityId, isSolo]);
 
   const myGroupId = useMemo(
     () => openGroups.find((g) => (g.memberUids ?? []).includes(user?.uid))?.id ?? null,

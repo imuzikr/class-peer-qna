@@ -3,7 +3,7 @@
 // =============================================================
 // 참여 전광판 — 발표 중 학생 참여 상태 + 좌석/모둠 보기
 // =============================================================
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { backdropClose } from "@/lib/modal";
 import {
@@ -242,8 +242,12 @@ export default function AttendanceBoard({
     return () => clearInterval(t);
   }, []);
 
+  // 자리표 문서가 '바뀌었을 때'(id·updatedAt)만 다시 깝니다. seats 배열을
+  // 의존하면 내용이 같은 스냅샷이 다시 와도(대기 중 쓰기의 확인 등) 새 배열이라
+  // 끌어 옮기던 자리가 저장된 값으로 되돌아갑니다.
   useEffect(() => {
     setSeats(normalizeSeats(dailySeatLayout?.seats ?? seatLayout?.seats ?? [], roster));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 위 까닭으로 seats 대신 id·updatedAt
   }, [dailySeatLayout?.id, dailySeatLayout?.updatedAt, seatLayout?.id, seatLayout?.updatedAt, roster]);
 
   const byUid = useMemo(() => new Map(roster.map((s) => [s.uid, s])), [roster]);
@@ -358,11 +362,12 @@ export default function AttendanceBoard({
     return popoutWindowNameRef.current;
   }
 
-  function attachBoardHomeNow() {
+  // portalHost는 처음 한 번 만든 뒤 안 바뀌어, 이 함수도 늘 같은 것입니다.
+  const attachBoardHomeNow = useCallback(() => {
     if (portalHost && homeRef.current && portalHost.parentNode !== homeRef.current) {
       homeRef.current.appendChild(portalHost);
     }
-  }
+  }, [portalHost]);
 
   function moveBoardHome() {
     setPopoutError("");
@@ -476,7 +481,7 @@ export default function AttendanceBoard({
       win.removeEventListener("pagehide", restoreHome);
       win.removeEventListener("beforeunload", restoreHome);
     };
-  }, [isPopout]);
+  }, [isPopout, attachBoardHomeNow]);
 
   useEffect(() => {
     const closePopout = () => {

@@ -415,15 +415,16 @@ function ProjectCard({
   const locked = board.editMode === "locked";
   const shared = board.viewMode === "shared";
 
+  const myUid = user?.uid; // 구독은 uid가 바뀔 때만 다시 겁니다
   useEffect(() => {
     // 모둠 프로젝트 + 학생 + '자기 모둠만': 규칙상 내 모둠 카드만 읽을 수 있어
     // 전체 구독을 걸면 권한 오류가 납니다(StudyProjectView와 같은 판단).
     if (isGroup && !isTeacher && !shared) {
-      if (!user) return;
-      return subscribeMyGroupCards(board.id, user.uid, setCards);
+      if (!myUid) return;
+      return subscribeMyGroupCards(board.id, myUid, setCards);
     }
     return subscribeStudyCards(board.id, setCards);
-  }, [board.id, isGroup, isTeacher, shared, user?.uid]);
+  }, [board.id, isGroup, isTeacher, shared, myUid]);
 
   // 교사: 활동을 하나라도 제출한 학생 수 / 학생: 내 카드의 활동 진행
   // 판정은 `isTeacherAuthoredCard` 한 곳 — 같은 식을 베껴 두면 한쪽만 고쳤을 때

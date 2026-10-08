@@ -90,6 +90,8 @@ function emptyPresentCard(seat) {
   };
 }
 
+const NO_ACTIVITIES = [];
+
 export default function StudyProjectView({
   board,
   user,
@@ -138,7 +140,8 @@ export default function StudyProjectView({
   const isGroup = board.activityType === "group";
   const locked = board.editMode === "locked";
   const shared = board.viewMode === "shared";
-  const activities = board.activities ?? [];
+  // 활동이 없을 때도 늘 같은 빈 배열 — 렌더마다 새 []면 아래 memo가 매번 다시 돕니다.
+  const activities = board.activities ?? NO_ACTIVITIES;
 
   // 활동 순서를 이제 못 바꾸는가 — 학생이 카드에 무언가 쓴 순간부터입니다.
   // 활동 칸이 곧 학생 카드의 입력 칸이라, 순서가 바뀌면 이미 쓴 답이 다른
@@ -157,15 +160,16 @@ export default function StudyProjectView({
     [cards]
   );
 
+  const myUid = user?.uid; // 구독은 uid가 바뀔 때만 다시 겁니다
   useEffect(() => {
     // 모둠 프로젝트 + 학생 + '자기 모둠만': 규칙상 내 모둠 카드만 구독 가능.
     // '함께 보기'면 다른 모둠 카드도 읽기 전용으로 내려받습니다.
     if (isGroup && !isTeacher && !shared) {
-      if (!user) return;
-      return subscribeMyGroupCards(board.id, user.uid, setCards);
+      if (!myUid) return;
+      return subscribeMyGroupCards(board.id, myUid, setCards);
     }
     return subscribeStudyCards(board.id, setCards);
-  }, [board.id, isGroup, isTeacher, shared, user?.uid]);
+  }, [board.id, isGroup, isTeacher, shared, myUid]);
 
   // 외부에서 제목·설명이 바뀌면 편집 초안도 동기화
   useEffect(() => { setTitleDraft(board.title); }, [board.title]);

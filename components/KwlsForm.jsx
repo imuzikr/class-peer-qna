@@ -92,6 +92,9 @@ export default function KwlsForm({ activity, user, onBack }) {
       }
     }, SAVE_DELAY);
     return () => clearTimeout(timerRef.current);
+    // 활동 문서는 교사가 고칠 때마다 새 객체로 옵니다 — activity 전체를
+    // 의존하면 학생이 아무것도 안 고쳤는데 자동 저장 타이머가 다시 걸립니다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [answers, activity.id, user, locked, myTopic]);
 
   function edit(key, value) {

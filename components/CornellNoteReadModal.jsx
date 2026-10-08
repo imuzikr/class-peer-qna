@@ -146,6 +146,9 @@ export default function CornellNoteReadModal({
     // `quote`는 저장하지 않습니다(피드백 글 안에 이미 있습니다) — 눌러서 지울
     // 때 그 줄을 함께 걷으려고 여기서 같은 셈으로 다시 만듭니다.
     setMarks(marksOf(note).map((m) => ({ ...m, quote: quoteOf(m.text) })));
+    // 노트를 '옮길 때'만 — note 전체를 의존하면 저장할 때마다 돌아와 쓰던
+    // 피드백과 짚어 둔 표시를 서버 값으로 덮습니다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [note?.id]);
 
   // ── 학생 글에 하이라이트 ──────────────────────────────────

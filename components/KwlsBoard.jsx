@@ -132,13 +132,9 @@ export default function KwlsBoard({
     setStageOpen(false);
   }
 
-  // 학생 축 — 왼쪽 목록에 보이는 차례 그대로. 지금 띄우는 학생이 그 목록에
-  // 없으면 반 전체로 되돌아갑니다(안 그러면 넘길 곳이 없습니다).
-  const castList = useMemo(() => {
-    const uid = cast.target?.uid;
-    if (!uid) return cards;
-    return cards.some((c) => c.uid === uid) ? cards : cards;
-  }, [cards, cards, cast.target]);
+  // 학생 축 — 왼쪽 목록에 보이는 차례 그대로. KWLS는 모둠으로 좁히는 일이
+  // 없어 그 목록이 곧 반 전체입니다(곁텍스트·RAFT는 좁힌 목록에서 넘김).
+  const castList = cards;
 
   const castAt = cast.target ? castList.findIndex((c) => c.uid === cast.target.uid) : -1;
   const prevStudent = castAt > 0 ? castList[castAt - 1] : null;

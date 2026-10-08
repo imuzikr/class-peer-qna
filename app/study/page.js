@@ -144,6 +144,8 @@ export default function StudyPage() {
 
 function StudyPageInner() {
   const user = useCurrentUser();
+  // 구독은 uid가 바뀔 때만 다시 겁니다(user 객체를 통째로 의존하지 않음).
+  const myUid = user?.uid;
   const router = useRouter();
   const searchParams = useSearchParams();
   const [classes, setClasses] = useState([]);
@@ -281,18 +283,18 @@ function StudyPageInner() {
   // 그래서 '답이 한 번이라도 왔는가'를 따로 들고, 그 전에는 아래에서
   // 조용히 기다립니다.
   useEffect(() => {
-    if (!user || admin) {
+    if (!myUid || admin) {
       setMemberships([]);
       // 교사·비로그인은 물어볼 것이 없어 곧바로 결론입니다.
       setMembershipsLoaded(true);
       return;
     }
     setMembershipsLoaded(false);
-    return subscribeMyMemberships(user.uid, (list) => {
+    return subscribeMyMemberships(myUid, (list) => {
       setMemberships(list);
       setMembershipsLoaded(true);
     });
-  }, [user?.uid, admin]);
+  }, [myUid, admin]);
 
   // 학생: 프로필의 classIds에 지금 소속된 반이 다 들어 있는지 확인하고,
   // 빠진 게 있으면 채워 넣습니다(공부방 급우 명단 공개 판정 기준). 이 기능이
@@ -314,12 +316,12 @@ function StudyPageInner() {
     }
     const unsubDir = subscribeUserDirectory(setDirectory);
     // 일반 교사는 본인 코드만(규칙상 소유 코드만 나열 가능), 최고 관리자는 전체
-    const unsubCodes = subscribeJoinCodes(setJoinCodesMap, isAdmin(user) ? null : user?.uid);
+    const unsubCodes = subscribeJoinCodes(setJoinCodesMap, superAdmin ? null : myUid);
     return () => {
       unsubDir();
       unsubCodes();
     };
-  }, [admin, user?.uid]);
+  }, [admin, superAdmin, myUid]);
 
   // 학생이 보고 있는 반: 세션 선택이 내 소속에 있으면 그것, 아니면 첫 소속.
   // 보관된 반은 학생 접근이 막히므로 후보에서 제외합니다.

@@ -143,6 +143,9 @@ export default function StudentReportPage() {
 function StudentReportPageInner() {
   const router = useRouter();
   const user = useCurrentUser();
+  // 구독은 uid가 바뀔 때만 다시 겁니다 — user 객체를 통째로 의존하면 프로필
+  // 칸 하나만 바뀌어도 리스너가 끊겼다 다시 걸립니다.
+  const uid = user?.uid;
   // 내가 쓴 질문과 내가 쓴 답변만 받습니다. 예전에는 학교 전체 질문을 받아
   // authorId로 걸러 쓰고, 거기에 더해 질문마다 답변 리스너를 하나씩 걸었습니다
   // (질문 5,000개면 리스너 5,000개). 리포트에 필요한 건 내 것뿐입니다.
@@ -174,38 +177,38 @@ function StudentReportPageInner() {
 
   // 내 질문 · 내 답변(+그 답변이 달린 질문) — 로그인해야 누구 것인지 정해집니다
   useEffect(() => {
-    if (!user) { setMyQuestions([]); return; }
-    return subscribeMyQuestions(user.uid, setMyQuestions);
-  }, [user?.uid]);
+    if (!uid) { setMyQuestions([]); return; }
+    return subscribeMyQuestions(uid, setMyQuestions);
+  }, [uid]);
 
   useEffect(() => {
-    if (!user) { setMyAnswerEvents([]); return; }
-    return subscribeMyAnswerEvents(user.uid, setMyAnswerEvents);
-  }, [user?.uid]);
+    if (!uid) { setMyAnswerEvents([]); return; }
+    return subscribeMyAnswerEvents(uid, setMyAnswerEvents);
+  }, [uid]);
 
   // 내 공부방 카드만 구독 (반 격리 규칙에 맞게 — 남의/다른 반 카드는 읽지 않음)
   useEffect(() => {
-    if (!user) {
+    if (!uid) {
       setMyCards([]);
       return;
     }
-    return subscribeMyStudyCards(user.uid, setMyCards);
-  }, [user?.uid]);
+    return subscribeMyStudyCards(uid, setMyCards);
+  }, [uid]);
 
   // 내가 속한 반 — 공부방 진행률의 분모를 내 반으로 좁히는 데 씁니다.
   // subscribeStudyBoards는 학교 전체 보드를 내려주므로(규칙상 보드 메타는
   // 공개), 이걸로 거르지 않으면 남의 반 프로젝트까지 분모에 들어갑니다.
   useEffect(() => {
-    if (!user) { setMyMemberships([]); return; }
-    return subscribeMyMemberships(user.uid, setMyMemberships);
-  }, [user?.uid]);
+    if (!uid) { setMyMemberships([]); return; }
+    return subscribeMyMemberships(uid, setMyMemberships);
+  }, [uid]);
 
   // 내 KWLS 기록 — 반 무관 전 기간. 리포트는 반을 고르는 화면이 아니라
   // subscribeMyAllKwl(classId 필요) 대신 이쪽을 씁니다(규칙상 본인 것은 읽힘).
   useEffect(() => {
-    if (!user) { setMyKwl([]); return; }
-    return subscribeUserKwl(user.uid, setMyKwl);
-  }, [user?.uid]);
+    if (!uid) { setMyKwl([]); return; }
+    return subscribeUserKwl(uid, setMyKwl);
+  }, [uid]);
 
   const keywordNames = useMemo(
     () => keywordDocs.map((keyword) => keyword.name),
@@ -256,9 +259,9 @@ function StudentReportPageInner() {
   // 내 수업 노트(코넬) — 내가 속한 반마다 리스너 하나. 노트는 반 아래에
   // 있어서(classes/{반}/cornellNotes) 반 목록이 정해진 뒤에야 받을 수 있습니다.
   useEffect(() => {
-    if (!user || myClassIds.size === 0) { setMyNotes([]); return; }
-    return subscribeMyCornellNotes([...myClassIds], user.uid, setMyNotes);
-  }, [user?.uid, myClassIds]);
+    if (!uid || myClassIds.size === 0) { setMyNotes([]); return; }
+    return subscribeMyCornellNotes([...myClassIds], uid, setMyNotes);
+  }, [uid, myClassIds]);
 
   // 활동 '칸' 기준 진행 — 카드를 냈는지만 세면, 활동 세 칸 중 한 칸만 쓴
   // 카드도 제출 완료로 잡힙니다. 학생이 자기 리포트를 보고 "다 했네" 하고

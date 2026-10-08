@@ -142,11 +142,14 @@ export default function KwlPanel({ classId, user, isTeacher, onAsk, mobileOpen, 
   const [expandedDate, setExpandedDate] = useState(null);
   const [fullscreen, setFullscreen] = useState(false); // 교사: KWLS 전체 화면
 
+  // 구독은 uid가 바뀔 때만 다시 겁니다(user 객체를 통째로 의존하지 않음).
+  const myUid = user?.uid;
+
   // 오늘 내 항목 구독
   useEffect(() => {
-    if (!classId || !user) return;
-    return subscribeMyTodayKwl(classId, user.uid, today, setTodayEntries);
-  }, [classId, user?.uid, today]);
+    if (!classId || !myUid) return;
+    return subscribeMyTodayKwl(classId, myUid, today, setTodayEntries);
+  }, [classId, myUid, today]);
 
   // 교사: 오늘 전체 학생 구독
   useEffect(() => {
@@ -156,9 +159,9 @@ export default function KwlPanel({ classId, user, isTeacher, onAsk, mobileOpen, 
 
   // 기록 탭: 내 전체 항목 구독 (오늘 포함)
   useEffect(() => {
-    if (tab !== "history" || !classId || !user) return;
-    return subscribeMyAllKwl(classId, user.uid, setHistory);
-  }, [tab, classId, user?.uid, today]);
+    if (tab !== "history" || !classId || !myUid) return;
+    return subscribeMyAllKwl(classId, myUid, setHistory);
+  }, [tab, classId, myUid, today]);
 
   async function handleSave() {
     if (!classId || !user) return;
