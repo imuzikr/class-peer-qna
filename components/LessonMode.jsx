@@ -46,6 +46,7 @@ import {
   toDate,
 } from "@/lib/store";
 import { stripHtml, htmlHasImage } from "@/lib/html";
+import { studyingSummary } from "@/lib/roster";
 import {
   buildActivityTemplate,
   nextActivityLocks,
@@ -386,12 +387,18 @@ export default function LessonMode({
   // 헤더 버튼에 보여 줄 '활동을 하나라도 쓴' 인원
   // 모둠 보드는 카드 한 장을 모둠원 여럿이 공유하므로 memberUids로 찾음
   const isGroupBoard = board?.activityType === "group";
-  const studyingCount = roster.reduce((n, s) => {
-    const card = boardCards.find((c) =>
-      isGroupBoard ? c.memberUids?.includes(s.uid) : c.authorId === s.uid
-    );
-    return cardProgress(card, boardActs).some(Boolean) ? n + 1 : n;
-  }, 0);
+  // 출석을 받은 날은 `쓴 학생 / 출석(전체)` — 셈은 lib/roster.js 한 곳(카드 화면과 같음)
+  const studying = studyingSummary(
+    roster,
+    (uid) => {
+      const card = boardCards.find((c) =>
+        isGroupBoard ? c.memberUids?.includes(uid) : c.authorId === uid
+      );
+      return cardProgress(card, boardActs).some(Boolean);
+    },
+    attendanceRecords,
+    todayDateKey()
+  );
 
   const cur = slides[Math.min(idx, total - 1)];
 
@@ -1003,11 +1010,11 @@ export default function LessonMode({
               disabled={!board}
               title={
                 board
-                  ? "학생들이 활동을 채워 가는 상황을 확인하고, 활동을 하나씩 열어 줍니다"
+                  ? `${studying.title} — 눌러서 활동별 현황을 보고 활동을 하나씩 열어 줍니다`
                   : "‘수업관리 → 공부방 프로젝트 연동’에서 프로젝트를 연결하면 활동 현황을 볼 수 있어요"
               }
             >
-              ✍️ 공부중 {studyingCount}/{roster.length}
+              ✍️ 공부중 {studying.label}
             </button>
           </div>
         )}

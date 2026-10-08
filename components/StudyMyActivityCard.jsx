@@ -107,6 +107,7 @@ export default function StudyMyActivityCard({
   // 창은 프로젝트 화면(StudyProjectView)이 하나로 들고 있어 여는 함수만 받습니다.
   onOpenProgress = null,
   progressLabel = "",
+  progressTitle = "",
 }) {
   const isNew = card === null;
   const activities = board.activities ?? [];
@@ -478,7 +479,7 @@ export default function StudyMyActivityCard({
             type="button"
             className="study-chip study-progress-btn"
             onClick={onOpenProgress}
-            title="공부중 전광판 — 학생별·활동별 작성 현황"
+            title={progressTitle ? `${progressTitle} — 눌러서 공부중 전광판 열기` : "공부중 전광판 — 학생별·활동별 작성 현황"}
           >
             ✍️ {progressLabel || "공부중"}
           </button>

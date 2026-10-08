@@ -1,7 +1,7 @@
 // 반 명단(lib/roster.js) — 공부방·책방·손든 학생 자리 확인이 함께 쓰는 셈.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildClassRoster } from "@/lib/roster";
+import { buildClassRoster, studyingSummary } from "@/lib/roster";
 import { normalizeSeats } from "@/lib/seats";
 
 const directory = [
@@ -59,4 +59,24 @@ test("선생님 보기는 통째로 거꾸로 — 6칸 격자를 180도 돌린 �
 
 test("마지막 줄이 덜 차면 모자란 칸을 null로 채워 돌립니다(맨 위 줄의 왼쪽)", () => {
   assert.deepEqual(seatOrder(8, true), [null, null, null, null, 7, 6, 5, 4, 3, 2, 1, 0]);
+});
+
+test("studyingSummary — 출석이 있으면 쓴/출석(전체), 분자는 출석한 학생만", () => {
+  const roster = [{ uid: "a" }, { uid: "b" }, { uid: "c" }, { uid: "d" }];
+  const wrote = (u) => u !== "b";
+  const day = "2026-10-08";
+  // 출석 기록 없음 → 쓴/전체
+  let s = studyingSummary(roster, wrote, [], day);
+  assert.equal(s.label, "3/4");
+  assert.equal(s.present, null);
+  // d 결석(d는 지난 시간에 써 둠) · 반에서 빠진 x의 기록 · 어제 기록은 안 셈
+  const recs = [
+    { uid: "a", date: day }, { uid: "b", date: day }, { uid: "c", date: day },
+    { uid: "x", date: day }, { uid: "d", date: "2026-10-07" },
+  ];
+  s = studyingSummary(roster, wrote, recs, day);
+  assert.equal(s.label, "2/3(4)");
+  assert.equal(s.count, 2);
+  assert.equal(s.present, 3);
+  assert.match(s.title, /결석 1명/);
 });

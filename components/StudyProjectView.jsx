@@ -40,6 +40,7 @@ import {
   REWARD_MAX,
 } from "@/lib/store";
 import { stripHtml, htmlHasImage } from "@/lib/html";
+import { studyingSummary } from "@/lib/roster";
 import { tidyCellsHtml } from "@/lib/pyCells";
 import {
   buildActivityTemplate,
@@ -603,12 +604,16 @@ export default function StudyProjectView({
   // 와야 했기 때문입니다(선생님 요청). 창은 하나라 한 번만 짓습니다.
   const canProgress = isTeacher && !isNotice && !isGroup;
   // 머리말의 '공부중 n/N' — 활동을 하나라도 쓴 학생 수. 수업 모드의 같은 단추
-  // (LessonMode의 studyingCount)와 **같은 셈**이라 두 화면의 숫자가 같습니다.
-  const studyingCount = canProgress
-    ? classRoster.filter((s) =>
-        cardProgress(cards.find((c) => c.authorId === s.uid), activities).some(Boolean)
-      ).length
-    : 0;
+  // (LessonMode의 studying)와 **같은 셈**(lib/roster.js의 studyingSummary)이라 두 화면의 숫자가 같습니다.
+  // 출석을 받은 날은 `쓴 학생 / 출석(전체)` — 결석 인원이 괄호와 견주어 보입니다.
+  const studying = canProgress
+    ? studyingSummary(
+        classRoster,
+        (uid) => cardProgress(cards.find((c) => c.authorId === uid), activities).some(Boolean),
+        attendanceRecords,
+        todayDateKey()
+      )
+    : null;
   const progressBoard = progressOpen && (
     <StudyProgressBoard
       board={board}
@@ -699,7 +704,8 @@ export default function StudyProjectView({
             : null
         }
         onOpenProgress={canProgress ? () => setProgressOpen(true) : null}
-        progressLabel={`공부중 ${studyingCount}/${classRoster.length}`}
+        progressLabel={studying ? `공부중 ${studying.label}` : ""}
+        progressTitle={studying?.title}
       />
       {progressBoard}
       </>
@@ -801,9 +807,9 @@ export default function StudyProjectView({
                     type="button"
                     className="study-chip study-progress-btn"
                     onClick={() => setProgressOpen(true)}
-                    title="공부중 전광판 — 학생별 제출 상태 확인"
+                    title={`${studying.title} — 눌러서 공부중 전광판 열기`}
                   >
-                    ✍️ 공부중 {studyingCount}/{classRoster.length}
+                    ✍️ 공부중 {studying.label}
                   </button>
                 )}
                 {!isNotice && (
