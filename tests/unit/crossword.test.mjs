@@ -229,3 +229,13 @@ test("모둠 순위와 힌트 제출", () => {
   assert.ok(!xwHintDone({ writerUid: null, hint: "뜻" }));
   assert.ok(!xwHintDone({ writerUid: "u", hint: " " }));
 });
+
+test("다음 낱말 — 한 바퀴 돌아 적을 수 있는 것", async () => {
+  const { nextOpenEntry } = await import("../../lib/crossword.js");
+  const e = [{}, {}, {}, {}];
+  assert.equal(nextOpenEntry(e, 1, (i) => i !== 2), 3);
+  assert.equal(nextOpenEntry(e, 3, (i) => i !== 2), 0);
+  assert.equal(nextOpenEntry(e, 0, (i) => i !== 2, -1), 3);
+  assert.equal(nextOpenEntry(e, null, () => true), 0);
+  assert.equal(nextOpenEntry(e, 1, (i) => i === 1), null);
+});

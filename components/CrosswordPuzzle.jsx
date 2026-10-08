@@ -3,17 +3,17 @@
 // =============================================================
 // 가로세로 낱말퀴즈 판 — 학생(풀기) · 교사(정답 보기) 공용
 // -------------------------------------------------------------
-// 한 칸 = 음절 하나(lib/crossword.js). 칸마다 따로 글자를 받으면 한글 조합이
-// 칸 경계에서 끊기므로(받침이 다음 칸으로 넘어가는 일), **낱말 하나를 한
-// 입력칸에** 적어 넣고 그 글자들을 칸에 나눠 붙입니다. 칸이나 힌트를 누르면
-// 그 낱말이 골라지고 아래 입력칸에 커서가 갑니다.
+// 한 칸 = 음절 하나(lib/crossword.js). 학생은 **판에 직접** 적습니다 — 칸을
+// 누르고 치면 그 칸부터 낱말 방향으로 들어갑니다(CrosswordTyping — 한글 조합 ·
+// 조합 중 Enter를 거기서 다룹니다). 모둠 판과 같은 입력 방식입니다.
 //
 // 학생이 적은 답은 **이 기기에만** 둡니다(localStorage, 퍼즐마다 열쇠가
 // 다름) — 서버에 쓰지 않아 규칙을 건드리지 않고, 다시 열어도 이어서 풉니다.
 // 선생님이 퍼즐을 새로 만들면 열쇠가 바뀌어 빈 판으로 시작합니다.
 // =============================================================
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { crosswordCells, entryCellKeys } from "@/lib/crossword";
+import CrosswordTyping from "./CrosswordTyping";
 
 const DIR_LABEL = { across: "가로", down: "세로" };
 
@@ -41,10 +41,8 @@ export default function CrosswordPuzzle({
 
   const [filled, setFilled] = useState(() => (solving ? loadFilled(storageKey) : {}));
   const [sel, setSel] = useState(0);        // 고른 낱말(entries 차례)
-  const [draft, setDraft] = useState("");
   const [checked, setChecked] = useState(false); // '정답 확인'을 누른 뒤
   const [showAnswers, setShowAnswers] = useState(true); // 교사: 칸에 정답 보이기
-  const inputRef = useRef(null);
 
   // 퍼즐이 바뀌면(새로 만듦) 그 퍼즐의 답을 다시 읽습니다
   useEffect(() => {
@@ -62,17 +60,10 @@ export default function CrosswordPuzzle({
   const selEntry = entries[sel] ?? null;
   const selKeys = useMemo(() => new Set(selEntry ? entryCellKeys(selEntry) : []), [selEntry]);
 
-  // 고른 낱말이 바뀌면 지금 칸에 든 글자를 입력칸에 미리 채웁니다
-  useEffect(() => {
-    if (!solving || !selEntry) return;
-    setDraft(entryCellKeys(selEntry).map((k) => filled[k] ?? "").join("").trim());
-    // filled는 일부러 빼 둡니다 — 적는 중에 바뀌면 입력칸이 덮입니다
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sel, solving, puzzle]);
-
-  function pickEntry(i, focus = true) {
+  const [focusTick, setFocusTick] = useState(0);
+  function pickEntry(i, focus = false) {
     setSel(i);
-    if (focus && solving) setTimeout(() => inputRef.current?.focus(), 0);
+    if (focus) setFocusTick((t) => t + 1);
   }
 
   // 칸을 누르면 그 칸을 지나는 낱말을 고릅니다. 둘이 지나면 누를 때마다 번갈아.
@@ -86,23 +77,27 @@ export default function CrosswordPuzzle({
     pickEntry(next);
   }
 
-  function commit() {
-    if (!selEntry) return;
-    const chars = [...draft.replace(/\s+/g, "")];
-    const keys = entryCellKeys(selEntry);
+  // 판에서 적은 칸 — 이 기기에만 담습니다(위 localStorage)
+  function writeCells(set, del) {
     setFilled((prev) => {
-      const nx = { ...prev };
-      keys.forEach((k, i) => {
-        if (chars[i]) nx[k] = chars[i];
-        else delete nx[k];
-      });
+      const nx = { ...prev, ...set };
+      del.forEach((k) => delete nx[k]);
       return nx;
     });
     setChecked(false);
-    // 다음 아직 안 채운 낱말로
-    const nextIdx = entries.findIndex((e, i) => i > sel && entryCellKeys(e).some((k) => !filled[k]));
-    if (nextIdx >= 0) pickEntry(nextIdx);
   }
+
+  // '정답 확인' 뒤의 칸 색 — 맞은 칸 초록, 틀린 칸 빨강(개별 활동만)
+  const checkKeys = useMemo(() => {
+    if (!solving || !checked) return { right: null, wrong: null };
+    const right = new Set();
+    const wrong = new Set();
+    cells.forEach((cell, k) => {
+      if (!filled[k]) return;
+      (filled[k] === cell.ch ? right : wrong).add(k);
+    });
+    return { right, wrong };
+  }, [solving, checked, cells, filled]);
 
   const solvedOf = (e) => entryCellKeys(e).every((k, i) => filled[k] === e.word[i]);
   const solvedCount = solving ? entries.filter(solvedOf).length : 0;
@@ -121,9 +116,7 @@ export default function CrosswordPuzzle({
         grid.push(<span key={k} className="xw-cell xw-cell--void" aria-hidden="true" />);
         continue;
       }
-      const letter = solving ? filled[k] ?? "" : showAnswers ? cell.ch : "";
-      const wrong = solving && checked && letter && letter !== cell.ch;
-      const right = solving && checked && letter === cell.ch;
+      const letter = showAnswers ? cell.ch : "";
       const mineHit = highlightUid && cell.entries.some((i) => entries[i]?.uid === highlightUid);
       grid.push(
         <button
@@ -132,8 +125,6 @@ export default function CrosswordPuzzle({
           className={[
             "xw-cell",
             selKeys.has(k) ? "sel" : "",
-            wrong ? "wrong" : "",
-            right ? "right" : "",
             mineHit ? "mine" : "",
           ].filter(Boolean).join(" ")}
           onClick={() => pickCell(k)}
@@ -160,7 +151,7 @@ export default function CrosswordPuzzle({
                   className={`xw-clue${i === sel ? " on" : ""}${done ? " done" : ""}${
                     highlightUid && e.uid === highlightUid ? " mine" : ""
                   }`}
-                  onClick={() => pickEntry(i)}
+                  onClick={() => pickEntry(i, solving)}
                 >
                   <b>{e.num}</b>
                   <span className="xw-clue-text">
@@ -186,12 +177,26 @@ export default function CrosswordPuzzle({
   return (
     <div className="xw">
       <div className="xw-board-col">
-        <div
-          className="xw-grid"
-          style={{ "--xw-cols": puzzle.cols, "--xw-rows": puzzle.rows }}
-        >
-          {grid}
-        </div>
+        {solving ? (
+          <CrosswordTyping
+            puzzle={puzzle}
+            letters={filled}
+            solvedKeys={checkKeys.right}
+            wrongKeys={checkKeys.wrong}
+            sel={sel}
+            onSelect={pickEntry}
+            nextOk={(i) => entryCellKeys(entries[i]).some((k) => !filled[k])}
+            onWrite={writeCells}
+            focusTick={focusTick}
+          />
+        ) : (
+          <div
+            className="xw-grid"
+            style={{ "--xw-cols": puzzle.cols, "--xw-rows": puzzle.rows }}
+          >
+            {grid}
+          </div>
+        )}
 
         {solving ? (
           <>
@@ -201,23 +206,9 @@ export default function CrosswordPuzzle({
                   {DIR_LABEL[selEntry.dir]} {selEntry.num}
                 </span>
                 <span className="xw-entry-clue">{selEntry.clue}</span>
-                <div className="xw-entry-row">
-                  <input
-                    ref={inputRef}
-                    className="xw-entry-input"
-                    value={draft}
-                    onChange={(e) => setDraft(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.nativeEvent.isComposing) { e.preventDefault(); commit(); }
-                    }}
-                    maxLength={selEntry.word.length + 4}
-                    placeholder={`${selEntry.word.length}글자로 적고 Enter`}
-                    aria-label={`${DIR_LABEL[selEntry.dir]} ${selEntry.num}번 답`}
-                  />
-                  <button type="button" className="btn-primary xw-entry-btn" onClick={commit}>
-                    넣기
-                  </button>
-                </div>
+                <span className="xw-entry-help">
+                  칸을 누르고 바로 적으세요 · Enter 다음 낱말 · ← → 칸 옮기기 · Backspace 지우기 · 같은 칸을 한 번 더 누르면 가로 ↔ 세로
+                </span>
               </div>
             )}
             <div className="xw-actions">
@@ -232,7 +223,7 @@ export default function CrosswordPuzzle({
               <button
                 type="button"
                 className="btn-ghost"
-                onClick={() => { setFilled({}); setChecked(false); setDraft(""); }}
+                onClick={() => { setFilled({}); setChecked(false); }}
                 disabled={!Object.keys(filled).length}
               >
                 모두 지우기

@@ -31116,9 +31116,31 @@ h4.attendance-seat-help { margin-top: 16px; }
 }
 .xw-entry-tag { font-size: 12px; font-weight: 800; color: var(--primary-dark); }
 .xw-entry-clue { font-size: 14px; line-height: 1.5; color: var(--text); }
-.xw-entry-row { display: flex; gap: 8px; }
-.xw-entry-input { flex: 1; min-width: 0; font-size: 15px; letter-spacing: 0.08em; }
-.xw-entry-btn { padding: 0 16px; min-height: 0; height: 38px; display: inline-flex; align-items: center; }
+.xw-entry-help { font-size: 12px; line-height: 1.5; color: var(--text-faint); }
+
+/* 판에 직접 적기(CrosswordTyping) — 숨은 입력칸 하나가 지금 칸 위에 투명하게
+   얹혀 글자를 받습니다. 글자는 칸이 그리므로 입력칸의 글자·커서·테두리는 모두
+   감춥니다. font-size 16px는 iOS가 입력칸을 누를 때 화면을 확대하지 않게 하는
+   값입니다(16px 아래면 확대됨). */
+.xw-typing { position: relative; width: max-content; max-width: 100%; }
+.xw-typing-input {
+  position: absolute;
+  z-index: 1;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: transparent;
+  caret-color: transparent;
+  font-size: 16px;
+  opacity: 0.01;
+  pointer-events: none;
+}
+.xw-typing-input:focus { outline: none; box-shadow: none; }
+.xw-cell.cur { box-shadow: inset 0 0 0 2.5px var(--primary); background: #ffe9d6; }
+.xw-cell.typing .xw-ch { color: var(--primary-dark); }
+.xw-cell.filled .xw-ch { color: var(--text); }
 
 .xw-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .xw-score { font-size: 13px; font-weight: 700; color: var(--text-sub); }
@@ -31203,7 +31225,8 @@ h4.attendance-seat-help { margin-top: 16px; }
 .xwg--teacher { grid-template-columns: minmax(260px, 320px) minmax(0, 1fr); }
 .xwg-side { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .xwg-center { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
-.xwg-center .xw-grid { margin: 0 auto; }
+.xwg-center .xw-grid,
+.xwg-center .xw-typing { margin: 0 auto; }
 @media (max-width: 1180px) {
   .xwg { grid-template-columns: minmax(240px, 300px) minmax(0, 1fr); }
   .xwg > .xwg-right { grid-column: 1 / -1; }

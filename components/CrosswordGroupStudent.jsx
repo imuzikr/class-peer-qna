@@ -31,13 +31,11 @@ import {
   xwHintDone,
   fixedLettersOf,
   groupSolveProgress,
-  boardWordOf,
-  entryCellKeys,
   entryLen,
-  xwCommitPlan,
   clueRevealsWord,
 } from "@/lib/crossword";
 import CrosswordGrid from "./CrosswordGrid";
+import CrosswordTyping from "./CrosswordTyping";
 
 const DIR_LABEL = { across: "가로", down: "세로" };
 
@@ -49,11 +47,9 @@ export default function CrosswordGroupStudent({ activity, groupId, user, onBack 
   const [drafts, setDrafts] = useState({}); // 힌트 쓰는 중인 글 { idx: 글 }
   const [saveState, setSaveState] = useState("");
   const [sel, setSel] = useState(null);
-  const [typed, setTyped] = useState("");
   const [note, setNote] = useState("");
   const timers = useRef({});
   const pending = useRef({});
-  const inputRef = useRef(null);
 
   useEffect(() => subscribeBookGroups(activity.id, setGroups), [activity.id]);
   useEffect(() => subscribeXwHints(activity.id, groupId, setRawHints), [activity.id, groupId]);
@@ -146,54 +142,34 @@ export default function CrosswordGroupStudent({ activity, groupId, user, onBack 
   }, [solving, puzzle?.createdAt]);
 
   const selEntry = sel != null ? entries[sel] : null;
-  const selKeys = useMemo(() => new Set(selEntry ? entryCellKeys(selEntry) : []), [selEntry]);
 
-  // 고른 낱말이 바뀌면 지금 칸에 다 찬 낱말이 있으면 입력칸에 미리 채웁니다
-  useEffect(() => {
-    if (!selEntry) { setTyped(""); return; }
-    const w = boardWordOf(selEntry, letters, fixed);
-    setTyped(w.length === entryLen(selEntry) ? w : "");
-    // letters는 일부러 빼 둡니다 — 친구가 다른 칸을 채울 때마다 적던 글이 덮이면 안 됩니다
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sel]);
-
-  function pickEntry(i) {
+  const [focusTick, setFocusTick] = useState(0);
+  function pickEntry(i, focus = false) {
     setSel(i);
     setNote("");
-    if (!isOwn(i)) setTimeout(() => inputRef.current?.focus(), 0);
+    if (focus) setFocusTick((t) => t + 1);
   }
 
-  function pickCell(k) {
-    if (!solving) return;
-    const list = entries.map((e, i) => ({ e, i })).filter(({ e }) => entryCellKeys(e).includes(k)).map((x) => x.i);
-    if (!list.length) return;
-    // 우리 모둠 낱말보다 풀 낱말을 먼저, 두 낱말이 지나면 누를 때마다 번갈아
-    const ordered = [...list.filter((i) => !isOwn(i)), ...list.filter((i) => isOwn(i))];
-    const next = ordered.includes(sel) && ordered.length > 1
-      ? ordered[(ordered.indexOf(sel) + 1) % ordered.length]
-      : ordered[0];
-    pickEntry(next);
-  }
+  // 못 고치는 칸 — 열쇠 칸(우리 모둠 낱말) · 이미 맞힌 낱말의 칸
+  const lockedKeys = useMemo(() => {
+    const set = new Set(fixed.keys());
+    progress?.solvedKeys.forEach((k) => set.add(k));
+    return set;
+  }, [fixed, progress]);
 
-  async function commit() {
-    if (!selEntry || isOwn(sel) || locked) return;
-    // 지우면 안 되는 칸 — 이 낱말 말고 맞힌 낱말의 칸
-    const protect = new Set();
-    progress?.solved.forEach((i) => {
-      if (i !== sel) entryCellKeys(entries[i]).forEach((k) => protect.add(k));
-    });
-    const plan = xwCommitPlan(selEntry, typed, letters, fixed, protect);
-    try {
-      await writeXwBoard(activity.id, groupId, plan.set, plan.del);
-      setNote("");
-    } catch (e) {
-      console.warn("[가로세로] 낱말판에 넣지 못했어요:", e?.code, e?.message);
-      setNote("넣지 못했어요 — 잠시 뒤 다시 눌러 주세요.");
-      return;
-    }
-    // 다음 아직 못 푼 낱말로
-    const nextIdx = entries.findIndex((e, j) => j > sel && !isOwn(j) && !progress?.solved.has(j));
-    if (nextIdx >= 0) pickEntry(nextIdx);
+  const canTypeEntry = (i) => !isOwn(i) && !progress?.solved.has(i);
+
+  // 판에 직접 적은 칸을 모둠 판에 — 칸 단위 merge라 모둠원이 동시에 적어도
+  // 서로 덮지 않습니다. 실패하면 판 아래에 까닭을 적습니다(조용히 사라지면
+  // '적었는데 안 들어간다'가 됩니다).
+  function writeCells(set, del) {
+    if (locked) return;
+    writeXwBoard(activity.id, groupId, set, del)
+      .then(() => setNote(""))
+      .catch((e) => {
+        console.warn("[가로세로] 낱말판에 넣지 못했어요:", e?.code, e?.message);
+        setNote("판에 적지 못했어요 — 연결을 확인하고 다시 적어 주세요.");
+      });
   }
 
   const across = entries.map((e, i) => ({ e, i })).filter((x) => x.e.dir === "across");
@@ -213,7 +189,7 @@ export default function CrosswordGroupStudent({ activity, groupId, user, onBack 
                 <button
                   type="button"
                   className={`xw-clue${i === sel ? " on" : ""}${done ? " done" : ""}${own ? " own" : ""}`}
-                  onClick={() => solving && pickEntry(i)}
+                  onClick={() => solving && pickEntry(i, true)}
                   disabled={!solving}
                 >
                   <b>{e.num}</b>
@@ -399,42 +375,36 @@ export default function CrosswordGroupStudent({ activity, groupId, user, onBack 
             <h3>{solving ? "우리 모둠 낱말판" : "낱말판 미리 보기"}</h3>
             <span className="xw-badge">{solving ? "모둠원이 함께 채워요" : "힌트를 다 쓰면 선생님이 '낱말 채우기'를 열어요"}</span>
           </header>
-          <CrosswordGrid
-            puzzle={puzzle}
-            letters={solving ? letters : {}}
-            fixed={fixed}
-            solvedKeys={progress?.solvedKeys}
-            selKeys={selKeys}
-            onCellClick={solving ? pickCell : null}
-          />
+          {solving ? (
+            <CrosswordTyping
+              puzzle={puzzle}
+              letters={letters}
+              fixed={fixed}
+              lockedKeys={lockedKeys}
+              solvedKeys={progress?.solvedKeys}
+              sel={sel}
+              onSelect={pickEntry}
+              canType={canTypeEntry}
+              onWrite={writeCells}
+              disabled={locked}
+              focusTick={focusTick}
+            />
+          ) : (
+            <CrosswordGrid puzzle={puzzle} letters={{}} fixed={fixed} />
+          )}
           {solving && selEntry && (
             <div className="xw-entry">
               <span className="xw-entry-tag">{DIR_LABEL[selEntry.dir]} {selEntry.num} · {selEntry.len}글자</span>
-              {isOwn(sel) ? (
-                <span className="xw-entry-clue">우리 모둠 낱말이에요 — 열쇠 칸이라 고칠 수 없어요.</span>
-              ) : (
-                <>
-                  <span className="xw-entry-clue">{selEntry.clue || "(힌트 없음)"}</span>
-                  <div className="xw-entry-row">
-                    <input
-                      ref={inputRef}
-                      className="xw-entry-input"
-                      value={typed}
-                      onChange={(e) => setTyped(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && !e.nativeEvent.isComposing) { e.preventDefault(); commit(); }
-                      }}
-                      maxLength={selEntry.len + 4}
-                      placeholder={`${selEntry.len}글자로 적고 Enter`}
-                      disabled={locked}
-                      aria-label={`${DIR_LABEL[selEntry.dir]} ${selEntry.num}번 답`}
-                    />
-                    <button type="button" className="btn-primary xw-entry-btn" onClick={commit} disabled={locked}>
-                      넣기
-                    </button>
-                  </div>
-                </>
-              )}
+              <span className="xw-entry-clue">
+                {isOwn(sel)
+                  ? "우리 모둠 낱말이에요 — 열쇠 칸이라 고칠 수 없어요."
+                  : progress?.solved.has(sel)
+                    ? `맞혔어요! ${selEntry.clue ? `— ${selEntry.clue}` : ""}`
+                    : selEntry.clue || "(힌트 없음)"}
+              </span>
+              <span className="xw-entry-help">
+                칸을 누르고 바로 적으세요 · Enter 다음 낱말 · ← → 칸 옮기기 · Backspace 지우기 · 같은 칸을 한 번 더 누르면 가로 ↔ 세로
+              </span>
               {note && <span className="xw-pick-warn">{note}</span>}
             </div>
           )}
