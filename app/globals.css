@@ -31315,19 +31315,19 @@ h4.attendance-seat-help { margin-top: 16px; }
 .xw-grid--mini .xw-cell--void { border: none; background: transparent; }
 .xw-grid--mini .xw-cell.key { background: #f0e2c4; border-color: #e0cfa8; }
 .xw-grid--mini .xw-cell.filled { background: #e9e6e1; }
-/* 학생 왼쪽 칸의 미니맵 — 교사 미니맵(11px)보다 조금 크게(15px까지 — 한때 22px였는데
-   선생님 요청으로 2/3), 카드 폭 안에서 칸이 함께 줄어듭니다(21칸이어도 넘치지 않게).
+/* 학생 왼쪽 칸의 미니맵 — 칸 10px까지(한때 22px → 15px → 10px, 선생님 요청으로 두 번
+   2/3씩), 카드 폭 안에서 칸이 함께 줄어듭니다(21칸이어도 넘치지 않게).
    지금 고른 낱말은 살구 테두리. */
 .xwg-mymap .xw-grid--mini {
   width: 100%;
-  grid-template-columns: repeat(var(--xw-cols), minmax(0, 15px));
+  grid-template-columns: repeat(var(--xw-cols), minmax(0, 10px));
   justify-content: center;
 }
 .xwg-mymap .xw-grid--mini .xw-cell.sel { box-shadow: 0 0 0 1.5px var(--primary); z-index: 1; }
 /* 개별 활동 — 가장 많이 채운 친구의 미니맵. 나의 미니맵과 같은 크기 */
 .xwg-leader .xw-grid--mini {
   width: 100%;
-  grid-template-columns: repeat(var(--xw-cols), minmax(0, 15px));
+  grid-template-columns: repeat(var(--xw-cols), minmax(0, 10px));
   justify-content: center;
 }
 .xwg-leader-name { margin: 0 0 8px; }
