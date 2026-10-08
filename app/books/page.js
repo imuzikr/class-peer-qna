@@ -183,19 +183,30 @@ function BooksPageInner() {
 
   const [activities, setActivities] = useState([]);
   const [openGroups, setOpenGroups] = useState([]);       // 연 활동의 모둠 목록
-  const [allView, setAllView] = useState(false);          // 교사: 반 전체 집계 화면
-  // 닿소리 채우기의 '가로세로' — 학생은 내 판에서, 교사는 전체 보기에서 엽니다
-  const [crossView, setCrossView] = useState(false);
-  // 다른 활동을 열면 가로세로 화면은 접습니다(그 활동의 것이 아니므로)
+  // 닿소리 채우기의 '전체 보기'(교사)와 '가로세로'(학생은 내 판에서, 교사는
+  // 전체 보기에서)도 URL(?view=all | cross)로 듭니다. 한때 화면 상태(useState)라
+  // 새로고침하면 닿소리 판으로 돌아갔습니다(실제 신고). 가로세로는 교사에게
+  // 전체 보기 안의 화면이라 `cross`면 전체 보기도 켜진 것으로 봅니다.
+  // 다른 활동을 열면(goToActivity) view가 빠져 저절로 접힙니다.
+  const viewParam = searchParams.get("view");
+  const allView = viewParam === "all" || viewParam === "cross"; // 교사: 반 전체 집계 화면
+  const crossView = viewParam === "cross";
+  function setBooksView(v) {
+    const p = new URLSearchParams(searchParams.toString());
+    if (v) p.set("view", v);
+    else p.delete("view");
+    const qs = p.toString();
+    router.push(qs ? `/books?${qs}` : "/books");
+  }
   // 전체 보기에서 보던 얼굴(잔디 · 격자 · 낱말 구름) — 가로세로에 다녀와도
   // 그 얼굴로 돌아오게 여기서 듭니다(집계 화면은 가로세로로 가면 내려갑니다)
   const [dashView, setDashView] = useState("grid");
-  useEffect(() => { setCrossView(false); setDashView("grid"); }, [openActivityId]);
+  useEffect(() => { setDashView("grid"); }, [openActivityId]);
   // 가로세로 화면의 보는 방법 알약 — 앞의 셋을 누르면 집계 화면 그 얼굴로
   const pickDashView = (v) => {
     if (v === "crossword") return;
     setDashView(v);
-    setCrossView(false);
+    setBooksView("all");
   };
   const [creatingType, setCreatingType] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
@@ -734,7 +745,7 @@ function BooksPageInner() {
            같은 화면이 activity.groupMode로 말만 바꿉니다 */
         <CrosswordGroupBoard
           activity={activeActivity}
-          onBack={() => { setCrossView(false); setAllView(false); }}
+          onBack={() => setBooksView(null)}
           onPickView={pickDashView}
           onToast={setToast}
           classTools={classTools}
@@ -745,8 +756,8 @@ function BooksPageInner() {
           activity={activeActivity}
           classId={activeClassId}
           user={user}
-          onClose={() => setAllView(false)}
-          onOpenCrossword={() => setCrossView(true)}
+          onClose={() => setBooksView(null)}
+          onOpenCrossword={() => setBooksView("cross")}
           initialView={dashView}
           onViewChange={setDashView}
           classTools={classTools}
@@ -757,7 +768,7 @@ function BooksPageInner() {
           activity={activeActivity}
           groupId={studentCanvasGroupId}
           user={user}
-          onBack={() => setCrossView(false)}
+          onBack={() => setBooksView(null)}
         />
       ) : /* 학생: 활동을 열면 자기 판으로 바로 */
       studentCanvasGroupId && activeActivity ? (
@@ -768,7 +779,7 @@ function BooksPageInner() {
           isTeacher={false}
           viewMode="mine"
           onBack={goToList}
-          onOpenCrossword={() => setCrossView(true)}
+          onOpenCrossword={() => setBooksView("cross")}
         />
       ) : activeActivity ? (
         <BookGroupBoard
@@ -781,7 +792,7 @@ function BooksPageInner() {
           isTeacher={admin}
           roster={roster}
           baseGroupAssignment={baseGroupAssignment}
-          onOpenAll={() => setAllView(true)}
+          onOpenAll={() => setBooksView("all")}
           onBack={goToList}
           onToast={setToast}
           classTools={classTools}
