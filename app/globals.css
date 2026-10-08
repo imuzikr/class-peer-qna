@@ -31270,21 +31270,11 @@ h4.attendance-seat-help { margin-top: 16px; }
 .xwg.xwg--teacher {
   grid-template-columns: minmax(200px, min(24%, 300px)) minmax(0, 1fr);
 }
-/* 가운데 판 · 오른쪽 낱말 힌트는 한 묶음(.xwg-pair) — 두 카드의 바닥을 맞춥니다.
-   바깥 격자에 셋을 나란히 두면 줄 높이가 왼쪽 목록(학생 스물몇 줄)을 따라가
-   가운데 카드까지 그만큼 늘어나므로, 둘만 따로 한 줄로 묶어 서로의 키에 맞춥니다. */
-.xwg-pair {
-  display: grid;
-  grid-template-columns: minmax(260px, 1fr) minmax(210px, min(34%, 320px));
-  gap: 16px;
-  align-items: stretch;
-  min-width: 0;
-}
-.xwg-pair > .xwg-center > .xw-card,
-.xwg-pair > .xwg-right > .xw-card { flex: 1; }
+/* 낱말 힌트는 셋째 칸이 아니라 떠 있는 패널입니다(아래 '.xwg-float') — 판이 그만큼
+   넓어집니다(선생님 요청). 한때 가운데 판과 힌트 카드를 한 묶음(.xwg-pair)으로 둬
+   바닥을 맞췄습니다. */
 @container xwmain (max-width: 719px) {
   .xwg.xwg--teacher { grid-template-columns: minmax(200px, 260px) minmax(0, 1fr); }
-  .xwg-pair { grid-template-columns: minmax(0, 1fr); }
 }
 @container xwmain (max-width: 520px) {
   .xwg.xwg--teacher { grid-template-columns: minmax(0, 1fr); }
@@ -31408,26 +31398,15 @@ h4.attendance-seat-help { margin-top: 16px; }
   font-weight: 700;
 }
 .xw-clue-wait { color: var(--text-faint); }
-/* 힌트 목록은 낱말판 카드의 바닥까지 — 한때 창 높이(100vh − 260px)로 잘려, 판은
-   한참 아래까지 이어지는데 힌트만 중간에서 끊겼습니다(선생님 지적). 지금은 판 카드와
-   힌트 카드를 줄 높이에 맞춰 늘이고(stretch), 목록은 남는 높이를 다 쓰며 넘치면
-   그 안에서 구릅니다. `contain: size`가 목록의 키를 줄 높이 셈에서 빼 줍니다 —
-   빼지 않으면 힌트가 길수록 줄(과 판 카드)이 늘어나 늘 다 펼쳐집니다.
-   판이 낮아도 목록은 320px까지는 섭니다. */
-.xwg > .xwg-center,
-.xwg > .xwg-right { align-self: stretch; }
-.xwg > .xwg-right > .xw-card { flex: 1; }
-.xwg-right .xw-clues {
-  flex: 1 1 0;
-  min-height: 320px;
-  contain: size;
-  overflow-y: auto;
-}
-/* 힌트 패널이 판 아래로 내려가 가로를 다 쓰면 줄 높이를 맞출 상대가 없으므로 예전처럼 */
-@media (max-width: 1180px) {
-  .xwg:not(.xwg--teacher) > .xwg-center { align-self: start; }
-  .xwg:not(.xwg--teacher) .xwg-right .xw-clues { flex: none; contain: none; min-height: 0; max-height: 70vh; }
-}
+/* 학생 — 세 칸(왼쪽 · 판 · 힌트 목록)이 같은 높이, 힌트 목록은 스크롤 없이 다 펼칩니다
+   (선생님 요청 — 한때 판 높이에 맞춰 잘라 안에서 굴렸는데, 판 아래로 내려 보며 힌트를
+   찾느라 두 곳을 오갔습니다). 줄 높이는 셋 가운데 가장 긴 것이 정하고, 나머지 둘은
+   아래에 빈 자리가 남더라도 그 높이까지 늘어납니다(왼쪽은 맨 아래 카드가 늘어남).
+   **`contain: size`나 max-height를 되살리지 마세요** — 다시 스크롤이 생깁니다. */
+.xwg:not(.xwg--teacher) { align-items: stretch; }
+.xwg:not(.xwg--teacher) > .xwg-left > .xw-card:last-child,
+.xwg:not(.xwg--teacher) > .xwg-right > .xw-card { flex: 1; }
+/* 힌트 패널이 판 아래로 내려가 가로를 다 쓰면 판 카드는 왼쪽 칸 높이만 따라갑니다 */
 
 /* 교사 — 머리말 단계 표시 */
 .xwg-stage { margin-left: auto; }
@@ -31507,27 +31486,67 @@ h4.attendance-seat-help { margin-top: 16px; }
   font-size: 12px;
 }
 
-/* 교사 오른쪽 — 모둠별 낱말과 힌트. 패널 폭(260~320px)에서는 한 줄에 한 모둠,
-   1180px 아래에서 패널이 아래로 내려가 가로를 다 쓰면 여러 모둠이 나란히 섭니다. */
+/* 교사 — 모둠별 낱말과 힌트(떠 있는 패널 '낱말 힌트' 안). */
 .xwg-hint-groups {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 14px;
 }
-/* 교사도 낱말판 카드의 바닥까지(학생 힌트 목록과 같은 셈 — 위 '.xwg-right .xw-clues').
-   판 카드와 힌트 카드는 이미 한 묶음(.xwg-pair)으로 바닥이 같습니다. */
-.xwg--teacher .xwg-right .xwg-hint-groups,
-.xwg--teacher .xwg-right .xwg-hint-list--solo {
-  flex: 1 1 0;
-  min-height: 320px;
-  contain: size;
+
+/* 떠 있는 패널(FloatingPanel) — 화면 위에 떠서 뒤를 막지 않는 창. 머리줄을 끌어 옮기고
+   ▾로 접습니다. 몸통 높이는 컴포넌트가 화면 바닥까지로 정하고(max-height) 넘치면 그
+   안에서 구릅니다. z-index 90 — 모달 배경(100) 아래. */
+.float-panel {
+  position: fixed;
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  background: var(--card-bg, #fff);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(58, 49, 46, 0.18), 0 2px 6px rgba(58, 49, 46, 0.08);
+  overflow: hidden;
+}
+.float-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 46px;
+  padding: 0 8px 0 10px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+.float-panel-head:active { cursor: grabbing; }
+.float-panel.is-closed .float-panel-head { border-bottom: none; }
+.float-panel-head h3 { margin: 0; font-size: 15px; font-weight: 800; color: var(--text); white-space: nowrap; }
+.float-panel-grip { color: var(--text-faint); font-size: 15px; line-height: 1; }
+.float-panel-toggle {
+  margin-left: auto;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text-sub);
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+.float-panel-toggle:hover { border-color: var(--primary); color: var(--primary-dark); }
+.float-panel.is-closed .float-panel-toggle svg { transform: rotate(-90deg); }
+.float-panel-body {
+  padding: 12px 14px 14px;
   overflow-y: auto;
-  align-content: start;
+  overscroll-behavior: contain;
 }
-@container xwmain (max-width: 719px) {
-  .xwg--teacher .xwg-right .xwg-hint-groups,
-  .xwg--teacher .xwg-right .xwg-hint-list--solo { flex: none; contain: none; min-height: 0; overflow-y: visible; }
-}
+/* 낱말 힌트 패널 안에서는 모둠이 한 줄에 하나 */
+.xwg-float .xwg-hint-groups { grid-template-columns: minmax(0, 1fr); }
+
 .xwg-hint-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .xwg-hint-list li {
   display: flex;

@@ -53,6 +53,7 @@ import { ROW_COLORS } from "@/lib/bookColors";
 import CrosswordGrid from "./CrosswordGrid";
 import ConfirmModal from "./ConfirmModal";
 import DashViewTabs from "./DashViewTabs";
+import FloatingPanel from "./FloatingPanel";
 
 const DIR_LABEL = { across: "가로", down: "세로" };
 
@@ -433,9 +434,6 @@ export default function CrosswordGroupBoard({ activity, onBack, onPickView, onTo
           )}
         </aside>
 
-        {/* 가운데 · 오른쪽은 한 묶음 — 두 카드의 바닥을 맞춥니다(왼쪽 목록이 길어도
-            그 길이를 따라가지 않게 바깥 격자와 갈라 둠) */}
-        <div className="xwg-pair">
         <div className="xwg-center xwg-center--teacher">
           <section className="xw-card">
             <header className="xw-card-head">
@@ -521,76 +519,75 @@ export default function CrosswordGroupBoard({ activity, onBack, onPickView, onTo
             )}
           </section>
         </div>
-
-        {/* 오른쪽 — 낱말 힌트(모둠별 · 누가 썼나). 학생 화면의 힌트 목록과 같은 자리 */}
-        <aside className="xwg-side xwg-right">
-          <section className="xw-card">
-            <header className="xw-card-head">
-              <h3>낱말 힌트</h3>
-              {puzzle && <span className="xw-badge">힌트 {hintsDone} / {puzzle.entries.length}</span>}
-            </header>
-            {!puzzle ? (
-              <p className="xw-card-note">퀴즈를 만들면 {solo ? "학생마다" : "모둠마다"} 맡은 낱말과 학생이 쓴 힌트가 여기에 떠요.</p>
-            ) : solo ? (
-              <ol className="xwg-hint-list xwg-hint-list--solo">
-                {[...allHints].sort((a, b) => a.idx - b.idx).map((h) => {
-                  const g = liveGroups.find((x) => x.id === h.groupId);
-                  return (
-                    <li key={h.idx}>
-                      <span className="xwg-word-tag">{DIR_LABEL[h.dir]} {h.num}</span>
-                      <strong>{h.word}</strong>
-                      {stage === "solve" && pickedRow?.solvedSet?.has(h.idx) && (
-                        <span className="xw-used">{soloName(pickedRow.group)} 맞힘</span>
-                      )}
-                      <span className={h.hint.trim() ? "" : "xw-sub-empty"}>
-                        {h.hint.trim() || "아직 힌트가 없어요"}
-                      </span>
-                      <em className="xwg-writer">{soloName(g)}</em>
-                    </li>
-                  );
-                })}
-              </ol>
-            ) : (
-              <div className="xwg-hint-groups">
-                {liveGroups.map((g, gi) => {
-                  const list = hintsOf[g.id] ?? [];
-                  const solvedSet = progressList.find((p) => p.groupId === pickedRow?.groupId)?.solvedSet;
-                  return (
-                    <div key={g.id} className="xwg-subgroup" style={{ "--xwg-c": colorOf(g.id).border }}>
-                      <div className="xwg-subgroup-head">
-                        <strong>{g.groupName || `${g.groupIndex ?? gi + 1}모둠`}</strong>
-                        <span className="xwg-subgroup-meta">낱말 {list.length}개</span>
-                      </div>
-                      {list.length === 0 ? (
-                        <p className="xw-empty">맡은 낱말이 없어요.</p>
-                      ) : (
-                        <ol className="xwg-hint-list">
-                          {list.map((h) => (
-                            <li key={h.idx}>
-                              <span className="xwg-word-tag">{DIR_LABEL[h.dir]} {h.num}</span>
-                              <strong>{h.word}</strong>
-                              {stage === "solve" && solvedSet?.has(h.idx) && (
-                                <span className="xw-used">{pickedRow.group.groupName || "고른 모둠"} 맞힘</span>
-                              )}
-                              <span className={h.hint.trim() ? "" : "xw-sub-empty"}>
-                                {h.hint.trim() || "아직 힌트가 없어요"}
-                              </span>
-                              <em className="xwg-writer">
-                                {h.writerUid ? nameOf(g, h.writerUid) || h.writerName : "쓸 사람 안 정함"}
-                              </em>
-                            </li>
-                          ))}
-                        </ol>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </section>
-        </aside>
-        </div>
       </div>
+
+      {/* 낱말 힌트(모둠별 · 누가 썼나) — 화면 위에 떠 있는 패널. 끌어 옮기고 접었다 폅니다
+          (선생님 요청 — 한때 오른쪽 셋째 칸이었는데 판 자리를 그만큼 먹었습니다) */}
+      <FloatingPanel
+        title="낱말 힌트"
+        storageKey="xw_hint_float"
+        className="xwg-float"
+        badge={puzzle ? <span className="xw-badge">힌트 {hintsDone} / {puzzle.entries.length}</span> : null}
+      >
+        {!puzzle ? (
+          <p className="xw-card-note">퀴즈를 만들면 {solo ? "학생마다" : "모둠마다"} 맡은 낱말과 학생이 쓴 힌트가 여기에 떠요.</p>
+        ) : solo ? (
+          <ol className="xwg-hint-list xwg-hint-list--solo">
+            {[...allHints].sort((a, b) => a.idx - b.idx).map((h) => {
+              const g = liveGroups.find((x) => x.id === h.groupId);
+              return (
+                <li key={h.idx}>
+                  <span className="xwg-word-tag">{DIR_LABEL[h.dir]} {h.num}</span>
+                  <strong>{h.word}</strong>
+                  {stage === "solve" && pickedRow?.solvedSet?.has(h.idx) && (
+                    <span className="xw-used">{soloName(pickedRow.group)} 맞힘</span>
+                  )}
+                  <span className={h.hint.trim() ? "" : "xw-sub-empty"}>
+                    {h.hint.trim() || "아직 힌트가 없어요"}
+                  </span>
+                  <em className="xwg-writer">{soloName(g)}</em>
+                </li>
+              );
+            })}
+          </ol>
+        ) : (
+          <div className="xwg-hint-groups">
+            {liveGroups.map((g, gi) => {
+              const list = hintsOf[g.id] ?? [];
+              const solvedSet = progressList.find((p) => p.groupId === pickedRow?.groupId)?.solvedSet;
+              return (
+                <div key={g.id} className="xwg-subgroup" style={{ "--xwg-c": colorOf(g.id).border }}>
+                  <div className="xwg-subgroup-head">
+                    <strong>{g.groupName || `${g.groupIndex ?? gi + 1}모둠`}</strong>
+                    <span className="xwg-subgroup-meta">낱말 {list.length}개</span>
+                  </div>
+                  {list.length === 0 ? (
+                    <p className="xw-empty">맡은 낱말이 없어요.</p>
+                  ) : (
+                    <ol className="xwg-hint-list">
+                      {list.map((h) => (
+                        <li key={h.idx}>
+                          <span className="xwg-word-tag">{DIR_LABEL[h.dir]} {h.num}</span>
+                          <strong>{h.word}</strong>
+                          {stage === "solve" && solvedSet?.has(h.idx) && (
+                            <span className="xw-used">{pickedRow.group.groupName || "고른 모둠"} 맞힘</span>
+                          )}
+                          <span className={h.hint.trim() ? "" : "xw-sub-empty"}>
+                            {h.hint.trim() || "아직 힌트가 없어요"}
+                          </span>
+                          <em className="xwg-writer">
+                            {h.writerUid ? nameOf(g, h.writerUid) || h.writerName : "쓸 사람 안 정함"}
+                          </em>
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </FloatingPanel>
 
       {confirm === "regen" && (
         <ConfirmModal
