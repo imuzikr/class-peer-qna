@@ -52,7 +52,7 @@ import StudyCard from "./StudyCard";
 import StudyCardModal from "./StudyCardModal";
 import StudyMyActivityCard from "./StudyMyActivityCard";
 import StudyPresentModal from "./StudyPresentModal";
-import StudyProgressBoard from "./StudyProgressBoard";
+import StudyProgressBoard, { cardProgress } from "./StudyProgressBoard";
 import StudyActivityWall from "./StudyActivityWall";
 import GroupComposer from "./GroupComposer";
 import {
@@ -597,6 +597,38 @@ export default function StudyProjectView({
   // 보여 줍니다. 내 자리면 나 자신 기준, 교사가 학생 자리를 열었으면 그
   // 학생의 카드를 기준으로 편집 권한(canEditCard)을 판단하되, 카드가 아직
   // 없으면(학생이 시작 전) 무조건 읽기 전용입니다.
+  // ── 공부중 전광판 ──
+  // 카드 격자 머리말(✓)과 학생 카드 화면 머리말(✍️ 공부중) **두 곳에서** 엽니다.
+  // 수업 모드에만 있던 글자 단추를 카드 화면에도 둔 것은, 교사가 카드를 넘겨
+  // 보며 활동을 진행하는 동안 반 전체가 어디까지 왔는지 보려면 격자로 나갔다
+  // 와야 했기 때문입니다(선생님 요청). 창은 하나라 한 번만 짓습니다.
+  const canProgress = isTeacher && !isNotice && !isGroup;
+  // 머리말의 '공부중 n/N' — 활동을 하나라도 쓴 학생 수. 수업 모드의 같은 단추
+  // (LessonMode의 studyingCount)와 **같은 셈**이라 두 화면의 숫자가 같습니다.
+  const studyingCount = canProgress
+    ? classRoster.filter((s) =>
+        cardProgress(cards.find((c) => c.authorId === s.uid), activities).some(Boolean)
+      ).length
+    : 0;
+  const progressBoard = progressOpen && (
+    <StudyProgressBoard
+      board={board}
+      roster={classRoster}
+      cards={cards}
+      classBoards={classBoards}
+      attendanceRecords={attendanceRecords}
+      groupAssignment={baseGroupAssignment}
+      // 전광판에서 바로 그 학생 카드로 — 닫고 자리 상세를 엽니다
+      // (카드 화면에서 열었으면 그 학생으로 옮겨 갑니다)
+      onOpenStudent={(uid) => {
+        const seat = (sortedSeats ?? []).find((s) => s.uid === uid);
+        setProgressOpen(false);
+        if (seat) openSeat(seat);
+      }}
+      onClose={() => setProgressOpen(false)}
+    />
+  );
+
   if (detailSeat) {
     // 옆 자리로 — 격자와 **같은 차례**(sortedSeats)를 따릅니다. 교실에서
     // 번호대로 넘겨 보는 자리라, 화면에 늘어선 순서와 다르면 어디까지 봤는지
@@ -615,6 +647,7 @@ export default function StudyProjectView({
     const liveCard =
       (seats ?? []).find((s) => s.key === detailSeat.key)?.card ?? detailSeat.card;
     return (
+      <>
       <StudyMyActivityCard
         // 학생을 바꾸면 **다시 세웁니다.** 이 컴포넌트는 카드 내용을
         // 마운트 때 한 번만 읽어 상태로 들고 있어(savedSections·cardIdRef),
@@ -666,7 +699,11 @@ export default function StudyProjectView({
               }
             : null
         }
+        onOpenProgress={canProgress ? () => setProgressOpen(true) : null}
+        progressLabel={`공부중 ${studyingCount}/${classRoster.length}`}
       />
+      {progressBoard}
+      </>
     );
   }
 
@@ -768,7 +805,7 @@ export default function StudyProjectView({
                     ▶
                   </button>
                 )}
-                {!isNotice && !isGroup && (
+                {canProgress && (
                   <button
                     className="study-check-btn"
                     onClick={() => setProgressOpen(true)}
@@ -1382,23 +1419,7 @@ export default function StudyProjectView({
         />
       )}
 
-      {progressOpen && (
-        <StudyProgressBoard
-          board={board}
-          roster={classRoster}
-          cards={cards}
-          classBoards={classBoards}
-          attendanceRecords={attendanceRecords}
-          groupAssignment={baseGroupAssignment}
-          // 전광판에서 바로 그 학생 카드로 — 닫고 자리 상세를 엽니다
-          onOpenStudent={(uid) => {
-            const seat = (sortedSeats ?? []).find((s) => s.uid === uid);
-            setProgressOpen(false);
-            if (seat) openSeat(seat);
-          }}
-          onClose={() => setProgressOpen(false)}
-        />
-      )}
+      {progressBoard}
 
       {wallIndex !== null && (
         <StudyActivityWall

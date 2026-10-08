@@ -103,6 +103,10 @@ export default function StudyMyActivityCard({
   // 여닫기 단추. 보드의 activityLocks를 고치므로 **반 전체 학생 카드**에 한꺼번에
   // 걸립니다(카드 격자 위 '활동 열기' 칩과 같은 값). 없으면 단추도 안 섭니다.
   onToggleActivityLock = null,
+  // 공부중 전광판(교사, 개별 프로젝트) — 머리말 오른쪽의 '✍️ 공부중 n/N'.
+  // 창은 프로젝트 화면(StudyProjectView)이 하나로 들고 있어 여는 함수만 받습니다.
+  onOpenProgress = null,
+  progressLabel = "",
 }) {
   const isNew = card === null;
   const activities = board.activities ?? [];
@@ -466,6 +470,19 @@ export default function StudyMyActivityCard({
           </span>
         )}
         <span className="study-mycard-head-rest" aria-hidden="true" />
+        {/* 공부중 전광판(교사) — 돌발 퀴즈 왼쪽. 카드를 넘겨 보며 활동을 진행하는
+            동안 반 전체가 어디까지 왔는지 보는 자리라, 격자로 나갔다 오지 않게
+            여기에도 둡니다. 말은 수업 모드의 같은 단추와 같습니다. */}
+        {onOpenProgress && (
+          <button
+            type="button"
+            className="study-chip study-progress-btn"
+            onClick={onOpenProgress}
+            title="공부중 전광판 — 학생별·활동별 작성 현황"
+          >
+            ✍️ {progressLabel || "공부중"}
+          </button>
+        )}
         {/* 돌발 퀴즈(교사) — 삭제 바로 왼쪽. 누르면 새 퀴즈를 쓰는 칸이 곧바로
             서는 관리 창이 열리고, 이 프로젝트에서 보낸 것으로 적힙니다. 상단바의
             메모지와 같은 창입니다(PopQuizTeacherModal). */}

@@ -30534,12 +30534,16 @@ h4.attendance-seat-help { margin-top: 16px; }
 }
 
 /* 카드 머리의 '돌발 퀴즈'(교사) — 삭제 바로 왼쪽. 삭제(빨강)와 갈리도록 살구. */
-.study-chip.pq-card-btn {
+/* 공부중 전광판(카드 화면) — 바로 옆 '돌발 퀴즈'와 같은 모양(교사 도구 한 쌍) */
+.study-chip.pq-card-btn,
+.study-chip.study-progress-btn {
   background: var(--primary-light);
   border-color: #efc19a;
   color: var(--primary-dark);
 }
-.study-chip.pq-card-btn:hover { border-color: var(--primary); }
+.study-chip.pq-card-btn:hover,
+.study-chip.study-progress-btn:hover { border-color: var(--primary); }
+.study-chip.study-progress-btn { font-variant-numeric: tabular-nums; white-space: nowrap; }
 /* 옛 카드 창(StudyCardModal)의 아래 줄 — 옆 '삭제 · 저장하고 닫기'와 높이를 맞춤 */
 .study-card-modal-save-row > .pq-card-btn {
   height: 38px;
