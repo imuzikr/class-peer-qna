@@ -13,6 +13,12 @@
 //              순서대로. 누르면 가운데에 그 모둠의 판이 크게 섭니다.
 // 낱말 힌트는 늘 오른쪽 패널입니다 — 학생 화면의 힌트 목록과 같은 자리(선생님 요청).
 //
+// **개별 활동**(판 하나가 한 사람)도 이 화면입니다(`solo`). 만들 때 학생마다
+// 낱말 하나를 주고 쓸 사람을 미리 정해 둡니다. 낱말 채우기의 순위는 학생들이
+// 적는 판 요약(xwProgress)으로 셉니다 — 맞힌 낱말 수, 같으면 글자 수(채운 칸 +
+// 쓴 힌트). 학생 화면의 '가장 많이 채운 친구'와 같은 기준이고, 판(정답 글자)은
+// 가운데에 크게 볼 학생 하나만 구독합니다(학생마다 판 리스너를 걸지 않게).
+//
 // 실시간: 모둠마다 힌트(컬렉션)와 판(문서 하나)을 구독합니다 — 모둠이 여섯이면
 // 리스너 열두 개이고, 학생이 낱말을 넣을 때마다 그 판 문서 한 건이 옵니다.
 // 낱말(words)은 구독하지 않고 '생성'을 누를 때 한 번만 읽습니다.
@@ -26,6 +32,7 @@ import {
   createGroupCrossword,
   clearGroupCrossword,
   updateBookActivity,
+  subscribeXwProgress,
 } from "@/lib/store";
 import {
   buildGroupCrossword,
@@ -37,6 +44,10 @@ import {
   groupSolveProgress,
   rankGroupProgress,
   entryLen,
+  normalizeXwProgress,
+  rankSoloProgress,
+  soloScoreLetters,
+  summaryMinimap,
 } from "@/lib/crossword";
 import { ROW_COLORS } from "@/lib/bookColors";
 import CrosswordGrid from "./CrosswordGrid";
@@ -45,20 +56,26 @@ import DashViewTabs from "./DashViewTabs";
 
 const DIR_LABEL = { across: "가로", down: "세로" };
 
-// 모둠마다 힌트·판 구독 — 모둠 목록이 바뀔 때만 다시 겁니다
-function useGroupXw(actId, groupIds) {
+// 모둠마다 힌트·판 구독 — 목록이 바뀔 때만 다시 겁니다. 판은 boardIds만
+// (개별 활동은 가운데에 크게 볼 학생 하나뿐 — 순위는 판 요약으로 셉니다).
+function useGroupXw(actId, groupIds, boardIds) {
   const [hintsBy, setHintsBy] = useState({});
   const [boardsBy, setBoardsBy] = useState({});
   const key = groupIds.join(",");
+  const boardKey = boardIds.join(",");
   useEffect(() => {
-    const offs = [];
-    groupIds.forEach((gId) => {
-      offs.push(subscribeXwHints(actId, gId, (list) => setHintsBy((m) => ({ ...m, [gId]: list }))));
-      offs.push(subscribeXwBoard(actId, gId, (cells) => setBoardsBy((m) => ({ ...m, [gId]: cells }))));
-    });
+    const offs = groupIds.map((gId) =>
+      subscribeXwHints(actId, gId, (list) => setHintsBy((m) => ({ ...m, [gId]: list }))));
     return () => offs.forEach((off) => off());
+    // 목록 내용은 key가 대신 봅니다(렌더마다 새 배열이라 그대로 걸면 끊임없이 다시 겁니다)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actId, key]);
+  useEffect(() => {
+    const offs = boardIds.map((gId) =>
+      subscribeXwBoard(actId, gId, (cells) => setBoardsBy((m) => ({ ...m, [gId]: cells }))));
+    return () => offs.forEach((off) => off());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [actId, boardKey]);
   return { hintsBy, boardsBy };
 }
 
@@ -69,14 +86,40 @@ export default function CrosswordGroupBoard({ activity, onBack, onPickView, onTo
   const [confirm, setConfirm] = useState(null); // 'regen' | 'clear' | 'solve'
   const [picked, setPicked] = useState(null); // 낱말 채우기 — 가운데에 크게 볼 모둠
 
+  const solo = activity.groupMode === "solo";
   useEffect(() => subscribeBookGroups(activity.id, setGroups), [activity.id]);
   const liveGroups = useMemo(() => groups.filter((g) => (g.memberUids ?? []).length > 0), [groups]);
   const groupIds = useMemo(() => liveGroups.map((g) => g.id), [liveGroups]);
-  const { hintsBy, boardsBy } = useGroupXw(activity.id, groupIds);
 
   const puzzle = useMemo(() => normalizeGroupCrossword(activity.crossword), [activity.crossword]);
   const stage = puzzle?.stage ?? null;
   const studentCount = liveGroups.reduce((n, g) => n + g.memberUids.length, 0);
+
+  // 개별 활동 — 학생들의 판 요약(순위 · 미니맵)
+  const [rawProgress, setRawProgress] = useState([]);
+  useEffect(() => {
+    if (!solo) return undefined;
+    return subscribeXwProgress(activity.id, setRawProgress);
+  }, [solo, activity.id]);
+  const soloRanks = useMemo(() => {
+    if (!solo || !puzzle) return [];
+    const byId = new Map(rawProgress.map((x) => [x.id, normalizeXwProgress(x, x.id)]));
+    return rankSoloProgress(liveGroups.map((g, order) => {
+      const s = byId.get(g.id) ?? normalizeXwProgress({ groupId: g.id }, g.id);
+      return { ...s, groupId: g.id, group: g, order, map: summaryMinimap(puzzle, { ...s, groupId: g.id }) };
+    }));
+  }, [solo, puzzle, rawProgress, liveGroups]);
+  const soloPickedId = solo && stage === "solve"
+    ? (soloRanks.find((x) => x.groupId === picked) ?? soloRanks[0])?.groupId ?? null
+    : null;
+  const boardIds = useMemo(
+    () => (solo ? (soloPickedId ? [soloPickedId] : []) : groupIds),
+    [solo, soloPickedId, groupIds]
+  );
+  const { hintsBy, boardsBy } = useGroupXw(activity.id, groupIds, boardIds);
+  // 개별 활동의 이름 — 판 이름이 곧 학생 이름이지만, 구성원 이름표가 먼저
+  const soloName = (g) => g?.members?.[0]?.name || g?.groupName || "학생";
+  const groupLabel = (g, i) => (solo ? soloName(g) : g.groupName || `${g.groupIndex ?? i + 1}모둠`);
 
   const colorOf = useMemo(() => {
     const m = new Map(groups.map((g, i) => [g.id, ROW_COLORS[i % ROW_COLORS.length]]));
@@ -130,15 +173,24 @@ export default function CrosswordGroupBoard({ activity, onBack, onPickView, onTo
 
   // ── 풀이 현황 — 모둠별 ──
   const progressList = useMemo(() => {
-    if (!puzzle) return [];
+    if (!puzzle || solo) return [];
     return rankGroupProgress(liveGroups.map((g, order) => {
       const fixed = fixedLettersOf(puzzle, hintsOf[g.id]);
       const p = groupSolveProgress(puzzle, g.id, boardsBy[g.id] ?? {}, fixed);
       return { groupId: g.id, group: g, order, fixed, ...p, solved: p.solved.size, solvedSet: p.solved };
     }));
-  }, [puzzle, liveGroups, hintsOf, boardsBy]);
+  }, [puzzle, solo, liveGroups, hintsOf, boardsBy]);
 
-  const pickedRow = progressList.find((x) => x.groupId === picked) ?? progressList[0] ?? null;
+  const pickedRow = solo
+    ? (() => {
+        const r = soloRanks.find((x) => x.groupId === soloPickedId);
+        if (!r) return null;
+        // 가운데 큰 판은 진짜 판(글자)으로 — 열쇠 칸은 그 학생의 낱말
+        const fixed = fixedLettersOf(puzzle, hintsOf[r.groupId]);
+        const p = groupSolveProgress(puzzle, r.groupId, boardsBy[r.groupId] ?? {}, fixed);
+        return { ...r, fixed, solvedKeys: p.solvedKeys, solvedSet: p.solved, solved: p.solved.size, total: p.total };
+      })()
+    : progressList.find((x) => x.groupId === picked) ?? progressList[0] ?? null;
 
   // ── 동작 ──
   async function generate() {
@@ -159,11 +211,20 @@ export default function CrosswordGroupBoard({ activity, onBack, onPickView, onTo
         setNote(`서로 이어지는 낱말이 모자라 퍼즐을 만들 수 없어요(쓸 수 있는 낱말 ${pool.length}개). 낱말이 더 모이면 다시 해 보세요.`);
         return;
       }
-      await createGroupCrossword(activity.id, { ...built.puzzle, createdAt: Date.now() }, built.hints);
+      // 개별 활동은 판의 주인이 곧 쓸 사람 — 미리 정해 두면 알약이 필요 없습니다
+      const hints = solo
+        ? built.hints.map((h) => {
+            const g = liveGroups.find((x) => x.id === h.groupId);
+            return { ...h, writerUid: g?.memberUids?.[0] ?? null, writerName: soloName(g) };
+          })
+        : built.hints;
+      await createGroupCrossword(activity.id, { ...built.puzzle, createdAt: Date.now() }, hints);
       const n = built.puzzle.entries.length;
       const msg = n < built.target
         ? `낱말 ${n}개로 퀴즈를 만들었어요 — 이어지는 낱말이 모자라 학생 수(${built.target}명)보다 적어요. 낱말을 못 맡은 학생이 있어요.`
-        : `낱말 ${n}개로 퀴즈를 만들고 모둠마다 나눠 주었어요(재료 ${pool.length}개).`;
+        : solo
+          ? `낱말 ${n}개로 퀴즈를 만들고 학생마다 하나씩 나눠 주었어요(재료 ${pool.length}개).`
+          : `낱말 ${n}개로 퀴즈를 만들고 모둠마다 나눠 주었어요(재료 ${pool.length}개).`;
       setNote(msg);
       onToast?.(msg);
       setPicked(null);
@@ -221,7 +282,7 @@ export default function CrosswordGroupBoard({ activity, onBack, onPickView, onTo
           <DashViewTabs view="crossword" onPick={onPickView} />
         </div>
         <span className="canvas-head-stats">
-          가로세로 · 모둠 {liveGroups.length}개 · 학생 {studentCount}명
+          가로세로 · {solo ? "개별 활동" : `모둠 ${liveGroups.length}개`} · 학생 {studentCount}명
           {puzzle && ` · 낱말 ${puzzle.entries.length}개`}
         </span>
         <span className={`xw-badge xwg-stage${stage === "solve" ? " done" : ""}`}>
@@ -232,7 +293,52 @@ export default function CrosswordGroupBoard({ activity, onBack, onPickView, onTo
       <div className="xwg xwg--teacher">
         {/* 왼쪽 — 힌트 제출 현황 / 모둠별 풀이 미니맵 */}
         <aside className="xwg-side xwg-left">
-          {stage === "solve" ? (
+          {stage === "solve" && solo ? (
+            <section className="xw-card">
+              <header className="xw-card-head">
+                <h3>학생별 풀이</h3>
+                <span className="xw-badge">많이 채운 차례</span>
+              </header>
+              <ol className="xwg-ranks">
+                {soloRanks.map((p, rank) => {
+                  const color = colorOf(p.groupId);
+                  const on = soloPickedId === p.groupId;
+                  return (
+                    <li key={p.groupId}>
+                      <button
+                        type="button"
+                        className={`xwg-rank${on ? " on" : ""}`}
+                        style={{ "--xwg-c": color.border, "--xwg-bg": color.bg }}
+                        onClick={() => setPicked(p.groupId)}
+                        aria-pressed={on}
+                        title={`맞힌 낱말 ${p.solved}개 · 글자 ${soloScoreLetters(p)}자(채운 칸 ${p.cells} + 힌트 ${p.hintChars})`}
+                      >
+                        <span className="xwg-rank-head">
+                          <b className="xwg-rank-no">{rank + 1}</b>
+                          <strong>{soloName(p.group)}</strong>
+                          <span className={`xw-badge${p.total && p.solved === p.total ? " done" : ""}`}>
+                            {p.total ? `${p.solved} / ${p.total}` : "아직"}
+                          </span>
+                        </span>
+                        <CrosswordGrid
+                          puzzle={puzzle}
+                          letters={p.map.letters}
+                          fixed={p.map.fixed}
+                          solvedKeys={p.map.solvedKeys}
+                          mini
+                          tint={color}
+                          showFixedLetters={false}
+                        />
+                      </button>
+                    </li>
+                  );
+                })}
+              </ol>
+              <p className="xw-card-note">
+                맞힌 낱말 수가 먼저, 같으면 글자 수(채운 칸 + 쓴 힌트). <span className="xwg-swatch key" /> 그 학생 낱말 <span className="xwg-swatch filled" /> 채우는 중
+              </p>
+            </section>
+          ) : stage === "solve" ? (
             <section className="xw-card">
               <header className="xw-card-head">
                 <h3>모둠별 풀이</h3>
@@ -286,7 +392,20 @@ export default function CrosswordGroupBoard({ activity, onBack, onPickView, onTo
                 )}
               </header>
               {!puzzle && <p className="xw-card-note">퀴즈를 만들면 학생마다 힌트를 냈는지 여기에 떠요.</p>}
-              {studentRows.map(({ group, rows, unassigned }, gi) => (
+              {solo ? (
+                <ul className="xwg-solo-list">
+                  {studentRows.map(({ group, rows }) => rows.map((r) => (
+                    <li key={r.uid} className={`xwg-stu xwg-stu--${r.state}`}>
+                      <span className="xwg-stu-name">{soloName(group)}</span>
+                      {puzzle && (
+                        <span className="xwg-stu-state">
+                          {r.state === "done" ? "제출" : r.state === "doing" ? "쓰는 중" : r.state === "free" ? "맡은 낱말 없음" : "미제출"}
+                        </span>
+                      )}
+                    </li>
+                  )))}
+                </ul>
+              ) : studentRows.map(({ group, rows, unassigned }, gi) => (
                 <div key={group.id} className="xwg-subgroup" style={{ "--xwg-c": colorOf(group.id).border }}>
                   <div className="xwg-subgroup-head">
                     <strong>{group.groupName || `${group.groupIndex ?? gi + 1}모둠`}</strong>
@@ -322,7 +441,7 @@ export default function CrosswordGroupBoard({ activity, onBack, onPickView, onTo
             <header className="xw-card-head">
               <h3>
                 {stage === "solve" && pickedRow
-                  ? `${pickedRow.group.groupName || `${pickedRow.group.groupIndex}모둠`}의 낱말판`
+                  ? `${groupLabel(pickedRow.group, 0)}의 낱말판`
                   : "퀴즈 만들기"}
               </h3>
               {stage === "solve" && pickedRow && (
@@ -338,10 +457,12 @@ export default function CrosswordGroupBoard({ activity, onBack, onPickView, onTo
                 <span className="xw-gen-note">
                   {note ||
                     (stage === "solve"
-                      ? "왼쪽 미니맵을 누르면 그 모둠의 판을 크게 봐요. 학생이 낱말을 넣는 대로 곧바로 바뀌어요."
+                      ? `왼쪽 미니맵을 누르면 그 ${solo ? "학생" : "모둠"}의 판을 크게 봐요. 학생이 낱말을 넣는 대로 곧바로 바뀌어요.`
                       : stage === "hint"
-                        ? `힌트 ${hintsDone} / ${puzzle.entries.length}개. 다 모이면 '낱말 채우기'를 눌러 모둠마다 판을 열어 주세요.`
-                        : `이 활동에 나온 낱말 전부로 학생 수(${studentCount}명)만큼 이어 판을 짜고, 모둠마다 구성원 수만큼 나눠 줘요.`)}
+                        ? `힌트 ${hintsDone} / ${puzzle.entries.length}개. 다 모이면 '낱말 채우기'를 눌러 ${solo ? "학생" : "모둠"}마다 판을 열어 주세요.`
+                        : solo
+                          ? `이 활동에 나온 낱말 전부로 학생 수(${studentCount}명)만큼 이어 판을 짜고, 학생마다 낱말 하나씩 나눠 줘요.`
+                          : `이 활동에 나온 낱말 전부로 학생 수(${studentCount}명)만큼 이어 판을 짜고, 모둠마다 구성원 수만큼 나눠 줘요.`)}
                 </span>
                 <div className="xw-gen-btns">
                   {stage !== "solve" && (
@@ -409,7 +530,26 @@ export default function CrosswordGroupBoard({ activity, onBack, onPickView, onTo
               {puzzle && <span className="xw-badge">힌트 {hintsDone} / {puzzle.entries.length}</span>}
             </header>
             {!puzzle ? (
-              <p className="xw-card-note">퀴즈를 만들면 모둠마다 맡은 낱말과 학생이 쓴 힌트가 여기에 떠요.</p>
+              <p className="xw-card-note">퀴즈를 만들면 {solo ? "학생마다" : "모둠마다"} 맡은 낱말과 학생이 쓴 힌트가 여기에 떠요.</p>
+            ) : solo ? (
+              <ol className="xwg-hint-list xwg-hint-list--solo">
+                {[...allHints].sort((a, b) => a.idx - b.idx).map((h) => {
+                  const g = liveGroups.find((x) => x.id === h.groupId);
+                  return (
+                    <li key={h.idx}>
+                      <span className="xwg-word-tag">{DIR_LABEL[h.dir]} {h.num}</span>
+                      <strong>{h.word}</strong>
+                      {stage === "solve" && pickedRow?.solvedSet?.has(h.idx) && (
+                        <span className="xw-used">{soloName(pickedRow.group)} 맞힘</span>
+                      )}
+                      <span className={h.hint.trim() ? "" : "xw-sub-empty"}>
+                        {h.hint.trim() || "아직 힌트가 없어요"}
+                      </span>
+                      <em className="xwg-writer">{soloName(g)}</em>
+                    </li>
+                  );
+                })}
+              </ol>
             ) : (
               <div className="xwg-hint-groups">
                 {liveGroups.map((g, gi) => {
@@ -456,7 +596,7 @@ export default function CrosswordGroupBoard({ activity, onBack, onPickView, onTo
         <ConfirmModal
           icon={<span aria-hidden="true">🧩</span>}
           title="퀴즈를 다시 만들까요?"
-          description="새 퀴즈로 바뀌면 모둠마다 맡은 낱말과 지금까지 쓴 힌트, 채우던 낱말판이 모두 사라져요."
+          description={`새 퀴즈로 바뀌면 ${solo ? "학생마다" : "모둠마다"} 맡은 낱말과 지금까지 쓴 힌트, 채우던 낱말판이 모두 사라져요.`}
           confirmLabel="다시 만들기"
           onConfirm={generate}
           onClose={() => setConfirm(null)}

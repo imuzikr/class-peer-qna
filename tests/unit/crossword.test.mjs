@@ -264,3 +264,55 @@ test("화살표 — 빈자리를 건너 다음 칸으로, 방향에 맞는 낱�
   // (1,2)는 세로 1만 — ←를 눌러도 그 낱말
   assert.equal(entryForCell(puzzle.entries, cells.get("1,2"), "across", 0), 1);
 });
+
+// ─── 개별 활동 — 학생마다 낱말 하나 · 요약 · 순위 ──────────────
+import {
+  soloBoardSummary, normalizeXwProgress, rankSoloProgress, soloScoreLetters, summaryMinimap,
+} from "../../lib/crossword.js";
+
+test("개별 활동 — 1인 판마다 낱말이 꼭 하나", () => {
+  const solos = Array.from({ length: 8 }, (_, i) => ({ id: `solo_u${i}`, size: 1 }));
+  const built = buildGroupCrossword(WORDS.map((w) => w.word), solos, { salt: "s3", rng: seeded(5) });
+  assert.ok(built);
+  const per = new Map();
+  built.hints.forEach((h) => per.set(h.groupId, (per.get(h.groupId) ?? 0) + 1));
+  for (const n of per.values()) assert.equal(n, 1);
+  assert.equal(built.target, 8);
+});
+
+test("개별 활동 요약 — 제 낱말(열쇠 칸)은 안 세고, 글자 수에 제 힌트를 더함", () => {
+  const solos = Array.from({ length: 6 }, (_, i) => ({ id: `s${i}`, size: 1 }));
+  const { puzzle, hints } = buildGroupCrossword(WORDS.map((w) => w.word), solos, { salt: "s4", rng: seeded(7) });
+  const mine = hints.filter((h) => h.groupId === "s0").map((h) => ({ ...h, hint: "초록 잎 속 공장" }));
+  const fixed = fixedLettersOf(puzzle, mine);
+  const target = hints.find((h) => h.groupId !== "s0" && puzzle.entries[h.idx]);
+  const e = puzzle.entries[target.idx];
+  const plan = xwCommitPlan(e, target.word, {}, fixed);
+  const letters = { ...plan.set, "99,99": "가" }; // 판 밖 칸은 안 셈
+  const s = soloBoardSummary(puzzle, "s0", letters, fixed, mine);
+  assert.ok(s.solved >= 1);
+  assert.ok(s.solvedIdx.includes(target.idx));
+  assert.equal(s.cells, Object.keys(plan.set).length);
+  assert.equal(s.hintChars, "초록잎속공장".length);
+  assert.equal(soloScoreLetters(s), s.cells + s.hintChars);
+  assert.ok(s.filled.every((k) => !fixed.has(k)));
+  // 저장된 값을 거르면 모양이 그대로
+  const n = normalizeXwProgress({ ...s, groupId: "s0", uid: "u0", filled: [...s.filled, 3], solved: -1 }, "s0");
+  assert.equal(n.solved, 0);
+  assert.deepEqual(n.filled, s.filled);
+  // 미니맵 — 글자 없이 자리만, 그 학생 낱말은 열쇠 칸
+  const map = summaryMinimap(puzzle, { ...s, groupId: "s0" });
+  assert.ok(Object.values(map.letters).every((v) => v === "·"));
+  assert.ok([...map.fixed.values()].every((v) => v === ""));
+  assert.equal(map.fixed.size, fixed.size);
+});
+
+test("개별 활동 순위 — 맞힌 낱말, 같으면 글자 수(힌트 포함)", () => {
+  const r = rankSoloProgress([
+    { groupId: "a", solved: 3, cells: 10, hintChars: 5, order: 0 },
+    { groupId: "b", solved: 3, cells: 9, hintChars: 9, order: 1 },
+    { groupId: "c", solved: 4, cells: 1, hintChars: 0, order: 2 },
+    { groupId: "d", solved: 3, cells: 15, hintChars: 0, order: 3 },
+  ]);
+  assert.deepEqual(r.map((x) => x.groupId), ["c", "b", "a", "d"]);
+});

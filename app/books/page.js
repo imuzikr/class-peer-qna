@@ -61,8 +61,6 @@ import StudyRewardPanel from "@/components/StudyRewardPanel";
 import BookGroupBoard from "@/components/BookGroupBoard";
 import ConsonantCanvas from "@/components/ConsonantCanvas";
 import ConsonantDashboard from "@/components/ConsonantDashboard";
-import CrosswordBoard from "@/components/CrosswordBoard";
-import CrosswordStudent from "@/components/CrosswordStudent";
 import CrosswordGroupBoard from "@/components/CrosswordGroupBoard";
 import CrosswordGroupStudent from "@/components/CrosswordGroupStudent";
 import ParatextBoard from "@/components/ParatextBoard";
@@ -732,24 +730,15 @@ function BooksPageInner() {
         />
       ) : /* 교사: '전체 보기'의 '가로세로' — 낱말 풀이 제출 현황 · 퀴즈 만들기 */
       admin && allView && crossView && activeActivity ? (
-        /* 모둠 활동은 모둠 퍼즐(힌트 쓰기 → 함께 채우기), 개별 활동은 셋 골라 풀이 */
-        activeActivity.groupMode === "solo" ? (
-          <CrosswordBoard
-            activity={activeActivity}
-            onBack={() => { setCrossView(false); setAllView(false); }}
-            onPickView={pickDashView}
-            onToast={setToast}
-            classTools={classTools}
-          />
-        ) : (
-          <CrosswordGroupBoard
-            activity={activeActivity}
-            onBack={() => { setCrossView(false); setAllView(false); }}
-            onPickView={pickDashView}
-            onToast={setToast}
-            classTools={classTools}
-          />
-        )
+        /* 모둠 활동은 모둠마다 판 하나를 함께, 개별 활동은 1인 판마다 낱말 하나 —
+           같은 화면이 activity.groupMode로 말만 바꿉니다 */
+        <CrosswordGroupBoard
+          activity={activeActivity}
+          onBack={() => { setCrossView(false); setAllView(false); }}
+          onPickView={pickDashView}
+          onToast={setToast}
+          classTools={classTools}
+        />
       ) : /* 교사: '전체 보기' — 반 전체 집계. 여기서 학생 화면에 중계할 수 있습니다 */
       admin && allView && activeActivity ? (
         <ConsonantDashboard
@@ -764,21 +753,12 @@ function BooksPageInner() {
         />
       ) : /* 학생: 내 판의 '가로세로' — 낱말 풀이 쓰기 · 퀴즈 풀기 */
       studentCanvasGroupId && activeActivity && crossView ? (
-        activeActivity.groupMode === "solo" ? (
-          <CrosswordStudent
-            activity={activeActivity}
-            groupId={studentCanvasGroupId}
-            user={user}
-            onBack={() => setCrossView(false)}
-          />
-        ) : (
-          <CrosswordGroupStudent
-            activity={activeActivity}
-            groupId={studentCanvasGroupId}
-            user={user}
-            onBack={() => setCrossView(false)}
-          />
-        )
+        <CrosswordGroupStudent
+          activity={activeActivity}
+          groupId={studentCanvasGroupId}
+          user={user}
+          onBack={() => setCrossView(false)}
+        />
       ) : /* 학생: 활동을 열면 자기 판으로 바로 */
       studentCanvasGroupId && activeActivity ? (
         <ConsonantCanvas

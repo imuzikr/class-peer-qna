@@ -11,6 +11,14 @@
 //           채워진 열쇠 칸이라 고칠 수 없고 점수에서도 빠집니다.
 //   오른쪽 — 힌트 목록(가로 · 세로). '낱말 채우기'가 시작되면 힌트가 뜹니다.
 //
+// **개별 활동**(닿소리 채우기를 개별로 진행 — 판 하나가 한 사람)도 이 화면을
+// 씁니다(`solo`). 모둠 퍼즐을 그대로 쓰면 '모둠마다 구성원 수만큼' = 한 사람에
+// 낱말 하나이고, 쓸 사람은 교사가 만들 때 미리 정해 두어 알약이 없습니다.
+// 왼쪽 칸은 위에서부터 — 나의 판 미니맵(맞힌 수) · 나의 낱말 · **가장 많이 채운
+// 친구의 미니맵**(맞힌 낱말 수, 같으면 글자 수 = 채운 칸 + 제 힌트). 친구의 판은
+// 정답 글자가 든 문서라 못 읽으므로, 저마다 적어 두는 판 요약(xwProgress —
+// 글자 없이 자리만)으로 그립니다.
+//
 // 맞았는지는 칸 글자를 이어 낸 지문으로만 압니다 — 정답 낱말은 이 화면에
 // 오지 않습니다(우리 모둠 낱말만 예외). 맞힌 낱말은 초록, 틀린 것은 칠하지
 // 않습니다(빨강을 보여 주면 글자를 하나씩 바꿔 대 보는 놀이가 됩니다).
@@ -23,6 +31,8 @@ import {
   setXwHintWriter,
   saveXwHint,
   writeXwBoard,
+  subscribeXwProgress,
+  saveXwProgress,
 } from "@/lib/store";
 import {
   CROSSWORD_HINT_MAX,
@@ -34,6 +44,11 @@ import {
   entryLen,
   entryCellKeys as entryKeysOf,
   clueRevealsWord,
+  soloBoardSummary,
+  normalizeXwProgress,
+  rankSoloProgress,
+  soloScoreLetters,
+  summaryMinimap,
 } from "@/lib/crossword";
 import CrosswordGrid from "./CrosswordGrid";
 import CrosswordTyping from "./CrosswordTyping";
@@ -43,8 +58,13 @@ const MAP_TINT = { bg: "#e8f7ed", border: "#6fbf8a" };
 
 const DIR_LABEL = { across: "가로", down: "세로" };
 
+// 친구 판 요약을 다시 쓰는 간격 — 글자를 칠 때마다 쓰지 않고 모아서 한 번
+const PROGRESS_SAVE_MS = 1200;
+
 export default function CrosswordGroupStudent({ activity, groupId, user, onBack }) {
   const me = user?.uid ?? null;
+  const solo = activity.groupMode === "solo";
+  const OUR = solo ? "나의" : "우리 모둠";
   const [groups, setGroups] = useState([]);
   const [rawHints, setRawHints] = useState([]);
   const [letters, setLetters] = useState({});
@@ -54,10 +74,26 @@ export default function CrosswordGroupStudent({ activity, groupId, user, onBack 
   const [note, setNote] = useState("");
   const timers = useRef({});
   const pending = useRef({});
+  const claimed = useRef(new Set()); // 개별 활동 — 쓸 사람을 나로 정한 낱말
 
   useEffect(() => subscribeBookGroups(activity.id, setGroups), [activity.id]);
-  useEffect(() => subscribeXwHints(activity.id, groupId, setRawHints), [activity.id, groupId]);
-  useEffect(() => subscribeXwBoard(activity.id, groupId, setLetters), [activity.id, groupId]);
+  // 첫 답이 왔는가 — 판 요약은 둘 다 온 뒤에야 씁니다(빈 값은 '없다'가 아니라
+  // '아직 안 왔다'일 수 있어, 그대로 쓰면 0개짜리 요약이 한 번 나갑니다)
+  const [loaded, setLoaded] = useState({ hints: false, board: false });
+  useEffect(() => subscribeXwHints(activity.id, groupId, (list) => {
+    setRawHints(list);
+    setLoaded((l) => (l.hints ? l : { ...l, hints: true }));
+  }), [activity.id, groupId]);
+  useEffect(() => subscribeXwBoard(activity.id, groupId, (cells) => {
+    setLetters(cells);
+    setLoaded((l) => (l.board ? l : { ...l, board: true }));
+  }), [activity.id, groupId]);
+  // 개별 활동 — 반의 판 요약(가장 많이 채운 친구)
+  const [rawProgress, setRawProgress] = useState([]);
+  useEffect(() => {
+    if (!solo) return undefined;
+    return subscribeXwProgress(activity.id, setRawProgress);
+  }, [solo, activity.id]);
 
   // 화면을 벗어날 때 아직 안 보낸 힌트를 한 번 더
   useEffect(() => () => {
@@ -99,11 +135,54 @@ export default function CrosswordGroupStudent({ activity, groupId, user, onBack 
   const locked = !!activity.locked;
   const solving = stage === "solve";
 
+  // ── 개별 활동 — 제 판 요약을 반에 적어 둠 ──
+  const summary = useMemo(
+    () => (solo && puzzle ? soloBoardSummary(puzzle, groupId, letters, fixed, hints) : null),
+    [solo, puzzle, groupId, letters, fixed, hints]
+  );
+  const summaryKey = summary ? JSON.stringify(summary) : "";
+  const lastSaved = useRef("");
+  useEffect(() => {
+    if (!solo || !solving || locked || !summary || !me) return undefined;
+    if (!loaded.hints || !loaded.board) return undefined;
+    if (summaryKey === lastSaved.current) return undefined;
+    const t = setTimeout(() => {
+      saveXwProgress(activity.id, groupId, me, summary)
+        .then(() => { lastSaved.current = summaryKey; })
+        .catch((e) => console.warn("[가로세로] 판 요약을 적지 못했어요:", e?.code, e?.message));
+    }, PROGRESS_SAVE_MS);
+    return () => clearTimeout(t);
+    // summary는 summaryKey가 바뀔 때만 다릅니다
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [solo, solving, locked, summaryKey, loaded.hints, loaded.board, activity.id, groupId, me]);
+
+  // 가장 많이 채운 친구 — 나를 뺀 반의 요약 가운데 1위. 나는 내 요약을
+  // 화면에서 바로 세어 견줍니다(저장이 한 박자 늦어도 순위가 흔들리지 않게).
+  const leader = useMemo(() => {
+    if (!solo || !puzzle) return null;
+    const others = rawProgress
+      .map((x, order) => ({ ...normalizeXwProgress(x, x.id), order }))
+      .filter((x) => x.groupId && x.groupId !== groupId);
+    const top = rankSoloProgress(others)[0] ?? null;
+    if (!top) return null;
+    const g = groups.find((x) => x.id === top.groupId);
+    const name = g?.members?.[0]?.name || g?.groupName || "친구";
+    // 나와 1위를 견줍니다 — 같으면 친구가 앞(이미 적힌 쪽이 먼저)
+    const ahead = summary ? rankSoloProgress([{ ...top, order: 0 }, { ...summary, order: 1, me: true }])[0].me === true : false;
+    return { ...top, name, map: summaryMinimap(puzzle, top), meAhead: ahead };
+  }, [solo, puzzle, rawProgress, groupId, groups, summary]);
+
   const hintDoneCount = hints.filter((h) => xwHintDone({ ...h, hint: h.writerUid === me ? drafts[h.idx] ?? h.hint : h.hint })).length;
 
   // ── 힌트 쓰기 ──
   function changeHint(h, text) {
     const t = text.slice(0, CROSSWORD_HINT_MAX);
+    // 개별 활동인데 쓸 사람이 비어 있으면 나로 먼저 정합니다(한 번만)
+    if (solo && !h.writerUid && me && !claimed.current.has(h.idx)) {
+      claimed.current.add(h.idx);
+      setXwHintWriter(activity.id, groupId, h.idx, { uid: me, name: user?.realName || user?.displayName || "" })
+        .catch(() => {});
+    }
     setDrafts((d) => ({ ...d, [h.idx]: t }));
     pending.current[h.idx] = t;
     clearTimeout(timers.current[h.idx]);
@@ -199,7 +278,7 @@ export default function CrosswordGroupStudent({ activity, groupId, user, onBack 
                   <b>{e.num}</b>
                   <span className="xw-clue-text">
                     {own
-                      ? <>{ownByIdx.get(i)?.word ?? ""} <i className="xw-clue-own">우리 모둠 낱말</i></>
+                      ? <>{ownByIdx.get(i)?.word ?? ""} <i className="xw-clue-own">{OUR} 낱말</i></>
                       : solving
                         ? (e.clue || "(힌트 없음)")
                         : <span className="xw-clue-wait">힌트를 쓰는 중이에요</span>}
@@ -219,7 +298,7 @@ export default function CrosswordGroupStudent({ activity, groupId, user, onBack 
     <div className="canvas-head">
       <div className="canvas-head-title">
         <strong>가로세로 낱말퀴즈</strong>
-        <span>{activity.title}{myGroup?.groupName ? ` · ${myGroup.groupName}` : ""}</span>
+        <span>{activity.title}{myGroup?.groupName && !solo ? ` · ${myGroup.groupName}` : ""}</span>
       </div>
       <div className="canvas-head-pair">
         <button type="button" className="btn-ghost" onClick={onBack}>← 내 판</button>
@@ -233,8 +312,8 @@ export default function CrosswordGroupStudent({ activity, groupId, user, onBack 
         {head}
         <section className="xw-card">
           <p className="xw-empty">
-            아직 퀴즈가 없어요. 선생님이 이 활동의 낱말로 가로세로 퀴즈를 만들면, 우리 모둠이
-            맡은 낱말이 여기에 나타나요.
+            아직 퀴즈가 없어요. 선생님이 이 활동의 낱말로 가로세로 퀴즈를 만들면,{" "}
+            {solo ? "내가 맡은 낱말이" : "우리 모둠이 맡은 낱말이"} 여기에 나타나요.
           </p>
         </section>
       </main>
@@ -257,7 +336,10 @@ export default function CrosswordGroupStudent({ activity, groupId, user, onBack 
           {solving && (
             <section className="xw-card xwg-mymap">
               <header className="xw-card-head">
-                <h3>우리 모둠 판 한눈에</h3>
+                <h3>{OUR} 판 한눈에</h3>
+                {solo && (
+                  <span className={`xw-badge${allSolved ? " done" : ""}`}>{solvedN} / {totalN}개</span>
+                )}
               </header>
               <CrosswordGrid
                 puzzle={puzzle}
@@ -268,15 +350,21 @@ export default function CrosswordGroupStudent({ activity, groupId, user, onBack 
                 mini
                 tint={MAP_TINT}
               />
+              {solo && (
+                <div className="xwg-bar" aria-hidden="true">
+                  <span style={{ width: `${totalN ? (solvedN / totalN) * 100 : 0}%` }} />
+                </div>
+              )}
               <p className="xw-card-note xwg-legend">
-                <span className="xwg-swatch key" /> 우리 모둠 낱말
+                <span className="xwg-swatch key" /> {OUR} 낱말
                 <span className="xwg-swatch filled" /> 채우는 중
                 <span className="xwg-swatch right" /> 맞힌 낱말
               </p>
+              {solo && allSolved && <p className="xw-card-note">🎉 모든 낱말을 맞혔어요!</p>}
             </section>
           )}
 
-          {solving && (
+          {solving && !solo && (
             <section className="xw-card xwg-score">
               <header className="xw-card-head">
                 <h3>우리 모둠 풀이</h3>
@@ -295,7 +383,7 @@ export default function CrosswordGroupStudent({ activity, groupId, user, onBack 
 
           <section className="xw-card">
             <header className="xw-card-head">
-              <h3>우리 모둠 낱말</h3>
+              <h3>{OUR} 낱말</h3>
               {!solving && (
                 <span className={`xw-badge${hintDoneCount === hints.length && hints.length ? " done" : ""}`}>
                   힌트 {hintDoneCount} / {hints.length}
@@ -303,16 +391,20 @@ export default function CrosswordGroupStudent({ activity, groupId, user, onBack 
               )}
             </header>
             <p className="xw-card-note">
-              {solving
-                ? "우리가 힌트를 쓴 낱말이에요. 판에는 미리 채워져 있어요."
-                : "낱말마다 모둠원 이름을 눌러 누가 힌트를 쓸지 정하세요. 고른 사람만 힌트를 쓸 수 있어요(저절로 저장)."}
+              {solo
+                ? solving
+                  ? "내가 힌트를 쓴 낱말이에요. 판에는 미리 채워져 있어요."
+                  : "이 낱말을 모르는 친구에게 설명하듯 힌트를 적어 주세요(저절로 저장)."
+                : solving
+                  ? "우리가 힌트를 쓴 낱말이에요. 판에는 미리 채워져 있어요."
+                  : "낱말마다 모둠원 이름을 눌러 누가 힌트를 쓸지 정하세요. 고른 사람만 힌트를 쓸 수 있어요(저절로 저장)."}
             </p>
             {hints.length === 0 ? (
-              <p className="xw-empty">이번 퀴즈에서 우리 모둠이 맡은 낱말이 없어요.</p>
+              <p className="xw-empty">이번 퀴즈에서 {solo ? "내가" : "우리 모둠이"} 맡은 낱말이 없어요.</p>
             ) : (
               <ol className="xwg-words">
                 {hints.map((h) => {
-                  const mine = h.writerUid === me;
+                  const mine = h.writerUid === me || (solo && !h.writerUid);
                   // 쓰는 중인 글은 내가 쓸 사람일 때만 — 알약이 넘어가면 서버 값
                   const text = mine ? drafts[h.idx] ?? h.hint : h.hint;
                   const writtenByOther = !!h.hint.trim() && h.writerUid && !mine;
@@ -326,7 +418,7 @@ export default function CrosswordGroupStudent({ activity, groupId, user, onBack 
                         <span className="xw-pick-len">{h.len}글자</span>
                         <span className={`xw-badge${done ? " done" : ""}`}>{done ? "제출" : "아직"}</span>
                       </div>
-                      {!solving && (
+                      {!solving && !solo && (
                         <div className="xwg-pills" role="radiogroup" aria-label={`${h.word} 힌트를 쓸 사람`}>
                           {members.map((m) => {
                             const on = h.writerUid === m.uid;
@@ -355,7 +447,7 @@ export default function CrosswordGroupStudent({ activity, groupId, user, onBack 
                       {solving ? (
                         <p className="xwg-hint-read">
                           {h.hint.trim() || <span className="xw-sub-empty">힌트 없음</span>}
-                          {writerName && <span className="xwg-writer"> — {writerName}</span>}
+                          {writerName && !solo && <span className="xwg-writer"> — {writerName}</span>}
                         </p>
                       ) : (
                         <>
@@ -395,13 +487,51 @@ export default function CrosswordGroupStudent({ activity, groupId, user, onBack 
               </p>
             )}
           </section>
+
+          {/* 개별 활동 — 가장 많이 채운 친구의 판(요약으로 그림 · 글자 없음) */}
+          {solo && solving && (
+            <section className="xw-card xwg-leader">
+              <header className="xw-card-head">
+                <h3>가장 많이 채운 친구</h3>
+                {leader && (
+                  <span className={`xw-badge${leader.total && leader.solved === leader.total ? " done" : ""}`}>
+                    {leader.solved} / {leader.total}개
+                  </span>
+                )}
+              </header>
+              {leader ? (
+                <>
+                  <p className="xw-card-note xwg-leader-name">
+                    <strong>{leader.name}</strong> · 글자 {soloScoreLetters(leader)}자
+                    {leader.meAhead && <span className="xwg-leader-me"> · 지금은 내가 앞서요!</span>}
+                  </p>
+                  <CrosswordGrid
+                    puzzle={puzzle}
+                    letters={leader.map.letters}
+                    fixed={leader.map.fixed}
+                    solvedKeys={leader.map.solvedKeys}
+                    mini
+                    tint={MAP_TINT}
+                    showFixedLetters={false}
+                  />
+                  <p className="xw-card-note">맞힌 낱말 수가 먼저, 같으면 글자 수(채운 칸 + 쓴 힌트)로 정해요.</p>
+                </>
+              ) : (
+                <p className="xw-empty">아직 판을 채운 친구가 없어요.</p>
+              )}
+            </section>
+          )}
         </aside>
 
         {/* 가운데 — 함께 채우는 낱말판 */}
         <section className="xw-card xwg-center">
           <header className="xw-card-head">
-            <h3>{solving ? "우리 모둠 낱말판" : "낱말판 미리 보기"}</h3>
-            <span className="xw-badge">{solving ? "모둠원이 함께 채워요" : "힌트를 다 쓰면 선생님이 '낱말 채우기'를 열어요"}</span>
+            <h3>{solving ? `${OUR} 낱말판` : "낱말판 미리 보기"}</h3>
+            <span className="xw-badge">
+              {solving
+                ? solo ? "혼자 채워요" : "모둠원이 함께 채워요"
+                : "힌트를 다 쓰면 선생님이 '낱말 채우기'를 열어요"}
+            </span>
           </header>
           {solving ? (
             <CrosswordTyping
@@ -425,7 +555,7 @@ export default function CrosswordGroupStudent({ activity, groupId, user, onBack 
               <span className="xw-entry-tag">{DIR_LABEL[selEntry.dir]} {selEntry.num} · {selEntry.len}글자</span>
               <span className="xw-entry-clue">
                 {isOwn(sel)
-                  ? "우리 모둠 낱말이에요 — 열쇠 칸이라 고칠 수 없어요."
+                  ? `${OUR} 낱말이에요 — 열쇠 칸이라 고칠 수 없어요.`
                   : progress?.solved.has(sel)
                     ? `맞혔어요! ${selEntry.clue ? `— ${selEntry.clue}` : ""}`
                     : selEntry.clue || "(힌트 없음)"}
@@ -437,7 +567,7 @@ export default function CrosswordGroupStudent({ activity, groupId, user, onBack 
             </div>
           )}
           <p className="xw-card-note xwg-legend">
-            <span className="xwg-swatch key" /> 열쇠 칸(우리 모둠 낱말)
+            <span className="xwg-swatch key" /> 열쇠 칸({OUR} 낱말)
             {solving && <><span className="xwg-swatch right" /> 맞힌 낱말</>}
           </p>
         </section>
@@ -449,7 +579,7 @@ export default function CrosswordGroupStudent({ activity, groupId, user, onBack 
               <h3>낱말 힌트</h3>
             </header>
             {!solving && (
-              <p className="xw-card-note">'낱말 채우기'가 시작되면 친구 모둠들이 쓴 힌트가 여기에 떠요.</p>
+              <p className="xw-card-note">'낱말 채우기'가 시작되면 {solo ? "친구들이" : "친구 모둠들이"} 쓴 힌트가 여기에 떠요.</p>
             )}
             <div className="xw-clues">
               {renderClues("가로", across)}

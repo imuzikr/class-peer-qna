@@ -1373,6 +1373,29 @@ service cloud.firestore {
         }
       }
 
+      // ── 가로세로 낱말퀴즈(개별 활동) — 학생마다 제 판의 요약 ──
+      // 개별 활동은 판 하나가 한 사람이라 판(xwBoard)은 그 학생만 읽습니다(정답
+      // 글자가 든 문서). 반 친구가 '가장 많이 채운 친구'의 미니맵을 보려면
+      // 글자 없는 요약이 따로 있어야 합니다 — 칸 자리 · 맞힌 낱말 차례 · 수.
+      // [읽기] 반 구성원 · 담당 교사  [쓰기] 그 판의 주인만 · 잠기기 전
+      // [지우기] 담당 교사(퍼즐을 새로 만들거나 내릴 때)
+      match /xwProgress/{gId} {
+        allow read: if signedIn() && (isAdmin() || ownsBookActivity(aId) || isBookActivityMember(aId));
+        allow create, update: if signedIn()
+                      && isMyBookGroup(aId, gId)
+                      && !isBookActivityLocked(aId)
+                      && request.resource.data.keys().hasOnly(['groupId','uid','solved','total','cells','hintChars','filled','solvedIdx','updatedAt'])
+                      && request.resource.data.groupId == gId
+                      && request.resource.data.uid == uid()
+                      && request.resource.data.solved is int && request.resource.data.solved >= 0 && request.resource.data.solved <= 200
+                      && request.resource.data.total is int && request.resource.data.total >= 0 && request.resource.data.total <= 200
+                      && request.resource.data.cells is int && request.resource.data.cells >= 0 && request.resource.data.cells <= 600
+                      && request.resource.data.hintChars is int && request.resource.data.hintChars >= 0 && request.resource.data.hintChars <= 200
+                      && request.resource.data.filled is list && request.resource.data.filled.size() <= 600
+                      && request.resource.data.solvedIdx is list && request.resource.data.solvedIdx.size() <= 200;
+        allow delete: if isAdmin() || ownsBookActivityEditable(aId);
+      }
+
       // ── 곁텍스트 읽기 — 개인 활동 기록 ──
       // 문서 ID를 학생 uid로 고정해 '한 사람이 여러 장을 만드는 일'을 막습니다.
       // 모둠 활동과 달리 제출물이라, 남의 답은 같은 반이어도 보이지 않습니다

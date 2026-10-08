@@ -30917,7 +30917,7 @@ h4.attendance-seat-help { margin-top: 16px; }
 
 /* =============================================================
    가로세로 낱말퀴즈 — 닿소리 채우기의 '가로세로'
-   (CrosswordStudent · CrosswordBoard · CrosswordPuzzle)
+   (CrosswordGroupStudent · CrosswordGroupBoard — 모둠 · 개별 활동 공용)
    ============================================================= */
 /* 학생 '내 판' 머리말 — '← 활동 목록'과 '가로세로'가 같은 크기로.
    격자 두 칸(1fr)이라 긴 쪽 글자에 맞춰 둘 다 같은 폭이 됩니다. */
@@ -31323,6 +31323,15 @@ h4.attendance-seat-help { margin-top: 16px; }
   justify-content: center;
 }
 .xwg-mymap .xw-grid--mini .xw-cell.sel { box-shadow: 0 0 0 1.5px var(--primary); z-index: 1; }
+/* 개별 활동 — 가장 많이 채운 친구의 미니맵. 나의 미니맵과 같은 크기 */
+.xwg-leader .xw-grid--mini {
+  width: 100%;
+  grid-template-columns: repeat(var(--xw-cols), minmax(0, 22px));
+  justify-content: center;
+}
+.xwg-leader-name { margin: 0 0 8px; }
+.xwg-leader-name strong { color: var(--dark); }
+.xwg-leader-me { color: var(--primary-dark); font-weight: 700; }
 
 .xwg-swatch {
   display: inline-block;
@@ -31410,7 +31419,8 @@ h4.attendance-seat-help { margin-top: 16px; }
 .xwg-subgroup-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .xwg-subgroup-head strong { font-size: 14px; color: var(--text); }
 .xwg-subgroup-meta { font-size: 12px; color: var(--text-sub); }
-.xwg-subgroup ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+.xwg-subgroup ul,
+.xwg-solo-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
 .xwg-stu {
   display: flex;
   align-items: center;

@@ -117,4 +117,32 @@ describe("가로세로(모둠) 규칙", () => {
     await assertSucceeds(deleteDoc(doc(t, ...boardPath("group_2"))));
     await assertFails(getDoc(doc(asTeacher(env, "teacherB").firestore(), ...boardPath("group_1"))));
   });
+
+  // ── 개별 활동의 판 요약(xwProgress) ──
+  const progPath = (gId) => ["bookActivities", "act1", "xwProgress", gId];
+  const prog = (gId, uid, extra = {}) => ({
+    groupId: gId, uid, solved: 2, total: 8, cells: 9, hintChars: 6,
+    filled: ["0,1", "0,2"], solvedIdx: [1, 3], updatedAt: new Date(), ...extra,
+  });
+
+  it("판 요약 — 그 판의 주인만 쓰고, 반 구성원·교사는 모두 읽음", async () => {
+    const s3 = asStudent(env, "stu3").firestore();
+    await assertSucceeds(setDoc(doc(s3, ...progPath("group_2")), prog("group_2", "stu3")));
+    await assertSucceeds(setDoc(doc(s3, ...progPath("group_2")), prog("group_2", "stu3", { solved: 3 })));
+    // 남의 판 · 남의 이름 · 다른 칸은 못 씀
+    await assertFails(setDoc(doc(s3, ...progPath("group_1")), prog("group_1", "stu3")));
+    await assertFails(setDoc(doc(asStudent(env, "stu1").firestore(), ...progPath("group_2")), prog("group_2", "stu1")));
+    await assertFails(setDoc(doc(s3, ...progPath("group_2")), prog("group_2", "stu1")));
+    await assertFails(setDoc(doc(s3, ...progPath("group_2")), prog("group_2", "stu3", { letters: { "0,1": "합" } })));
+    await assertFails(setDoc(doc(s3, ...progPath("group_2")), prog("group_2", "stu3", { solved: -1 })));
+    // 읽기 — 반 구성원 누구나(다른 판의 학생도) · 담당 교사, 다른 반 교사는 못 읽음
+    await assertSucceeds(getDocs(collection(asStudent(env, "stu1").firestore(), "bookActivities", "act1", "xwProgress")));
+    await assertSucceeds(getDocs(collection(asTeacher(env, "teacherA").firestore(), "bookActivities", "act1", "xwProgress")));
+    await assertFails(getDocs(collection(asTeacher(env, "teacherB").firestore(), "bookActivities", "act1", "xwProgress")));
+    // 지우기는 담당 교사만 · 잠기면 학생 쓰기 막힘
+    await assertFails(deleteDoc(doc(s3, ...progPath("group_2"))));
+    await assertSucceeds(deleteDoc(doc(asTeacher(env, "teacherA").firestore(), ...progPath("group_2"))));
+    await seed(env, (db) => updateDoc(doc(db, "bookActivities", "act1"), { locked: true }));
+    await assertFails(setDoc(doc(s3, ...progPath("group_2")), prog("group_2", "stu3")));
+  });
 });
