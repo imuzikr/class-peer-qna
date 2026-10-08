@@ -314,7 +314,9 @@ export default function CrosswordGroupBoard({ activity, onBack, onPickView, onTo
           )}
         </aside>
 
-        {/* 가운데 */}
+        {/* 가운데 · 오른쪽은 한 묶음 — 두 카드의 바닥을 맞춥니다(왼쪽 목록이 길어도
+            그 길이를 따라가지 않게 바깥 격자와 갈라 둠) */}
+        <div className="xwg-pair">
         <div className="xwg-center xwg-center--teacher">
           <section className="xw-card">
             <header className="xw-card-head">
@@ -326,52 +328,67 @@ export default function CrosswordGroupBoard({ activity, onBack, onPickView, onTo
               {stage === "solve" && pickedRow && (
                 <span className="xw-badge">{pickedRow.solved} / {pickedRow.total}개 맞힘</span>
               )}
+              {!puzzle && <span className="xw-card-head-note">아직 만든 퀴즈가 없어요.</span>}
             </header>
 
+            {/* 안내가 앞, 단추가 그 오른쪽. 단추는 크기를 하나로 맞추고 색으로만 가릅니다 —
+                만들기(진한 살구) · 다음 단계(살구) · 내리기(연한 살구) */}
             <div className="xw-gen-row">
-              {stage !== "solve" && (
-                <button
-                  type="button"
-                  className="btn-primary xw-gen-btn"
-                  disabled={busy || liveGroups.length === 0}
-                  onClick={() => (puzzle ? setConfirm("regen") : generate())}
-                >
-                  {busy ? "만드는 중…" : puzzle ? "퀴즈 다시 생성" : "가로세로 낱말 퀴즈 생성"}
-                </button>
-              )}
-              {stage === "hint" && (
-                <button
-                  type="button"
-                  className="btn-primary xw-gen-btn"
-                  disabled={busy}
-                  onClick={() => (missingHints > 0 ? setConfirm("solve") : setStage("solve"))}
-                >
-                  낱말 채우기
-                </button>
-              )}
-              {stage === "solve" && (
-                <button type="button" className="btn-ghost" disabled={busy} onClick={() => setStage("hint")}>
-                  힌트 쓰기로 돌아가기
-                </button>
-              )}
-              {puzzle && (
-                <button type="button" className="btn-ghost" onClick={() => setConfirm("clear")} disabled={busy}>
-                  퀴즈 내리기
-                </button>
-              )}
-              <span className="xw-gen-note">
-                {note ||
-                  (stage === "solve"
-                    ? "왼쪽 미니맵을 누르면 그 모둠의 판을 크게 봐요. 학생이 낱말을 넣는 대로 곧바로 바뀌어요."
-                    : stage === "hint"
-                      ? `힌트 ${hintsDone} / ${puzzle.entries.length}개. 다 모이면 '낱말 채우기'를 눌러 모둠마다 판을 열어 주세요.`
-                      : `이 활동에 나온 낱말 전부로 학생 수(${studentCount}명)만큼 이어 판을 짜고, 모둠마다 구성원 수만큼 나눠 줘요.`)}
-              </span>
+              <div className="xw-gen-inner">
+                <span className="xw-gen-note">
+                  {note ||
+                    (stage === "solve"
+                      ? "왼쪽 미니맵을 누르면 그 모둠의 판을 크게 봐요. 학생이 낱말을 넣는 대로 곧바로 바뀌어요."
+                      : stage === "hint"
+                        ? `힌트 ${hintsDone} / ${puzzle.entries.length}개. 다 모이면 '낱말 채우기'를 눌러 모둠마다 판을 열어 주세요.`
+                        : `이 활동에 나온 낱말 전부로 학생 수(${studentCount}명)만큼 이어 판을 짜고, 모둠마다 구성원 수만큼 나눠 줘요.`)}
+                </span>
+                <div className="xw-gen-btns">
+                  {stage !== "solve" && (
+                    <button
+                      type="button"
+                      className="xw-gen-btn xw-gen-btn--make"
+                      disabled={busy || liveGroups.length === 0}
+                      onClick={() => (puzzle ? setConfirm("regen") : generate())}
+                    >
+                      {busy ? "만드는 중…" : puzzle ? "퀴즈 다시 생성" : "가로세로 낱말 퀴즈 생성"}
+                    </button>
+                  )}
+                  {stage === "hint" && (
+                    <button
+                      type="button"
+                      className="xw-gen-btn xw-gen-btn--step"
+                      disabled={busy}
+                      onClick={() => (missingHints > 0 ? setConfirm("solve") : setStage("solve"))}
+                    >
+                      낱말 채우기
+                    </button>
+                  )}
+                  {stage === "solve" && (
+                    <button
+                      type="button"
+                      className="xw-gen-btn xw-gen-btn--step"
+                      disabled={busy}
+                      onClick={() => setStage("hint")}
+                    >
+                      힌트 쓰기로 돌아가기
+                    </button>
+                  )}
+                  {puzzle && (
+                    <button
+                      type="button"
+                      className="xw-gen-btn xw-gen-btn--off"
+                      onClick={() => setConfirm("clear")}
+                      disabled={busy}
+                    >
+                      퀴즈 내리기
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
 
-            {!puzzle ? (
-              <p className="xw-empty">아직 만든 퀴즈가 없어요.</p>
-            ) : stage === "solve" && pickedRow ? (
+            {!puzzle ? null : stage === "solve" && pickedRow ? (
               <CrosswordGrid
                 puzzle={puzzle}
                 letters={boardsBy[pickedRow.groupId] ?? {}}
@@ -432,6 +449,7 @@ export default function CrosswordGroupBoard({ activity, onBack, onPickView, onTo
             )}
           </section>
         </aside>
+        </div>
       </div>
 
       {confirm === "regen" && (

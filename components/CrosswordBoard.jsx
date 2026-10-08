@@ -186,23 +186,32 @@ export default function CrosswordBoard({ activity, onBack, onPickView, onToast, 
               </span>
             </header>
             <div className="xw-gen-row">
-              <button
-                type="button"
-                className="btn-primary xw-gen-btn"
-                disabled={busy || candidates.length < 2}
-                onClick={() => (puzzle ? setConfirm("regen") : generate())}
-              >
-                {busy ? "만드는 중…" : puzzle ? "가로세로 낱말 퀴즈 다시 생성" : "가로세로 낱말 퀴즈 생성"}
-              </button>
-              {puzzle && (
-                <button type="button" className="btn-ghost" onClick={() => setConfirm("clear")} disabled={busy}>
-                  퀴즈 내리기
-                </button>
-              )}
-              <span className="xw-gen-note">
-                {note ||
-                  `학생들이 낸 낱말 가운데 ${CROSSWORD_TARGET}개를 이어 만들어요. 다 이을 수 없으면 개수를 줄여요.`}
-              </span>
+              <div className="xw-gen-inner">
+                <span className="xw-gen-note">
+                  {note ||
+                    `학생들이 낸 낱말 가운데 ${CROSSWORD_TARGET}개를 이어 만들어요. 다 이을 수 없으면 개수를 줄여요.`}
+                </span>
+                <div className="xw-gen-btns">
+                  <button
+                    type="button"
+                    className="xw-gen-btn xw-gen-btn--make"
+                    disabled={busy || candidates.length < 2}
+                    onClick={() => (puzzle ? setConfirm("regen") : generate())}
+                  >
+                    {busy ? "만드는 중…" : puzzle ? "퀴즈 다시 생성" : "가로세로 낱말 퀴즈 생성"}
+                  </button>
+                  {puzzle && (
+                    <button
+                      type="button"
+                      className="xw-gen-btn xw-gen-btn--off"
+                      onClick={() => setConfirm("clear")}
+                      disabled={busy}
+                    >
+                      퀴즈 내리기
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
             {puzzle ? (
               <CrosswordPuzzle puzzle={puzzle} mode="answer" nameOf={nameOf} highlightUid={picked} />

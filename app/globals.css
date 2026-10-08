@@ -31183,9 +31183,53 @@ h4.attendance-seat-help { margin-top: 16px; }
 .xw-clue-ok { color: #2f7a45; font-weight: 800; }
 
 /* ── 교사 화면 ── */
-.xw-gen-row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
-.xw-gen-btn { min-height: 0; height: 40px; padding: 0 18px; display: inline-flex; align-items: center; }
-.xw-gen-note { flex: 1; min-width: 200px; font-size: 12.5px; color: var(--text-sub); line-height: 1.5; }
+/* 안내가 앞, 단추 묶음이 그 오른쪽. 칸이 좁으면(가운데 칸은 양옆 패널 탓에
+   300px 안팎까지 줄어듭니다) 단추 묶음이 안내 아래로, 더 좁으면 한 줄에 하나씩.
+   창 폭이 아니라 이 줄의 폭으로 접습니다(@container xwgen). */
+.xw-gen-row { container: xwgen / inline-size; }
+/* 안내 옆에 180px이 안 남으면 단추 묶음이 다음 줄 오른쪽 끝으로 내려갑니다 */
+.xw-gen-inner { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; }
+.xw-gen-note { flex: 1 1 180px; min-width: 0; font-size: 12.5px; color: var(--text-sub); line-height: 1.5; }
+/* 단추는 모두 같은 크기 — 가장 긴 글자에 맞춘 같은 폭 · 같은 높이(격자 1fr) */
+.xw-gen-btns {
+  flex: none;
+  max-width: 100%;
+  margin-left: auto;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+.xw-gen-btn {
+  height: 40px;
+  min-width: 0;
+  padding: 0 14px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: filter 0.15s;
+}
+.xw-gen-btn:hover:not(:disabled) { filter: brightness(0.96); }
+.xw-gen-btn:disabled { opacity: 0.5; cursor: default; }
+.xw-gen-btn--make { background: var(--primary-dark); color: #fff; }
+.xw-gen-btn--step { background: var(--primary); color: #fff; }
+.xw-gen-btn--off { background: var(--primary-light); color: var(--primary-dark); border-color: color-mix(in srgb, var(--primary) 30%, transparent); }
+/* 단추 셋이 한 줄에 안 드는 폭 — 한 줄에 하나씩, 줄 폭을 다 씁니다(그래도 같은 크기) */
+@container xwgen (max-width: 360px) {
+  .xw-gen-btns { grid-auto-flow: row; grid-auto-rows: 1fr; width: 100%; margin-left: 0; }
+}
+/* 더 좁으면 글자가 줄을 바꿉니다(잘리지 않게) */
+@container xwgen (max-width: 200px) {
+  .xw-gen-btn { height: auto; min-height: 40px; padding: 6px 10px; white-space: normal; }
+}
+/* 카드 머리줄 오른쪽의 옅은 한 줄(아직 퀴즈 없음 등) */
+.xw-card-head-note { font-size: 13px; color: var(--text-faint); }
 
 .xw-subs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .xw-subs > li {
@@ -31243,12 +31287,23 @@ h4.attendance-seat-help { margin-top: 16px; }
    740px 남짓이라, 양옆 칸을 %로 두어 판에 280px 안팎을 남깁니다.
    특이도를 한 칸 올려(.xwg.xwg--teacher) 위의 @media 규칙에 지지 않게 합니다. */
 .xwg.xwg--teacher {
-  grid-template-columns: minmax(200px, min(24%, 300px)) minmax(260px, 1fr) minmax(210px, min(26%, 320px));
+  grid-template-columns: minmax(200px, min(24%, 300px)) minmax(0, 1fr);
 }
-.xwg.xwg--teacher > .xwg-right { grid-column: auto; }
+/* 가운데 판 · 오른쪽 낱말 힌트는 한 묶음(.xwg-pair) — 두 카드의 바닥을 맞춥니다.
+   바깥 격자에 셋을 나란히 두면 줄 높이가 왼쪽 목록(학생 스물몇 줄)을 따라가
+   가운데 카드까지 그만큼 늘어나므로, 둘만 따로 한 줄로 묶어 서로의 키에 맞춥니다. */
+.xwg-pair {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(210px, min(34%, 320px));
+  gap: 16px;
+  align-items: stretch;
+  min-width: 0;
+}
+.xwg-pair > .xwg-center > .xw-card,
+.xwg-pair > .xwg-right > .xw-card { flex: 1; }
 @container xwmain (max-width: 719px) {
   .xwg.xwg--teacher { grid-template-columns: minmax(200px, 260px) minmax(0, 1fr); }
-  .xwg.xwg--teacher > .xwg-right { grid-column: 1 / -1; }
+  .xwg-pair { grid-template-columns: minmax(0, 1fr); }
 }
 @container xwmain (max-width: 520px) {
   .xwg.xwg--teacher { grid-template-columns: minmax(0, 1fr); }
