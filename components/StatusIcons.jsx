@@ -445,9 +445,8 @@ export function IconAddFeature({ size = 20, className = "" }) {
   );
 }
 
-// 확인(체크) — 원은 버튼(.study-check-btn)이 테두리로 그리므로 여기서는
-// 체크 표시만 그립니다. 옆의 접기(«)·발표(▶) 버튼과 원 크기를 맞추려면
-// 원이 아이콘 안에 있으면 안 됩니다(아이콘 원은 버튼보다 작게 그려짐).
+// 확인(체크) — 원 없이 체크 표시만 그립니다(원이 필요하면 감싸는 단추의
+// 테두리가 그립니다 — 아이콘 안의 원은 단추보다 작게 그려짐).
 export function IconCheck({ size = 20, className = "" }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">

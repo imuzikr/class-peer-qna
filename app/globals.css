@@ -17961,31 +17961,14 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
   font-weight: 600;
 }
 
-/* 공부중 전광판 열기 — 프로젝트 설정(톱니바퀴) 왼쪽의 체크 아이콘.
-   발표(▶) 버튼과 완전히 같은 원형 버튼으로 맞춥니다. */
-.study-check-btn {
-  width: 26px;
+/* 공부중 전광판 열기 — 프로젝트 머리말 세 단추 중 맨 앞의 알약.
+   카드 화면의 같은 단추(.study-progress-btn)와 같은 모양이고, 높이만
+   옆 원형 단추(▶ · ⚙, 26px)에 맞춥니다. 모바일은 .study-chip의
+   min-height 34px가 이깁니다(옆 단추들도 34px). */
+.study-project-live-tools .study-chip.study-progress-btn {
   height: 26px;
-  border: 1px solid var(--border);
-  background: #fff;
-  color: var(--text-sub);
-  border-radius: 999px;
-  cursor: pointer;
-  padding: 0;
-  display: grid;
-  place-items: center;
+  padding: 0 10px;
   flex-shrink: 0;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
-}
-.study-check-btn:hover {
-  background: var(--neutral);
-  border-color: var(--primary);
-  color: var(--primary-dark);
-}
-/* 체크 글리프가 버튼 원 안에 알맞게 들어가도록 살짝 줄입니다 */
-.study-check-btn svg {
-  width: 15px;
-  height: 15px;
 }
 
 /* + 토글 버튼 — 열릴 때 45° 회전해서 × 형태 */
@@ -20005,18 +19988,12 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
     width: 34px;
     height: 34px;
   }
-  .study-panel-toggle,
-  .study-check-btn {
+  .study-panel-toggle {
     width: 34px;
     height: 34px;
     display: grid;
     place-items: center;
     padding: 0;
-  }
-  /* 버튼이 커진 만큼 체크 글리프도 함께 키웁니다 */
-  .study-check-btn svg {
-    width: 19px;
-    height: 19px;
   }
 
   /* 모달 닫기(×) — 글자만 있어 13×22px밖에 안 됩니다. 눈에 보이는 크기는

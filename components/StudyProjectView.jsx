@@ -57,7 +57,6 @@ import StudyActivityWall from "./StudyActivityWall";
 import GroupComposer from "./GroupComposer";
 import {
   IconTrash,
-  IconCheck,
   IconGroup,
   IconIndividual,
   IconLock,
@@ -794,6 +793,19 @@ export default function StudyProjectView({
             {/* 교사 — 이 줄에는 도구만. 상태 배지와 설정은 아래 패널로 */}
             {isTeacher && (
               <span className="study-project-live-tools">
+                {/* 공부중 전광판 — 카드 화면 머리의 단추와 같은 모양·같은 말.
+                    한때 ✓ 아이콘뿐이라 툴팁을 보기 전에는 무엇을 여는지
+                    알 수 없었습니다. 세 단추 중 맨 앞(선생님 요청). */}
+                {canProgress && (
+                  <button
+                    type="button"
+                    className="study-chip study-progress-btn"
+                    onClick={() => setProgressOpen(true)}
+                    title="공부중 전광판 — 학생별 제출 상태 확인"
+                  >
+                    ✍️ 공부중 {studyingCount}/{classRoster.length}
+                  </button>
+                )}
                 {!isNotice && (
                   <button
                     className="study-present-btn"
@@ -803,16 +815,6 @@ export default function StudyProjectView({
                     aria-label="발표 모드"
                   >
                     ▶
-                  </button>
-                )}
-                {canProgress && (
-                  <button
-                    className="study-check-btn"
-                    onClick={() => setProgressOpen(true)}
-                    title="공부중 전광판 — 학생별 제출 상태 확인"
-                    aria-label="공부중 전광판"
-                  >
-                    <IconCheck size={20} />
                   </button>
                 )}
                 <button
