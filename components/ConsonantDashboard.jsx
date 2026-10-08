@@ -31,6 +31,7 @@ import {
 import { cloudWords, CLOUD_TOP_N } from "@/lib/wordCloud";
 import WordCloud from "./WordCloud";
 import ConsonantGrassView from "./ConsonantGrassView";
+import DashViewTabs from "./DashViewTabs";
 
 // [학생 화면에 중계]
 // 학생은 보안 규칙상 '자기 모둠 낱말'만 읽을 수 있어서, 스스로는 반 전체
@@ -42,8 +43,12 @@ export default function ConsonantDashboard({
   classId = null,
   user = null,
   onClose,
-  // '가로세로' — 가로세로 낱말퀴즈 상세 화면으로(없으면 단추 없음)
+  // '가로세로' — 가로세로 낱말퀴즈 상세 화면으로(없으면 그 탭 없음)
   onOpenCrossword = null,
+  // 처음 여는 얼굴 · 바뀔 때 알림 — 가로세로에 다녀와도 보던 얼굴로 돌아오게
+  // 페이지가 들고 있습니다(없으면 이 화면 안에서만 기억)
+  initialView = "grid",
+  onViewChange = null,
   embedded = false,
   // 누가기록 관리·수업 메모 버튼 묶음 (교사 전용, 없으면 null)
   classTools = null,
@@ -54,7 +59,11 @@ export default function ConsonantDashboard({
   // 같은 집계의 세 얼굴 — 잔디(누가 어디까지) / 격자(첫 글자로 나뉜 자리) /
   // 낱말 구름(낱말만). 탭이 선 차례와 **처음 여는 얼굴은 별개**입니다 —
   // 잔디가 맨 앞이지만 처음에는 격자가 열립니다(아래 'grid').
-  const [view, setView] = useState("grid");
+  const [view, setView] = useState(initialView);
+  const changeView = (v) => {
+    setView(v);
+    onViewChange?.(v);
+  };
 
   useEffect(() => subscribeBookGroups(activity.id, setGroups), [activity.id]);
 
@@ -312,43 +321,6 @@ export default function ConsonantDashboard({
         )}
         {/* 제목 바로 뒤 — 수업 중에 관찰한 것을 적으러 화면을 옮기지 않게 */}
         {classTools}
-        {/* 잔디 / 격자 / 낱말 구름 — 같은 집계를 보는 방법만 바뀝니다(읽기는
-            그대로). 중계 중이면 학생 화면도 함께 바뀝니다.
-            차례는 **수업 중에 자주 여는 것부터**입니다 — 잔디('누가 어디까지
-            채웠나')가 맨 앞이고, 낱말을 보는 둘이 뒤에 섭니다. */}
-        <div className="dash-view-tabs" role="tablist" aria-label="보는 방법">
-          {/* 잔디 — 세로 닿소리, 가로 학생. 뒤의 둘이 '무슨 낱말이 나왔나'라면
-              이것은 '누가 어디까지 채웠나'입니다. 학생 화면에는 중계하지
-              않습니다(아래 castPayload 참고). */}
-          <button
-            type="button"
-            role="tab"
-            aria-selected={view === "grass"}
-            className={`dash-view-tab${view === "grass" ? " on" : ""}`}
-            onClick={() => setView("grass")}
-            title="누가 어느 닿소리를 채웠는지 한 격자로 — 학생 화면에는 나가지 않습니다"
-          >
-            잔디
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={view === "grid"}
-            className={`dash-view-tab${view === "grid" ? " on" : ""}`}
-            onClick={() => setView("grid")}
-          >
-            격자
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={view === "cloud"}
-            className={`dash-view-tab${view === "cloud" ? " on" : ""}`}
-            onClick={() => setView("cloud")}
-          >
-            낱말 구름
-          </button>
-        </div>
         <div className="dash-head-actions">
           {canCast && (
             <button
@@ -365,16 +337,15 @@ export default function ConsonantDashboard({
               {casting ? "수업 종료" : "수업 시작"}
             </button>
           )}
-          {onOpenCrossword && (
-            <button
-              type="button"
-              className="btn-ghost"
-              onClick={onOpenCrossword}
-              title="학생들이 쓴 낱말 풀이로 가로세로 낱말퀴즈를 만듭니다"
-            >
-              가로세로
-            </button>
-          )}
+          {/* 잔디 / 격자 / 낱말 구름 / 가로세로 — '수업 시작' 바로 뒤(선생님 요청).
+              앞의 셋은 같은 집계를 보는 방법만 바뀌고(읽기는 그대로, 중계 중이면
+              학생 화면도 함께), 가로세로는 그 낱말로 만든 퀴즈 화면으로 갑니다.
+              차례는 **수업 중에 자주 여는 것부터** — 잔디가 맨 앞입니다. */}
+          <DashViewTabs
+            view={view}
+            crossword={!!onOpenCrossword}
+            onPick={(v) => (v === "crossword" ? onOpenCrossword?.() : changeView(v))}
+          />
         </div>
         {/* 숫자는 오른쪽 끝 — 버튼과 섞이면 무엇이 누를 것인지 흐려집니다 */}
         <span className="canvas-head-stats">

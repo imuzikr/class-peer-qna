@@ -33,13 +33,14 @@ import {
 import BookStudentRail from "./BookStudentRail";
 import CrosswordPuzzle from "./CrosswordPuzzle";
 import ConfirmModal from "./ConfirmModal";
+import DashViewTabs from "./DashViewTabs";
 
 const PICK_ROWS = Array.from({ length: CROSSWORD_PICKS }, (_, i) => ({
   key: `p${i}`,
   label: `낱말 ${i + 1}`,
 }));
 
-export default function CrosswordBoard({ activity, onBack, onToast }) {
+export default function CrosswordBoard({ activity, onBack, onPickView, onToast, classTools = null }) {
   const [groups, setGroups] = useState([]);
   const [entries, setEntries] = useState([]);
   const [picked, setPicked] = useState(null);
@@ -149,10 +150,17 @@ export default function CrosswordBoard({ activity, onBack, onToast }) {
   return (
     <main className="canvas-main dash-root xw-main">
       <div className="canvas-head">
-        <strong className="canvas-head-name">가로세로 낱말퀴즈</strong>
-        <button type="button" className="btn-ghost" onClick={onBack}>← 전체 보기</button>
+        {/* 머리말은 '전체 보기'(ConsonantDashboard)와 같은 짜임입니다 — 제목 ·
+            ← 모둠 · 보는 방법 알약. 알약의 '가로세로'가 켜져 있고, 앞의 셋을
+            누르면 집계 화면 그 얼굴로 돌아갑니다. */}
+        <strong className="canvas-head-name">{activity.topic || activity.title}</strong>
+        <button type="button" className="btn-ghost" onClick={onBack}>← 모둠</button>
+        {classTools}
+        <div className="dash-head-actions">
+          <DashViewTabs view="crossword" onPick={onPickView} />
+        </div>
         <span className="canvas-head-stats">
-          {activity.topic || activity.title} · 제출 {doneCount} / {cards.length}명 · 쓸 수 있는 낱말 {candidates.length}개
+          가로세로 · 제출 {doneCount} / {cards.length}명 · 쓸 수 있는 낱말 {candidates.length}개
         </span>
       </div>
 

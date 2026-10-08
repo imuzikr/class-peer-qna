@@ -187,7 +187,16 @@ function BooksPageInner() {
   // 닿소리 채우기의 '가로세로' — 학생은 내 판에서, 교사는 전체 보기에서 엽니다
   const [crossView, setCrossView] = useState(false);
   // 다른 활동을 열면 가로세로 화면은 접습니다(그 활동의 것이 아니므로)
-  useEffect(() => { setCrossView(false); }, [openActivityId]);
+  // 전체 보기에서 보던 얼굴(잔디 · 격자 · 낱말 구름) — 가로세로에 다녀와도
+  // 그 얼굴로 돌아오게 여기서 듭니다(집계 화면은 가로세로로 가면 내려갑니다)
+  const [dashView, setDashView] = useState("grid");
+  useEffect(() => { setCrossView(false); setDashView("grid"); }, [openActivityId]);
+  // 가로세로 화면의 보는 방법 알약 — 앞의 셋을 누르면 집계 화면 그 얼굴로
+  const pickDashView = (v) => {
+    if (v === "crossword") return;
+    setDashView(v);
+    setCrossView(false);
+  };
   const [creatingType, setCreatingType] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [confirmPurge, setConfirmPurge] = useState(null);  // 휴지통에서 완전 삭제
@@ -723,14 +732,18 @@ function BooksPageInner() {
         activeActivity.groupMode === "solo" ? (
           <CrosswordBoard
             activity={activeActivity}
-            onBack={() => setCrossView(false)}
+            onBack={() => { setCrossView(false); setAllView(false); }}
+            onPickView={pickDashView}
             onToast={setToast}
+            classTools={classTools}
           />
         ) : (
           <CrosswordGroupBoard
             activity={activeActivity}
-            onBack={() => setCrossView(false)}
+            onBack={() => { setCrossView(false); setAllView(false); }}
+            onPickView={pickDashView}
             onToast={setToast}
+            classTools={classTools}
           />
         )
       ) : /* 교사: '전체 보기' — 반 전체 집계. 여기서 학생 화면에 중계할 수 있습니다 */
@@ -741,6 +754,8 @@ function BooksPageInner() {
           user={user}
           onClose={() => setAllView(false)}
           onOpenCrossword={() => setCrossView(true)}
+          initialView={dashView}
+          onViewChange={setDashView}
           classTools={classTools}
         />
       ) : /* 학생: 내 판의 '가로세로' — 낱말 풀이 쓰기 · 퀴즈 풀기 */

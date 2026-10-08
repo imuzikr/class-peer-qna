@@ -41,6 +41,7 @@ import {
 import { ROW_COLORS } from "@/lib/bookColors";
 import CrosswordGrid from "./CrosswordGrid";
 import ConfirmModal from "./ConfirmModal";
+import DashViewTabs from "./DashViewTabs";
 
 const DIR_LABEL = { across: "가로", down: "세로" };
 
@@ -61,7 +62,7 @@ function useGroupXw(actId, groupIds) {
   return { hintsBy, boardsBy };
 }
 
-export default function CrosswordGroupBoard({ activity, onBack, onToast }) {
+export default function CrosswordGroupBoard({ activity, onBack, onPickView, onToast, classTools = null }) {
   const [groups, setGroups] = useState([]);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
@@ -210,10 +211,17 @@ export default function CrosswordGroupBoard({ activity, onBack, onToast }) {
   return (
     <main className="canvas-main dash-root xw-main">
       <div className="canvas-head">
-        <strong className="canvas-head-name">가로세로 낱말퀴즈</strong>
-        <button type="button" className="btn-ghost" onClick={onBack}>← 전체 보기</button>
+        {/* 머리말은 '전체 보기'(ConsonantDashboard)와 같은 짜임입니다 — 제목 ·
+            ← 모둠 · 보는 방법 알약. 알약의 '가로세로'가 켜져 있고, 앞의 셋을
+            누르면 집계 화면 그 얼굴로 돌아갑니다. */}
+        <strong className="canvas-head-name">{activity.topic || activity.title}</strong>
+        <button type="button" className="btn-ghost" onClick={onBack}>← 모둠</button>
+        {classTools}
+        <div className="dash-head-actions">
+          <DashViewTabs view="crossword" onPick={onPickView} />
+        </div>
         <span className="canvas-head-stats">
-          {activity.topic || activity.title} · 모둠 {liveGroups.length}개 · 학생 {studentCount}명
+          가로세로 · 모둠 {liveGroups.length}개 · 학생 {studentCount}명
           {puzzle && ` · 낱말 ${puzzle.entries.length}개`}
         </span>
         <span className={`xw-badge xwg-stage${stage === "solve" ? " done" : ""}`}>
