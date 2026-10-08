@@ -46,6 +46,7 @@ export default function BookStudentRail({
   castUid = null,   // 지금 방송 중인 학생 (빨간 점)
   extra = null,     // (card) => `n/N칸` 뒤에 붙일 것 (예: ' · 120자') — 오른쪽 패널과 같은 자리
   meta = null,      // (card) => 카드 맨 아래 한 줄 — 칸 수 말고 더 말할 것이 있을 때만
+  unit = "칸",      // `n/N` 뒤의 말 — 가로세로 낱말 풀이는 '개'
 }) {
   const colorIdx = useMemo(
     () => new Map((allCards ?? cards).map((c, i) => [c.uid, i])),
@@ -81,7 +82,7 @@ export default function BookStudentRail({
                 )}
               </span>
               <span className="dash-progress-num">
-                {filled}/{total}칸
+                {filled}/{total}{unit}
                 {extra && <span className="dash-progress-words">{extra(c)}</span>}
               </span>
               {/* 학생이 스스로 적은 도서명 — 활동에 주제어가 없을 때만 생깁니다.

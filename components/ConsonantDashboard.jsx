@@ -42,6 +42,8 @@ export default function ConsonantDashboard({
   classId = null,
   user = null,
   onClose,
+  // '가로세로' — 가로세로 낱말퀴즈 상세 화면으로(없으면 단추 없음)
+  onOpenCrossword = null,
   embedded = false,
   // 누가기록 관리·수업 메모 버튼 묶음 (교사 전용, 없으면 null)
   classTools = null,
@@ -361,6 +363,16 @@ export default function ConsonantDashboard({
             >
               {casting && <span className="broadcast-live-dot" aria-hidden="true" />}
               {casting ? "수업 종료" : "수업 시작"}
+            </button>
+          )}
+          {onOpenCrossword && (
+            <button
+              type="button"
+              className="btn-ghost"
+              onClick={onOpenCrossword}
+              title="학생들이 쓴 낱말 풀이로 가로세로 낱말퀴즈를 만듭니다"
+            >
+              가로세로
             </button>
           )}
         </div>

@@ -61,6 +61,8 @@ import StudyRewardPanel from "@/components/StudyRewardPanel";
 import BookGroupBoard from "@/components/BookGroupBoard";
 import ConsonantCanvas from "@/components/ConsonantCanvas";
 import ConsonantDashboard from "@/components/ConsonantDashboard";
+import CrosswordBoard from "@/components/CrosswordBoard";
+import CrosswordStudent from "@/components/CrosswordStudent";
 import ParatextBoard from "@/components/ParatextBoard";
 import ParatextForm from "@/components/ParatextForm";
 import RaftBoard from "@/components/RaftBoard";
@@ -180,6 +182,10 @@ function BooksPageInner() {
   const [activities, setActivities] = useState([]);
   const [openGroups, setOpenGroups] = useState([]);       // 연 활동의 모둠 목록
   const [allView, setAllView] = useState(false);          // 교사: 반 전체 집계 화면
+  // 닿소리 채우기의 '가로세로' — 학생은 내 판에서, 교사는 전체 보기에서 엽니다
+  const [crossView, setCrossView] = useState(false);
+  // 다른 활동을 열면 가로세로 화면은 접습니다(그 활동의 것이 아니므로)
+  useEffect(() => { setCrossView(false); }, [openActivityId]);
   const [creatingType, setCreatingType] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [confirmPurge, setConfirmPurge] = useState(null);  // 휴지통에서 완전 삭제
@@ -709,6 +715,13 @@ function BooksPageInner() {
           user={user}
           onBack={goToList}
         />
+      ) : /* 교사: '전체 보기'의 '가로세로' — 낱말 풀이 제출 현황 · 퀴즈 만들기 */
+      admin && allView && crossView && activeActivity ? (
+        <CrosswordBoard
+          activity={activeActivity}
+          onBack={() => setCrossView(false)}
+          onToast={setToast}
+        />
       ) : /* 교사: '전체 보기' — 반 전체 집계. 여기서 학생 화면에 중계할 수 있습니다 */
       admin && allView && activeActivity ? (
         <ConsonantDashboard
@@ -716,7 +729,16 @@ function BooksPageInner() {
           classId={activeClassId}
           user={user}
           onClose={() => setAllView(false)}
+          onOpenCrossword={() => setCrossView(true)}
           classTools={classTools}
+        />
+      ) : /* 학생: 내 판의 '가로세로' — 낱말 풀이 쓰기 · 퀴즈 풀기 */
+      studentCanvasGroupId && activeActivity && crossView ? (
+        <CrosswordStudent
+          activity={activeActivity}
+          groupId={studentCanvasGroupId}
+          user={user}
+          onBack={() => setCrossView(false)}
         />
       ) : /* 학생: 활동을 열면 자기 판으로 바로 */
       studentCanvasGroupId && activeActivity ? (
@@ -727,6 +749,7 @@ function BooksPageInner() {
           isTeacher={false}
           viewMode="mine"
           onBack={goToList}
+          onOpenCrossword={() => setCrossView(true)}
         />
       ) : activeActivity ? (
         <BookGroupBoard

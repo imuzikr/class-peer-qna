@@ -65,6 +65,8 @@ export default function ConsonantCanvas({
   // embedded — 교사 화면 가운데 칸에 끼워 넣는 형태(자체 머리말·뒤로가기 없음)
   embedded = false,
   onBack,
+  // '가로세로' — 학생 '내 판'에서 가로세로 낱말퀴즈 화면으로(없으면 단추 없음)
+  onOpenCrossword = null,
   // 모둠 판에서 한 사람의 낱말만 보고 싶을 때(교사가 왼쪽에서 이름을 누름).
   // '내 판'(mineOnly)이 자기 것만 거르는 것과 같은 방식입니다.
   // 한 사람만 보기 — **판 위의 모둠원 칩**을 눌러 고릅니다. 모둠 목록의
@@ -236,9 +238,11 @@ export default function ConsonantCanvas({
     <Root className={embedded ? "canvas-embed" : "canvas-main"}>
       {!embedded && (
         <div className="canvas-head">
-          <button type="button" className="btn-ghost" onClick={onBack}>
-            {mineOnly ? "← 활동 목록" : "← 모둠"}
-          </button>
+          {/* 학생 '내 판'은 제목이 먼저, 그 오른쪽에 '← 활동 목록' · '가로세로'가
+              같은 크기로 섭니다(.canvas-head-pair). 교사의 모둠 판은 그대로. */}
+          {!mineOnly && (
+            <button type="button" className="btn-ghost" onClick={onBack}>← 모둠</button>
+          )}
           <div className="canvas-head-title">
             <strong>
               {mineOnly ? "내 판" : group?.groupName || "모둠"}
@@ -248,6 +252,21 @@ export default function ConsonantCanvas({
               {mineOnly && group && ` · ${group.groupName || "모둠"}`}
             </span>
           </div>
+          {mineOnly && (
+            <div className="canvas-head-pair">
+              <button type="button" className="btn-ghost" onClick={onBack}>← 활동 목록</button>
+              {onOpenCrossword && (
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  onClick={onOpenCrossword}
+                  title="내 낱말 풀이를 쓰고, 반 전체의 낱말로 만든 가로세로 퀴즈를 풀어요"
+                >
+                  가로세로
+                </button>
+              )}
+            </div>
+          )}
           <div className="canvas-progress">
             <div className="canvas-progress-bar">
               <span style={{ width: `${(filled / CELL_COUNT) * 100}%` }} />
