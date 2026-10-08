@@ -31297,9 +31297,11 @@ h4.attendance-seat-help { margin-top: 16px; }
 .xw-cell:disabled { cursor: default; }
 .xw-cell:disabled .xw-ch { color: var(--text); }
 
-/* 미니맵 — 글자 없이 색만. 칸은 작게, 판 모양 그대로 */
+/* 미니맵 — 글자 없이 색만. 칸은 작게, 판 모양 그대로.
+   교사 · 학생 화면이 같은 칸 5px입니다(선생님 요청 — 한때 교사 11px · 학생 10px).
+   한쪽만 고치지 마세요 — 아래 학생 규칙의 5px과 같은 값이어야 합니다. */
 .xw-grid--mini {
-  grid-template-columns: repeat(var(--xw-cols), 11px);
+  grid-template-columns: repeat(var(--xw-cols), 5px);
   gap: 1px;
   width: max-content;
   max-width: 100%;
@@ -31307,7 +31309,7 @@ h4.attendance-seat-help { margin-top: 16px; }
 }
 .xw-grid--mini .xw-cell {
   border-width: 1px;
-  border-radius: 1.5px;
+  border-radius: 1px;
   border-color: #d5cfc5;
   background: #fff;
   cursor: default;
@@ -31315,19 +31317,19 @@ h4.attendance-seat-help { margin-top: 16px; }
 .xw-grid--mini .xw-cell--void { border: none; background: transparent; }
 .xw-grid--mini .xw-cell.key { background: #f0e2c4; border-color: #e0cfa8; }
 .xw-grid--mini .xw-cell.filled { background: #e9e6e1; }
-/* 학생 왼쪽 칸의 미니맵 — 칸 10px까지(한때 22px → 15px → 10px, 선생님 요청으로 두 번
-   2/3씩), 카드 폭 안에서 칸이 함께 줄어듭니다(21칸이어도 넘치지 않게).
+/* 학생 왼쪽 칸의 미니맵 — 칸 5px까지(22px → 15px → 10px → 5px, 선생님 요청 — 교사
+   미니맵과 같은 크기), 카드 폭 안에서 칸이 함께 줄어듭니다(21칸이어도 넘치지 않게).
    지금 고른 낱말은 살구 테두리. */
 .xwg-mymap .xw-grid--mini {
   width: 100%;
-  grid-template-columns: repeat(var(--xw-cols), minmax(0, 10px));
+  grid-template-columns: repeat(var(--xw-cols), minmax(0, 5px));
   justify-content: center;
 }
 .xwg-mymap .xw-grid--mini .xw-cell.sel { box-shadow: 0 0 0 1.5px var(--primary); z-index: 1; }
 /* 개별 활동 — 가장 많이 채운 친구의 미니맵. 나의 미니맵과 같은 크기 */
 .xwg-leader .xw-grid--mini {
   width: 100%;
-  grid-template-columns: repeat(var(--xw-cols), minmax(0, 10px));
+  grid-template-columns: repeat(var(--xw-cols), minmax(0, 5px));
   justify-content: center;
 }
 .xwg-leader-name { margin: 0 0 8px; }
