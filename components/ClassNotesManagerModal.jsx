@@ -1,7 +1,7 @@
 "use client";
 
 // =============================================================
-// 공부 기록 (교사 전용) — 반 학생 전체를 한 화면에서
+// 성장 기록 (교사 전용) — 반 학생 전체를 한 화면에서
 // -------------------------------------------------------------
 // 누가기록, 학생 수업 노트, 선생님 메모를 탭으로 모읍니다.
 //
@@ -128,12 +128,12 @@ export default function ClassNotesManagerModal({
           className="modal modal-notes-manager"
           role="dialog"
           aria-modal="true"
-          aria-label="공부 기록"
+          aria-label="성장 기록"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="modal-head">
             <h3 className="head-icon">
-              <IconMyPost size={20} /> 공부 기록
+              <IconMyPost size={20} /> 성장 기록
               {/* 고를 반이 하나뿐이면 지금까지처럼 이름 배지입니다 — 한 줄짜리
                   고르개는 누를 것이 없는데 눌러 보게 만듭니다(책방 머리말의
                   반 고르개와 같은 판정·같은 클래스). */}
@@ -156,7 +156,7 @@ export default function ClassNotesManagerModal({
             <button className="btn-close" onClick={onClose} aria-label="닫기">×</button>
           </div>
 
-          <div className="notes-mgr-tabs" role="tablist" aria-label="공부 기록 종류">
+          <div className="notes-mgr-tabs" role="tablist" aria-label="성장 기록 종류">
             <button
               type="button"
               role="tab"

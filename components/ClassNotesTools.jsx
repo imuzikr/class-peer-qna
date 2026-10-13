@@ -1,6 +1,6 @@
 "use client";
 
-// 공부방과 책방에서 공유하는 교사 전용 공부 기록 메뉴.
+// 공부방과 책방에서 공유하는 교사 전용 성장 기록 메뉴.
 import { useState } from "react";
 import ClassNotesManagerModal from "./ClassNotesManagerModal";
 
@@ -17,7 +17,7 @@ export default function ClassNotesTools({ classId, className = "", roster = [], 
         onClick={() => setNotesOpen(true)}
         title="누가기록, 수업 노트, 선생님 메모를 함께 확인합니다"
       >
-        공부 기록
+        성장 기록
       </button>
       {notesOpen && (
         <ClassNotesManagerModal

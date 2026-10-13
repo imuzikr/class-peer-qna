@@ -1032,7 +1032,7 @@ function StudyPageInner() {
                         출석 관리
                       </button>
                     )}
-                    {/* 책방과 공유하는 공부 기록 메뉴 */}
+                    {/* 책방과 공유하는 성장 기록 메뉴 */}
                     {admin && currentClass && (
                       <ClassNotesTools
                         classId={classId}
