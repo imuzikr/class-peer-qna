@@ -101,7 +101,6 @@ const TEACHER_ITEMS = [
 // 원판 크기(px) — CSS의 `.hub-disc` 폭·높이와 같아야 합니다.
 const DISC = 300;
 const C = DISC / 2;
-const R_OUT = 146;
 const R_ORBIT = 101; // 행성(항목)이 서는 궤도
 
 const rad = (deg) => (deg * Math.PI) / 180;
@@ -280,11 +279,6 @@ export default function FloatingHub({ classId: pageClassId, user, isTeacher, lif
         // 접힌 동안은 CSS가 visibility: hidden으로 감춰 안의 단추에 초점이 안 갑니다
         aria-hidden={!menuOpen}
       >
-        <svg className="hub-orbit" width={DISC} height={DISC} viewBox={`0 0 ${DISC} ${DISC}`} aria-hidden="true">
-          <circle cx={C} cy={C} r={R_ORBIT} className="hub-orbit-ring" />
-          <circle cx={C} cy={C} r={R_OUT - 4} className="hub-orbit-ring hub-orbit-ring--far" />
-        </svg>
-
         {items.map((it, i) => {
           const [x, y] = pt(R_ORBIT, angleOf(i));
           const Icon = ICONS[it.key];
