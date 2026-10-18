@@ -8,10 +8,18 @@
 // 과일 바구니(교사는 메신저 · KWLS 차트 · 출석 관리 · 수업 관리 · 학생 분석 ·
 // 과일 바구니).
 //
-// [모양은 둘 — 피자 조각 · 행성 궤도]
-// 어느 쪽이 나을지 아직 정하지 않아, 가운데 원 아래의 작은 전환으로 둘을
-// 오갑니다(이 기기에 기억 — `hub_style`). 각도·자리는 같고 그리는 모양만
-// 다릅니다. 하나로 정하면 전환과 다른 쪽 CSS를 걷으면 됩니다.
+// [모양은 행성 궤도]
+// 가운데 해(고른 기능의 설명) 둘레의 궤도에 작은 행성(동그라미) 여섯이
+// 섭니다. 한때 '피자 조각'과 둘 다 두고 전환으로 오갔는데, 선생님이 궤도로
+// 정하셔서 조각 모양과 전환을 걷었습니다.
+//
+// [그림은 앱의 아이콘 그대로]
+// 이모지 대신 이미 그 기능을 가리키는 그림을 씁니다(components/StatusIcons.jsx)
+// — 메신저는 로고(말풍선 둘), 수업 노트는 IconRecord, 리포트는 IconReport,
+// 학생 분석은 '선생님 대시보드'의 IconTeacher, 수업 관리는 IconBlackboard,
+// KWLS는 K · W · L 세 칸, 출석은 IconCheck. 과일 바구니는 바구니 창의 그림
+// (`public/fruit-basket.webp`)을 작게 — 원을 펼쳤을 때만 그려 처음 화면에서
+// 그림을 받지 않습니다.
 //
 // [기능은 '그 자리로 데려다 주기']
 // 메신저만 이 자리에서 창을 엽니다. 나머지는 이미 공부방에 있는 창을
@@ -33,48 +41,68 @@ import {
 } from "@/lib/store";
 import { dmRoom, groupRoom, totalUnread } from "@/lib/messenger";
 import MessengerWindow from "./MessengerWindow";
+import {
+  IconLogo,
+  IconRecord,
+  IconReport,
+  IconTeacher,
+  IconBlackboard,
+  IconCheck,
+  IconKwlK,
+  IconKwlW,
+  IconKwlL,
+} from "./StatusIcons";
 
-const STYLE_KEY = "hub_style";
+// KWLS — 앱에 'KWLS' 한 장짜리 그림이 없어 K · W · L 세 칸을 겹쳐 세웁니다.
+function KwlStack() {
+  return (
+    <span className="hub-kwl-stack">
+      <IconKwlK size={17} />
+      <IconKwlW size={17} />
+      <IconKwlL size={17} />
+    </span>
+  );
+}
+function FruitBasketPic({ show }) {
+  if (!show) return <span className="hub-basket-pic" />;
+  return <img className="hub-basket-pic" src="/fruit-basket.webp" alt="" width={36} height={24} />;
+}
+const ICONS = {
+  msg: () => <IconLogo size={28} />,
+  kwl: () => <KwlStack />,
+  notes: () => <IconRecord size={26} />,
+  attend: () => <IconCheck size={24} className="hub-icon-check" />,
+  report: () => <IconReport size={26} />,
+  admin: () => <IconTeacher size={28} />,
+  lessons: () => <IconBlackboard size={27} />,
+  fruit: ({ show }) => <FruitBasketPic show={show} />,
+};
 
 const STUDENT_ITEMS = [
-  { key: "msg", icon: "💬", label: "메신저", hint: "선생님 · 우리 모둠과 대화해요" },
-  { key: "kwl", icon: "📝", label: "KWLS", hint: "KWLS 차트를 펼쳐요", href: "/study?open=kwl" },
-  { key: "notes", icon: "📓", label: "수업 노트", hint: "지난 수업 노트를 넘겨 봐요", href: "/study?open=notes" },
-  { key: "attend", icon: "✅", label: "출석 확인", hint: "내 출석 기록을 봐요", href: "/study?open=attendance" },
-  { key: "report", icon: "📊", label: "리포트", hint: "나의 학습 리포트로 가요", href: "/report" },
-  { key: "fruit", icon: "🧺", label: "과일 바구니", hint: "과일을 담고 이벤트에 응모해요", href: "/study?open=fruit" },
+  { key: "msg", label: "메신저", hint: "선생님 · 우리 모둠과 대화해요" },
+  { key: "kwl", label: "KWLS", hint: "KWLS 차트를 펼쳐요", href: "/study?open=kwl" },
+  { key: "notes", label: "수업 노트", hint: "지난 수업 노트를 넘겨 봐요", href: "/study?open=notes" },
+  { key: "attend", label: "출석 확인", hint: "내 출석 기록을 봐요", href: "/study?open=attendance" },
+  { key: "report", label: "리포트", hint: "나의 학습 리포트로 가요", href: "/report" },
+  { key: "fruit", label: "과일 바구니", hint: "과일을 담고 이벤트에 응모해요", href: "/study?open=fruit" },
 ];
 const TEACHER_ITEMS = [
-  { key: "msg", icon: "💬", label: "메신저", hint: "학생 · 모둠과 대화해요" },
-  { key: "kwl", icon: "📝", label: "KWLS 차트", hint: "반의 KWLS 현황을 펼쳐요", href: "/study?open=kwl" },
-  { key: "attend", icon: "✅", label: "출석 관리", hint: "출석을 시작하고 기록을 봐요", href: "/study?open=attendance" },
-  { key: "lessons", icon: "🗂️", label: "수업 관리", hint: "수업 · 프로젝트 · 자리 배치", href: "/study?panel=lessons" },
-  { key: "admin", icon: "📊", label: "학생 분석", hint: "선생님 대시보드로 가요", href: "/admin" },
-  { key: "fruit", icon: "🧺", label: "과일 바구니", hint: "바구니 합계와 이벤트 현황", href: "/study?open=fruit" },
+  { key: "msg", label: "메신저", hint: "학생 · 모둠과 대화해요" },
+  { key: "kwl", label: "KWLS 차트", hint: "반의 KWLS 현황을 펼쳐요", href: "/study?open=kwl" },
+  { key: "attend", label: "출석 관리", hint: "출석을 시작하고 기록을 봐요", href: "/study?open=attendance" },
+  { key: "lessons", label: "수업 관리", hint: "수업 · 프로젝트 · 자리 배치", href: "/study?panel=lessons" },
+  { key: "admin", label: "학생 분석", hint: "선생님 대시보드로 가요", href: "/admin" },
+  { key: "fruit", label: "과일 바구니", hint: "바구니 합계와 이벤트 현황", href: "/study?open=fruit" },
 ];
 
 // 원판 크기(px) — CSS의 `.hub-disc` 폭·높이와 같아야 합니다.
 const DISC = 300;
 const C = DISC / 2;
 const R_OUT = 146;
-const R_IN = 56;
-const R_LABEL = 101; // 조각 · 궤도 모두 이 반지름에 항목이 섭니다
+const R_ORBIT = 101; // 행성(항목)이 서는 궤도
 
 const rad = (deg) => (deg * Math.PI) / 180;
 const pt = (r, deg) => [C + r * Math.cos(rad(deg)), C + r * Math.sin(rad(deg))];
-
-// 고리 모양 조각 하나의 SVG 경로(바깥 호 → 안쪽 호).
-function slicePath(a0, a1) {
-  const gap = 1.2; // 조각 사이 틈(도)
-  const s = a0 + gap / 2;
-  const e = a1 - gap / 2;
-  const [x0, y0] = pt(R_OUT, s);
-  const [x1, y1] = pt(R_OUT, e);
-  const [x2, y2] = pt(R_IN, e);
-  const [x3, y3] = pt(R_IN, s);
-  const large = e - s > 180 ? 1 : 0;
-  return `M${x0} ${y0} A${R_OUT} ${R_OUT} 0 ${large} 1 ${x1} ${y1} L${x2} ${y2} A${R_IN} ${R_IN} 0 ${large} 0 ${x3} ${y3}Z`;
-}
 
 function ChatIcon({ size = 26 }) {
   return (
@@ -97,21 +125,11 @@ export default function FloatingHub({ classId, user, isTeacher, lifted = false }
   const [menuOpen, setMenuOpen] = useState(false);
   const [msgOpen, setMsgOpen] = useState(false);
   const [hover, setHover] = useState(null);
-  const [style, setStyle] = useState("pie");
+  // 한 번이라도 펼쳤나 — 바구니 그림은 그때부터 받습니다(닫히는 동안에도 남게).
+  const [opened, setOpened] = useState(false);
   const rootRef = useRef(null);
   const fabRef = useRef(null);
   const myUid = user?.uid;
-
-  useEffect(() => {
-    try {
-      const v = localStorage.getItem(STYLE_KEY);
-      if (v === "pie" || v === "orbit") setStyle(v);
-    } catch { /* 저장소를 못 쓰면 기본 모양 */ }
-  }, []);
-  function changeStyle(next) {
-    setStyle(next);
-    try { localStorage.setItem(STYLE_KEY, next); } catch { /* 무시 */ }
-  }
 
   // ── 모둠 · 말 · 읽음 표시 ──
   const [groups, setGroups] = useState([]);
@@ -181,6 +199,7 @@ export default function FloatingHub({ classId, user, isTeacher, lifted = false }
 
   useEffect(() => {
     if (!menuOpen) setHover(null);
+    else setOpened(true);
   }, [menuOpen]);
 
   // 반(이나 역할)이 바뀌면 접습니다 — 열려 있던 방은 앞 반의 것입니다.
@@ -212,32 +231,18 @@ export default function FloatingHub({ classId, user, isTeacher, lifted = false }
     <div ref={rootRef} className={`hub-root${lifted ? " is-lifted" : ""}`}>
       {/* 큰 원 — 접혀 있을 때도 그려 두고 크기만 0에 가깝게(펼침 움직임) */}
       <div
-        className={`hub-disc hub-disc--${style}${menuOpen ? " is-open" : ""}`}
+        className={`hub-disc${menuOpen ? " is-open" : ""}`}
         // 접힌 동안은 CSS가 visibility: hidden으로 감춰 안의 단추에 초점이 안 갑니다
         aria-hidden={!menuOpen}
       >
-        {style === "pie" ? (
-          <svg className="hub-pie" width={DISC} height={DISC} viewBox={`0 0 ${DISC} ${DISC}`} aria-hidden="true">
-            {items.map((it, i) => (
-              <path
-                key={it.key}
-                d={slicePath(angleOf(i) - step / 2, angleOf(i) + step / 2)}
-                className={`hub-slice${hover === i ? " is-hover" : ""}`}
-                onMouseEnter={() => setHover(i)}
-                onMouseLeave={() => setHover((h) => (h === i ? null : h))}
-                onClick={() => pick(it)}
-              />
-            ))}
-          </svg>
-        ) : (
-          <svg className="hub-orbit" width={DISC} height={DISC} viewBox={`0 0 ${DISC} ${DISC}`} aria-hidden="true">
-            <circle cx={C} cy={C} r={R_LABEL} className="hub-orbit-ring" />
-            <circle cx={C} cy={C} r={R_OUT - 4} className="hub-orbit-ring hub-orbit-ring--far" />
-          </svg>
-        )}
+        <svg className="hub-orbit" width={DISC} height={DISC} viewBox={`0 0 ${DISC} ${DISC}`} aria-hidden="true">
+          <circle cx={C} cy={C} r={R_ORBIT} className="hub-orbit-ring" />
+          <circle cx={C} cy={C} r={R_OUT - 4} className="hub-orbit-ring hub-orbit-ring--far" />
+        </svg>
 
         {items.map((it, i) => {
-          const [x, y] = pt(R_LABEL, angleOf(i));
+          const [x, y] = pt(R_ORBIT, angleOf(i));
+          const Icon = ICONS[it.key];
           return (
             <button
               key={it.key}
@@ -251,7 +256,7 @@ export default function FloatingHub({ classId, user, isTeacher, lifted = false }
               onClick={() => pick(it)}
               title={it.hint}
             >
-              <span className="hub-item-icon" aria-hidden="true">{it.icon}</span>
+              <span className="hub-item-icon" aria-hidden="true">{Icon ? <Icon show={opened} /> : null}</span>
               <span className="hub-item-label">{it.label}</span>
               {it.key === "msg" && unread > 0 && (
                 <span className="hub-item-badge" aria-label={`안 읽은 말 ${unread}개`}>
@@ -266,26 +271,6 @@ export default function FloatingHub({ classId, user, isTeacher, lifted = false }
         <div className="hub-center">
           <strong>{shown ? shown.label : "배움나눔"}</strong>
           <span>{shown ? shown.hint : "무엇을 열까요?"}</span>
-          <div className="hub-style-switch" role="radiogroup" aria-label="펼침 모양">
-            <button
-              type="button"
-              role="radio"
-              aria-checked={style === "pie"}
-              className={style === "pie" ? "on" : ""}
-              onClick={() => changeStyle("pie")}
-            >
-              조각
-            </button>
-            <button
-              type="button"
-              role="radio"
-              aria-checked={style === "orbit"}
-              className={style === "orbit" ? "on" : ""}
-              onClick={() => changeStyle("orbit")}
-            >
-              궤도
-            </button>
-          </div>
         </div>
       </div>
 
