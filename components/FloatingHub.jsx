@@ -98,7 +98,7 @@ const STUDENT_ITEMS = [
   { key: "msg", label: "메신저", hint: "선생님 · 우리 모둠과 대화해요" },
   { key: "kwl", label: "KWLS", hint: "KWLS 차트를 펼쳐요", href: "/study?open=kwl" },
   { key: "notes", label: "수업 노트", hint: "지난 수업 노트를 넘겨 봐요", href: "/study?open=notes" },
-  { key: "attend", label: "출석 확인", hint: "내 출석 기록을 봐요", href: "/study?open=attendance" },
+  { key: "attend", label: "내 출석부", hint: "내 출석 기록을 봐요", href: "/study?open=attendance" },
   { key: "report", label: "리포트", hint: "나의 학습 리포트로 가요", href: "/report" },
   { key: "fruit", label: "과일 바구니", hint: "과일을 담고 이벤트에 응모해요", href: "/study?open=fruit" },
 ];
