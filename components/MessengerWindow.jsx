@@ -24,6 +24,8 @@
 //
 // [인용 답장] 말풍선의 문장을 끌어 고르면(마우스를 놓는 순간) 그 문장이 입력칸 위에
 // 인용으로 붙고, 그것을 단 채 보통 답장을 보냅니다(`quote: { id, name, text }`).
+// 교사 · 학생 모두 씁니다 — 교사에게는 '답장', 학생에게는 선생님 말의 그 대목을
+// 짚어 다시 묻는 '질문'이라 말만 갈라 적습니다(자료 · 규칙은 같음).
 // 원문 말은 고치지 않습니다 — 인용은 새 말에 붙는 사본입니다. 받은 말의 인용을
 // 누르면 원문으로 굴러가 잠깐 밝아집니다. 인용 빼기는 ×, 또는 글이 빈 채 Esc.
 //
@@ -683,7 +685,12 @@ export default function MessengerWindow({
               <div className="msgr-quote-draft">
                 <span className="msgr-quote-draft-copy">
                   <span className="msgr-quote-name">
-                    {quotedMine.has(quote.id) ? "내 말" : quote.name || "인용"}에 답장
+                    {/* 학생에게는 '답장'이 아니라 선생님 말의 그 대목을 짚어 다시 묻는 자리 */}
+                    {isTeacher
+                      ? `${quotedMine.has(quote.id) ? "내 말" : quote.name || "인용"}에 답장`
+                      : quotedMine.has(quote.id)
+                        ? "내 말에 덧붙여 질문"
+                        : `${quote.name || "선생님"} 말에 대해 질문`}
                   </span>
                   <span className="msgr-quote-text">{quote.text}</span>
                 </span>
@@ -713,7 +720,10 @@ export default function MessengerWindow({
             />
           </div>
           <p className="msgr-hint">
-            {error || "Ctrl(⌘)+Enter로 보내기 · 말풍선의 문장을 끌어 고르면 인용해 답해요"}
+            {error ||
+              (isTeacher
+                ? "Ctrl(⌘)+Enter로 보내기 · 말풍선의 문장을 끌어 고르면 인용해 답해요"
+                : "Ctrl(⌘)+Enter로 보내기 · 궁금한 문장을 끌어 고르면 그 부분을 짚어 물어봐요")}
           </p>
         </>
       )}
