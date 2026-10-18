@@ -32130,9 +32130,11 @@ button.msgr-receipt:hover { color: var(--text-sub); }
   cursor: pointer;
 }
 .msgr-class-name { font-size: 13.5px; font-weight: 700; color: var(--dark); }
+/* 탭은 늘 같은 폭(선생님 요청 — 이어 놓인 단추는 크기를 맞춥니다). minmax(0, 1fr)이라
+   안 읽은 수 배지 · 긴 모둠 이름이 붙어도 그 칸만 넓어지지 않습니다. */
 .msgr-tabs {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 6px;
   padding: 8px 12px;
   border-bottom: 1px solid var(--border);
@@ -32182,7 +32184,7 @@ button.msgr-receipt:hover { color: var(--text-sub); }
 /* 말은 못 고치므로 말풍선의 체크 상자는 누르는 것이 아닙니다 */
 .msgr-bubble li.check::before,
 .msgr-bubble ul.checklist > li::before { cursor: default; }
-.msgr-tabs--3 { grid-template-columns: 1fr 1fr 0.7fr; }
+.msgr-tabs--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .msgr-notice-list { display: flex; flex-direction: column; gap: 6px; padding: 0 2px 4px; }
 .msgr-notice-card {
   display: flex;
