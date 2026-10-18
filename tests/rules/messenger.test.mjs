@@ -92,6 +92,17 @@ describe("간편 메신저 규칙", () => {
       await assertFails(setDoc(doc(chats(db), "h2"), msg("stu1", "dm_stu1", "student", { html: "가".repeat(4001) })));
       await assertFails(setDoc(doc(chats(db), "h3"), msg("stu1", "dm_stu1", "student", { html: 3 })));
     });
+    it("인용 답장(quote)을 달 수 있고, 모양 · 길이가 틀리면 거부된다", async () => {
+      const db = asStudent(env, "stu1").firestore();
+      const q = (quote) => msg("stu1", "dm_stu1", "student", { quote });
+      await assertSucceeds(setDoc(doc(chats(db), "q1"), q({ id: "d1", name: "선생님", text: "3번 줄을 다시 봐요" })));
+      await assertSucceeds(setDoc(doc(chats(db), "q2"), q({ id: "d1", text: "이름 없이" })));
+      await assertFails(setDoc(doc(chats(db), "q3"), q({ id: "d1", name: "선생님", text: "가".repeat(201) })));
+      await assertFails(setDoc(doc(chats(db), "q4"), q({ id: "", text: "빈 id" })));
+      await assertFails(setDoc(doc(chats(db), "q5"), q({ id: "d1", text: "" })));
+      await assertFails(setDoc(doc(chats(db), "q6"), q({ id: "d1", text: "칸 더함", extra: 1 })));
+      await assertFails(setDoc(doc(chats(db), "q7"), q("문자열 인용")));
+    });
     it("담당 교사는 1:1 방 · 모둠 방 어디든 보낼 수 있다", async () => {
       const db = asTeacher(env, "teacherA").firestore();
       await assertSucceeds(setDoc(doc(chats(db), "t1"), msg("teacherA", "dm_stu3", "teacher")));

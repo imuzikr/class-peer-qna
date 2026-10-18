@@ -1017,13 +1017,21 @@ service cloud.firestore {
       }
       function chatShapeOk(cId) {
         let d = request.resource.data;
-        return d.keys().hasOnly(['classId', 'room', 'fromUid', 'fromName', 'fromRole', 'text', 'html', 'at'])
+        return d.keys().hasOnly(['classId', 'room', 'fromUid', 'fromName', 'fromRole', 'text', 'html', 'quote', 'at'])
                && d.classId == cId
                && d.fromUid == uid()
                && d.at == request.time
                && d.text is string && d.text.size() > 0 && d.text.size() <= 1000
                // 서식 글(선택) — 앱이 정화한 HTML. 천장은 lib/messenger.js의 CHAT_HTML_MAX
                && (!('html' in d) || (d.html is string && d.html.size() <= 4000))
+               // 인용 답장(선택) — 말풍선에서 끌어 고른 문장의 사본 { id, name, text }.
+               // 천장은 lib/messenger.js의 CHAT_QUOTE_MAX · CHAT_NAME_MAX와 같아야 합니다.
+               && (!('quote' in d)
+                   || (d.quote is map
+                       && d.quote.keys().hasOnly(['id', 'name', 'text'])
+                       && d.quote.id is string && d.quote.id.size() > 0 && d.quote.id.size() <= 40
+                       && d.quote.text is string && d.quote.text.size() > 0 && d.quote.text.size() <= 200
+                       && (!('name' in d.quote) || (d.quote.name is string && d.quote.name.size() <= 40))))
                && d.fromName is string && d.fromName.size() <= 40
                && d.room is string && d.room.size() <= 80;
       }

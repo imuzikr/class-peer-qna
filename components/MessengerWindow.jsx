@@ -17,9 +17,15 @@
 // 대화는 기록되고 선생님이 볼 수 있다는 것을 대화 맨 위에 적어 둡니다.
 //
 // [서식] 쓰는 칸은 앱의 서식 에디터(RichTextEditor, 모둠 메모와 같은 것)입니다 —
-// 굵게 · 기울임 · 밑줄 · 글머리 · 번호 · 체크 · 코드 블록(`- ` · ``` 단축키 포함).
+// 굵게 · 기울임 · 밑줄 · 글머리 · 번호 · 코드 블록(`- ` · ``` 단축키 포함).
 // 저장은 정화한 HTML(`html`)과 글자만(`text`) 둘이고, 말풍선은 `html`이 있으면
-// 다시 정화해 그립니다. 체크 상자를 말풍선에서 켜고 끄지는 않습니다(말은 못 고침).
+// 다시 정화해 그립니다. **체크 줄은 뺐습니다**(`CHAT_TOOLS`) — 말은 못 고쳐
+// 말풍선의 네모를 켜고 끌 길이 없어, 누를 것처럼 보이는 그림만 남습니다.
+//
+// [인용 답장] 말풍선의 문장을 끌어 고르면(마우스를 놓는 순간) 그 문장이 입력칸 위에
+// 인용으로 붙고, 그것을 단 채 보통 답장을 보냅니다(`quote: { id, name, text }`).
+// 원문 말은 고치지 않습니다 — 인용은 새 말에 붙는 사본입니다. 받은 말의 인용을
+// 누르면 원문으로 굴러가 잠깐 밝아집니다. 인용 빼기는 ×, 또는 글이 빈 채 Esc.
 //
 // [공지] 반 공지(상단바 확성기로 보낸 것)의 최근 3건 — 학생은 '공지' 탭, 교사는
 // 대화 목록 맨 위. 발송 기록(classes/{cId}/classNotices)을 읽습니다.
@@ -42,10 +48,20 @@ import {
   chatTime,
   chatTimeLabel,
   chatPlainText,
+  chatQuoteText,
+  cleanChatQuote,
   isGroupRoom,
   CHAT_NOTICE_LIMIT,
 } from "@/lib/messenger";
 import { dateKeyOf, todayDateKey, dateKeyLabel } from "@/lib/dates";
+
+// 쓰는 칸의 서식 — 에디터의 전부에서 체크 줄만 뺌(말은 못 고쳐 켜고 끌 수 없음).
+// 모듈 상수라 렌더마다 새 배열이 생기지 않습니다.
+const CHAT_TOOLS = [
+  "bold", "italic", "underline",
+  "insertUnorderedList", "insertOrderedList",
+  "codeBlock",
+];
 
 // 반 공지 한 장 — 처음엔 세 줄까지, 누르면 펼침.
 function NoticeCard({ notice }) {
@@ -128,6 +144,10 @@ export default function MessengerWindow({
   const [error, setError] = useState("");
   const [confirmDel, setConfirmDel] = useState(null);
   const scrollRef = useRef(null);
+  const composeRef = useRef(null);
+  // 인용 답장 — 입력칸 위에 붙은 문장 { id, name, text } · 원문으로 굴러간 말(잠깐 밝힘)
+  const [quote, setQuote] = useState(null);
+  const [flashId, setFlashId] = useState(null);
 
   // ── 교사의 학생 명단 — 창이 떠 있는 동안만 ──
   const memberUids = useClassMembers(classId, !!isTeacher);
@@ -190,15 +210,95 @@ export default function MessengerWindow({
     setDraft("");
     setError("");
     setConfirmDel(null);
+    setQuote(null);
   }, [room]);
+
+  // ── 인용 — 말풍선 하나 안에서 고른 글만 받습니다(이름 · 시각 · 다른 말풍선에
+  //    걸친 선택은 무시). 붙이면 선택을 풀고 쓰는 칸 끝으로 커서를 옮깁니다.
+  const threadRef = useRef(thread);
+  threadRef.current = thread;
+  function captureQuote() {
+    const sel = typeof window !== "undefined" ? window.getSelection() : null;
+    if (!sel || sel.isCollapsed || sel.rangeCount === 0) return;
+    const bubbleOf = (node) => {
+      const el = node?.nodeType === 1 ? node : node?.parentElement;
+      return el?.closest?.(".msgr-bubble") ?? null;
+    };
+    const bubble = bubbleOf(sel.anchorNode);
+    if (!bubble || bubble !== bubbleOf(sel.focusNode) || !scrollRef.current?.contains(bubble)) return;
+    const text = chatQuoteText(sel.toString());
+    const m = threadRef.current.find((x) => x.id === bubble.dataset.mid);
+    if (!text || !m) return;
+    setQuote({ id: m.id, name: m.fromName ?? "", text });
+    sel.removeAllRanges();
+    const area = composeRef.current?.querySelector(".rte-area");
+    if (area) {
+      area.focus();
+      const r = document.createRange();
+      r.selectNodeContents(area);
+      r.collapse(false);
+      const caret = window.getSelection();
+      caret.removeAllRanges();
+      caret.addRange(r);
+    }
+  }
+  // 마우스는 놓는 순간 판정합니다. 손가락은 손잡이로 선택을 늘였다 줄이므로
+  // 선택이 멈추고 0.7초 뒤에 판정합니다(놓는 순간을 알 수 없어서).
+  const touchRef = useRef(false);
+  useEffect(() => {
+    let t = null;
+    const onSel = () => {
+      if (!touchRef.current) return;
+      clearTimeout(t);
+      t = setTimeout(captureQuote, 700);
+    };
+    document.addEventListener("selectionchange", onSel);
+    return () => {
+      clearTimeout(t);
+      document.removeEventListener("selectionchange", onSel);
+    };
+  }, []);
+  function onThreadPointerDown(e) {
+    touchRef.current = e.pointerType === "touch";
+  }
+  function onThreadPointerUp(e) {
+    if (e.pointerType === "touch") return;
+    // 선택은 마우스를 놓은 뒤에 굳으므로 한 박자 뒤에 읽습니다.
+    setTimeout(captureQuote, 0);
+  }
+
+  // 받은 말의 인용을 누르면 원문으로 — 없으면(지워짐 · 오래되어 목록 밖) 꺼 둡니다.
+  function jumpTo(id) {
+    const el = scrollRef.current?.querySelector(`[data-mid="${CSS.escape(id)}"]`);
+    if (!el) return;
+    el.scrollIntoView({ block: "center", behavior: "smooth" });
+    setFlashId(id);
+  }
+  useEffect(() => {
+    if (!flashId) return undefined;
+    const t = setTimeout(() => setFlashId(null), 1400);
+    return () => clearTimeout(t);
+  }, [flashId]);
+  const threadIds = useMemo(() => new Set(thread.map((m) => m.id)), [thread]);
+  // 인용한 원문이 내 말이면 이름 대신 '내 말'로(원문이 목록에 있을 때만 압니다)
+  const quotedMine = useMemo(
+    () => new Set(thread.filter((m) => m.fromUid === myUid).map((m) => m.id)),
+    [thread, myUid]
+  );
 
   async function send() {
     if (draftEmpty || !room || sending) return;
     setSending(true);
     setError("");
     try {
-      await sendChatMessage(classId, user, { room, role: isTeacher ? "teacher" : "student", html: draft });
+      await sendChatMessage(classId, user, {
+        room,
+        role: isTeacher ? "teacher" : "student",
+        html: draft,
+        quote,
+      });
       setDraft("");
+      setQuote(null);
       setComposeSeq((n) => n + 1);
     } catch (e) {
       console.warn("[메신저] 못 보냈어요:", e?.code, e?.message);
@@ -224,6 +324,11 @@ export default function MessengerWindow({
     if (!draftEmpty) return;
     e.preventDefault();
     e.stopPropagation();
+    // 붙은 인용이 있으면 그것부터 뺍니다.
+    if (quote) {
+      setQuote(null);
+      return;
+    }
     // 교사는 대화 → 목록 → 닫기, 학생은 목록이 없어 곧바로 닫습니다.
     if (room && isTeacher) setRoom(null);
     else onClose?.();
@@ -399,7 +504,16 @@ export default function MessengerWindow({
         </div>
       ) : (
         <>
-          <div className="msgr-thread" ref={scrollRef}>
+          <div
+            className="msgr-thread"
+            ref={scrollRef}
+            onPointerDown={onThreadPointerDown}
+            onPointerUp={onThreadPointerUp}
+            // Shift+방향키로 고른 글도 같은 길로(키보드만 쓰는 사람)
+            onKeyUp={(e) => {
+              if (e.shiftKey) captureQuote();
+            }}
+          >
             <p className="msgr-notice">
               🔒 <strong>대화 기록 안내</strong> ·{" "}
               {isTeacher ? "이 대화는 기록되어 언제든 다시 볼 수 있어요." : "이 대화는 기록되고 선생님이 볼 수 있어요."}
@@ -412,6 +526,8 @@ export default function MessengerWindow({
               const mine = m.fromUid === myUid;
               const showName = !mine && (groupTalk || m.fromRole === "teacher") &&
                 (i === 0 || thread[i - 1].fromUid !== m.fromUid || key !== prevKey);
+              const q = cleanChatQuote(m.quote);
+              const qHere = !!q && threadIds.has(q.id);
               return (
                 <div key={m.id}>
                   {key !== prevKey && (
@@ -419,16 +535,33 @@ export default function MessengerWindow({
                       <span>{key === today ? "오늘" : dateKeyLabel(key)}</span>
                     </div>
                   )}
-                  <div className={`msgr-msg${mine ? " msgr-msg--mine" : ""}${m.fromRole === "teacher" && !mine ? " msgr-msg--teacher" : ""}`}>
+                  <div className={`msgr-msg${mine ? " msgr-msg--mine" : ""}${m.fromRole === "teacher" && !mine ? " msgr-msg--teacher" : ""}${flashId === m.id ? " is-flash" : ""}`}>
                     {showName && <span className="msgr-msg-name">{m.fromName}</span>}
+                    {q && (
+                      <button
+                        type="button"
+                        className="msgr-quote"
+                        disabled={!qHere}
+                        title={qHere ? "원문으로 가기" : "원문이 지금 대화 목록에 없어요"}
+                        onClick={() => jumpTo(q.id)}
+                      >
+                        <span className="msgr-quote-name">
+                          {quotedMine.has(q.id) ? "내 말" : q.name || "인용"}
+                        </span>
+                        <span className="msgr-quote-text">{q.text}</span>
+                      </button>
+                    )}
                     {m.html ? (
                       <div
+                        data-mid={m.id}
                         className="msgr-bubble msgr-bubble--rich"
                         // 저장할 때 정화했지만 남이 쓴 값이라 그릴 때 한 번 더 거릅니다
                         dangerouslySetInnerHTML={{ __html: sanitizeHtml(m.html) }}
                       />
                     ) : (
-                      <div className="msgr-bubble">{m.text}</div>
+                      <div className="msgr-bubble" data-mid={m.id}>
+                        {m.text}
+                      </div>
                     )}
                     <span className="msgr-msg-meta">
                       {m.at ? chatTimeLabel(t) : "보내는 중…"}
@@ -458,12 +591,32 @@ export default function MessengerWindow({
             })}
           </div>
 
-          <div className="msgr-compose">
+          <div className="msgr-compose" ref={composeRef}>
+            {quote && (
+              <div className="msgr-quote-draft">
+                <span className="msgr-quote-draft-copy">
+                  <span className="msgr-quote-name">
+                    {quotedMine.has(quote.id) ? "내 말" : quote.name || "인용"}에 답장
+                  </span>
+                  <span className="msgr-quote-text">{quote.text}</span>
+                </span>
+                <button
+                  type="button"
+                  className="msgr-quote-x"
+                  onClick={() => setQuote(null)}
+                  aria-label="인용 빼기"
+                  title="인용 빼기"
+                >
+                  ×
+                </button>
+              </div>
+            )}
             <RichTextEditor
               key={`${classId}|${room}|${composeSeq}`}
               variant="chat"
               /* 꾸미개가 먼저, 쓰는 칸이 그다음 — 모둠 메모와 같은 순서 */
               toolbarTop
+              tools={CHAT_TOOLS}
               autoFocus
               className="msgr-rte"
               placeholder={`${current?.title ?? ""}에게 메시지 보내기`}
@@ -473,7 +626,7 @@ export default function MessengerWindow({
             />
           </div>
           <p className="msgr-hint">
-            {error || "Ctrl(⌘)+Enter로 보내기 · Enter는 줄바꿈 · - 로 글머리, ``` 로 코드 블록"}
+            {error || "Ctrl(⌘)+Enter로 보내기 · 말풍선의 문장을 끌어 고르면 인용해 답해요"}
           </p>
         </>
       )}

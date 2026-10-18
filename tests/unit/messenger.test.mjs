@@ -103,3 +103,16 @@ test("서식 글에서 글자만 — 태그를 걷고 엔티티를 풀고 공백
   assert.equal(chatPlainText("<div><br></div>&nbsp;"), "");
   assert.equal(chatPlainText(null), "");
 });
+
+test("인용 — 고른 글을 한 줄로, 한 글자는 무시, 천장에서 '…'", async () => {
+  const { chatQuoteText, cleanChatQuote, CHAT_QUOTE_MAX } = await import("@/lib/messenger");
+  assert.equal(chatQuoteText("  반복문\n  3번 줄이  "), "반복문 3번 줄이");
+  assert.equal(chatQuoteText("가"), "");
+  const long = chatQuoteText("가".repeat(CHAT_QUOTE_MAX + 10));
+  assert.equal(long.length, CHAT_QUOTE_MAX);
+  assert.ok(long.endsWith("…"));
+  assert.deepEqual(cleanChatQuote({ id: "m1", name: "김하늘", text: " 안녕 " }), { id: "m1", name: "김하늘", text: "안녕" });
+  assert.equal(cleanChatQuote({ id: "", text: "안녕" }), null);
+  assert.equal(cleanChatQuote({ id: "m1", text: "x" }), null);
+  assert.equal(cleanChatQuote(null), null);
+});
