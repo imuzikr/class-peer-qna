@@ -5503,7 +5503,9 @@ CodeMirror가 아니라 그냥 글자 칸(contentEditable)이라, 손대지 않�
   - **원판 안에 선을 긋지 않습니다**(선생님 요청) — 한때 행성을 잇는 점선 궤도와
     그 바깥 실선 고리를 SVG로 그렸는데, 선이 행성 사이를 가로질러 어수선했습니다.
     남은 선은 원판 자체의 바깥 테두리 하나입니다.
-- **그림은 앱의 아이콘 그대로**(이모지 아님, `StatusIcons.jsx`) — 메신저 `IconLogo` ·
+- **그림은 앱의 아이콘 그대로**(이모지 아님, `StatusIcons.jsx`) — 메신저는 상단바
+  '질문방'의 말풍선 `IconAnswer`(한때 로고 `IconLogo`였는데 가운데 해의 기본 그림과
+  같아 구별되지 않았습니다 — 선생님 요청) ·
   KWLS `IconKwlK/W/L` 세 칸을 겹침 · 수업 노트 `IconRecord` · 출석 `IconCheck`(초록) ·
   리포트 `IconReport` · 학생 분석 `IconTeacher`('선생님 대시보드'와 같은 그림) ·
   수업 관리 `IconBlackboard` · 과일 바구니는 바구니 창의 그림(`fruit-basket.webp`)을

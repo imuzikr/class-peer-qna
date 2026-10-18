@@ -15,7 +15,7 @@
 //
 // [그림은 앱의 아이콘 그대로]
 // 이모지 대신 이미 그 기능을 가리키는 그림을 씁니다(components/StatusIcons.jsx)
-// — 메신저는 로고(말풍선 둘), 수업 노트는 IconRecord, 리포트는 IconReport,
+// — 메신저는 상단바 '질문방'의 말풍선(IconAnswer — 로고는 가운데 해의 기본 그림), 수업 노트는 IconRecord, 리포트는 IconReport,
 // 학생 분석은 '선생님 대시보드'의 IconTeacher, 수업 관리는 IconBlackboard,
 // KWLS는 K · W · L 세 칸, 출석은 IconCheck. 과일 바구니는 바구니 창의 그림
 // (`public/fruit-basket.webp`)을 작게 — 원을 펼쳤을 때만 그려 처음 화면에서
@@ -56,6 +56,7 @@ import { isFirebaseConfigured } from "@/lib/firebase";
 import MessengerWindow from "./MessengerWindow";
 import {
   IconLogo,
+  IconAnswer,
   IconRecord,
   IconReport,
   IconTeacher,
@@ -81,7 +82,9 @@ function FruitBasketPic({ show }) {
   return <img className="hub-basket-pic" src="/fruit-basket.webp" alt="" width={36} height={24} />;
 }
 const ICONS = {
-  msg: () => <IconLogo size={28} />,
+  // 메신저는 상단바 '질문방'의 말풍선(IconAnswer) — 로고(말풍선 둘)는 가운데 해의
+  // 기본 그림이라, 같은 그림을 쓰면 메신저 행성과 해가 구별되지 않았습니다(선생님 요청).
+  msg: () => <IconAnswer size={28} />,
   kwl: () => <KwlStack />,
   notes: () => <IconRecord size={26} />,
   attend: () => <IconCheck size={24} className="hub-icon-check" />,
