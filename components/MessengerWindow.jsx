@@ -15,6 +15,14 @@
 //
 // 보내기는 **Ctrl(⌘)+Enter**, Enter는 줄바꿈 — 앱의 다른 채팅 칸과 같습니다.
 // 대화는 기록되고 선생님이 볼 수 있다는 것을 대화 맨 위에 적어 둡니다.
+//
+// [서식] 쓰는 칸은 앱의 서식 에디터(RichTextEditor, 모둠 메모와 같은 것)입니다 —
+// 굵게 · 기울임 · 밑줄 · 글머리 · 번호 · 체크 · 코드 블록(`- ` · ``` 단축키 포함).
+// 저장은 정화한 HTML(`html`)과 글자만(`text`) 둘이고, 말풍선은 `html`이 있으면
+// 다시 정화해 그립니다. 체크 상자를 말풍선에서 켜고 끄지는 않습니다(말은 못 고침).
+//
+// [공지] 반 공지(상단바 확성기로 보낸 것)의 최근 3건 — 학생은 '공지' 탭, 교사는
+// 대화 목록 맨 위. 발송 기록(classes/{cId}/classNotices)을 읽습니다.
 // =============================================================
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -22,7 +30,10 @@ import {
   deleteChatMessage,
   markChatRoomSeen,
   fetchClassRosterProfiles,
+  subscribeClassNotices,
 } from "@/lib/store";
+import { sanitizeHtml } from "@/lib/html";
+import RichTextEditor from "./RichTextEditor";
 import { useClassMembers } from "@/lib/useClassRoster";
 import {
   buildChatRooms,
@@ -30,11 +41,50 @@ import {
   roomSeenMark,
   chatTime,
   chatTimeLabel,
-  cleanChatText,
+  chatPlainText,
   isGroupRoom,
-  CHAT_TEXT_MAX,
+  CHAT_NOTICE_LIMIT,
 } from "@/lib/messenger";
 import { dateKeyOf, todayDateKey, dateKeyLabel } from "@/lib/dates";
+
+// 반 공지 한 장 — 처음엔 세 줄까지, 누르면 펼침.
+function NoticeCard({ notice }) {
+  const [open, setOpen] = useState(false);
+  const ms = chatTime(notice.sentAt);
+  return (
+    <button
+      type="button"
+      className={`msgr-notice-card${open ? " is-open" : ""}`}
+      onClick={() => setOpen((v) => !v)}
+      aria-expanded={open}
+      title={open ? "접기" : "전체 보기"}
+    >
+      <span className="msgr-notice-meta">
+        <span>{notice.sentAt ? chatTimeLabel(ms) : "보내는 중…"}</span>
+        {notice.senderName && <span>{notice.senderName}</span>}
+      </span>
+      <span className="msgr-notice-text">{notice.text}</span>
+    </button>
+  );
+}
+
+function NoticeList({ notices, isTeacher }) {
+  if (notices === null) return <p className="msgr-empty">공지를 불러오는 중이에요…</p>;
+  if (notices.length === 0) {
+    return (
+      <p className="msgr-empty">
+        {isTeacher ? "아직 보낸 반 공지가 없어요. 상단바의 확성기로 보냅니다." : "아직 받은 반 공지가 없어요."}
+      </p>
+    );
+  }
+  return (
+    <div className="msgr-notice-list">
+      {notices.map((n) => (
+        <NoticeCard key={n.id} notice={n} />
+      ))}
+    </div>
+  );
+}
 
 function Avatar({ text, group = false }) {
   return (
@@ -61,12 +111,23 @@ export default function MessengerWindow({
   const [roomSel, setRoomSel] = useState({ cls: classId, room: null });
   const room = roomSel.cls === classId ? roomSel.room : null;
   const setRoom = (next) => setRoomSel({ cls: classId, room: next });
+  // 쓰는 칸은 서식 에디터(비제어) — 글은 HTML로 받아 두고, 보낸 뒤에는 열쇠를
+  // 바꿔 새 칸으로 갈아 끼웁니다(composeSeq).
   const [draft, setDraft] = useState("");
+  const [composeSeq, setComposeSeq] = useState(0);
+  const draftEmpty = !chatPlainText(draft);
+  // 학생의 '공지' 탭 · 반 공지 최근 3건(null = 아직 안 옴)
+  const [noticesOpen, setNoticesOpen] = useState(false);
+  const [notices, setNotices] = useState(null);
+  useEffect(() => {
+    setNotices(null);
+    if (!classId) return undefined;
+    return subscribeClassNotices(classId, setNotices, CHAT_NOTICE_LIMIT);
+  }, [classId]);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [confirmDel, setConfirmDel] = useState(null);
   const scrollRef = useRef(null);
-  const inputRef = useRef(null);
 
   // ── 교사의 학생 명단 — 창이 떠 있는 동안만 ──
   const memberUids = useClassMembers(classId, !!isTeacher);
@@ -129,18 +190,16 @@ export default function MessengerWindow({
     setDraft("");
     setError("");
     setConfirmDel(null);
-    if (room) setTimeout(() => inputRef.current?.focus(), 0);
   }, [room]);
 
   async function send() {
-    const text = cleanChatText(draft);
-    if (!text || !room || sending) return;
+    if (draftEmpty || !room || sending) return;
     setSending(true);
     setError("");
     try {
-      await sendChatMessage(classId, user, { room, role: isTeacher ? "teacher" : "student", text });
+      await sendChatMessage(classId, user, { room, role: isTeacher ? "teacher" : "student", html: draft });
       setDraft("");
-      inputRef.current?.focus();
+      setComposeSeq((n) => n + 1);
     } catch (e) {
       console.warn("[메신저] 못 보냈어요:", e?.code, e?.message);
       setError("메시지를 보내지 못했어요. 잠시 뒤 다시 시도해 주세요.");
@@ -162,7 +221,7 @@ export default function MessengerWindow({
   function onKeyDown(e) {
     if (e.key !== "Escape" || e.defaultPrevented) return;
     // 쓰던 글이 있으면 Esc로 안 닫습니다(앱의 다른 창과 같은 약속).
-    if (cleanChatText(draft)) return;
+    if (!draftEmpty) return;
     e.preventDefault();
     e.stopPropagation();
     // 교사는 대화 → 목록 → 닫기, 학생은 목록이 없어 곧바로 닫습니다.
@@ -186,7 +245,12 @@ export default function MessengerWindow({
             ‹
           </button>
         ) : null}
-        {room ? (
+        {!isTeacher && noticesOpen ? (
+          <div className="msgr-head-title">
+            <strong>반 공지</strong>
+            <span>선생님이 반에 보낸 공지 — 최근 {CHAT_NOTICE_LIMIT}개</span>
+          </div>
+        ) : room ? (
           <>
             <Avatar text={current?.title} group={groupTalk} />
             <div className="msgr-head-title">
@@ -231,7 +295,7 @@ export default function MessengerWindow({
 
       {/* 학생 — 선생님과 할지 모둠에서 할지 고릅니다 */}
       {!isTeacher && (
-        <div className="msgr-tabs" role="tablist" aria-label="대화 고르기">
+        <div className="msgr-tabs msgr-tabs--3" role="tablist" aria-label="대화 고르기">
           {[
             { row: studentDm, label: "선생님", empty: "" },
             { row: studentGroup, label: studentGroup?.title ?? "우리 모둠", empty: "아직 모둠이 정해지지 않았어요" },
@@ -240,27 +304,54 @@ export default function MessengerWindow({
               key={label}
               type="button"
               role="tab"
-              aria-selected={!!row && room === row.room}
-              className={`msgr-tab${row && room === row.room ? " on" : ""}`}
+              aria-selected={!noticesOpen && !!row && room === row.room}
+              className={`msgr-tab${!noticesOpen && row && room === row.room ? " on" : ""}`}
               disabled={!row}
               title={row ? `${label}과(와) 대화합니다` : empty}
-              onClick={() => row && setRoom(row.room)}
+              onClick={() => {
+                if (!row) return;
+                setNoticesOpen(false);
+                setRoom(row.room);
+              }}
             >
               {label}
-              {row?.unread > 0 && room !== row.room && (
+              {row?.unread > 0 && (noticesOpen || room !== row.room) && (
                 <span className="msgr-tab-badge" aria-label={`안 읽은 말 ${row.unread}개`}>
                   {row.unread > 99 ? "99+" : row.unread}
                 </span>
               )}
             </button>
           ))}
+          <button
+            type="button"
+            role="tab"
+            aria-selected={noticesOpen}
+            className={`msgr-tab${noticesOpen ? " on" : ""}`}
+            title="선생님이 보낸 반 공지 — 최근 3개"
+            onClick={() => setNoticesOpen(true)}
+          >
+            공지
+          </button>
         </div>
       )}
 
-      {!room && !isTeacher ? (
+      {!isTeacher && noticesOpen ? (
+        <div className="msgr-list">
+          <section className="msgr-sec">
+            <h4 className="msgr-sec-title">반 공지 <span>최근 {CHAT_NOTICE_LIMIT}개</span></h4>
+            <NoticeList notices={notices} isTeacher={false} />
+          </section>
+        </div>
+      ) : !room && !isTeacher ? (
         <p className="msgr-empty msgr-empty--center">대화를 불러오는 중이에요…</p>
       ) : !room ? (
         <div className="msgr-list">
+          {isTeacher && (
+            <section className="msgr-sec">
+              <h4 className="msgr-sec-title">최근 공지 <span>{notices?.length ?? 0}</span></h4>
+              <NoticeList notices={notices} isTeacher />
+            </section>
+          )}
           {[
             { key: "groups", title: isTeacher ? "모둠 대화" : "우리 모둠", rows: rooms.groups },
             { key: "people", title: isTeacher ? "학생 대화" : "선생님", rows: rooms.people },
@@ -330,7 +421,15 @@ export default function MessengerWindow({
                   )}
                   <div className={`msgr-msg${mine ? " msgr-msg--mine" : ""}${m.fromRole === "teacher" && !mine ? " msgr-msg--teacher" : ""}`}>
                     {showName && <span className="msgr-msg-name">{m.fromName}</span>}
-                    <div className="msgr-bubble">{m.text}</div>
+                    {m.html ? (
+                      <div
+                        className="msgr-bubble msgr-bubble--rich"
+                        // 저장할 때 정화했지만 남이 쓴 값이라 그릴 때 한 번 더 거릅니다
+                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(m.html) }}
+                      />
+                    ) : (
+                      <div className="msgr-bubble">{m.text}</div>
+                    )}
                     <span className="msgr-msg-meta">
                       {m.at ? chatTimeLabel(t) : "보내는 중…"}
                       {isTeacher && m.at && (
@@ -359,32 +458,22 @@ export default function MessengerWindow({
             })}
           </div>
 
-          <form
-            className="msgr-compose"
-            onSubmit={(e) => { e.preventDefault(); send(); }}
-          >
-            <textarea
-              ref={inputRef}
-              value={draft}
-              onChange={(e) => setDraft(e.target.value.slice(0, CHAT_TEXT_MAX))}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && !e.nativeEvent.isComposing) {
-                  e.preventDefault();
-                  send();
-                }
-              }}
-              rows={2}
+          <div className="msgr-compose">
+            <RichTextEditor
+              key={`${classId}|${room}|${composeSeq}`}
+              variant="chat"
+              /* 꾸미개가 먼저, 쓰는 칸이 그다음 — 모둠 메모와 같은 순서 */
+              toolbarTop
+              autoFocus
+              className="msgr-rte"
               placeholder={`${current?.title ?? ""}에게 메시지 보내기`}
-              aria-label="보낼 메시지"
+              onChange={setDraft}
+              onSend={send}
+              sendDisabled={sending || draftEmpty}
             />
-            <button type="submit" className="msgr-send" disabled={sending || !cleanChatText(draft)} aria-label="보내기">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M4 12 20 4l-6 16-2.6-6.4L4 12Z" stroke="currentColor" strokeWidth="1.9" strokeLinejoin="round" />
-              </svg>
-            </button>
-          </form>
+          </div>
           <p className="msgr-hint">
-            {error || "Ctrl(⌘)+Enter로 보내기 · Enter는 줄바꿈"}
+            {error || "Ctrl(⌘)+Enter로 보내기 · Enter는 줄바꿈 · - 로 글머리, ``` 로 코드 블록"}
           </p>
         </>
       )}

@@ -86,6 +86,12 @@ describe("간편 메신저 규칙", () => {
       await assertFails(setDoc(doc(chats(db), "c"), msg("stu1", "dm_stu1", "student", { at: new Date(0) })));
       await assertFails(setDoc(doc(chats(db), "d"), msg("stu1", "dm_stu1", "student", { extra: 1 })));
     });
+    it("서식 글(html)을 함께 보낼 수 있고, 4000자를 넘으면 거부된다", async () => {
+      const db = asStudent(env, "stu1").firestore();
+      await assertSucceeds(setDoc(doc(chats(db), "h1"), msg("stu1", "dm_stu1", "student", { html: "<b>안녕</b>하세요" })));
+      await assertFails(setDoc(doc(chats(db), "h2"), msg("stu1", "dm_stu1", "student", { html: "가".repeat(4001) })));
+      await assertFails(setDoc(doc(chats(db), "h3"), msg("stu1", "dm_stu1", "student", { html: 3 })));
+    });
     it("담당 교사는 1:1 방 · 모둠 방 어디든 보낼 수 있다", async () => {
       const db = asTeacher(env, "teacherA").firestore();
       await assertSucceeds(setDoc(doc(chats(db), "t1"), msg("teacherA", "dm_stu3", "teacher")));

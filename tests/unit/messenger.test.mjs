@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   dmRoom, groupRoom, roomMessages, roomSeenMark, unreadCount, totalUnread,
-  buildChatRooms, chatTimeLabel, cleanChatText, CHAT_TEXT_MAX,
+  buildChatRooms, chatTimeLabel, cleanChatText, chatPlainText, CHAT_TEXT_MAX,
 } from "@/lib/messenger";
 
 const at = (ms) => ({ toMillis: () => ms });
@@ -95,4 +95,11 @@ test("보낼 글 — 앞뒤 공백을 걷고 천장에서 자름", () => {
   assert.equal(cleanChatText("  안녕  "), "안녕");
   assert.equal(cleanChatText("   "), "");
   assert.equal(cleanChatText("가".repeat(CHAT_TEXT_MAX + 5)).length, CHAT_TEXT_MAX);
+});
+
+test("서식 글에서 글자만 — 태그를 걷고 엔티티를 풀고 공백을 하나로", () => {
+  assert.equal(chatPlainText("<div><b>안녕</b> &amp; <i>반가워</i></div><ul><li>하나</li><li>둘</li></ul>"), "안녕 & 반가워 하나 둘");
+  assert.equal(chatPlainText("<pre><code>if a &lt; 3:\n    print(a)</code></pre>"), "if a < 3: print(a)");
+  assert.equal(chatPlainText("<div><br></div>&nbsp;"), "");
+  assert.equal(chatPlainText(null), "");
 });

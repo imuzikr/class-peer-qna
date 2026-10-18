@@ -5392,6 +5392,7 @@ code.rte-code-glyph {
 .rte-area pre,
 .qa-content pre,
 .chat-bubble pre,
+.msgr-bubble pre,
 .notice-item pre,
 .study-card-content pre,
 .study-card-body pre {
@@ -5470,6 +5471,8 @@ pre code {
 .rte-area ol,
 .chat-bubble ul,
 .chat-bubble ol,
+.msgr-bubble ul,
+.msgr-bubble ol,
 .qa-content ul,
 .qa-content ol,
 .notice-item ul,
@@ -31952,41 +31955,19 @@ h4.attendance-seat-help { margin-top: 16px; }
 
 .msgr-compose {
   display: flex;
-  align-items: flex-end;
-  gap: 8px;
+  flex-direction: column; /* 서식 에디터가 박스와 '보내기' 줄을 형제로 내놓습니다 */
   padding: 10px 12px 4px;
   border-top: 1px solid var(--border);
   flex-shrink: 0;
 }
-.msgr-compose textarea {
-  flex: 1;
-  min-width: 0;
-  resize: none;
-  max-height: 120px;
-  padding: 9px 12px;
-  border-radius: 14px;
-  border: 1px solid var(--border);
-  background: var(--bg);
-  font: inherit;
+/* 쓰는 칸은 글만큼 늘되 다섯 줄 남짓에서 멈추고 안에서 구릅니다 — 창이 580px라
+   칸이 한없이 자라면 대화가 밀려 사라집니다. */
+.msgr-rte .rte-area {
+  min-height: 44px;
+  max-height: 132px;
+  overflow-y: auto;
   font-size: 14px;
-  line-height: 1.45;
 }
-.msgr-compose textarea:focus { outline: none; border-color: #e3b6a2; background: var(--card-bg); }
-.msgr-send {
-  width: 40px;
-  height: 40px;
-  flex-shrink: 0;
-  border-radius: 12px;
-  border: none;
-  background: var(--primary);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-.msgr-send:hover:not(:disabled) { background: var(--primary-dark); }
-.msgr-send:disabled { background: var(--neutral); color: var(--text-faint); cursor: default; }
 .msgr-hint { margin: 0; padding: 0 14px 10px; font-size: 11px; color: var(--text-faint); flex-shrink: 0; }
 
 /* 768px 아래 — 공부방의 다른 떠 있는 단추(KWLS · 오늘 패널)가 아래쪽을 쓰므로
@@ -32076,3 +32057,44 @@ h4.attendance-seat-help { margin-top: 16px; }
   vertical-align: 1px;
   box-sizing: border-box;
 }
+
+/* 메신저 — 서식 말풍선 · 반 공지 */
+.msgr-bubble--rich { white-space: normal; }
+.msgr-bubble--rich > :first-child { margin-top: 0; }
+.msgr-bubble--rich > :last-child { margin-bottom: 0; }
+.msgr-bubble--rich p { margin: 0; }
+.msgr-bubble--rich pre { white-space: pre; max-width: 100%; }
+/* 말은 못 고치므로 말풍선의 체크 상자는 누르는 것이 아닙니다 */
+.msgr-bubble li.check::before,
+.msgr-bubble ul.checklist > li::before { cursor: default; }
+.msgr-tabs--3 { grid-template-columns: 1fr 1fr 0.7fr; }
+.msgr-notice-list { display: flex; flex-direction: column; gap: 6px; padding: 0 2px 4px; }
+.msgr-notice-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--primary);
+  border-radius: 0 12px 12px 0;
+  background: var(--card-bg);
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.msgr-notice-card:hover { background: var(--bg-deep); }
+.msgr-notice-meta { display: flex; gap: 8px; font-size: 11px; color: var(--text-faint); }
+.msgr-notice-text {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.msgr-notice-card.is-open .msgr-notice-text { display: block; }

@@ -833,8 +833,11 @@ service cloud.firestore {
       //    보낸 뒤에 적으므로, 클라이언트가 직접 적으면 '보냈다고 적혀 있는데
       //    실제로는 안 간' 기록을 만들 수 있습니다. 그래서 전부 막습니다
       //    (admin SDK는 규칙을 우회합니다).
+      // 반 공지 발송 기록 — 반 학생도 읽습니다(간편 메신저의 '공지' 탭이 최근
+      // 3건을 보여 줌). 학생은 같은 글을 이미 제 알림으로 받았으므로 새로
+      // 드러나는 것이 없습니다. 쓰기는 그대로 서버 함수만.
       match /classNotices/{nId} {
-        allow read: if signedIn() && (isAdmin() || ownsClass(cId));
+        allow read: if signedIn() && (isAdmin() || ownsClass(cId) || isClassMember(cId));
         allow create, update, delete: if false;
       }
 
@@ -1014,11 +1017,13 @@ service cloud.firestore {
       }
       function chatShapeOk(cId) {
         let d = request.resource.data;
-        return d.keys().hasOnly(['classId', 'room', 'fromUid', 'fromName', 'fromRole', 'text', 'at'])
+        return d.keys().hasOnly(['classId', 'room', 'fromUid', 'fromName', 'fromRole', 'text', 'html', 'at'])
                && d.classId == cId
                && d.fromUid == uid()
                && d.at == request.time
                && d.text is string && d.text.size() > 0 && d.text.size() <= 1000
+               // 서식 글(선택) — 앱이 정화한 HTML. 천장은 lib/messenger.js의 CHAT_HTML_MAX
+               && (!('html' in d) || (d.html is string && d.html.size() <= 4000))
                && d.fromName is string && d.fromName.size() <= 40
                && d.room is string && d.room.size() <= 80;
       }

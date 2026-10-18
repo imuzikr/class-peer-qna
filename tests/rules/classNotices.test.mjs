@@ -5,8 +5,9 @@
 // 언제 보냈는지 교사가 확인할 수 있게 여기에 남깁니다.
 //
 // 여기서 지키려는 것:
-//  · 담당 교사와 관리자만 읽을 것 — 학생은 자기 알림으로 이미 받았고,
-//    이 목록은 '반 전체에 무엇을 보냈나'라 교사용입니다
+//  · 담당 교사 · 관리자 · **그 반 학생**만 읽을 것 — 학생은 간편 메신저의
+//    '공지' 탭에서 최근 3건을 봅니다(같은 글을 이미 제 알림으로 받았으므로
+//    새로 드러나는 것이 없습니다). 다른 반 학생은 못 읽습니다.
 //  · 남의 반 교사가 남의 반 이력을 읽지 못할 것
 //  · 아무도 직접 쓰지 못할 것 — 이 기록은 서버 함수(sendClassNotice)가
 //    학생 알림을 실제로 보낸 뒤에 적습니다. 클라이언트가 직접 적을 수 있으면
@@ -20,6 +21,10 @@ import {
   addDoc,
   collection,
   getDoc,
+  getDocs,
+  query,
+  orderBy,
+  limit,
   setDoc,
   updateDoc,
   deleteDoc,
@@ -79,9 +84,23 @@ describe("반 공지 발송 이력 규칙", () => {
     await assertFails(getDoc(doc(db, "classes", "cA", "classNotices", id)));
   });
 
-  // 학생은 같은 반이어도 못 봅니다 — 공지는 자기 알림으로 이미 받았고,
-  // 이 목록은 반 전체에 무엇이 나갔는지를 모아 보는 교사용 화면입니다.
-  it("소속 학생도 읽을 수 없다", async () => {
+  // 소속 학생은 읽습니다 — 메신저의 '공지' 탭(앱과 같은 질의: 최신순 3건).
+  it("소속 학생은 읽을 수 있다(메신저 공지 탭)", async () => {
+    const db = asStudent(env, "stu1").firestore();
+    await assertSucceeds(getDoc(doc(db, "classes", "cA", "classNotices", id)));
+    await assertSucceeds(getDocs(query(noticeCol(db, "cA"), orderBy("sentAt", "desc"), limit(3))));
+  });
+
+  it("다른 반 학생은 읽을 수 없다", async () => {
+    const db = asStudent(env, "stu9").firestore();
+    await assertFails(getDoc(doc(db, "classes", "cA", "classNotices", id)));
+    await assertFails(getDocs(query(noticeCol(db, "cA"), orderBy("sentAt", "desc"), limit(3))));
+  });
+
+  it("보관된 반은 소속 학생도 읽을 수 없다", async () => {
+    await seed(env, (db) =>
+      setDoc(doc(db, "classes", "cA"), { createdBy: "teacherA", archived: true, name: "A반" })
+    );
     const db = asStudent(env, "stu1").firestore();
     await assertFails(getDoc(doc(db, "classes", "cA", "classNotices", id)));
   });
