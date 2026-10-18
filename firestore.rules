@@ -985,6 +985,71 @@ service cloud.firestore {
                               && request.resource.data.groups.size() <= 6;
         allow delete: if signedIn() && (isAdmin() || ownsClassEditable(cId));
       }
+
+      // ── 간편 메신저 ─────────────────────────────────────────
+      //  · 방은 둘 — `dm_<학생 uid>`(그 학생 ↔ 담당 선생님) · `grp_<모둠 id>`
+      //    (기본 모둠의 모둠원 + 선생님). 학생끼리의 1:1은 없습니다(모둠 메모가
+      //    그 자리입니다).
+      //  · 담당 교사는 반의 모든 방을 읽습니다 — 창에 '선생님이 볼 수 있다'를
+      //    적어 둡니다. 학생은 제 1:1 방과 **제가 든 모둠의 방**만.
+      //  · 말은 못 고칩니다. 지우는 것은 담당 교사만.
+      //  · 셈은 lib/messenger.js, 읽고 쓰기는 lib/data/messenger.js.
+      function chatRoomGroups(cId) {
+        return get(/databases/$(database)/documents/classes/$(cId)/groupAssignments/default).data.get('groups', []);
+      }
+      // 모둠은 최대 6개(위 groupAssignments 규칙) — 반복이 없어 여섯 번 펼칩니다.
+      function chatGroupAt(gs, i, room) {
+        return gs.size() > i
+               && room == 'grp_' + gs[i].get('id', '')
+               && gs[i].get('memberUids', []).hasAny([uid()]);
+      }
+      function inMyChatGroupIn(gs, room) {
+        return chatGroupAt(gs, 0, room) || chatGroupAt(gs, 1, room) || chatGroupAt(gs, 2, room)
+               || chatGroupAt(gs, 3, room) || chatGroupAt(gs, 4, room) || chatGroupAt(gs, 5, room);
+      }
+      function inMyChatGroup(cId, room) {
+        return room is string && room.matches('grp_.+')
+               && exists(/databases/$(database)/documents/classes/$(cId)/groupAssignments/default)
+               && inMyChatGroupIn(chatRoomGroups(cId), room);
+      }
+      function chatShapeOk(cId) {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['classId', 'room', 'fromUid', 'fromName', 'fromRole', 'text', 'at'])
+               && d.classId == cId
+               && d.fromUid == uid()
+               && d.at == request.time
+               && d.text is string && d.text.size() > 0 && d.text.size() <= 1000
+               && d.fromName is string && d.fromName.size() <= 40
+               && d.room is string && d.room.size() <= 80;
+      }
+      match /chatMessages/{mId} {
+        allow read: if signedIn()
+                    && (ownsClass(cId)
+                        || (isClassMember(cId)
+                            && (resource.data.room == 'dm_' + uid()
+                                || inMyChatGroup(cId, resource.data.room))));
+        allow create: if signedIn() && chatShapeOk(cId)
+                      && ((ownsClassEditable(cId)
+                           && request.resource.data.fromRole == 'teacher'
+                           && (request.resource.data.room.matches('dm_.+')
+                               || request.resource.data.room.matches('grp_.+')))
+                          || (isClassMember(cId)
+                              && request.resource.data.fromRole == 'student'
+                              && (request.resource.data.room == 'dm_' + uid()
+                                  || inMyChatGroup(cId, request.resource.data.room))));
+        allow update: if false;
+        allow delete: if signedIn() && ownsClassEditable(cId);
+      }
+      // 읽음 표시 — 사람마다 한 장, 본인만. { rooms: { [방]: ms }, updatedAt }
+      match /chatReads/{rUid} {
+        allow read: if signedIn() && rUid == uid();
+        allow create, update: if signedIn() && rUid == uid()
+                              && (ownsClass(cId) || isClassMember(cId))
+                              && request.resource.data.keys().hasOnly(['rooms', 'updatedAt'])
+                              && request.resource.data.rooms is map
+                              && request.resource.data.rooms.size() <= 80;
+        allow delete: if false;
+      }
     }
 
     // ── 입장 코드 — 문서 ID가 코드 자체. 코드 소유 교사만 관리. ──

@@ -31572,3 +31572,447 @@ h4.attendance-seat-help { margin-top: 16px; }
   color: var(--text);
 }
 .xwg-hint-list li > span:not(.xwg-word-tag):not(.xw-used) { flex-basis: 100%; }
+
+/* =============================================================
+   떠 있는 동그라미 · 간편 메신저 (components/FloatingHub.jsx · MessengerWindow.jsx)
+   -------------------------------------------------------------
+   오른쪽 아래의 작은 동그라미(56px)가 누르면 큰 원(300px)으로 펼쳐집니다.
+   큰 원은 동그라미의 가운데를 기준점으로 0.19배 → 1배로 자랍니다 — 원의
+   오른쪽 아래 모서리가 동그라미의 오른쪽 아래와 같은 자리라, 동그라미는
+   큰 원 바깥 모서리에 그대로 남아 닫기(×)가 됩니다.
+   z-index는 90대 — 모달 배경(100) **아래**입니다. 이 동그라미로 연 창(과일
+   바구니 등)이 뜨면 그 뒤로 가려져 창의 단추를 덮지 않습니다.
+   `.hub-disc`의 300px은 FloatingHub.jsx의 `DISC`와 같아야 합니다.
+   ============================================================= */
+.hub-root {
+  --hub-right: 20px;
+  --hub-bottom: 20px;
+}
+.hub-root.is-lifted {
+  /* 교사 화면의 '방송 종료' 알약(오른쪽 아래 · 높이 40px 남짓) 위로 */
+  --hub-bottom: 74px;
+}
+
+.hub-fab {
+  position: fixed;
+  right: var(--hub-right);
+  bottom: var(--hub-bottom);
+  z-index: 96;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  background: var(--primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 20px rgba(217, 119, 87, 0.42), 0 2px 6px rgba(46, 36, 26, 0.12);
+  cursor: pointer;
+  transition: transform 0.18s ease, background 0.18s ease, bottom 0.25s ease;
+}
+.hub-fab:hover { transform: translateY(-2px); background: var(--primary-dark); }
+.hub-fab:active { transform: scale(0.95); }
+.hub-fab.is-open { background: var(--dark); box-shadow: 0 6px 18px rgba(26, 26, 24, 0.3); }
+.hub-fab-icon { display: flex; }
+.hub-fab-x { font-size: 30px; line-height: 1; font-weight: 300; margin-top: -3px; }
+.hub-fab-badge,
+.hub-item-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+  border: 2px solid #fff;
+  box-sizing: content-box;
+}
+
+/* 큰 원 — 접힌 동안은 작게 · 투명 · visibility hidden(안의 단추에 초점이 안 감) */
+.hub-disc {
+  position: fixed;
+  right: var(--hub-right);
+  bottom: var(--hub-bottom);
+  z-index: 95;
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  /* 동그라미의 가운데(오른쪽 아래에서 28px 안쪽)에서 자랍니다 */
+  transform-origin: calc(100% - 28px) calc(100% - 28px);
+  transform: scale(0.19);
+  opacity: 0;
+  visibility: hidden;
+  transition: transform 0.26s cubic-bezier(0.2, 0.9, 0.3, 1.15), opacity 0.18s ease,
+    visibility 0s linear 0.26s, bottom 0.25s ease;
+}
+.hub-disc.is-open {
+  transform: scale(1);
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+/* ── 피자 조각 ── */
+.hub-disc--pie {
+  filter: drop-shadow(0 10px 24px rgba(46, 36, 26, 0.18));
+}
+.hub-pie { position: absolute; inset: 0; overflow: visible; }
+.hub-slice {
+  fill: var(--card-bg);
+  stroke: var(--border);
+  stroke-width: 1;
+  cursor: pointer;
+  transition: fill 0.15s ease;
+}
+.hub-slice:nth-child(odd) { fill: #fffaf6; }
+.hub-slice.is-hover { fill: var(--primary-light); stroke: #ecc7b6; }
+
+/* ── 행성 궤도 ── */
+.hub-disc--orbit {
+  background: radial-gradient(circle at 50% 50%, rgba(255, 250, 246, 0.97) 0 60%, rgba(248, 236, 229, 0.94) 100%);
+  box-shadow: 0 10px 28px rgba(46, 36, 26, 0.18), inset 0 0 0 1px var(--border);
+}
+.hub-orbit { position: absolute; inset: 0; pointer-events: none; }
+.hub-orbit-ring { fill: none; stroke: #e6c9bb; stroke-width: 1.4; stroke-dasharray: 3 6; }
+.hub-orbit-ring--far { stroke: var(--border); stroke-dasharray: none; }
+
+/* 항목 — 조각에서는 글자 자리만, 궤도에서는 작은 행성(동그라미) */
+.hub-item {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--dark);
+  cursor: pointer;
+  font: inherit;
+}
+.hub-item-icon { font-size: 24px; line-height: 1; transition: transform 0.15s ease; }
+.hub-item-label { font-size: 12.5px; font-weight: 700; white-space: nowrap; letter-spacing: -0.2px; }
+.hub-item.is-hover .hub-item-icon { transform: scale(1.14); }
+.hub-item:focus-visible { outline: 2px solid var(--primary); outline-offset: 4px; border-radius: 10px; }
+.hub-item .hub-item-badge { top: -8px; right: -6px; }
+/* 조각 모양에서는 항목이 조각의 누름을 가리지 않게 작은 자리만 */
+.hub-disc--pie .hub-item { width: 76px; height: 56px; justify-content: center; }
+.hub-disc--orbit .hub-item {
+  width: 70px;
+  height: 70px;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--card-bg);
+  box-shadow: 0 3px 10px rgba(46, 36, 26, 0.12), inset 0 0 0 1px var(--border);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+.hub-disc--orbit .hub-item .hub-item-label { font-size: 11.5px; }
+.hub-disc--orbit .hub-item.is-hover {
+  background: var(--primary-light);
+  box-shadow: 0 5px 14px rgba(217, 119, 87, 0.28), inset 0 0 0 1.5px #ecc7b6;
+  transform: translate(-50%, -50%) scale(1.06);
+}
+.hub-disc--orbit .hub-item.is-hover .hub-item-icon { transform: none; }
+/* 궤도는 펼칠 때 행성이 하나씩 차례로 떠오릅니다 */
+.hub-disc--orbit.is-open .hub-item {
+  animation: hub-pop 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.3) both;
+  animation-delay: calc(var(--i) * 35ms + 60ms);
+}
+@keyframes hub-pop {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+/* 가운데 — 고른 기능의 설명 */
+.hub-center {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 104px;
+  height: 104px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: var(--dark);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 10px;
+  text-align: center;
+  box-sizing: border-box;
+}
+.hub-disc--orbit .hub-center {
+  background: radial-gradient(circle at 35% 30%, #e88c6c, var(--primary) 55%, var(--primary-dark));
+  box-shadow: 0 0 0 6px rgba(217, 119, 87, 0.14), 0 0 0 14px rgba(217, 119, 87, 0.07);
+}
+.hub-center strong { font-size: 13.5px; font-weight: 800; line-height: 1.2; }
+.hub-center span { font-size: 10.5px; line-height: 1.3; opacity: 0.82; word-break: keep-all; }
+.hub-style-switch {
+  display: flex;
+  margin-top: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  padding: 2px;
+}
+.hub-style-switch button {
+  border: none;
+  background: none;
+  color: #fff;
+  opacity: 0.7;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.hub-style-switch button.on { background: #fff; color: var(--dark); opacity: 1; }
+
+/* ── 메신저 창 ── */
+.msgr {
+  position: fixed;
+  right: var(--hub-right);
+  bottom: calc(var(--hub-bottom) + 68px);
+  z-index: 94;
+  width: min(380px, calc(100vw - 32px));
+  height: min(580px, calc(100vh - 160px));
+  display: flex;
+  flex-direction: column;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: 0 18px 48px rgba(46, 36, 26, 0.2), 0 4px 12px rgba(46, 36, 26, 0.08);
+  overflow: hidden;
+  animation: msgr-in 0.22s ease both;
+  transform-origin: calc(100% - 28px) calc(100% + 40px);
+}
+@keyframes msgr-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+.msgr-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 12px 12px 14px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.msgr-head-title { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.msgr-head-title strong { font-size: 15px; color: var(--dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.msgr-head-title span { font-size: 12px; color: var(--text-sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.msgr-back {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  font-size: 22px;
+  line-height: 1;
+  color: var(--text);
+  cursor: pointer;
+  padding-bottom: 3px;
+}
+.msgr-back:hover { background: var(--bg-deep); }
+.msgr-close { flex-shrink: 0; }
+.msgr-avatar {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #e8f3ea;
+  color: #3f704b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 800;
+}
+.msgr-avatar--group { background: var(--primary-light); color: var(--primary-dark); border-radius: 12px; }
+
+.msgr-list { flex: 1; overflow-y: auto; padding: 6px 8px 12px; }
+.msgr-sec + .msgr-sec { margin-top: 6px; }
+.msgr-sec-title {
+  margin: 10px 8px 6px;
+  font-family: inherit; /* h4는 앱 전체가 세리프 — 목록 머리는 본문 글꼴로 */
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.msgr-sec-title span { color: var(--text-faint); font-weight: 600; margin-left: 2px; }
+.msgr-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 8px;
+  border: none;
+  background: none;
+  border-radius: 12px;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+.msgr-row:hover { background: var(--bg-deep); }
+.msgr-row-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.msgr-row-name { font-size: 14px; font-weight: 700; color: var(--dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.msgr-row-name em { font-style: normal; font-weight: 500; font-size: 11.5px; color: var(--text-faint); margin-left: 6px; }
+.msgr-row-preview { font-size: 12.5px; color: var(--text-sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.msgr-row-time { flex-shrink: 0; font-size: 11px; color: var(--text-faint); align-self: flex-start; margin-top: 3px; }
+.msgr-unread {
+  flex-shrink: 0;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+  box-sizing: border-box;
+}
+.msgr-empty { margin: 4px 10px 8px; font-size: 12.5px; color: var(--text-faint); }
+.msgr-empty--center { text-align: center; margin-top: 18px; }
+
+.msgr-thread {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 12px 14px 8px;
+  background: var(--bg);
+}
+.msgr-notice {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--bg-deep);
+  font-size: 11.5px;
+  color: var(--text-sub);
+  text-align: center;
+  line-height: 1.5;
+}
+.msgr-notice strong { color: var(--text); }
+.msgr-day {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0 8px;
+  font-size: 11.5px;
+  color: var(--text-faint);
+}
+.msgr-day::before,
+.msgr-day::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+.msgr-msg {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+.msgr-msg--mine { align-items: flex-end; }
+.msgr-msg-name { font-size: 11.5px; font-weight: 700; color: var(--text-sub); margin: 0 0 3px 4px; }
+.msgr-bubble {
+  max-width: 82%;
+  padding: 9px 12px;
+  border-radius: 16px 16px 16px 6px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.msgr-msg--teacher .msgr-bubble { background: #eef6ef; border-color: #cfe5d4; }
+.msgr-msg--mine .msgr-bubble {
+  border-radius: 16px 16px 6px 16px;
+  background: var(--primary-light);
+  border-color: #efd2c4;
+  color: var(--dark);
+}
+.msgr-msg-meta { font-size: 10.5px; color: var(--text-faint); margin: 3px 4px 0; }
+/* 교사의 '지우기' — 말에 마우스를 올리거나 초점이 갈 때만(가운뎃점까지 함께) */
+.msgr-del-wrap { opacity: 0; transition: opacity 0.12s ease; }
+.msgr-msg:hover .msgr-del-wrap,
+.msgr-del-wrap:focus-within,
+.msgr-del-wrap.is-sure { opacity: 1; }
+.msgr-del {
+  border: none;
+  background: none;
+  padding: 0 2px;
+  font: inherit;
+  color: var(--text-faint);
+  cursor: pointer;
+}
+.msgr-del:hover { color: var(--text); }
+.msgr-del--sure { color: var(--danger); font-weight: 700; }
+
+.msgr-compose {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 10px 12px 4px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.msgr-compose textarea {
+  flex: 1;
+  min-width: 0;
+  resize: none;
+  max-height: 120px;
+  padding: 9px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.45;
+}
+.msgr-compose textarea:focus { outline: none; border-color: #e3b6a2; background: var(--card-bg); }
+.msgr-send {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  border: none;
+  background: var(--primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.msgr-send:hover:not(:disabled) { background: var(--primary-dark); }
+.msgr-send:disabled { background: var(--neutral); color: var(--text-faint); cursor: default; }
+.msgr-hint { margin: 0; padding: 0 14px 10px; font-size: 11px; color: var(--text-faint); flex-shrink: 0; }
+
+/* 768px 아래 — 공부방의 다른 떠 있는 단추(KWLS · 오늘 패널)가 아래쪽을 쓰므로
+   한 칸 위로, 메신저 창은 화면 폭을 거의 다 씁니다. */
+@media (max-width: 768px) {
+  .hub-root { --hub-right: 14px; --hub-bottom: 76px; }
+  .hub-root.is-lifted { --hub-bottom: 120px; }
+  .msgr {
+    right: 8px;
+    left: 8px;
+    width: auto;
+    height: min(560px, calc(100dvh - var(--hub-bottom) - 96px));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hub-disc,
+  .hub-fab,
+  .msgr { transition: none; animation: none; }
+  .hub-disc--orbit.is-open .hub-item { animation: none; }
+}

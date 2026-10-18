@@ -24,6 +24,8 @@ const CLASS_SUBCOLLECTIONS = [
   "signalReplies",     // 옛 손들기 답변(대화 이전) — 남은 문서 정리용
   "classNotices",      // 반 공지 발송 이력 — 보낸 내용·시각
   "lessonMemos",       // 수업 메모 — 교사가 수업 중 적어 둔 것
+  "chatMessages",      // 간편 메신저의 말 — 선생님 ↔ 학생 · 모둠 대화(실명 이름표)
+  "chatReads",         // 간편 메신저의 읽음 표시
 ];
 
 // classId 필드로 묶여 있는 최상위 컬렉션들.

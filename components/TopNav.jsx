@@ -38,6 +38,7 @@ import RoleManagerModal from "./RoleManagerModal";
 import PresentationOverlay from "./PresentationOverlay";
 import CornellNoteDrawer from "./CornellNoteDrawer";
 import RewardCelebration from "./RewardCelebration";
+import FloatingHub from "./FloatingHub";
 import AppMarquee from "./AppMarquee";
 import { useRewardCelebration } from "@/lib/useRewardCelebration";
 import { useClassMembers } from "@/lib/useClassRoster";
@@ -477,6 +478,19 @@ export default function TopNav({ active, onPython, pyActive = false, onStudyExpo
         /* 선생님이 내보낸 활동 — 위에서 구독해 둔 반 문서에서 그대로
            읽습니다(이 구독이 곧 이것을 위한 것입니다). */
         task={classTaskOf(classDoc)}
+      />
+    )}
+
+    {/* 떠 있는 동그라미 — 메신저 + 자주 여는 기능(components/FloatingHub.jsx).
+        상단바처럼 다섯 화면에 다 떠 있어야 해서 여기 답니다. 반은 교사는
+        고른 반, 학생은 소속 반(데모 모드는 소속을 안 읽어 고른 반으로).
+        교사 화면에 '방송 종료' 알약이 떠 있으면 그 위로 비켜 섭니다. */}
+    {user && (
+      <FloatingHub
+        classId={admin ? sessionClassId : activeClassId ?? (!isFirebaseConfigured ? sessionClassId : null)}
+        user={user}
+        isTeacher={admin}
+        lifted={admin && !!broadcast}
       />
     )}
 

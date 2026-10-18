@@ -605,6 +605,23 @@ function StudyPageInner() {
     router.replace("/study");
   }, [memoParam, router]);
 
+  // ── 떠 있는 동그라미에서 온 바로가기 (?open=kwl|notes|attendance|fruit) ──
+  // components/FloatingHub.jsx가 이 주소로 보냅니다 — 같은 창을 그쪽에 한 벌
+  // 더 만들지 않고 이 화면의 창을 엽니다. 연 뒤 `open`만 지웁니다(남겨 두면
+  // 창을 닫고 새로 고칠 때마다 다시 열립니다). 다른 값(project 등)은 그대로.
+  const openParam = searchParams.get("open");
+  useEffect(() => {
+    if (!openParam) return;
+    if (openParam === "kwl") setKwlPanelOpen(true);
+    else if (openParam === "notes" && !admin) setNoteViewerOpen(true);
+    else if (openParam === "attendance") setAttendanceOpen(true);
+    else if (openParam === "fruit") setFruitBasketOpen(true);
+    const rest = new URLSearchParams(searchParams.toString());
+    rest.delete("open");
+    const qs = rest.toString();
+    router.replace(qs ? `/study?${qs}` : "/study");
+  }, [openParam, admin, searchParams, router]);
+
   // ── 프로젝트 열기/닫기 (?project=<보드 id>) ──
   // 열려 있는 프로젝트는 목록이 갱신될 때마다 최신 문서로 다시 찾습니다 —
   // 그래야 교사가 활동을 열거나 제목을 고치면 이 화면도 바로 따라갑니다.
