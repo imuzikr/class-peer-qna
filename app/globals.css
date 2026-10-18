@@ -31595,6 +31595,26 @@ h4.attendance-seat-help { margin-top: 16px; }
   /* 교사 화면의 '방송 종료' 알약(오른쪽 아래 · 높이 40px 남짓) 위로 */
   --hub-bottom: 74px;
 }
+/* 끌어 옮긴 자리 — 네 변 거리(--hub-left/top/right/bottom)는 컴포넌트가 인라인으로
+   줍니다(lib/hubPlace.js). 왼쪽 · 위쪽 절반이면 큰 원 · 메신저 창을 화면 가운데
+   쪽으로 펼칩니다. 끄는 동안은 움직임(transition)을 꺼 손을 바로 따라오게. */
+.hub-root.is-dragging .hub-fab,
+.hub-root.is-dragging .hub-disc,
+.hub-root.is-dragging .msgr { transition: none; }
+.hub-root.is-dragging .hub-fab { cursor: grabbing; transform: scale(1.06); }
+.hub-root.is-left .hub-disc { right: auto; left: var(--hub-left); }
+.hub-root.is-top .hub-disc { bottom: auto; top: var(--hub-top); }
+.hub-root.is-left .hub-disc { --hub-ox: 28px; }
+.hub-root.is-top .hub-disc { --hub-oy: 28px; }
+.hub-root.is-left .msgr { right: auto; left: var(--hub-left); }
+.hub-root.is-top .msgr {
+  bottom: auto;
+  top: calc(var(--hub-top) + 68px);
+  height: min(580px, calc(100vh - var(--hub-top) - 84px));
+}
+.hub-root.is-placed:not(.is-top) .msgr {
+  height: min(580px, calc(100vh - var(--hub-bottom) - 84px));
+}
 
 .hub-fab {
   position: fixed;
@@ -31605,6 +31625,7 @@ h4.attendance-seat-help { margin-top: 16px; }
   height: 56px;
   border-radius: 50%;
   border: none;
+  touch-action: none; /* 손가락으로 끌 때 화면이 대신 구르지 않게 */
   background: var(--primary);
   color: #fff;
   display: flex;
@@ -31647,8 +31668,9 @@ h4.attendance-seat-help { margin-top: 16px; }
   width: 300px;
   height: 300px;
   border-radius: 50%;
-  /* 동그라미의 가운데(오른쪽 아래에서 28px 안쪽)에서 자랍니다 */
-  transform-origin: calc(100% - 28px) calc(100% - 28px);
+  /* 동그라미의 가운데(오른쪽 아래에서 28px 안쪽)에서 자랍니다 — 끌어 옮겨 왼쪽 ·
+     위쪽으로 펼칠 때는 그쪽 28px(--hub-ox · --hub-oy) */
+  transform-origin: var(--hub-ox, calc(100% - 28px)) var(--hub-oy, calc(100% - 28px));
   transform: scale(0.19);
   opacity: 0;
   visibility: hidden;
@@ -32063,12 +32085,14 @@ button.msgr-receipt:hover { color: var(--text-sub); }
 @media (max-width: 768px) {
   .hub-root { --hub-right: 14px; --hub-bottom: 76px; }
   .hub-root.is-lifted { --hub-bottom: 120px; }
-  .msgr {
+  .msgr,
+  .hub-root.is-left .msgr {
     right: 8px;
     left: 8px;
     width: auto;
     height: min(560px, calc(100dvh - var(--hub-bottom) - 96px));
   }
+  .hub-root.is-top .msgr { height: min(560px, calc(100dvh - var(--hub-top) - 84px)); }
 }
 @media (prefers-reduced-motion: reduce) {
   .hub-disc,

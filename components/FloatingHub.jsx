@@ -26,6 +26,13 @@
 // 주소로 엽니다(`/study?open=kwl|notes|attendance|fruit` — 공부방이 열고
 // 주소를 지웁니다). 같은 창을 여기에 한 벌 더 만들면 두 곳이 어긋납니다.
 //
+// [끌어 옮기기]
+// 동그라미를 누른 채 끌면 자리를 옮깁니다(6px 넘게 움직였을 때만 — 그 아래는
+// 누르기). 자리는 이 기기에 화면 비율로 기억합니다(localStorage `hub_fab_pos`, 셈은
+// lib/hubPlace.js). 옮긴 자리가 왼쪽 · 위쪽 절반이면 큰 원과 메신저 창이 화면
+// 가운데 쪽으로 펼쳐집니다(`is-left` · `is-top`). 옮긴 뒤에는 교사의 '방송 종료'
+// 알약 위로 비키는 것(`lifted`)을 하지 않습니다 — 자리를 고른 것은 선생님입니다.
+//
 // [읽는 문서]
 // 안 읽은 말 배지 때문에 반을 고른 동안은 늘 구독합니다 — 학생은 제 방 둘
 // (등호 질의 둘) + 모둠 문서 + 읽음 표시, 교사는 반의 최근 말 300개 + 모둠
@@ -34,6 +41,7 @@
 // =============================================================
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { HUB_DRAG_MIN, cleanHubPos, hubPlacement, hubPosFromPoint } from "@/lib/hubPlace";
 import {
   subscribeClasses,
   subscribeClassChat,
@@ -103,6 +111,16 @@ const DISC = 300;
 const C = DISC / 2;
 const R_ORBIT = 101; // 행성(항목)이 서는 궤도
 
+// 끌어 옮긴 자리 — 이 기기에만(화면 비율)
+const POS_KEY = "hub_fab_pos";
+function loadHubPos() {
+  try {
+    return cleanHubPos(JSON.parse(window.localStorage.getItem(POS_KEY) || "null"));
+  } catch {
+    return null;
+  }
+}
+
 const rad = (deg) => (deg * Math.PI) / 180;
 const pt = (r, deg) => [C + r * Math.cos(rad(deg)), C + r * Math.sin(rad(deg))];
 
@@ -135,6 +153,73 @@ export default function FloatingHub({ classId: pageClassId, user, isTeacher, lif
   const rootRef = useRef(null);
   const fabRef = useRef(null);
   const myUid = user?.uid;
+
+  // ── 끌어 옮기기 — 자리(화면 비율) · 화면 크기 · 끄는 중 ──
+  const [pos, setPos] = useState(null);
+  const [view, setView] = useState({ w: 0, h: 0 });
+  const [dragging, setDragging] = useState(false);
+  const dragRef = useRef(null);
+  const draggedRef = useRef(false); // 방금 끌었나 — 놓을 때 따라오는 click을 누르기로 안 셈
+  useEffect(() => {
+    setPos(loadHubPos());
+    const onResize = () => setView({ w: window.innerWidth, h: window.innerHeight });
+    onResize();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  // 다 끌고 놓았을 때만 적습니다(끄는 동안 매 프레임 적지 않게).
+  useEffect(() => {
+    if (dragging || !pos) return;
+    try {
+      window.localStorage.setItem(POS_KEY, JSON.stringify(pos));
+    } catch {
+      /* 저장소를 못 쓰는 창 — 이번 화면에서만 그 자리 */
+    }
+  }, [pos, dragging]);
+  const place = hubPlacement(pos, view.w, view.h);
+
+  function onFabPointerDown(e) {
+    draggedRef.current = false;
+    if (e.button !== 0) return;
+    const r = fabRef.current?.getBoundingClientRect();
+    if (!r) return;
+    dragRef.current = {
+      id: e.pointerId,
+      sx: e.clientX,
+      sy: e.clientY,
+      // 누른 곳과 동그라미 가운데의 차이 — 끄는 내내 손 밑의 같은 자리가 따라옵니다
+      dx: r.left + r.width / 2 - e.clientX,
+      dy: r.top + r.height / 2 - e.clientY,
+      moving: false,
+    };
+    // 누르는 순간 붙잡습니다 — 빠르게 끌면 첫 움직임이 벌써 단추 밖이라, 6px을 넘긴
+    // 뒤에 붙잡으면 그 움직임을 놓칩니다. 붙잡아도 놓을 때의 click은 그대로 옵니다.
+    try {
+      fabRef.current?.setPointerCapture?.(e.pointerId);
+    } catch {
+      /* 붙잡지 못해도 단추 위에서의 끌기는 됩니다 */
+    }
+  }
+  function onFabPointerMove(e) {
+    const d = dragRef.current;
+    if (!d || d.id !== e.pointerId) return;
+    if (!d.moving) {
+      if (Math.hypot(e.clientX - d.sx, e.clientY - d.sy) < HUB_DRAG_MIN) return;
+      d.moving = true;
+      setDragging(true);
+    }
+    const next = hubPosFromPoint(e.clientX + d.dx, e.clientY + d.dy, window.innerWidth, window.innerHeight);
+    if (next) setPos(next);
+  }
+  function onFabPointerEnd(e) {
+    const d = dragRef.current;
+    if (!d || d.id !== e.pointerId) return;
+    dragRef.current = null;
+    if (d.moving) {
+      draggedRef.current = true;
+      setDragging(false);
+    }
+  }
 
   // ── 교사 — 내가 맡은 반(보관 안 된 것, 이름순) ──
   // 규칙이 메신저를 **반을 만든 교사**에게만 열어 두어(ownsClass) 최고 관리자도
@@ -262,6 +347,11 @@ export default function FloatingHub({ classId: pageClassId, user, isTeacher, lif
   }
 
   function onFab() {
+    // 끌어 옮기고 놓은 것은 누르기가 아닙니다
+    if (draggedRef.current) {
+      draggedRef.current = false;
+      return;
+    }
     if (msgOpen) { setMsgOpen(false); return; }
     setMenuOpen((v) => !v);
   }
@@ -272,7 +362,26 @@ export default function FloatingHub({ classId: pageClassId, user, isTeacher, lif
   const fabOpen = menuOpen || msgOpen;
 
   return (
-    <div ref={rootRef} className={`hub-root${lifted ? " is-lifted" : ""}`}>
+    <div
+      ref={rootRef}
+      className={[
+        "hub-root",
+        place ? "is-placed" : lifted ? "is-lifted" : "",
+        place?.isLeft ? "is-left" : "",
+        place?.isTop ? "is-top" : "",
+        dragging ? "is-dragging" : "",
+      ].filter(Boolean).join(" ")}
+      style={
+        place
+          ? {
+              "--hub-left": `${place.left}px`,
+              "--hub-top": `${place.top}px`,
+              "--hub-right": `${place.right}px`,
+              "--hub-bottom": `${place.bottom}px`,
+            }
+          : undefined
+      }
+    >
       {/* 큰 원 — 접혀 있을 때도 그려 두고 크기만 0에 가깝게(펼침 움직임) */}
       <div
         className={`hub-disc${menuOpen ? " is-open" : ""}`}
@@ -324,9 +433,13 @@ export default function FloatingHub({ classId: pageClassId, user, isTeacher, lif
         type="button"
         className={`hub-fab${fabOpen ? " is-open" : ""}`}
         onClick={onFab}
+        onPointerDown={onFabPointerDown}
+        onPointerMove={onFabPointerMove}
+        onPointerUp={onFabPointerEnd}
+        onPointerCancel={onFabPointerEnd}
         aria-expanded={menuOpen}
         aria-label={msgOpen ? "메신저 닫기" : menuOpen ? "메뉴 닫기" : "메신저와 바로가기 열기"}
-        title={msgOpen ? "메신저 닫기" : menuOpen ? "닫기" : "메신저 · 바로가기"}
+        title={msgOpen ? "메신저 닫기" : menuOpen ? "닫기" : "메신저 · 바로가기 (끌어서 옮길 수 있어요)"}
       >
         <span className="hub-fab-icon" aria-hidden="true">
           {fabOpen ? <span className="hub-fab-x">×</span> : <ChatIcon />}
