@@ -312,8 +312,13 @@ export default function FloatingHub({ classId: pageClassId, user, isTeacher, lif
           );
         })}
 
-        {/* 가운데 — 고른 기능의 설명, 아무것도 안 고르면 이름 */}
+        {/* 가운데 — 고른 기능의 그림 · 이름 · 설명. 아무것도 안 고르면 배움나눔
+            로고와 이름(선생님 요청). 그림은 흰 동그라미에 담습니다 — 앱 아이콘은
+            먹빛 선이라 살구빛 해 위에 그대로 두면 안 보입니다. */}
         <div className="hub-center">
+          <span className="hub-center-badge" aria-hidden="true">
+            {shown && ICONS[shown.key] ? ICONS[shown.key]({ show: opened }) : <IconLogo size={22} />}
+          </span>
           <strong>{shown ? shown.label : "배움나눔"}</strong>
           <span>{shown ? shown.hint : "무엇을 열까요?"}</span>
         </div>
