@@ -78,6 +78,27 @@ npm run deploy             # 규칙 테스트 → firestore:rules + functions �
 `functions/`를 별도 워크스페이스로 분리한 것과 같은 이유). 앱 코드(Next.js)는
 `main` 푸시 시 Vercel이 자동 배포하며, 이 스크립트와는 무관합니다.
 
+### 구글 로그인 창은 우리 주소로 뜹니다 (`authDomain`)
+
+일부 학생에게 구글 로그인 창만 '사이트에 연결할 수 없음'으로 떴습니다. 로그인
+창의 주소가 `class-peer-qna.firebaseapp.com`인데, 학교 와이파이 필터·자녀 보호
+앱이 그 주소만 막았기 때문입니다(사이트 자체 `vercel.app`은 열림).
+
+- `next.config.mjs`의 `rewrites`가 `/__/auth/*`·`/__/firebase/*`를 firebaseapp.com으로
+  넘겨 주고, `lib/firebase.js`가 **실서비스 주소에서만** `authDomain`을 그 주소
+  자신(`class-peer-qna.vercel.app`)으로 둡니다. 학생 기기는 vercel.app 하나에만
+  닿으면 됩니다(Firebase 문서의 '인증 요청 프록시' 방식).
+- **Google Cloud 콘솔 → API 및 서비스 → 사용자 인증 정보 → OAuth 웹 클라이언트**에
+  리디렉션 URI `https://class-peer-qna.vercel.app/__/auth/handler`가 있어야 합니다.
+  없으면 로그인이 `redirect_uri_mismatch`로 **모든 학생에게** 실패합니다 —
+  **이 URI를 먼저 넣고 main에 올리세요.**
+- 미리보기 주소·localhost는 그 URI가 없어 지금까지대로 firebaseapp.com을 씁니다
+  (`PROXIED_AUTH_HOSTS`). 사용자 지정 도메인을 붙이면 이 목록과 OAuth URI에 함께
+  더하세요.
+- **`/__/` 아래에는 우리 보안 헤더를 안 붙입니다**(`headers`의 `source`).
+  `frame-ancestors 'none'`·`X-Frame-Options: DENY`가 붙으면 앱이 같은 주소의
+  로그인 iframe(`/__/auth/iframe`)을 못 띄웁니다.
+
 Firebase 미설정 시 자동으로 **데모 모드**로 동작 (새로고침 시 데이터 초기화).
 실서비스 전환: `lib/firebase.js`의 `firebaseConfig`에 Firebase 콘솔 값 입력.
 

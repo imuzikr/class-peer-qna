@@ -32,10 +32,22 @@ const nextConfig = {
   // 루트 설정을 보고 린트를 돌리려 하면 찾지 못해 멈춥니다.
   eslint: { ignoreDuringBuilds: true },
 
+  // 구글 로그인 창을 우리 주소로 띄우기 — /__/auth/* 와 /__/firebase/* 를
+  // firebaseapp.com으로 넘겨 줍니다(lib/firebase.js의 authDomain 주석).
+  async rewrites() {
+    return [
+      { source: "/__/auth/:path*", destination: "https://class-peer-qna.firebaseapp.com/__/auth/:path*" },
+      { source: "/__/firebase/:path*", destination: "https://class-peer-qna.firebaseapp.com/__/firebase/:path*" },
+    ];
+  },
+
   async headers() {
     return [
       {
-        source: "/:path*",
+        // /__/ 아래(넘겨 준 로그인 창)는 빼야 합니다 — 우리 CSP의
+        // frame-ancestors 'none'·X-Frame-Options DENY가 붙으면 앱이 같은
+        // 주소의 로그인 iframe(/__/auth/iframe)을 못 띄웁니다.
+        source: "/:path((?!__/).*)",
         headers: [
           { key: "Content-Security-Policy", value: csp },
           { key: "X-Content-Type-Options", value: "nosniff" },
