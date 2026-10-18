@@ -26,8 +26,10 @@
 // 주소로 엽니다(`/study?open=kwl|notes|attendance|fruit` — 공부방이 열고
 // 주소를 지웁니다). 같은 창을 여기에 한 벌 더 만들면 두 곳이 어긋납니다.
 //
-// [끌어 옮기기]
-// 동그라미를 누른 채 끌면 자리를 옮깁니다(6px 넘게 움직였을 때만 — 그 아래는
+// [끌어 옮기기 — 교사만]
+// 학생 화면의 동그라미는 늘 기본 자리(오른쪽 아래)에 고정입니다(선생님 요청) —
+// 끌리지 않고, 이 기기에 저장된 자리가 있어도 쓰지 않습니다.
+// 교사는 동그라미를 누른 채 끌면 자리를 옮깁니다(6px 넘게 움직였을 때만 — 그 아래는
 // 누르기). 자리는 이 기기에 화면 비율로 기억합니다(localStorage `hub_fab_pos`, 셈은
 // lib/hubPlace.js). 옮긴 자리가 왼쪽 · 위쪽 절반이면 큰 원과 메신저 창이 화면
 // 가운데 쪽으로 펼쳐집니다(`is-left` · `is-top`). 옮긴 뒤에는 교사의 '방송 종료'
@@ -176,11 +178,13 @@ export default function FloatingHub({ classId: pageClassId, user, isTeacher, lif
       /* 저장소를 못 쓰는 창 — 이번 화면에서만 그 자리 */
     }
   }, [pos, dragging]);
-  const place = hubPlacement(pos, view.w, view.h);
+  // 학생은 늘 기본 자리(끌기 없음 · 저장된 자리도 안 씀)
+  const canDrag = !!isTeacher;
+  const place = canDrag ? hubPlacement(pos, view.w, view.h) : null;
 
   function onFabPointerDown(e) {
     draggedRef.current = false;
-    if (e.button !== 0) return;
+    if (!canDrag || e.button !== 0) return;
     const r = fabRef.current?.getBoundingClientRect();
     if (!r) return;
     dragRef.current = {
@@ -366,6 +370,7 @@ export default function FloatingHub({ classId: pageClassId, user, isTeacher, lif
       ref={rootRef}
       className={[
         "hub-root",
+        canDrag ? "can-drag" : "",
         place ? "is-placed" : lifted ? "is-lifted" : "",
         place?.isLeft ? "is-left" : "",
         place?.isTop ? "is-top" : "",
@@ -439,7 +444,15 @@ export default function FloatingHub({ classId: pageClassId, user, isTeacher, lif
         onPointerCancel={onFabPointerEnd}
         aria-expanded={menuOpen}
         aria-label={msgOpen ? "메신저 닫기" : menuOpen ? "메뉴 닫기" : "메신저와 바로가기 열기"}
-        title={msgOpen ? "메신저 닫기" : menuOpen ? "닫기" : "메신저 · 바로가기 (끌어서 옮길 수 있어요)"}
+        title={
+          msgOpen
+            ? "메신저 닫기"
+            : menuOpen
+              ? "닫기"
+              : canDrag
+                ? "메신저 · 바로가기 (끌어서 옮길 수 있어요)"
+                : "메신저 · 바로가기"
+        }
       >
         <span className="hub-fab-icon" aria-hidden="true">
           {fabOpen ? <span className="hub-fab-x">×</span> : <ChatIcon />}

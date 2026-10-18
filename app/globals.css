@@ -31602,6 +31602,9 @@ h4.attendance-seat-help { margin-top: 16px; }
 .hub-root.is-dragging .hub-disc,
 .hub-root.is-dragging .msgr { transition: none; }
 .hub-root.is-dragging .hub-fab { cursor: grabbing; transform: scale(1.06); }
+/* 끌 수 있는 것은 교사의 동그라미뿐 — 손가락으로 끌 때 화면이 대신 구르지 않게.
+   학생 동그라미는 그대로 두어 그 위에서 시작한 손짓도 화면을 굴립니다. */
+.hub-root.can-drag .hub-fab { touch-action: none; }
 .hub-root.is-left .hub-disc { right: auto; left: var(--hub-left); }
 .hub-root.is-top .hub-disc { bottom: auto; top: var(--hub-top); }
 .hub-root.is-left .hub-disc { --hub-ox: 28px; }
@@ -31625,7 +31628,6 @@ h4.attendance-seat-help { margin-top: 16px; }
   height: 56px;
   border-radius: 50%;
   border: none;
-  touch-action: none; /* 손가락으로 끌 때 화면이 대신 구르지 않게 */
   background: var(--primary);
   color: #fff;
   display: flex;
