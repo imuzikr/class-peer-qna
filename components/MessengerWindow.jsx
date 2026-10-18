@@ -27,6 +27,10 @@
 // 원문 말은 고치지 않습니다 — 인용은 새 말에 붙는 사본입니다. 받은 말의 인용을
 // 누르면 원문으로 굴러가 잠깐 밝아집니다. 인용 빼기는 ×, 또는 글이 빈 채 Esc.
 //
+// [읽음] 연 방 하나의 읽음 문서(chatRoomReads/{방} — { [uid]: ms })를 구독해
+// 말마다 '읽음'을 답니다. 1:1은 내 말에만 '읽음 · 안 읽음', 모둠은 모든 말에
+// '읽음 n/N'(보낸 사람을 뺀 모둠원 + 선생님) — 누르면 누가 읽었는지 펼칩니다.
+//
 // [공지] 반 공지(상단바 확성기로 보낸 것)의 최근 3건 — 학생은 '공지' 탭, 교사는
 // 대화 목록 맨 위. 발송 기록(classes/{cId}/classNotices)을 읽습니다.
 // =============================================================
@@ -35,6 +39,9 @@ import {
   sendChatMessage,
   deleteChatMessage,
   markChatRoomSeen,
+  subscribeRoomReads,
+  markRoomRead,
+  fetchClass,
   fetchClassRosterProfiles,
   subscribeClassNotices,
 } from "@/lib/store";
@@ -50,6 +57,8 @@ import {
   chatPlainText,
   chatQuoteText,
   cleanChatQuote,
+  roomParticipants,
+  chatReceipt,
   isGroupRoom,
   CHAT_NOTICE_LIMIT,
 } from "@/lib/messenger";
@@ -211,6 +220,7 @@ export default function MessengerWindow({
     setError("");
     setConfirmDel(null);
     setQuote(null);
+    setReceiptOpen(null);
   }, [room]);
 
   // ── 인용 — 말풍선 하나 안에서 고른 글만 받습니다(이름 · 시각 · 다른 말풍선에
@@ -280,6 +290,46 @@ export default function MessengerWindow({
     return () => clearTimeout(t);
   }, [flashId]);
   const threadIds = useMemo(() => new Set(thread.map((m) => m.id)), [thread]);
+
+  // ── 읽음 — 연 방 하나의 읽음 문서. null은 '아직 안 옴'(그 전에는 제 칸을 안 씀) ──
+  const [roomReads, setRoomReads] = useState(null);
+  useEffect(() => {
+    setRoomReads(null);
+    if (!classId || !room) return undefined;
+    return subscribeRoomReads(classId, room, setRoomReads);
+  }, [classId, room]);
+  const myReadMs = roomReads?.[myUid] ?? 0;
+  useEffect(() => {
+    if (!room || !roomReads) return;
+    const mark = roomSeenMark(messages, room);
+    // 안 읽은 수(chatReads)와 따로 봅니다 — 한쪽 쓰기가 실패해도 다른 쪽이 다음에 따라잡게.
+    if (mark > myReadMs) {
+      markRoomRead(classId, myUid, room, mark).catch((e) =>
+        console.warn("[메신저] 읽음을 못 적었어요:", e?.code, e?.message)
+      );
+    }
+  }, [room, roomReads, myReadMs, messages, classId, myUid]);
+  // 선생님 — 교사 화면은 나(규칙이 반을 만든 교사에게만 메신저를 엶), 학생은 반 문서의
+  // 만든 사람을 한 번 읽습니다(반이 바뀔 때만).
+  const [ownerUid, setOwnerUid] = useState(null);
+  useEffect(() => {
+    if (isTeacher || !classId) { setOwnerUid(null); return undefined; }
+    let alive = true;
+    fetchClass(classId).then((c) => { if (alive) setOwnerUid(c?.createdBy ?? null); });
+    return () => { alive = false; };
+  }, [isTeacher, classId]);
+  const teacherUid = isTeacher ? myUid : ownerUid;
+  const participants = useMemo(
+    () => (room ? roomParticipants({ room, groups, teacher: teacherUid ? { uid: teacherUid, name: "선생님" } : null }) : []),
+    [room, groups, teacherUid]
+  );
+  // 누가 읽었는지 펼친 말(모둠) — 한 번에 하나
+  const [receiptOpen, setReceiptOpen] = useState(null);
+  // 맨 아래 말의 목록을 펴면 대화 칸 밖으로 나가므로, 펼친 목록이 보이게 굴립니다.
+  useEffect(() => {
+    if (!receiptOpen) return;
+    scrollRef.current?.querySelector(".msgr-receipt-list")?.scrollIntoView({ block: "nearest" });
+  }, [receiptOpen]);
   // 인용한 원문이 내 말이면 이름 대신 '내 말'로(원문이 목록에 있을 때만 압니다)
   const quotedMine = useMemo(
     () => new Set(thread.filter((m) => m.fromUid === myUid).map((m) => m.id)),
@@ -528,6 +578,10 @@ export default function MessengerWindow({
                 (i === 0 || thread[i - 1].fromUid !== m.fromUid || key !== prevKey);
               const q = cleanChatQuote(m.quote);
               const qHere = !!q && threadIds.has(q.id);
+              // 읽음 — 1:1은 내 말에만, 모둠은 모든 말에(보낸 사람을 뺀 참여자 기준)
+              const rc = roomReads && (groupTalk || mine) ? chatReceipt(m, participants, roomReads) : null;
+              const rcAll = !!rc && rc.read.length === rc.total;
+              const nameOf = (p) => (p.uid === myUid ? "나" : p.name);
               return (
                 <div key={m.id}>
                   {key !== prevKey && (
@@ -565,6 +619,27 @@ export default function MessengerWindow({
                     )}
                     <span className="msgr-msg-meta">
                       {m.at ? chatTimeLabel(t) : "보내는 중…"}
+                      {rc && rc.total > 0 && (
+                        groupTalk ? (
+                          <>
+                            {" · "}
+                            <button
+                              type="button"
+                              className={`msgr-receipt${rcAll ? " is-all" : ""}`}
+                              aria-expanded={receiptOpen === m.id}
+                              title={rcAll ? "모두 읽었어요" : `아직 안 읽음: ${rc.unread.map(nameOf).join(", ")}`}
+                              onClick={() => setReceiptOpen((cur) => (cur === m.id ? null : m.id))}
+                            >
+                              읽음 {rc.read.length}/{rc.total}
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            {" · "}
+                            <span className={`msgr-receipt${rcAll ? " is-all" : ""}`}>{rcAll ? "읽음" : "안 읽음"}</span>
+                          </>
+                        )
+                      )}
                       {isTeacher && m.at && (
                         <span className={`msgr-del-wrap${confirmDel === m.id ? " is-sure" : ""}`}>
                           {" · "}
@@ -585,6 +660,18 @@ export default function MessengerWindow({
                         </span>
                       )}
                     </span>
+                    {rc && receiptOpen === m.id && (
+                      <div className="msgr-receipt-list">
+                        <span>
+                          <b>읽음 {rc.read.length}</b> {rc.read.map(nameOf).join(" · ") || "아직 없어요"}
+                        </span>
+                        {rc.unread.length > 0 && (
+                          <span>
+                            <b>안 읽음 {rc.unread.length}</b> {rc.unread.map(nameOf).join(" · ")}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               );

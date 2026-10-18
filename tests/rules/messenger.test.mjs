@@ -159,6 +159,40 @@ describe("간편 메신저 규칙", () => {
     });
   });
 
+  describe("방의 읽음(chatRoomReads) — 말풍선의 읽음 n/N", () => {
+    const rr = (db, room) => doc(db, "classes", "cA", "chatRoomReads", room);
+    it("모둠원은 제 칸만 쓰고(앱과 같은 merge), 그 방의 읽음을 읽는다", async () => {
+      const s1 = asStudent(env, "stu1").firestore();
+      const s2 = asStudent(env, "stu2").firestore();
+      await assertSucceeds(setDoc(rr(s1, "grp_group_1"), { stu1: 100 }, { merge: true }));
+      await assertSucceeds(setDoc(rr(s2, "grp_group_1"), { stu2: 200 }, { merge: true }));
+      await assertSucceeds(getDoc(rr(s1, "grp_group_1")));
+    });
+    it("남의 칸은 못 쓴다(만들 때도 고칠 때도)", async () => {
+      const s1 = asStudent(env, "stu1").firestore();
+      await assertFails(setDoc(rr(s1, "grp_group_1"), { stu2: 999 }, { merge: true }));
+      await assertSucceeds(setDoc(rr(s1, "grp_group_1"), { stu1: 1 }, { merge: true }));
+      await assertFails(setDoc(rr(s1, "grp_group_1"), { stu1: 2, stu2: 2 }, { merge: true }));
+      await assertFails(setDoc(rr(s1, "grp_group_1"), { stu1: "많이" }, { merge: true }));
+    });
+    it("남의 모둠 방 · 남의 1:1 방은 읽지도 쓰지도 못한다", async () => {
+      const s1 = asStudent(env, "stu1").firestore();
+      await assertFails(getDoc(rr(s1, "grp_group_2")));
+      await assertFails(setDoc(rr(s1, "grp_group_2"), { stu1: 1 }, { merge: true }));
+      await assertFails(getDoc(rr(s1, "dm_stu2")));
+    });
+    it("1:1 — 학생과 담당 교사가 읽고 쓴다, 남의 반 교사는 못 본다", async () => {
+      await assertSucceeds(setDoc(rr(asStudent(env, "stu1").firestore(), "dm_stu1"), { stu1: 5 }, { merge: true }));
+      await assertSucceeds(setDoc(rr(asTeacher(env, "teacherA").firestore(), "dm_stu1"), { teacherA: 6 }, { merge: true }));
+      await assertSucceeds(getDoc(rr(asStudent(env, "stu1").firestore(), "dm_stu1")));
+      await assertFails(getDoc(rr(asTeacher(env, "teacherB").firestore(), "dm_stu1")));
+    });
+    it("지우기는 아무도 못 한다", async () => {
+      await seed(env, (db) => setDoc(rr(db, "dm_stu1"), { stu1: 5 }));
+      await assertFails(deleteDoc(rr(asTeacher(env, "teacherA").firestore(), "dm_stu1")));
+    });
+  });
+
   describe("읽음 표시", () => {
     const reads = (db, uid) => doc(db, "classes", "cA", "chatReads", uid);
     it("본인 것만 쓰고 읽는다(앱과 같은 merge 모양)", async () => {

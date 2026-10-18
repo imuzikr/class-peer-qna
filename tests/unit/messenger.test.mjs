@@ -116,3 +116,20 @@ test("인용 — 고른 글을 한 줄로, 한 글자는 무시, 천장에서 '�
   assert.equal(cleanChatQuote({ id: "m1", text: "x" }), null);
   assert.equal(cleanChatQuote(null), null);
 });
+
+test("읽음 — 참여자는 모둠원 + 선생님(1:1은 학생 + 선생님), 보낸 사람은 뺌", async () => {
+  const { roomParticipants, chatReceipt } = await import("@/lib/messenger");
+  const groups = [{ id: "group_1", memberUids: ["s1", "s2", "s3"], members: [{ uid: "s1", name: "김하늘" }, { uid: "s2", name: "이도윤" }] }];
+  const teacher = { uid: "t", name: "선생님" };
+  const ps = roomParticipants({ room: "grp_group_1", groups, teacher });
+  assert.deepEqual(ps.map((p) => [p.uid, p.name]), [["s1", "김하늘"], ["s2", "이도윤"], ["s3", "이름 미설정"], ["t", "선생님"]]);
+  assert.deepEqual(roomParticipants({ room: "dm_s1", teacher }).map((p) => p.uid), ["s1", "t"]);
+  assert.deepEqual(roomParticipants({ room: "grp_none", groups, teacher }).map((p) => p.uid), ["t"]);
+
+  const m = { fromUid: "s1", at: { toMillis: () => 2000 } };
+  const r = chatReceipt(m, ps, { s2: 2000, s3: 1500, t: 9000, s1: 0 });
+  assert.equal(r.total, 3);
+  assert.deepEqual(r.read.map((p) => p.uid), ["s2", "t"]);
+  assert.deepEqual(r.unread.map((p) => p.uid), ["s3"]);
+  assert.equal(chatReceipt({ fromUid: "s1", at: null }, ps, {}), null);
+});

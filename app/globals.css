@@ -31953,6 +31953,33 @@ h4.attendance-seat-help { margin-top: 16px; }
 .msgr-del:hover { color: var(--text); }
 .msgr-del--sure { color: var(--danger); font-weight: 700; }
 
+/* 읽음 — 시각 옆에 옅게, 모두 읽었으면 진한 살구. 모둠은 눌러 누가 읽었는지 펼칩니다. */
+.msgr-receipt {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: var(--text-faint);
+}
+button.msgr-receipt { cursor: pointer; text-decoration: underline dotted; text-underline-offset: 2px; }
+button.msgr-receipt:hover { color: var(--text-sub); }
+.msgr-receipt.is-all { color: var(--primary-dark); font-weight: 700; }
+.msgr-receipt-list {
+  max-width: 82%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 4px 4px 0;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: var(--bg-deep);
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--text-sub);
+  overflow-wrap: anywhere;
+}
+.msgr-receipt-list b { color: var(--text); margin-right: 4px; }
+
 /* 인용 답장 — 말풍선 위에 붙는 옅은 한 덩이(왼쪽 살구 선). 말풍선과 같은 폭 천장이고
    두 줄에서 접습니다. 누르면 원문으로 굴러갑니다. */
 .msgr-quote {

@@ -26,6 +26,7 @@ const CLASS_SUBCOLLECTIONS = [
   "lessonMemos",       // 수업 메모 — 교사가 수업 중 적어 둔 것
   "chatMessages",      // 간편 메신저의 말 — 선생님 ↔ 학생 · 모둠 대화(실명 이름표)
   "chatReads",         // 간편 메신저의 읽음 표시
+  "chatRoomReads",     // 간편 메신저 — 방마다 누가 어디까지 읽었나(말풍선의 읽음)
 ];
 
 // classId 필드로 묶여 있는 최상위 컬렉션들.
