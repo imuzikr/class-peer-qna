@@ -29,17 +29,20 @@
 // [읽는 문서]
 // 안 읽은 말 배지 때문에 반을 고른 동안은 늘 구독합니다 — 학생은 제 방 둘
 // (등호 질의 둘) + 모둠 문서 + 읽음 표시, 교사는 반의 최근 말 300개 + 모둠
-// 문서 + 읽음 표시. 교사의 학생 명단은 **메신저를 열었을 때만** 읽습니다.
+// 문서 + 읽음 표시(+ 교사는 반 목록). 교사의 학생 명단은 **메신저를 열었을
+// 때만** 읽습니다. 교사의 배지는 메신저 창에서 고른 반(처음엔 공부방의 반)의 것입니다.
 // =============================================================
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  subscribeClasses,
   subscribeClassChat,
   subscribeRoomsChat,
   subscribeChatReads,
   subscribeStudyGroupAssignment,
 } from "@/lib/store";
 import { dmRoom, groupRoom, totalUnread } from "@/lib/messenger";
+import { isFirebaseConfigured } from "@/lib/firebase";
 import MessengerWindow from "./MessengerWindow";
 import {
   IconLogo,
@@ -120,7 +123,10 @@ function ChatIcon({ size = 26 }) {
   );
 }
 
-export default function FloatingHub({ classId, user, isTeacher, lifted = false }) {
+// classId — 지금 보는 반(교사는 공부방에서 고른 반, 학생은 소속 반).
+// 교사의 메신저는 이와 따로 **창 맨 위에서 반을 고릅니다**(chatClassId) —
+// 어느 화면에서든 원하는 반과 대화하고, 공부방의 반은 안 바뀝니다.
+export default function FloatingHub({ classId: pageClassId, user, isTeacher, lifted = false }) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [msgOpen, setMsgOpen] = useState(false);
@@ -130,6 +136,38 @@ export default function FloatingHub({ classId, user, isTeacher, lifted = false }
   const rootRef = useRef(null);
   const fabRef = useRef(null);
   const myUid = user?.uid;
+
+  // ── 교사 — 내가 맡은 반(보관 안 된 것, 이름순) ──
+  // 규칙이 메신저를 **반을 만든 교사**에게만 열어 두어(ownsClass) 최고 관리자도
+  // 제 반만 셉니다. 반 목록은 문서 수가 적어 늘 구독해도 가볍습니다.
+  // 데모 모드는 접속마다 uid가 새로 나와 '내가 만든 반'이 없으므로 보이는 반 전부.
+  const [teacherClasses, setTeacherClasses] = useState([]);
+  useEffect(() => {
+    if (!isTeacher || !myUid) { setTeacherClasses([]); return undefined; }
+    return subscribeClasses((list) =>
+      setTeacherClasses(
+        list
+          .filter((c) => !c.archived && (!isFirebaseConfigured || c.createdBy === myUid))
+          .sort((a, b) => String(a.name ?? "").localeCompare(String(b.name ?? ""), "ko", { numeric: true }))
+      )
+    );
+  }, [isTeacher, myUid]);
+
+  // 교사의 메신저 반 — 처음엔 공부방에서 고른 반(없으면 첫 반). 창이 닫혀 있는
+  // 동안은 공부방의 반을 따라가고, 창에서 고른 반은 창이 떠 있는 동안 지킵니다.
+  const [chatClassId, setChatClassId] = useState(null);
+  const msgOpenRef = useRef(false);
+  useEffect(() => {
+    if (!isTeacher) return;
+    const valid = (id) => id && teacherClasses.some((c) => c.id === id);
+    setChatClassId((cur) => {
+      if (msgOpenRef.current && valid(cur)) return cur;
+      if (valid(pageClassId)) return pageClassId;
+      if (valid(cur)) return cur;
+      return teacherClasses[0]?.id ?? pageClassId ?? null;
+    });
+  }, [isTeacher, pageClassId, teacherClasses]);
+  const classId = isTeacher ? chatClassId : pageClassId;
 
   // ── 모둠 · 말 · 읽음 표시 ──
   const [groups, setGroups] = useState([]);
@@ -149,7 +187,8 @@ export default function FloatingHub({ classId, user, isTeacher, lifted = false }
 
   const [messages, setMessages] = useState([]);
   useEffect(() => {
-    if (!classId || !myUid) { setMessages([]); return undefined; }
+    setMessages([]); // 앞 반의 말이 새 반 목록에 한 박자 남지 않게
+    if (!classId || !myUid) return undefined;
     if (isTeacher) return subscribeClassChat(classId, setMessages);
     return subscribeRoomsChat(classId, studentRoomsKey.split("|").filter(Boolean), setMessages);
   }, [classId, myUid, isTeacher, studentRoomsKey]);
@@ -202,11 +241,17 @@ export default function FloatingHub({ classId, user, isTeacher, lifted = false }
     else setOpened(true);
   }, [menuOpen]);
 
-  // 반(이나 역할)이 바뀌면 접습니다 — 열려 있던 방은 앞 반의 것입니다.
   useEffect(() => {
+    msgOpenRef.current = msgOpen;
+  }, [msgOpen]);
+
+  // 학생의 반(이나 역할)이 바뀌면 접습니다 — 열려 있던 방은 앞 반의 것입니다.
+  // 교사는 창 안에서 반을 바꾸므로 접지 않습니다(창이 방을 반과 짝으로 듭니다).
+  useEffect(() => {
+    if (isTeacher) return;
     setMsgOpen(false);
     setMenuOpen(false);
-  }, [classId, isTeacher]);
+  }, [pageClassId, isTeacher]);
 
   function pick(item) {
     setMenuOpen(false);
@@ -297,6 +342,8 @@ export default function FloatingHub({ classId, user, isTeacher, lifted = false }
       {msgOpen && (
         <MessengerWindow
           classId={classId}
+          classes={isTeacher ? teacherClasses : []}
+          onClassChange={setChatClassId}
           user={user}
           isTeacher={isTeacher}
           groups={groups}

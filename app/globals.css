@@ -31989,3 +31989,72 @@ h4.attendance-seat-help { margin-top: 16px; }
   .msgr { transition: none; animation: none; }
   .hub-disc.is-open .hub-item { animation: none; }
 }
+
+/* 메신저 — 교사의 반 고르기 줄 · 학생의 대화 탭(선생님 · 우리 모둠) */
+.msgr-classbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-deep);
+  flex-shrink: 0;
+}
+.msgr-classbar label { font-size: 12px; font-weight: 700; color: var(--text-sub); flex-shrink: 0; }
+.msgr-class-select {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  padding: 4px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--dark);
+  cursor: pointer;
+}
+.msgr-class-name { font-size: 13.5px; font-weight: 700; color: var(--dark); }
+.msgr-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.msgr-tab {
+  position: relative;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-sub);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 10px;
+}
+.msgr-tab:hover:not(:disabled):not(.on) { background: var(--bg-deep); color: var(--text); }
+.msgr-tab.on { background: var(--primary); border-color: var(--primary); color: #fff; }
+.msgr-tab:disabled { color: var(--text-faint); background: var(--bg-deep); cursor: default; }
+.msgr-tab-badge {
+  display: inline-block;
+  min-width: 18px;
+  height: 18px;
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 11px;
+  line-height: 18px;
+  text-align: center;
+  vertical-align: 1px;
+  box-sizing: border-box;
+}

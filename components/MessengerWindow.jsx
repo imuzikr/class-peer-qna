@@ -44,9 +44,23 @@ function Avatar({ text, group = false }) {
   );
 }
 
-export default function MessengerWindow({ classId, user, isTeacher, groups = [], messages = [], seen = {}, onClose }) {
+export default function MessengerWindow({
+  classId,
+  user,
+  isTeacher,
+  groups = [],
+  messages = [],
+  seen = {},
+  classes = [],
+  onClassChange = null,
+  onClose,
+}) {
   const myUid = user?.uid;
-  const [room, setRoom] = useState(null);
+  // 고른 방은 **그 반과 짝으로** 듭니다 — 교사가 반을 바꾸는 순간 앞 반의 방이
+  // 새 반의 이름으로 한 박자 남지 않게(읽음 표시가 엉뚱한 반에 적히지 않게).
+  const [roomSel, setRoomSel] = useState({ cls: classId, room: null });
+  const room = roomSel.cls === classId ? roomSel.room : null;
+  const setRoom = (next) => setRoomSel({ cls: classId, room: next });
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
@@ -80,12 +94,18 @@ export default function MessengerWindow({ classId, user, isTeacher, groups = [],
   const current = room ? allRows.find((r) => r.room === room) ?? null : null;
   const thread = useMemo(() => (room ? roomMessages(messages, room) : []), [messages, room]);
 
-  // 학생은 방이 둘뿐이라 모둠이 없으면 곧바로 선생님 대화를 엽니다.
+  // ── 학생 — 목록 없이 탭 둘(선생님 · 우리 모둠) ──
+  // 처음에는 안 읽은 말이 있는 쪽, 없으면 선생님 대화를 엽니다.
+  const studentDm = !isTeacher ? rooms.people[0] ?? null : null;
+  const studentGroup = !isTeacher ? rooms.groups[0] ?? null : null;
   useEffect(() => {
-    if (!isTeacher && !room && rooms.groups.length === 0 && rooms.people.length === 1) {
-      setRoom(rooms.people[0].room);
-    }
-  }, [isTeacher, room, rooms.groups.length, rooms.people]);
+    if (isTeacher || room) return;
+    const pick = studentGroup?.unread > 0 && !(studentDm?.unread > 0) ? studentGroup : studentDm;
+    if (pick) setRoom(pick.room);
+    // 처음 한 번만 고릅니다 — 안 읽은 수가 바뀔 때마다 다시 고르면 학생이 고른
+    // 탭이 저절로 넘어갑니다(그 뒤로는 학생이 탭으로 고름).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isTeacher, room, studentDm?.room]);
 
   // ── 연 방은 '여기까지 봤다' ──
   const seenMs = room ? seen?.[room] ?? 0 : 0;
@@ -145,8 +165,8 @@ export default function MessengerWindow({ classId, user, isTeacher, groups = [],
     if (cleanChatText(draft)) return;
     e.preventDefault();
     e.stopPropagation();
-    // 학생이 방 하나뿐이면 목록이 없으니 곧바로 닫습니다.
-    if (room && (isTeacher || allRows.length > 1)) setRoom(null);
+    // 교사는 대화 → 목록 → 닫기, 학생은 목록이 없어 곧바로 닫습니다.
+    if (room && isTeacher) setRoom(null);
     else onClose?.();
   }
 
@@ -161,7 +181,7 @@ export default function MessengerWindow({ classId, user, isTeacher, groups = [],
       onKeyDown={onKeyDown}
     >
       <header className="msgr-head">
-        {room && (isTeacher || allRows.length > 1) ? (
+        {room && isTeacher ? (
           <button type="button" className="msgr-back" onClick={() => setRoom(null)} aria-label="대화 목록으로">
             ‹
           </button>
@@ -185,7 +205,61 @@ export default function MessengerWindow({ classId, user, isTeacher, groups = [],
         </button>
       </header>
 
-      {!room ? (
+      {/* 교사 — 맨 위에서 반을 고릅니다. 공부방에서 고른 반과 따로라, 어느
+          화면에서든 원하는 반과 대화합니다(공부방의 반은 안 바뀝니다). */}
+      {isTeacher && classes.length > 0 && (
+        <div className="msgr-classbar">
+          <label htmlFor="msgr-class">반</label>
+          {classes.length > 1 ? (
+            <select
+              id="msgr-class"
+              className="msgr-class-select"
+              value={classId ?? ""}
+              onChange={(e) => onClassChange?.(e.target.value)}
+            >
+              {classes.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <span id="msgr-class" className="msgr-class-name">{classes[0].name}</span>
+          )}
+        </div>
+      )}
+
+      {/* 학생 — 선생님과 할지 모둠에서 할지 고릅니다 */}
+      {!isTeacher && (
+        <div className="msgr-tabs" role="tablist" aria-label="대화 고르기">
+          {[
+            { row: studentDm, label: "선생님", empty: "" },
+            { row: studentGroup, label: studentGroup?.title ?? "우리 모둠", empty: "아직 모둠이 정해지지 않았어요" },
+          ].map(({ row, label, empty }) => (
+            <button
+              key={label}
+              type="button"
+              role="tab"
+              aria-selected={!!row && room === row.room}
+              className={`msgr-tab${row && room === row.room ? " on" : ""}`}
+              disabled={!row}
+              title={row ? `${label}과(와) 대화합니다` : empty}
+              onClick={() => row && setRoom(row.room)}
+            >
+              {label}
+              {row?.unread > 0 && room !== row.room && (
+                <span className="msgr-tab-badge" aria-label={`안 읽은 말 ${row.unread}개`}>
+                  {row.unread > 99 ? "99+" : row.unread}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {!room && !isTeacher ? (
+        <p className="msgr-empty msgr-empty--center">대화를 불러오는 중이에요…</p>
+      ) : !room ? (
         <div className="msgr-list">
           {[
             { key: "groups", title: isTeacher ? "모둠 대화" : "우리 모둠", rows: rooms.groups },
