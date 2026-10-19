@@ -27,6 +27,7 @@ import {
 } from "@/lib/store";
 import {
   basketSummary, basketRoom, entryAmount, entryMax, myBasketEntry, canEnterEvent,
+  planFruitReceipt,
 } from "@/lib/fruitBasket";
 import { flyFruits } from "@/components/fruitFly";
 import ConfirmModal from "@/components/ConfirmModal";
@@ -89,7 +90,7 @@ export default function FruitBasketModal({
           <div className="fruit-basket-side">
             <BasketTotal sum={sum} loading={entries === null} />
             {isTeacher ? (
-              <TeacherPanel classId={classId} sum={sum} entryCount={(entries ?? []).length} />
+              <TeacherPanel classId={classId} sum={sum} entries={entries} entryCount={(entries ?? []).length} />
             ) : (
               <StudentPanel
                 classId={classId}
@@ -129,12 +130,19 @@ function BasketTotal({ sum, loading }) {
 }
 
 // 교사 — 이벤트 현황(응모 · 응모 안 함 · 아직 — 수만) + '이벤트 접수' · '이벤트 취소'.
-// **접수하면 바구니에 담긴 과일이 모두 처리되고(돌려주지 않음) 바구니가 비어
-// 새 이벤트가 시작됩니다**(선생님 요청 — receiveFruitEvent). 누가 응모했는지는
+// **접수하면 응모한 과일을 100개까지만 처리하고(돌려주지 않음) 넘친 것은
+// 바구니에 남겨 새 이벤트로 잇습니다**(선생님 요청 — receiveFruitEvent ·
+// planFruitReceipt — 먼저 응모한 학생부터). 누가 응모했는지는
 // 기록(fruitEvents) 한 장에 남습니다. 되돌릴 수 없는 일이라 되묻고 합니다.
 // 취소하면 바구니에 든 과일을 학생마다 모두 돌려주고 바구니를 0개로 비웁니다
 // (응모 선택도 함께 걷힘 — cancelFruitEvent). 이것도 되묻고 합니다.
-function TeacherPanel({ classId, sum, entryCount = 0 }) {
+function TeacherPanel({ classId, sum, entries, entryCount = 0 }) {
+  // 접수하면 무엇이 처리되고 무엇이 남나 — 단추 · 되묻는 창이 미리 말합니다.
+  const plan = useMemo(() => planFruitReceipt(entries ?? []), [entries]);
+  const canReceive = plan.remove.length + plan.reduce.length > 0;
+  const planText =
+    `응모 ${plan.entrants.length}명 · 과일 ${plan.consumed}개` +
+    (plan.leftover > 0 ? ` (남는 과일 ${plan.leftover}개)` : "");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState(null); // { ok, text }
   const [asking, setAsking] = useState(null); // "receive" | "cancel" | null
@@ -142,7 +150,7 @@ function TeacherPanel({ classId, sum, entryCount = 0 }) {
   // 그 일을 합니다: 점이 꺼진 자리가 곧 안 고른 학생).
 
   async function receive() {
-    if (busy || !entryCount) return;
+    if (busy || !canReceive) return;
     setAsking(null);
     setBusy(true);
     setMsg(null);
@@ -150,7 +158,11 @@ function TeacherPanel({ classId, sum, entryCount = 0 }) {
       const r = await receiveFruitEvent(classId);
       setMsg({
         ok: true,
-        text: `이벤트를 접수했어요. 응모 ${r.entrants}명 · 과일 ${r.fruit}개를 처리하고 바구니를 비웠어요. 새 이벤트가 시작됐어요.`,
+        text:
+          `이벤트를 접수했어요. 응모 ${r.entrants}명 · 과일 ${r.fruit}개를 처리했어요. ` +
+          (r.leftover > 0
+            ? `넘친 과일 ${r.leftover}개는 바구니에 남겨 새 이벤트로 이어져요.`
+            : "바구니를 비웠어요. 새 이벤트가 시작됐어요."),
       });
     } catch (e) {
       console.error("[fruitBasket] 접수 실패:", e?.code ?? e);
@@ -199,10 +211,10 @@ function TeacherPanel({ classId, sum, entryCount = 0 }) {
         type="button"
         className="btn-primary fb-enter-btn fb-receive"
         onClick={() => setAsking("receive")}
-        disabled={busy || !entryCount}
-        title={entryCount ? "바구니의 과일을 모두 처리하고 바구니를 비워 새 이벤트를 시작합니다" : "아직 바구니에 든 것이 없어요"}
+        disabled={busy || !canReceive}
+        title={canReceive ? "응모한 과일을 100개까지 처리하고 새 이벤트를 시작합니다 — 넘친 과일은 바구니에 남아요" : "아직 응모한 과일이 없어요"}
       >
-        {busy ? "처리하는 중…" : entryCount ? `이벤트 접수 (응모 ${sum.enteredAll}명 · 과일 ${sum.total}개)` : "이벤트 접수"}
+        {busy ? "처리하는 중…" : canReceive ? `이벤트 접수 (응모 ${plan.entrants.length}명 · 과일 ${plan.consumed}개)` : "이벤트 접수"}
       </button>
       {/* 이벤트 취소 — 되돌리기 어려운 일이라 접수와 갈라 옅은 단추로 두고 되묻습니다. */}
       <button
@@ -215,7 +227,8 @@ function TeacherPanel({ classId, sum, entryCount = 0 }) {
         이벤트 취소
       </button>
       <p className="fb-help">
-        이벤트를 접수하면 바구니의 과일이 모두 처리되고(돌려주지 않아요) 바구니가 비어 새 이벤트가 시작돼요.
+        이벤트를 접수하면 응모한 과일을 {sum.goal}개까지 처리하고(돌려주지 않아요) 새 이벤트가 시작돼요.
+        {sum.goal}개를 넘친 과일은 먼저 응모한 학생부터 처리하고 남은 것을 바구니에 그대로 둬요.
         자리표의 초록 점은 응모 여부를 고른 학생이에요.
       </p>
       {msg && <p className={`fb-msg ${msg.ok ? "ok" : "err"}`}>{msg.text}</p>}
@@ -224,9 +237,12 @@ function TeacherPanel({ classId, sum, entryCount = 0 }) {
         <ConfirmModal
           icon="🧺"
           title="이벤트 접수"
-          preview={`응모 ${sum.enteredAll}명 · 과일 ${sum.total}개`}
+          preview={planText}
           description={
-            "바구니에 담긴 과일을 모두 처리하고 바구니를 0개로 비웁니다. 과일은 학생에게 돌아가지 않아요.\n" +
+            `응모한 과일을 ${sum.goal}개까지 처리합니다. 처리한 과일은 학생에게 돌아가지 않아요.\n` +
+            (plan.leftover > 0
+              ? `${sum.goal}개를 넘친 ${plan.leftover}개는 바구니에 그대로 남아 새 이벤트로 이어집니다(먼저 응모한 학생부터 처리).\n`
+              : "") +
             "응모한 학생 명단은 기록으로 남고, 곧바로 새 이벤트를 위한 과일 담기가 시작됩니다."
           }
           confirmLabel="이벤트 접수"

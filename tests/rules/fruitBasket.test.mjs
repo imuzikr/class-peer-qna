@@ -244,4 +244,37 @@ describe("fruitBasket — 과일 내놓기", () => {
     await assertFails(updateDoc(doc(t, "classes", C, "fruitEvents", "e1"), { total: 9 }));
     await assertFails(getDocs(collection(asStudent(env, "s1").firestore(), "classes", C, "fruitEvents")));
   });
+  // 100개가 넘을 때 — 다 처리된 문서는 지우고 걸친 한 문서는 남는 수만큼 줄임(앱과 같은 묶음).
+  it("이벤트 접수(100개 넘음) — 담당 교사는 걸친 학생의 과일을 줄여 남김", async () => {
+    await seed(env, async (db) => {
+      await setDoc(basket(db, "s1"), entry("s1", 80, true));
+      await setDoc(basket(db, "s2"), entry("s2", 30, true));
+    });
+    const t = asTeacher(env, "teacherA").firestore();
+    const b = writeBatch(t);
+    b.set(doc(collection(t, "classes", C, "fruitEvents")), {
+      classId: C, byUid: "teacherA", at: serverTimestamp(), total: 100,
+      entrants: [{ uid: "s1", donated: 80 }, { uid: "s2", donated: 20 }], declined: [],
+    });
+    b.delete(basket(t, "s1"));
+    b.update(basket(t, "s2"), { donated: 10, updatedAt: serverTimestamp() });
+    await assertSucceeds(b.commit());
+  });
+
+  it("이벤트 접수(100개 넘음) — 늘리기 · 0으로 · 다른 칸 · 미응모 · 학생 · 다른 반 교사는 거부", async () => {
+    await seed(env, async (db) => {
+      await setDoc(doc(db, "classes", "classZ"), { name: "Z", createdBy: "teacherZ", archived: false });
+      await setDoc(basket(db, "s1"), entry("s1", 30, true));
+      await setDoc(basket(db, "s2"), entry("s2", 5));
+    });
+    const t = asTeacher(env, "teacherA").firestore();
+    const up = (db, u, o) => updateDoc(basket(db, u), { updatedAt: serverTimestamp(), ...o });
+    await assertFails(up(t, "s1", { donated: 40 }));
+    await assertFails(up(t, "s1", { donated: 0 }));
+    await assertFails(up(t, "s1", { donated: 10, entered: false }));
+    await assertFails(up(t, "s2", { donated: 2 }));
+    await assertFails(up(asStudent(env, "s1").firestore(), "s1", { donated: 10 }));
+    await assertFails(up(asTeacher(env, "teacherZ").firestore(), "s1", { donated: 10 }));
+    await assertSucceeds(up(t, "s1", { donated: 10 }));
+  });
 });

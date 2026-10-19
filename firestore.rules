@@ -818,6 +818,16 @@ service cloud.firestore {
                       && request.resource.data.receivedBy == uid()
                       && (resource.data.entered == true
                           || resource.data.get('declined', false) == true);
+        // 교사의 이벤트 접수(100개 넘을 때) — 걸친 한 학생의 과일을 처리한
+        // 만큼 줄여 남깁니다(넘친 몫은 다음 이벤트로). 응모한 문서에만, 줄이기만,
+        // 1개 이상 남게. 과일 수는 안 건드립니다(이미 담을 때 빠짐).
+        allow update: if signedIn() && ownsClassEditable(cId)
+                      && changedOnly(['donated', 'updatedAt'])
+                      && resource.data.entered == true
+                      && request.resource.data.donated is int
+                      && request.resource.data.donated >= 1
+                      && request.resource.data.donated < resource.data.donated
+                      && request.resource.data.updatedAt == request.time;
         allow delete: if isAdmin() || ownsClassEditable(cId);
       }
 

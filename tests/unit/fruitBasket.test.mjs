@@ -10,6 +10,7 @@ import {
   eventChoiceOf,
   isEventPending,
   canEnterEvent,
+  planFruitReceipt,
 } from "@/lib/fruitBasket";
 
 test("entryAmount: 이번에 담을 수 — 가진 과일 안에서 1개 이상", () => {
@@ -115,4 +116,39 @@ test("basketRoom · entryAmount: 바구니는 100개까지 — 넘게는 못 담
   assert.equal(entryAmount("4", 10, 3), 0);  // 남은 자리보다 많음
   assert.equal(entryAmount("1", 10, 0), 0);  // 가득 참
   assert.equal(entryAmount("4", 10), 4);     // room을 안 주면 가진 과일만 봄
+});
+
+test("planFruitReceipt: 100개만 처리하고 넘친 것은 바구니에 남김", () => {
+  const t = (s) => ({ seconds: s });
+  const p = planFruitReceipt([
+    { uid: "c", donated: 30, entered: true, decidedAt: t(30) },
+    { uid: "a", donated: 60, entered: true, decidedAt: t(10) },
+    { uid: "b", donated: 25, entered: true, decidedAt: t(20) },
+    { uid: "d", donated: 5, entered: true, decidedAt: null }, // 서버 시각 전 — 맨 뒤
+    { uid: "e", donated: 0, declined: true },
+    { uid: "f", donated: 0 },
+    { uid: "g", donated: 4 }, // 옛 화면 — 응모 안 했는데 과일이 든 문서
+  ]);
+  assert.equal(p.consumed, 100);
+  assert.deepEqual(p.entrants, [
+    { uid: "a", donated: 60 }, { uid: "b", donated: 25 }, { uid: "c", donated: 15 },
+  ]);
+  assert.deepEqual(p.reduce, [{ uid: "c", donated: 15 }]);
+  assert.deepEqual(p.remove.sort(), ["a", "b", "e", "f"]);
+  assert.deepEqual(p.keep.sort(), ["d", "g"]);
+  assert.deepEqual(p.declined, ["e"]);
+  assert.equal(p.leftover, 15 + 5 + 4);
+});
+
+test("planFruitReceipt: 100개 아래면 응모한 것을 모두 처리", () => {
+  const p = planFruitReceipt([
+    { uid: "a", donated: 40, entered: true },
+    { uid: "b", donated: 2, declined: true }, // 과일이 남은 응모 안 함 — 그대로
+  ]);
+  assert.equal(p.consumed, 40);
+  assert.deepEqual(p.remove, ["a"]);
+  assert.deepEqual(p.keep, ["b"]);
+  assert.deepEqual(p.reduce, []);
+  assert.deepEqual(p.declined, ["b"]);
+  assert.equal(p.leftover, 2);
 });
