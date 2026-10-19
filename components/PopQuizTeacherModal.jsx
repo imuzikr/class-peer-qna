@@ -54,7 +54,7 @@ import { useSeatView } from "@/lib/seatView";
 import { useClassRoster } from "@/lib/useClassRoster";
 import { SeatPickGrid } from "./SeatPickGrid";
 import SeatViewToggle from "./SeatViewToggle";
-import { Caret, PopQuizQuestion, PopQuizStatus, PopQuizThread } from "./PopQuizParts";
+import { PopQuizQuestion, PopQuizStatus, PopQuizThread } from "./PopQuizParts";
 import { IconQuizMemo, IconTrash } from "./StatusIcons";
 
 export default function PopQuizTeacherModal({ classId, board = null, startNew = false, onClose }) {
@@ -67,7 +67,6 @@ export default function PopQuizTeacherModal({ classId, board = null, startNew = 
   const [delAsk, setDelAsk] = useState(null); // 지우기를 되묻는 지난 퀴즈 id
   const [delBusy, setDelBusy] = useState(false);
   const [delErr, setDelErr] = useState(null);
-  const [pastOpen, setPastOpen] = useState(false);
   const [directory, setDirectory] = useState([]);
   const [rewards, setRewards] = useState([]);
   const [seatLayout, setSeatLayout] = useState(null);
@@ -124,8 +123,7 @@ export default function PopQuizTeacherModal({ classId, board = null, startNew = 
   // 목록 — 진행 중인 것까지 모두(보는 중인 줄은 칠해 둠). 지우기는 마친 퀴즈만 —
   // 진행 중인 것은 '퀴즈 마치기' 뒤에 지웁니다(답을 쓰던 학생 화면이 사라지지 않게).
   const past = quizzes ?? [];
-  // 위 칸이 비었으면(진행 중 없음 · 고른 것 없음) 목록을 펴 둡니다.
-  const listOpen = pastOpen || (!showCompose && !quiz);
+  // 목록은 늘 펼쳐 둡니다(선생님 요청 — 한때 여닫는 단추였습니다).
   const pickedStudent = picked ? byUid.get(picked.uid) ?? null : null;
   const closePicked = useCallback(() => setPicked(null), []);
 
@@ -170,7 +168,7 @@ export default function PopQuizTeacherModal({ classId, board = null, startNew = 
                 openQuiz={openQuiz}
                 canCancel={(quizzes ?? []).length > 0}
                 onCancel={() => setComposing(false)}
-                onSent={(id) => { setComposing(false); setSelectedId(id); setPastOpen(false); }}
+                onSent={(id) => { setComposing(false); setSelectedId(id); }}
               />
             ) : quiz ? (
               <section className="pq-now">
@@ -216,18 +214,11 @@ export default function PopQuizTeacherModal({ classId, board = null, startNew = 
 
             {past.length > 0 && (
               <section className="pq-past pq-past--teacher">
-                <button
-                  type="button"
-                  className="pq-past-toggle"
-                  onClick={() => setPastOpen(!listOpen)}
-                  aria-expanded={listOpen}
-                >
-                  <Caret open={listOpen} />
+                <h4 className="pq-past-title-row">
                   퀴즈 목록
                   <span className="pq-past-count">{past.length}</span>
-                </button>
-                {listOpen && (
-                  <ul className="pq-past-list">
+                </h4>
+                <ul className="pq-past-list">
                     {past.map((q) => {
                       const viewing = !showCompose && q.id === quiz?.id;
                       return (
@@ -239,7 +230,7 @@ export default function PopQuizTeacherModal({ classId, board = null, startNew = 
                           <button
                             type="button"
                             className="pq-past-head"
-                            onClick={() => { setSelectedId(q.id); setComposing(false); setPicked(null); setDelAsk(null); setPastOpen(true); }}
+                            onClick={() => { setSelectedId(q.id); setComposing(false); setPicked(null); setDelAsk(null); }}
                             aria-current={viewing ? "true" : undefined}
                             title={viewing ? "지금 보고 있는 퀴즈" : "이 퀴즈의 자리표와 답 보기"}
                           >
@@ -287,8 +278,7 @@ export default function PopQuizTeacherModal({ classId, board = null, startNew = 
                       </li>
                       );
                     })}
-                  </ul>
-                )}
+                </ul>
               </section>
             )}
           </div>
