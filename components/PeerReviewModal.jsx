@@ -16,7 +16,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { backdropClose } from "@/lib/modal";
 import RichTextEditor from "./RichTextEditor";
-import { savePeerReview, deletePeerReview, peerReviewId } from "@/lib/store";
+import { savePeerReview, deletePeerReview, peerReviewId, subscribeMateEntry } from "@/lib/store";
 import { richHtml, stripHtml } from "@/lib/html";
 import { MEMBER_COLORS } from "@/lib/bookColors";
 import { IconLock } from "./StatusIcons";
@@ -35,6 +35,9 @@ export default function PeerReviewModal({
   myReviews = [], // 내가 쓴 것 (fromUid == 나)
   initialUid = null,
   locked = false, // 교사가 잠갔거나 활동이 잠긴 상태
+  // 친구의 글을 왼쪽에 함께 보여 줄 때(모둠 RAFT — 선생님 요청) — (entry) => 화면.
+  // 주면 고른 친구의 기록 한 장을 구독해(subscribeMateEntry) 읽고 감상을 씁니다.
+  renderWork = null,
   onClose,
 }) {
   const mates = useMemo(
@@ -53,6 +56,17 @@ export default function PeerReviewModal({
   }, [myReviews]);
 
   const picked = mates.find((m) => m.uid === pickedUid) ?? null;
+
+  // 고른 친구의 글 — 창이 떠 있는 동안 그 한 장만 구독합니다.
+  const [work, setWork] = useState({ uid: null, entry: null, denied: false });
+  const showWork = !!renderWork;
+  useEffect(() => {
+    if (!showWork || !pickedUid) return undefined;
+    setWork({ uid: null, entry: null, denied: false });
+    return subscribeMateEntry(activity.id, pickedUid, (entry, info) =>
+      setWork({ uid: pickedUid, entry, denied: !!info?.denied })
+    );
+  }, [showWork, activity.id, pickedUid]);
   const existing = pickedUid ? written.get(pickedUid) ?? null : null;
 
   // 사람을 바꾸면 그 친구에게 쓴 글을 불러옵니다(에디터는 initialHtml을
@@ -96,14 +110,14 @@ export default function PeerReviewModal({
   return (
     <div className="modal-backdrop" {...backdropClose(onClose)}>
       <div
-        className="modal peer-modal"
+        className={`modal peer-modal${showWork ? " peer-modal--work" : ""}`}
         role="dialog"
         aria-modal="true"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-head">
           <h3>
-            동료 평가
+            {showWork ? "친구 글 읽고 감상 쓰기" : "동료 평가"}
             <span className="peer-head-group">
               {group?.groupName || `${group?.groupIndex ?? ""}모둠`}
             </span>
@@ -139,6 +153,21 @@ export default function PeerReviewModal({
               })}
             </div>
 
+            <div className={showWork ? "peer-split" : "peer-split peer-split--one"}>
+            {showWork && (
+              <section className="peer-work" aria-label={`${picked?.name ?? "친구"}의 글`}>
+                <h4 className="peer-work-title">{picked?.name ?? "친구"}의 글</h4>
+                {work.uid !== pickedUid ? (
+                  <p className="empty-note">불러오는 중…</p>
+                ) : work.entry ? (
+                  renderWork(work.entry)
+                ) : (
+                  <p className="empty-note">
+                    아직 볼 수 있는 글이 없어요. 친구가 글을 쓰면 여기에 나타나요.
+                  </p>
+                )}
+              </section>
+            )}
             <div className="peer-write">
               <p className="peer-hints">
                 {HINTS.map((h) => (
@@ -151,7 +180,7 @@ export default function PeerReviewModal({
               {locked ? (
                 <>
                   <p className="book-locked-note">
-                    <IconLock size={15} /> 지금은 동료 평가가 잠겨 있어요. 쓴 것은 그대로 남아 있습니다.
+                    <IconLock size={15} /> 지금은 {showWork ? "감상 쓰기" : "동료 평가"}가 잠겨 있어요. 선생님이 열어 주면 쓸 수 있고, 쓴 것은 그대로 남아 있습니다.
                   </p>
                   {existing ? (
                     <div
@@ -171,7 +200,11 @@ export default function PeerReviewModal({
                     setDraft(html);
                     setSavedFor(null);
                   }}
-                  placeholder={`${picked?.name ?? "친구"}에게 한 마디 — 들으며 떠오른 것을 적어 보세요`}
+                  placeholder={
+                    showWork
+                      ? `${picked?.name ?? "친구"}의 글을 읽고 나의 감상을 적어 보세요`
+                      : `${picked?.name ?? "친구"}에게 한 마디 — 들으며 떠오른 것을 적어 보세요`
+                  }
                   /* 간단한 서식만 — 발표를 들으며 쓰는 자리라 도구가 많으면
                      쓰는 일보다 고르는 일이 커집니다. */
                   tools={["bold", "underline", "insertUnorderedList"]}
@@ -200,6 +233,7 @@ export default function PeerReviewModal({
                   {saving ? "저장 중…" : existing ? "고쳐 쓰기" : "저장"}
                 </button>
               </div>
+            </div>
             </div>
           </div>
         )}

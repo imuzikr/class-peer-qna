@@ -21,6 +21,7 @@ export default function GroupMatesRow({
   members = [],
   meUid = null,
   onPick = null,
+  pickTitle = null, // (m) => 툴팁 — 없으면 '…에게 한 마디 쓰기'
   hint = null,
   // 오른쪽 끝에 붙일 것(동료 평가 버튼 등)
   actions = null,
@@ -56,7 +57,7 @@ export default function GroupMatesRow({
               className="mates-chip mates-chip--pick"
               style={style}
               onClick={() => onPick(m)}
-              title={`${m.name}에게 한 마디 쓰기`}
+              title={pickTitle ? pickTitle(m) : `${m.name}에게 한 마디 쓰기`}
             >
               {m.name || "이름 미설정"}
             </button>

@@ -1578,8 +1578,24 @@ service cloud.firestore {
       // 모둠 활동과 달리 제출물이라, 남의 답은 같은 반이어도 보이지 않습니다
       // (본인과 담당 교사만). 학생 답에는 실명이 들어가므로 더 좁게 잠급니다.
       match /entries/{sId} {
+        // 모둠 RAFT — 같은 모둠 친구가 이 글을 읽고 감상을 씁니다(선생님 요청).
+        // 기록이 스스로 적은 모둠(groupId)에 **읽는 나와 글쓴이가 둘 다** 있어야
+        // 합니다 — 글쓴이가 남의 모둠 id를 적어도 자신이 그 명단에 없으면 소용이
+        // 없습니다(동료 평가의 reviewGroupHas와 같은 생각). 모둠 활동(grouped)이고
+        // RAFT일 때만, 물러난 모둠은 뺍니다. 없는 문서는 판정할 모둠이 없어 거부.
+        function mateReadsEntry() {
+          let act = get(/databases/$(database)/documents/bookActivities/$(aId)).data;
+          let gId = resource.data.get('groupId', '');
+          let gPath = /databases/$(database)/documents/bookActivities/$(aId)/groups/$(gId);
+          return act.get('grouped', false) == true
+                 && act.get('type', '') == 'raft'
+                 && gId is string && gId.size() > 0
+                 && exists(gPath)
+                 && get(gPath).data.get('retired', false) != true
+                 && get(gPath).data.get('memberUids', []).hasAll([uid(), sId]);
+        }
         allow read: if signedIn() && (
-          isAdmin() || ownsBookActivity(aId) || sId == uid()
+          isAdmin() || ownsBookActivity(aId) || sId == uid() || mateReadsEntry()
         );
         allow create, update: if signedIn()
                       && sId == uid()

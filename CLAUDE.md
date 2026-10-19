@@ -1132,6 +1132,27 @@ Firebase 미설정 시 자동으로 **데모 모드**로 동작 (새로고침 �
   - 학생 쪽 질의는 `where('fromUid','==',나)`와 `where('toUid','==',나)` 둘로
     나눕니다. 조건 없이 통째로 받으면 남의 평가까지 읽는 일이라 규칙이 막습니다
     (그 사실을 `tests/rules/peerReviews.test.mjs`에 시험으로 박아 두었습니다).
+  - **모둠 RAFT — 친구 이름을 누르면 그 친구의 글을 읽고 이어서 감상을 씁니다**
+    (선생님 요청). 같은 동료 평가 창(`PeerReviewModal`의 `renderWork`)이 넓어져
+    **왼쪽에 친구의 글**(RAFT 한 문장 · 네 요소 · 글쓰기 — `RaftForm`의
+    `MateRaftWork`), **오른쪽에 나의 감상**(지금까지의 한 마디 칸 그대로 —
+    `peerReviews`에 저장)이 섭니다. 760px 아래에서는 위아래.
+    - 이름은 **동료 평가가 잠겨 있어도 단추**입니다 — 글은 읽히고 감상 칸만
+      잠깁니다(창이 그 사실을 적음).
+    - 친구 글은 고른 친구의 기록 **한 장만** 구독합니다(`subscribeMateEntry`).
+      아직 안 썼거나 읽을 수 없으면 '아직 볼 수 있는 글이 없어요'(둘이 같은 모습).
+    - **규칙을 열었습니다**(entries의 `mateReadsEntry`): 기록이 적어 둔 모둠
+      `groupId`에 **읽는 나와 글쓴이가 둘 다** 있어야 읽힙니다 — 동료 평가의
+      `reviewGroupHas`와 같은 생각이라 남의 모둠 id를 적어도 소용이 없습니다.
+      모둠 활동(`grouped`)이고 `type == 'raft'`일 때만, 물러난 모둠(`retired`)은
+      뺍니다. 곁텍스트 · 개인 활동의 기록은 지금까지처럼 본인 · 교사만.
+      시험 `tests/rules/mateEntries.test.mjs`. **코드보다 규칙을 먼저 배포하세요**
+      — 안 그러면 친구 글이 늘 '아직 볼 수 있는 글이 없어요'입니다.
+    - 그래서 학생 기록에 **`groupId`**를 적습니다 — 저장할 때마다
+      (`saveParatextEntry`의 넷째 인자), 그리고 화면을 열 때 적힌 값이 지금
+      모둠과 다르면 맞춥니다(`saveParatextEntryGroup` — 이미 있는 기록에만,
+      잠기면 못 씀). 모둠을 다시 짰거나 이 칸이 생기기 전에 쓴 글은 **글쓴이가
+      활동을 한 번 열어야** 친구에게 보입니다.
 - `classes/{classId}/cornellNotes/{uid}_{날짜}` — **학생 수업 노트(코넬)**
   (classId, uid, date, lessonTitle, cue, notes, summary, feedback)
   - 학생이 수업 중에 오른쪽 서랍(`CornellNoteDrawer`)에서 적는 필기입니다.

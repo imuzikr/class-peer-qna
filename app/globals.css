@@ -21587,6 +21587,27 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
   font-variant-numeric: tabular-nums;
 }
 .peer-modal { width: min(94vw, 620px); }
+/* 모둠 RAFT — 왼쪽 친구의 글 · 오른쪽 나의 감상. .modal의 max-width(640)를 함께 올립니다. */
+.peer-modal--work { width: min(96vw, 1040px); max-width: min(96vw, 1040px); }
+.peer-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.peer-split--one { display: block; }
+.peer-work {
+  border: 1px solid var(--border); border-radius: 12px; background: var(--bg);
+  padding: 12px 14px; max-height: min(60vh, 560px); overflow-y: auto;
+}
+.peer-work-title { margin: 0 0 8px; font-size: 13.5px; font-weight: 800; color: var(--dark); }
+.mate-raft .raft-sentence { margin: 0 0 10px; }
+.mate-raft-plan { margin: 0 0 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.mate-raft-plan > div { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px; min-width: 0; }
+.mate-raft-plan dt { font-size: 11.5px; font-weight: 700; color: var(--text-sub); }
+.mate-raft-plan dd { margin: 2px 0 0; font-size: 13px; color: var(--text); overflow-wrap: anywhere; }
+.mate-raft-plan dd em { font-style: normal; color: var(--text-faint); }
+.mate-raft-write strong { display: block; font-size: 12.5px; color: var(--text-sub); margin-bottom: 4px; }
+.mate-raft-write p { margin: 0; font-size: 14px; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--text); }
+@media (max-width: 760px) {
+  .peer-split { grid-template-columns: minmax(0, 1fr); }
+  .peer-work { max-height: 40vh; }
+}
 .peer-head-group {
   margin-left: 10px;
   font-family: inherit;

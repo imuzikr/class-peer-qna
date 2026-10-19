@@ -15,6 +15,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   subscribeMyParatextEntry,
   saveParatextEntry,
+  saveParatextEntryGroup,
   saveParatextTopic,
   subscribeMyPeerReviews,
   subscribeReceivedPeerReviews,
@@ -57,6 +58,8 @@ export default function RaftForm({ activity, user, onBack }) {
   const [topicAsk, setTopicAsk] = useState(false); // 물어보는 창이 떠 있는지
   // 내가 고친 뒤로는 서버 값이 와도 덮어쓰지 않습니다(입력 중 글자가 튀는 것 방지)
   const dirtyRef = useRef(false);
+  // 내 기록에 적힌 모둠(모둠 RAFT) — null이면 아직 기록이 없음
+  const [savedGroup, setSavedGroup] = useState(null);
   const timerRef = useRef(null);
 
   const locked = !!activity.locked;
@@ -90,9 +93,19 @@ export default function RaftForm({ activity, user, onBack }) {
         setAnswers({ ...emptyRaftAnswers(), ...(entry?.answers ?? {}) });
       }
       setMyTopic(entry?.topic ?? "");
+      setSavedGroup(entry ? entry.groupId ?? "" : null);
       setLoaded(true);
     });
   }, [activity.id, user?.uid]);
+
+  // 모둠 RAFT — 내 기록에 지금 모둠을 적어 둡니다. 같은 모둠 친구가 내 글을
+  // 읽을 수 있는지 규칙이 그 모둠 명단으로 판정하므로, 모둠을 다시 짰거나 이
+  // 칸이 생기기 전에 쓴 글이면 화면을 열 때 맞춥니다(이미 있는 기록에만).
+  const myGroupId = grouped ? myGroup?.id ?? null : null;
+  useEffect(() => {
+    if (!myGroupId || locked || savedGroup === null || savedGroup === myGroupId) return;
+    saveParatextEntryGroup(activity.id, user, myGroupId).catch(() => {});
+  }, [myGroupId, savedGroup, locked, activity.id, user]);
 
   // 활동에도 없고 내가 적은 것도 없으면 한 번 물어봅니다 — 무엇을 읽고 쓰는
   // 건지 모른 채 역할·청중을 정하기 시작하지 않도록. 닫으면 다시 뜨지 않고,
@@ -123,14 +136,14 @@ export default function RaftForm({ activity, user, onBack }) {
     setStatus("saving");
     timerRef.current = setTimeout(async () => {
       try {
-        await saveParatextEntry(activity.id, user, answers);
+        await saveParatextEntry(activity.id, user, answers, myGroupId ? { groupId: myGroupId } : {});
         setStatus("saved");
       } catch {
         setStatus("idle");
       }
     }, SAVE_DELAY);
     return () => clearTimeout(timerRef.current);
-  }, [answers, activity.id, user, locked]);
+  }, [answers, activity.id, user, locked, myGroupId]);
 
   function edit(key, value) {
     dirtyRef.current = true;
@@ -238,14 +251,11 @@ export default function RaftForm({ activity, user, onBack }) {
               group={myGroup}
               members={mates}
               meUid={user?.uid}
-              /* 이름을 누르면 그 친구에게 바로 — 발표를 들으며 쓰는 흐름.
-                 잠겨 있을 때는 이름이 단추가 되지 않습니다(눌러도 못 쓰는
-                 단추는 '고장 났나' 하게 만듭니다). */
-              onPick={
-                mates.length > 1 && !peerLocked
-                  ? (m) => setPeerOpen({ uid: m.uid })
-                  : null
-              }
+              /* 이름을 누르면 그 친구의 글이 열리고 이어서 감상을 씁니다
+                 (선생님 요청). 동료 평가가 잠겨 있어도 글은 읽을 수 있어
+                 이름은 늘 단추입니다 — 감상 칸만 잠깁니다. */
+              onPick={mates.length > 1 ? (m) => setPeerOpen({ uid: m.uid }) : null}
+              pickTitle={(m) => `${m.name || "친구"}의 글 읽고 감상 쓰기`}
               actions={
                 mates.length > 1 && (
                   <span className="peer-row-actions">
@@ -378,6 +388,7 @@ export default function RaftForm({ activity, user, onBack }) {
           myReviews={myReviews}
           initialUid={peerOpen.uid}
           locked={peerLocked}
+          renderWork={(entry) => <MateRaftWork entry={entry} />}
           onClose={() => setPeerOpen(null)}
         />
       )}
@@ -390,5 +401,29 @@ export default function RaftForm({ activity, user, onBack }) {
         />
       )}
     </main>
+  );
+}
+
+// 같은 모둠 친구의 RAFT 글(읽기 전용) — 동료 평가 창의 왼쪽 칸.
+// 네 요소는 학생 화면 위의 한 문장(raftSentence)으로, 글쓰기는 그대로.
+function MateRaftWork({ entry }) {
+  const a = { ...emptyRaftAnswers(), ...(entry?.answers ?? {}) };
+  const text = String(a[RAFT_WRITING.key] ?? "").trim();
+  return (
+    <div className="mate-raft">
+      <p className={`raft-sentence${raftPlanDone(a) ? " done" : ""}`}>{raftSentence(a)}</p>
+      <dl className="mate-raft-plan">
+        {RAFT_COLUMNS.map((c) => (
+          <div key={c.key}>
+            <dt>{c.letter} · {c.ko}</dt>
+            <dd>{String(a[c.key] ?? "").trim() || <em>아직 안 정함</em>}</dd>
+          </div>
+        ))}
+      </dl>
+      <div className="mate-raft-write">
+        <strong>{RAFT_WRITING.ko}</strong>
+        {text ? <p>{text}</p> : <p className="empty-note">아직 글을 쓰지 않았어요.</p>}
+      </div>
+    </div>
   );
 }
