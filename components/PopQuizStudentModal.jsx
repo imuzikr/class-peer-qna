@@ -133,12 +133,15 @@ export default function PopQuizStudentModal({ classId, user, quiz, answer, onClo
 // key가 (퀴즈 · 상태)라 반송되면 새로 그려지며 보냈던 답을 다시 채웁니다.
 function AnswerEditor({ classId, uid, quiz, kind, answer }) {
   const saved = readDraft(quiz.id, uid);
-  // 처음 채울 글 — 이 기기에 쓰던 것이 있으면 그것, 없으면 반송된 답.
-  const [text, setText] = useState(() => saved?.text ?? answer?.text ?? "");
-  const [output, setOutput] = useState(() => saved?.output ?? answer?.output ?? "");
+  // 처음 채울 글 — 이 기기에 쓰던 것이 있으면 그것, 없으면 빈 칸.
+  // 반송된 답을 다시 채워 두지 않습니다(선생님 요청) — 앞의 답은 위의
+  // '선생님과 나눈 말'에 그대로 있어, 입력칸에도 있으면 같은 글이 두 번 서서
+  // 무엇을 새로 쓰는 칸인지 헷갈렸습니다.
+  const [text, setText] = useState(() => saved?.text ?? "");
+  const [output, setOutput] = useState(() => saved?.output ?? "");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
-  const initialRef = useRef(saved?.text ?? answer?.text ?? "");
+  const initialRef = useRef(saved?.text ?? "");
 
   function update(next, nextOut = output) {
     setText(next);
