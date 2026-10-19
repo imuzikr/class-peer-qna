@@ -33,8 +33,8 @@ import { flyFruits } from "@/components/fruitFly";
 import { toDate, dateKeyOf, dateKeyLabel } from "@/lib/dates";
 import ConfirmModal from "@/components/ConfirmModal";
 
-// 이벤트 기록 문이 접혀 올라가는 시간 — CSS .fb-door.is-closing의 길이와 같아야 합니다.
-const DOOR_MS = 320;
+// 이벤트 기록 덮개가 접혀 올라가는 시간 — CSS .fb-door.is-closing의 길이와 같아야 합니다.
+const DOOR_MS = 360;
 
 // 바구니 그림 — public/fruit-basket.webp(색연필 그림, 1200×800 · 약 270KB).
 // 크기를 적어 두어 그림이 오기 전에도 자리가 잡혀 창이 흔들리지 않습니다.
@@ -620,10 +620,11 @@ function EventDoor({ ev, no, closing, roster, onClose }) {
       className={`fb-door${closing ? " is-closing" : ""}`}
       aria-label={`${no}회 이벤트 기록`}
       onClick={(e) => e.stopPropagation()}
-      onAnimationEnd={() => { if (!closing) reveal(); }}
+      onAnimationEnd={(e) => { if (e.target === e.currentTarget && !closing) reveal(); }}
     >
       <span className="fb-door-hinge fb-door-hinge--l" aria-hidden="true" />
       <span className="fb-door-hinge fb-door-hinge--r" aria-hidden="true" />
+      <div className="fb-door-screen">
       <header className="fb-door-head">
         <strong>{no}회 이벤트</strong>
         <span className="fb-door-when">{eventWhen(ev.at)}</span>
@@ -649,6 +650,7 @@ function EventDoor({ ev, no, closing, roster, onClose }) {
             응모하지 않음 {declined.length}명 · {declined.map(nameOf).join(", ")}
           </p>
         )}
+      </div>
       </div>
     </section>
   );

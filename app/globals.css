@@ -3559,23 +3559,26 @@ button.footer-link:hover {
    내용도 달라, 내용에 맞춰 두면 누를 때마다 창이 늘었다 줄었습니다. 가장 긴
    경우(학생: 목표 도달 줄 + 과일 칸 결과 + 이벤트 칸 결과)에 맞춘 높이이고,
    그보다 낮은 화면에서는 오른쪽 칸만 제 안에서 구릅니다.
-   그림은 예전의 2/3 크기로 가운데에 둡니다(선생님 요청) — 오른쪽 칸이 주인공. */
+   그림은 예전의 2/3 크기로 가운데에 둡니다(선생님 요청) — 오른쪽 칸이 주인공.
+   **여백을 줄여 창을 작게 둡니다**(960×680 → 840×560, 선생님 요청) — 아래로 열리는
+   이벤트 기록 판이 한 화면에 같이 들어오게. 넘치면 오른쪽 칸만 제 안에서 구릅니다. */
 .modal.fruit-basket-modal {
-  width: min(960px, 96vw);
-  max-width: 960px;
-  height: min(680px, 94vh);
+  width: min(840px, 96vw);
+  max-width: 840px;
+  height: min(560px, 94vh);
   max-height: none;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  padding: 22px 24px 20px;
+  padding: 14px 18px 14px;
 }
+.fruit-basket-modal .modal-head { margin-bottom: 8px; }
 .fruit-basket-body {
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 340px;
-  gap: 20px;
+  grid-template-columns: minmax(0, 1fr) 330px;
+  gap: 14px;
   align-items: stretch;
 }
 .fruit-basket-artbox {
@@ -3587,7 +3590,7 @@ button.footer-link:hover {
 }
 .fruit-basket-art {
   display: block;
-  width: min(100%, 410px);
+  width: min(100%, 360px);
   height: auto;
   max-height: 100%;
   margin: 0 auto;
@@ -3599,7 +3602,7 @@ button.footer-link:hover {
   user-select: none;
 }
 .fruit-basket-side {
-  display: flex; flex-direction: column; gap: 14px; min-width: 0;
+  display: flex; flex-direction: column; gap: 10px; min-width: 0;
   min-height: 0; overflow-y: auto; overscroll-behavior: contain;
 }
 /* 응모하기 · 응모하지 않기에 날아가는 과일(components/fruitFly.js) — body에
@@ -3619,7 +3622,7 @@ button.footer-link:hover {
 .fb-total, .fb-mine, .fb-entry, .fb-enter {
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 12px 14px;
+  padding: 10px 12px;
   background: #fff;
 }
 .fb-total-head, .fb-entry-head {
@@ -3697,7 +3700,7 @@ button.footer-link:hover {
 }
 .fb-help { margin: 8px 0 0; font-size: 12px; line-height: 1.6; color: var(--text-faint); }
 /* 지난 이벤트 기록(교사만) — 접수할 때마다 한 줄, 누르면 응모한 학생 */
-.fb-history { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
+.fb-history { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
 .fb-history-title { margin: 0 0 8px; font-size: 13px; font-weight: 700; color: var(--dark); }
 .fb-history-title span { margin-left: 6px; font-size: 11.5px; font-weight: 400; color: var(--text-faint); }
 .fb-history-empty { margin: 0; font-size: 12px; color: var(--text-faint); }
@@ -3712,37 +3715,56 @@ button.footer-link:hover {
 .fb-history-when { flex: 1; min-width: 0; color: var(--text-sub); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fb-history-sum { flex: none; font-weight: 600; color: var(--dark); }
 
-/* 이벤트 기록의 '문' — 창 아래 모서리에 경첩으로 매달려 아래로 젖혀 열립니다
-   (선생님 요청). 창 레이아웃에 안 끼게 absolute이고, 위쪽 18px은 창 뒤에 숨어
-   이음매가 안 보입니다(창 z 1 · 문 z 0). 화면 아래가 모자라면 배경 칸이 구르도록
-   배경을 위에서부터 쌓고(.fb-backdrop) 창 묶음을 auto 여백으로 가운데에 둡니다 —
-   align-items: center로 두면 넘칠 때 위가 잘립니다. 닫는 길이는 DOOR_MS(320)와 같아야. */
+/* 이벤트 기록의 '문' — **노트북 덮개처럼** 창 아래 모서리의 경첩에서 열립니다
+   (선생님 요청). 덮개가 앞으로 눕혀진 채(rotateX −90°) 시작해 경첩을 축으로
+   펴지며 살짝 지나쳤다(+5°) 제자리에 앉고, 그동안 안쪽 그늘(::after)이 걷히고
+   다 펴질 즈음 내용이 화면 켜지듯 떠오릅니다(.fb-door-screen). 창 레이아웃에
+   안 끼게 absolute이고, 위쪽 18px은 창 뒤에 숨어 이음매가 안 보입니다(창 z 1 ·
+   문 z 0). 화면 아래가 모자라면 배경 칸이 구르도록 배경을 위에서부터 쌓고
+   (.fb-backdrop) 창 묶음을 auto 여백으로 가운데에 둡니다. 닫는 길이는
+   DOOR_MS(360)와 같아야 합니다. */
 .modal-backdrop.fb-backdrop { align-items: flex-start; overflow-y: auto; }
 .fb-stack { position: relative; margin: auto 0; isolation: isolate; }
 .fb-stack > .modal.fruit-basket-modal { position: relative; z-index: 1; }
 .fb-door {
   position: absolute;
-  left: 40px; right: 40px;
+  left: 32px; right: 32px;
   top: calc(100% - 18px);
   z-index: 0;
   display: flex; flex-direction: column;
   max-height: min(380px, 62vh);
-  padding: 30px 20px 16px;
+  padding: 28px 18px 14px;
   background: #fff;
   border-radius: 0 0 18px 18px;
   box-shadow: 0 22px 44px rgba(38, 31, 28, 0.28);
   transform-origin: top center;
-  animation: fb-door-open 0.46s cubic-bezier(0.2, 0.9, 0.25, 1.08) both;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  animation: fb-lid-open 0.72s cubic-bezier(0.3, 0.75, 0.3, 1) both;
 }
-.fb-door.is-closing { animation: fb-door-close 0.32s ease-in both; }
-@keyframes fb-door-open {
-  from { transform: perspective(1100px) rotateX(-95deg); opacity: 0.25; }
-  to { transform: perspective(1100px) rotateX(0deg); opacity: 1; }
+.fb-door::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(180deg, rgba(58, 49, 46, 0.42), rgba(58, 49, 46, 0.12));
+  animation: fb-lid-shade 0.72s ease-out both;
 }
-@keyframes fb-door-close {
-  from { transform: perspective(1100px) rotateX(0deg); opacity: 1; }
-  to { transform: perspective(1100px) rotateX(-95deg); opacity: 0; }
+.fb-door-screen { display: flex; flex-direction: column; min-height: 0; animation: fb-lid-screen 0.72s ease-out both; }
+.fb-door.is-closing { animation: fb-lid-close 0.36s ease-in both; }
+.fb-door.is-closing::after { animation: fb-lid-shade-out 0.36s ease-in both; }
+.fb-door.is-closing .fb-door-screen { animation: fb-lid-screen-out 0.2s ease-in both; }
+@keyframes fb-lid-open {
+  0% { transform: perspective(900px) rotateX(-90deg); box-shadow: 0 2px 6px rgba(38, 31, 28, 0.1); }
+  62% { transform: perspective(900px) rotateX(5deg); }
+  82% { transform: perspective(900px) rotateX(-1.5deg); }
+  100% { transform: perspective(900px) rotateX(0deg); box-shadow: 0 22px 44px rgba(38, 31, 28, 0.28); }
 }
+@keyframes fb-lid-close {
+  from { transform: perspective(900px) rotateX(0deg); opacity: 1; }
+  to { transform: perspective(900px) rotateX(-90deg); opacity: 0.6; }
+}
+@keyframes fb-lid-shade { 0% { opacity: 1; } 70% { opacity: 0.2; } 100% { opacity: 0; } }
+@keyframes fb-lid-shade-out { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fb-lid-screen { 0%, 45% { opacity: 0; filter: brightness(1.6) blur(2px); } 100% { opacity: 1; filter: none; } }
+@keyframes fb-lid-screen-out { to { opacity: 0; } }
 .fb-door-hinge {
   position: absolute; top: 18px; width: 34px; height: 8px;
   border-radius: 0 0 6px 6px; background: var(--border);
@@ -3755,6 +3777,7 @@ button.footer-link:hover {
 .fb-door-sum { font-size: 13px; font-weight: 700; color: var(--dark); }
 .fb-door-head .btn-close { margin-left: auto; }
 .fb-door-body { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.fb-door-head, .fb-door-body { position: relative; z-index: 1; }
 .fb-door-names {
   margin: 0; padding: 0; list-style: none;
   display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 6px;
@@ -3771,7 +3794,9 @@ button.footer-link:hover {
   .fb-door { left: 12px; right: 12px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .fb-door, .fb-door.is-closing { animation: none; }
+  .fb-door, .fb-door.is-closing, .fb-door::after, .fb-door.is-closing::after,
+  .fb-door-screen, .fb-door.is-closing .fb-door-screen { animation: none; }
+  .fb-door::after { opacity: 0; }
 }
 .fb-history-declined { margin: 6px 0 0; font-size: 12px; color: var(--text-sub); line-height: 1.5; }
 .fb-msg { margin: 8px 0 0; font-size: 12.5px; }
