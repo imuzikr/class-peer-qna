@@ -106,7 +106,7 @@ export default function FruitBasketModal({
   }, [door, doorClosing]);
 
   return (
-    <div className="modal-backdrop fb-backdrop" {...backdropClose(onClose)}>
+    <div className={`modal-backdrop fb-backdrop${isTeacher ? " fb-backdrop--teacher" : ""}`} {...backdropClose(onClose)}>
       <div className={`fb-stack${isTeacher && door ? " has-door" : ""}`}>
       <div
         className="modal fruit-basket-modal"

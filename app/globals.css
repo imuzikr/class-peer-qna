@@ -3726,6 +3726,11 @@ button.footer-link:hover {
    auto 여백으로 가운데에 둡니다. */
 .modal-backdrop.fb-backdrop { align-items: flex-start; overflow-y: auto; }
 .fb-stack { position: relative; margin: auto 0; isolation: isolate; }
+/* 교사 창은 처음부터 가운데보다 90px 위에 섭니다(선생님 요청) — 아래로 서랍이 열릴
+   자리를 미리 비워 두어, 열 때 공간이 모자란 느낌이 안 들게. 화면이 낮으면 위쪽
+   여백(배경 padding 24px)까지 올라가고 그 아래로는 안 갑니다. 학생 창은 서랍이
+   없어 그대로 가운데. */
+.fb-backdrop--teacher .fb-stack { margin: max(0px, calc((100dvh - 48px - min(560px, 94vh)) / 2 - 90px)) 0 auto; }
 .fb-stack > .modal.fruit-basket-modal { position: relative; z-index: 1; transition: border-radius 0.2s; }
 .fb-stack.has-door > .modal.fruit-basket-modal { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
 .fb-door {
