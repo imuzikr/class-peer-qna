@@ -48,6 +48,17 @@
 //   **지운 것도 초안**입니다(판에 바로 올리지 않음) — 지우고 다시 끝까지 적으면
 //   그 낱말이 통째로 올라가 틀린 글자를 덮습니다.
 //
+// [아이패드 · 아이폰 — 초점은 누르는 그 순간에, 입력칸은 늘 둡니다] iOS
+//   Safari는 사용자가 누른 그 처리기 안에서 곧바로 focus()를 부를 때만 자판을
+//   올립니다. 예전에는 (ㄱ) setTimeout 뒤에 초점을 주고, (ㄴ) 낱말을 고르기
+//   전에는 입력칸이 아예 없어 처음 누를 때 초점을 줄 대상이 없었고, (ㄷ) 힌트
+//   목록은 효과(focusTick)로 초점을 줘 — 셋 다 누른 순간을 벗어나 **태블릿에서
+//   눌러도 자판이 안 올라와 아무것도 안 적혔습니다.** 지금은 입력칸을 늘 그려
+//   두고(고른 낱말이 없으면 판 왼쪽 위에서 쉼) 칸 누르기 · 판 누르기 · 힌트
+//   누르기가 모두 **그 처리기 안에서 곧바로** 초점을 줍니다. 힌트 목록은 부르는
+//   쪽이 focusRef로 받은 함수를 클릭 처리기 안에서 부릅니다. 데스크톱에서는
+//   예전과 똑같이 움직입니다.
+//
 // [잠긴 칸] lockedKeys(열쇠 칸 · 이미 맞힌 낱말의 칸)는 건너뜁니다 — 교차하는
 //   칸의 글자는 이미 맞으므로 고칠 까닭이 없고, 실수로 지우면 맞힌 낱말이
 //   깨집니다.
@@ -79,7 +90,8 @@ export default function CrosswordTyping({
   nextOk = null,      // (i) => Tab으로 건너갈 만한 낱말인가(없으면 canType)
   onWrite,            // (set, del) => void — 칸 단위 쓰기
   disabled = false,
-  focusTick = 0,      // 올리면 입력칸에 초점(힌트 목록에서 고를 때)
+  focusRef = null,    // 부르는 쪽이 받는 '초점 주기' 함수 — 힌트 목록을 누르는
+                      // 그 처리기 안에서 부릅니다(iOS는 그래야 자판을 올림)
 }) {
   const entries = useMemo(() => puzzle?.entries ?? [], [puzzle]);
   const cells = useMemo(() => crosswordCells(puzzle), [puzzle]);
@@ -206,13 +218,10 @@ export default function CrosswordTyping({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sel]);
 
-  // 힌트 목록에서 낱말을 고르면 곧바로 적을 수 있게 — 부르는 쪽이 focusTick을
-  // 올립니다(이미 고른 낱말을 다시 눌러도 초점이 와야 해서 sel만으로는 모자랍니다).
-  // 화면을 열 때는 올리지 않습니다 — 휴대폰에서 열자마자 자판이 올라오면 판이
-  // 가려집니다.
-  useEffect(() => {
-    if (focusTick > 0) focusInput();
-  }, [focusTick]);
+  // 힌트 목록에서 낱말을 고르면 곧바로 적을 수 있게 — 부르는 쪽이 클릭 처리기
+  // 안에서 이 함수를 부릅니다. 화면을 열 때는 부르지 않습니다 — 휴대폰에서
+  // 열자마자 자판이 올라오면 판이 가려집니다.
+  if (focusRef) focusRef.current = focusInput;
 
   // 화면을 떠날 때 남은 글자 — 마운트 한 번만(렌더마다 걸면 정리가 돌 때마다
   // 쓰기가 나갑니다)
@@ -257,7 +266,7 @@ export default function CrosswordTyping({
   const anchorKey = !active ? null : slots.length ? slots[Math.min(cur.start, last)] : boxKey;
   useLayoutEffect(() => {
     const wrap = wrapRef.current;
-    if (!wrap || !anchorKey) { setInputPos(null); return; }
+    if (!wrap || !anchorKey) { setInputPos(null); return; } // 쉬는 자리(아래 REST_POS)
     const el = wrap.querySelector(`[data-k="${anchorKey}"]`);
     if (!el) return;
     const w = wrap.getBoundingClientRect();
@@ -274,8 +283,10 @@ export default function CrosswordTyping({
     return at >= 0 ? at : Math.max(ss.length - 1, 0);
   }
 
+  // 곧바로(누른 처리기 안에서) — setTimeout으로 미루면 iOS가 자판을 안 올립니다
   function focusInput() {
-    setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 0);
+    const el = inputRef.current;
+    if (el && document.activeElement !== el) el.focus({ preventScroll: true });
   }
 
   function goNext(dir = 1) {
@@ -380,6 +391,7 @@ export default function CrosswordTyping({
       return;
     }
     if (composing) return;
+    if (!active) return;
     // 화살표 — 네모 칸에서 그 방향의 **판에 있는 다음 칸**으로(빈자리는 건너뜀).
     // 방향이 낱말과 달라도 됩니다 — 가로 낱말에서 ↓를 누르면 아래 칸의 세로 낱말로.
     // 맞힌 낱말 · 우리 모둠 낱말에 서 있어도 옮겨 갈 수 있어야 하므로 typeable보다
@@ -471,11 +483,11 @@ export default function CrosswordTyping({
         typingKeys={typingKeys}
         onCellClick={disabled ? null : onCellClick}
       />
-      {active && inputPos && (
+      {!disabled && (
         <input
           ref={inputRef}
           className="xw-typing-input"
-          style={inputPos}
+          style={active && inputPos ? inputPos : REST_POS}
           value={cur.value}
           onChange={onChange}
           onCompositionStart={() => { composingRef.current = true; }}
@@ -486,7 +498,9 @@ export default function CrosswordTyping({
           autoCorrect="off"
           autoCapitalize="off"
           spellCheck={false}
-          aria-label={`${entries[sel]?.dir === "down" ? "세로" : "가로"} ${entries[sel]?.num}번 낱말 적기`}
+          aria-label={active && entries[sel]
+            ? `${entries[sel].dir === "down" ? "세로" : "가로"} ${entries[sel].num}번 낱말 적기`
+            : "칸을 눌러 낱말 고르기"}
         />
       )}
     </div>
@@ -494,3 +508,5 @@ export default function CrosswordTyping({
 }
 
 const EMPTY = new Set();
+// 고른 낱말이 없을 때 입력칸이 쉬는 자리 — 판 왼쪽 위의 작은 칸(보이지 않음)
+const REST_POS = { left: 0, top: 0, width: 1, height: 1 };

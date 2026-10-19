@@ -226,11 +226,12 @@ export default function CrosswordGroupStudent({ activity, groupId, user, onBack 
 
   const selEntry = sel != null ? entries[sel] : null;
 
-  const [focusTick, setFocusTick] = useState(0);
+  // 판의 '초점 주기' — 힌트를 누른 그 처리기 안에서 곧바로 불러야 iOS가 자판을 올립니다
+  const typingFocusRef = useRef(null);
   function pickEntry(i, focus = false) {
     setSel(i);
     setNote("");
-    if (focus) setFocusTick((t) => t + 1);
+    if (focus) typingFocusRef.current?.();
   }
 
   // 못 고치는 칸 — 열쇠 칸(우리 모둠 낱말) · 이미 맞힌 낱말의 칸
@@ -545,7 +546,7 @@ export default function CrosswordGroupStudent({ activity, groupId, user, onBack 
               canType={canTypeEntry}
               onWrite={writeCells}
               disabled={locked}
-              focusTick={focusTick}
+              focusRef={typingFocusRef}
             />
           ) : (
             <CrosswordGrid puzzle={puzzle} letters={{}} fixed={fixed} />
