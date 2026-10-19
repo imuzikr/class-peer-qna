@@ -1080,17 +1080,8 @@ function StudyPageInner() {
                         KWLS 차트
                       </button>
                     )}
-                    {/* 과일 바구니 — 교사·학생 모두 줄의 맨 끝. 과일이 수북한
-                        바구니 그림을 띄웁니다(components/FruitBasketModal.jsx). */}
-                    {currentClass && (
-                      <button
-                        className="btn-ghost"
-                        onClick={() => setFruitBasketOpen(true)}
-                        title={admin ? "반 학생들이 내놓은 과일 합계와 이벤트 응모 현황을 봅니다" : "내 과일을 바구니에 내놓고 이벤트에 응모합니다"}
-                      >
-                        과일 바구니
-                      </button>
-                    )}
+                    {/* 과일 바구니 단추는 걷었습니다(선생님 요청) — 떠 있는 동그라미
+                        (FloatingHub)가 /study?open=fruit로 같은 창을 엽니다. */}
                   </div>
 
                 </div>
