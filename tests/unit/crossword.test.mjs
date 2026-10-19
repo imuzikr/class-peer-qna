@@ -139,7 +139,7 @@ test("셋을 골라 셋 다 풀이를 써야 다 쓴 것", () => {
 import {
   xwHash, crosswordWordPool, assignEntriesToGroups, buildGroupCrossword,
   normalizeGroupCrossword, fixedLettersOf, boardEntrySolved, groupSolveProgress,
-  xwCommitPlan, rankGroupProgress, xwHintDone, entryLen,
+  xwCommitPlan, xwWordSave, rankGroupProgress, xwHintDone, entryLen,
 } from "../../lib/crossword.js";
 
 test("지문 — 같은 낱말·같은 salt면 같고, salt가 다르면 다름", () => {
@@ -315,4 +315,21 @@ test("개별 활동 순위 — 맞힌 낱말, 같으면 글자 수(힌트 포함
     { groupId: "d", solved: 3, cells: 15, hintChars: 0, order: 3 },
   ]);
   assert.deepEqual(r.map((x) => x.groupId), ["c", "b", "a", "d"]);
+});
+
+test("판에 적기 — 낱말을 끝까지 채웠을 때만, 칸 전체를 한 번에", () => {
+  const slots = ["0,0", "0,1", "0,2"];
+  // 덜 채움 — 안 올림(판에 있는 글자 + 적은 글자로도 빈칸이 남음)
+  assert.equal(xwWordSave(slots, { "0,0": "가" }, { "0,1": "나" }), null);
+  // 지운 칸("")은 판에 글자가 있어도 빈칸
+  assert.equal(xwWordSave(slots, { "0,0": "가", "0,1": "나", "0,2": "다" }, { "0,1": "" }), null);
+  // 다 채움 — 바뀐 칸만이 아니라 모든 칸(남의 반쪽 글자를 덮도록)
+  assert.deepEqual(
+    xwWordSave(slots, { "0,0": "가", "0,1": "X" }, { "0,1": "나", "0,2": "다" }),
+    { "0,0": "가", "0,1": "나", "0,2": "다" },
+  );
+  // 판과 똑같으면 올릴 것 없음
+  assert.deepEqual(xwWordSave(slots, { "0,0": "가", "0,1": "나", "0,2": "다" }, {}), {});
+  // 적을 칸이 없으면(다 잠김) null
+  assert.equal(xwWordSave([], {}, {}), null);
 });

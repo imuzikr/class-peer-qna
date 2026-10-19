@@ -30,20 +30,30 @@
 //   들어간다'로 보였습니다). 조합 중의 Enter · Tab은 표시만 해 두고
 //   compositionend에서 처리합니다.
 //
-// [언제 저장하나] 낱말 칸을 다 채우면 · Enter/Tab · 다른 칸·낱말을 누르면 ·
-//   입력이 1.2초 멈추면 · 입력칸을 벗어나면(onWrite). 조합 중에는 저장하지
-//   않습니다(입력칸 값을 비우면 조합이 깨집니다).
+// [언제 저장하나 — 낱말을 끝까지 채웠을 때만] 적은 글자는 먼저 이 기기의
+//   **초안**(drafts — 낱말마다)에 담기고, 낱말의 칸이 판 글자와 합쳐 모두
+//   찼을 때 그 낱말의 칸을 **통째로 한 번에** 올립니다(xwWordSave). 모둠원
+//   둘이 같은 낱말을 동시에 적으면 나중에 다 채운 사람의 낱말이 칸 전체를
+//   덮어, 칸마다 저장 시점이 엇갈려 글자가 섞이던 일이 없어집니다(선생님 제안).
+//   - 초안에 담는 때: 낱말 칸을 다 채우면 · Enter/Tab · 다른 칸·낱말을 누르면 ·
+//     입력이 1.2초 멈추면 · 입력칸을 벗어나면. 조합 중에는 담지 않습니다
+//     (입력칸 값을 비우면 조합이 깨집니다).
+//   - 쓰다 만 글자는 판에 안 올라가 모둠원에게 안 보입니다. 다른 낱말로 갔다
+//     와도 이 화면 안에서는 초안이 남아 있고, 새로고침하면 사라집니다.
+//   - 초안 칸은 '적는 중' 모양(typingKeys)으로 그려 아직 안 올린 글자임을 보입니다.
 //
 // [Backspace · Delete] Backspace는 네모 칸에 글자가 있으면 그것을, 비어 있으면
 //   앞 칸을 지우고 네모도 그리로 물러납니다. Delete는 네모 칸의 글자만 지우고
 //   네모는 제자리입니다(문서 편집기의 두 키와 같은 나눔 — 선생님 요청).
+//   **지운 것도 초안**입니다(판에 바로 올리지 않음) — 지우고 다시 끝까지 적으면
+//   그 낱말이 통째로 올라가 틀린 글자를 덮습니다.
 //
 // [잠긴 칸] lockedKeys(열쇠 칸 · 이미 맞힌 낱말의 칸)는 건너뜁니다 — 교차하는
 //   칸의 글자는 이미 맞으므로 고칠 까닭이 없고, 실수로 지우면 맞힌 낱말이
 //   깨집니다.
 // =============================================================
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { crosswordCells, entryCellKeys, entryForCell, nextOpenEntry, stepCell } from "@/lib/crossword";
+import { crosswordCells, entryCellKeys, entryForCell, nextOpenEntry, stepCell, xwWordSave } from "@/lib/crossword";
 import CrosswordGrid from "./CrosswordGrid";
 
 const IDLE_SAVE_MS = 1200;
@@ -88,6 +98,20 @@ export default function CrosswordTyping({
   typingRef.current = typing;
   const lettersRef = useRef(letters);
   lettersRef.current = letters;
+  // 아직 안 올린 초안 — { [낱말 차례]: { 칸: 글자 | "" } } ("" = 지움)
+  const [drafts, setDrafts] = useState({});
+  const draftsRef = useRef(drafts);
+  draftsRef.current = drafts;
+  const putDrafts = useCallback((next) => {
+    draftsRef.current = next;
+    setDrafts(next);
+  }, []);
+  // 그 낱말 기준으로 지금 칸에 보이는 글자(초안이 판 글자를 가림)
+  const effective = useCallback((i, k) => {
+    const d = draftsRef.current[i];
+    if (d && Object.prototype.hasOwnProperty.call(d, k)) return d[k];
+    return lettersRef.current?.[k] || "";
+  }, []);
   const composingRef = useRef(false);
   const pendingKey = useRef(null); // 조합 중에 누른 Enter · Tab — compositionend에서
   const idleTimer = useRef(null);
@@ -102,26 +126,56 @@ export default function CrosswordTyping({
   const typeable = active && canType(sel);
   const slots = useMemo(() => slotsFor(sel), [slotsFor, sel]);
 
-  // 적은 것을 칸으로 — 돌려주는 값: 다음에 쓸 빈칸 자리와 네모가 설 칸(마지막 글자)
+  // 낱말 i의 초안을 d로 두고, 끝까지 찼으면 그 낱말을 통째로 올립니다
+  const settle = useCallback((i, d) => {
+    const ss = slotsFor(i);
+    const plan = xwWordSave(ss, lettersRef.current, d);
+    const next = { ...draftsRef.current };
+    if (!plan) {
+      next[i] = d;
+      putDrafts(next);
+      return;
+    }
+    delete next[i];
+    const keys = Object.keys(plan);
+    if (keys.length) {
+      // 구독이 돌아오기 전에 '첫 빈칸'을 셀 때 방금 올린 칸을 빈칸으로 보지
+      // 않게 미리 담아 둡니다
+      lettersRef.current = { ...lettersRef.current, ...plan };
+      onWrite(plan, []);
+      // 엇갈리는 낱말의 초안에 같은 칸이 있으면 걷습니다 — 방금 올린 글자가 판의 값
+      for (const j of Object.keys(next)) {
+        if (!keys.some((k) => k in next[j])) continue;
+        const rest = { ...next[j] };
+        keys.forEach((k) => { delete rest[k]; });
+        next[j] = rest;
+      }
+    }
+    putDrafts(next);
+  }, [slotsFor, onWrite, putDrafts]);
+
+  // 적은 것을 초안으로(다 찼으면 올림) — 돌려주는 값: 다음에 쓸 빈칸 자리와
+  // 네모가 설 칸(마지막 글자)
   const flush = useCallback((t = typingRef.current) => {
     clearTimeout(idleTimer.current);
-    if (!t.value) return { start: t.start, mark: t.mark };
+    if (!t.value || t.sel == null) return { start: t.start, mark: t.mark };
     const ss = slotsFor(t.sel);
     const chars = [...t.value];
-    const set = {};
+    const d = { ...(draftsRef.current[t.sel] || {}) };
     chars.forEach((ch, i) => {
       const k = ss[t.start + i];
-      if (k && lettersRef.current?.[k] !== ch) set[k] = ch;
+      if (k) d[k] = ch;
     });
-    if (Object.keys(set).length) {
-      // 구독이 돌아오기 전에 '첫 빈칸'을 셀 때 방금 적은 칸을 빈칸으로 보지
-      // 않게 미리 담아 둡니다
-      lettersRef.current = { ...lettersRef.current, ...set };
-      onWrite(set, []);
-    }
+    settle(t.sel, d);
     const end = Math.min(t.start + chars.length, ss.length);
     return { start: end, mark: ss[Math.max(0, end - 1)] ?? t.mark };
-  }, [slotsFor, onWrite]);
+  }, [slotsFor, settle]);
+
+  // 칸 하나를 초안에서 지웁니다(판에는 안 올림)
+  const eraseKey = useCallback((i, k) => {
+    if (!effective(i, k)) return;
+    putDrafts({ ...draftsRef.current, [i]: { ...(draftsRef.current[i] || {}), [k]: "" } });
+  }, [effective, putDrafts]);
 
   // 넣고 그 자리에 머뭅니다(다음 낱말로 안 갑니다)
   const commitNow = useCallback((t = typingRef.current) => {
@@ -132,9 +186,9 @@ export default function CrosswordTyping({
   // 첫 빈칸 — 낱말을 고르면 거기서 시작합니다
   const firstEmpty = useCallback((i) => {
     const ss = slotsFor(i);
-    const at = ss.findIndex((k) => !lettersRef.current?.[k]);
+    const at = ss.findIndex((k) => !effective(i, k));
     return at >= 0 ? at : 0;
-  }, [slotsFor]);
+  }, [slotsFor, effective]);
 
   // 칸을 눌러 낱말을 바꿨으면 그 칸에서 시작 — 아래 효과가 받아 씁니다
   const pendingStart = useRef(null);
@@ -170,6 +224,15 @@ export default function CrosswordTyping({
   const chars = [...cur.value];
   const overlay = {};
   const typingKeys = new Set();
+  // 고른 낱말의 초안 — 잠긴 칸(막 맞힌 칸)은 판 글자가 이깁니다
+  const curDraft = sel != null ? drafts[sel] : null;
+  if (curDraft) {
+    for (const k of slots) {
+      if (!Object.prototype.hasOwnProperty.call(curDraft, k)) continue;
+      overlay[k] = curDraft[k];
+      typingKeys.add(k);
+    }
+  }
   chars.forEach((ch, i) => {
     const k = slots[cur.start + i];
     if (k) { overlay[k] = ch; typingKeys.add(k); }
@@ -271,13 +334,22 @@ export default function CrosswordTyping({
     return false;
   }
 
+  // 가운데 칸부터 적었는데 나머지 칸이 이미 차 있으면 — 낱말이 다 찼으니 올립니다
+  function doneCommit(v) {
+    const d = { ...(draftsRef.current[sel] || {}) };
+    [...v].forEach((ch, i) => { const k = slots[cur.start + i]; if (k) d[k] = ch; });
+    if (!xwWordSave(slots, lettersRef.current, d)) return false;
+    commitNow({ ...typingRef.current, sel, value: v });
+    return true;
+  }
+
   function onChange(e) {
     if (!typeable) return; // 맞힌 낱말 · 우리 모둠 낱말 — 받지 않음(값은 ""로 돌아감)
     let v = e.target.value.replace(/\s+/g, "");
     const remain = Math.max(slots.length - cur.start, 0);
     if (!composingRef.current && [...v].length > remain) v = [...v].slice(0, remain).join("");
     setValue(v);
-    if (!composingRef.current && !e.nativeEvent.isComposing && fillCommit(v)) return;
+    if (!composingRef.current && !e.nativeEvent.isComposing && (fillCommit(v) || doneCommit(v))) return;
     scheduleIdle();
   }
 
@@ -288,7 +360,7 @@ export default function CrosswordTyping({
     const pend = pendingKey.current;
     pendingKey.current = null;
     setValue(v);
-    const filled = fillCommit(v);
+    const filled = fillCommit(v) || doneCommit(v);
     if (pend) {
       if (!filled) commitNow({ ...typingRef.current, sel, value: v });
       if (pend !== "Enter") goNext(pend === "ShiftTab" ? -1 : 1);
@@ -341,11 +413,7 @@ export default function CrosswordTyping({
         setTyping({ sel, start: r.start, value: "", mark: k ?? null });
         return;
       }
-      if (lettersRef.current?.[k]) {
-        lettersRef.current = { ...lettersRef.current };
-        delete lettersRef.current[k];
-        onWrite({}, [k]);
-      }
+      eraseKey(sel, k);
       setTyping({ sel, start: at, value: "", mark: k });
       return;
     }
@@ -353,9 +421,9 @@ export default function CrosswordTyping({
     if (e.key === "Backspace" && !cur.value) {
       e.preventDefault();
       const at = Math.max(slots.indexOf(boxKey), 0);
-      const idx = letters?.[slots[at]] ? at : Math.max(at - 1, 0);
+      const idx = effective(sel, slots[at]) ? at : Math.max(at - 1, 0);
       const k = slots[idx];
-      if (k && letters?.[k]) onWrite({}, [k]);
+      if (k) eraseKey(sel, k);
       setTyping({ sel, start: idx, value: "", mark: k ?? null });
     }
   }
