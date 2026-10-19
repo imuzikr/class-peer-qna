@@ -3711,10 +3711,68 @@ button.footer-link:hover {
 .fb-history-no { flex: none; font-weight: 700; color: var(--primary-dark); }
 .fb-history-when { flex: 1; min-width: 0; color: var(--text-sub); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fb-history-sum { flex: none; font-weight: 600; color: var(--dark); }
-.fb-history-body { padding: 0 10px 10px; }
-.fb-history-names { margin: 0; padding: 0; list-style: none; display: grid; gap: 3px; font-size: 12.5px; }
-.fb-history-names li { display: flex; justify-content: space-between; gap: 8px; padding: 3px 6px; border-radius: 6px; background: var(--bg); }
-.fb-history-names strong { flex: none; color: var(--primary-dark); }
+
+/* 이벤트 기록의 '문' — 창 아래 모서리에 경첩으로 매달려 아래로 젖혀 열립니다
+   (선생님 요청). 창 레이아웃에 안 끼게 absolute이고, 위쪽 18px은 창 뒤에 숨어
+   이음매가 안 보입니다(창 z 1 · 문 z 0). 화면 아래가 모자라면 배경 칸이 구르도록
+   배경을 위에서부터 쌓고(.fb-backdrop) 창 묶음을 auto 여백으로 가운데에 둡니다 —
+   align-items: center로 두면 넘칠 때 위가 잘립니다. 닫는 길이는 DOOR_MS(320)와 같아야. */
+.modal-backdrop.fb-backdrop { align-items: flex-start; overflow-y: auto; }
+.fb-stack { position: relative; margin: auto 0; isolation: isolate; }
+.fb-stack > .modal.fruit-basket-modal { position: relative; z-index: 1; }
+.fb-door {
+  position: absolute;
+  left: 40px; right: 40px;
+  top: calc(100% - 18px);
+  z-index: 0;
+  display: flex; flex-direction: column;
+  max-height: min(380px, 62vh);
+  padding: 30px 20px 16px;
+  background: #fff;
+  border-radius: 0 0 18px 18px;
+  box-shadow: 0 22px 44px rgba(38, 31, 28, 0.28);
+  transform-origin: top center;
+  animation: fb-door-open 0.46s cubic-bezier(0.2, 0.9, 0.25, 1.08) both;
+}
+.fb-door.is-closing { animation: fb-door-close 0.32s ease-in both; }
+@keyframes fb-door-open {
+  from { transform: perspective(1100px) rotateX(-95deg); opacity: 0.25; }
+  to { transform: perspective(1100px) rotateX(0deg); opacity: 1; }
+}
+@keyframes fb-door-close {
+  from { transform: perspective(1100px) rotateX(0deg); opacity: 1; }
+  to { transform: perspective(1100px) rotateX(-95deg); opacity: 0; }
+}
+.fb-door-hinge {
+  position: absolute; top: 18px; width: 34px; height: 8px;
+  border-radius: 0 0 6px 6px; background: var(--border);
+}
+.fb-door-hinge--l { left: 32px; }
+.fb-door-hinge--r { right: 32px; }
+.fb-door-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.fb-door-head strong { font-size: 15px; color: var(--primary-dark); }
+.fb-door-when { font-size: 13px; color: var(--text-sub); }
+.fb-door-sum { font-size: 13px; font-weight: 700; color: var(--dark); }
+.fb-door-head .btn-close { margin-left: auto; }
+.fb-door-body { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.fb-door-names {
+  margin: 0; padding: 0; list-style: none;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 6px;
+}
+.fb-door-names li {
+  display: flex; align-items: center; gap: 8px; min-width: 0;
+  padding: 6px 10px; border-radius: 8px; background: var(--bg); font-size: 13px;
+}
+.fb-door-rank { flex: none; width: 20px; font-size: 11.5px; font-weight: 700; color: var(--text-faint); font-variant-numeric: tabular-nums; }
+.fb-door-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fb-door-names strong { flex: none; color: var(--primary-dark); font-variant-numeric: tabular-nums; }
+.fb-door .fb-history-declined { margin-top: 10px; }
+@media (max-width: 720px) {
+  .fb-door { left: 12px; right: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fb-door, .fb-door.is-closing { animation: none; }
+}
 .fb-history-declined { margin: 6px 0 0; font-size: 12px; color: var(--text-sub); line-height: 1.5; }
 .fb-msg { margin: 8px 0 0; font-size: 12.5px; }
 .fb-msg.ok { color: #276b3d; }

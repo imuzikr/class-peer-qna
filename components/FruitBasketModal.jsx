@@ -33,6 +33,9 @@ import { flyFruits } from "@/components/fruitFly";
 import { toDate, dateKeyOf, dateKeyLabel } from "@/lib/dates";
 import ConfirmModal from "@/components/ConfirmModal";
 
+// 이벤트 기록 문이 접혀 올라가는 시간 — CSS .fb-door.is-closing의 길이와 같아야 합니다.
+const DOOR_MS = 320;
+
 // 바구니 그림 — public/fruit-basket.webp(색연필 그림, 1200×800 · 약 270KB).
 // 크기를 적어 두어 그림이 오기 전에도 자리가 잡혀 창이 흔들리지 않습니다.
 function BasketArt({ artRef }) {
@@ -71,8 +74,40 @@ export default function FruitBasketModal({
   // 고르면 여기서 튀어나와 돌아갑니다(components/fruitFly.js).
   const artRef = useRef(null);
 
+  // 교사 — 지난 이벤트 한 회를 창 아래 '문'에 펼칩니다(EventDoor).
+  // 닫을 때는 접혀 올라가는 움직임(DOOR_MS)만큼 더 그려 둡니다.
+  const [door, setDoor] = useState(null); // { ev, no } | null
+  const [doorClosing, setDoorClosing] = useState(false);
+  const doorTimer = useRef(null);
+  const closeDoor = () => {
+    clearTimeout(doorTimer.current);
+    setDoorClosing(true);
+    doorTimer.current = setTimeout(() => { setDoor(null); setDoorClosing(false); }, DOOR_MS);
+  };
+  const openDoor = (ev, no) => {
+    if (door?.ev.id === ev.id && !doorClosing) { closeDoor(); return; }
+    clearTimeout(doorTimer.current);
+    setDoorClosing(false);
+    setDoor({ ev, no });
+  };
+  const closeDoorRef = useRef(closeDoor);
+  closeDoorRef.current = closeDoor;
+  useEffect(() => () => clearTimeout(doorTimer.current), []);
+  // 문이 열려 있으면 Esc는 문만 닫습니다(창은 그대로 — preventDefault로 공통 처리를 비켜 감).
+  useEffect(() => {
+    if (!door || doorClosing) return undefined;
+    const onKey = (e) => {
+      if (e.key !== "Escape" || e.defaultPrevented || e.isComposing) return;
+      e.preventDefault();
+      closeDoorRef.current();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [door, doorClosing]);
+
   return (
-    <div className="modal-backdrop" {...backdropClose(onClose)}>
+    <div className="modal-backdrop fb-backdrop" {...backdropClose(onClose)}>
+      <div className="fb-stack">
       <div
         className="modal fruit-basket-modal"
         role="dialog"
@@ -91,7 +126,7 @@ export default function FruitBasketModal({
           <div className="fruit-basket-side">
             <BasketTotal sum={sum} loading={entries === null} />
             {isTeacher ? (
-              <TeacherPanel classId={classId} sum={sum} entries={entries} entryCount={(entries ?? []).length} roster={roster} />
+              <TeacherPanel classId={classId} sum={sum} entries={entries} entryCount={(entries ?? []).length} doorId={door?.ev.id ?? null} onOpenEvent={openDoor} />
             ) : (
               <StudentPanel
                 classId={classId}
@@ -104,6 +139,17 @@ export default function FruitBasketModal({
             )}
           </div>
         </div>
+      </div>
+      {isTeacher && door && (
+        <EventDoor
+          key={door.ev.id}
+          ev={door.ev}
+          no={door.no}
+          closing={doorClosing}
+          roster={roster}
+          onClose={closeDoor}
+        />
+      )}
       </div>
     </div>
   );
@@ -137,7 +183,7 @@ function BasketTotal({ sum, loading }) {
 // 기록(fruitEvents) 한 장에 남습니다. 되돌릴 수 없는 일이라 되묻고 합니다.
 // 취소하면 바구니에 든 과일을 학생마다 모두 돌려주고 바구니를 0개로 비웁니다
 // (응모 선택도 함께 걷힘 — cancelFruitEvent). 이것도 되묻고 합니다.
-function TeacherPanel({ classId, sum, entries, entryCount = 0, roster = [] }) {
+function TeacherPanel({ classId, sum, entries, entryCount = 0, doorId = null, onOpenEvent }) {
   // 접수하면 무엇이 처리되고 무엇이 남나 — 단추 · 되묻는 창이 미리 말합니다.
   const plan = useMemo(() => planFruitReceipt(entries ?? []), [entries]);
   const canReceive = plan.remove.length + plan.reduce.length > 0;
@@ -233,7 +279,7 @@ function TeacherPanel({ classId, sum, entries, entryCount = 0, roster = [] }) {
         자리표의 초록 점은 응모 여부를 고른 학생이에요.
       </p>
       {msg && <p className={`fb-msg ${msg.ok ? "ok" : "err"}`}>{msg.text}</p>}
-      <FruitEventHistory classId={classId} roster={roster} />
+      <FruitEventHistory classId={classId} openId={doorId} onOpen={onOpenEvent} />
       {/* body에 포털 — 창(.modal) 안에 그리면 그 창의 클릭 · 스크롤 칸에 갇힙니다. */}
       {asking === "receive" && createPortal(
         <ConfirmModal
@@ -493,11 +539,11 @@ function StudentPanel({ classId, uid, myFruit, mine, room = 0, basketRef }) {
 }
 
 // 교사 — 지난 이벤트 기록(선생님 요청). 이벤트 접수가 남긴 fruitEvents를
-// 최근 것부터 보여 줍니다 — 언제 · 응모 몇 명 · 과일 몇 개, 펼치면 누가 몇 개를
-// 냈나(처리한 수)와 응모하지 않은 학생. 규칙이 담당 교사에게만 읽기를 열어 두어
-// **학생 화면에는 없습니다**(이 조각도 TeacherPanel 안에만 섭니다).
-// 처음에는 가장 최근 기록만 펼칩니다. 이름은 지금 명단에서 찾고, 반에서 빠진
-// 학생은 '반에서 빠진 학생'으로 적습니다(기록에는 uid만 있음).
+// 최근 것부터 **한 줄씩만** 늘어놓습니다 — 언제 · 응모 몇 명 · 과일 몇 개.
+// 줄을 누르면 창 아래쪽에 경첩 달린 문처럼 열리는 칸(EventDoor)에 누가 몇 개를
+// 냈나(처리한 수)와 응모하지 않은 학생이 섭니다(선생님 요청 — 한때 줄 안에서
+// 펼쳤는데 좁은 오른쪽 칸이 한없이 길어졌습니다). 규칙이 담당 교사에게만 읽기를
+// 열어 두어 **학생 화면에는 없습니다**(이 조각도 TeacherPanel 안에만 섭니다).
 function eventWhen(at) {
   if (!at) return "방금";
   const d = toDate(at);
@@ -505,14 +551,15 @@ function eventWhen(at) {
   return `${dateKeyLabel(dateKeyOf(d))} ${t}`;
 }
 
-function FruitEventHistory({ classId, roster = [] }) {
+// 이름은 지금 명단에서 찾고, 반에서 빠진 학생은 '반에서 빠진 학생'(기록에는 uid만)
+function rosterNamer(roster = []) {
+  const m = new Map((roster ?? []).map((r) => [r.uid, [r.studentId, r.name].filter(Boolean).join(" ")]));
+  return (uid) => m.get(uid) || "반에서 빠진 학생";
+}
+
+function FruitEventHistory({ classId, openId = null, onOpen }) {
   const [events, setEvents] = useState(null); // null = 아직 안 옴
   useEffect(() => subscribeFruitEvents(classId, setEvents), [classId]);
-  const [open, setOpen] = useState(null); // 펼친 기록 id — null이면 가장 최근 것
-  const nameOf = useMemo(() => {
-    const m = new Map((roster ?? []).map((r) => [r.uid, [r.studentId, r.name].filter(Boolean).join(" ")]));
-    return (uid) => m.get(uid) || "반에서 빠진 학생";
-  }, [roster]);
 
   if (!events || events.length === 0) {
     return (
@@ -522,54 +569,87 @@ function FruitEventHistory({ classId, roster = [] }) {
       </section>
     );
   }
-  const openId = open ?? events[0].id;
   return (
     <section className="fb-history">
       <h4 className="fb-history-title">
-        지난 이벤트 기록 <span>{events.length}회 · 선생님만 볼 수 있어요</span>
+        지난 이벤트 기록 <span>{events.length}회 · 눌러서 자세히</span>
       </h4>
       <ul className="fb-history-list">
         {events.map((ev, i) => {
-          const isOpen = ev.id === openId;
-          const entrants = Array.isArray(ev.entrants) ? ev.entrants : [];
-          const declined = Array.isArray(ev.declined) ? ev.declined : [];
+          const on = ev.id === openId;
+          const n = Array.isArray(ev.entrants) ? ev.entrants.length : 0;
           return (
-            <li key={ev.id} className={isOpen ? "open" : ""}>
+            <li key={ev.id} className={on ? "open" : ""}>
               <button
                 type="button"
                 className="fb-history-head"
-                aria-expanded={isOpen}
-                onClick={() => setOpen(isOpen ? "__none" : ev.id)}
+                aria-expanded={on}
+                onClick={() => onOpen?.(ev, events.length - i)}
               >
                 <span className="fb-history-no">{events.length - i}회</span>
                 <span className="fb-history-when">{eventWhen(ev.at)}</span>
-                <span className="fb-history-sum">응모 {entrants.length}명 · 🍊 {ev.total ?? 0}개</span>
+                <span className="fb-history-sum">응모 {n}명 · 🍊 {ev.total ?? 0}개</span>
               </button>
-              {isOpen && (
-                <div className="fb-history-body">
-                  {entrants.length > 0 ? (
-                    <ol className="fb-history-names">
-                      {entrants.map((e) => (
-                        <li key={e.uid}>
-                          <span>{nameOf(e.uid)}</span>
-                          <strong>{e.donated ?? 0}개</strong>
-                        </li>
-                      ))}
-                    </ol>
-                  ) : (
-                    <p className="fb-history-empty">응모한 학생이 없었어요.</p>
-                  )}
-                  {declined.length > 0 && (
-                    <p className="fb-history-declined">
-                      응모하지 않음 {declined.length}명 · {declined.map(nameOf).join(", ")}
-                    </p>
-                  )}
-                </div>
-              )}
             </li>
           );
         })}
       </ul>
+    </section>
+  );
+}
+
+// 창 아래쪽에 경첩으로 매단 문 — 지난 이벤트 한 회의 자세한 기록.
+// 창의 아래 모서리에 위쪽이 붙어 아래로 젖혀 열리고(transform-origin: top),
+// 닫을 때는 거꾸로 접혀 올라갑니다. 창 레이아웃에는 안 끼어(absolute) 창이
+// 제자리에 있고, 화면 아래가 모자라면 배경 칸이 구릅니다.
+function EventDoor({ ev, no, closing, roster, onClose }) {
+  const nameOf = useMemo(() => rosterNamer(roster), [roster]);
+  const ref = useRef(null);
+  // 문이 화면 밖으로 내려가면 보이게 굴려 줍니다 — **다 열린 뒤에**. 젖혀지는
+  // 동안은 문 상자가 납작해 그 크기로 재면 덜 굴러 아래가 잘립니다(실측).
+  // 움직임을 줄인 기기는 animationend가 안 오므로 처음에 한 번 굴립니다.
+  const reveal = () => ref.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  useEffect(() => {
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) reveal();
+  }, []);
+  const entrants = Array.isArray(ev?.entrants) ? ev.entrants : [];
+  const declined = Array.isArray(ev?.declined) ? ev.declined : [];
+  return (
+    <section
+      ref={ref}
+      className={`fb-door${closing ? " is-closing" : ""}`}
+      aria-label={`${no}회 이벤트 기록`}
+      onClick={(e) => e.stopPropagation()}
+      onAnimationEnd={() => { if (!closing) reveal(); }}
+    >
+      <span className="fb-door-hinge fb-door-hinge--l" aria-hidden="true" />
+      <span className="fb-door-hinge fb-door-hinge--r" aria-hidden="true" />
+      <header className="fb-door-head">
+        <strong>{no}회 이벤트</strong>
+        <span className="fb-door-when">{eventWhen(ev.at)}</span>
+        <span className="fb-door-sum">응모 {entrants.length}명 · 🍊 {ev.total ?? 0}개 처리</span>
+        <button type="button" className="btn-close" onClick={onClose} aria-label="기록 닫기">×</button>
+      </header>
+      <div className="fb-door-body">
+        {entrants.length > 0 ? (
+          <ol className="fb-door-names">
+            {entrants.map((e, i) => (
+              <li key={e.uid}>
+                <span className="fb-door-rank">{i + 1}</span>
+                <span className="fb-door-name">{nameOf(e.uid)}</span>
+                <strong>{e.donated ?? 0}개</strong>
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <p className="fb-history-empty">응모한 학생이 없었어요.</p>
+        )}
+        {declined.length > 0 && (
+          <p className="fb-history-declined">
+            응모하지 않음 {declined.length}명 · {declined.map(nameOf).join(", ")}
+          </p>
+        )}
+      </div>
     </section>
   );
 }
