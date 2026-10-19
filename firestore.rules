@@ -713,23 +713,39 @@ service cloud.firestore {
 
       // ── 공부방 출석부 ─────────────────────────────────────
       //  · 경로 = classes/{classId}/attendanceRecords/{date_uid}
-      //  · 학생은 자기 출석 기록만 만들고 읽습니다. 교사는 반 전체 기록을 봅니다.
+      //  · 학생은 자기 출석 기록만 만들고 읽습니다. 교사는 반 전체 기록을 보고,
+      //    좌석형의 '출결 수정'으로 학생 기록을 만들거나(manualBy) 지웁니다.
       match /attendanceRecords/{recordId} {
         allow read: if signedIn() && (
           isAdmin()
           || ownsClass(cId)
           || resource.data.uid == uid()
         );
-        allow create: if signedIn()
-                      && request.resource.data.uid == uid()
-                      && request.resource.data.classId == cId
-                      && recordId == (request.resource.data.date + '_' + uid())
-                      && request.resource.data.date is string
-                      && isClassMember(cId)
-                      && isClassAttendanceOpenFor(cId, request.resource.data.date)
-                      && request.resource.data.attendedAt == request.time
-                      && request.resource.data.createdAt == request.time;
-        allow update, delete: if false;
+        allow create: if signedIn() && (
+                        // 학생 — 자기 출석, 교사가 그날 출석을 연 동안만
+                        (request.resource.data.uid == uid()
+                          && request.resource.data.classId == cId
+                          && recordId == (request.resource.data.date + '_' + uid())
+                          && request.resource.data.date is string
+                          && isClassMember(cId)
+                          && isClassAttendanceOpenFor(cId, request.resource.data.date)
+                          && !request.resource.data.keys().hasAny(['manualBy'])
+                          && request.resource.data.attendedAt == request.time
+                          && request.resource.data.createdAt == request.time)
+                        // 담당 교사 — 출결 수정(좌석형). 출석을 열지 않았어도,
+                        // 지난 날짜여도 됩니다. 누가 남겼는지(manualBy)를 적습니다.
+                        || ((isAdmin() || ownsClassEditable(cId))
+                          && request.resource.data.classId == cId
+                          && request.resource.data.uid is string
+                          && request.resource.data.date is string
+                          && recordId == (request.resource.data.date + '_' + request.resource.data.uid)
+                          && request.resource.data.manualBy == uid()
+                          && request.resource.data.attendedAt == request.time
+                          && request.resource.data.createdAt == request.time)
+                      );
+        // 고치기는 없습니다(지우고 다시 만듦). 지우기(출석 → 결석)는 담당 교사만.
+        allow update: if false;
+        allow delete: if isAdmin() || ownsClassEditable(cId);
       }
 
       // ── 과일 바구니 — 학생이 제 과일을 내놓아 반이 함께 모읍니다 ──

@@ -149,4 +149,58 @@ describe("출석부 규칙", () => {
     const db = asStudent(env, "stu1").firestore();
     await assertFails(getDoc(doc(db, ...recPath("cA", "stu2"))));
   });
+
+  // ── 출결 수정(교사, 좌석형) — lib/data/attendance.js setStudyAttendanceByTeacher ──
+  const manualPayload = (cId, sUid, tUid, date = DATE) => ({
+    ...payload(cId, sUid, date),
+    manualBy: tUid,
+  });
+
+  it("담당 교사는 출석을 열지 않은 날에도 학생 출석을 남길 수 있다(지난 날짜 포함)", async () => {
+    await seed(env, (db) =>
+      setDoc(doc(db, "classes", "cA"), { createdBy: "teacherA", archived: false, name: "A반" })
+    );
+    const db = asTeacher(env, "teacherA").firestore();
+    await assertSucceeds(setDoc(doc(db, ...recPath("cA", "stu1")), manualPayload("cA", "stu1", "teacherA")));
+    await assertSucceeds(
+      setDoc(doc(db, ...recPath("cA", "stu1", "2026-08-01")), manualPayload("cA", "stu1", "teacherA", "2026-08-01"))
+    );
+  });
+
+  it("교사가 남길 때 manualBy가 본인이 아니거나 없으면 거부된다", async () => {
+    const db = asTeacher(env, "teacherA").firestore();
+    await assertFails(setDoc(doc(db, ...recPath("cA", "stu1")), manualPayload("cA", "stu1", "teacherB")));
+    await assertFails(setDoc(doc(db, ...recPath("cA", "stu1")), payload("cA", "stu1")));
+  });
+
+  it("교사가 남겨도 문서 ID는 '날짜_학생uid'여야 한다", async () => {
+    const db = asTeacher(env, "teacherA").firestore();
+    await assertFails(
+      setDoc(doc(db, ...recPath("cA", "stu2")), manualPayload("cA", "stu1", "teacherA"))
+    );
+  });
+
+  it("다른 반 교사는 남기거나 지울 수 없다", async () => {
+    await seed(env, (db) => setDoc(doc(db, ...recPath("cA", "stu1")), { ...payload("cA", "stu1"), attendedAt: new Date(), createdAt: new Date() }));
+    const db = asTeacher(env, "teacherB").firestore();
+    await assertFails(setDoc(doc(db, ...recPath("cA", "stu2")), manualPayload("cA", "stu2", "teacherB")));
+    await assertFails(deleteDoc(doc(db, ...recPath("cA", "stu1"))));
+  });
+
+  it("담당 교사는 출석 기록을 지울 수 있다(출석 → 결석)", async () => {
+    await seed(env, (db) => setDoc(doc(db, ...recPath("cA", "stu1")), { ...payload("cA", "stu1"), attendedAt: new Date(), createdAt: new Date() }));
+    const db = asTeacher(env, "teacherA").firestore();
+    await assertSucceeds(deleteDoc(doc(db, ...recPath("cA", "stu1"))));
+  });
+
+  it("보관된 반은 담당 교사도 고칠 수 없다", async () => {
+    await seed(env, (db) => setDoc(doc(db, "classes", "cA"), { createdBy: "teacherA", archived: true, name: "A반" }));
+    const db = asTeacher(env, "teacherA").firestore();
+    await assertFails(setDoc(doc(db, ...recPath("cA", "stu1")), manualPayload("cA", "stu1", "teacherA")));
+  });
+
+  it("학생은 manualBy를 붙여 남길 수 없다", async () => {
+    const db = asStudent(env, "stu1").firestore();
+    await assertFails(setDoc(doc(db, ...recPath("cA", "stu1")), manualPayload("cA", "stu1", "stu1")));
+  });
 });

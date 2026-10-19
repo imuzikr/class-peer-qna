@@ -322,6 +322,8 @@ function AttendanceTable({ rows }) {
                   찍지 않고 '-'입니다. */}
               <td>
                 <span className="study-attendance-at">
+                  {/* 선생님이 출결 수정으로 남긴 기록 */}
+                  {student.record?.manualBy && <span className="attendance-seat-manual">수정 </span>}
                   {formatStampMs(
                     student.record?.attendedAt || student.record?.createdAt
                   ) || "-"}
@@ -345,9 +347,19 @@ export default function StudyAttendanceModal({
   attendanceBusy = false,
   onStartAttendance = null,
   onStopAttendance = null,
+  onSetAttendance = null,
   onClose,
 }) {
   const [viewMode, setViewMode] = useState("list"); // "list" | "calendar" | "seat"
+  // 출결 수정 — 좌석형에서만 켜집니다. 켜 둔 동안 자리를 누르면 출석 ↔ 결석.
+  // 다른 보기로 옮기면 꺼집니다(목록·달력에서는 누를 자리가 없으므로).
+  const [editing, setEditing] = useState(false);
+  const [busyUids, setBusyUids] = useState(() => new Set());
+  const [editError, setEditError] = useState("");
+  function changeView(mode) {
+    setViewMode(mode);
+    if (mode !== "seat") setEditing(false);
+  }
   const [exportOpen, setExportOpen] = useState(false); // 출석부 내려받기 — 범위 고르기 창
   const dates = useMemo(
     () => [...new Set(records.map((r) => r.date).filter(Boolean))].sort((a, b) => b.localeCompare(a)),
@@ -373,6 +385,26 @@ export default function StudyAttendanceModal({
       })),
     [roster, byStudent]
   );
+
+  // 같은 자리를 빨리 두 번 누르면 만들기와 지우기가 엇갈리므로, 저장이 끝날
+  // 때까지 그 자리만 잠급니다(다른 학생은 이어서 누를 수 있음).
+  async function toggleAttendance(student, present) {
+    if (!onSetAttendance || busyUids.has(student.uid)) return;
+    setEditError("");
+    setBusyUids((prev) => new Set(prev).add(student.uid));
+    try {
+      await onSetAttendance(student, activeDate, present);
+    } catch (err) {
+      console.error("[출결 수정 실패]", err?.code, err?.message);
+      setEditError(`${student.name || "학생"}의 출결을 바꾸지 못했어요. 잠시 후 다시 눌러 주세요.`);
+    } finally {
+      setBusyUids((prev) => {
+        const next = new Set(prev);
+        next.delete(student.uid);
+        return next;
+      });
+    }
+  }
 
   return (
     <div className="modal-backdrop" {...backdropClose(onClose)}>
@@ -433,6 +465,26 @@ export default function StudyAttendanceModal({
             >
               ⬇ 출석부 내려받기
             </button>
+            {/* 출결 수정 — 학생 기기가 막혀 '출석하기'를 못 누른 날 등을 선생님이
+                손으로 바로잡습니다. 자리를 눌러야 하므로 좌석형에서만 켜집니다. */}
+            {onSetAttendance && (
+              <button
+                type="button"
+                className={`btn-ghost study-attendance-edit${editing ? " on" : ""}`}
+                onClick={() => setEditing((v) => !v)}
+                disabled={viewMode !== "seat" || roster.length === 0}
+                aria-pressed={editing}
+                title={
+                  viewMode !== "seat"
+                    ? "좌석형에서 쓸 수 있어요"
+                    : editing
+                      ? "출결 수정을 끝냅니다"
+                      : "자리를 눌러 출석 ↔ 결석을 바꿉니다"
+                }
+              >
+                {editing ? "✓ 수정 끝내기" : "✎ 출결 수정"}
+              </button>
+            )}
             <span className="study-attendance-count">
               출석 {studentRows.filter((s) => s.record).length} / {studentRows.length}
             </span>
@@ -440,18 +492,18 @@ export default function StudyAttendanceModal({
         )}
 
         <div className="study-attendance-view-tabs" role="tablist" aria-label="출석부 보기 방식">
-          <button type="button" className={viewMode === "list" ? "active" : ""} onClick={() => setViewMode("list")}>
+          <button type="button" className={viewMode === "list" ? "active" : ""} onClick={() => changeView("list")}>
             목록형
           </button>
           <button
             type="button"
             className={viewMode === "calendar" ? "active" : ""}
-            onClick={() => setViewMode("calendar")}
+            onClick={() => changeView("calendar")}
           >
             캘린더형
           </button>
           {isTeacher && (
-            <button type="button" className={viewMode === "seat" ? "active" : ""} onClick={() => setViewMode("seat")}>
+            <button type="button" className={viewMode === "seat" ? "active" : ""} onClick={() => changeView("seat")}>
               좌석형
             </button>
           )}
@@ -494,7 +546,16 @@ export default function StudyAttendanceModal({
               {roster.length === 0 ? (
                 <p className="lesson-note-empty">이 반에 입장한 학생이 없어요.</p>
               ) : viewMode === "seat" ? (
-                <AttendanceSeatView rows={studentRows} seatLayout={seatLayout} />
+                <>
+                  {editError && <p className="form-error">{editError}</p>}
+                  <AttendanceSeatView
+                    rows={studentRows}
+                    seatLayout={seatLayout}
+                    editing={editing}
+                    busyUids={busyUids}
+                    onToggle={toggleAttendance}
+                  />
+                </>
               ) : dates.length === 0 ? (
                 <p className="lesson-note-empty">아직 출석 기록이 없어요.</p>
               ) : viewMode === "calendar" && !activeDate ? (

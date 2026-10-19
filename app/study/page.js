@@ -38,6 +38,7 @@ import {
   reorderStudyBoards,
   ensureDefaultStudyBoard,
   markStudyAttendance,
+  setStudyAttendanceByTeacher,
   subscribeMyStudyAttendance,
   subscribeClassStudyAttendance,
   startClassAttendance,
@@ -826,6 +827,13 @@ function StudyPageInner() {
     }
   }
 
+  // [교사] 출결 수정 — 출석 관리 좌석형에서 자리를 눌러 출석 ↔ 결석을 바꿉니다.
+  // 실패는 모달이 그 자리에서 알립니다(여기서는 던지기만).
+  async function handleSetAttendance(student, date, present) {
+    if (!classId || !user) return;
+    await setStudyAttendanceByTeacher(classId, student, date, present, user);
+  }
+
   // 프로젝트 순서 변경 — 카드를 드래그해 다른 카드 위에 놓으면 그 자리로 이동
   async function handleReorderProjects(dragId, targetId) {
     if (!dragId || dragId === targetId) return;
@@ -1304,6 +1312,7 @@ function StudyPageInner() {
           attendanceBusy={attendanceBusy}
           onStartAttendance={admin ? handleStartAttendance : null}
           onStopAttendance={admin ? handleStopAttendance : null}
+          onSetAttendance={admin ? handleSetAttendance : null}
           onClose={() => setAttendanceOpen(false)}
         />
       )}

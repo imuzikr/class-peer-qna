@@ -15097,6 +15097,18 @@ button.lesson-usage-row:hover { background: var(--primary-light); }
   font-size: 12.5px;
   white-space: nowrap;
 }
+/* 출결 수정 — 내려받기 바로 뒤. 켜진 동안은 살구빛으로 '지금 고치는 중'을 말합니다
+   (자리를 누르면 곧바로 저장되는 상태라 눈에 띄어야 합니다). */
+.study-attendance-edit {
+  padding: 0 12px;
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+.study-attendance-edit.on {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
 .study-attendance-count {
   color: var(--text-sub);
   font-size: 12px;
@@ -28472,6 +28484,18 @@ ul.checklist > li.done {
   font-size: 12px;
 }
 .attendance-seat .study-attendance-status { flex-shrink: 0; white-space: nowrap; }
+/* 출결 수정 중 — 칸이 단추가 됩니다. 단추 기본 모양을 걷고 칸 모양 그대로,
+   누를 수 있다는 것만 손 모양과 점선 테두리로 알립니다. */
+button.attendance-seat {
+  width: 100%;
+  font: inherit;
+  cursor: pointer;
+}
+.attendance-seat--editable { border-style: dashed; border-color: var(--primary); }
+.attendance-seat--editable:hover { box-shadow: 0 0 0 2px var(--primary-light); }
+.attendance-seat--editable.is-busy { opacity: .55; cursor: progress; }
+/* 선생님이 남긴 기록 — 목록형 표의 시각 앞 '수정' */
+.attendance-seat-manual { font-family: inherit; font-weight: 700; color: var(--primary-dark); }
 .attendance-seat--empty { border-style: dashed; background: transparent; color: var(--text-sub); font-size: 12px; }
 .attendance-seat-help { margin: 0 0 12px; font-size: 13px; color: var(--text-sub); }
 h4.attendance-seat-help { margin-top: 16px; }
