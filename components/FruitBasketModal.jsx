@@ -33,7 +33,7 @@ import { flyFruits } from "@/components/fruitFly";
 import { toDate, dateKeyOf, dateKeyLabel } from "@/lib/dates";
 import ConfirmModal from "@/components/ConfirmModal";
 
-// 이벤트 기록 덮개가 접혀 올라가는 시간 — CSS .fb-door.is-closing의 길이와 같아야 합니다.
+// 이벤트 기록 서랍이 창 뒤로 들어가는 시간 — CSS .fb-door.is-closing의 길이와 같아야 합니다.
 const DOOR_MS = 360;
 
 // 바구니 그림 — public/fruit-basket.webp(색연필 그림, 1200×800 · 약 270KB).
@@ -107,7 +107,7 @@ export default function FruitBasketModal({
 
   return (
     <div className="modal-backdrop fb-backdrop" {...backdropClose(onClose)}>
-      <div className="fb-stack">
+      <div className={`fb-stack${isTeacher && door ? " has-door" : ""}`}>
       <div
         className="modal fruit-basket-modal"
         role="dialog"
@@ -598,15 +598,15 @@ function FruitEventHistory({ classId, openId = null, onOpen }) {
   );
 }
 
-// 창 아래쪽에 경첩으로 매단 문 — 지난 이벤트 한 회의 자세한 기록.
-// 창의 아래 모서리에 위쪽이 붙어 아래로 젖혀 열리고(transform-origin: top),
-// 닫을 때는 거꾸로 접혀 올라갑니다. 창 레이아웃에는 안 끼어(absolute) 창이
-// 제자리에 있고, 화면 아래가 모자라면 배경 칸이 구릅니다.
+// 창 아래에 붙은 서랍 — 지난 이벤트 한 회의 자세한 기록.
+// 창과 같은 폭으로 창 뒤에서 아래로 빠져나오고, 닫을 때는 창 뒤로 도로
+// 들어갑니다. 창 레이아웃에는 안 끼어(absolute) 창이 제자리에 있고, 화면
+// 아래가 모자라면 배경 칸이 구릅니다.
 function EventDoor({ ev, no, closing, roster, onClose }) {
   const nameOf = useMemo(() => rosterNamer(roster), [roster]);
   const ref = useRef(null);
-  // 문이 화면 밖으로 내려가면 보이게 굴려 줍니다 — **다 열린 뒤에**. 젖혀지는
-  // 동안은 문 상자가 납작해 그 크기로 재면 덜 굴러 아래가 잘립니다(실측).
+  // 서랍이 화면 밖으로 내려가면 보이게 굴려 줍니다 — **다 열린 뒤에**. 빠져
+  // 나오는 동안 재면 덜 굴러 아래가 잘립니다(실측).
   // 움직임을 줄인 기기는 animationend가 안 오므로 처음에 한 번 굴립니다.
   const reveal = () => ref.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   useEffect(() => {
@@ -622,8 +622,6 @@ function EventDoor({ ev, no, closing, roster, onClose }) {
       onClick={(e) => e.stopPropagation()}
       onAnimationEnd={(e) => { if (e.target === e.currentTarget && !closing) reveal(); }}
     >
-      <span className="fb-door-hinge fb-door-hinge--l" aria-hidden="true" />
-      <span className="fb-door-hinge fb-door-hinge--r" aria-hidden="true" />
       <div className="fb-door-screen">
       <header className="fb-door-head">
         <strong>{no}회 이벤트</strong>

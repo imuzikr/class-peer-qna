@@ -3715,62 +3715,45 @@ button.footer-link:hover {
 .fb-history-when { flex: 1; min-width: 0; color: var(--text-sub); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fb-history-sum { flex: none; font-weight: 600; color: var(--dark); }
 
-/* 이벤트 기록의 '문' — **노트북 덮개처럼** 창 아래 모서리의 경첩에서 열립니다
-   (선생님 요청). 덮개가 앞으로 눕혀진 채(rotateX −90°) 시작해 경첩을 축으로
-   펴지며 살짝 지나쳤다(+5°) 제자리에 앉고, 그동안 안쪽 그늘(::after)이 걷히고
-   다 펴질 즈음 내용이 화면 켜지듯 떠오릅니다(.fb-door-screen). 창 레이아웃에
-   안 끼게 absolute이고, 위쪽 18px은 창 뒤에 숨어 이음매가 안 보입니다(창 z 1 ·
-   문 z 0). 화면 아래가 모자라면 배경 칸이 구르도록 배경을 위에서부터 쌓고
-   (.fb-backdrop) 창 묶음을 auto 여백으로 가운데에 둡니다. 닫는 길이는
-   DOOR_MS(360)와 같아야 합니다. */
+/* 이벤트 기록의 '서랍' — 창 아래에 **같은 폭으로 붙어** 창 뒤에서 빠져나옵니다
+   (선생님 요청 — 한때 경첩에서 젖혀 열리는 노트북 덮개였음). 위쪽 22px은 창
+   뒤에 숨어 이음매가 안 보이고(창 z 1 · 서랍 z 0), 서랍이 서 있는 동안은 창의
+   아래 모서리를 펴(.has-door) 둘이 한 장으로 읽힙니다. 창이 서랍 위에 드리운
+   그늘은 서랍 위쪽의 안쪽 그림자입니다. 바탕은 옅은 크림 — 창(흰색)과 갈립니다.
+   여닫는 움직임은 아래로 펴지는 clip-path + 살짝 내려오기. 닫는 길이는
+   DOOR_MS(360)와 같아야 합니다. 창 레이아웃에 안 끼게 absolute이고, 화면 아래가
+   모자라면 배경 칸이 구르도록 배경을 위에서부터 쌓고(.fb-backdrop) 창 묶음을
+   auto 여백으로 가운데에 둡니다. */
 .modal-backdrop.fb-backdrop { align-items: flex-start; overflow-y: auto; }
 .fb-stack { position: relative; margin: auto 0; isolation: isolate; }
-.fb-stack > .modal.fruit-basket-modal { position: relative; z-index: 1; }
+.fb-stack > .modal.fruit-basket-modal { position: relative; z-index: 1; transition: border-radius 0.2s; }
+.fb-stack.has-door > .modal.fruit-basket-modal { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
 .fb-door {
   position: absolute;
-  left: 32px; right: 32px;
-  top: calc(100% - 18px);
+  left: 0; right: 0;
+  top: calc(100% - 22px);
   z-index: 0;
   display: flex; flex-direction: column;
   max-height: min(380px, 62vh);
-  padding: 28px 18px 14px;
-  background: #fff;
-  border-radius: 0 0 18px 18px;
-  box-shadow: 0 22px 44px rgba(38, 31, 28, 0.28);
-  transform-origin: top center;
-  transform-style: preserve-3d;
-  backface-visibility: hidden;
-  animation: fb-lid-open 0.72s cubic-bezier(0.3, 0.75, 0.3, 1) both;
+  padding: 38px 28px 20px;
+  background: linear-gradient(180deg, #f3f3ea 0%, #fafaf4 100%);
+  border-radius: 0 0 20px 20px;
+  box-shadow: inset 0 24px 18px -14px rgba(38, 31, 28, 0.26), 0 22px 44px rgba(38, 31, 28, 0.22);
+  animation: fb-drawer-open 0.42s cubic-bezier(0.22, 0.8, 0.3, 1) both;
 }
-.fb-door::after {
-  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
-  background: linear-gradient(180deg, rgba(58, 49, 46, 0.42), rgba(58, 49, 46, 0.12));
-  animation: fb-lid-shade 0.72s ease-out both;
+.fb-door-screen { display: flex; flex-direction: column; min-height: 0; animation: fb-drawer-screen 0.42s ease-out both; }
+.fb-door.is-closing { animation: fb-drawer-close 0.36s cubic-bezier(0.5, 0, 0.75, 0.4) both; }
+.fb-door.is-closing .fb-door-screen { animation: fb-drawer-screen-out 0.2s ease-in both; }
+@keyframes fb-drawer-open {
+  from { clip-path: inset(0 0 100% 0 round 0 0 20px 20px); transform: translateY(-14px); }
+  to { clip-path: inset(0 0 0 0 round 0 0 20px 20px); transform: translateY(0); }
 }
-.fb-door-screen { display: flex; flex-direction: column; min-height: 0; animation: fb-lid-screen 0.72s ease-out both; }
-.fb-door.is-closing { animation: fb-lid-close 0.36s ease-in both; }
-.fb-door.is-closing::after { animation: fb-lid-shade-out 0.36s ease-in both; }
-.fb-door.is-closing .fb-door-screen { animation: fb-lid-screen-out 0.2s ease-in both; }
-@keyframes fb-lid-open {
-  0% { transform: perspective(900px) rotateX(-90deg); box-shadow: 0 2px 6px rgba(38, 31, 28, 0.1); }
-  62% { transform: perspective(900px) rotateX(5deg); }
-  82% { transform: perspective(900px) rotateX(-1.5deg); }
-  100% { transform: perspective(900px) rotateX(0deg); box-shadow: 0 22px 44px rgba(38, 31, 28, 0.28); }
+@keyframes fb-drawer-close {
+  from { clip-path: inset(0 0 0 0 round 0 0 20px 20px); transform: translateY(0); }
+  to { clip-path: inset(0 0 100% 0 round 0 0 20px 20px); transform: translateY(-14px); }
 }
-@keyframes fb-lid-close {
-  from { transform: perspective(900px) rotateX(0deg); opacity: 1; }
-  to { transform: perspective(900px) rotateX(-90deg); opacity: 0.6; }
-}
-@keyframes fb-lid-shade { 0% { opacity: 1; } 70% { opacity: 0.2; } 100% { opacity: 0; } }
-@keyframes fb-lid-shade-out { from { opacity: 0; } to { opacity: 1; } }
-@keyframes fb-lid-screen { 0%, 45% { opacity: 0; filter: brightness(1.6) blur(2px); } 100% { opacity: 1; filter: none; } }
-@keyframes fb-lid-screen-out { to { opacity: 0; } }
-.fb-door-hinge {
-  position: absolute; top: 18px; width: 34px; height: 8px;
-  border-radius: 0 0 6px 6px; background: var(--border);
-}
-.fb-door-hinge--l { left: 32px; }
-.fb-door-hinge--r { right: 32px; }
+@keyframes fb-drawer-screen { 0%, 30% { opacity: 0; transform: translateY(-6px); } 100% { opacity: 1; transform: none; } }
+@keyframes fb-drawer-screen-out { to { opacity: 0; } }
 .fb-door-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
 .fb-door-head strong { font-size: 15px; color: var(--primary-dark); }
 .fb-door-when { font-size: 13px; color: var(--text-sub); }
@@ -3791,12 +3774,11 @@ button.footer-link:hover {
 .fb-door-names strong { flex: none; color: var(--primary-dark); font-variant-numeric: tabular-nums; }
 .fb-door .fb-history-declined { margin-top: 10px; }
 @media (max-width: 720px) {
-  .fb-door { left: 12px; right: 12px; }
+  .fb-door { padding: 34px 16px 16px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .fb-door, .fb-door.is-closing, .fb-door::after, .fb-door.is-closing::after,
-  .fb-door-screen, .fb-door.is-closing .fb-door-screen { animation: none; }
-  .fb-door::after { opacity: 0; }
+  .fb-door, .fb-door.is-closing, .fb-door-screen, .fb-door.is-closing .fb-door-screen { animation: none; }
+  .fb-stack > .modal.fruit-basket-modal { transition: none; }
 }
 .fb-history-declined { margin: 6px 0 0; font-size: 12px; color: var(--text-sub); line-height: 1.5; }
 .fb-msg { margin: 8px 0 0; font-size: 12.5px; }
