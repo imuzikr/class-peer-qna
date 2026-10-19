@@ -40,7 +40,7 @@ import { IconQuizMemo } from "./StatusIcons";
 // 손바닥 뱃지가 없는 자리표(돌발 퀴즈 창)에서는 그대로 줄 끝입니다.
 // raisedUids · raisedCount: 손든 학생(uid 집합)과 그 수. 안 넘기면 손바닥
 // 표시도 머리줄 뱃지도 없습니다(돌발 퀴즈 창).
-// quizStateByUid: 돌발 퀴즈 관리 창 — uid → 'memo'(보냄 · 확인 전) | 'done'(과일
+// quizStateByUid: 돌발 퀴즈 관리 창 — uid → 'memo'(보냄 · 확인 전) | 'done'(완료 · 과일
 // 받음). 메모지 그림 · 초록 바탕으로 그립니다(lib/popQuiz.js의 seatQuizState).
 
 // 자리 칸 하나 — 자리표(SeatPickGrid)와 모둠 보기가 똑같은 모양을 쓰도록
@@ -75,7 +75,7 @@ export function SeatCell({
          아니라 **이 자리 옆에 붙는 팝오버**라, 어디에 뜰지 정하려면 누른
          칸이 어디인지 알아야 합니다. */
       onClick={(e) => onPick?.(s, e.currentTarget)}
-      title={`${s.name}${s.studentId ? ` · ${s.studentId}` : ""}${attLabel}${liveLabel}${notingLabel}${raised ? " · 질문 있어요" : ""}${quiz === "memo" ? " · 퀴즈 답 보냄" : quiz === "done" ? " · 퀴즈 과일 받음" : ""}${todayCount > 0 ? ` · 오늘 과일 ${todayCount}개` : ""}${top ? " · 오늘 과일 1등" : ""}${eventChoice === "entered" ? " · 이벤트 응모(접수 전)" : eventChoice === "declined" ? " · 이벤트 응모 안 함(접수 전)" : ""} — 눌러서 ${action}${draggable ? ", 끌어서 자리 이동" : ""}`}
+      title={`${s.name}${s.studentId ? ` · ${s.studentId}` : ""}${attLabel}${liveLabel}${notingLabel}${raised ? " · 질문 있어요" : ""}${quiz === "memo" ? " · 퀴즈 답 보냄" : quiz === "done" ? " · 퀴즈 끝남(완료 · 과일)" : ""}${todayCount > 0 ? ` · 오늘 과일 ${todayCount}개` : ""}${top ? " · 오늘 과일 1등" : ""}${eventChoice === "entered" ? " · 이벤트 응모(접수 전)" : eventChoice === "declined" ? " · 이벤트 응모 안 함(접수 전)" : ""} — 눌러서 ${action}${draggable ? ", 끌어서 자리 이동" : ""}`}
       draggable={draggable}
       onDragStart={draggable ? (e) => { onDragStart(index); e.dataTransfer.effectAllowed = "move"; } : undefined}
       onDragEnd={draggable ? onDragEnd : undefined}

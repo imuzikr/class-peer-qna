@@ -165,6 +165,20 @@ describe("돌발 퀴즈 규칙", () => {
     await assertSucceeds(setDoc(aRef(s1, "stu1"), answer("stu1", { history: [...full.slice(1), h] }), { merge: true }));
   });
 
+  it("완료 — 보낸 답에만, 담당 교사만, 그 뒤로 학생은 못 고침", async () => {
+    const s1 = asStudent(env, "stu1").firestore();
+    const t = asTeacher(env, "teacherA").firestore();
+    const done = (db, by) => updateDoc(aRef(db, "stu1"), { status: "completed", reviewedBy: by, reviewedAt: serverTimestamp() });
+    await assertSucceeds(setDoc(aRef(s1, "stu1"), answer("stu1"), { merge: true }));
+    await assertFails(done(asTeacher(env, "teacherB").firestore(), "teacherB"));
+    await assertFails(done(s1, "stu1"));
+    await assertSucceeds(done(t, "teacherA"));
+    // 완료한 답은 다시 완료 · 반송 못 하고, 학생도 못 고침
+    await assertFails(done(t, "teacherA"));
+    await assertFails(updateDoc(aRef(t, "stu1"), { status: "returned", returnNote: "", reviewedBy: "teacherA", reviewedAt: serverTimestamp() }));
+    await assertFails(setDoc(aRef(s1, "stu1"), answer("stu1", { text: "<p>고침</p>" }), { merge: true }));
+  });
+
   it("교사는 상태 칸만 — 학생 글은 못 고치고, 남의 반 교사는 거부", async () => {
     const s1 = asStudent(env, "stu1").firestore();
     await assertSucceeds(setDoc(aRef(s1, "stu1"), answer("stu1"), { merge: true }));

@@ -28,6 +28,7 @@ import {
   closePopQuiz,
   dailySeatLayoutId,
   deletePopQuiz,
+  completePopQuizAnswer,
   returnPopQuizAnswer,
   rewardPopQuizAnswer,
   sendPopQuiz,
@@ -188,6 +189,7 @@ export default function PopQuizTeacherModal({ classId, board = null, startNew = 
                   </span>
                   <span>확인 전 {counts.pending}</span>
                   <span>반송 {counts.returned}</span>
+                  <span>완료 {counts.completed}</span>
                   <span>🍊 {counts.rewarded}</span>
                 </div>
                 {quiz.open && (
@@ -473,6 +475,11 @@ function AnswerReview({ classId, quiz, student, answer, onClose }) {
   // 학생이 고쳐 다시 보낼 때까지 둘 다 꺼집니다(선생님 요청). 반송은 열린
   // 퀴즈에서만 — 마친 퀴즈는 학생이 다시 보낼 길이 없습니다.
   const canReward = st === "submitted";
+  const canComplete = st === "submitted";
+  const completeTitle = canComplete
+    ? "과일 없이 답을 인정하고 이 학생의 퀴즈를 마칩니다 — 알림 불도 꺼져요"
+    : st === "returned" ? "반송한 답이에요 — 학생이 다시 보내면 누를 수 있어요"
+    : "학생이 답을 보내면 누를 수 있어요";
   const canReturn = st === "submitted" && quiz.open;
   const rewardTitle = canReward
     ? "과일 1개를 주고 이 학생의 퀴즈를 마칩니다"
@@ -518,8 +525,10 @@ function AnswerReview({ classId, quiz, student, answer, onClose }) {
         <p className="pq-empty">아직 답을 보내지 않았어요.</p>
       )}
       {err && <p className="form-error">{err}</p>}
-      {st === "rewarded" ? (
-        <p className="pq-review-done">🍊 과일을 줬어요 — 이 학생의 퀴즈는 끝났어요.</p>
+      {st === "rewarded" || st === "completed" ? (
+        <p className="pq-review-done">
+          {st === "rewarded" ? "🍊 과일을 줬어요" : "✓ 완료했어요"} — 이 학생의 퀴즈는 끝났어요.
+        </p>
       ) : (
         <>
           {canReturn && (
@@ -534,7 +543,7 @@ function AnswerReview({ classId, quiz, student, answer, onClose }) {
             />
           )}
           {st === "returned" && (
-            <p className="pq-review-wait">반송했어요 — 학생이 고쳐 다시 보내면 두 단추가 다시 켜져요.</p>
+            <p className="pq-review-wait">반송했어요 — 학생이 고쳐 다시 보내면 단추가 다시 켜져요.</p>
           )}
           <div className="pq-review-btns">
             <button
@@ -545,6 +554,15 @@ function AnswerReview({ classId, quiz, student, answer, onClose }) {
               title={returnTitle}
             >
               반송
+            </button>
+            <button
+              type="button"
+              className="btn-ghost pq-complete-btn"
+              disabled={busy || !canComplete}
+              onClick={() => act(() => completePopQuizAnswer(classId, quiz.id, student.uid))}
+              title={completeTitle}
+            >
+              ✓ 완료
             </button>
             <button
               type="button"

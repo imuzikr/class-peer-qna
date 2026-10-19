@@ -112,6 +112,8 @@ export default function PopQuizStudentModal({ classId, user, quiz, answer, onClo
                   <p className="pq-mine-foot">
                     {answer?.status === "rewarded"
                       ? "선생님이 과일을 주셨어요. 이 퀴즈는 끝났어요."
+                      : answer?.status === "completed"
+                      ? "선생님이 답을 확인하고 완료했어요. 이 퀴즈는 끝났어요."
                       : "선생님께 보냈어요 — 확인을 기다리는 중이에요. 그동안은 고칠 수 없어요."}
                   </p>
                 </div>

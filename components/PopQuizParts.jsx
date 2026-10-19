@@ -110,6 +110,7 @@ export function PopQuizThread({ answer, viewer = "teacher" }) {
 export function PopQuizStatus({ answer, quizOpen = true }) {
   const st = answer?.status;
   if (st === "rewarded") return <span className="pq-status pq-status--done">🍊 과일 받음</span>;
+  if (st === "completed") return <span className="pq-status pq-status--done">✓ 완료</span>;
   if (st === "submitted") return <span className="pq-status pq-status--sent">보냄 · 확인 전</span>;
   if (st === "returned") return <span className="pq-status pq-status--returned">반송됨</span>;
   return <span className="pq-status pq-status--none">{quizOpen ? "아직 안 보냄" : "보내지 않음"}</span>;

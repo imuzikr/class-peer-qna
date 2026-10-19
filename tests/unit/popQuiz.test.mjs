@@ -58,7 +58,7 @@ test("셈은 지금 명단만 — 반에서 빠진 학생의 답은 안 셈", ()
     { uid: "gone", status: "submitted" },
   ];
   assert.deepEqual(quizCounts(answers, ["a", "b", "c", "d"]), {
-    total: 4, sent: 2, pending: 1, returned: 1, rewarded: 1,
+    total: 4, sent: 2, pending: 1, returned: 1, rewarded: 1, completed: 0,
   });
 });
 
@@ -123,4 +123,13 @@ test("대화 — 지난 차례(반송 한 마디 짝) + 지금 답", () => {
   // 보낸 상태면 지금 차례에 한 마디가 없음(지난 반송의 한 마디가 남아 있어도)
   const sent = quizThread({ ...a, status: "submitted" });
   assert.deepEqual([sent[1].returned, sent[1].note], [false, ""]);
+});
+
+test("완료 — 자리표 초록 · 셈에 듦 · 학생 불 없음 · 다시 못 보냄", () => {
+  const done = { status: "completed", uid: "a" };
+  assert.equal(seatQuizState(done), "done");
+  assert.equal(studentQuizLight(open, done), null);
+  assert.equal(canSubmitQuiz(open, done), false);
+  const c = quizCounts([done, { status: "submitted", uid: "b" }], ["a", "b"]);
+  assert.deepEqual([c.sent, c.completed, c.pending], [2, 1, 1]);
 });

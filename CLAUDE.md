@@ -4411,7 +4411,7 @@ CodeMirror가 아니라 그냥 글자 칸(contentEditable)이라, 손대지 않�
   - 답 `…/popQuizzes/{qId}/submissions/{학생 uid}` = `{ classId, quizId, uid, kind,
     text(1~20000), output(≤10000), status, submittedAt, history?, returnNote?, reviewedAt?,
     reviewedBy? }`. status는 `submitted`(보냄 · 확인 전) · `returned`(반송) ·
-    `rewarded`(과일 받음 — 끝).
+    `completed`(완료 — 과일 없이 인정, 끝) · `rewarded`(과일 받음 — 끝).
   - **하위 컬렉션 이름을 `answers`로 짓지 마세요.** 규칙 맨 아래의 질문방 그룹 규칙
     (`match /{path=**}/answers/{aId}` — 로그인만 하면 읽기)이 그대로 걸려, 학생이 반
     친구의 퀴즈 답을 다 읽게 됩니다(규칙 시험이 실제로 잡았습니다).
@@ -4496,6 +4496,13 @@ CodeMirror가 아니라 그냥 글자 칸(contentEditable)이라, 손대지 않�
     포털 · z 3020(이 창 위) · 폭 380px(좁으면 화면 폭 − 16) · 긴 답은 제 안에서 구름.
     과일은 **1개**이고 지급 이력에도 그대로 남습니다(`rewardPopQuizAnswer` →
     `addStudentReward` 다음에 상태).
+  - **단추는 셋 — 반송 · ✓ 완료 · 🍊 과일 주기**(한 줄 같은 크기, 선생님 요청).
+    **완료**는 과일 없이 답을 인정하고 대화를 끝냅니다(`completePopQuizAnswer` →
+    `status: 'completed'`). 확인 전 답이 아니게 되어 **교사 · 학생 알림 불이 모두
+    꺼지고**, 자리표는 과일과 같은 초록, 학생 창은 '선생님이 답을 확인하고
+    완료했어요'. 보낸 답(`submitted`)에서만 켜지고, 색은 초록(#3f8f5c — '됐다').
+    규칙은 담당 교사 · 보낸 답 · 상태 칸만(시험 `tests/rules/popQuiz.test.mjs`).
+    대화 말풍선 안의 글 답은 안쪽 상자 테두리를 걷었습니다(말풍선이 이미 테두리).
   - **반송 · 과일 주기 두 단추는 늘 함께 서고, 학생이 '보낸'(`submitted`) 상태에서만
     켜집니다**(선생님 요청). 반송한 뒤에는 학생이 고쳐 다시 보낼 때까지 **둘 다
     꺼지고** '반송했어요 — 학생이 고쳐 다시 보내면 두 단추가 다시 켜져요'가 섭니다.

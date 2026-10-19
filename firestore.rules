@@ -687,7 +687,7 @@ service cloud.firestore {
       //    고치기는 '닫기'(open → false) 한 가지뿐 — 보낸 물음은 안 바뀝니다.
       //  · 답: 학생은 **제 자리에, 열린 퀴즈에만**, 처음이거나 반송됐을 때만
       //    보냅니다(보낸 뒤 · 과일을 받은 뒤에는 못 고침). 교사는 상태 칸만 —
-      //    반송(보낸 답 · 열린 퀴즈) · 과일(보낸 답 또는 반송한 답).
+      //    반송(보낸 답 · 열린 퀴즈) · 완료(보낸 답) · 과일(보낸 답 또는 반송한 답).
       //    다시 보낼 때 지난 차례가 history에 쌓여 오간 말이 남습니다(popHistoryOk).
       //    읽기는 그 학생과 담당 교사(목록은 교사만). 시험 tests/rules/popQuiz.test.mjs.
       match /popQuizzes/{qId} {
@@ -731,6 +731,13 @@ service cloud.firestore {
                         && resource.data.status in ['submitted', 'returned']
                         && changedOnly(['status', 'reviewedAt', 'reviewedBy'])
                         && request.resource.data.status == 'rewarded'
+                        && request.resource.data.reviewedAt == request.time
+                        && request.resource.data.reviewedBy == uid();
+          // 교사 — 완료(과일 없이 답을 인정 · 그 학생의 퀴즈는 끝). 보낸 답에만.
+          allow update: if signedIn() && (isAdmin() || ownsClassEditable(cId))
+                        && resource.data.status == 'submitted'
+                        && changedOnly(['status', 'reviewedAt', 'reviewedBy'])
+                        && request.resource.data.status == 'completed'
                         && request.resource.data.reviewedAt == request.time
                         && request.resource.data.reviewedBy == uid();
           allow delete: if isAdmin() || ownsClassEditable(cId);
