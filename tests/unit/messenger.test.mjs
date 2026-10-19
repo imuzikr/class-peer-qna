@@ -133,3 +133,20 @@ test("읽음 — 참여자는 모둠원 + 선생님(1:1은 학생 + 선생님), 
   assert.deepEqual(r.unread.map((p) => p.uid), ["s3"]);
   assert.equal(chatReceipt({ fromUid: "s1", at: null }, ps, {}), null);
 });
+
+test("1:1 방에 손들기 대화 카드를 시간순으로 끼우고, 빈 손들기는 뺀다", async () => {
+  const { dmTimeline } = await import("@/lib/messenger");
+  const thread = [
+    { id: "a", room: "dm_s1", at: at(1000) },
+    { id: "b", room: "dm_s1", at: at(3000) },
+    { id: "p", room: "dm_s1", at: null }, // 서버 시각 전 — 맨 뒤
+  ];
+  const sig = [
+    { threadId: "t2", startAt: 2000, entries: [{ text: "for문이 헷갈려요", tag: "" }] },
+    { threadId: "t0", startAt: 500, entries: [{ text: "", tag: "question" }] },
+    { threadId: "tx", startAt: 2500, entries: [{ text: "  ", tag: "" }] }, // 그냥 부른 손
+  ];
+  const keys = dmTimeline(thread, sig).map((x) => x.key);
+  assert.deepEqual(keys, ["sig_t0", "a", "sig_t2", "b", "p"]);
+  assert.deepEqual(dmTimeline(thread, []).map((x) => x.kind), ["msg", "msg", "msg"]);
+});

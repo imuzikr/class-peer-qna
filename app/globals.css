@@ -2475,7 +2475,7 @@ button.footer-link:hover {
   gap: 5px;
   margin: 4px 0 6px 38px;
 }
-.qsig-reply-row { align-items: flex-end; }
+.qsig-reply-row { flex-direction: row; justify-content: flex-end; gap: 6px; }
 .qsig-reply-edit { align-items: stretch; }
 .qsig-reply-edit .qsig-note { min-height: 64px; }
 .qsig-reply-btns { display: flex; justify-content: flex-end; gap: 6px; }
@@ -32114,6 +32114,20 @@ h4.attendance-seat-help { margin-top: 16px; }
   line-height: 1.5;
 }
 .msgr-notice strong { color: var(--text); }
+/* 1:1 방의 손들기 대화 카드 — 접힌 한 줄, 누르면 손바닥 창과 같은 말풍선(읽기 전용).
+   메신저 말과 갈리도록 점선 테두리 · 가운데 정렬. */
+.msgr-sig { margin: 8px auto; width: min(100%, 420px); border: 1px dashed var(--border); border-radius: 12px; background: #fff; }
+.msgr-sig-head {
+  width: 100%; display: flex; align-items: center; gap: 6px; padding: 7px 10px;
+  background: none; border: 0; border-radius: 12px; font: inherit; font-size: 12px; color: var(--text-sub);
+  text-align: left; cursor: pointer;
+}
+.msgr-sig-head:hover { background: var(--primary-light); }
+.msgr-sig-label { flex: none; font-weight: 700; color: var(--dark); }
+.msgr-sig-preview { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.msgr-sig-head small { flex: none; margin-left: auto; color: var(--text-faint); }
+.msgr-sig-body { padding: 2px 10px 10px; }
+.msgr-sig .qsig-thread { max-height: none; overflow: visible; margin: 0; }
 .msgr-day {
   display: flex;
   align-items: center;

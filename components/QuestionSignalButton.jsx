@@ -26,6 +26,7 @@ import QuestionSeatModal from "./QuestionSeatModal";
 import SignalThread from "./SignalThread";
 import { QUESTION_TAGS, QUESTION_NOTE_MAX } from "@/lib/questionTags";
 import { IconChair } from "./StatusIcons";
+import { dmRoom, openMessenger } from "@/lib/messenger";
 
 export default function QuestionSignalButton({
   classId,
@@ -359,7 +360,7 @@ export default function QuestionSignalButton({
               ? "선생님 답변이 왔어요"
               : mine
                 ? "질문 대화 보기"
-                : "질문하기"
+                : "질문하기 — 수업 중 바로 도움이 필요할 때(천천히 이야기할 것은 메신저로)"
         }
         aria-label={
           isTeacher
@@ -413,7 +414,18 @@ export default function QuestionSignalButton({
               <p className="qsig-thread-closed">
                 선생님이 대화를 닫았어요. 더 궁금한 것이 있으면 새로 손을 들어 주세요.
               </p>
-              <div className="qsig-actions qsig-actions--one">
+              {/* 닫힌 대화를 이어 가는 곳은 메신저입니다 — 손바닥은 '지금 수업 중
+                  바로 도움'의 자리라, 길어지는 이야기는 1:1 방으로 넘깁니다(이 대화도
+                  그 방에 카드로 남습니다). */}
+              <div className="qsig-actions">
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  onClick={() => { setOpen(false); openMessenger(classId, dmRoom(user.uid)); }}
+                  title="선생님과의 메신저 대화를 엽니다 — 이 대화도 거기 남아 있어요"
+                >
+                  메신저에서 이어 가기
+                </button>
                 <button type="button" className="btn-primary" onClick={() => setClosedView(null)}>
                   새로 질문하기
                 </button>
@@ -603,6 +615,7 @@ export default function QuestionSignalButton({
                     onChange={setReplyText}
                     onCancel={() => { setReplyTo(null); setReplyErr(null); }}
                     onSend={() => sendReply(s)}
+                    onMessenger={() => { setOpen(false); openMessenger(classId, dmRoom(s.uid)); }}
                   />
                 </li>
               ))}
@@ -620,7 +633,7 @@ export default function QuestionSignalButton({
 
 // 교사 목록의 답하기 칸 — 한 학생의 대화 아래. 보낸 말은 위 대화에 쌓이므로
 // 여기는 쓰는 칸 하나뿐입니다(고치기는 없습니다 — 대화는 쌓기만).
-function ReplyArea({ signal, answered, editing, text, busy, error, onStart, onChange, onCancel, onSend }) {
+function ReplyArea({ signal, answered, editing, text, busy, error, onStart, onChange, onCancel, onSend, onMessenger }) {
   const name = signal.name || "이 학생";
   if (editing) {
     return (
@@ -661,6 +674,15 @@ function ReplyArea({ signal, answered, editing, text, busy, error, onStart, onCh
     <span className="qsig-reply-row">
       <button type="button" className="qsig-reply-start" onClick={onStart}>
         💬 {answered ? "이어서 답하기" : "답하기"}
+      </button>
+      {/* 길어지는 이야기는 1:1 방으로 — 이 손들기 대화도 그 방에 카드로 남습니다 */}
+      <button
+        type="button"
+        className="qsig-reply-start"
+        onClick={onMessenger}
+        title={`${name}와(과)의 메신저 대화를 엽니다 — 손들고 나눈 대화도 거기 함께 보여요`}
+      >
+        ✉ 메신저 대화
       </button>
     </span>
   );

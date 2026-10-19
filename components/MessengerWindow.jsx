@@ -35,6 +35,12 @@
 //
 // [공지] 반 공지(상단바 확성기로 보낸 것)의 최근 3건 — 학생은 '공지' 탭, 교사는
 // 대화 목록 맨 위. 발송 기록(classes/{cId}/classNotices)을 읽습니다.
+//
+// [손들기 대화] 1:1 방에는 그 학생이 손들고 나눈 대화가 **접힌 카드**로 시간순에
+// 섭니다(SignalCard — 누르면 펼침, 읽기 전용). 방을 열 때 한 번 읽어 그리기만 하고
+// (fetchSignalHistory) 메신저 쪽에 복사하지 않습니다. 안 읽은 수 · 읽음 · 인용에도
+// 안 들어갑니다 — 손바닥 불이 이미 알린 말이라서요. 섞는 셈은 lib/messenger.js의
+// dmTimeline. 밖에서 이 창을 그 방으로 여는 길은 openMessenger(initialRoom).
 // =============================================================
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -46,7 +52,11 @@ import {
   fetchClass,
   fetchClassRosterProfiles,
   subscribeClassNotices,
+  fetchSignalHistory,
 } from "@/lib/store";
+import { groupHistory } from "@/lib/signalThread";
+import { questionTagOf } from "@/lib/questionTags";
+import SignalThread from "./SignalThread";
 import { sanitizeHtml } from "@/lib/html";
 import RichTextEditor from "./RichTextEditor";
 import { useClassMembers } from "@/lib/useClassRoster";
@@ -62,6 +72,8 @@ import {
   roomParticipants,
   chatReceipt,
   isGroupRoom,
+  isDmRoom,
+  dmTimeline,
   CHAT_NOTICE_LIMIT,
 } from "@/lib/messenger";
 import { dateKeyOf, todayDateKey, dateKeyLabel } from "@/lib/dates";
@@ -113,6 +125,39 @@ function NoticeList({ notices, isTeacher }) {
   );
 }
 
+// 손들고 나눈 대화 한 줄기 — 1:1 방 안의 접힌 카드(읽기 전용). 펼치면 손바닥 창과
+// 같은 말풍선(SignalThread)입니다. 이어서 쓰는 글은 아래 메신저 칸에 씁니다.
+// 시각은 메신저 말과 같은 글자(chatTimeLabel — '오후 5:12')로 적습니다.
+function SignalCard({ thread, viewer, whoName }) {
+  const [open, setOpen] = useState(false);
+  const first = thread.entries.find((e) => e.first) ?? thread.entries[0];
+  const tag = questionTagOf(first?.tag);
+  const preview = String(first?.text ?? "").replace(/\s+/g, " ").trim() || "내용 없이 손들기";
+  return (
+    <div className={`msgr-sig${open ? " is-open" : ""}`}>
+      <button
+        type="button"
+        className="msgr-sig-head"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        title={open ? "접기" : "손들고 나눈 대화 펼치기"}
+      >
+        <span aria-hidden="true">🖐️</span>
+        <span className="msgr-sig-label">
+          손들기{thread.startAt ? ` ${chatTimeLabel(thread.startAt)}` : ""}{tag ? ` · ${tag.label}` : ""}
+        </span>
+        {!open && <span className="msgr-sig-preview">{preview}</span>}
+        <small>말 {thread.entries.length}개</small>
+      </button>
+      {open && (
+        <div className="msgr-sig-body">
+          <SignalThread entries={thread.entries} viewer={viewer} compact whoName={whoName} stamp={chatTimeLabel} />
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Avatar({ text, group = false }) {
   return (
     <span className={`msgr-avatar${group ? " msgr-avatar--group" : ""}`} aria-hidden="true">
@@ -130,6 +175,8 @@ export default function MessengerWindow({
   seen = {},
   classes = [],
   onClassChange = null,
+  // 밖에서 이 방으로 열어 달라는 요청 { classId, room, n } — 손들기 창의 연결 단추
+  initialRoom = null,
   onClose,
 }) {
   const myUid = user?.uid;
@@ -186,6 +233,30 @@ export default function MessengerWindow({
   const current = room ? allRows.find((r) => r.room === room) ?? null : null;
   const thread = useMemo(() => (room ? roomMessages(messages, room) : []), [messages, room]);
 
+  // 손들기 대화 — 1:1 방을 열 때 그 학생 것을 한 번 읽습니다(null = 읽는 중).
+  const [sigThreads, setSigThreads] = useState([]);
+  useEffect(() => {
+    if (!classId || !isDmRoom(room)) { setSigThreads([]); return undefined; }
+    let alive = true;
+    setSigThreads(null);
+    fetchSignalHistory(classId, room.slice(3))
+      .then((rows) => { if (alive) setSigThreads(groupHistory(rows)); })
+      .catch((e) => {
+        console.warn("[메신저] 손들기 대화를 읽지 못했어요:", e?.code, e?.message);
+        if (alive) setSigThreads([]);
+      });
+    return () => { alive = false; };
+  }, [classId, room]);
+  const timeline = useMemo(() => dmTimeline(thread, sigThreads ?? []), [thread, sigThreads]);
+
+  // 밖에서 연 요청 — 그 방으로(교사는 FloatingHub가 반을 먼저 옮겨 둡니다).
+  useEffect(() => {
+    if (!initialRoom?.room) return;
+    if (initialRoom.classId && initialRoom.classId !== classId) return;
+    setNoticesOpen(false);
+    setRoomSel({ cls: classId, room: initialRoom.room });
+  }, [initialRoom, classId]);
+
   // ── 학생 — 목록 없이 탭 둘(선생님 · 우리 모둠) ──
   // 처음에는 안 읽은 말이 있는 쪽, 없으면 선생님 대화를 엽니다.
   const studentDm = !isTeacher ? rooms.people[0] ?? null : null;
@@ -215,7 +286,7 @@ export default function MessengerWindow({
   useEffect(() => {
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [thread.length, room]);
+  }, [timeline.length, room]);
 
   useEffect(() => {
     setDraft("");
@@ -569,15 +640,37 @@ export default function MessengerWindow({
             <p className="msgr-notice">
               🔒 <strong>대화 기록 안내</strong> ·{" "}
               {isTeacher ? "이 대화는 기록되어 언제든 다시 볼 수 있어요." : "이 대화는 기록되고 선생님이 볼 수 있어요."}
+              {isDmRoom(room) && " 손들고 나눈 대화(🖐️)도 여기 함께 남아요."}
             </p>
-            {thread.length === 0 && <p className="msgr-empty msgr-empty--center">첫 메시지를 보내 보세요.</p>}
-            {thread.map((m, i) => {
-              const t = chatTime(m.at);
-              const key = dateKeyOf(new Date(t));
-              const prevKey = i > 0 ? dateKeyOf(new Date(chatTime(thread[i - 1].at))) : null;
+            {timeline.length === 0 && sigThreads !== null && (
+              <p className="msgr-empty msgr-empty--center">첫 메시지를 보내 보세요.</p>
+            )}
+            {timeline.map((item, i) => {
+              const key = item.at ? dateKeyOf(new Date(item.at)) : null;
+              const prev = i > 0 ? timeline[i - 1] : null;
+              const prevKey = prev?.at ? dateKeyOf(new Date(prev.at)) : null;
+              const dayLine = key && key !== prevKey && (
+                <div className="msgr-day">
+                  <span>{key === today ? "오늘" : dateKeyLabel(key)}</span>
+                </div>
+              );
+              if (item.kind === "sig") {
+                return (
+                  <div key={item.key}>
+                    {dayLine}
+                    <SignalCard
+                      thread={item.t}
+                      viewer={isTeacher ? "teacher" : "student"}
+                      whoName={current?.title}
+                    />
+                  </div>
+                );
+              }
+              const m = item.m;
+              const t = item.at;
               const mine = m.fromUid === myUid;
               const showName = !mine && (groupTalk || m.fromRole === "teacher") &&
-                (i === 0 || thread[i - 1].fromUid !== m.fromUid || key !== prevKey);
+                (prev?.kind !== "msg" || prev.m.fromUid !== m.fromUid || key !== prevKey);
               const q = cleanChatQuote(m.quote);
               const qHere = !!q && threadIds.has(q.id);
               // 읽음 — 1:1은 내 말에만, 모둠은 모든 말에(보낸 사람을 뺀 참여자 기준)
@@ -585,12 +678,8 @@ export default function MessengerWindow({
               const rcAll = !!rc && rc.read.length === rc.total;
               const nameOf = (p) => (p.uid === myUid ? "나" : p.name);
               return (
-                <div key={m.id}>
-                  {key !== prevKey && (
-                    <div className="msgr-day">
-                      <span>{key === today ? "오늘" : dateKeyLabel(key)}</span>
-                    </div>
-                  )}
+                <div key={item.key}>
+                  {dayLine}
                   <div className={`msgr-msg${mine ? " msgr-msg--mine" : ""}${m.fromRole === "teacher" && !mine ? " msgr-msg--teacher" : ""}${flashId === m.id ? " is-flash" : ""}`}>
                     {showName && <span className="msgr-msg-name">{m.fromName}</span>}
                     {q && (

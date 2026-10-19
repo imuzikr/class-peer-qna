@@ -51,7 +51,7 @@ import {
   subscribeChatReads,
   subscribeStudyGroupAssignment,
 } from "@/lib/store";
-import { dmRoom, groupRoom, totalUnread } from "@/lib/messenger";
+import { dmRoom, groupRoom, totalUnread, MESSENGER_OPEN_EVENT } from "@/lib/messenger";
 import { isFirebaseConfigured } from "@/lib/firebase";
 import MessengerWindow from "./MessengerWindow";
 import {
@@ -342,6 +342,25 @@ export default function FloatingHub({ classId: pageClassId, user, isTeacher, lif
     msgOpenRef.current = msgOpen;
   }, [msgOpen]);
 
+  // 밖에서 메신저를 그 방으로 — 손들기 창의 '메신저에서 이어 가기' · '메신저 대화'
+  // (lib/messenger.js의 openMessenger). 교사면 그 반으로 먼저 옮깁니다. 요청은 창을
+  // 닫을 때 비웁니다 — 남아 있으면 다음에 동그라미로 열 때 또 그 방으로 갑니다.
+  const [openReq, setOpenReq] = useState(null);
+  useEffect(() => {
+    function onOpen(e) {
+      const d = e.detail || {};
+      if (isTeacher && d.classId && teacherClasses.some((c) => c.id === d.classId)) {
+        msgOpenRef.current = true; // 공부방의 반을 따라가는 효과가 덮지 않게
+        setChatClassId(d.classId);
+      }
+      setMenuOpen(false);
+      setOpenReq({ classId: d.classId ?? null, room: d.room ?? null, n: Date.now() });
+      setMsgOpen(true);
+    }
+    window.addEventListener(MESSENGER_OPEN_EVENT, onOpen);
+    return () => window.removeEventListener(MESSENGER_OPEN_EVENT, onOpen);
+  }, [isTeacher, teacherClasses]);
+
   // 학생의 반(이나 역할)이 바뀌면 접습니다 — 열려 있던 방은 앞 반의 것입니다.
   // 교사는 창 안에서 반을 바꾸므로 접지 않습니다(창이 방을 반과 짝으로 듭니다).
   useEffect(() => {
@@ -353,6 +372,7 @@ export default function FloatingHub({ classId: pageClassId, user, isTeacher, lif
   function pick(item) {
     setMenuOpen(false);
     if (item.key === "msg") {
+      setOpenReq(null);
       setMsgOpen(true);
       return;
     }
@@ -484,7 +504,8 @@ export default function FloatingHub({ classId: pageClassId, user, isTeacher, lif
           groups={groups}
           messages={messages}
           seen={seen}
-          onClose={() => { setMsgOpen(false); fabRef.current?.focus(); }}
+          initialRoom={openReq}
+          onClose={() => { setMsgOpen(false); setOpenReq(null); fabRef.current?.focus(); }}
         />
       )}
     </div>
