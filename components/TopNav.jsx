@@ -149,6 +149,7 @@ export default function TopNav({ active, onPython, pyActive = false, onStudyExpo
   // 상단바가 항상 떠 있으므로 여기서 구독하면 앱 전체에 적용됩니다.
   const [broadcast, setBroadcast] = useState(null);
   const broadcastClassId = admin ? sessionClassId : activeClassId;
+  const quizClassId = admin ? sessionClassId : activeClassId ?? (!isFirebaseConfigured ? sessionClassId : null);
   useEffect(() => {
     if (!isFirebaseConfigured || !broadcastClassId) { setBroadcast(null); return; }
     return subscribeBroadcast(broadcastClassId, setBroadcast);
@@ -413,8 +414,10 @@ export default function TopNav({ active, onPython, pyActive = false, onStudyExpo
             className={noticeClassName}
           />
         )}
-        {user && broadcastClassId && (
-          <PopQuizButton classId={broadcastClassId} user={user} isTeacher={admin} indicator />
+        {/* 반은 떠 있는 동그라미와 같은 값 — 그 '돌발 퀴즈'가 이 조각의 창을 엽니다.
+            실서비스에서는 broadcastClassId와 같고, 데모 학생만 고른 반으로 메웁니다. */}
+        {user && quizClassId && (
+          <PopQuizButton classId={quizClassId} user={user} isTeacher={admin} indicator />
         )}
         {admin && user && broadcastClassId && (
           <ClassNoticeButton
@@ -487,7 +490,7 @@ export default function TopNav({ active, onPython, pyActive = false, onStudyExpo
         교사 화면에 '방송 종료' 알약이 떠 있으면 그 위로 비켜 섭니다. */}
     {user && (
       <FloatingHub
-        classId={admin ? sessionClassId : activeClassId ?? (!isFirebaseConfigured ? sessionClassId : null)}
+        classId={quizClassId}
         user={user}
         isTeacher={admin}
         lifted={admin && !!broadcast}

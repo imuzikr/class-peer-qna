@@ -20,7 +20,6 @@ import { backdropClose } from "@/lib/modal";
 import {
   fetchMyPopQuizAnswer,
   fetchPopQuizzes,
-  formatTime,
   submitPopQuizAnswer,
 } from "@/lib/store";
 import {
@@ -35,7 +34,7 @@ import { outputTextOf } from "@/lib/pyShare";
 import RichTextEditor from "./RichTextEditor";
 import { PyCodeInput } from "./PyCellEditor";
 import PyLineText from "./PyLineText";
-import { Caret, PopQuizQuestion, PopQuizStatus, PopQuizThread } from "./PopQuizParts";
+import { PopQuizQuestion, PopQuizStatus, PopQuizThread } from "./PopQuizParts";
 import { IconQuizMemo } from "./StatusIcons";
 
 const TEXT_TOOLS = ["bold", "underline", "insertUnorderedList", "insertOrderedList", "codeBlock"];
@@ -326,90 +325,72 @@ function CodeAnswer({ code, output, onCode, onOutput }) {
 // 지난 퀴즈 — 접고 펴는 목록(선생님 요청). 창을 열 때 목록을 한 번 읽고,
 // 한 줄을 펼칠 때 그 퀴즈의 내 답을 한 건 읽습니다(펴 본 것은 기억).
 function PastQuizzes({ classId, uid, currentId }) {
+  // 접지 않고 다 펼칩니다(선생님 요청) — 퀴즈마다 물음과 오간 말이 한눈에.
+  // 목록은 창을 열 때 한 번, 내 답은 퀴즈마다 한 건씩 읽습니다(퀴즈는 수업마다
+  // 한두 개라 몇 건 안 됩니다).
   const [list, setList] = useState(null);
-  const [listOpen, setListOpen] = useState(false);
-  const [openIds, setOpenIds] = useState(() => new Set());
   const [answers, setAnswers] = useState({});
 
   useEffect(() => {
     let alive = true;
     fetchPopQuizzes(classId)
       .then((l) => { if (alive) setList(l); })
-      .catch(() => { if (alive) setList([]); });
+      .catch((e) => {
+        console.warn("[돌발 퀴즈] 지난 퀴즈를 읽지 못했어요:", e?.code, e?.message);
+        if (alive) setList([]);
+      });
     return () => { alive = false; };
   }, [classId]);
 
   const past = (list ?? []).filter((q) => q.id !== currentId);
+  const pastKey = past.map((q) => q.id).join(",");
 
-  function toggle(q) {
-    setOpenIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(q.id)) next.delete(q.id);
-      else next.add(q.id);
-      return next;
+  useEffect(() => {
+    if (!pastKey || !uid) return;
+    let alive = true;
+    pastKey.split(",").forEach((id) => {
+      fetchMyPopQuizAnswer(classId, id, uid)
+        .then((a) => { if (alive) setAnswers((m) => ({ ...m, [id]: a })); })
+        .catch(() => { if (alive) setAnswers((m) => ({ ...m, [id]: null })); });
     });
-    if (!(q.id in answers)) {
-      fetchMyPopQuizAnswer(classId, q.id, uid)
-        .then((a) => setAnswers((m) => ({ ...m, [q.id]: a })))
-        .catch(() => setAnswers((m) => ({ ...m, [q.id]: null })));
-    }
-  }
+    return () => { alive = false; };
+  }, [classId, uid, pastKey]);
 
   return (
-    <section className="pq-past">
-      <button
-        type="button"
-        className="pq-past-toggle"
-        onClick={() => setListOpen((v) => !v)}
-        aria-expanded={listOpen}
-      >
-        <Caret open={listOpen} />
+    <section className="pq-past pq-past--open">
+      <h4 className="pq-past-title-row">
         지난 퀴즈
         <span className="pq-past-count">{list ? past.length : "…"}</span>
-      </button>
-      {listOpen && (
-        list === null ? (
-          <p className="pq-past-empty">불러오는 중…</p>
-        ) : past.length === 0 ? (
-          <p className="pq-past-empty">지난 퀴즈가 없어요.</p>
-        ) : (
-          <ul className="pq-past-list">
-            {past.map((q) => {
-              const isOpen = openIds.has(q.id);
-              const a = answers[q.id];
-              return (
-                <li key={q.id} className={isOpen ? "open" : ""}>
-                  <button
-                    type="button"
-                    className="pq-past-head"
-                    onClick={() => toggle(q)}
-                    aria-expanded={isOpen}
-                  >
-                    <Caret open={isOpen} />
-                    <span className="pq-past-title">{q.title}</span>
-                    <span className="pq-past-date">{formatTime(q.createdAt)}</span>
-                  </button>
-                  {isOpen && (
-                    <div className="pq-past-body">
-                      <PopQuizQuestion quiz={q} compact />
-                      {a === undefined ? (
-                        <p className="pq-past-empty">불러오는 중…</p>
-                      ) : (
-                        <div className="pq-mine">
-                          <div className="pq-mine-head">
-                            <span>내 답</span>
-                            <PopQuizStatus answer={a} quizOpen={!!q.open} />
-                          </div>
-                          {a ? <PopQuizThread answer={a} viewer="student" /> : null}
-                        </div>
-                      )}
+      </h4>
+      {list === null ? (
+        <p className="pq-past-empty">불러오는 중…</p>
+      ) : past.length === 0 ? (
+        <p className="pq-past-empty">지난 퀴즈가 없어요.</p>
+      ) : (
+        <ul className="pq-past-list">
+          {past.map((q) => {
+            const a = answers[q.id];
+            return (
+              <li key={q.id} className="open">
+                <div className="pq-past-body">
+                  {/* 물음의 아래 줄이 프로젝트 · 날짜 · '마침'을 적습니다 */}
+                  <PopQuizQuestion quiz={q} />
+                  {a === undefined ? (
+                    <p className="pq-past-empty">불러오는 중…</p>
+                  ) : (
+                    <div className="pq-mine">
+                      <div className="pq-mine-head">
+                        <span>선생님과 나눈 말</span>
+                        <PopQuizStatus answer={a} quizOpen={!!q.open} />
+                      </div>
+                      {a ? <PopQuizThread answer={a} viewer="student" /> : null}
                     </div>
                   )}
-                </li>
-              );
-            })}
-          </ul>
-        )
+                </div>
+              </li>
+            );
+          })}
+        </ul>
       )}
     </section>
   );

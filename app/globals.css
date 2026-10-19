@@ -30673,6 +30673,9 @@ h4.attendance-seat-help { margin-top: 16px; }
 .modal.pq-student-modal {
   width: min(760px, 96vw);
   max-width: 760px;
+  /* 높이를 못 박습니다(선생님 요청) — 지난 퀴즈와 오간 말이 펼친 채 쌓이므로
+     넉넉히 두고, 넘치면 몸통 안에서 구릅니다. */
+  height: min(860px, 92vh);
   max-height: 92vh;
   display: flex;
   flex-direction: column;
@@ -30761,6 +30764,10 @@ h4.attendance-seat-help { margin-top: 16px; }
 
 /* 지난 퀴즈 — 접고 펴는 목록(머리줄 전체가 여닫는 단추) */
 .pq-past { border-top: 1px solid var(--border); padding-top: 12px; }
+/* 학생 창의 지난 퀴즈 — 접지 않고 다 펼침 */
+.pq-past-title-row { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; font-size: 14px; font-weight: 800; color: var(--dark); }
+.pq-past--open .pq-past-list { gap: 10px; }
+.pq-past--open .pq-past-body { padding: 14px; }
 .pq-past-toggle,
 .pq-past-head {
   display: flex;
