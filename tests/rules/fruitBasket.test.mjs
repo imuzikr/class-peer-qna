@@ -208,4 +208,40 @@ describe("fruitBasket — 과일 내놓기", () => {
     await assertFails(cancelAll(asTeacher(env, "teacherZ").firestore(), ["s1"]));
     await assertFails(cancelAll(asStudent(env, "s2").firestore(), ["s1"]));
   });
+
+  // 이벤트 접수 — 앱(receiveFruitEvent)과 같은 모양: 기록 한 장 + 바구니 지우기를 한 묶음.
+  function receiveAll(db, uids, record = {}) {
+    const b = writeBatch(db);
+    b.set(doc(collection(db, "classes", C, "fruitEvents")), {
+      classId: C, byUid: "teacherA", at: serverTimestamp(), total: 4,
+      entrants: [{ uid: "s1", donated: 4 }], declined: ["s2"], ...record,
+    });
+    for (const u of uids) b.delete(basket(db, u));
+    return b.commit();
+  }
+
+  it("이벤트 접수 — 담당 교사는 기록을 남기고 바구니를 비움", async () => {
+    await seed(env, async (db) => {
+      await setDoc(basket(db, "s1"), entry("s1", 4, true));
+      await setDoc(basket(db, "s2"), { ...entry("s2", 0), declined: true });
+    });
+    const t = asTeacher(env, "teacherA").firestore();
+    await assertSucceeds(receiveAll(t, ["s1", "s2"]));
+    await assertSucceeds(getDocs(collection(t, "classes", C, "fruitEvents")));
+  });
+
+  it("이벤트 접수 — 남의 이름 · 낯선 칸 · 학생 · 다른 반 교사는 거부, 기록은 못 고치고 학생은 못 읽음", async () => {
+    await seed(env, async (db) => {
+      await setDoc(doc(db, "classes", "classZ"), { name: "Z", createdBy: "teacherZ", archived: false });
+      await setDoc(basket(db, "s1"), entry("s1", 4, true));
+      await setDoc(doc(db, "classes", C, "fruitEvents", "e1"), { classId: C, byUid: "teacherA", total: 4, entrants: [], declined: [] });
+    });
+    const t = asTeacher(env, "teacherA").firestore();
+    await assertFails(receiveAll(t, ["s1"], { byUid: "someone" }));
+    await assertFails(receiveAll(t, ["s1"], { note: "x" }));
+    await assertFails(receiveAll(asTeacher(env, "teacherZ").firestore(), ["s1"], { byUid: "teacherZ" }));
+    await assertFails(receiveAll(asStudent(env, "s1").firestore(), [], { byUid: "s1" }));
+    await assertFails(updateDoc(doc(t, "classes", C, "fruitEvents", "e1"), { total: 9 }));
+    await assertFails(getDocs(collection(asStudent(env, "s1").firestore(), "classes", C, "fruitEvents")));
+  });
 });

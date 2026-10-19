@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   FRUIT_GOAL,
   entryAmount,
+  basketRoom,
   entryMax,
   basketSummary,
   myBasketEntry,
@@ -37,6 +38,7 @@ test("basketSummary: 합계 · 목표 · 응모", () => {
   assert.equal(s.goalReached, true);
   assert.equal(s.percent, 100);
   assert.equal(s.enteredCount, 1);      // 응모는 지금 명단만
+  assert.equal(s.enteredAll, 2);        // 접수가 처리하는 수 — 명단 밖까지
   assert.equal(s.memberCount, 3);
   assert.deepEqual(s.waitingUids, ["b", "c"]);
   assert.equal(s.allEntered, false);
@@ -102,4 +104,15 @@ test("basketSummary: 응모 안 함 · 모두 답함 · 접수할 학생", () =>
   assert.equal(s.allResponded, true);
   assert.deepEqual(s.pendingUids.sort(), ["a", "gone"]);   // b는 이미 접수됨
   assert.equal(s.pendingFruit, 110);
+});
+
+test("basketRoom · entryAmount: 바구니는 100개까지 — 넘게는 못 담음", () => {
+  assert.equal(basketRoom(0), 100);
+  assert.equal(basketRoom(97), 3);
+  assert.equal(basketRoom(100), 0);
+  assert.equal(basketRoom(101), 0);          // 이미 넘었으면 0(음수 아님)
+  assert.equal(entryAmount("3", 10, 3), 3);  // 딱 맞게
+  assert.equal(entryAmount("4", 10, 3), 0);  // 남은 자리보다 많음
+  assert.equal(entryAmount("1", 10, 0), 0);  // 가득 참
+  assert.equal(entryAmount("4", 10), 4);     // room을 안 주면 가진 과일만 봄
 });

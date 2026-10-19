@@ -26,7 +26,7 @@ import {
   cancelFruitEvent,
 } from "@/lib/store";
 import {
-  basketSummary, entryAmount, entryMax, myBasketEntry, canEnterEvent,
+  basketSummary, basketRoom, entryAmount, entryMax, myBasketEntry, canEnterEvent,
 } from "@/lib/fruitBasket";
 import { flyFruits } from "@/components/fruitFly";
 import ConfirmModal from "@/components/ConfirmModal";
@@ -96,6 +96,7 @@ export default function FruitBasketModal({
                 uid={uid}
                 myFruit={myFruit}
                 mine={mine}
+                room={entries === null ? 0 : basketRoom(sum.total)}
                 basketRef={artRef}
               />
             )}
@@ -128,27 +129,29 @@ function BasketTotal({ sum, loading }) {
 }
 
 // 교사 — 이벤트 현황(응모 · 응모 안 함 · 아직 — 수만) + '이벤트 접수' · '이벤트 취소'.
-// 접수하면 고른 학생들(응모하기 · 응모하지 않기)의 선택과 담은 과일이 최종
-// 제출되고 '멋진 순간' 자리표의 초록 점이 꺼집니다. 그 학생은 그 뒤로 아무것도
-// 못 바꿉니다. 접수 뒤에 새로 고른 학생은 다시 점이 켜지므로 한 번 더 누르면 됩니다.
+// **접수하면 바구니에 담긴 과일이 모두 처리되고(돌려주지 않음) 바구니가 비어
+// 새 이벤트가 시작됩니다**(선생님 요청 — receiveFruitEvent). 누가 응모했는지는
+// 기록(fruitEvents) 한 장에 남습니다. 되돌릴 수 없는 일이라 되묻고 합니다.
 // 취소하면 바구니에 든 과일을 학생마다 모두 돌려주고 바구니를 0개로 비웁니다
-// (응모 선택 · 접수 표시도 함께 걷힘 — cancelFruitEvent). 되묻고 합니다.
+// (응모 선택도 함께 걷힘 — cancelFruitEvent). 이것도 되묻고 합니다.
 function TeacherPanel({ classId, sum, entryCount = 0 }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState(null); // { ok, text }
-  const [asking, setAsking] = useState(false);
+  const [asking, setAsking] = useState(null); // "receive" | "cancel" | null
   // 아직 안 고른 학생의 이름은 적지 않습니다(선생님 요청 — 자리표의 초록 점이
   // 그 일을 합니다: 점이 꺼진 자리가 곧 안 고른 학생).
-  const pending = sum.pendingUids.length;
-  const fruit = sum.pendingFruit;
 
   async function receive() {
-    if (busy || !pending) return;
+    if (busy || !entryCount) return;
+    setAsking(null);
     setBusy(true);
     setMsg(null);
     try {
-      const n = await receiveFruitEvent(classId, sum.pendingUids);
-      setMsg({ ok: true, text: `${n}명 · 과일 ${fruit}개를 접수했어요. 학생들의 과일이 최종 제출됐어요.` });
+      const r = await receiveFruitEvent(classId);
+      setMsg({
+        ok: true,
+        text: `이벤트를 접수했어요. 응모 ${r.entrants}명 · 과일 ${r.fruit}개를 처리하고 바구니를 비웠어요. 새 이벤트가 시작됐어요.`,
+      });
     } catch (e) {
       console.error("[fruitBasket] 접수 실패:", e?.code ?? e);
       setMsg({ ok: false, text: "접수하지 못했어요. 다시 시도해 주세요." });
@@ -159,7 +162,7 @@ function TeacherPanel({ classId, sum, entryCount = 0 }) {
 
   async function cancelEvent() {
     if (busy) return;
-    setAsking(false);
+    setAsking(null);
     setBusy(true);
     setMsg(null);
     try {
@@ -195,44 +198,58 @@ function TeacherPanel({ classId, sum, entryCount = 0 }) {
       <button
         type="button"
         className="btn-primary fb-enter-btn fb-receive"
-        onClick={receive}
-        disabled={busy || !pending}
-        title={pending ? "고른 학생들의 선택과 담은 과일을 최종 제출로 받습니다 — 자리표의 초록 점이 꺼지고, 그 뒤로는 바꿀 수 없어요" : "새로 고른 학생이 없어요"}
+        onClick={() => setAsking("receive")}
+        disabled={busy || !entryCount}
+        title={entryCount ? "바구니의 과일을 모두 처리하고 바구니를 비워 새 이벤트를 시작합니다" : "아직 바구니에 든 것이 없어요"}
       >
-        {busy ? "처리하는 중…" : pending ? `이벤트 접수 (${pending}명 · 과일 ${fruit}개)` : "이벤트 접수"}
+        {busy ? "처리하는 중…" : entryCount ? `이벤트 접수 (응모 ${sum.enteredAll}명 · 과일 ${sum.total}개)` : "이벤트 접수"}
       </button>
       {/* 이벤트 취소 — 되돌리기 어려운 일이라 접수와 갈라 옅은 단추로 두고 되묻습니다. */}
       <button
         type="button"
         className="btn-ghost fb-enter-btn fb-cancel-event"
-        onClick={() => setAsking(true)}
+        onClick={() => setAsking("cancel")}
         disabled={busy || entryCount === 0}
         title={entryCount ? "바구니의 과일을 학생마다 모두 돌려주고 바구니를 0개로 비웁니다" : "아직 바구니에 든 것이 없어요"}
       >
         이벤트 취소
       </button>
       <p className="fb-help">
-        {pending
-          ? "자리표의 초록 점은 응모하기나 응모하지 않기를 골랐지만 아직 접수하지 않은 학생이에요. 점이 꺼진 자리는 아직 고르지 않은 학생이에요."
-          : "학생이 응모하기나 응모하지 않기를 고르면 자리표에 초록 점이 켜져요."}
+        이벤트를 접수하면 바구니의 과일이 모두 처리되고(돌려주지 않아요) 바구니가 비어 새 이벤트가 시작돼요.
+        자리표의 초록 점은 응모 여부를 고른 학생이에요.
       </p>
       {msg && <p className={`fb-msg ${msg.ok ? "ok" : "err"}`}>{msg.text}</p>}
       {/* body에 포털 — 창(.modal) 안에 그리면 그 창의 클릭 · 스크롤 칸에 갇힙니다. */}
-      {asking && createPortal(
+      {asking === "receive" && createPortal(
+        <ConfirmModal
+          icon="🧺"
+          title="이벤트 접수"
+          preview={`응모 ${sum.enteredAll}명 · 과일 ${sum.total}개`}
+          description={
+            "바구니에 담긴 과일을 모두 처리하고 바구니를 0개로 비웁니다. 과일은 학생에게 돌아가지 않아요.\n" +
+            "응모한 학생 명단은 기록으로 남고, 곧바로 새 이벤트를 위한 과일 담기가 시작됩니다."
+          }
+          confirmLabel="이벤트 접수"
+          cancelLabel="닫기"
+          onConfirm={receive}
+          onClose={() => setAsking(null)}
+        />,
+        document.body
+      )}
+      {asking === "cancel" && createPortal(
         <ConfirmModal
           icon="🧺"
           title="이벤트 취소"
           preview={`바구니의 과일 ${sum.total}개`}
           description={
             "학생들이 바구니에 담은 과일을 모두 각자에게 돌려주고, 바구니를 0개로 비웁니다.\n" +
-            "응모하기 · 응모하지 않기 선택과 접수 표시도 함께 지워집니다.\n" +
-            "접수한 학생의 과일도 돌아갑니다."
+            "응모하기 · 응모하지 않기 선택도 함께 지워집니다."
           }
           confirmLabel="이벤트 취소"
           cancelLabel="닫기"
           danger
           onConfirm={cancelEvent}
-          onClose={() => setAsking(false)}
+          onClose={() => setAsking(null)}
         />,
         document.body
       )}
@@ -262,7 +279,9 @@ function fruitErrorText(e, fallback) {
 // **둘 중 하나를 고르는 단추**입니다 — 고른 쪽은 다시 눌러도 아무 일이 없고
 // (토글이 아님), 다른 쪽을 누르면 바뀝니다. 응모한 동안은 개수를 못 바꿉니다
 // (응모하지 않기로 돌려받은 뒤 다시 응모). 선생님이 접수하면 모두 잠깁니다.
-function StudentPanel({ classId, uid, myFruit, mine, basketRef }) {
+// **바구니는 100개까지**(room — 남은 자리, 선생님 요청). 담으려는 수가 남은
+// 자리를 넘으면 응모하기가 꺼지고 그 사실과 몇 개까지 되는지 적습니다.
+function StudentPanel({ classId, uid, myFruit, mine, room = 0, basketRef }) {
   // 개수 — **이번에 담을 수**(선생님 요청). −/＋ 단추로 고치고, 칸에 직접
   // 적어도 됨. 0에서 시작하고 응모하기를 누를 때마다(돌려받을 때도) 0으로
   // 돌아갑니다 — 응모한 뒤에 더 담으려면 다시 정해 누르면 됩니다.
@@ -275,11 +294,12 @@ function StudentPanel({ classId, uid, myFruit, mine, basketRef }) {
 
   const entered = mine.choice === "entered";
   const max = entryMax(myFruit);
-  const add = entryAmount(raw, myFruit);
+  const add = entryAmount(raw, myFruit, room);
   const canEnter = canEnterEvent(mine, add);
   const stepNow = Math.max(0, Math.floor(Number(raw)) || 0);
   // 접수된 뒤 · 가진 과일이 없으면 개수 칸을 잠급니다.
-  const locked = busy || mine.received || max <= 0;
+  // 바구니가 다 찼어도(room 0) 잠급니다 — 선생님이 접수하면 새 이벤트로 풀립니다.
+  const locked = busy || mine.received || max <= 0 || room <= 0;
   const step = (d) => {
     setRaw(String(Math.min(max, Math.max(0, stepNow + d))));
     setMsg(null);
@@ -311,7 +331,7 @@ function StudentPanel({ classId, uid, myFruit, mine, basketRef }) {
     if (!canEnter) return;
     const again = entered;
     return run(
-      () => enterFruitEvent(classId, uid, add),
+      () => enterFruitEvent(classId, uid, add, room),
       (out) => (again
         ? `과일 ${add}개를 더 담았어요. 바구니에 담은 과일 ${out.donated}개, 남은 과일 ${out.left}개.`
         : `응모했어요. 바구니에 담은 과일 ${out.donated}개, 남은 과일 ${out.left}개.`),
@@ -327,9 +347,15 @@ function StudentPanel({ classId, uid, myFruit, mine, basketRef }) {
   );
 
   // 적은 개수가 담을 수 없는 값이면 까닭을 적습니다(0은 '아직 안 정함').
-  const hint = !locked && stepNow > max ? `가진 과일 ${myFruit}개 안에서 정해 주세요.` : null;
+  // 바구니 100개를 넘기려 하면 그 사실과 몇 개까지 되는지(선생님 요청).
+  const hint = locked ? null
+    : stepNow > max ? `가진 과일 ${myFruit}개 안에서 정해 주세요.`
+    : stepNow > room ? `바구니는 과일 100개까지 담을 수 있어요. 지금은 ${room}개까지만 담을 수 있어요.`
+    : null;
   const help = mine.received
     ? "선생님이 응모를 접수해서 담은 과일이 최종 제출됐어요."
+    : room <= 0 && max > 0
+      ? "바구니에 과일 100개가 다 찼어요. 선생님이 접수하면 새 이벤트가 시작돼요."
     : max <= 0
       ? entered
         ? `응모해서 과일 ${mine.donated}개가 바구니에 담겼어요.`
@@ -343,6 +369,8 @@ function StudentPanel({ classId, uid, myFruit, mine, basketRef }) {
       ? add > 0
         ? `응모하기를 누르면 과일 ${add}개를 더 담아요(모두 ${mine.donated + add}개).`
         : `응모했어요. 응모하지 않기를 누르면 담은 과일 ${mine.donated}개를 돌려받아요.`
+      : !canEnter && max > 0 && room > 0 && stepNow > room
+        ? `바구니에 남은 ${room}개 안에서 정하면 응모할 수 있어요.`
       : !canEnter && max > 0
         ? "담을 과일을 1개 이상 정하면 응모할 수 있어요."
         : mine.choice === "declined"
