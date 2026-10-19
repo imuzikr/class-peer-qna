@@ -414,7 +414,7 @@ export default function TopNav({ active, onPython, pyActive = false, onStudyExpo
           />
         )}
         {user && broadcastClassId && (
-          <PopQuizButton classId={broadcastClassId} user={user} isTeacher={admin} />
+          <PopQuizButton classId={broadcastClassId} user={user} isTeacher={admin} indicator />
         )}
         {admin && user && broadcastClassId && (
           <ClassNoticeButton

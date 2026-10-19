@@ -30532,6 +30532,9 @@ h4.attendance-seat-help { margin-top: 16px; }
   transition: background 0.15s, transform 0.2s;
 }
 .pq-btn:hover { background: var(--neutral); }
+/* 상단바 알림 자리 — 누르는 단추가 아니라 표시(창은 떠 있는 동그라미에서) */
+.pq-btn--indicator { cursor: default; }
+.pq-btn--indicator:hover { background: none; }
 /* 불이 켜지면 살짝 기울입니다 — 손들기 때와 같은 '봐 달라'의 몸짓. */
 .pq-btn.on { transform: rotate(-8deg); }
 /* 불 — 숫자 없는 점 하나. 빨강(안 보냄 · 교사: 확인 전 답) · 초록(반송). */

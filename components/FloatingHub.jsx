@@ -65,7 +65,9 @@ import {
   IconKwlK,
   IconKwlW,
   IconKwlL,
+  IconQuizMemo,
 } from "./StatusIcons";
+import { POPQUIZ_OPEN_EVENT } from "./PopQuizButton";
 
 // KWLS — 앱에 'KWLS' 한 장짜리 그림이 없어 K · W · L 세 칸을 겹쳐 세웁니다.
 function KwlStack() {
@@ -91,11 +93,14 @@ const ICONS = {
   report: () => <IconReport size={26} />,
   admin: () => <IconTeacher size={28} />,
   lessons: () => <IconBlackboard size={27} />,
+  quiz: () => <IconQuizMemo size={26} />,
   fruit: ({ show }) => <FruitBasketPic show={show} />,
 };
 
 const STUDENT_ITEMS = [
   { key: "msg", label: "메신저", hint: "선생님 · 우리 모둠과 대화해요" },
+  // 상단바 메모지는 알림만 — 창은 여기서(PopQuizButton이 이벤트를 받아 엶)
+  { key: "quiz", label: "돌발 퀴즈", hint: "퀴즈에 답하고 지난 퀴즈를 봐요", event: POPQUIZ_OPEN_EVENT },
   { key: "kwl", label: "KWLS", hint: "KWLS 차트를 펼쳐요", href: "/study?open=kwl" },
   { key: "notes", label: "수업 노트", hint: "지난 수업 노트를 넘겨 봐요", href: "/study?open=notes" },
   { key: "attend", label: "내 출석부", hint: "내 출석 기록을 봐요", href: "/study?open=attendance" },
@@ -104,6 +109,7 @@ const STUDENT_ITEMS = [
 ];
 const TEACHER_ITEMS = [
   { key: "msg", label: "메신저", hint: "학생 · 모둠과 대화해요" },
+  { key: "quiz", label: "돌발 퀴즈", hint: "퀴즈를 보내고 답을 확인해요", event: POPQUIZ_OPEN_EVENT },
   { key: "kwl", label: "KWLS 차트", hint: "반의 KWLS 현황을 펼쳐요", href: "/study?open=kwl" },
   { key: "attend", label: "출석 관리", hint: "출석을 시작하고 기록을 봐요", href: "/study?open=attendance" },
   { key: "lessons", label: "수업 관리", hint: "수업 · 프로젝트 · 자리 배치", href: "/study?panel=lessons" },
@@ -350,6 +356,7 @@ export default function FloatingHub({ classId: pageClassId, user, isTeacher, lif
       setMsgOpen(true);
       return;
     }
+    if (item.event) { window.dispatchEvent(new Event(item.event)); return; }
     if (item.href) router.push(item.href);
   }
 
