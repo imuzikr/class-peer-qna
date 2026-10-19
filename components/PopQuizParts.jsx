@@ -7,7 +7,7 @@
 // 따로 그리면 같은 퀴즈가 교사와 학생 화면에서 다른 모양이 됩니다.
 // =============================================================
 import { sanitizeHtml } from "@/lib/html";
-import { quizKindLabel, splitQuizDesc } from "@/lib/popQuiz";
+import { quizKindLabel, quizThread, splitQuizDesc } from "@/lib/popQuiz";
 import { formatTime } from "@/lib/store";
 
 // 물음 — 설명의 ``` 은 코드 블록으로(lib/popQuiz.js의 splitQuizDesc).
@@ -67,6 +67,42 @@ export function PopQuizAnswerBody({ answer }) {
       className="pq-answer pq-answer--text study-card-content"
       dangerouslySetInnerHTML={{ __html: sanitizeHtml(answer.text ?? "") }}
     />
+  );
+}
+
+// 오간 말 — 학생의 답(오른쪽 · 학생 화면 기준)과 선생님의 반송 한 마디가 차례로.
+// 교사 답 창 · 학생 창 · 지난 퀴즈가 같은 조각을 씁니다(lib/popQuiz.js의 quizThread).
+//   viewer: 'teacher' | 'student' — 누구의 말이 '내 말'인지(오른쪽에 섬).
+export function PopQuizThread({ answer, viewer = "teacher" }) {
+  const rounds = quizThread(answer);
+  if (!rounds.length) return null;
+  const kind = answer?.kind;
+  const studentName = viewer === "student" ? "나" : "학생";
+  const teacherName = viewer === "teacher" ? "나" : "선생님";
+  const many = rounds.length > 1;
+  return (
+    <ol className={`pq-thread pq-thread--${viewer}`}>
+      {rounds.map((r, i) => (
+        <li key={i} className="pq-thread-round">
+          <div className={`pq-msg pq-msg--student${r.current ? " is-current" : ""}`}>
+            <div className="pq-msg-meta">
+              <span>{studentName}{many ? ` · ${i + 1}번째 답` : ""}</span>
+              <span>{formatTime(r.submittedAt)}</span>
+            </div>
+            <PopQuizAnswerBody answer={{ kind, text: r.text, output: r.output }} />
+          </div>
+          {r.returned && (
+            <div className="pq-msg pq-msg--teacher">
+              <div className="pq-msg-meta">
+                <span>{teacherName} · 반송</span>
+                <span>{formatTime(r.returnedAt)}</span>
+              </div>
+              <p className="pq-msg-note">{r.note || "(한 마디 없이 돌려보냈어요)"}</p>
+            </div>
+          )}
+        </li>
+      ))}
+    </ol>
   );
 }
 

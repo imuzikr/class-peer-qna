@@ -35,7 +35,7 @@ import { outputTextOf } from "@/lib/pyShare";
 import RichTextEditor from "./RichTextEditor";
 import { PyCodeInput } from "./PyCellEditor";
 import PyLineText from "./PyLineText";
-import { Caret, PopQuizAnswerBody, PopQuizQuestion, PopQuizStatus } from "./PopQuizParts";
+import { Caret, PopQuizQuestion, PopQuizStatus, PopQuizThread } from "./PopQuizParts";
 import { IconQuizMemo } from "./StatusIcons";
 
 const TEXT_TOOLS = ["bold", "underline", "insertUnorderedList", "insertOrderedList", "codeBlock"];
@@ -82,11 +82,17 @@ export default function PopQuizStudentModal({ classId, user, quiz, answer, onClo
             <section className="pq-current">
               {answer?.status === "returned" && (
                 <div className="pq-returned-note" role="status">
-                  <strong>선생님이 답을 돌려보냈어요 — 고쳐서 다시 보내 주세요.</strong>
-                  {answer.returnNote && <p>{answer.returnNote}</p>}
+                  <strong>선생님이 답을 돌려보냈어요 — 아래 한 마디를 보고 고쳐서 다시 보내 주세요.</strong>
                 </div>
               )}
               <PopQuizQuestion quiz={quiz} />
+              {/* 반송된 뒤 고쳐 쓰는 중이면, 오간 말이 입력칸 위에 이어집니다. */}
+              {editable && answer && (
+                <div className="pq-mine">
+                  <div className="pq-mine-head"><span>선생님과 나눈 말</span></div>
+                  <PopQuizThread answer={answer} viewer="student" />
+                </div>
+              )}
               {editable ? (
                 <AnswerEditor
                   key={`${quiz.id}:${answer?.status ?? "new"}`}
@@ -99,10 +105,10 @@ export default function PopQuizStudentModal({ classId, user, quiz, answer, onClo
               ) : (
                 <div className="pq-mine">
                   <div className="pq-mine-head">
-                    <span>내가 보낸 답</span>
+                    <span>선생님과 나눈 말</span>
                     <PopQuizStatus answer={answer} />
                   </div>
-                  <PopQuizAnswerBody answer={answer} />
+                  <PopQuizThread answer={answer} viewer="student" />
                   <p className="pq-mine-foot">
                     {answer?.status === "rewarded"
                       ? "선생님이 과일을 주셨어요. 이 퀴즈는 끝났어요."
@@ -147,7 +153,7 @@ function AnswerEditor({ classId, uid, quiz, kind, answer }) {
     setBusy(true);
     setErr(null);
     try {
-      await submitPopQuizAnswer(classId, quiz.id, uid, { kind, text, output });
+      await submitPopQuizAnswer(classId, quiz.id, uid, { kind, text, output }, answer);
       writeDraft(quiz.id, uid, null);
     } catch (e) {
       console.error("[돌발 퀴즈] 답을 보내지 못했어요:", e?.code, e?.message);
@@ -389,7 +395,7 @@ function PastQuizzes({ classId, uid, currentId }) {
                             <span>내 답</span>
                             <PopQuizStatus answer={a} quizOpen={!!q.open} />
                           </div>
-                          {a ? <PopQuizAnswerBody answer={a} /> : null}
+                          {a ? <PopQuizThread answer={a} viewer="student" /> : null}
                         </div>
                       )}
                     </div>

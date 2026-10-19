@@ -1,7 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  QUIZ_HISTORY_MAX,
   canSubmitQuiz,
+  nextQuizHistory,
+  quizThread,
   pickOpenQuiz,
   quizAnswerFilled,
   quizCounts,
@@ -91,4 +94,33 @@ test("보낼 만한 답 — 글은 태그를 걷고, 코드는 공백이 아니�
   assert.equal(quizAnswerFilled("text", "<p>답</p>"), true);
   assert.equal(quizAnswerFilled("code", "   \n"), false);
   assert.equal(quizAnswerFilled("code", "print(1)"), true);
+});
+
+test("다시 보낼 때 이력 — 반송된 답만 지난 차례를 끝에 붙이고, 20을 넘으면 앞을 밀어냄", () => {
+  assert.equal(nextQuizHistory(null), null);
+  assert.equal(nextQuizHistory({ status: "submitted", text: "a" }), null);
+  const r1 = { status: "returned", text: "a", output: "", returnNote: "예를 들어 줘요", submittedAt: 1, reviewedAt: 2 };
+  assert.deepEqual(nextQuizHistory(r1), [{ text: "a", output: "", note: "예를 들어 줘요", submittedAt: 1, returnedAt: 2 }]);
+  // 한 마디 없이 돌려보낸 것도 빈 글로 남음
+  assert.equal(nextQuizHistory({ status: "returned", text: "b" })[0].note, "");
+  const full = Array.from({ length: QUIZ_HISTORY_MAX }, (_, i) => ({ text: `h${i}` }));
+  const next = nextQuizHistory({ ...r1, history: full });
+  assert.equal(next.length, QUIZ_HISTORY_MAX);
+  assert.equal(next[0].text, "h1");
+  assert.equal(next.at(-1).text, "a");
+});
+
+test("대화 — 지난 차례(반송 한 마디 짝) + 지금 답", () => {
+  assert.deepEqual(quizThread(null), []);
+  const a = {
+    status: "returned", text: "둘째", returnNote: "조금만 더", reviewedAt: 4, submittedAt: 3,
+    history: [{ text: "첫째", output: "", note: "다시", submittedAt: 1, returnedAt: 2 }],
+  };
+  const t = quizThread(a);
+  assert.equal(t.length, 2);
+  assert.deepEqual([t[0].text, t[0].note, t[0].returned, t[0].current], ["첫째", "다시", true, false]);
+  assert.deepEqual([t[1].text, t[1].note, t[1].returned, t[1].current], ["둘째", "조금만 더", true, true]);
+  // 보낸 상태면 지금 차례에 한 마디가 없음(지난 반송의 한 마디가 남아 있어도)
+  const sent = quizThread({ ...a, status: "submitted" });
+  assert.deepEqual([sent[1].returned, sent[1].note], [false, ""]);
 });

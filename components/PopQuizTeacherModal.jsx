@@ -53,7 +53,7 @@ import { useSeatView } from "@/lib/seatView";
 import { useClassRoster } from "@/lib/useClassRoster";
 import { SeatPickGrid } from "./SeatPickGrid";
 import SeatViewToggle from "./SeatViewToggle";
-import { Caret, PopQuizAnswerBody, PopQuizQuestion, PopQuizStatus } from "./PopQuizParts";
+import { Caret, PopQuizQuestion, PopQuizStatus, PopQuizThread } from "./PopQuizParts";
 import { IconQuizMemo, IconTrash } from "./StatusIcons";
 
 export default function PopQuizTeacherModal({ classId, board = null, startNew = false, onClose }) {
@@ -512,11 +512,7 @@ function AnswerReview({ classId, quiz, student, answer, onClose }) {
       </div>
       {answer ? (
         <>
-          <PopQuizAnswerBody answer={answer} />
-          <p className="pq-review-time">보낸 시각 {formatTime(answer.submittedAt)}</p>
-          {st === "returned" && answer.returnNote && (
-            <p className="pq-review-note">반송하며 남긴 말 — {answer.returnNote}</p>
-          )}
+          <PopQuizThread answer={answer} viewer="teacher" />
         </>
       ) : (
         <p className="pq-empty">아직 답을 보내지 않았어요.</p>

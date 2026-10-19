@@ -4409,7 +4409,7 @@ CodeMirror가 아니라 그냥 글자 칸(contentEditable)이라, 손대지 않�
   - 퀴즈 `classes/{cId}/popQuizzes/{qId}` = `{ classId, kind('text'|'code'), title(1~200),
     desc(0~5000), boardId, boardTitle, byUid, open, createdAt, closedAt }`.
   - 답 `…/popQuizzes/{qId}/submissions/{학생 uid}` = `{ classId, quizId, uid, kind,
-    text(1~20000), output(≤10000), status, submittedAt, returnNote?, reviewedAt?,
+    text(1~20000), output(≤10000), status, submittedAt, history?, returnNote?, reviewedAt?,
     reviewedBy? }`. status는 `submitted`(보냄 · 확인 전) · `returned`(반송) ·
     `rewarded`(과일 받음 — 끝).
   - **하위 컬렉션 이름을 `answers`로 짓지 마세요.** 규칙 맨 아래의 질문방 그룹 규칙
@@ -4437,9 +4437,22 @@ CodeMirror가 아니라 그냥 글자 칸(contentEditable)이라, 손대지 않�
     코드 칸**(`PyCodeInput` — `onRun`을 받게 넓힘) + ▶ 실행(Ctrl+Enter) + 입력값 칸
     (`input(`이 보일 때). 실행 결과가 **함께 보내집니다**(선생님 요청). 코드를 고치면
     지난 결과는 걷힙니다.
-  - 보낸 뒤에는 선생님이 확인할 때까지 **못 고칩니다**. 반송되면 맨 위에 선생님
-    한 마디(있으면)가 서고, **보냈던 답이 입력칸에 그대로** 남아 고쳐 다시 보냅니다
-    (이력은 안 남김 — 선생님 요청). 과일을 받으면 끝.
+  - 보낸 뒤에는 선생님이 확인할 때까지 **못 고칩니다**. 반송되면 **보냈던 답이
+    입력칸에 그대로** 남아 고쳐 다시 보냅니다. 과일을 받으면 끝.
+  - **오간 말이 대화로 남습니다**(`PopQuizThread` — 교사 답 창 · 학생 창 · 지난
+    퀴즈 공용, 선생님 요청). 한때 이력을 안 남겨, 반송 → 다시 보내기를 몇 번 오가면
+    앞의 답과 한 마디가 사라졌습니다.
+    - 다시 보낼 때 **지난 차례**(보냈던 답 · 결과 · 반송 한 마디 · 두 시각)를 답 문서의
+      `history` 끝에 붙입니다(`nextQuizHistory`, 최대 20 — 넘치면 맨 앞이 밀려남).
+      그리는 차례는 `quizThread`(지난 차례 + 지금 답). 보는 사람의 말이 오른쪽(학생은
+      살구빛), 선생님 말은 연한 초록.
+    - **규칙**(`popHistoryOk`): 앞의 이력은 그대로, 붙이는 한 줄은 **고치기 전 문서의
+      값 그대로**여야 합니다(학생이 지난 답을 꾸며 넣지 못함). 처음 보낼 때 · 교사는
+      이력을 못 씀. 이력을 안 건드리는 쓰기(옛 화면)도 받습니다. `nw[0:0]`(빈 자르기)는
+      평가 오류라 첫 차례를 따로 봅니다(실측). 시험 `tests/rules/popQuiz.test.mjs`.
+    - **코드보다 규칙을 먼저 배포하세요** — 안 그러면 반송된 답을 다시 보낼 때 권한
+      오류입니다.
+    - 이 기능 전에 오간 차례는 남아 있지 않습니다(지금 답과 마지막 한 마디만).
   - 아래 **지난 퀴즈**는 접고 펴는 목록 — 창을 열 때 목록을 한 번 읽고, 한 줄을 펼칠
     때 그 퀴즈의 내 답을 한 건 읽습니다.
 - **교사 — 여는 자리 셋, 창은 하나**(`PopQuizTeacherModal`): 공부방 카드 머리의

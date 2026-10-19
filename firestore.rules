@@ -265,13 +265,35 @@ service cloud.firestore {
     function popAnswerShapeOk(cId, qId) {
       let d = request.resource.data;
       return d.keys().hasOnly(['classId', 'quizId', 'uid', 'kind', 'text', 'output', 'status',
-                               'submittedAt', 'returnNote', 'reviewedAt', 'reviewedBy'])
+                               'submittedAt', 'returnNote', 'reviewedAt', 'reviewedBy', 'history'])
              && d.classId == cId && d.quizId == qId && d.uid == uid()
              && d.kind == popQuizOf(cId, qId).kind
              && d.text is string && d.text.size() > 0 && d.text.size() <= 20000
              && d.output is string && d.output.size() <= 10000
              && d.status == 'submitted'
              && d.submittedAt == request.time;
+    }
+
+    // 반송 → 다시 보내기 때 지난 한 차례(보냈던 답 + 선생님 한 마디)를 이력
+    // 끝에 붙입니다(lib/popQuiz.js의 nextQuizHistory). 앞의 이력은 그대로여야 하고
+    // (가득 차면 맨 앞 하나만 밀려남 — QUIZ_HISTORY_MAX 20), 붙이는 한 줄은
+    // **고치기 전 문서의 값 그대로**여야 합니다 — 학생이 지난 답을 꾸며 넣지 못하게.
+    function popHistoryLastOk(h) {
+      return h.keys().hasOnly(['text', 'output', 'note', 'submittedAt', 'returnedAt'])
+             && h.text == resource.data.text
+             && h.output == resource.data.output
+             && h.note == resource.data.get('returnNote', '')
+             && h.submittedAt == resource.data.submittedAt
+             && h.returnedAt == resource.data.get('reviewedAt', null);
+    }
+    // nw[0:0](빈 자르기)는 평가 오류가 나 첫 차례는 따로 봅니다(실측).
+    function popHistoryOk() {
+      let old = resource.data.get('history', []);
+      let nw = request.resource.data.get('history', []);
+      return nw is list && nw.size() >= 1 && nw.size() <= 20
+             && ((nw.size() == old.size() + 1 && (old.size() == 0 || nw[0:old.size()] == old))
+                 || (old.size() == 20 && nw.size() == 20 && nw[0:19] == old[1:20]))
+             && popHistoryLastOk(nw[nw.size() - 1]);
     }
 
     function isMyCornellNote(cId, nId) {
@@ -666,6 +688,7 @@ service cloud.firestore {
       //  · 답: 학생은 **제 자리에, 열린 퀴즈에만**, 처음이거나 반송됐을 때만
       //    보냅니다(보낸 뒤 · 과일을 받은 뒤에는 못 고침). 교사는 상태 칸만 —
       //    반송(보낸 답 · 열린 퀴즈) · 과일(보낸 답 또는 반송한 답).
+      //    다시 보낼 때 지난 차례가 history에 쌓여 오간 말이 남습니다(popHistoryOk).
       //    읽기는 그 학생과 담당 교사(목록은 교사만). 시험 tests/rules/popQuiz.test.mjs.
       match /popQuizzes/{qId} {
         allow read: if signedIn() && (isAdmin() || ownsClass(cId) || isClassMember(cId));
@@ -683,13 +706,16 @@ service cloud.firestore {
           allow create: if signedIn() && aUid == uid() && isClassMember(cId)
                         && popQuizOf(cId, qId).open == true
                         && popAnswerShapeOk(cId, qId)
-                        && !request.resource.data.keys().hasAny(['returnNote', 'reviewedAt', 'reviewedBy']);
+                        && !request.resource.data.keys().hasAny(['returnNote', 'reviewedAt', 'reviewedBy', 'history']);
           // 반송된 답을 고쳐 다시 보내기
           allow update: if signedIn() && aUid == uid() && isClassMember(cId)
                         && popQuizOf(cId, qId).open == true
                         && resource.data.status == 'returned'
-                        && changedOnly(['kind', 'text', 'output', 'status', 'submittedAt'])
-                        && popAnswerShapeOk(cId, qId);
+                        && changedOnly(['kind', 'text', 'output', 'status', 'submittedAt', 'history'])
+                        && popAnswerShapeOk(cId, qId)
+                        // 이력을 안 건드리는 옛 화면도 그대로 받습니다(배포 사이).
+                        && (request.resource.data.get('history', null) == resource.data.get('history', null)
+                            || popHistoryOk());
           // 교사 — 반송(한 마디는 선택)
           allow update: if signedIn() && (isAdmin() || ownsClassEditable(cId))
                         && resource.data.status == 'submitted'

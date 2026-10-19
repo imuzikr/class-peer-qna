@@ -7,6 +7,7 @@
 // 앱(lib/data/popQuiz.js)이 보내는 모양 그대로 시험합니다.
 // =============================================================
 import { describe, it, before, after, beforeEach } from "node:test";
+import assert from "node:assert/strict";
 import { assertSucceeds, assertFails } from "@firebase/rules-unit-testing";
 import {
   doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection, query, where,
@@ -113,6 +114,55 @@ describe("돌발 퀴즈 규칙", () => {
       status: "rewarded", reviewedBy: "teacherA", reviewedAt: serverTimestamp(),
     }));
     await assertFails(setDoc(aRef(s1, "stu1"), answer("stu1", { text: "<p>또 고침</p>" }), { merge: true }));
+  });
+
+  it("다시 보낼 때 지난 차례를 이력에 — 고치기 전 값 그대로만, 앞의 이력은 못 바꿈", async () => {
+    const s1 = asStudent(env, "stu1").firestore();
+    const t = asTeacher(env, "teacherA").firestore();
+    await assertSucceeds(setDoc(aRef(s1, "stu1"), answer("stu1"), { merge: true }));
+    // 처음 보낼 때는 이력을 못 적음
+    await seed(env, (db) => deleteDoc(aRef(db, "stu2")));
+    const s2 = asStudent(env, "stu2").firestore();
+    await assertFails(setDoc(aRef(s2, "stu2"), answer("stu2", { history: [] }), { merge: true }));
+    const ret = async (note) => assertSucceeds(updateDoc(aRef(t, "stu1"), {
+      status: "returned", returnNote: note, reviewedBy: "teacherA", reviewedAt: serverTimestamp(),
+    }));
+    await ret("예를 들어 줘요");
+    // 앱과 같은 모양 — 지금 문서를 읽어 한 줄을 붙임
+    const roundOf = async () => {
+      const d = (await getDoc(aRef(s1, "stu1"))).data();
+      return { d, h: { text: d.text, output: d.output, note: d.returnNote, submittedAt: d.submittedAt, returnedAt: d.reviewedAt } };
+    };
+    let { d, h } = await roundOf();
+    // 꾸며 넣은 지난 답 · 모르는 칸은 거부
+    await assertFails(setDoc(aRef(s1, "stu1"), answer("stu1", { text: "<p>둘째</p>", history: [{ ...h, text: "<p>딴 글</p>" }] }), { merge: true }));
+    await assertFails(setDoc(aRef(s1, "stu1"), answer("stu1", { text: "<p>둘째</p>", history: [{ ...h, extra: 1 }] }), { merge: true }));
+    await assertSucceeds(setDoc(aRef(s1, "stu1"), answer("stu1", { text: "<p>둘째</p>", history: [h] }), { merge: true }));
+    await ret("");
+    ({ d, h } = await roundOf());
+    // 앞의 이력을 지우거나 바꾸면 거부
+    await assertFails(setDoc(aRef(s1, "stu1"), answer("stu1", { text: "<p>셋째</p>", history: [h] }), { merge: true }));
+    await assertFails(setDoc(aRef(s1, "stu1"), answer("stu1", { text: "<p>셋째</p>", history: [{ ...d.history[0], note: "" }, h] }), { merge: true }));
+    await assertSucceeds(setDoc(aRef(s1, "stu1"), answer("stu1", { text: "<p>셋째</p>", history: [...d.history, h] }), { merge: true }));
+    const last = (await getDoc(aRef(t, "stu1"))).data();
+    assert.equal(last.history.length, 2);
+    assert.equal(last.history[1].text, "<p>둘째</p>");
+    // 교사는 이력을 못 건드림
+    await assertFails(updateDoc(aRef(t, "stu1"), {
+      status: "rewarded", history: [], reviewedBy: "teacherA", reviewedAt: serverTimestamp(),
+    }));
+  });
+
+  it("이력이 가득(20)이면 맨 앞 하나만 밀려남", async () => {
+    const s1 = asStudent(env, "stu1").firestore();
+    const full = Array.from({ length: 20 }, (_, i) => ({ text: `h${i}`, output: "", note: "", submittedAt: null, returnedAt: null }));
+    await seed(env, (db) => setDoc(aRef(db, "stu1"), {
+      ...answer("stu1"), status: "returned", returnNote: "다시", submittedAt: new Date(1000), reviewedAt: new Date(2000), history: full,
+    }));
+    const d = (await getDoc(aRef(s1, "stu1"))).data();
+    const h = { text: d.text, output: d.output, note: d.returnNote, submittedAt: d.submittedAt, returnedAt: d.reviewedAt };
+    await assertFails(setDoc(aRef(s1, "stu1"), answer("stu1", { history: [...full, h] }), { merge: true }));
+    await assertSucceeds(setDoc(aRef(s1, "stu1"), answer("stu1", { history: [...full.slice(1), h] }), { merge: true }));
   });
 
   it("교사는 상태 칸만 — 학생 글은 못 고치고, 남의 반 교사는 거부", async () => {
