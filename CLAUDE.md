@@ -92,6 +92,10 @@ npm run deploy             # 규칙 테스트 → firestore:rules + functions �
   리디렉션 URI `https://class-peer-qna.vercel.app/__/auth/handler`가 있어야 합니다.
   없으면 로그인이 `redirect_uri_mismatch`로 **모든 학생에게** 실패합니다 —
   **이 URI를 먼저 넣고 main에 올리세요.**
+- 처음 켰을 때 URI를 저장한 직후라 구글 쪽 반영이 늦어(5분~몇 시간) 모든 학생이
+  '액세스 차단됨'을 봤습니다. 되돌린 뒤 `?authproxy=1`로 한 기기에서 먼저 확인하고
+  켰습니다(`AUTH_PROXY_FOR_ALL`). **설정을 바꿔 다시 켤 일이 있으면 false로 두고
+  그 표시로 먼저 시험하세요.**
 - 미리보기 주소·localhost는 그 URI가 없어 지금까지대로 firebaseapp.com을 씁니다
   (`PROXIED_AUTH_HOSTS`). 사용자 지정 도메인을 붙이면 이 목록과 OAuth URI에 함께
   더하세요.
