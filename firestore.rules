@@ -1816,11 +1816,23 @@ service cloud.firestore {
                  && reviewGroupHas(d.get('groupId', ''), uid(), d.toUid);
         }
 
+        // **같은 모둠 친구끼리는 서로 받은 평가를 봅니다**(기본값 — 선생님 요청).
+        // A의 글에 B · C · D가 남긴 평가를 B · C · D도 서로 봅니다. 판정은 문서에
+        // 적힌 groupId의 명단에 읽는 내가 들어 있는가(reviewGroupHas — 남의 모둠
+        // id를 질의해도 그 명단에 내가 없으면 거부). 교사가 '모둠끼리 보기'를 끄면
+        // (`peerReviewShared: false`) 예전처럼 받은 학생 · 쓴 학생 · 교사만.
+        // 화면의 판정(lib/bookGroups.js의 isPeerReviewShared)과 같아야 합니다.
+        function peerReviewShared() {
+          return get(/databases/$(database)/documents/bookActivities/$(aId))
+                   .data.get('peerReviewShared', true) != false;
+        }
         allow get, list: if signedIn() && (
           isAdmin()
           || ownsBookActivity(aId)
           || resource.data.toUid == uid()
           || resource.data.fromUid == uid()
+          || (peerReviewShared()
+              && reviewGroupHas(resource.data.get('groupId', ''), uid(), uid()))
         );
         allow create: if signedIn()
                       && isBookActivityMember(aId)

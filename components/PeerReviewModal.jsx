@@ -33,6 +33,9 @@ export default function PeerReviewModal({
   members = [],   // 모둠원 (나 포함)
   user,
   myReviews = [], // 내가 쓴 것 (fromUid == 나)
+  // 우리 모둠에서 오간 평가(같은 모둠 친구끼리 서로 봄 — 기본값). 고른 친구가 받은
+  // 것 가운데 내 것을 뺀 나머지를 '다른 친구들이 남긴 한 마디'로 아래에 둡니다.
+  groupReviews = [],
   initialUid = null,
   locked = false, // 교사가 잠갔거나 활동이 잠긴 상태
   // 친구의 글을 왼쪽에 함께 보여 줄 때(모둠 RAFT — 선생님 요청) — (entry) => 화면.
@@ -68,6 +71,10 @@ export default function PeerReviewModal({
     );
   }, [showWork, activity.id, pickedUid]);
   const existing = pickedUid ? written.get(pickedUid) ?? null : null;
+  const othersFor = useMemo(
+    () => groupReviews.filter((r) => r.toUid === pickedUid && r.fromUid !== user?.uid),
+    [groupReviews, pickedUid, user?.uid]
+  );
 
   // 사람을 바꾸면 그 친구에게 쓴 글을 불러옵니다(에디터는 initialHtml을
   // 처음 한 번만 읽으므로, key로 갈아 끼워 다시 만듭니다).
@@ -233,6 +240,12 @@ export default function PeerReviewModal({
                   {saving ? "저장 중…" : existing ? "고쳐 쓰기" : "저장"}
                 </button>
               </div>
+              {/* 같은 모둠 친구들이 이 친구에게 남긴 한 마디 — 서로의 평가를 봅니다 */}
+              <PeerReviewList
+                reviews={othersFor}
+                title={`다른 친구들이 ${picked?.name ?? "이 친구"}에게 남긴 한 마디`}
+                anchor={false}
+              />
             </div>
             </div>
           </div>
@@ -243,12 +256,13 @@ export default function PeerReviewModal({
 }
 
 // 받은 코멘트 목록 — 학생 화면 아래와 교사의 학생 상세에서 같이 씁니다.
-export function PeerReviewList({ reviews = [], title = "친구들이 남긴 한 마디" }) {
+// anchor — 모둠 줄의 '받은 한 마디'가 데려다 주는 자리(id). 한 화면에 하나만.
+export function PeerReviewList({ reviews = [], title = "친구들이 남긴 한 마디", anchor = true }) {
   if (reviews.length === 0) return null;
   return (
     // id — 모둠 줄의 '받은 한 마디'가 여기로 데려다 줍니다(글이 길어
     // 스스로 찾아 내려가기 어렵습니다)
-    <section className="peer-received" id="peer-received">
+    <section className="peer-received" id={anchor ? "peer-received" : undefined}>
       <h4>{title}</h4>
       <div className="peer-received-list">
         {reviews.map((r) => (

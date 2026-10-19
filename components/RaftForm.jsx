@@ -19,6 +19,7 @@ import {
   saveParatextTopic,
   subscribeMyPeerReviews,
   subscribeReceivedPeerReviews,
+  subscribeGroupPeerReviews,
 } from "@/lib/store";
 import TopicAskModal from "./TopicAskModal";
 import {
@@ -43,6 +44,7 @@ import {
   myBookGroup,
   groupMembers,
   isPeerReviewOpen,
+  isPeerReviewShared,
 } from "@/lib/bookGroups";
 
 const SAVE_DELAY = 900; // ms — 이만큼 입력이 없으면 저장
@@ -106,6 +108,16 @@ export default function RaftForm({ activity, user, onBack }) {
     if (!myGroupId || locked || savedGroup === null || savedGroup === myGroupId) return;
     saveParatextEntryGroup(activity.id, user, myGroupId).catch(() => {});
   }, [myGroupId, savedGroup, locked, activity.id, user]);
+
+  // 우리 모둠에서 오간 동료 평가 — 같은 모둠 친구끼리 서로 받은 평가를 봅니다
+  // (기본값). 친구 글을 읽고 감상을 쓰는 창에서 '다른 친구들이 남긴 한 마디'로
+  // 섭니다. 교사가 '모둠끼리 보기'를 끄면 규칙이 막으므로 아예 안 겁니다.
+  const shared = grouped && isPeerReviewShared(activity);
+  const [groupReviews, setGroupReviews] = useState([]);
+  useEffect(() => {
+    if (!shared || !myGroupId) { setGroupReviews([]); return undefined; }
+    return subscribeGroupPeerReviews(activity.id, myGroupId, setGroupReviews);
+  }, [shared, myGroupId, activity.id]);
 
   // 활동에도 없고 내가 적은 것도 없으면 한 번 물어봅니다 — 무엇을 읽고 쓰는
   // 건지 모른 채 역할·청중을 정하기 시작하지 않도록. 닫으면 다시 뜨지 않고,
@@ -374,9 +386,8 @@ export default function RaftForm({ activity, user, onBack }) {
         </>
       )}
 
-      {/* 친구들이 내게 남긴 한 마디 — 내가 쓴 글 아래에 둡니다.
-          규칙이 '받은 사람과 쓴 사람과 교사'에게만 열어 두어, 남의 평가는
-          여기 오지 않습니다. */}
+      {/* 친구들이 내게 남긴 한 마디 — 내가 쓴 글 아래에 둡니다. 모둠 친구가
+          서로 받은 평가는 여기가 아니라 친구 글을 읽는 창(감상 쓰기)에 섭니다. */}
       {grouped && <PeerReviewList reviews={gotReviews} />}
 
       {peerOpen && myGroup && (
@@ -386,6 +397,7 @@ export default function RaftForm({ activity, user, onBack }) {
           members={mates}
           user={user}
           myReviews={myReviews}
+          groupReviews={shared ? groupReviews : []}
           initialUid={peerOpen.uid}
           locked={peerLocked}
           renderWork={(entry) => <MateRaftWork entry={entry} />}

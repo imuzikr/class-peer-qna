@@ -3,8 +3,8 @@
 //
 // 설계에서 지켜야 할 것 셋을 규칙으로 못 박아 둡니다.
 //   ① 같은 모둠 친구에게만 쓴다 (문서에 적힌 groupId의 명단으로 판정)
-//   ② 읽는 사람은 받은 학생·쓴 학생·담당 교사뿐 (반 전체가 서로 다 보면
-//      먼저 쓴 코멘트를 보고 따라 씁니다)
+//   ② 읽는 사람은 받은 학생·쓴 학생·담당 교사 + **같은 모둠 친구**(기본값 —
+//      `peerReviewShared: false`면 앞의 셋만). 다른 모둠 · 반 전체는 못 봅니다.
 //   ③ 동료 평가 잠금(peerReviewLocked)은 활동 전체 잠금과 별개
 // =============================================================
 import { describe, it, before, after, beforeEach } from "node:test";
@@ -152,6 +152,34 @@ describe("동료 평가 규칙", () => {
     // 같은 반이지만 남남 — 여기가 열리면 서로 베껴 씁니다
     await assertFails(getDoc(doc(asStudent(env, "stu3").firestore(), ...path)));
     await assertFails(getDoc(doc(asTeacher(env, "teacherB").firestore(), ...path)));
+  });
+
+  // 같은 모둠 친구끼리는 서로 받은 평가를 본다(기본값). A(stu2)의 글에 B(stu1)가
+  // 남긴 평가를 같은 모둠 C(stu4)도 본다 — 다른 모둠(stu3)은 못 본다.
+  it("같은 모둠 친구는 서로 받은 평가를 본다 — 모둠 질의로, 끄면 막힌다", async () => {
+    await seed(env, async (db) => {
+      await setDoc(doc(db, "memberships", "stu4_cA"), { uid: "stu4", classId: "cA" });
+      await setDoc(doc(db, "bookActivities", "act1", "groups", "group_1"), {
+        activityId: "act1", groupIndex: 1, groupName: "햇살",
+        memberUids: ["stu1", "stu2", "stu4"], members: [],
+      });
+      await setDoc(doc(db, "bookActivities", "act1", "peerReviews", rid("stu2", "stu1")), review("stu2", "stu1"));
+    });
+    const path = ["bookActivities", "act1", "peerReviews", rid("stu2", "stu1")];
+    const c = asStudent(env, "stu4").firestore();
+    await assertSucceeds(getDoc(doc(c, ...path)));
+    await assertSucceeds(getDocs(query(collection(c, "bookActivities", "act1", "peerReviews"), where("groupId", "==", "group_1"))));
+    // 다른 모둠 학생이 남의 모둠 id로 질의해도 막힌다
+    const o = asStudent(env, "stu3").firestore();
+    await assertFails(getDoc(doc(o, ...path)));
+    await assertFails(getDocs(query(collection(o, "bookActivities", "act1", "peerReviews"), where("groupId", "==", "group_1"))));
+    // 교사가 '모둠끼리 보기'를 끄면 예전처럼 받은 · 쓴 학생만
+    await seed(env, (db) =>
+      setDoc(doc(db, "bookActivities", "act1"), { peerReviewShared: false }, { merge: true })
+    );
+    await assertFails(getDoc(doc(c, ...path)));
+    await assertFails(getDocs(query(collection(c, "bookActivities", "act1", "peerReviews"), where("groupId", "==", "group_1"))));
+    await assertSucceeds(getDoc(doc(asStudent(env, "stu2").firestore(), ...path)));
   });
 
   // 학생 화면이 실제로 거는 질의 두 개가 통과하는지 — 규칙이 문서마다
