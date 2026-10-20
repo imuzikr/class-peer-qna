@@ -20436,6 +20436,12 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
   font-weight: 800;
   color: var(--text);
 }
+.book-activity-sub {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-sub);
+  margin-top: -2px;
+}
 .book-activity-date {
   font-size: 12px;
   font-weight: 800;

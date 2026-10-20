@@ -1191,16 +1191,21 @@ function ActivityCard({ activity, isTeacher, uid, onOpen, onEdit, onDelete, onTo
   // 닿소리 '개별 활동'은 '모둠 n개'가 아니라 '학생 n명'으로 읽는 게 맞습니다
   const perStudent = !solo && activity.groupMode === "solo";
 
+  const subTitle = (() => {
+    const t = activity.topic?.trim() || myTopic.trim();
+    return t && t !== (activity.title ?? "").trim() ? t : "";
+  })();
+
   return (
     <div className="book-activity-card">
       <button type="button" className="book-activity-open" onClick={onOpen}>
-        {/* 제목에 주제어(도서명)를 씁니다 — 무엇을 하는 활동인지는 아래 줄에
-            종류로 적히므로, 큰 글자 자리는 카드끼리 갈라 주는 값, 곧 '어느
-            책인가'가 맡습니다. 주제어를 비워 둔 개별 활동에서만 활동 이름을
-            대신 씁니다(그때는 학생이 각자 자기 판에 주제를 적습니다). */}
-        <strong className="book-activity-title">
-          {activity.topic?.trim() || myTopic.trim() || activity.title}
-        </strong>
+        {/* 큰 글자는 활동 이름, 그 아래 한 줄이 주제어(도서명)입니다(선생님
+            요청). 한때 주제어를 제목 자리에 썼는데, 같은 책으로 여러 활동을
+            하면 카드 제목이 모두 같아 무슨 활동인지 종류 줄까지 읽어야
+            갈렸습니다. 주제어가 비었거나(개별 활동은 학생이 제 판에 적은
+            주제를 씀) 이름과 같으면 둘째 줄을 안 그립니다. */}
+        <strong className="book-activity-title">{activity.title}</strong>
+        {subTitle && <span className="book-activity-sub">{subTitle}</span>}
         <span className="book-activity-date">{activityDateLabel(activity)}</span>
         <span className="book-activity-meta">
           {kindLabel}
