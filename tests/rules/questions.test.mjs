@@ -128,7 +128,10 @@ describe("해결 표시(resolved) 규칙", () => {
 
   it("교사는 답변 없는 남의 질문도 해결로 바꾼다", async () => {
     const ctx = asTeacher(env, "teacher1");
-    await assertSucceeds(updateDoc(ref(ctx), { resolved: true }));
+    // 앱과 같은 모양 — '나중에 쓸게요'(setQuestionResolvedLater)
+    await assertSucceeds(
+      updateDoc(ref(ctx), { resolved: true, reflectionPending: true, understoodAnswerId: null })
+    );
   });
 
   it("교사는 해결된 질문을 미해결로 되돌린다", async () => {

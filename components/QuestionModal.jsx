@@ -12,6 +12,7 @@ import {
   addAnswer,
   formatTime,
   setQuestionResolved,
+  setQuestionResolvedLater,
   setQuestionPinned,
   setUnderstoodAnswer,
   setAnswerReaction,
@@ -141,13 +142,20 @@ export default function QuestionModal({
   }
 
   // 교사의 해결 표시 — 수업 중 말로 풀어 준 질문처럼 답변이 없어도 해결로
-  // 바꿀 수 있습니다. 인사이트는 비워 두므로 학생에게는 '인사이트 쓰기'
-  // 입구가 그대로 열려 있습니다.
+  // 바꿀 수 있습니다. 해결로 바꿀 때는 한 줄 정리 창의 '나중에 쓸게요'와 같게
+  // 처리합니다(reflectionPending) — 학생의 미뤄 둔 인사이트 목록에 올라
+  // 질문한 학생이 나중에 씁니다. 이미 인사이트가 있으면 해결만 표시합니다.
   async function handleTeacherResolve() {
     if (resolveBusy) return;
     setResolveBusy(true);
     try {
-      await setQuestionResolved(question.id, !question.resolved);
+      if (question.resolved) {
+        await setQuestionResolved(question.id, false);
+      } else if (question.reflection) {
+        await setQuestionResolved(question.id, true);
+      } else {
+        await setQuestionResolvedLater(question.id, question.understoodAnswerId ?? null);
+      }
     } finally {
       setResolveBusy(false);
     }
