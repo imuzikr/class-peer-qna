@@ -4632,6 +4632,19 @@ button.footer-link:hover {
   color: var(--primary-dark);
 }
 
+/* 해결 표시(교사 — 글쓴이가 아닐 때) — 해결된 질문이면 초록으로 '됐다'를 말합니다 */
+.qa-resolve {
+  background: #fff;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.qa-resolve.on {
+  background: #e8f7ed;
+  border-color: #a6d8b6;
+  color: #2f6b45;
+}
+
 .qa-title {
   font-size: 20px;
   line-height: 1.4;

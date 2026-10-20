@@ -70,6 +70,7 @@ export default function QuestionModal({
   const [saving, setSaving] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [pinBusy, setPinBusy] = useState(false); // 고정 토글 중복 클릭 방지
+  const [resolveBusy, setResolveBusy] = useState(false); // 교사의 해결 표시 중복 클릭 방지
   const [resetKey, setResetKey] = useState(0); // 전송 후 에디터 비우기
   // 내 답변 고치기 — 말풍선 자리에서 바로 (id 하나만 열립니다)
   const [editingAnswerId, setEditingAnswerId] = useState(null);
@@ -126,10 +127,29 @@ export default function QuestionModal({
   // 해결을 취소(다시 궁금해요)할 때는 바로 전환합니다.
   // 답변이 없는 상태에서는 해결로 전환할 수 없습니다.
   function handleResolveToggle() {
+    // 글쓴이가 아닌 교사는 한 줄 정리 창 없이 곧바로 바꿉니다 — 인사이트는
+    // 질문한 학생이 쓰는 것이라, 교사가 그 창을 거치면 교사 이름으로 남습니다.
+    if (admin && !mine) {
+      handleTeacherResolve();
+      return;
+    }
     if (question.resolved) {
       setQuestionResolved(question.id, false);
     } else if (answers.length > 0) {
       setReflecting(true);
+    }
+  }
+
+  // 교사의 해결 표시 — 수업 중 말로 풀어 준 질문처럼 답변이 없어도 해결로
+  // 바꿀 수 있습니다. 인사이트는 비워 두므로 학생에게는 '인사이트 쓰기'
+  // 입구가 그대로 열려 있습니다.
+  async function handleTeacherResolve() {
+    if (resolveBusy) return;
+    setResolveBusy(true);
+    try {
+      await setQuestionResolved(question.id, !question.resolved);
+    } finally {
+      setResolveBusy(false);
     }
   }
 
@@ -233,6 +253,10 @@ export default function QuestionModal({
   const canManageUnderstood =
     question.authorId === user.uid || isTeacher(user) || !isFirebaseConfigured;
 
+  // 답변이 없으면 글쓴이는 해결로 못 바꿉니다(한 줄 정리가 답변을 짚으므로).
+  // 교사는 수업 중 말로 풀어 준 질문도 있어 답변 없이 바꿀 수 있습니다.
+  const needsAnswer = !question.resolved && answers.length === 0 && !(admin && !mine);
+
   // 해결됐지만 아직 인사이트가 없는 질문 — 인사이트 입구를 노출할지 판단
   const needsReflection = question.resolved && !question.reflection;
 
@@ -289,11 +313,11 @@ export default function QuestionModal({
                     type="button"
                     className={`status-toggle qa-status ${
                       question.resolved ? "resolved" : "open"
-                    }${!question.resolved && answers.length === 0 ? " disabled" : ""}`}
+                    }${needsAnswer ? " disabled" : ""}`}
                     onClick={handleResolveToggle}
-                    disabled={!question.resolved && answers.length === 0}
+                    disabled={needsAnswer || resolveBusy}
                     title={
-                      !question.resolved && answers.length === 0
+                      needsAnswer
                         ? "답변이 있어야 해결로 바꿀 수 있어요"
                         : question.resolved
                           ? "클릭하면 다시 궁금해요 상태로 되돌려요"
@@ -307,7 +331,7 @@ export default function QuestionModal({
                     className={`status-toggle qa-status readonly ${
                       question.resolved ? "resolved" : "open"
                     }`}
-                    title={question.resolved ? "글쓴이가 해결됐다고 표시했어요" : "아직 해결되지 않았어요"}
+                    title={question.resolved ? "해결된 질문이에요" : "아직 해결되지 않았어요"}
                   >
                     {question.resolved ? <IconSolved size={22} /> : <IconAsk size={22} />} 해결됐어요
                   </span>
@@ -421,6 +445,22 @@ export default function QuestionModal({
                   title={pinned ? "고정 해제 — 게시판 상단에서 내림" : "상단 고정 — 게시판 맨 위에 고정"}
                 >
                   📌 {pinned ? "고정 해제" : "고정하기"}
+                </button>
+              )}
+              {admin && !mine && (
+                <button
+                  type="button"
+                  className={`btn-ghost qa-resolve${question.resolved ? " on" : ""}`}
+                  onClick={handleTeacherResolve}
+                  disabled={resolveBusy}
+                  title={
+                    question.resolved
+                      ? "미해결 질문으로 되돌려요"
+                      : "해결된 질문으로 바꿔요 — 답변이 없어도 됩니다"
+                  }
+                >
+                  {question.resolved ? <IconAsk size={16} /> : <IconSolved size={16} />}
+                  {question.resolved ? " 미해결로" : " 해결로 표시"}
                 </button>
               )}
               {(mine || admin) && (

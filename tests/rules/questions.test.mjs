@@ -8,7 +8,7 @@
 import { describe, it, before, after, beforeEach } from "node:test";
 import { assertSucceeds, assertFails } from "@firebase/rules-unit-testing";
 import { doc, setDoc, updateDoc } from "firebase/firestore";
-import { makeEnv, asStudent, seed } from "./helpers.mjs";
+import { makeEnv, asStudent, asTeacher, seed } from "./helpers.mjs";
 
 const QID = "q1";
 const question = (meTooIds) => ({
@@ -103,5 +103,49 @@ describe("나도 궁금해요(meTooIds) 규칙", () => {
     );
     const ctx = asStudent(env, "stu1");
     await assertSucceeds(updateDoc(ref(ctx), { meTooIds: ["other1", "other2", "stu1"] }));
+  });
+});
+
+// =============================================================
+// 해결 표시 — 질문한 학생 + 교사
+//
+// 교사가 수업 중 말로 풀어 준 질문을 질문방에서 '해결'로 바꿉니다
+// (QuestionModal의 '해결로 표시'). 답변이 없어도 됩니다. 다른 학생은 못 바꿉니다.
+// =============================================================
+describe("해결 표시(resolved) 규칙", () => {
+  let env;
+  before(async () => {
+    env = await makeEnv("demo-rules-questions-resolve");
+  });
+  after(async () => {
+    await env.cleanup();
+  });
+  beforeEach(async () => {
+    await env.clearFirestore();
+    await seed(env, (db) => setDoc(doc(db, "questions", QID), question([])));
+  });
+  const ref = (ctx) => doc(ctx.firestore(), "questions", QID);
+
+  it("교사는 답변 없는 남의 질문도 해결로 바꾼다", async () => {
+    const ctx = asTeacher(env, "teacher1");
+    await assertSucceeds(updateDoc(ref(ctx), { resolved: true }));
+  });
+
+  it("교사는 해결된 질문을 미해결로 되돌린다", async () => {
+    await seed(env, (db) => updateDoc(doc(db, "questions", QID), { resolved: true }));
+    const ctx = asTeacher(env, "teacher1");
+    await assertSucceeds(
+      updateDoc(ref(ctx), { resolved: false, reflectionPending: false, understoodAnswerId: null })
+    );
+  });
+
+  it("질문한 학생도 바꿀 수 있다", async () => {
+    const ctx = asStudent(env, "author1");
+    await assertSucceeds(updateDoc(ref(ctx), { resolved: true }));
+  });
+
+  it("다른 학생은 해결로 바꿀 수 없다", async () => {
+    const ctx = asStudent(env, "stu1");
+    await assertFails(updateDoc(ref(ctx), { resolved: true }));
   });
 });
