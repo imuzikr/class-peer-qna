@@ -34,6 +34,7 @@ import {
 } from "@/lib/paratext";
 import { IconBook, IconLock, IconPeople } from "./StatusIcons";
 import CastStageModal from "./CastStageModal";
+import EntryOverviewModal from "./EntryOverviewModal";
 
 export default function ParatextBoard({
   activity,
@@ -65,6 +66,8 @@ export default function ParatextBoard({
   // 수업 화면 — '수업 시작'을 누르면 열리는 큰 창. 지금 띄우는 것을 교사도
   // 보고, **같은 단계를 학생별로** 넘깁니다(CastStageModal).
   const [stageOpen, setStageOpen] = useState(false);
+  // 한 눈에 보기 — 고른 학생이 쓴 것을 큰 창에서 카드로(읽기만, RAFT와 같은 창)
+  const [overviewOpen, setOverviewOpen] = useState(false);
 
   useEffect(() => subscribeParatextEntries(activity.id, setEntries), [activity.id]);
 
@@ -323,6 +326,14 @@ export default function ParatextBoard({
                   <span className="book-group-class">
                     {paratextDoneCount(open.entry?.answers)} / {PARATEXT_SECTION_COUNT}칸
                   </span>
+                  <button
+                    type="button"
+                    className="btn-ghost eov-open-btn"
+                    onClick={() => setOverviewOpen(true)}
+                    title="이 학생이 쓴 것을 큰 창에서 한꺼번에 봅니다 — 이전 · 다음으로 다른 학생도"
+                  >
+                    한 눈에 보기
+                  </button>
                 </div>
 
                 <div className="entry-detail-grid">
@@ -406,6 +417,24 @@ export default function ParatextBoard({
 
       {/* 전광판 — 학생 상세로 들어가면 닫습니다(그 화면이 곧 답이라
           뒤에 격자를 켜 둘 이유가 없습니다). */}
+      {overviewOpen && open && (
+        <EntryOverviewModal
+          activityTitle={activity.title}
+          cards={shownCards.some((c) => c.uid === open.uid) ? shownCards : cards}
+          uid={open.uid}
+          onPick={setOpenUid}
+          onClose={() => setOverviewOpen(false)}
+          sectionsOf={(c) =>
+            PARATEXT_SECTIONS.map((r, i) => ({
+              ...buildPayload(activity, c, i),
+              key: r.key,
+              wide: false,
+            }))
+          }
+          summaryOf={(c) => `${paratextDoneCount(c.entry?.answers)} / ${PARATEXT_SECTION_COUNT}칸 · ${paratextCharCount(c.entry?.answers)}자`}
+        />
+      )}
+
       {boardOpen && (
         <ParatextProgressBoard
           activity={activity}

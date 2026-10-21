@@ -39,6 +39,7 @@ import { IconBook, IconLock } from "./StatusIcons";
 import QmarkProgressBoard from "./QmarkProgressBoard";
 import BookStudentRail from "./BookStudentRail";
 import CastStageModal from "./CastStageModal";
+import EntryOverviewModal from "./EntryOverviewModal";
 
 const REGIONS = QMARK_REGIONS;
 const REGION_COUNT = REGIONS.length; // 2
@@ -56,6 +57,8 @@ export default function QmarkBoard({
   const [entries, setEntries] = useState([]);
   const [openUid, setOpenUid] = useState(null);
   const [stageOpen, setStageOpen] = useState(false);
+  // 한 눈에 보기 — 고른 학생이 쓴 것을 큰 창에서 카드로(읽기만, RAFT와 같은 창)
+  const [overviewOpen, setOverviewOpen] = useState(false);
   const [boardOpen, setBoardOpen] = useState(false);
 
   useEffect(() => subscribeParatextEntries(activity.id, setEntries), [activity.id]);
@@ -226,6 +229,14 @@ export default function QmarkBoard({
                     <span className="book-group-topic">{open.entry.topic}</span>
                   )}
                   <span className="book-group-class">{railMeta(openAnswers)}</span>
+                  <button
+                    type="button"
+                    className="btn-ghost eov-open-btn"
+                    onClick={() => setOverviewOpen(true)}
+                    title="이 학생이 쓴 것을 큰 창에서 한꺼번에 봅니다 — 이전 · 다음으로 다른 학생도"
+                  >
+                    한 눈에 보기
+                  </button>
                 </div>
 
                 <div className="entry-detail-grid qmark-detail-grid">
@@ -331,6 +342,24 @@ export default function QmarkBoard({
           user={user}
           onStop={stopCast}
           onClose={() => setStageOpen(false)}
+        />
+      )}
+
+      {overviewOpen && open && (
+        <EntryOverviewModal
+          activityTitle={activity.title}
+          cards={cards}
+          uid={open.uid}
+          onPick={setOpenUid}
+          onClose={() => setOverviewOpen(false)}
+          sectionsOf={(c) =>
+            REGIONS.map((r, i) => ({
+              ...buildPayload(activity, c, i),
+              key: r.key,
+              wide: true,
+            }))
+          }
+          summaryOf={(c) => railMeta(c.entry?.answers)}
         />
       )}
 

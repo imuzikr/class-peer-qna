@@ -13,7 +13,7 @@
 // 방송에는 '나는 …이 되어, …에게, … 형식으로' 문장을 함께 실어, 낱말 하나만
 // 크게 떠서 무슨 말인지 모르는 일이 없게 합니다.
 // =============================================================
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   subscribeParatextEntries,
   subscribeAllPeerReviews,
@@ -37,6 +37,7 @@ import {
 import { safeBookUrl } from "@/lib/paratext";
 import { IconBook, IconLock, IconLockState, IconPeople } from "./StatusIcons";
 import CastStageModal from "./CastStageModal";
+import EntryOverviewModal from "./EntryOverviewModal";
 import GroupComposer from "./GroupComposer";
 import GroupFilterRow from "./GroupFilterRow";
 import RaftProgressBoard from "./RaftProgressBoard";
@@ -77,6 +78,8 @@ export default function RaftBoard({
   // 수업 화면 — '수업 시작'을 누르면 열리는 큰 창. 지금 띄우는 것을 교사도
   // 보고, **같은 영역을 학생별로** 넘깁니다(CastStageModal).
   const [stageOpen, setStageOpen] = useState(false);
+  // 한 눈에 보기 — 고른 학생의 다섯 영역을 큰 창에서 카드로(읽기만)
+  const [overviewOpen, setOverviewOpen] = useState(false);
   // 모둠으로 진행하는 활동이면 카드를 모둠으로 좁혀 볼 수 있습니다.
   // 글은 모둠으로 묶여도 학생마다 한 장이라, 모둠은 '보는 차례'만 정합니다.
   const grouped = isGroupedActivity(activity);
@@ -212,6 +215,18 @@ export default function RaftBoard({
     if (next < 0 || next >= REGION_COUNT) return;
     castRegion(castCard, next, stageOpen);
   }
+
+  // 한 눈에 보기의 카드 — 방송 꾸러미와 같은 것(칸 이름 · 물음 · 글).
+  // 네 요소는 두 칸씩, 글쓰기는 가로를 다 씁니다(가운데 칸의 배치와 같음).
+  const overviewSections = useCallback(
+    (card) =>
+      REGIONS.map((r, i) => ({
+        ...buildPayload(activity, card, i),
+        key: r.key,
+        wide: r.key === RAFT_WRITING.key,
+      })),
+    [activity]
+  );
 
   const openAnswers = open?.entry?.answers ?? {};
   const openReviews = useMemo(
@@ -381,6 +396,14 @@ export default function RaftBoard({
                     {raftPlanCount(openAnswers)} / {RAFT_COLUMN_COUNT}칸 ·
                     {" "}글 {raftWritingChars(openAnswers)}자
                   </span>
+                  <button
+                    type="button"
+                    className="btn-ghost eov-open-btn"
+                    onClick={() => setOverviewOpen(true)}
+                    title="이 학생이 쓴 것을 큰 창에서 한꺼번에 봅니다 — 이전 · 다음으로 다른 학생도"
+                  >
+                    한 눈에 보기
+                  </button>
                 </div>
 
                 {/* 늘 done으로 그렸더니, 한 칸도 안 쓴 학생 카드에서도 '다 정했다'는
@@ -482,6 +505,24 @@ export default function RaftBoard({
           user={user}
           onStop={stopCast}
           onClose={() => setStageOpen(false)}
+        />
+      )}
+
+      {overviewOpen && open && (
+        <EntryOverviewModal
+          activityTitle={activity.title}
+          cards={shownCards.some((c) => c.uid === open.uid) ? shownCards : cards}
+          uid={open.uid}
+          onPick={setOpenUid}
+          onClose={() => setOverviewOpen(false)}
+          sectionsOf={overviewSections}
+          summaryOf={(c) =>
+            `${raftPlanCount(c.entry?.answers)} / ${RAFT_COLUMN_COUNT}칸 · 글 ${raftWritingChars(c.entry?.answers)}자`
+          }
+          leadOf={(c) => ({
+            text: raftSentence(c.entry?.answers ?? {}),
+            done: raftPlanCount(c.entry?.answers) === RAFT_COLUMN_COUNT,
+          })}
         />
       )}
 

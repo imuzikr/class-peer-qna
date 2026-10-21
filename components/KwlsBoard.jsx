@@ -32,6 +32,7 @@ import { IconBook, IconLock } from "./StatusIcons";
 import KwlsProgressBoard from "./KwlsProgressBoard";
 import BookStudentRail from "./BookStudentRail";
 import CastStageModal from "./CastStageModal";
+import EntryOverviewModal from "./EntryOverviewModal";
 
 // 방송할 수 있는 영역 — 네 칸 그대로
 const REGIONS = KWLS_COLUMNS;
@@ -53,6 +54,8 @@ export default function KwlsBoard({
   // 수업 화면 — '수업 시작'을 누르면 열리는 큰 창. 지금 띄우는 것을 교사도
   // 보고, **같은 영역을 학생별로** 넘깁니다(CastStageModal).
   const [stageOpen, setStageOpen] = useState(false);
+  // 한 눈에 보기 — 고른 학생이 쓴 것을 큰 창에서 카드로(읽기만, RAFT와 같은 창)
+  const [overviewOpen, setOverviewOpen] = useState(false);
   // 성찰중 전광판 — 네 칸 × 반 전체(곁텍스트·RAFT와 같은 격자)
   const [boardOpen, setBoardOpen] = useState(false);
 
@@ -258,6 +261,14 @@ export default function KwlsBoard({
                     {kwlsFilledCount(openAnswers)} / {KWLS_COLUMN_COUNT}칸 ·
                     {" "}글 {kwlsChars(openAnswers)}자
                   </span>
+                  <button
+                    type="button"
+                    className="btn-ghost eov-open-btn"
+                    onClick={() => setOverviewOpen(true)}
+                    title="이 학생이 쓴 것을 큰 창에서 한꺼번에 봅니다 — 이전 · 다음으로 다른 학생도"
+                  >
+                    한 눈에 보기
+                  </button>
                 </div>
 
                 <div className="entry-detail-grid kwls-detail-grid">
@@ -332,6 +343,24 @@ export default function KwlsBoard({
           user={user}
           onStop={stopCast}
           onClose={() => setStageOpen(false)}
+        />
+      )}
+
+      {overviewOpen && open && (
+        <EntryOverviewModal
+          activityTitle={activity.title}
+          cards={cards}
+          uid={open.uid}
+          onPick={setOpenUid}
+          onClose={() => setOverviewOpen(false)}
+          sectionsOf={(c) =>
+            REGIONS.map((r, i) => ({
+              ...buildPayload(activity, c, i),
+              key: r.key,
+              wide: false,
+            }))
+          }
+          summaryOf={(c) => `${kwlsFilledCount(c.entry?.answers)} / ${KWLS_COLUMN_COUNT}칸 · 글 ${kwlsChars(c.entry?.answers)}자`}
         />
       )}
 
