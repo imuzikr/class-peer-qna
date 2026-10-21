@@ -32668,3 +32668,31 @@ button.msgr-receipt:hover { color: var(--text-sub); }
   .eov-hint { display: none; }
   .eov-foot { justify-content: space-between; }
 }
+
+/* RAFT 학생 화면 — 주제어 · 진행 · 네 요소 문장을 한 줄에(선생님 요청).
+   문장이 남는 가로를 다 받고, 좁으면 문장만 다음 줄로 내려갑니다.
+   저장 상태는 이 줄이 아니라 고친 카드 머리에 섭니다(.raft-card-saved). */
+.raft-summary-row { flex-wrap: nowrap; align-items: center; }
+.raft-summary {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+}
+.raft-summary .book-group-topic,
+.raft-summary .paratext-progress,
+.raft-summary .paratext-saved { flex-shrink: 0; }
+.raft-summary .raft-sentence {
+  flex: 1 1 360px;
+  min-width: 0;
+  margin: 0;
+  padding: 8px 14px;
+}
+.raft-col-head .raft-card-saved { margin-left: auto; flex-shrink: 0; font-size: 12px; }
+.raft-write-meta { display: inline-flex; align-items: baseline; gap: 10px; }
+.raft-write-meta .raft-card-saved { font-size: 12px; }
+@media (max-width: 760px) {
+  .raft-summary-row { flex-wrap: wrap; }
+}

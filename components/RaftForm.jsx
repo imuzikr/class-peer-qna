@@ -52,7 +52,11 @@ const SAVE_DELAY = 900; // ms — 이만큼 입력이 없으면 저장
 export default function RaftForm({ activity, user, onBack }) {
   const [answers, setAnswers] = useState(emptyRaftAnswers);
   const [loaded, setLoaded] = useState(false);
-  const [status, setStatus] = useState("idle"); // idle | saving | saved
+  // 저장 상태는 **칸마다**(선생님 요청 — 머리줄 한 곳이 아니라 고친 카드에).
+  // { [칸 key]: "saving" | "saved" | "error" } — 손댄 칸만 들어갑니다.
+  const [cardStatus, setCardStatus] = useState({});
+  // 다음 저장에 실려 갈, 손댄 칸들 — 저장이 끝나면 그 칸들만 '저장됨'으로
+  const pendingKeysRef = useRef(new Set());
   // 내가 적은 주제어(도서명) — 교사가 활동에 주제어를 넣지 않았을 때 씁니다.
   // 읽고 쓰는 책이 학생마다 다를 수 있어, 그때는 각자 적습니다
   // (곁텍스트 읽기와 같은 방식 — 같은 entries/{uid}.topic 자리를 씁니다).
@@ -145,13 +149,24 @@ export default function RaftForm({ activity, user, onBack }) {
   useEffect(() => {
     if (!dirtyRef.current || locked) return;
     clearTimeout(timerRef.current);
-    setStatus("saving");
     timerRef.current = setTimeout(async () => {
+      // 이번 저장에 실리는 칸 — 저장하는 사이에 고친 칸은 다음 차례로 갑니다
+      const keys = [...pendingKeysRef.current];
+      pendingKeysRef.current.clear();
+      const mark = (state) =>
+        setCardStatus((prev) => {
+          const next = { ...prev };
+          keys.forEach((k) => {
+            // 그 사이 다시 고쳐 '저장 중'이 된 칸은 다음 저장이 정합니다
+            if (!pendingKeysRef.current.has(k)) next[k] = state;
+          });
+          return next;
+        });
       try {
         await saveParatextEntry(activity.id, user, answers, myGroupId ? { groupId: myGroupId } : {});
-        setStatus("saved");
+        mark("saved");
       } catch {
-        setStatus("idle");
+        mark("error");
       }
     }, SAVE_DELAY);
     return () => clearTimeout(timerRef.current);
@@ -159,6 +174,8 @@ export default function RaftForm({ activity, user, onBack }) {
 
   function edit(key, value) {
     dirtyRef.current = true;
+    pendingKeysRef.current.add(key);
+    setCardStatus((prev) => (prev[key] === "saving" ? prev : { ...prev, [key]: "saving" }));
     setAnswers((prev) => ({ ...prev, [key]: value }));
   }
 
@@ -188,11 +205,11 @@ export default function RaftForm({ activity, user, onBack }) {
             </button>
           )}
         </div>
-        {/* 둘째 줄에 아무것도 없을 수 있습니다 — 주제어를 안 정한 채 잠긴
-            활동에서 학생이 제 책을 적기 전이면 배지도 없습니다. */}
-        {(shownTopic || bookUrl) && (
-        <div className="books-head-row">
-          <div className="books-head-main">
+        {/* 둘째 줄 — 주제어 · 진행 · 네 요소 문장을 **한 줄에**(선생님 요청).
+            세 줄로 쌓여 있던 것이라 그만큼 카드가 위로 올라옵니다.
+            저장 상태는 여기 두지 않고 고친 카드마다 답니다. */}
+        <div className="books-head-row raft-summary-row">
+          <div className="raft-summary">
             {/* 적어 둔 주제어 — 눌러서 고칠 수 있습니다. */}
             {shownTopic &&
               (canEditTopic ? (
@@ -207,6 +224,20 @@ export default function RaftForm({ activity, user, onBack }) {
               ) : (
                 <span className="book-group-topic">{shownTopic}</span>
               ))}
+            <span className="paratext-progress">
+              {planCount} / {RAFT_COLUMN_COUNT}칸 · {chars}자
+            </span>
+            {locked && (
+              <span className="paratext-saved locked">
+                <IconLock size={14} /> 잠김
+              </span>
+            )}
+            {/* 정한 네 요소를 한 문장으로 — 무엇을 쓸지 스스로 확인하고 시작하게 */}
+            {loaded && (
+              <p className={`raft-sentence${planDone ? " done" : ""}`}>
+                {raftSentence(answers)}
+              </p>
+            )}
           </div>
           {bookUrl && (
             <a
@@ -217,23 +248,6 @@ export default function RaftForm({ activity, user, onBack }) {
             >
               <IconBook size={15} /> 도서 정보
             </a>
-          )}
-        </div>
-        )}
-        <div className="paratext-status">
-          <span className="paratext-progress">
-            {planCount} / {RAFT_COLUMN_COUNT}칸 · {chars}자
-          </span>
-          {locked ? (
-            <span className="paratext-saved locked">
-              <IconLock size={14} /> 잠김
-            </span>
-          ) : (
-            status !== "idle" && (
-              <span className="paratext-saved">
-                {status === "saving" ? "저장 중…" : "저장됨"}
-              </span>
-            )
           )}
         </div>
       </div>
@@ -317,11 +331,6 @@ export default function RaftForm({ activity, user, onBack }) {
             />
           )}
 
-          {/* 정한 네 요소를 한 문장으로 — 무엇을 쓸지 스스로 확인하고 시작하게 */}
-          <p className={`raft-sentence${planDone ? " done" : ""}`}>
-            {raftSentence(answers)}
-          </p>
-
           <div className="raft-grid">
             {RAFT_COLUMNS.map((c) => (
               <section
@@ -334,6 +343,7 @@ export default function RaftForm({ activity, user, onBack }) {
                     <strong>{c.ko}</strong>
                     <em>{c.en}</em>
                   </span>
+                  <SaveMark state={cardStatus[c.key]} />
                 </header>
                 <p className="raft-col-prompt">
                   {c.prompt}
@@ -368,7 +378,10 @@ export default function RaftForm({ activity, user, onBack }) {
           <section className="raft-write">
             <header className="raft-write-head">
               <strong>{RAFT_WRITING.ko}</strong>
-              <span className="raft-write-count">{chars}자</span>
+              <span className="raft-write-meta">
+                <SaveMark state={cardStatus[RAFT_WRITING.key]} />
+                <span className="raft-write-count">{chars}자</span>
+              </span>
             </header>
             <p className="raft-col-prompt">
               {planDone
@@ -437,5 +450,16 @@ function MateRaftWork({ entry }) {
         {text ? <p>{text}</p> : <p className="empty-note">아직 글을 쓰지 않았어요.</p>}
       </div>
     </div>
+  );
+}
+
+// 카드 머리의 저장 상태 — 고친 칸에만 섭니다(손대지 않은 칸은 비워 둠).
+function SaveMark({ state }) {
+  if (!state) return null;
+  const text = state === "saving" ? "저장 중…" : state === "error" ? "저장 못 함" : "저장됨";
+  return (
+    <span className={`paratext-saved raft-card-saved${state === "error" ? " err" : ""}`} aria-live="polite">
+      {text}
+    </span>
   );
 }
