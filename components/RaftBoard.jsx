@@ -217,13 +217,15 @@ export default function RaftBoard({
 
   // 한 눈에 보기의 카드 — 방송 꾸러미와 같은 것(칸 이름 · 물음 · 글).
   // 네 요소는 두 칸씩, 글쓰기는 가로를 다 씁니다(가운데 칸의 배치와 같음).
+  // 한 눈에 보기 — 네 요소는 카드로 펼치지 않고 위의 한 문장('나는 ○○이 되어,
+  // ○○에게, ○○ 형식으로, ○○에 대해 씁니다')이 담고, 카드는 **글쓰기 하나**만
+  // 바로 섭니다(선생님 요청 — 네 칸 격자는 문장과 같은 말을 되풀이했습니다).
+  // 카드가 하나라 위의 영역 바로가기 줄도 안 섭니다(EntryOverviewModal).
   const overviewSections = useCallback(
-    (card) =>
-      REGIONS.map((r, i) => ({
-        ...buildPayload(activity, card, i),
-        key: r.key,
-        wide: r.key === RAFT_WRITING.key,
-      })),
+    (card) => {
+      const i = REGIONS.findIndex((r) => r.key === RAFT_WRITING.key);
+      return [{ ...buildPayload(activity, card, i), key: RAFT_WRITING.key, wide: true }];
+    },
     [activity]
   );
 
