@@ -43,7 +43,7 @@ import RaftProgressBoard from "./RaftProgressBoard";
 import BookStudentRail from "./BookStudentRail";
 import EntryProgressPanel from "./EntryProgressPanel";
 import { PeerReviewList, PeerReviewRow } from "./PeerReviewModal";
-import { isGroupedActivity, useBookGroups, isPeerReviewOpen } from "@/lib/bookGroups";
+import { isGroupedActivity, useBookGroups, isPeerReviewOpen, myBookGroup, groupMembers } from "@/lib/bookGroups";
 
 // 방송할 수 있는 영역 — 네 요소 + 글쓰기
 const REGIONS = [
@@ -504,7 +504,13 @@ export default function RaftBoard({
             `${raftPlanCount(c.entry?.answers)} / ${RAFT_COLUMN_COUNT}칸 · 글 ${raftWritingChars(c.entry?.answers)}자`
           }
           footOf={grouped ? (c) => (
-            <PeerReviewRow reviews={reviews.filter((r) => r.toUid === c.uid)} />
+            <PeerReviewRow
+              reviews={reviews.filter((r) => r.toUid === c.uid)}
+              mates={groupMembers(
+                myBookGroup(groups.filter((g) => !g.retired), c.uid),
+                roster.length ? roster : null
+              ).filter((m) => m.uid !== c.uid)}
+            />
           ) : null}
           leadOf={(c) => ({
             text: raftSentence(c.entry?.answers ?? {}),

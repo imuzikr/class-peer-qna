@@ -32719,6 +32719,10 @@ button.msgr-receipt:hover { color: var(--text-sub); }
   padding-bottom: 2px;
 }
 .eov-peer-row .peer-card { min-width: 0; background: #fff; box-shadow: var(--shadow-soft); }
+.eov-peer-row .peer-card { min-height: 96px; }
+.eov-peer-row .peer-card.is-empty { background: #fcfbf8; border-style: dashed; box-shadow: none; }
+.eov-peer-row .peer-card.is-empty header { color: var(--text-sub); }
+.eov-peer-wait { margin: 0; font-size: 13px; color: var(--text-faint); }
 .eov-hint {
   flex: 1;
   text-align: center;
