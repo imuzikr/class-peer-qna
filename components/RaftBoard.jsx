@@ -418,6 +418,11 @@ export default function RaftBoard({
                                   </span>
                                 ))}
                               </span>
+                              {/* RAFT로 만든 한 문장 — 아직 한 칸도 안 정했으면 밑줄 넷만
+                                  남은 틀이라 그 대신 '아직'을 적습니다 */}
+                              <span className={`raft-mate-sentence${raftPlanCount(ans) ? "" : " soft"}`}>
+                                {raftPlanCount(ans) ? raftSentence(ans) : "아직 정한 요소가 없어요"}
+                              </span>
                               <span className="raft-mate-chars">글 {raftWritingChars(ans)}자</span>
                             </span>
                           );

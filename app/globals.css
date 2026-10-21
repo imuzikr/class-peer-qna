@@ -32547,6 +32547,15 @@ button.msgr-receipt:hover { color: var(--text-sub); }
 .raft-mate-list .raft-mate-mark { width: 20px; height: 20px; line-height: 20px; font-size: 11px; }
 .raft-mate-list .raft-mate-marks { gap: 3px; }
 .raft-mate-list .raft-mate-chars { text-align: left; }
+/* 학생 칸의 셋째 줄 — RAFT로 만든 한 문장(이름 · R·A·F·T · 문장 · 글자 수 차례) */
+.raft-mate-sentence {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.raft-mate-sentence.soft { color: var(--text-faint); }
 .raft-mate-cell {
   display: flex;
   flex-direction: column;
