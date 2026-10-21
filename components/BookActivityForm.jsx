@@ -13,6 +13,8 @@
 //      **영역**(2~4개, 이름은 교사가)과 함께 생각할 물음을 받습니다.
 //  · 여섯 개의 해시태그 — 학생마다 다른 글을 읽으므로 주제어를 받지 않고,
 //      안내 문구(선택)만 받습니다. 친구 해시태그는 만든 뒤 '공개하기'로 엽니다.
+//  · 가로세로 낱말 퀴즈 — **어느 닿소리 채우기의 낱말로 만들지**만 고릅니다.
+//      모둠(판)도 그 활동의 것을 그대로 가져와 여기서 정할 것이 없습니다.
 //
 // 모둠 방식의 기본값은 **반의 기본 모둠**입니다(있을 때). 수업이 대체로 늘
 // 같은 모둠으로 돌아가는데 활동마다 다시 짜면 같은 일을 되풀이하게 됩니다.
@@ -41,6 +43,7 @@ const TYPES = [
   { key: "opinion", label: "내 생각은요...", desc: "영역(찬성·반대 등)을 나눠 두면 학생이 메모지에 생각을 적어 붙입니다", defaultTitle: "내 생각은요..." },
   { key: "hashtag", label: "여섯 개의 해시태그", desc: "해시태그를 찾아 태그마다 생각을 쓰고, 슬라이드로 띄워 나눕니다", defaultTitle: "여섯 개의 해시태그" },
   { key: "qmark", label: "물음표로 책 읽기", desc: "궁금한 곳에 물음표를 붙이고, 물음과 이유 · 나의 생각을 정리합니다", defaultTitle: "물음표로 책 읽기" },
+  { key: "crossword", label: "가로세로 낱말 퀴즈", desc: "닿소리 채우기에서 모은 낱말로 힌트를 쓰고 퀴즈를 풉니다", defaultTitle: "가로세로 낱말 퀴즈" },
 ];
 // 모둠을 정하는 일은 **세 번의 물음**입니다. 한 줄에 다섯 갈래를 늘어놓았더니
 // '기본 모둠'과 '활동 모둠'이 나란히 있어 무엇이 무엇인지 알기 어려웠습니다.
@@ -95,6 +98,8 @@ export default function BookActivityForm({
   // 반에 이미 짜 둔 기본 모둠이 몇 개인지 — '기본 모둠'을 골랐을 때
   // 몇 개를 가져오는지 미리 알려 주려고 받습니다(없으면 그 자리에서 안내).
   baseGroupCount = 0,
+  // 가로세로 낱말 퀴즈의 재료 — 이 반의 닿소리 채우기(휴지통 제외, 만든 차례)
+  consonantActivities = [],
 }) {
   const initial = TYPES.find((t) => t.key === initialType) ?? TYPES[0];
   const [type, setType] = useState(initial.key);
@@ -120,6 +125,12 @@ export default function BookActivityForm({
   // '여섯 개의 해시태그'의 안내 문구 — 학생 화면 맨 위에 한 줄로 섭니다
   const [guide, setGuide] = useState("");
   const [saving, setSaving] = useState(false);
+  // 가로세로 낱말 퀴즈 — 낱말을 가져올 닿소리 채우기. 처음엔 가장 최근 것
+  // (수업은 대개 방금 한 닿소리로 퀴즈를 냅니다).
+  const [sourceId, setSourceId] = useState(() => consonantActivities.at(-1)?.id ?? "");
+  const isCrossword = type === "crossword";
+  const source = isCrossword ? consonantActivities.find((a) => a.id === sourceId) ?? null : null;
+  const sourceBad = isCrossword && !source;
 
   const names = parseNames(namesRaw);
   // 학생이 눌러볼 도서 정보 주소를 받는 종류 — 혼자 읽고 쓰는 활동들입니다.
@@ -169,11 +180,11 @@ export default function BookActivityForm({
   // lib/store.js의 BOOK_STUDENT_TOPIC_TYPES에 적어 두었습니다).
   // '내 생각은요...'는 물음이 주제 노릇을 해서 주제어를 비워 둘 수 있습니다.
   const topicRequired =
-    !perStudent && !isOpinion && !isHashtag && !BOOK_STUDENT_TOPIC_TYPES.includes(type);
+    !perStudent && !isOpinion && !isHashtag && !isCrossword && !BOOK_STUDENT_TOPIC_TYPES.includes(type);
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if ((topicRequired && !topic.trim()) || saving || urlBad || zonesBad) return;
+    if ((topicRequired && !topic.trim()) || saving || urlBad || zonesBad || sourceBad) return;
 
     // 이름을 적었는데 모둠 수와 개수가 다르면 만들지 않고 알려 줍니다.
     // (개별 활동은 모둠 이름을 쓰지 않으므로 이 검사를 건너뜁니다)
@@ -200,6 +211,7 @@ export default function BookActivityForm({
         prompt: isOpinion ? prompt.trim() : "",
         noteMode: isOpinion ? noteMode : undefined,
         guide: isHashtag ? guide.trim() : "",
+        sourceActivityId: isCrossword ? sourceId : null,
       });
     } finally {
       setSaving(false);
@@ -251,7 +263,8 @@ export default function BookActivityForm({
               maxLength={40}
             />
           </label>
-          {!isHashtag && (
+          {/* 가로세로는 주제어를 받지 않습니다 — 고른 닿소리의 주제어를 그대로 씁니다 */}
+          {!isHashtag && !isCrossword && (
             <label className="book-field">
               <span>
                 주제어 · 도서명
@@ -294,6 +307,35 @@ export default function BookActivityForm({
             </label>
           )}
         </div>
+
+        {isCrossword && (
+          <label className="book-field">
+            <span>낱말을 가져올 닿소리 채우기</span>
+            {consonantActivities.length > 0 ? (
+              <select value={sourceId} onChange={(e) => setSourceId(e.target.value)}>
+                {consonantActivities.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.title}
+                    {a.topic && a.topic !== a.title ? ` · ${a.topic}` : ""}
+                    {a.groupMode === "solo" ? " (개별 활동)" : " (모둠 활동)"}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <select disabled value="">
+                <option value="">아직 이 반에 닿소리 채우기가 없어요</option>
+              </select>
+            )}
+            <em className="book-help">
+              {consonantActivities.length === 0
+                ? "닿소리 채우기를 먼저 해야 그 낱말로 퀴즈를 만들 수 있어요."
+                : source?.groupMode === "solo"
+                  ? "그 활동처럼 학생마다 판이 하나씩 — 학생 한 명이 낱말 하나의 힌트를 쓰고, 혼자 퀴즈를 풉니다."
+                  : "그 활동의 모둠을 그대로 가져옵니다 — 모둠원 수만큼 낱말을 맡아 힌트를 쓰고, 모둠이 함께 퀴즈를 풉니다."}
+              {" "}만든 뒤 활동을 열어 ‘가로세로 낱말 퀴즈 생성’을 누르면 그 활동의 낱말로 판이 짜입니다.
+            </em>
+          </label>
+        )}
 
         {isHashtag && (
           <label className="book-field">
@@ -570,6 +612,7 @@ export default function BookActivityForm({
               saving ||
               urlBad ||
               zonesBad ||
+              sourceBad ||
               (fromBase && baseGroupCount === 0)
             }
           >
@@ -579,6 +622,8 @@ export default function BookActivityForm({
                 ? `영역 ${zoneNames.length}개로 메모판 만들기`
                 : isHashtag
                 ? "해시태그 활동 만들기"
+                : isCrossword
+                ? "가로세로 퀴즈 활동 만들기"
                 : !canGroup || perStudent
                 ? "학생별 활동으로 만들기"
                 : fromBase

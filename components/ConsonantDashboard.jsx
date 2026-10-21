@@ -43,9 +43,7 @@ export default function ConsonantDashboard({
   classId = null,
   user = null,
   onClose,
-  // '가로세로' — 가로세로 낱말퀴즈 상세 화면으로(없으면 그 탭 없음)
-  onOpenCrossword = null,
-  // 처음 여는 얼굴 · 바뀔 때 알림 — 가로세로에 다녀와도 보던 얼굴로 돌아오게
+  // 처음 여는 얼굴 · 바뀔 때 알림 — 새로고침해도 보던 얼굴로 돌아오게
   // 페이지가 들고 있습니다(없으면 이 화면 안에서만 기억)
   initialView = "grid",
   onViewChange = null,
@@ -337,15 +335,11 @@ export default function ConsonantDashboard({
               {casting ? "수업 종료" : "수업 시작"}
             </button>
           )}
-          {/* 잔디 / 격자 / 낱말 구름 / 가로세로 — '수업 시작' 바로 뒤(선생님 요청).
-              앞의 셋은 같은 집계를 보는 방법만 바뀌고(읽기는 그대로, 중계 중이면
-              학생 화면도 함께), 가로세로는 그 낱말로 만든 퀴즈 화면으로 갑니다.
-              차례는 **수업 중에 자주 여는 것부터** — 잔디가 맨 앞입니다. */}
-          <DashViewTabs
-            view={view}
-            crossword={!!onOpenCrossword}
-            onPick={(v) => (v === "crossword" ? onOpenCrossword?.() : changeView(v))}
-          />
+          {/* 잔디 / 격자 / 낱말 구름 — '수업 시작' 바로 뒤(선생님 요청).
+              같은 집계를 보는 방법만 바뀝니다(읽기는 그대로, 중계 중이면
+              학생 화면도 함께). 차례는 **수업 중에 자주 여는 것부터** — 잔디가
+              맨 앞입니다. 가로세로 낱말 퀴즈는 제 독서 활동이 되어 여기서 뺐습니다. */}
+          <DashViewTabs view={view} onPick={changeView} />
         </div>
         {/* 숫자는 오른쪽 끝 — 버튼과 섞이면 무엇이 누를 것인지 흐려집니다 */}
         <span className="canvas-head-stats">

@@ -20574,12 +20574,13 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
 }
 /* 종류를 바꿔도 창 크기가 그대로입니다(선생님 요청) — 종류마다 설정 칸이 달라
    창이 553 ↔ 840px로 늘었다 줄었다 하며 아래 단추가 오르내렸습니다. 가장 긴
-   종류('내 생각은요...' 840px, 실측)에 높이를 못 박고, 짧은 종류는 가운데가
+   종류('내 생각은요...' 908px, 실측 — 아홉째 '가로세로 낱말 퀴즈'로 종류 격자가
+   한 줄 늘어 840에서 올림)에 높이를 못 박고, 짧은 종류는 가운데가
    빈 채 단추가 늘 바닥에 섭니다. 화면이 낮으면(94vh) **가운데 칸만** 구르고
    머리줄과 단추는 제자리입니다. 종류 고르기가 있는 만들기 창에만 겁니다
    (`fixedType`이면 종류가 하나라 못 박을 까닭이 없습니다). */
 .modal.book-form.book-form--fixed {
-  height: min(94vh, 840px);
+  height: min(94vh, 908px);
   display: flex;
   flex-direction: column;
   overflow: hidden;

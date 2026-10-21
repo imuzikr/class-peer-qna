@@ -1,10 +1,13 @@
 "use client";
 
 // =============================================================
-// 가로세로 낱말퀴즈 — 모둠 활동의 교사 화면 (닿소리 '전체 보기'의 '가로세로')
+// 가로세로 낱말퀴즈 — 교사 화면 (독서 활동 '가로세로 낱말 퀴즈')
+// 퀴즈는 제 활동이고, 낱말은 만들 때 고른 닿소리 채우기(activity.sourceActivityId)에서
+// 가져옵니다. 모둠(판)도 그 활동의 것을 같은 id로 베껴 온 것입니다(lib/data/books.js의
+// addCrosswordActivity). 한때 닿소리 '전체 보기' 안의 화면이었습니다.
 // -------------------------------------------------------------
 // 세 단계를 한 화면에서 넘깁니다(활동 문서의 crossword.stage).
-//   준비     — '가로세로 낱말 퀴즈 생성': 이 활동의 낱말 **전부**로 참여 학생
+//   준비     — '가로세로 낱말 퀴즈 생성': 고른 닿소리의 낱말 **전부**로 참여 학생
 //              수만큼 이어 판을 짜고, 모둠마다 구성원 수만큼 무작위로 나눠 줍니다.
 //   힌트 쓰기 — 왼쪽: 학생마다 제출/미제출(한 사람이 낱말 하나를 맡음).
 //              가운데: 정답이 보이는 판. 오른쪽: 모둠별 낱말 · 힌트(누가 썼나).
@@ -53,7 +56,6 @@ import {
 import { ROW_COLORS } from "@/lib/bookColors";
 import CrosswordGrid from "./CrosswordGrid";
 import ConfirmModal from "./ConfirmModal";
-import DashViewTabs from "./DashViewTabs";
 import FloatingPanel from "./FloatingPanel";
 import XwGroupHintPopover, { pointAnchor } from "./XwGroupHintPopover";
 
@@ -82,7 +84,7 @@ function useGroupXw(actId, groupIds, boardIds) {
   return { hintsBy, boardsBy };
 }
 
-export default function CrosswordGroupBoard({ activity, onBack, onPickView, onToast, classTools = null }) {
+export default function CrosswordGroupBoard({ activity, onBack, onToast, classPicker = null, classTools = null }) {
   const [groups, setGroups] = useState([]);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
@@ -210,7 +212,9 @@ export default function CrosswordGroupBoard({ activity, onBack, onPickView, onTo
     setBusy(true);
     setNote("");
     try {
-      const words = await fetchActivityWords(activity.id, groupIds);
+      // 낱말은 고른 닿소리 채우기에서 — 판(모둠) id가 그 활동과 같습니다.
+      // (예전에 닿소리 안에서 만든 퀴즈는 sourceActivityId가 없어 제 낱말을 씁니다)
+      const words = await fetchActivityWords(activity.sourceActivityId || activity.id, groupIds);
       const pool = crosswordWordPool(words);
       await new Promise((r) => setTimeout(r, 30)); // '만드는 중'을 먼저 그리게
       const salt = `${activity.id}:${Date.now().toString(36)}`;
@@ -284,17 +288,15 @@ export default function CrosswordGroupBoard({ activity, onBack, onPickView, onTo
   return (
     <main className="canvas-main dash-root xw-main">
       <div className="canvas-head">
-        {/* 머리말은 '전체 보기'(ConsonantDashboard)와 같은 짜임입니다 — 제목 ·
-            ← 모둠 · 보는 방법 알약. 알약의 '가로세로'가 켜져 있고, 앞의 셋을
-            누르면 집계 화면 그 얼굴로 돌아갑니다. */}
-        <strong className="canvas-head-name">{activity.topic || activity.title}</strong>
-        <button type="button" className="btn-ghost" onClick={onBack}>← 모둠</button>
+        {/* 머리말 — 활동 이름 · ← 활동 목록 · 반 고르개 · 기록 관리 · 진행 요약.
+            낱말을 가져온 닿소리 채우기의 이름을 함께 적습니다. */}
+        <strong className="canvas-head-name">{activity.title}</strong>
+        <button type="button" className="btn-ghost" onClick={onBack}>← 활동 목록</button>
+        {classPicker}
         {classTools}
-        <div className="dash-head-actions">
-          <DashViewTabs view="crossword" onPick={onPickView} />
-        </div>
         <span className="canvas-head-stats">
-          가로세로 · {solo ? "개별 활동" : `모둠 ${liveGroups.length}개`} · 학생 {studentCount}명
+          {activity.sourceTitle ? `낱말: ${activity.sourceTitle} · ` : ""}
+          {solo ? "개별 활동" : `모둠 ${liveGroups.length}개`} · 학생 {studentCount}명
           {puzzle && ` · 낱말 ${puzzle.entries.length}개`}
         </span>
         <span className={`xw-badge xwg-stage${stage === "solve" ? " done" : ""}`}>
@@ -476,8 +478,8 @@ export default function CrosswordGroupBoard({ activity, onBack, onPickView, onTo
                       : stage === "hint"
                         ? `힌트 ${hintsDone} / ${puzzle.entries.length}개. 다 모이면 '낱말 채우기'를 눌러 ${solo ? "학생" : "모둠"}마다 판을 열어 주세요.`
                         : solo
-                          ? `이 활동에 나온 낱말 전부로 학생 수(${studentCount}명)만큼 이어 판을 짜고, 학생마다 낱말 하나씩 나눠 줘요.`
-                          : `이 활동에 나온 낱말 전부로 학생 수(${studentCount}명)만큼 이어 판을 짜고, 모둠마다 구성원 수만큼 나눠 줘요.`)}
+                          ? `${activity.sourceTitle ? `‘${activity.sourceTitle}’에` : "닿소리 채우기에"} 나온 낱말 전부로 학생 수(${studentCount}명)만큼 이어 판을 짜고, 학생마다 낱말 하나씩 나눠 줘요.`
+                          : `${activity.sourceTitle ? `‘${activity.sourceTitle}’에` : "닿소리 채우기에"} 나온 낱말 전부로 학생 수(${studentCount}명)만큼 이어 판을 짜고, 모둠마다 구성원 수만큼 나눠 줘요.`)}
                 </span>
                 <div className="xw-gen-btns">
                   {stage !== "solve" && (

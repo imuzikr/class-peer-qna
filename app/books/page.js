@@ -93,12 +93,13 @@ const ACTIVITY_KINDS = [
   { key: "opinion", label: "내 생각은요..." },
   { key: "hashtag", label: "여섯 개의 해시태그" },
   { key: "qmark", label: "물음표로 책 읽기" },
+  { key: "crossword", label: "가로세로 낱말 퀴즈" },
 ];
 
 const ACTIVITY_KIND_BY_KEY = new Map(ACTIVITY_KINDS.map((k) => [k.key, k]));
 
 // 닿소리 '전체 보기'의 얼굴 — 주소의 ?face= 값(격자가 기본이라 주소에 안 적음).
-// DashViewTabs의 key와 같아야 합니다(가로세로는 얼굴이 아니라 ?view=cross).
+// DashViewTabs의 key와 같아야 합니다.
 const DASH_FACES = ["grass", "grid", "cloud"];
 
 function activityTime(activity) {
@@ -187,14 +188,13 @@ function BooksPageInner() {
 
   const [activities, setActivities] = useState([]);
   const [openGroups, setOpenGroups] = useState([]);       // 연 활동의 모둠 목록
-  // 닿소리 채우기의 '전체 보기'(교사)와 '가로세로'(학생은 내 판에서, 교사는
-  // 전체 보기에서)도 URL(?view=all | cross)로 듭니다. 한때 화면 상태(useState)라
-  // 새로고침하면 닿소리 판으로 돌아갔습니다(실제 신고). 가로세로는 교사에게
-  // 전체 보기 안의 화면이라 `cross`면 전체 보기도 켜진 것으로 봅니다.
+  // 닿소리 채우기의 '전체 보기'(교사)도 URL(?view=all)로 듭니다. 한때 화면
+  // 상태(useState)라 새로고침하면 닿소리 판으로 돌아갔습니다(실제 신고).
   // 다른 활동을 열면(goToActivity) view가 빠져 저절로 접힙니다.
+  // (가로세로 낱말 퀴즈는 이제 제 활동이라 ?view=cross가 없습니다 — 옛 주소의
+  //  cross는 전체 보기로 읽습니다.)
   const viewParam = searchParams.get("view");
   const allView = viewParam === "all" || viewParam === "cross"; // 교사: 반 전체 집계 화면
-  const crossView = viewParam === "cross";
   // 주소의 몇 칸만 바꿉니다(값이 null이면 그 칸을 뺌). ?activity=는 그대로.
   function patchBooksQuery(patch, { replace = false } = {}) {
     const p = new URLSearchParams(searchParams.toString());
@@ -211,18 +211,13 @@ function BooksPageInner() {
     patchBooksQuery({ view: v });
   }
   // 전체 보기에서 보던 얼굴(잔디 · 격자 · 낱말 구름)도 URL(?face=)로 듭니다 —
-  // 새로고침해도, 가로세로에 다녀와도 그 얼굴입니다(집계 화면은 가로세로로 가면
-  // 내려갑니다). 전체 보기를 닫아도 face는 남겨, 다시 열면 보던 얼굴입니다.
+  // 새로고침해도 그 얼굴입니다. 전체 보기를 닫아도 face는 남겨, 다시 열면
+  // 보던 얼굴입니다.
   // 다른 활동을 열면(goToActivity) 빠져 격자로 시작합니다.
   // 알약을 오가는 것은 replace — 누를 때마다 '뒤로 가기' 기록이 쌓이지 않게.
   const faceParam = searchParams.get("face");
   const dashView = DASH_FACES.includes(faceParam) ? faceParam : "grid";
   const setDashView = (v) => patchBooksQuery({ face: v === "grid" ? null : v }, { replace: true });
-  // 가로세로 화면의 보는 방법 알약 — 앞의 셋을 누르면 집계 화면 그 얼굴로
-  const pickDashView = (v) => {
-    if (v === "crossword") return;
-    patchBooksQuery({ view: "all", face: v === "grid" ? null : v });
-  };
   const [creatingType, setCreatingType] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [confirmPurge, setConfirmPurge] = useState(null);  // 휴지통에서 완전 삭제
@@ -423,6 +418,8 @@ function BooksPageInner() {
   const isHashtag = activeActivity?.type === "hashtag";
   // 물음표로 책 읽기 — 학생마다 한 장(entries/{uid}), KWLS와 같은 개인 활동
   const isQmark = activeActivity?.type === "qmark";
+  // 가로세로 낱말 퀴즈 — 닿소리의 판(모둠)을 베껴 온 활동이라 모둠 구독은 그대로 겁니다
+  const isCrossword = activeActivity?.type === "crossword";
   const isSolo = isParatext || isRaft || isKwls || isMindmap || isOpinion || isHashtag || isQmark;
 
   // 연 활동의 모둠 — 학생이 '내 판'으로 바로 들어가려면 내 모둠을 알아야 합니다.
@@ -441,6 +438,13 @@ function BooksPageInner() {
   // 학생은 활동을 열면 자기 판으로 바로 갑니다. 아직 모둠이 없으면(자유 구성
   // 이거나 교사가 아직 배정 전이면) 모둠 목록을 보여 줘 고르거나 기다리게 합니다.
   const studentCanvasGroupId = !admin && activeActivity ? myGroupId : null;
+
+  // 가로세로 낱말 퀴즈의 재료로 고를 닿소리 채우기(만들기 창) — 받아 둔 목록에서
+  // 거릅니다(읽기 0). 만든 차례라 끝이 가장 최근 것입니다.
+  const consonantActivities = useMemo(
+    () => liveActivities.filter((a) => a.type === "consonant"),
+    [liveActivities]
+  );
 
   async function handleCreate(form) {
     // soloMembers — '개별 활동'으로 만들 때 학생마다 판을 하나씩 깔기 위한
@@ -754,17 +758,43 @@ function BooksPageInner() {
           user={user}
           onBack={goToList}
         />
-      ) : /* 교사: '전체 보기'의 '가로세로' — 낱말 풀이 제출 현황 · 퀴즈 만들기 */
-      admin && allView && crossView && activeActivity ? (
-        /* 모둠 활동은 모둠마다 판 하나를 함께, 개별 활동은 1인 판마다 낱말 하나 —
+      ) : /* 가로세로 낱말 퀴즈 — 교사는 힌트 제출 현황 · 퀴즈 만들기 · 모둠별 풀이,
+           학생은 우리 모둠(개별 활동이면 내) 낱말의 힌트 쓰기 · 퀴즈 풀기.
+           모둠 활동은 모둠마다 판 하나를 함께, 개별 활동은 1인 판마다 낱말 하나 —
            같은 화면이 activity.groupMode로 말만 바꿉니다 */
+      isCrossword && admin ? (
         <CrosswordGroupBoard
           activity={activeActivity}
-          onBack={() => setBooksView(null)}
-          onPickView={pickDashView}
+          classPicker={classPicker}
+          onBack={goToList}
           onToast={setToast}
           classTools={classTools}
         />
+      ) : isCrossword && studentCanvasGroupId ? (
+        <CrosswordGroupStudent
+          activity={activeActivity}
+          groupId={studentCanvasGroupId}
+          user={user}
+          onBack={goToList}
+        />
+      ) : isCrossword ? (
+        <main className="canvas-main xw-main">
+          <div className="canvas-head">
+            <div className="canvas-head-title">
+              <strong>가로세로 낱말퀴즈</strong>
+              <span>{activeActivity.title}</span>
+            </div>
+            <div className="canvas-head-pair">
+              <button type="button" className="btn-ghost" onClick={goToList}>← 활동 목록</button>
+            </div>
+          </div>
+          <section className="xw-card">
+            <p className="xw-empty">
+              이 퀴즈에서 맡은 모둠(판)이 없어요. 퀴즈를 만든 닿소리 채우기에 함께하지 않았다면
+              선생님께 말씀해 주세요.
+            </p>
+          </section>
+        </main>
       ) : /* 교사: '전체 보기' — 반 전체 집계. 여기서 학생 화면에 중계할 수 있습니다 */
       admin && allView && activeActivity ? (
         <ConsonantDashboard
@@ -772,18 +802,9 @@ function BooksPageInner() {
           classId={activeClassId}
           user={user}
           onClose={() => setBooksView(null)}
-          onOpenCrossword={() => setBooksView("cross")}
           initialView={dashView}
           onViewChange={setDashView}
           classTools={classTools}
-        />
-      ) : /* 학생: 내 판의 '가로세로' — 낱말 풀이 쓰기 · 퀴즈 풀기 */
-      studentCanvasGroupId && activeActivity && crossView ? (
-        <CrosswordGroupStudent
-          activity={activeActivity}
-          groupId={studentCanvasGroupId}
-          user={user}
-          onBack={() => setBooksView(null)}
         />
       ) : /* 학생: 활동을 열면 자기 판으로 바로 */
       studentCanvasGroupId && activeActivity ? (
@@ -794,7 +815,6 @@ function BooksPageInner() {
           isTeacher={false}
           viewMode="mine"
           onBack={goToList}
-          onOpenCrossword={() => setBooksView("cross")}
         />
       ) : activeActivity ? (
         <BookGroupBoard
@@ -954,6 +974,7 @@ function BooksPageInner() {
           onClose={() => setCreatingType(null)}
           /* '기본 모둠'을 고르면 몇 개를 가져오는지 그 자리에서 보이게 */
           baseGroupCount={baseGroupAssignment?.groups?.length ?? 0}
+          consonantActivities={consonantActivities}
         />
       )}
 
@@ -993,6 +1014,8 @@ function BooksPageInner() {
           description={
             confirmPurge.type === "consonant"
               ? "이 활동의 모둠과 모아둔 단어가 모두 지워집니다.\n되돌릴 수 없습니다."
+              : confirmPurge.type === "crossword"
+              ? "이 퀴즈의 힌트와 풀이가 모두 지워집니다(닿소리 채우기의 낱말은 그대로).\n되돌릴 수 없습니다."
               : "학생들이 쓴 내용이 모두 지워집니다.\n되돌릴 수 없습니다."
           }
           confirmLabel="완전 삭제"
@@ -1145,7 +1168,7 @@ function ActivityCard({ activity, isTeacher, uid, onOpen, onEdit, onDelete, onTo
   //  · KWLS·마인드맵 — 없음
   // 종류만 보고 판정하면 **모둠으로 연 RAFT가 카드에 '개인 활동'으로**
   // 적힙니다(실제로 그랬습니다). 모둠 구독도 안 걸려 '모둠 n개'도 못 셉니다.
-  const hasGroups = activity.type === "consonant" || isGroupedActivity(activity);
+  const hasGroups = activity.type === "consonant" || isGroupedActivity(activity) || activity.type === "crossword";
   const solo = !hasGroups;
   const [groups, setGroups] = useState([]);
   // 개인 활동은 모둠이 없으므로 모둠 구독 자체를 걸지 않습니다.

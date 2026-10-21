@@ -54,7 +54,11 @@ export default function BookActivityEditModal({ activity, onClose, onDone }) {
   // 만들 때와 같은 기준 — 학생이 자기 자리에서 직접 적을 길이 있는 활동만
   // 주제어를 비워 둘 수 있습니다(BookActivityForm의 topicRequired 참고).
   const topicRequired =
-    !perStudent && activity.type !== "opinion" && !isHashtag && !BOOK_STUDENT_TOPIC_TYPES.includes(activity.type);
+    !perStudent &&
+    activity.type !== "opinion" &&
+    activity.type !== "crossword" && // 가로세로는 닿소리의 주제어를 가져온 것뿐
+    !isHashtag &&
+    !BOOK_STUDENT_TOPIC_TYPES.includes(activity.type);
   const urlBad = bookUrl.trim().length > 0 && !safeBookUrl(bookUrl);
 
   async function handleSubmit(e) {
@@ -115,7 +119,7 @@ export default function BookActivityEditModal({ activity, onClose, onDone }) {
                 type="text"
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
-                placeholder={topicRequired ? "예: 어린 왕자" : "비워 두면 학생이 직접 적어요"}
+                placeholder={topicRequired ? "예: 어린 왕자" : activity.type === "crossword" ? "예: 어린 왕자" : "비워 두면 학생이 직접 적어요"}
                 maxLength={30}
               />
             </label>

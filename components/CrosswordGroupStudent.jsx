@@ -1,7 +1,7 @@
 "use client";
 
 // =============================================================
-// 가로세로 낱말퀴즈 — 모둠 활동의 학생 화면 (닿소리 '내 판'의 '가로세로')
+// 가로세로 낱말퀴즈 — 학생 화면 (독서 활동 '가로세로 낱말 퀴즈')
 // -------------------------------------------------------------
 // 세 칸입니다.
 //   왼쪽  — 우리 모둠이 맡은 낱말. 낱말마다 모둠원 알약으로 '누가 쓸지'를
@@ -319,7 +319,7 @@ export default function CrosswordGroupStudent({ activity, groupId, user, onBack 
         <span>{activity.title}{myGroup?.groupName && !solo ? ` · ${myGroup.groupName}` : ""}</span>
       </div>
       <div className="canvas-head-pair">
-        <button type="button" className="btn-ghost" onClick={onBack}>← 내 판</button>
+        <button type="button" className="btn-ghost" onClick={onBack}>← 활동 목록</button>
       </div>
     </div>
   );
