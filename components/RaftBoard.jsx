@@ -176,6 +176,16 @@ export default function RaftBoard({
 
   const open = openUid ? cards.find((c) => c.uid === openUid) ?? null : null;
 
+  // 모둠 칩으로 다른 모둠을 고르면, 가운데에 연 학생이 그 모둠에 없을 때는
+  // 화면을 비웁니다(선생님 요청) — 왼쪽은 새 모둠인데 가운데는 옛 모둠 학생의
+  // 글이 남아 있으면 누구의 것인지 헷갈립니다. '전체'로 돌아갈 때는 그대로 둡니다.
+  const pickGroup = (gid) => {
+    setPickedGroup(gid);
+    if (!gid || !openUid) return;
+    const g = railGroups.find((x) => x.id === gid);
+    if (!g?.members.some((c) => c.uid === openUid)) setOpenUid(null);
+  };
+
   // 왼쪽 목록의 네모·오른쪽 패널의 칸이 쓰는 줄 정의 — 전광판과 **같은**
   // 것입니다(lib/raft.js). 한쪽만 고치면 같은 학생이 두 화면에서 다른
   // 상태로 보입니다.
@@ -467,7 +477,7 @@ export default function RaftBoard({
                   <GroupFilterRow
                     groups={groups.filter((g) => !g.retired)}
                     value={pickedGroup}
-                    onChange={setPickedGroup}
+                    onChange={pickGroup}
                     counts={groupCounts}
                     trailing={boardBtn}
                   />
