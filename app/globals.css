@@ -8880,6 +8880,39 @@ pre code {
   font-weight: 800;
   color: var(--text);
 }
+/* 모둠 이름 + 그 아래 과일 단추(모둠원 모두에게 하나씩 — 선생님 요청).
+   이름 칸의 폭을 단추가 정해, 모둠마다 칩이 같은 자리에서 시작합니다. */
+.reward-group-lead {
+  flex-shrink: 0;
+  width: 52px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 5px;
+}
+.reward-group-lead .reward-group-name {
+  overflow-wrap: anywhere;
+}
+.reward-group-award {
+  height: 22px;
+  padding: 0 4px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.14s, color 0.14s;
+}
+.reward-group-award:hover:not(:disabled) { background: var(--primary); color: #fff; }
+.reward-group-award:disabled { opacity: 0.5; cursor: default; }
+/* 다 준 뒤 잠깐 — 이 앱에서 초록은 늘 '됐다' */
+.reward-group-award.done,
+.reward-group-award.done:disabled,
+.reward-group-award.done:hover:not(:disabled) { background: #e8f7ed; color: #2f6b47; opacity: 1; }
 .reward-group-members {
   flex: 1;
   min-width: 0;

@@ -30,6 +30,7 @@ export default function AwardAllResultModal({
   failed = [],        // 쓰기가 실패한 학생 [{ uid, name, count }]
   maxed = [],         // 이미 천장에 닿아 그대로인 학생 [{ uid, name }]
   rewardMax = 100,
+  title = "다 함께 주기", // 모둠 줄의 과일 단추는 '1모둠에게 주기'
   onRetry,            // (student) => Promise — 그 학생에게만 다시 하나
   onClose,
 }) {
@@ -59,11 +60,11 @@ export default function AwardAllResultModal({
         className="modal award-result-modal"
         role="dialog"
         aria-modal="true"
-        aria-label="다 함께 주기 결과"
+        aria-label={`${title} 결과`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-head">
-          <h3 className="head-icon">🍊 다 함께 주기</h3>
+          <h3 className="head-icon">🍊 {title}</h3>
           <button className="btn-close" onClick={onClose} aria-label="닫기">×</button>
         </div>
 

@@ -80,6 +80,8 @@ export default function StudyRewardPanel({
   // 다 함께가 끝난 뒤 여는 결과 창({ given, failed, maxed }). 되묻는 창이
   // 없어져 **무슨 일이 있었는지 말해 주는 자리가 여기 하나뿐**입니다.
   const [awardResult, setAwardResult] = useState(null);
+  const [awardingGroup, setAwardingGroup] = useState(null); // 과일을 주는 중인 모둠 key
+  const [groupDone, setGroupDone] = useState(null); // { key, n } — 방금 다 준 모둠(잠깐)
   // 되묻는 창을 걷어 내 한 번의 실수가 곧 스물몇 건의 쓰기입니다. 상태만으로는
   // 같은 프레임의 두 번째 클릭을 못 막아(아직 옛 값을 봅니다) ref로 잠급니다.
   const awardBusyRef = useRef(false);
@@ -90,6 +92,13 @@ export default function StudyRewardPanel({
   const todayCountByUid = useTodayRewardCounts(classId);
 
   // 접힘 상태 복원 — 개인 화면 설정이라 localStorage에 저장
+  // 모둠 단추의 '✓ n명'은 2초 뒤 걷습니다
+  useEffect(() => {
+    if (!groupDone) return undefined;
+    const t = setTimeout(() => setGroupDone(null), 2000);
+    return () => clearTimeout(t);
+  }, [groupDone]);
+
   useEffect(() => {
     try { setCollapsed(localStorage.getItem(COLLAPSE_KEY) === "1"); } catch { /* 무시 */ }
   }, []);
@@ -291,28 +300,22 @@ export default function StudyRewardPanel({
   // 옛 값이라 방금 다른 데서 받은 과일이 묻힙니다(CLAUDE.md의 '＋1·−1 단추는
   // 반드시 addStudentReward(델타)로' 참고). 여기는 한꺼번에 스물몇 명이라
   // 그 위험이 더 큽니다.
-  async function awardAll() {
-    // **ref로 막습니다.** 되묻는 창이 없어져 한 번의 실수가 곧 스물몇 건의
-    // 쓰기라, 빠른 더블클릭을 걸러야 합니다. `awardingAll`은 상태라 같은
-    // 프레임의 두 번째 클릭이 아직 옛 값(0)을 보고 지나갑니다.
+  // 다 함께 · 모둠 줄의 과일 단추가 함께 쓰는 지급 — 한 길이라야 델타 ·
+  // 천장 거르기 · 결과 창이 두 단추에서 갈리지 않습니다.
+  // `quiet`(모둠 단추)는 모두 갔으면 결과 창 대신 단추에 잠깐 '✓ n명'만 띄웁니다 —
+  // 수업 중에 모둠마다 누르는 단추라 매번 창이 뜨면 손이 바빠집니다.
+  // 못 준 학생이 있으면 그때는 창을 엽니다(그 이름을 눌러 다시 줘야 하므로).
+  async function sendAwards(targets, { title, quiet = null } = {}) {
     if (awardBusyRef.current) return;
-    const targets = awardTargets;
     if (targets.length === 0) return;
-
-    // **이미 가득 찬 학생은 빼고 셉니다.** `addStudentReward`는 천장
-    // (`REWARD_MAX`)에 닿으면 값도 안 올리고 이력도 안 남기는데 오류를
-    // 던지지도 않아, 그냥 보내면 '줬다'로 세어집니다. 누적은 명단이 이미
-    // 들고 있으므로(`roster[].count`) 읽기가 늘지 않습니다.
     const maxed = targets.filter((s) => (s.count ?? 0) >= REWARD_MAX);
     const sendable = targets.filter((s) => (s.count ?? 0) < REWARD_MAX);
-
     awardBusyRef.current = true;
     setAwardingAll(sendable.length);
+    if (quiet) setAwardingGroup(quiet);
     const queue = [...sendable];
     const failed = [];
     let given = 0;
-    // 여섯 줄로 나눠 보냅니다. shift()는 await 앞에서 끝나므로(자바스크립트는
-    // 한 줄기) 같은 학생을 두 번 집는 일이 없습니다.
     async function lane() {
       while (queue.length > 0) {
         const s = queue.shift();
@@ -320,8 +323,6 @@ export default function StudyRewardPanel({
           await onAward?.(s.uid, s.count ?? 0, 1);
           given += 1;
         } catch {
-          // **이름만이 아니라 학생을 통째로** 담습니다 — 결과 창에서 그
-          // 이름을 눌러 다시 보내려면 uid가 있어야 합니다.
           failed.push(s);
         }
         setAwardingAll((n) => Math.max(0, n - 1));
@@ -331,17 +332,25 @@ export default function StudyRewardPanel({
       Array.from({ length: Math.min(AWARD_ALL_LANES, sendable.length) }, lane)
     );
     setAwardingAll(0);
+    setAwardingGroup(null);
     awardBusyRef.current = false;
+    if (quiet && failed.length === 0 && maxed.length === 0) {
+      setGroupDone({ key: quiet, n: given });
+      return;
+    }
+    setAwardResult({ given, failed, maxed, title });
+  }
 
-    // **결과는 창으로 엽니다** — 되묻는 창을 걷어 내 이제 이것이 유일한
-    // 알림입니다. 토스트 한 줄이던 것을 옮긴 까닭은 '안 간 사람'이 그저
-    // 읽고 흘릴 글이 아니라 **바로 손봐야 할 일**이기 때문입니다. 창에서는
-    // 그 이름을 눌러 그 학생에게만 다시 줍니다(토스트로는 자리표에서 그
-    // 자리를 다시 찾아야 했고, 글자는 몇 초 뒤 사라졌습니다).
-    //
-    // **아무 일 없이 끝났을 때도 엽니다.** '몇 명에게 갔다'를 확인하는 자리가
-    // 없으면, 폭죽이 학생 화면에서만 터지는 교사는 눌린 것인지 알 수 없습니다.
-    setAwardResult({ given, failed, maxed });
+  async function awardAll() {
+    // **`sendAwards`가 ref로 막습니다.** 되묻는 창이 없어져 한 번의 실수가 곧 스물몇 건의
+    // 쓰기라, 빠른 더블클릭을 걸러야 합니다. `awardingAll`은 상태라 같은
+    // 프레임의 두 번째 클릭이 아직 옛 값(0)을 보고 지나갑니다.
+    // **이미 가득 찬 학생은 빼고 셉니다**(`sendAwards`) — `addStudentReward`는
+    // 천장(`REWARD_MAX`)에 닿으면 값도 안 올리고 이력도 안 남기는데 오류를
+    // 던지지도 않아, 그냥 보내면 '줬다'로 세어집니다. 결과는 창으로 엽니다 —
+    // 아무 일 없이 끝났을 때도(폭죽은 학생 화면에서만 터지므로 교사는 눌린
+    // 것인지 알 수 없습니다). 못 준 학생은 그 창에서 이름을 눌러 다시 줍니다.
+    await sendAwards(awardTargets, { title: "다 함께 주기" });
   }
 
   function openTools(student, el = null) {
@@ -569,7 +578,36 @@ export default function StudyRewardPanel({
               onDrop={(e) => { e.preventDefault(); if (dragUid) moveToGroup(dragUid, g.index); }}
               onClick={() => { if (pickedUid) moveToGroup(pickedUid, g.index); }}
             >
-              <span className="reward-group-name">{g.name || `${g.index ?? i + 1}모둠`}</span>
+              {(() => {
+                const gName = g.name || `${g.index ?? i + 1}모둠`;
+                const gKey = String(g.id ?? g.index ?? i);
+                // 지금 명단에 있는 모둠원만 — 반에서 빠진 이름(stale)에게는 안 줍니다
+                const targets = (g.members ?? []).map((m) => byUid.get(m.uid)).filter(Boolean);
+                const busy = awardingGroup === gKey;
+                const done = groupDone?.key === gKey;
+                return (
+                  <span className="reward-group-lead">
+                    <span className="reward-group-name">{gName}</span>
+                    <button
+                      type="button"
+                      className={`reward-group-award${done ? " done" : ""}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        sendAwards(targets, { title: `${gName}에게 주기`, quiet: gKey });
+                      }}
+                      disabled={targets.length === 0 || awardingAll > 0}
+                      title={
+                        targets.length === 0
+                          ? "이 모둠에 과일을 받을 학생이 없어요"
+                          : `${gName} ${targets.length}명에게 과일을 하나씩 줍니다`
+                      }
+                      aria-label={`${gName}에게 과일 하나씩 주기`}
+                    >
+                      {busy ? "주는 중…" : done ? `✓ ${groupDone.n}명` : "🍊 +1"}
+                    </button>
+                  </span>
+                );
+              })()}
               <span className="reward-group-members">
                 {(g.members ?? []).length === 0 ? (
                   <em className="reward-group-empty">여기로 끌어 놓기</em>
@@ -661,6 +699,7 @@ export default function StudyRewardPanel({
           given={awardResult.given}
           failed={awardResult.failed}
           maxed={awardResult.maxed}
+          title={awardResult.title}
           rewardMax={REWARD_MAX}
           // 다시 주기도 **델타**입니다(낱개 주기와 같은 길). 누적은 그 사이
           // 구독으로 갱신됐을 수 있어 `byUid`에서 지금 값을 집습니다 — 델타
