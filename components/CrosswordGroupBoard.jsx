@@ -630,6 +630,9 @@ export default function CrosswordGroupBoard({ activity, onBack, onPickView, onTo
               });
             })()}
             solveTotal={progressList.find((x) => x.groupId === g.id)?.total ?? 0}
+            puzzle={puzzle}
+            letters={boardsBy[g.id] ?? {}}
+            fixed={progressList.find((x) => x.groupId === g.id)?.fixed ?? null}
             onClose={() => setHintPop(null)}
           />
         );

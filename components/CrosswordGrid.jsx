@@ -12,6 +12,8 @@
 //   selKeys    Set — 고른 낱말의 칸 · cursorKey — 다음 글자가 들어갈 칸
 //   typingKeys Set — 아직 저장 안 한, 적는 중인 글자의 칸
 //   mini       미니맵 — 글자 없이 색만, 누를 수 없음
+//   paint      Map("r,c" → { bg, border }) — 칸마다 색을 칠함(모둠 팝오버의 '정답'
+//              탭이 누가 맞혔나를 사람 색으로) · 다른 상태 색보다 앞섬
 // 칸은 누를 수 있어도 **포커스를 가져가지 않습니다**(onMouseDown에서 막음) —
 // 판에 직접 적는 화면(CrosswordTyping)은 숨은 입력칸 하나가 글자를 받는데,
 // 칸이 포커스를 뺏으면 그 입력칸이 흐려져 휴대폰 자판이 내려갔다 올라옵니다.
@@ -32,6 +34,7 @@ export default function CrosswordGrid({
   mini = false,
   tint = null, // 미니맵의 맞힘 색 { bg, border }
   showFixedLetters = true,
+  paint = null,
 }) {
   const cells = useMemo(() => crosswordCells(puzzle), [puzzle]);
   const out = [];
@@ -61,11 +64,13 @@ export default function CrosswordGrid({
         out.push(<span key={k} className={`${cls}${letter && !solved ? " filled" : ""}`} style={style} />);
         continue;
       }
+      const tone = paint?.get(k);
       out.push(
         <button
           key={k}
           type="button"
           data-k={k}
+          style={tone ? { background: tone.bg, borderColor: tone.border } : undefined}
           tabIndex={-1}
           className={cls}
           onMouseDown={onCellClick ? (e) => e.preventDefault() : undefined}
