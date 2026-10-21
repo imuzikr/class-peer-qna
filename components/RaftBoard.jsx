@@ -288,6 +288,11 @@ export default function RaftBoard({
         </div>
         <div className="books-head-row">
           <div className="books-head-main">
+            {/* 차례: 반 · 활동 모둠 · 동료 평가 · 주제어 · 진행 요약(선생님 요청) —
+                고르고 누르는 것이 앞에, 읽기만 하는 배지가 뒤에 섭니다. */}
+            {/* 반 표시 — 고를 반이 둘 이상이면 고르개(반을 바꾸면 그 반의
+                활동 목록으로 갑니다), 하나면 이름 배지입니다. */}
+            {classPicker ?? (className && <span className="book-group-class">{className}</span>)}
             {/* 모둠 짜기 — 닿소리 머리말과 **같은 자리·같은 말**입니다.
                 모둠으로 진행하는 활동인데 짜는 길이 만들기 창에만 있어,
                 한 번 만들고 나면 교사가 모둠을 고칠 수 없었습니다. */}
@@ -295,30 +300,6 @@ export default function RaftBoard({
               <button type="button" className="btn-ghost" onClick={() => setComposing(true)}>
                 <IconPeople size={15} /> 활동 모둠
               </button>
-            )}
-            {/* 주제어를 비워 두면 학생마다 제 책으로 씁니다 —
-                빈 배지를 두는 대신 그 사실을 적어 둡니다 */}
-            <span className={`book-group-topic${(activity.topic ?? "").trim() ? "" : " soft"}`}>
-              {(activity.topic ?? "").trim() || "학생마다 다른 책"}
-            </span>
-            {/* 반 표시 — 고를 반이 둘 이상이면 고르개(반을 바꾸면 그 반의
-                활동 목록으로 갑니다), 하나면 이름 배지입니다. */}
-            {classPicker ?? (className && <span className="book-group-class">{className}</span>)}
-            {/* 진행 요약도 이 줄에 — 배지 두어 개뿐이라 오른쪽이 비어 있는데
-                아래에 제 줄을 차지하고 있었습니다(곁텍스트는 처음부터 이
-                자리였습니다 — 네 화면의 머리말이 같아야 합니다). */}
-            <span className="paratext-sum">
-              시작 {startedCount}명 · 완성 {doneCount}명 / 전체 {cards.length}명
-            </span>
-            {/* 칩 줄이 없는 활동에서는 전광판이 여기 섭니다 */}
-            {!chipRow && boardBtn}
-            {/* 잠김 안내도 이 줄에 — 예전엔 머리말 아래 제 줄을 차지했는데,
-                이 줄은 배지 두어 개뿐이라 오른쪽이 비어 있었습니다.
-                '지금 잠겨 있다'는 활동에 붙는 상태라 배지와 같은 성격입니다. */}
-            {activity.locked && (
-              <span className="book-locked-note book-locked-chip">
-                <IconLock size={14} /> 지금은 잠겨 있어 학생이 고칠 수 없어요.
-              </span>
             )}
             {/* 동료 평가 열기/잠그기 — 활동 전체 잠금과 별개입니다.
                 '이제 그만 쓰고 이야기하자'로 닫는 자리라, 글쓰기까지 함께
@@ -338,6 +319,27 @@ export default function RaftBoard({
                 {peerLocked ? "동료 평가 잠김" : "동료 평가 열림"}
                 {reviews.length > 0 && <em>{reviews.length}</em>}
               </button>
+            )}
+            {/* 주제어를 비워 두면 학생마다 제 책으로 씁니다 —
+                빈 배지를 두는 대신 그 사실을 적어 둡니다 */}
+            <span className={`book-group-topic${(activity.topic ?? "").trim() ? "" : " soft"}`}>
+              {(activity.topic ?? "").trim() || "학생마다 다른 책"}
+            </span>
+            {/* 진행 요약도 이 줄에 — 배지 두어 개뿐이라 오른쪽이 비어 있는데
+                아래에 제 줄을 차지하고 있었습니다(곁텍스트는 처음부터 이
+                자리였습니다 — 네 화면의 머리말이 같아야 합니다). */}
+            <span className="paratext-sum">
+              시작 {startedCount}명 · 완성 {doneCount}명 / 전체 {cards.length}명
+            </span>
+            {/* 칩 줄이 없는 활동에서는 전광판이 여기 섭니다 */}
+            {!chipRow && boardBtn}
+            {/* 잠김 안내도 이 줄에 — 예전엔 머리말 아래 제 줄을 차지했는데,
+                이 줄은 배지 두어 개뿐이라 오른쪽이 비어 있었습니다.
+                '지금 잠겨 있다'는 활동에 붙는 상태라 배지와 같은 성격입니다. */}
+            {activity.locked && (
+              <span className="book-locked-note book-locked-chip">
+                <IconLock size={14} /> 지금은 잠겨 있어 학생이 고칠 수 없어요.
+              </span>
             )}
           </div>
           {bookUrl && (
