@@ -47,6 +47,9 @@ export default function QuestionSignalButton({
   const [note, setNote] = useState("");
   // 확인 처리 중인 학생 uid — 그 항목의 확인 버튼만 잠가 중복 클릭을 막습니다.
   const [dismissing, setDismissing] = useState(() => new Set());
+  // '모두 손 내리기' — 한 번 누르면 묻고(4초), 한 번 더 누르면 내립니다.
+  const [lowerAsk, setLowerAsk] = useState(false);
+  const [lowering, setLowering] = useState(false);
   // 손들기 대화(lib/signalThread.js) — 손든 학생과 교사가 주고받는 말.
   //   교사: 열린 대화들의 말 · 지금 답을 쓰는 학생과 글.
   //   학생: 내 대화의 말({ key, rows } — 어느 줄기의 답인지 함께 들어 '아직 안
@@ -262,6 +265,34 @@ export default function QuestionSignalButton({
   //   award=false '닫기' — 실수로 눌렀거나 이미 해결된 손. 과일 없이 내리기만.
   // 과일을 먼저 주고 그다음에 내립니다. 순서를 뒤집으면 목록 항목이 먼저
   // 사라져, 과일 주기가 실패해도 아무도 모르게 됩니다.
+  // 투표처럼 쓰고 나서 다음 물음으로 넘어갈 때 — 손든 학생을 한꺼번에 내립니다.
+  // '닫기'와 같은 길(과일 없음 · 이력 없음 · 대화의 말은 그대로 남음). 되묻는 창 대신
+  // 같은 단추를 한 번 더 누르게 합니다 — 목록 창 위에 창을 또 띄우지 않으려고요.
+  useEffect(() => {
+    if (!lowerAsk) return undefined;
+    const t = setTimeout(() => setLowerAsk(false), 4000);
+    return () => clearTimeout(t);
+  }, [lowerAsk]);
+  useEffect(() => {
+    if (!open) setLowerAsk(false);
+  }, [open]);
+
+  async function lowerAll() {
+    if (!classId || lowering || signals.length === 0) return;
+    if (!lowerAsk) { setLowerAsk(true); return; }
+    setLowerAsk(false);
+    setLowering(true);
+    const uids = signals.map((s) => s.uid);
+    setDismissing(new Set(uids));
+    try {
+      await Promise.allSettled(uids.map((uid) => dismissQuestionSignal(classId, uid)));
+    } finally {
+      // 실패한 손은 목록에 남으므로 다시 누를 수 있게 풉니다.
+      setDismissing(new Set());
+      setLowering(false);
+    }
+  }
+
   async function handleDismiss(uid, award = false) {
     if (!classId || dismissing.has(uid)) return;
     setDismissing((prev) => new Set(prev).add(uid));
@@ -337,10 +368,9 @@ export default function QuestionSignalButton({
   // 손이 없으면 **보이지는 않되 자리는 비워 둡니다**(빈 상자 하나). 위 설명대로
   // 그림을 안 그리는 것은 그대로인데, 통째로 없애면 손이 오르내릴 때마다 오른쪽
   // 묶음의 폭이 28px씩 달라지고 그 왼쪽에 붙어 있는 **전광판이 그만큼 밀립니다**
-  // — 수업 중에 읽고 있던 한 줄이 움직입니다. 상자 크기는 교사 손바닥
-  // (`.question-signal-btn.has-count` — 손바닥 28px + 숫자 칸)과 같은 48px 고정이라
-  // 정확히 맞아떨어집니다(숫자 칸도 폭을 못 박아 1명이든 25명이든 같은 크기).
-  // 학생 쪽은 손바닥이 늘 있어 이 갈래를 안 지납니다.
+  // — 수업 중에 읽고 있던 한 줄이 움직입니다. 상자 크기는 `.question-signal-btn`
+  // 과 같은 28px 고정이라(인원수 숫자는 불 안에 떠 있어 폭을 안 바꿉니다) 정확히
+  // 맞아떨어집니다. 학생 쪽은 손바닥이 늘 있어 이 갈래를 안 지납니다.
   if (isTeacher && !active) {
     return <span className="question-signal-hold" aria-hidden="true" />;
   }
@@ -349,7 +379,7 @@ export default function QuestionSignalButton({
     <div className="question-signal-wrap" ref={wrapRef}>
       <button
         type="button"
-        className={`question-signal-btn${tilted ? " on" : ""}${isTeacher ? " has-count" : ""}`}
+        className={`question-signal-btn${tilted ? " on" : ""}`}
         onClick={handleClick}
         disabled={!classId || busy}
         aria-haspopup={isTeacher ? "menu" : undefined}
@@ -373,18 +403,26 @@ export default function QuestionSignalButton({
                 : "질문하기"
         }
       >
-        <span className="question-signal-icon" aria-hidden="true">
-          <span className="question-signal-hand">🖐️</span>
-          {dot && (
-            <span className={`question-signal-dot${dot === "green" ? " is-reply" : ""}`} />
-          )}
-        </span>
-        {/* 교사 화면은 손든 인원을 **손바닥 옆에** 숫자로 적습니다(선생님 요청 —
-            질문이 아니어도 '아는 사람 손!'처럼 투표로 쓰려고). 한때 숫자 뱃지를
-            손바닥 귀퉁이에 얹었더니 손바닥을 덮어 '손이 올라왔다'가 잘 안
-            읽혀 걷었는데, 옆 칸에 두면 손바닥도 불도 그대로입니다. */}
-        {isTeacher && (
-          <span className="question-signal-count" aria-hidden="true">{signals.length}</span>
+        <span className="question-signal-hand" aria-hidden="true">🖐️</span>
+        {/* 교사 화면은 **불 안에 손든 인원**을 적습니다(선생님 요청 — 질문이
+            아니어도 '아는 사람 손!'처럼 투표로 쓰려고). 불 자리 그대로 숫자만
+            담아, 손바닥 옆에 따로 세우지 않습니다(둘로 나뉘어 보였습니다).
+            손바닥 상자 밖으로 반쯤 걸쳐 앉아(absolute) 손바닥을 덜 덮고 폭도
+            안 바꿉니다 — 전광판이 안 밀립니다. 답을 기다리는 학생이 있으면
+            빨강, 다 답했으면 회색(손은 아직 올라가 있으니 숫자는 남깁니다).
+            학생 화면은 지금처럼 숫자 없는 점 하나. */}
+        {isTeacher ? (
+          <span
+            className={`question-signal-dot question-signal-count${waiting > 0 ? "" : " is-quiet"}`}
+            aria-hidden="true"
+          >
+            {signals.length}
+          </span>
+        ) : dot && (
+          <span
+            className={`question-signal-dot${dot === "green" ? " is-reply" : ""}`}
+            aria-hidden="true"
+          />
         )}
       </button>
 
@@ -552,6 +590,17 @@ export default function QuestionSignalButton({
             >
               <IconChair size={14} /> 자리확인
             </button>
+            {signals.length > 0 && (
+              <button
+                type="button"
+                className={`question-signal-lower${lowerAsk ? " is-asking" : ""}`}
+                onClick={lowerAll}
+                disabled={lowering}
+                title="손든 학생 모두의 손을 내립니다 — 과일은 주지 않고, 주고받은 말은 이력에 남아요"
+              >
+                {lowering ? "내리는 중…" : lowerAsk ? `${signals.length}명 내릴까요?` : "모두 손 내리기"}
+              </button>
+            )}
           </div>
           {readError ? (
             // 읽기 실패를 '아무도 안 들었다'로 보여 주면 고장을 못 알아챕니다.

@@ -2161,12 +2161,11 @@ button.footer-link:hover {
 /* 손든 학생이 없을 때 교사 화면에서 그 자리를 대신 지키는 빈 상자.
    그림은 그대로 안 그립니다 — 자리만 남깁니다. 없애면 손이 오르내릴 때마다
    오른쪽 묶음의 폭이 28px씩 달라져, 거기 붙어 있는 **전광판이 그만큼
-   밀립니다**. 이 상자는 교사 화면에만 서므로 아래 교사 손바닥
-   (`.question-signal-btn.has-count`)과 **같은 48px**이라야 맞습니다 —
+   밀립니다**. 아래 `.question-signal-btn`과 **같은 28px**이라야 맞습니다 —
    그 값을 고치면 여기도 함께 고치세요. */
 .question-signal-hold {
   flex-shrink: 0;
-  width: 48px;
+  width: 28px;
 }
 .question-signal-btn {
   position: relative;
@@ -2199,34 +2198,6 @@ button.footer-link:hover {
   opacity: 0.55;
   cursor: not-allowed;
 }
-/* 손바닥과 불을 담는 28px 칸 — 불은 버튼이 아니라 이 칸에 붙습니다(교사
-   버튼은 숫자 칸만큼 넓어, 버튼 기준이면 불이 숫자 위로 갑니다). */
-.question-signal-icon {
-  position: relative;
-  width: 28px;
-  height: 28px;
-  display: grid;
-  place-items: center;
-}
-/* 교사 손바닥 — 손든 인원 숫자를 옆에(투표처럼 셈). 숫자 칸 폭을 못 박아
-   1명이든 25명이든 버튼 폭이 48px 그대로입니다 — 바뀌면 전광판이 밀립니다.
-   위 `.question-signal-hold`와 같은 값. */
-.question-signal-btn.has-count {
-  width: 48px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-start;
-  border-radius: 999px;
-}
-.question-signal-count {
-  width: 20px;
-  text-align: left;
-  font-size: 14px;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  color: var(--dark);
-  line-height: 1;
-}
 .question-signal-hand {
   display: block;
   transform-origin: 50% 85%;
@@ -2248,6 +2219,30 @@ button.footer-link:hover {
    크기·자리는 같고 색만 다릅니다. 색은 자리표의 이벤트 점(.attend-seat-event)과
    같은 초록 — 이 앱에서 초록은 '됐다'. */
 .question-signal-dot.is-reply { background: #2f9e5a; }
+/* 교사 손바닥의 불 — 같은 자리에 손든 인원을 담습니다(투표처럼 셈).
+   점보다 커지므로 손바닥 상자 밖으로 반쯤 걸쳐 앉혀 손바닥을 덜 덮습니다.
+   absolute라 버튼 폭(28px)은 그대로 — 숫자가 늘어도 전광판이 안 밀립니다.
+   한때 손바닥 옆 칸에 따로 세웠는데 둘로 나뉘어 보여 걷었습니다(선생님 요청). */
+.question-signal-dot.question-signal-count {
+  /* 위로 올려 손가락 끝만 살짝 걸치게 — 오른쪽으로는 5px만(옆 메모지 사이 틈이
+     4px이라 더 내밀면 그 상자를 덮음) */
+  top: -7px;
+  right: -5px;
+  width: auto;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  font-size: 10.5px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+}
+/* 다 답했지만 손은 아직 올라가 있음 — 숫자는 남기고 불만 끕니다 */
+.question-signal-dot.question-signal-count.is-quiet { background: #8f8a84; }
 /* ── 손들기: 학생이 함께 보내는 태그·메모 ────────────────────────
    손바닥 하나로는 '질문이 있다'까지만 전해집니다. 태그와 짧은 메모를 함께
    보내면 교사가 다가가기 전에 무엇인지 압니다(lib/questionTags.js).
@@ -2577,6 +2572,28 @@ button.footer-link:hover {
   border-color: var(--primary);
   color: var(--primary-dark);
 }
+/* '모두 손 내리기' — 자리확인 옆, 같은 크기 알약. 한 번 누르면 'n명 내릴까요?'로
+   바뀌고(살구) 한 번 더 누르면 내립니다. */
+.question-signal-lower {
+  flex-shrink: 0;
+  padding: 4px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-sub);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.question-signal-lower:hover,
+.question-signal-lower.is-asking {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+.question-signal-lower:disabled { opacity: 0.6; cursor: default; }
 .question-signal-empty {
   padding: 16px 10px;
   text-align: center;
