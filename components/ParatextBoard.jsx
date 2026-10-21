@@ -428,7 +428,9 @@ export default function ParatextBoard({
             PARATEXT_SECTIONS.map((r, i) => ({
               ...buildPayload(activity, c, i),
               key: r.key,
-              wide: false,
+              // 제목 단계는 칸이 다섯이라 한 줄을 통째로 씁니다(선생님 요청).
+              // 그 뒤로는 다시 두 열입니다.
+              wide: r.key === "title",
             }))
           }
           summaryOf={(c) => `${paratextDoneCount(c.entry?.answers)} / ${PARATEXT_SECTION_COUNT}칸 · ${paratextCharCount(c.entry?.answers)}자`}
