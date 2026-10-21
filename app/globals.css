@@ -32696,3 +32696,47 @@ button.msgr-receipt:hover { color: var(--text-sub); }
 @media (max-width: 760px) {
   .raft-summary-row { flex-wrap: wrap; }
 }
+
+/* 가로세로 '모둠별 풀이' — 모둠 카드를 누르면 마우스 옆에 그 모둠의 낱말 · 힌트
+   (components/XwGroupHintPopover.jsx). 자리는 lib/popover.js가 인라인으로 줍니다. */
+.xwg-hintpop {
+  position: fixed;
+  z-index: 320;
+  width: min(340px, calc(100vw - 16px));
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-top: 4px solid var(--xwg-c, var(--primary));
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(46, 36, 26, 0.16);
+  overflow: hidden;
+}
+.xwg-hintpop-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px 8px;
+  border-bottom: 1px solid var(--border);
+}
+.xwg-hintpop-head strong { flex: 1; min-width: 0; font-size: 14.5px; color: var(--dark); }
+.xwg-hintpop-head .btn-close { width: 28px; height: 28px; font-size: 18px; }
+.xwg-hintpop-body {
+  padding: 10px 12px 12px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.xwg-hintpop > .xw-empty { padding: 12px; }
+.xwg-hintpop-person h4 {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 0 6px;
+  font-size: 13.5px;
+  color: var(--dark);
+}
+.xwg-hintpop-person h4 span { font-size: 12px; font-weight: 500; color: var(--text-sub); }
+.xwg-hintpop-person.none h4 { color: var(--text-sub); }

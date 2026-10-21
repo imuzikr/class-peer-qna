@@ -54,6 +54,7 @@ import CrosswordGrid from "./CrosswordGrid";
 import ConfirmModal from "./ConfirmModal";
 import DashViewTabs from "./DashViewTabs";
 import FloatingPanel from "./FloatingPanel";
+import XwGroupHintPopover, { pointAnchor } from "./XwGroupHintPopover";
 
 const DIR_LABEL = { across: "가로", down: "세로" };
 
@@ -86,6 +87,8 @@ export default function CrosswordGroupBoard({ activity, onBack, onPickView, onTo
   const [note, setNote] = useState("");
   const [confirm, setConfirm] = useState(null); // 'regen' | 'clear' | 'solve'
   const [picked, setPicked] = useState(null); // 낱말 채우기 — 가운데에 크게 볼 모둠
+  // 모둠 카드를 누르면 마우스 옆에 그 모둠의 낱말 · 힌트(사람별) — { gId, anchor }
+  const [hintPop, setHintPop] = useState(null);
 
   const solo = activity.groupMode === "solo";
   useEffect(() => subscribeBookGroups(activity.id, setGroups), [activity.id]);
@@ -355,8 +358,14 @@ export default function CrosswordGroupBoard({ activity, onBack, onPickView, onTo
                         type="button"
                         className={`xwg-rank${on ? " on" : ""}`}
                         style={{ "--xwg-c": color.border, "--xwg-bg": color.bg }}
-                        onClick={() => setPicked(p.groupId)}
+                        onClick={(e) => {
+                          setPicked(p.groupId);
+                          const anchor = pointAnchor(e.currentTarget, e);
+                          setHintPop((cur) => (cur?.gId === p.groupId ? null : { gId: p.groupId, anchor }));
+                        }}
                         aria-pressed={on}
+                        aria-haspopup="dialog"
+                        title="눌러서 이 모둠의 낱말과 힌트 보기"
                       >
                         <span className="xwg-rank-head">
                           <b className="xwg-rank-no">{rank + 1}</b>
@@ -589,6 +598,22 @@ export default function CrosswordGroupBoard({ activity, onBack, onPickView, onTo
           </div>
         )}
       </FloatingPanel>
+
+      {hintPop && stage === "solve" && !solo && (() => {
+        const gi = liveGroups.findIndex((x) => x.id === hintPop.gId);
+        const g = liveGroups[gi];
+        if (!g) return null;
+        return (
+          <XwGroupHintPopover
+            anchor={hintPop.anchor}
+            title={g.groupName || `${g.groupIndex ?? gi + 1}모둠`}
+            color={colorOf(g.id)}
+            members={(g.memberUids ?? []).map((uid) => ({ uid, name: nameOf(g, uid) }))}
+            hints={hintsOf[g.id] ?? []}
+            onClose={() => setHintPop(null)}
+          />
+        );
+      })()}
 
       {confirm === "regen" && (
         <ConfirmModal
