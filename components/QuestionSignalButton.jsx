@@ -337,9 +337,10 @@ export default function QuestionSignalButton({
   // 손이 없으면 **보이지는 않되 자리는 비워 둡니다**(빈 상자 하나). 위 설명대로
   // 그림을 안 그리는 것은 그대로인데, 통째로 없애면 손이 오르내릴 때마다 오른쪽
   // 묶음의 폭이 28px씩 달라지고 그 왼쪽에 붙어 있는 **전광판이 그만큼 밀립니다**
-  // — 수업 중에 읽고 있던 한 줄이 움직입니다. 상자 크기는 `.question-signal-btn`
-  // 과 같은 28px 고정이라(인원수를 숫자로 안 달아 늘 같은 크기입니다) 정확히
-  // 맞아떨어집니다. 학생 쪽은 손바닥이 늘 있어 이 갈래를 안 지납니다.
+  // — 수업 중에 읽고 있던 한 줄이 움직입니다. 상자 크기는 교사 손바닥
+  // (`.question-signal-btn.has-count` — 손바닥 28px + 숫자 칸)과 같은 48px 고정이라
+  // 정확히 맞아떨어집니다(숫자 칸도 폭을 못 박아 1명이든 25명이든 같은 크기).
+  // 학생 쪽은 손바닥이 늘 있어 이 갈래를 안 지납니다.
   if (isTeacher && !active) {
     return <span className="question-signal-hold" aria-hidden="true" />;
   }
@@ -348,7 +349,7 @@ export default function QuestionSignalButton({
     <div className="question-signal-wrap" ref={wrapRef}>
       <button
         type="button"
-        className={`question-signal-btn${tilted ? " on" : ""}`}
+        className={`question-signal-btn${tilted ? " on" : ""}${isTeacher ? " has-count" : ""}`}
         onClick={handleClick}
         disabled={!classId || busy}
         aria-haspopup={isTeacher ? "menu" : undefined}
@@ -372,17 +373,18 @@ export default function QuestionSignalButton({
                 : "질문하기"
         }
       >
-        <span className="question-signal-hand" aria-hidden="true">🖐️</span>
-        {/* 학생·교사 모두 숫자 없는 점 하나입니다. 교사 쪽에 인원수를 숫자로
-            달아 봤더니 16px짜리 뱃지가 34px 손바닥의 한 귀퉁이를 덮어, 정작
-            '손이 올라왔다'가 잘 안 읽혔습니다. 몇 명인지는 눌러서 여는 목록에
-            이름까지 함께 있고, 툴팁(title)·스크린리더(aria-label)에도 그대로
-            남겨 두었습니다. */}
-        {dot && (
-          <span
-            className={`question-signal-dot${dot === "green" ? " is-reply" : ""}`}
-            aria-hidden="true"
-          />
+        <span className="question-signal-icon" aria-hidden="true">
+          <span className="question-signal-hand">🖐️</span>
+          {dot && (
+            <span className={`question-signal-dot${dot === "green" ? " is-reply" : ""}`} />
+          )}
+        </span>
+        {/* 교사 화면은 손든 인원을 **손바닥 옆에** 숫자로 적습니다(선생님 요청 —
+            질문이 아니어도 '아는 사람 손!'처럼 투표로 쓰려고). 한때 숫자 뱃지를
+            손바닥 귀퉁이에 얹었더니 손바닥을 덮어 '손이 올라왔다'가 잘 안
+            읽혀 걷었는데, 옆 칸에 두면 손바닥도 불도 그대로입니다. */}
+        {isTeacher && (
+          <span className="question-signal-count" aria-hidden="true">{signals.length}</span>
         )}
       </button>
 

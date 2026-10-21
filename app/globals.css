@@ -2161,11 +2161,12 @@ button.footer-link:hover {
 /* 손든 학생이 없을 때 교사 화면에서 그 자리를 대신 지키는 빈 상자.
    그림은 그대로 안 그립니다 — 자리만 남깁니다. 없애면 손이 오르내릴 때마다
    오른쪽 묶음의 폭이 28px씩 달라져, 거기 붙어 있는 **전광판이 그만큼
-   밀립니다**. 아래 `.question-signal-btn`과 **같은 28px**이라야 맞습니다 —
+   밀립니다**. 이 상자는 교사 화면에만 서므로 아래 교사 손바닥
+   (`.question-signal-btn.has-count`)과 **같은 48px**이라야 맞습니다 —
    그 값을 고치면 여기도 함께 고치세요. */
 .question-signal-hold {
   flex-shrink: 0;
-  width: 28px;
+  width: 48px;
 }
 .question-signal-btn {
   position: relative;
@@ -2197,6 +2198,34 @@ button.footer-link:hover {
 .question-signal-btn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+}
+/* 손바닥과 불을 담는 28px 칸 — 불은 버튼이 아니라 이 칸에 붙습니다(교사
+   버튼은 숫자 칸만큼 넓어, 버튼 기준이면 불이 숫자 위로 갑니다). */
+.question-signal-icon {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+}
+/* 교사 손바닥 — 손든 인원 숫자를 옆에(투표처럼 셈). 숫자 칸 폭을 못 박아
+   1명이든 25명이든 버튼 폭이 48px 그대로입니다 — 바뀌면 전광판이 밀립니다.
+   위 `.question-signal-hold`와 같은 값. */
+.question-signal-btn.has-count {
+  width: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  border-radius: 999px;
+}
+.question-signal-count {
+  width: 20px;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--dark);
+  line-height: 1;
 }
 .question-signal-hand {
   display: block;
