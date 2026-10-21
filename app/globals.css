@@ -32493,6 +32493,40 @@ button.msgr-receipt:hover { color: var(--text-sub); }
    왼쪽 목록 차례대로 넘깁니다. 구르는 것은 본문 한 칸뿐입니다 — 머리줄과
    넘기는 줄은 늘 제자리여야 손이 같은 곳을 짚습니다(수업 화면 창과 같음). */
 .entry-detail-head .eov-open-btn { margin-left: auto; flex-shrink: 0; }
+/* 모둠 RAFT — 모둠 칩(+ 전광판)이 이름 · 학번 · 주제 옆에 섭니다. 제 줄에서
+   쓰던 아래 여백은 이 머리 안에서는 풉니다. */
+.entry-detail-tools {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.entry-detail-tools .eov-open-btn { margin-left: 0; }
+.entry-detail-head .group-filter,
+.entry-detail-head .group-filter-row { margin-bottom: 0; }
+/* 모둠 RAFT의 왼쪽 모둠 카드 — 카드는 고르는 단추가 아니라 담는 칸이고(div),
+   누르는 것은 이름 알약입니다. 그래서 카드 자체에는 손 모양 · hover가 없습니다. */
+.raft-group-card { cursor: default; }
+.raft-group-card:hover { border-color: var(--border); }
+.raft-group-card.on:hover { border-color: var(--primary); }
+.raft-mate-pill {
+  border: 1px solid transparent;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.14s, border-color 0.14s, color 0.14s;
+}
+.raft-mate-pill:hover { border-color: var(--primary); }
+/* 다 쓴 학생 — 이 앱에서 초록은 늘 '됐다' */
+.raft-mate-pill.done { background: #e8f7ed; color: #2f6b47; }
+.book-rail-card.on .raft-mate-pill.done { background: #e8f7ed; }
+/* 지금 가운데에 연 학생 */
+.raft-mate-pill.on,
+.book-rail-card.on .raft-mate-pill.on {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
 .modal.modal-entry-overview {
   /* `.modal`의 max-width 640px 천장을 함께 올려야 넓어집니다 */
   width: min(1120px, 96vw);

@@ -125,15 +125,38 @@ export default function RaftBoard({
     return [...fromRoster, ...strays];
   }, [roster, entries]);
 
+  // 왼쪽 모둠 카드(모둠 활동) — 물러난 모둠은 빼고, 모둠원은 카드(명단에
+  // 있는 학생 · 글을 쓴 학생)가 있는 사람만. 어느 모둠에도 없는 학생은 맨 뒤
+  // '모둠 없음' 카드로 모읍니다(안 그러면 그 학생을 열 길이 없습니다).
+  const railGroups = useMemo(() => {
+    if (!grouped) return [];
+    const byUid = new Map(cards.map((c) => [c.uid, c]));
+    const placed = new Set();
+    const out = groups
+      .filter((g) => !g.retired)
+      .map((g) => {
+        const members = (g.members ?? [])
+          .map((m) => byUid.get(m.uid))
+          .filter(Boolean);
+        members.forEach((c) => placed.add(c.uid));
+        return { id: g.id, name: g.groupName || `${g.groupIndex}모둠`, members };
+      });
+    const loose = cards.filter((c) => !placed.has(c.uid));
+    if (loose.length > 0) out.push({ id: "__none", name: "모둠 없음", members: loose });
+    return out;
+  }, [grouped, groups, cards]);
+
   // 고른 모둠으로 좁힌 카드 — 방송·통계는 반 전체(cards) 그대로 보고,
-  // 격자에 늘어놓는 것만 좁힙니다.
+  // 왼쪽에 늘어놓는 것만 좁힙니다. 모둠 활동이면 왼쪽 모둠 카드의 차례 그대로
+  // (한 눈에 보기 · 수업 화면 창의 '다음 학생'이 그 차례를 따라갑니다).
+  const shownRail = useMemo(
+    () => (pickedGroup ? railGroups.filter((g) => g.id === pickedGroup) : railGroups),
+    [railGroups, pickedGroup]
+  );
   const shownCards = useMemo(() => {
-    if (!pickedGroup) return cards;
-    const g = groups.find((x) => x.id === pickedGroup);
-    if (!g) return cards;
-    const mine = new Set(g.memberUids ?? (g.members ?? []).map((m) => m.uid));
-    return cards.filter((c) => mine.has(c.uid));
-  }, [cards, groups, pickedGroup]);
+    if (grouped) return shownRail.flatMap((g) => g.members);
+    return cards;
+  }, [grouped, shownRail, cards]);
 
   // 모둠 줄에 적을 '시작한 인원 / 전체' — 이미 받아 둔 것으로 셉니다
   const groupCounts = useMemo(() => {
@@ -330,19 +353,6 @@ export default function RaftBoard({
         </div>
       </div>
 
-      {/* 모둠 고르는 줄 — 그 끝(마지막 모둠 뒤)에 전광판을 엽니다.
-          전광판은 고른 모둠이 아니라 **반 전체**를 보여 줍니다(cards). */}
-      {/* 모둠 칩 줄 — 그 끝(마지막 모둠 뒤)에 전광판을 엽니다.
-          칩이 없으면 이 줄을 아예 안 그리고 전광판은 머리말로 갑니다
-          (단추 하나를 세우려고 줄 하나를 쓰지 않게). */}
-      <GroupFilterRow
-        groups={grouped ? groups : []}
-        value={pickedGroup}
-        onChange={setPickedGroup}
-        counts={groupCounts}
-        trailing={chipRow ? boardBtn : null}
-      />
-
       {cards.length === 0 ? (
         <p className="empty-note">
           아직 이 반에 들어온 학생이 없어요. 학생이 반에 들어오면 카드가 생깁니다.
@@ -351,44 +361,110 @@ export default function RaftBoard({
         /* ── 세 칸 — 왼쪽 학생 목록 · 가운데 그 학생의 다섯 영역 · 오른쪽 진행 ──
            닿소리 채우기(BookGroupBoard)와 **같은 뼈대·같은 CSS**입니다. */
         <div className="book-workspace">
-          <BookStudentRail
-            cards={shownCards}
-            allCards={cards}
-            pickedUid={openUid}
-            onPick={setOpenUid}
-            rows={stepRows}
-            cellState={raftCellState}
-            castUid={cast.target?.uid ?? null}
-            extra={(c) => ` · 글 ${raftWritingChars(c.entry?.answers)}자`}
-          />
+          {grouped ? (
+            /* 모둠 활동 — 왼쪽은 모둠 카드(선생님 요청). 학생마다의 진행은
+               오른쪽 '학생별 진행'이 말하므로 여기는 '누가 어느 모둠인가'만,
+               이름 알약을 누르면 가운데에 그 학생의 글이 섭니다. */
+            <aside className="book-group-rail raft-group-rail" aria-label="모둠">
+              {shownRail.map((g) => {
+                const on = g.members.some((c) => c.uid === openUid);
+                const started = g.members.filter((c) => raftStarted(c.entry?.answers)).length;
+                return (
+                  <div key={g.id} className={`book-rail-card raft-group-card${on ? " on" : ""}`}>
+                    <span className="book-rail-head">
+                      <strong>{g.name}</strong>
+                      <span className="book-group-count">
+                        시작 {started}/{g.members.length}
+                      </span>
+                    </span>
+                    {g.members.length === 0 ? (
+                      <span className="book-group-empty">아직 모둠원이 없어요</span>
+                    ) : (
+                      <span className="book-rail-chips">
+                        {g.members.map((c) => {
+                          const picked = c.uid === openUid;
+                          const done = raftDone(c.entry?.answers);
+                          return (
+                            <button
+                              key={c.uid}
+                              type="button"
+                              className={`book-rail-chip raft-mate-pill${picked ? " on" : ""}${done ? " done" : ""}`}
+                              onClick={() => setOpenUid(c.uid)}
+                              aria-pressed={picked}
+                              title={`${c.studentId ? `${c.studentId} ` : ""}${c.name} — ${
+                                done ? "다 썼어요" : raftStarted(c.entry?.answers) ? "쓰는 중" : "아직 시작 전"
+                              }`}
+                            >
+                              {c.name}
+                            </button>
+                          );
+                        })}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </aside>
+          ) : (
+            <BookStudentRail
+              cards={shownCards}
+              allCards={cards}
+              pickedUid={openUid}
+              onPick={setOpenUid}
+              rows={stepRows}
+              cellState={raftCellState}
+              castUid={cast.target?.uid ?? null}
+              extra={(c) => ` · 글 ${raftWritingChars(c.entry?.answers)}자`}
+            />
+          )}
 
           <div className="book-workspace-center">
-            {open ? (
-              <>
-                {/* 가운데 칸의 머리 — 누구를 보고 있는지. 머리말의 제목은
-                    활동 이름이라, 이 줄이 없으면 학생 이름이 화면 어디에도
-                    없습니다. */}
-                <div className="entry-detail-head">
+            {/* 가운데 칸의 머리 — 누구를 보고 있는지. 머리말의 제목은
+                활동 이름이라, 이 줄이 없으면 학생 이름이 화면 어디에도
+                없습니다. 모둠 고르는 칩(+ 전광판)은 이름 · 학번 · 주제 옆에,
+                글자 입력 상황은 '한 눈에 보기' 오른쪽에 섭니다(선생님 요청).
+                학생을 고르기 전에도 칩은 서야 하므로 머리는 늘 그립니다. */}
+            {(open || chipRow) && (
+              <div className="entry-detail-head">
+                {open && (
                   <h2>
                     {open.name}
                     {open.studentId && <em>{open.studentId}</em>}
                   </h2>
-                  {!(activity.topic ?? "").trim() && open.entry?.topic && (
-                    <span className="book-group-topic">{open.entry.topic}</span>
-                  )}
-                  <span className="book-group-class">
-                    {raftPlanCount(openAnswers)} / {RAFT_COLUMN_COUNT}칸 ·
-                    {" "}글 {raftWritingChars(openAnswers)}자
+                )}
+                {open && !(activity.topic ?? "").trim() && open.entry?.topic && (
+                  <span className="book-group-topic">{open.entry.topic}</span>
+                )}
+                {chipRow && (
+                  <GroupFilterRow
+                    groups={groups.filter((g) => !g.retired)}
+                    value={pickedGroup}
+                    onChange={setPickedGroup}
+                    counts={groupCounts}
+                    trailing={boardBtn}
+                  />
+                )}
+                {open && (
+                  // '한 눈에 보기'와 입력 상황은 한 덩이 — 줄이 모자라면 함께 내려갑니다
+                  <span className="entry-detail-tools">
+                    <button
+                      type="button"
+                      className="btn-ghost eov-open-btn"
+                      onClick={() => setOverviewOpen(true)}
+                      title="이 학생이 쓴 것을 큰 창에서 한꺼번에 봅니다 — 이전 · 다음으로 다른 학생도"
+                    >
+                      한 눈에 보기
+                    </button>
+                    <span className="book-group-class">
+                      {raftPlanCount(openAnswers)} / {RAFT_COLUMN_COUNT}칸 ·
+                      {" "}글 {raftWritingChars(openAnswers)}자
+                    </span>
                   </span>
-                  <button
-                    type="button"
-                    className="btn-ghost eov-open-btn"
-                    onClick={() => setOverviewOpen(true)}
-                    title="이 학생이 쓴 것을 큰 창에서 한꺼번에 봅니다 — 이전 · 다음으로 다른 학생도"
-                  >
-                    한 눈에 보기
-                  </button>
-                </div>
+                )}
+              </div>
+            )}
+            {open ? (
+              <>
 
                 {/* 늘 done으로 그렸더니, 한 칸도 안 쓴 학생 카드에서도 '다 정했다'는
                     짙은 색 알림줄이 떴습니다(0 / 4칸인데 문장은 완성 모습).
@@ -450,7 +526,11 @@ export default function RaftBoard({
                 {grouped && <PeerReviewList reviews={openReviews} title="모둠 친구들이 남긴 한 마디" />}
               </>
             ) : (
-              <p className="empty-note">왼쪽에서 학생을 골라 주세요.</p>
+              <p className="empty-note">
+                {grouped
+                  ? "왼쪽 모둠 카드에서 학생 이름을 눌러 주세요."
+                  : "왼쪽에서 학생을 골라 주세요."}
+              </p>
             )}
           </div>
 
