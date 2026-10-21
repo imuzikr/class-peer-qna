@@ -384,7 +384,7 @@ export default function RaftBoard({
                         {g.members.map((c) => {
                           const picked = c.uid === openUid;
                           const done = raftDone(c.entry?.answers);
-                          return (
+                          const pill = (
                             <button
                               key={c.uid}
                               type="button"
@@ -397,6 +397,27 @@ export default function RaftBoard({
                             >
                               {c.name}
                             </button>
+                          );
+                          if (!pickedGroup) return pill;
+                          // 모둠을 골라 좁혀 보는 동안만 이름 아래에 R·A·F·T와 글자 수를
+                          // 답니다 — 반 전체를 펼쳐 둔 목록에서는 카드가 너무 길어집니다.
+                          const ans = c.entry?.answers || {};
+                          return (
+                            <span key={c.uid} className="raft-mate-cell">
+                              {pill}
+                              <span className="raft-mate-marks" aria-hidden="true">
+                                {RAFT_COLUMNS.map((col) => (
+                                  <span
+                                    key={col.key}
+                                    className={`raft-mate-mark${String(ans[col.key] ?? "").trim() ? " done" : ""}`}
+                                    title={col.ko}
+                                  >
+                                    {col.letter}
+                                  </span>
+                                ))}
+                              </span>
+                              <span className="raft-mate-chars">글 {raftWritingChars(ans)}자</span>
+                            </span>
                           );
                         })}
                       </span>

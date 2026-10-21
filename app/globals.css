@@ -32527,6 +32527,38 @@ button.msgr-receipt:hover { color: var(--text-sub); }
   border-color: var(--primary);
   color: #fff;
 }
+/* 모둠을 골라 좁혀 볼 때 — 이름 알약 아래 R·A·F·T 네 칸과 글자 수.
+   칸 색은 학생 카드의 네모와 같은 값(쓴 칸 초록 · 빈 칸 회색)입니다. */
+.raft-mate-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  min-width: 0;
+}
+.raft-mate-marks {
+  display: flex;
+  justify-content: center;
+  gap: 2px;
+}
+.raft-mate-mark {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  background: var(--neutral);
+  color: var(--text-faint);
+  font-size: 9.5px;
+  font-weight: 800;
+  line-height: 16px;
+  text-align: center;
+}
+.raft-mate-mark.done { background: #8cc79f; color: #fff; }
+.raft-mate-chars {
+  font-size: 11px;
+  color: var(--text-sub);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
 .modal.modal-entry-overview {
   /* `.modal`의 max-width 640px 천장을 함께 올려야 넓어집니다 */
   width: min(1120px, 96vw);
