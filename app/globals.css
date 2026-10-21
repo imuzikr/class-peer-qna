@@ -2226,16 +2226,16 @@ button.footer-link:hover {
 .question-signal-dot.question-signal-count {
   /* 위로 올려 손가락 끝만 살짝 걸치게 — 오른쪽으로는 5px만(옆 메모지 사이 틈이
      4px이라 더 내밀면 그 상자를 덮음) */
-  top: -7px;
-  right: -5px;
+  top: -5px;
+  right: -4px;
   width: auto;
-  min-width: 17px;
-  height: 17px;
-  padding: 0 4px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
   box-sizing: border-box;
   display: grid;
   place-items: center;
-  font-size: 10.5px;
+  font-size: 9px;
   font-weight: 800;
   line-height: 1;
   font-variant-numeric: tabular-nums;
