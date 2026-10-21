@@ -32529,6 +32529,24 @@ button.msgr-receipt:hover { color: var(--text-sub); }
 }
 /* 모둠을 골라 좁혀 볼 때 — 이름 알약 아래 R·A·F·T 네 칸과 글자 수.
    칸 색은 학생 카드의 네모와 같은 값(쓴 칸 초록 · 빈 칸 회색)입니다. */
+/* 모둠을 골라 좁혔을 때는 한 줄에 한 명 — 이름 · R·A·F·T · 글자 수가 그 학생 칸에
+   위아래로 쌓입니다(선생님 요청). 한 줄에 셋이면 네 칸 줄이 이름 폭에 끼어
+   옆 학생의 것과 이어져 보였습니다. */
+.book-rail-chips.raft-mate-list {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+.raft-mate-list .raft-mate-cell {
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid var(--border);
+  align-items: flex-start;
+}
+.raft-mate-list .raft-mate-pill { padding: 3px 12px; }
+.raft-mate-list .raft-mate-mark { width: 20px; height: 20px; line-height: 20px; font-size: 11px; }
+.raft-mate-list .raft-mate-marks { gap: 3px; }
+.raft-mate-list .raft-mate-chars { text-align: left; }
 .raft-mate-cell {
   display: flex;
   flex-direction: column;

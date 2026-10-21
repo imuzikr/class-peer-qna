@@ -382,7 +382,7 @@ export default function RaftBoard({
                     {g.members.length === 0 ? (
                       <span className="book-group-empty">아직 모둠원이 없어요</span>
                     ) : (
-                      <span className="book-rail-chips">
+                      <span className={`book-rail-chips${pickedGroup ? " raft-mate-list" : ""}`}>
                         {g.members.map((c) => {
                           const picked = c.uid === openUid;
                           const done = raftDone(c.entry?.answers);
