@@ -32740,3 +32740,35 @@ button.msgr-receipt:hover { color: var(--text-sub); }
 }
 .xwg-hintpop-person h4 span { font-size: 12px; font-weight: 500; color: var(--text-sub); }
 .xwg-hintpop-person.none h4 { color: var(--text-sub); }
+/* 힌트 · 정답 두 탭 — 같은 크기의 두 칸(이어 놓인 단추는 같은 크기) */
+.xwg-hintpop-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.xwg-hintpop-tabs button {
+  height: 30px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--text-sub);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.xwg-hintpop-tabs button.on {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+/* 정답 탭의 맞힌 시각 — 줄 오른쪽 끝(힌트 글처럼 제 줄로 내려가지 않게) */
+.xwg-hintpop .xwg-hint-list li > span.xwg-hintpop-time {
+  flex-basis: auto;
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+.xwg-hintpop-foot { margin: 0; font-size: 12px; color: var(--text-faint); }

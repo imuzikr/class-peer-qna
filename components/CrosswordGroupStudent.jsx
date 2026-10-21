@@ -31,6 +31,7 @@ import {
   setXwHintWriter,
   saveXwHint,
   writeXwBoard,
+  recordXwSolve,
   subscribeXwProgress,
   saveXwProgress,
 } from "@/lib/store";
@@ -41,6 +42,7 @@ import {
   xwHintDone,
   fixedLettersOf,
   groupSolveProgress,
+  boardEntrySolved,
   entryLen,
   entryCellKeys as entryKeysOf,
   clueRevealsWord,
@@ -248,8 +250,23 @@ export default function CrosswordGroupStudent({ activity, groupId, user, onBack 
   // '적었는데 안 들어간다'가 됩니다).
   function writeCells(set, del) {
     if (locked) return;
+    // 이 쓰기로 새로 맞는 낱말 — 끝까지 채운 사람이 맞힌 것으로 남깁니다
+    // (모둠 활동만 — 교사의 '모둠별 풀이' 정답 탭이 읽습니다)
+    const after = { ...letters, ...set };
+    del.forEach((k) => { delete after[k]; });
+    const newlySolved = !solo && puzzle && me
+      ? entries
+          .map((e, i) => i)
+          .filter((i) => !isOwn(i) && !progress?.solved.has(i)
+            && entryKeysOf(entries[i]).some((k) => k in set)
+            && boardEntrySolved(entries[i], after, fixed, puzzle.salt))
+      : [];
     writeXwBoard(activity.id, groupId, set, del)
-      .then(() => setNote(""))
+      .then(() => {
+        setNote("");
+        const who = { uid: me, name: user?.realName || user?.displayName || "" };
+        newlySolved.forEach((i) => { recordXwSolve(activity.id, groupId, i, who).catch(() => {}); });
+      })
       .catch((e) => {
         console.warn("[가로세로] 낱말판에 넣지 못했어요:", e?.code, e?.message);
         setNote("판에 적지 못했어요 — 연결을 확인하고 다시 적어 주세요.");

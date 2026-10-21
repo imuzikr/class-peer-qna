@@ -118,6 +118,34 @@ describe("가로세로(모둠) 규칙", () => {
     await assertFails(getDoc(doc(asTeacher(env, "teacherB").firestore(), ...boardPath("group_1"))));
   });
 
+  // ── 누가 맞혔나(xwSolves) ──
+  const solvePath = (gId, idx) => ["bookActivities", "act1", "groups", gId, "xwSolves", String(idx)];
+
+  it("맞힌 기록 — 그 모둠원이 제 이름으로 한 번만, 교사는 읽고 걷기만", async () => {
+    const { serverTimestamp } = await import("firebase/firestore");
+    const s3 = asStudent(env, "stu3").firestore();
+    const rec = (idx, uid, extra = {}) => ({ idx, uid, name: "학생3", at: serverTimestamp(), ...extra });
+    await assertSucceeds(setDoc(doc(s3, ...solvePath("group_2", 4)), rec(4, "stu3")));
+    // 한 번 남은 기록은 못 고침(먼저 맞힌 사람이 남음)
+    await assertFails(setDoc(doc(s3, ...solvePath("group_2", 4)), rec(4, "stu3")));
+    // 남의 이름 · 차례와 다른 id · 낯선 칸 · 다른 모둠 · 지우기
+    await assertFails(setDoc(doc(s3, ...solvePath("group_2", 5)), rec(5, "stu1")));
+    await assertFails(setDoc(doc(s3, ...solvePath("group_2", 6)), rec(7, "stu3")));
+    await assertFails(setDoc(doc(s3, ...solvePath("group_2", 8)), rec(8, "stu3", { word: "광합성" })));
+    await assertFails(setDoc(doc(s3, ...solvePath("group_1", 9)), rec(9, "stu3")));
+    await assertFails(deleteDoc(doc(s3, ...solvePath("group_2", 4))));
+    // 읽기 — 그 모둠 · 담당 교사, 다른 모둠은 못 읽음
+    await assertSucceeds(getDocs(collection(s3, "bookActivities", "act1", "groups", "group_2", "xwSolves")));
+    const t = asTeacher(env, "teacherA").firestore();
+    await assertSucceeds(getDocs(collection(t, "bookActivities", "act1", "groups", "group_2", "xwSolves")));
+    await assertFails(getDocs(collection(asStudent(env, "stu1").firestore(), "bookActivities", "act1", "groups", "group_2", "xwSolves")));
+    await assertFails(setDoc(doc(t, ...solvePath("group_2", 10)), { idx: 10, uid: "teacherA", name: "선생님", at: serverTimestamp() }));
+    await assertSucceeds(deleteDoc(doc(t, ...solvePath("group_2", 4))));
+    // 잠긴 활동에서는 못 남김
+    await seed(env, (db) => updateDoc(doc(db, "bookActivities", "act1"), { locked: true }));
+    await assertFails(setDoc(doc(s3, ...solvePath("group_2", 11)), rec(11, "stu3")));
+  });
+
   // ── 개별 활동의 판 요약(xwProgress) ──
   const progPath = (gId) => ["bookActivities", "act1", "xwProgress", gId];
   const prog = (gId, uid, extra = {}) => ({

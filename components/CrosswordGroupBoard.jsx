@@ -33,6 +33,7 @@ import {
   clearGroupCrossword,
   updateBookActivity,
   subscribeXwProgress,
+  subscribeXwSolves,
 } from "@/lib/store";
 import {
   buildGroupCrossword,
@@ -89,6 +90,13 @@ export default function CrosswordGroupBoard({ activity, onBack, onPickView, onTo
   const [picked, setPicked] = useState(null); // 낱말 채우기 — 가운데에 크게 볼 모둠
   // 모둠 카드를 누르면 마우스 옆에 그 모둠의 낱말 · 힌트(사람별) — { gId, anchor }
   const [hintPop, setHintPop] = useState(null);
+  // 팝오버를 연 모둠의 '누가 맞혔나' — 그 모둠 하나만 구독합니다
+  const [solveRecs, setSolveRecs] = useState({ gId: null, list: [] });
+  const popGroupId = hintPop?.gId ?? null;
+  useEffect(() => {
+    if (!popGroupId) return undefined;
+    return subscribeXwSolves(activity.id, popGroupId, (list) => setSolveRecs({ gId: popGroupId, list }));
+  }, [activity.id, popGroupId]);
 
   const solo = activity.groupMode === "solo";
   useEffect(() => subscribeBookGroups(activity.id, setGroups), [activity.id]);
@@ -610,6 +618,18 @@ export default function CrosswordGroupBoard({ activity, onBack, onPickView, onTo
             color={colorOf(g.id)}
             members={(g.memberUids ?? []).map((uid) => ({ uid, name: nameOf(g, uid) }))}
             hints={hintsOf[g.id] ?? []}
+            solves={(() => {
+              // 이 모둠 판에서 맞힌 낱말 — 낱말 글자는 그 낱말을 맡은 모둠의 힌트에서
+              const row = progressList.find((x) => x.groupId === g.id);
+              const recs = new Map((solveRecs.gId === g.id ? solveRecs.list : []).map((r) => [Number(r.idx), r]));
+              const wordOf = new Map(allHints.map((h) => [h.idx, h.word]));
+              return [...(row?.solvedSet ?? [])].map((i) => {
+                const e = puzzle.entries[i];
+                const r = recs.get(i);
+                return { idx: i, num: e?.num, dir: e?.dir, word: wordOf.get(i) ?? "", uid: r?.uid ?? null, name: r?.name ?? "", at: r?.at ?? null };
+              });
+            })()}
+            solveTotal={progressList.find((x) => x.groupId === g.id)?.total ?? 0}
             onClose={() => setHintPop(null)}
           />
         );

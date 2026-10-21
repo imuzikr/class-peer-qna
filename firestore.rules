@@ -1548,6 +1548,24 @@ service cloud.firestore {
                         && request.resource.data.cells.size() <= 600;
           allow delete: if isAdmin() || ownsBookActivityEditable(aId);
         }
+
+        // 누가 맞혔나 — 낱말 하나에 한 장(문서 id = 낱말 차례). 그 낱말을 끝까지
+        // 채워 맞힌 모둠원이 제 이름으로 **한 번만** 만듭니다(고치기 없음 —
+        // 먼저 맞힌 사람이 남음). 교사의 '모둠별 풀이' 팝오버 정답 탭이 읽습니다.
+        match /xwSolves/{sId} {
+          allow read: if signedIn() && (isAdmin() || ownsBookActivity(aId) || isMyBookGroup(aId, gId));
+          allow create: if signedIn()
+                        && isMyBookGroup(aId, gId)
+                        && !isBookActivityLocked(aId)
+                        && request.resource.data.keys().hasOnly(['idx','uid','name','at'])
+                        && request.resource.data.uid == uid()
+                        && request.resource.data.idx is int
+                        && string(request.resource.data.idx) == sId
+                        && request.resource.data.name is string
+                        && request.resource.data.name.size() <= 40
+                        && request.resource.data.at == request.time;
+          allow delete: if isAdmin() || ownsBookActivityEditable(aId);
+        }
       }
 
       // ── 가로세로 낱말퀴즈(개별 활동) — 학생마다 제 판의 요약 ──
