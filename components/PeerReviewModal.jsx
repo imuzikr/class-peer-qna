@@ -275,3 +275,26 @@ export function PeerReviewList({ reviews = [], title = "친구들이 남긴 한 
     </section>
   );
 }
+
+// 한 눈에 보기(모둠 RAFT) — 받은 한 마디를 **한 줄에 나란히**(선생님 요청).
+// 카드는 같은 폭이고, 많으면 줄이 옆으로 구릅니다(줄을 접지 않음).
+export function PeerReviewRow({ reviews = [] }) {
+  return (
+    <section className="eov-peer" aria-label="모둠 친구들이 남긴 한 마디">
+      <h4>
+        모둠 친구들이 남긴 한 마디
+        <span>{reviews.length > 0 ? `${reviews.length}개` : "아직 없어요"}</span>
+      </h4>
+      {reviews.length > 0 && (
+        <div className="eov-peer-row">
+          {reviews.map((r) => (
+            <article key={r.id ?? peerReviewId(r.toUid, r.fromUid)} className="peer-card">
+              <header>{r.fromName || "친구"}</header>
+              <div dangerouslySetInnerHTML={{ __html: richHtml(r.html) }} />
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}

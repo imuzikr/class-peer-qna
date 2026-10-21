@@ -42,7 +42,7 @@ import GroupFilterRow from "./GroupFilterRow";
 import RaftProgressBoard from "./RaftProgressBoard";
 import BookStudentRail from "./BookStudentRail";
 import EntryProgressPanel from "./EntryProgressPanel";
-import { PeerReviewList } from "./PeerReviewModal";
+import { PeerReviewList, PeerReviewRow } from "./PeerReviewModal";
 import { isGroupedActivity, useBookGroups, isPeerReviewOpen } from "@/lib/bookGroups";
 
 // 방송할 수 있는 영역 — 네 요소 + 글쓰기
@@ -503,6 +503,9 @@ export default function RaftBoard({
           summaryOf={(c) =>
             `${raftPlanCount(c.entry?.answers)} / ${RAFT_COLUMN_COUNT}칸 · 글 ${raftWritingChars(c.entry?.answers)}자`
           }
+          footOf={grouped ? (c) => (
+            <PeerReviewRow reviews={reviews.filter((r) => r.toUid === c.uid)} />
+          ) : null}
           leadOf={(c) => ({
             text: raftSentence(c.entry?.answers ?? {}),
             done: raftPlanCount(c.entry?.answers) === RAFT_COLUMN_COUNT,

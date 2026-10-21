@@ -41,6 +41,8 @@ export default function EntryOverviewModal({
   summaryOf = null,
   // card → 영역 위에 한 줄로 서는 문장 { text, done } (RAFT의 '나는 …이 되어 …')
   leadOf = null,
+  // card → 영역 카드 아래에 붙는 것(모둠 RAFT의 '모둠 친구들이 남긴 한 마디')
+  footOf = null,
 }) {
   const at = Math.max(0, cards.findIndex((c) => c.uid === uid));
   const card = cards[at] ?? null;
@@ -173,6 +175,7 @@ export default function EntryOverviewModal({
               );
             })}
           </div>
+          {footOf && footOf(card)}
         </div>
 
         <div className="eov-foot">

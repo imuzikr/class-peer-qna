@@ -32697,6 +32697,28 @@ button.msgr-receipt:hover { color: var(--text-sub); }
   font-weight: 700;
   padding: 9px 18px;
 }
+/* 모둠 RAFT — 받은 한 마디를 한 줄에 나란히(같은 폭 · 많으면 옆으로 구름) */
+.eov-peer { margin-top: 16px; }
+.eov-peer h4 {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 0 9px;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--text);
+}
+.eov-peer h4 span { font-size: 12px; font-weight: 600; color: var(--text-faint); }
+.eov-peer-row {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(220px, 1fr);
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+.eov-peer-row .peer-card { min-width: 0; background: #fff; box-shadow: var(--shadow-soft); }
 .eov-hint {
   flex: 1;
   text-align: center;
