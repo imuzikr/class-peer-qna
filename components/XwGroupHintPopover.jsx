@@ -16,7 +16,7 @@
 // 뒤가 굴러도 카드와 함께 따라갑니다(`usePopoverAnchor`). 키보드로 누르면
 // (마우스 자리가 없음) 카드 옆에 섭니다. 자리 잡기 · 닫기는 `lib/popover.js`.
 // =============================================================
-import { useMemo, useRef, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePopoverAnchor, usePopoverDismiss } from "@/lib/popover";
 import { entryCellKeys } from "@/lib/crossword";
@@ -60,7 +60,33 @@ export default function XwGroupHintPopover({
 }) {
   const ref = useRef(null);
   const [tab, setTab] = useState("hint");
-  const pos = usePopoverAnchor(anchor, { w: POP_W, h: POP_H, gap: 14 });
+  const isHint = tab === "hint";
+  const capH = isHint ? POP_H + 160 : POP_H + 300;
+  // 자리는 **실제로 그려질 높이**로 잡습니다. 어림값(POP_H)으로 잡으면 아래쪽
+  // 모둠 카드에서 연 창이 정답 탭처럼 키가 클 때 화면 아래로 잘립니다.
+  // 잴 것은 내용 그대로의 높이(몸통이 안에서 구르기 전) — 화면 높이에 맞춰
+  // 줄어든 키를 재면 자리와 키가 서로를 줄이며 맴돕니다.
+  const [natH, setNatH] = useState(POP_H);
+  useLayoutEffect(() => {
+    const root = ref.current;
+    if (!root) return undefined;
+    const measure = () => {
+      const body = root.querySelector(".xwg-hintpop-body");
+      const h = body ? root.offsetHeight - body.clientHeight + body.scrollHeight : root.offsetHeight;
+      const next = Math.min(capH, Math.ceil(h));
+      setNatH((v) => (Math.abs(v - next) > 1 ? next : v));
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(root);
+    const body = root.querySelector(".xwg-hintpop-body");
+    if (body) {
+      ro.observe(body);
+      for (const c of body.children) ro.observe(c);
+    }
+    return () => ro.disconnect();
+  });
+  const pos = usePopoverAnchor(anchor, { w: POP_W, h: natH, gap: 14 });
   usePopoverDismiss(true, ref, onClose, ".xwg-rank");
 
   // 사람별로 — 모둠원 차례, 쓸 사람을 안 정한 낱말은 맨 뒤
@@ -120,7 +146,6 @@ export default function XwGroupHintPopover({
   }, [members, solves, puzzle, fixed]);
 
   const written = hints.filter((h) => h.hint.trim()).length;
-  const isHint = tab === "hint";
 
   return createPortal(
     <div
@@ -128,7 +153,7 @@ export default function XwGroupHintPopover({
       className="xwg-hintpop"
       role="dialog"
       aria-label={`${title} — ${isHint ? "낱말과 힌트" : "맞힌 낱말"}`}
-      style={{ left: pos.x, top: pos.y, maxHeight: Math.min(isHint ? POP_H + 160 : POP_H + 300, pos.maxH), "--xwg-c": color?.border }}
+      style={{ left: pos.x, top: pos.y, maxHeight: Math.min(capH, pos.maxH), "--xwg-c": color?.border }}
     >
       <div className="xwg-hintpop-head">
         <strong>{title}</strong>
