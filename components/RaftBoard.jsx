@@ -18,7 +18,6 @@ import {
   subscribeParatextEntries,
   subscribeAllPeerReviews,
   setPeerReviewLocked,
-  setPeerReviewShared,
   composeBookGroups,
 } from "@/lib/store";
 import { useEntryCast } from "@/lib/useEntryCast";
@@ -44,7 +43,7 @@ import RaftProgressBoard from "./RaftProgressBoard";
 import BookStudentRail from "./BookStudentRail";
 import EntryProgressPanel from "./EntryProgressPanel";
 import { PeerReviewList } from "./PeerReviewModal";
-import { isGroupedActivity, useBookGroups, isPeerReviewOpen, isPeerReviewShared } from "@/lib/bookGroups";
+import { isGroupedActivity, useBookGroups, isPeerReviewOpen } from "@/lib/bookGroups";
 
 // 방송할 수 있는 영역 — 네 요소 + 글쓰기
 const REGIONS = [
@@ -313,23 +312,6 @@ export default function RaftBoard({
                 <IconLockState locked={peerLocked} size={14} />
                 {peerLocked ? "동료 평가 잠김" : "동료 평가 열림"}
                 {reviews.length > 0 && <em>{reviews.length}</em>}
-              </button>
-            )}
-            {/* 같은 모둠 친구끼리 서로 받은 평가를 보나 — 기본은 켜짐(선생님 요청).
-                끄면 받은 학생 · 쓴 학생만 봅니다. 기본이 아닌 '꺼짐'을 살구빛으로. */}
-            {grouped && (
-              <button
-                type="button"
-                className={`btn-ghost peer-lock-btn${isPeerReviewShared(activity) ? "" : " on"}`}
-                onClick={() => setPeerReviewShared(activity.id, !isPeerReviewShared(activity))}
-                title={
-                  isPeerReviewShared(activity)
-                    ? "같은 모둠 친구끼리 서로 받은 평가를 봅니다 — 누르면 받은 학생 · 쓴 학생만 보게 합니다"
-                    : "받은 학생 · 쓴 학생만 봅니다 — 누르면 같은 모둠 친구끼리 서로 보게 합니다"
-                }
-              >
-                <IconPeople size={14} />
-                {isPeerReviewShared(activity) ? "모둠끼리 보기 켜짐" : "모둠끼리 보기 꺼짐"}
               </button>
             )}
           </div>

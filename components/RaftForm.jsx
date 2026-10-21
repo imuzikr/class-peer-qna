@@ -44,7 +44,6 @@ import {
   myBookGroup,
   groupMembers,
   isPeerReviewOpen,
-  isPeerReviewShared,
 } from "@/lib/bookGroups";
 
 const SAVE_DELAY = 900; // ms — 이만큼 입력이 없으면 저장
@@ -114,9 +113,9 @@ export default function RaftForm({ activity, user, onBack }) {
   }, [myGroupId, savedGroup, locked, activity.id, user]);
 
   // 우리 모둠에서 오간 동료 평가 — 같은 모둠 친구끼리 서로 받은 평가를 봅니다
-  // (기본값). 친구 글을 읽고 감상을 쓰는 창에서 '다른 친구들이 남긴 한 마디'로
-  // 섭니다. 교사가 '모둠끼리 보기'를 끄면 규칙이 막으므로 아예 안 겁니다.
-  const shared = grouped && isPeerReviewShared(activity);
+  // (늘 — 끄는 단추는 걷었습니다, 선생님 요청). 친구 글을 읽고 감상을 쓰는 창에서
+  // '다른 친구들이 남긴 한 마디'로 섭니다.
+  const shared = grouped;
   const [groupReviews, setGroupReviews] = useState([]);
   useEffect(() => {
     if (!shared || !myGroupId) { setGroupReviews([]); return undefined; }
