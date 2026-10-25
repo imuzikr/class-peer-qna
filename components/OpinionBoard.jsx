@@ -39,6 +39,8 @@ import {
   opinionColor,
   opinionNoteMode,
   opinionStats,
+  OPINION_HEAD_H,
+  opinionZoneRows,
   pixelsFromPlace,
   placeFromPixels,
   zoneOfNote,
@@ -54,7 +56,7 @@ const NOTE_H = 142;
 // 이만큼 움직여야 '끌기' — 그보다 작으면 누른 것으로 봅니다(손 떨림).
 const DRAG_SLOP = 4;
 // 영역마다 머리 띠 색 — 메모 색과 같은 식구에서 고르되 겹치지 않게.
-const ZONE_TINTS = ["peach", "mint", "sky", "lavender"];
+const ZONE_TINTS = ["peach", "mint", "sky", "lavender", "butter", "rose"];
 
 export default function OpinionBoard({
   activity,
@@ -97,6 +99,14 @@ export default function OpinionBoard({
     });
   const labelOf = (n) => noteAuthorLabel(n);
   const realOf = (n) => noteRealLabel(n, rosterById.get(n.authorId) ?? null);
+
+  // ── 줄 나누기 — 영역마다 몇째 줄 · 몇째 칸인가 ──
+  const zoneRows = opinionZoneRows(zones.length);
+  const cellRow = [];
+  const cellCol = [];
+  zoneRows.forEach((cols, r) => {
+    for (let c = 0; c < cols; c += 1) { cellRow.push(r); cellCol.push(c); }
+  });
 
   // ── 판 크기 재기 — 자리 셈이 픽셀을 알아야 합니다 ──
   const bodyRef = useRef(null);
@@ -153,7 +163,7 @@ export default function OpinionBoard({
   }
   function pixelsOf(n) {
     const p = placeOf(n);
-    return pixelsFromPlace({ ...p, boardW: box.w, zoneH: box.h, noteW: NOTE_W, noteH: NOTE_H, zones });
+    return pixelsFromPlace({ ...p, boardW: box.w, boardH: box.h, headH: OPINION_HEAD_H, noteW: NOTE_W, noteH: NOTE_H, zones });
   }
 
   // ── 누르기 / 끌기 ──
@@ -200,7 +210,7 @@ export default function OpinionBoard({
     setDrag(null);
     if (!cur) return;
     const place = placeFromPixels({
-      px: cur.left, py: cur.top, boardW: box.w, zoneH: box.h, noteW: NOTE_W, noteH: NOTE_H, zones,
+      px: cur.left, py: cur.top, boardW: box.w, boardH: box.h, headH: OPINION_HEAD_H, noteW: NOTE_W, noteH: NOTE_H, zones,
     });
     setPending((p) => ({ ...p, [n.id]: place }));
     try {
@@ -291,41 +301,47 @@ export default function OpinionBoard({
       )}
 
       <section
-        className="opinion-board"
-        style={{ "--zones": zones.length }}
+        className={`opinion-board${zoneRows.length > 1 ? " opinion-board--rows2" : ""}`}
+        style={{ "--cols": Math.max(...zoneRows), "--rows": zoneRows.length }}
         aria-label="메모판"
       >
-        <div className="opinion-heads">
-          {zones.map((z, i) => (
-            <div key={z.key} className={`opinion-zone-head tint-${ZONE_TINTS[i % ZONE_TINTS.length]}`}>
-              <strong>{z.name}</strong>
-              <span className="opinion-zone-count">{byZone.get(z.key) ?? 0}</span>
-              {/* 한 장을 이미 붙인 학생은 ＋가 꺼지고 까닭을 툴팁으로 —
-                  단추가 그냥 사라지면 고장으로 보입니다. */}
-              {(canPost || usedMyOne) && (
-                <button
-                  type="button"
-                  className="opinion-zone-add"
-                  onClick={() => canPost && setComposeZone(z.key)}
-                  disabled={!canPost}
-                  aria-label={canPost ? `‘${z.name}’에 메모 붙이기` : "메모는 한 사람에 한 장이에요"}
-                  title={
-                    canPost
-                      ? `‘${z.name}’에 메모 붙이기`
-                      : "메모는 한 사람에 한 장이에요 — 붙인 메모를 눌러 고칠 수 있어요"
-                  }
-                >
-                  ＋
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
+        {/* 영역 칸 — 머리(이름 · 개수 · ＋)와 바탕을 한 칸에 그립니다. 줄이
+            여럿이라(4개 2×2 · 5개 2/3 · 6개 3×2) 머리를 한 줄로 따로 둘 수
+            없습니다. 격자는 여섯 칸이고 칸마다 6/줄의 칸 수만큼 차지합니다.
+            메모는 그 위 한 겹에 절대 배치로 섭니다(영역을 넘나들며 끌 수 있게). */}
         <div className="opinion-body" ref={bodyRef}>
-          {/* 영역 칸 — 배경과 가르는 선만 그립니다. 메모는 그 위 한 겹에
-              절대 배치로 섭니다(영역을 넘나들며 끌 수 있게). */}
           {zones.map((z, i) => (
-            <div key={z.key} className={`opinion-zone tint-${ZONE_TINTS[i % ZONE_TINTS.length]}`} aria-hidden="true" />
+            <div
+              key={z.key}
+              className={`opinion-cell tint-${ZONE_TINTS[i % ZONE_TINTS.length]}${
+                cellRow[i] > 0 ? " is-lower" : ""
+              }${cellCol[i] > 0 ? " is-right" : ""}`}
+              style={{ gridColumn: `span ${6 / zoneRows[cellRow[i]]}` }}
+            >
+              <div className="opinion-zone-head">
+                <strong>{z.name}</strong>
+                <span className="opinion-zone-count">{byZone.get(z.key) ?? 0}</span>
+                {/* 한 장을 이미 붙인 학생은 ＋가 꺼지고 까닭을 툴팁으로 —
+                    단추가 그냥 사라지면 고장으로 보입니다. */}
+                {(canPost || usedMyOne) && (
+                  <button
+                    type="button"
+                    className="opinion-zone-add"
+                    onClick={() => canPost && setComposeZone(z.key)}
+                    disabled={!canPost}
+                    aria-label={canPost ? `‘${z.name}’에 메모 붙이기` : "메모는 한 사람에 한 장이에요"}
+                    title={
+                      canPost
+                        ? `‘${z.name}’에 메모 붙이기`
+                        : "메모는 한 사람에 한 장이에요 — 붙인 메모를 눌러 고칠 수 있어요"
+                    }
+                  >
+                    ＋
+                  </button>
+                )}
+              </div>
+              <div className="opinion-zone" aria-hidden="true" />
+            </div>
           ))}
           {!loaded ? (
             <p className="opinion-empty">불러오는 중이에요…</p>

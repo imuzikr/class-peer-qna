@@ -5,6 +5,7 @@ import {
   OPINION_COLORS,
   canAddOpinionNote,
   opinionNoteMode,
+  opinionZoneRows,
   nextNoteSpot,
   noteAuthorLabel,
   noteRealLabel,
@@ -55,6 +56,33 @@ test("픽셀 ↔ 영역·비율은 서로 거꿀셈 — 가운데가 든 칸이 
   // 판 밖으로 끌면 끝에 붙습니다
   const out = placeFromPixels({ ...box, px: 2000, py: -40 });
   assert.deepEqual([out.zone, out.x, out.y], ["z3", 1, 0]);
+});
+
+test("줄 나누기 — 1~3 한 줄 · 4는 2×2 · 5는 2/3 · 6은 3×2", () => {
+  assert.deepEqual([1, 2, 3, 4, 5, 6].map(opinionZoneRows), [[1], [2], [3], [2, 2], [2, 3], [3, 3]]);
+});
+
+test("여러 줄 판 — 가운데가 든 줄·칸이 영역이고 거꿀셈이 맞습니다", () => {
+  const noteW = 176, noteH = 142;
+  for (const n of [4, 5, 6]) {
+    const zones = zonesFromNames(Array.from({ length: n }, (_, i) => `영역${i + 1}`));
+    const box = { boardW: 1200, boardH: 800, headH: 50, noteW, noteH, zones };
+    for (const z of zones) {
+      for (const [x, y] of [[0, 0], [0.5, 0.3], [1, 1]]) {
+        const px = pixelsFromPlace({ ...box, zone: z.key, x, y });
+        const back = placeFromPixels({ ...box, px: px.left, py: px.top });
+        assert.equal(back.zone, z.key, `${n}개 · ${z.key} · ${x},${y}`);
+        assert.ok(Math.abs(back.x - x) < 1e-9 && Math.abs(back.y - y) < 1e-9);
+      }
+    }
+  }
+  // 5개: 위 줄은 둘(폭 600), 아래 줄은 셋(폭 400) — 아래 줄 가운데 칸은 z4
+  const five = zonesFromNames(["a", "b", "c", "d", "e"]);
+  const box5 = { boardW: 1200, boardH: 800, headH: 50, noteW, noteH, zones: five };
+  assert.equal(placeFromPixels({ ...box5, px: 700, py: 100 }).zone, "z2");
+  assert.equal(placeFromPixels({ ...box5, px: 500, py: 500 }).zone, "z4");
+  // 메모는 머리 아래에서 시작 — 아래 줄 첫 칸의 맨 위는 400 + 50
+  assert.equal(pixelsFromPlace({ ...box5, zone: "z3", x: 0, y: 0 }).top, 450);
 });
 
 test("새 메모 자리는 계단식이고 늘 0~1", () => {
