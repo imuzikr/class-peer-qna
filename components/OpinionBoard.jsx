@@ -53,8 +53,8 @@ const NOTE_W = 176;
 const NOTE_H = 142;
 // 이만큼 움직여야 '끌기' — 그보다 작으면 누른 것으로 봅니다(손 떨림).
 const DRAG_SLOP = 4;
-// 영역마다 머리 띠 색 — 메모 색과 같은 식구에서 고르되 겹치지 않게.
-const ZONE_TINTS = ["peach", "mint", "sky", "lavender"];
+// 영역 색(바탕 · 경계선) — globals.css의 .tint-*. 차례는 선생님이 주신 그림대로.
+const ZONE_TINTS = ["mint", "rose", "lime", "peach"];
 
 export default function OpinionBoard({
   activity,

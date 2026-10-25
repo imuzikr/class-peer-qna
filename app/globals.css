@@ -28958,11 +28958,13 @@ h4.attendance-seat-help { margin-top: 16px; }
   line-height: 1.5;
 }
 
-/* 영역 띠 색 — 메모 색과 같은 식구에서, 영역끼리 겹치지 않게 */
-.tint-peach { --tint-bg: #ffe4d4; --tint-ink: #b8663f; --tint-wash: rgba(255, 220, 200, 0.18); }
-.tint-mint { --tint-bg: #d9f3e6; --tint-ink: #3f8a68; --tint-wash: rgba(212, 242, 227, 0.22); }
-.tint-sky { --tint-bg: #dcecff; --tint-ink: #4d7fb8; --tint-wash: rgba(215, 234, 255, 0.22); }
-.tint-lavender { --tint-bg: #ebe3fc; --tint-ink: #7b62b8; --tint-wash: rgba(231, 222, 251, 0.22); }
+/* 영역 색 — 판 위에서 영역이 한눈에 갈리도록 바탕을 또렷하게 칠합니다
+   (선생님이 주신 그림의 색). 한때 흰색에 가까운 띠 하나뿐이라 영역끼리
+   잘 안 갈렸습니다. --tint-zone 영역 바탕 · --tint-line 경계선 · --tint-ink 글자 */
+.tint-mint { --tint-zone: #d5faf1; --tint-line: #5cc5a8; --tint-ink: #2f8a72; }
+.tint-rose { --tint-zone: #f9dbdb; --tint-line: #e15241; --tint-ink: #c2453a; }
+.tint-lime { --tint-zone: #e4fee0; --tint-line: #69c44b; --tint-ink: #4a8f35; }
+.tint-peach { --tint-zone: #fbeacc; --tint-line: #ef8a4f; --tint-ink: #c06a2f; }
 
 .opinion-board {
   border: 1.5px solid #eee0cb;
@@ -28982,15 +28984,16 @@ h4.attendance-seat-help { margin-top: 16px; }
   grid-template-columns: repeat(var(--zones, 2), minmax(0, 1fr));
   min-width: calc(var(--zones, 2) * 200px);
 }
-.opinion-heads { border-bottom: 1.5px dashed #e9d6bb; }
 .opinion-zone-head {
   display: flex;
   align-items: center;
   gap: 8px;
   min-width: 0;
   padding: 10px 14px;
+  background: var(--tint-zone);
+  border-bottom: 2px solid var(--tint-line);
 }
-.opinion-zone-head + .opinion-zone-head { border-left: 1.5px dashed #e9d6bb; }
+.opinion-zone-head + .opinion-zone-head { border-left: 2px solid var(--tint-line); }
 .opinion-zone-head strong {
   min-width: 0;
   overflow: hidden;
@@ -28998,7 +29001,8 @@ h4.attendance-seat-help { margin-top: 16px; }
   white-space: nowrap;
   padding: 4px 13px;
   border-radius: 999px;
-  background: var(--tint-bg);
+  border: 1.5px solid var(--tint-line);
+  background: #fff;
   color: var(--tint-ink);
   font-size: 15px;
   font-weight: 800;
@@ -29018,7 +29022,7 @@ h4.attendance-seat-help { margin-top: 16px; }
   line-height: 1;
   cursor: pointer;
 }
-.opinion-zone-add:hover { background: var(--tint-bg); border-style: solid; }
+.opinion-zone-add:hover { background: #fff; border-style: solid; }
 /* 한 장을 이미 붙인 학생 — 꺼진 ＋(까닭은 툴팁) */
 .opinion-zone-add:disabled { opacity: 0.4; cursor: not-allowed; }
 .opinion-zone-add:disabled:hover { background: transparent; border-style: dashed; }
@@ -29030,10 +29034,10 @@ h4.attendance-seat-help { margin-top: 16px; }
 }
 .opinion-zone {
   background:
-    radial-gradient(circle at 1px 1px, rgba(150, 120, 80, 0.13) 1px, transparent 0) 0 0 / 22px 22px,
-    linear-gradient(180deg, var(--tint-wash), transparent 60%);
+    radial-gradient(circle at 1px 1px, rgba(90, 70, 40, 0.12) 1px, transparent 0) 0 0 / 22px 22px,
+    var(--tint-zone);
 }
-.opinion-zone + .opinion-zone { border-left: 1.5px dashed #e9d6bb; }
+.opinion-zone + .opinion-zone { border-left: 2px solid var(--tint-line); }
 .opinion-empty {
   position: absolute;
   inset: 0;
