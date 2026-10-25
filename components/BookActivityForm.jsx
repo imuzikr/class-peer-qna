@@ -416,7 +416,7 @@ export default function BookActivityForm({
               <span>
                 영역 이름 <em className="book-optional">{zoneNames.length}개</em>
               </span>
-              <div className="opinion-zone-inputs opinion-zone-inputs--3">
+              <div className="opinion-zone-inputs opinion-zone-inputs--row">
                 {zoneNames.map((name, i) => (
                   <div key={i} className="opinion-zone-input">
                     <input

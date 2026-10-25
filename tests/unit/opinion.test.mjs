@@ -22,9 +22,8 @@ import {
 
 test("영역은 늘 2~4개 — 모자라면 채우고 넘치면 자릅니다", () => {
   assert.deepEqual(normalizeZones([]).map((z) => z.name), ["A 영역", "B 영역"]);
-  assert.equal(normalizeZones(zonesFromNames(["가", "나", "다", "라", "마"])).length, 5);
-  assert.equal(normalizeZones(zonesFromNames(["가", "나", "다", "라", "마", "바", "사"])).length, 6);
-  assert.deepEqual(normalizeZones([{ key: "z6", name: "" }]).map((z) => z.name), ["A 영역", "B 영역"]);
+  assert.equal(normalizeZones(zonesFromNames(["가", "나", "다", "라", "마"])).length, 4);
+  assert.deepEqual(normalizeZones([{ key: "z4", name: "" }]).map((z) => z.name), ["A 영역", "B 영역"]);
   assert.deepEqual(zonesFromNames(["찬성", " ", "잘 모르겠음"]).map((z) => [z.key, z.name]), [
     ["z1", "찬성"], ["z2", "B 영역"], ["z3", "잘 모르겠음"],
   ]);

@@ -29304,15 +29304,16 @@ h4.attendance-seat-help { margin-top: 16px; }
 }
 .opinion-zone-del:hover { background: var(--bg-deep); color: var(--text); }
 .opinion-zone-more { justify-self: start; }
-/* 만들기 창은 한 줄에 셋 — 영역이 여섯이어도 두 줄이라 창 높이(908px)를 안 넘깁니다 */
-.opinion-zone-inputs--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+/* 만들기 창은 고른 개수(2~4)가 한 줄에 같은 폭으로 — 판의 영역 차례와 같게 */
+.opinion-zone-inputs--row { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
 
 /* 좁은 화면 — 영역을 짜부라뜨리지 않고 판이 옆으로 구릅니다 */
 @media (max-width: 768px) {
   .opinion-bar { flex-wrap: wrap; }
   .modal.opinion-modal { padding: 30px 20px 20px; }
   .opinion-modal-text { font-size: 18px; }
-  .opinion-zone-inputs { grid-template-columns: 1fr; }
+  .opinion-zone-inputs,
+  .opinion-zone-inputs--row { grid-template-columns: 1fr; grid-auto-flow: row; }
 }
 
 /* =============================================================
