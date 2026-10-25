@@ -28963,8 +28963,6 @@ h4.attendance-seat-help { margin-top: 16px; }
 .tint-mint { --tint-bg: #d9f3e6; --tint-ink: #3f8a68; --tint-wash: rgba(212, 242, 227, 0.22); }
 .tint-sky { --tint-bg: #dcecff; --tint-ink: #4d7fb8; --tint-wash: rgba(215, 234, 255, 0.22); }
 .tint-lavender { --tint-bg: #ebe3fc; --tint-ink: #7b62b8; --tint-wash: rgba(231, 222, 251, 0.22); }
-.tint-butter { --tint-bg: #fdf0c4; --tint-ink: #9a7a1e; --tint-wash: rgba(253, 240, 196, 0.24); }
-.tint-rose { --tint-bg: #fde0e8; --tint-ink: #b65473; --tint-wash: rgba(253, 224, 232, 0.22); }
 
 .opinion-board {
   border: 1.5px solid #eee0cb;
@@ -28978,35 +28976,21 @@ h4.attendance-seat-help { margin-top: 16px; }
   overflow-y: hidden;
   box-shadow: 0 1px 2px rgba(120, 90, 50, 0.05);
 }
-/* 판 = 여섯 칸 격자 하나. 칸마다 6/줄의 칸 수만큼 차지합니다
-   (1~3개 한 줄 · 4개 2×2 · 5개 위 2 · 아래 3 · 6개 3×2 — lib/opinion.js의
-   opinionZoneRows와 같은 셈). 줄은 높이를 똑같이 나눠 갖습니다. */
+.opinion-heads,
 .opinion-body {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  grid-template-rows: repeat(var(--rows, 1), minmax(0, 1fr));
-  min-width: calc(var(--cols, 2) * 200px);
+  grid-template-columns: repeat(var(--zones, 2), minmax(0, 1fr));
+  min-width: calc(var(--zones, 2) * 200px);
 }
-.opinion-cell {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
-}
-.opinion-cell.is-right { border-left: 1.5px dashed #e9d6bb; }
-.opinion-cell.is-lower { border-top: 1.5px dashed #e9d6bb; }
-/* 높이 50px은 OPINION_HEAD_H와 같아야 합니다(메모가 그 아래에서 시작) */
+.opinion-heads { border-bottom: 1.5px dashed #e9d6bb; }
 .opinion-zone-head {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex: 0 0 50px;
-  box-sizing: border-box;
-  height: 50px;
   min-width: 0;
-  padding: 0 14px;
-  border-bottom: 1.5px dashed #e9d6bb;
+  padding: 10px 14px;
 }
+.opinion-zone-head + .opinion-zone-head { border-left: 1.5px dashed #e9d6bb; }
 .opinion-zone-head strong {
   min-width: 0;
   overflow: hidden;
@@ -29039,22 +29023,17 @@ h4.attendance-seat-help { margin-top: 16px; }
 .opinion-zone-add:disabled { opacity: 0.4; cursor: not-allowed; }
 .opinion-zone-add:disabled:hover { background: transparent; border-style: dashed; }
 
-/* 메모가 서는 판 — 높이가 곧 자리 셈의 boardH입니다(머리 포함).
-   두 줄이면 한 줄일 때보다 키워 칸마다 메모 두어 장이 설 자리를 둡니다. */
+/* 메모가 서는 몸통 — 높이가 곧 자리 셈의 zoneH입니다 */
 .opinion-body {
   position: relative;
-  height: clamp(470px, calc(100vh - 290px), 830px);
-}
-.opinion-board--rows2 .opinion-body {
-  height: clamp(640px, calc(100vh - 230px), 1100px);
+  height: clamp(420px, calc(100vh - 340px), 780px);
 }
 .opinion-zone {
-  flex: 1;
-  min-height: 0;
   background:
     radial-gradient(circle at 1px 1px, rgba(150, 120, 80, 0.13) 1px, transparent 0) 0 0 / 22px 22px,
     linear-gradient(180deg, var(--tint-wash), transparent 60%);
 }
+.opinion-zone + .opinion-zone { border-left: 1.5px dashed #e9d6bb; }
 .opinion-empty {
   position: absolute;
   inset: 0;
