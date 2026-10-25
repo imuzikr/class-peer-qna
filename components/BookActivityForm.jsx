@@ -10,7 +10,7 @@
 //      도서 정보 주소와 모둠 설정을 둘 다 받습니다.
 //  · KWLS로 성찰하기 / 마인드맵 — 혼자 하는 활동. 모둠 설정이 없습니다.
 //  · 내 생각은요... — 반 전체가 한 판에 메모를 붙입니다. 모둠 대신
-//      **영역**(2~4개, 이름은 교사가)과 함께 생각할 물음을 받습니다.
+//      **영역**(2~6개, 이름은 교사가)과 함께 생각할 물음을 받습니다.
 //  · 여섯 개의 해시태그 — 학생마다 다른 글을 읽으므로 주제어를 받지 않고,
 //      안내 문구(선택)만 받습니다. 친구 해시태그는 만든 뒤 '공개하기'로 엽니다.
 //  · 가로세로 낱말 퀴즈 — **어느 닿소리 채우기의 낱말로 만들지**만 고릅니다.
@@ -27,8 +27,7 @@ import {
   DEFAULT_OPINION_NOTE_MODE,
   OPINION_NOTE_MODES,
   OPINION_PROMPT_MAX,
-  OPINION_ZONE_MAX,
-  OPINION_ZONE_MIN,
+  OPINION_ZONE_COUNTS,
   OPINION_ZONE_EXAMPLES,
   OPINION_ZONE_NAME_MAX,
 } from "@/lib/opinion";
@@ -116,11 +115,14 @@ export default function BookActivityForm({
   const [maxPerGroup, setMaxPerGroup] = useState(6);
   const [namesRaw, setNamesRaw] = useState("");
   const [warning, setWarning] = useState(null); // 이름 개수 불일치 안내
-  // '내 생각은요...' — 영역 이름(2~4개)과 함께 생각할 물음
+  // '내 생각은요...' — 영역 이름(2~6개)과 함께 생각할 물음
   // 영역 이름은 비워 두고 예시는 안내 글(placeholder)로만 — 값으로 채워 두면
   // 찬성·반대가 아닌 판을 만들 때마다 지우고 다시 써야 했습니다.
   const [zoneNames, setZoneNames] = useState(["", ""]);
   const [noteMode, setNoteMode] = useState(DEFAULT_OPINION_NOTE_MODE);
+  // 영역 개수를 고르면 이름 칸이 그 수만큼 — 앞의 이름은 그대로 두고 뒤를 붙이거나 뺍니다
+  const setZoneCount = (n) =>
+    setZoneNames((prev) => (prev.length >= n ? prev.slice(0, n) : [...prev, ...Array(n - prev.length).fill("")]));
   const [prompt, setPrompt] = useState("");
   // '여섯 개의 해시태그'의 안내 문구 — 학생 화면 맨 위에 한 줄로 섭니다
   const [guide, setGuide] = useState("");
@@ -371,12 +373,50 @@ export default function BookActivityForm({
                 maxLength={OPINION_PROMPT_MAX}
               />
             </label>
-            {/* 영역 — 2~4개. 이름은 판의 칸 머리에 그대로 섭니다. */}
+            {/* 영역 개수 · 학생 메모 — 한 줄에 나란히. 개수를 고르면 아래 이름
+                칸이 그 수만큼 섭니다(늘리면 빈 칸이 붙고, 줄이면 뒤 칸이 빠짐 —
+                적어 둔 이름은 다시 늘려도 돌아오지 않습니다). */}
+            <div className="book-field-row">
+              <div className="book-field">
+                <span>영역 개수</span>
+                <div className="book-seg book-seg--tight">
+                  {OPINION_ZONE_COUNTS.map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      className={`book-seg-btn${zoneNames.length === n ? " active" : ""}`}
+                      onClick={() => setZoneCount(n)}
+                      aria-pressed={zoneNames.length === n}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {/* 학생 한 명이 붙일 수 있는 메모 수 — 만든 뒤 '편집'에서도 바꿉니다 */}
+              <div className="book-field">
+                <span>학생 메모</span>
+                <div className="book-seg">
+                  {OPINION_NOTE_MODES.map((m) => (
+                    <button
+                      key={m.key}
+                      type="button"
+                      className={`book-seg-btn${noteMode === m.key ? " active" : ""}`}
+                      onClick={() => setNoteMode(m.key)}
+                      aria-pressed={noteMode === m.key}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            {/* 영역 이름 — 한 줄에 셋씩(여섯이어도 두 줄). 이름은 판의 칸 머리에 그대로 섭니다. */}
             <div className="book-field">
               <span>
-                영역 <em className="book-optional">{zoneNames.length}개 · 2~4개</em>
+                영역 이름 <em className="book-optional">{zoneNames.length}개</em>
               </span>
-              <div className="opinion-zone-inputs">
+              <div className="opinion-zone-inputs opinion-zone-inputs--3">
                 {zoneNames.map((name, i) => (
                   <div key={i} className="opinion-zone-input">
                     <input
@@ -389,52 +429,14 @@ export default function BookActivityForm({
                       maxLength={OPINION_ZONE_NAME_MAX}
                       aria-label={`영역 ${i + 1} 이름`}
                     />
-                    {zoneNames.length > OPINION_ZONE_MIN && (
-                      <button
-                        type="button"
-                        className="opinion-zone-del"
-                        onClick={() => setZoneNames((prev) => prev.filter((_, j) => j !== i))}
-                        aria-label={`영역 ${i + 1} 빼기`}
-                        title="이 영역 빼기"
-                      >
-                        ×
-                      </button>
-                    )}
                   </div>
                 ))}
-                {zoneNames.length < OPINION_ZONE_MAX && (
-                  <button
-                    type="button"
-                    className="btn-ghost opinion-zone-more"
-                    onClick={() => setZoneNames((prev) => [...prev, ""])}
-                  >
-                    ＋ 영역 추가
-                  </button>
-                )}
               </div>
               <em className="book-help">
                 {zonesBad
                   ? "영역 이름을 모두 적어 주세요."
-                  : "만든 뒤에도 ‘편집’에서 이름을 고칠 수 있어요(개수는 그대로)."}
+                  : `${OPINION_NOTE_MODES.find((m) => m.key === noteMode)?.hint ?? ""} 만든 뒤에도 ‘편집’에서 이름을 고칠 수 있어요(개수는 그대로).`}
               </em>
-            </div>
-            {/* 학생 한 명이 붙일 수 있는 메모 수 — 만든 뒤 '편집'에서도 바꿉니다 */}
-            <div className="book-field">
-              <span>학생 메모</span>
-              <div className="book-seg">
-                {OPINION_NOTE_MODES.map((m) => (
-                  <button
-                    key={m.key}
-                    type="button"
-                    className={`book-seg-btn${noteMode === m.key ? " active" : ""}`}
-                    onClick={() => setNoteMode(m.key)}
-                    aria-pressed={noteMode === m.key}
-                  >
-                    {m.label}
-                  </button>
-                ))}
-              </div>
-              <em className="book-help">{OPINION_NOTE_MODES.find((m) => m.key === noteMode)?.hint}</em>
             </div>
           </>
         )}

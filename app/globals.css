@@ -29304,6 +29304,8 @@ h4.attendance-seat-help { margin-top: 16px; }
 }
 .opinion-zone-del:hover { background: var(--bg-deep); color: var(--text); }
 .opinion-zone-more { justify-self: start; }
+/* 만들기 창은 한 줄에 셋 — 영역이 여섯이어도 두 줄이라 창 높이(908px)를 안 넘깁니다 */
+.opinion-zone-inputs--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
 /* 좁은 화면 — 영역을 짜부라뜨리지 않고 판이 옆으로 구릅니다 */
 @media (max-width: 768px) {
