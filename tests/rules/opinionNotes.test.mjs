@@ -5,8 +5,8 @@
 //   ① 반 구성원은 **서로의 메모를 다 읽는다** (entries와 반대)
 //   ② 쓴 사람만 글·색을 고친다. 담당 교사는 자리만 옮긴다
 //   ③ 누가 썼는지(authorId·이름표·byTeacher)는 아무도 못 바꾼다
-//   ④ 지금 앱은 익명 닉네임으로 붙인다(학번 없음). 예전 앱처럼 학번을 적으면
-//      제 학번·이름이어야 한다 · 학생은 '선생님' 이름표를 못 쓴다
+//   ④ 익명 활동은 학생이 적은 닉네임으로(학번 없음), 실명 활동은 학번·이름으로
+//      붙인다 — 학번을 적으면 제 학번·이름이어야 한다 · 학생은 '선생님' 이름표를 못 쓴다
 //   ⑤ 잠긴 활동은 학생이 손대지 못한다
 // =============================================================
 import { describe, it, before, after, beforeEach } from "node:test";
@@ -92,6 +92,19 @@ describe("내 생각은요 메모 규칙", () => {
     await assertSucceeds(
       setDoc(ref(db, "act1", "anon1"), note("stu2", { authorName: "용감한 수달", authorEmoji: "🦦", studentId: null, anon: true }))
     );
+  });
+
+  it("닉네임 활동(nameMode nick) — 학생이 적은 닉네임 · 학번 없이 붙인다", async () => {
+    const db = asStudent(env, "stu2").firestore();
+    await assertSucceeds(
+      setDoc(ref(db, "act1", "nick1"), note("stu2", { authorName: "생각하는 고양이", authorEmoji: null, studentId: null, anon: true, nick: true }))
+    );
+  });
+
+  it("실명 활동(nameMode real) — 제 학번·이름이면 붙고, 이름이 다르면 거부", async () => {
+    const db = asStudent(env, "stu2").firestore();
+    await assertSucceeds(setDoc(ref(db, "act1", "real1"), note("stu2", { anon: false, real: true })));
+    await assertFails(setDoc(ref(db, "act1", "real2"), note("stu2", { authorName: "다른이름", anon: false, real: true })));
   });
 
   it("학생은 '선생님' 이름표로 못 붙인다(익명 메모여도)", async () => {

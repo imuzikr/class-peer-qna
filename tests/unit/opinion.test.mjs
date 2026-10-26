@@ -4,6 +4,11 @@ import assert from "node:assert/strict";
 import {
   OPINION_COLORS,
   canAddOpinionNote,
+  cleanNickname,
+  nicknameProblem,
+  opinionLayout,
+  opinionListByZone,
+  opinionNameMode,
   opinionNoteMode,
   nextNoteSpot,
   noteAuthorLabel,
@@ -120,4 +125,39 @@ test("메모 수 — 표시가 없는 옛 활동은 여러 장, 한 장 모드�
   // 교사는 모드와 상관없이 · 잠기면 학생은 못 붙임
   assert.equal(canAddOpinionNote({ mode: "single", myCount: 1, isTeacher: true }), true);
   assert.equal(canAddOpinionNote({ mode: "multi", myCount: 0, locked: true }), false);
+});
+
+test("판 모양 · 이름표 — 표시가 없는 옛 활동은 메모지 · 예전 이름표", () => {
+  assert.equal(opinionLayout({}), "memo");
+  assert.equal(opinionLayout({ layout: "list" }), "list");
+  assert.equal(opinionLayout({ layout: "grid" }), "memo");
+  assert.equal(opinionNameMode({}), "auto");
+  assert.equal(opinionNameMode({ nameMode: "nick" }), "nick");
+  assert.equal(opinionNameMode({ nameMode: "real" }), "real");
+});
+
+test("닉네임 — 공백을 하나로 · 20자 · 비었거나 '선생님'이면 막음", () => {
+  assert.equal(cleanNickname("  생각하는   고양이 "), "생각하는 고양이");
+  assert.equal(cleanNickname("가".repeat(30)).length, 20);
+  assert.equal(nicknameProblem("   "), "empty");
+  assert.equal(nicknameProblem(" 선생님 "), "teacher");
+  assert.equal(nicknameProblem("구름"), null);
+});
+
+test("실명 이름표 — 학번 이름", () => {
+  assert.equal(noteAuthorLabel({ real: true, studentId: "30105", authorName: "홍길동" }), "30105 홍길동");
+  assert.equal(noteAuthorLabel({ anon: true, nick: true, authorName: "구름" }), "구름");
+});
+
+test("목록 — 영역마다 올린 차례대로, 서버 시각 전의 글은 맨 뒤", () => {
+  const zones = zonesFromNames(["찬성", "반대"]);
+  const notes = [
+    { id: "b", zone: "z1", createdAt: new Date(2000) },
+    { id: "c", zone: "z1", createdAt: null },
+    { id: "a", zone: "z1", createdAt: new Date(1000) },
+    { id: "d", zone: "z2", createdAt: new Date(500) },
+  ];
+  const m = opinionListByZone(notes, zones);
+  assert.deepEqual(m.get("z1").map((n) => n.id), ["a", "b", "c"]);
+  assert.deepEqual(m.get("z2").map((n) => n.id), ["d"]);
 });

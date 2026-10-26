@@ -24,7 +24,10 @@ import { useState } from "react";
 import { safeBookUrl } from "@/lib/paratext";
 import { BOOK_STUDENT_TOPIC_TYPES } from "@/lib/store";
 import {
+  DEFAULT_OPINION_NAME_MODE,
   DEFAULT_OPINION_NOTE_MODE,
+  OPINION_LAYOUTS,
+  OPINION_NAME_MODES,
   OPINION_NOTE_MODES,
   OPINION_PROMPT_MAX,
   OPINION_ZONE_COUNTS,
@@ -120,6 +123,9 @@ export default function BookActivityForm({
   // 찬성·반대가 아닌 판을 만들 때마다 지우고 다시 써야 했습니다.
   const [zoneNames, setZoneNames] = useState(["", ""]);
   const [noteMode, setNoteMode] = useState(DEFAULT_OPINION_NOTE_MODE);
+  // 판 모양(메모지 · 목록)과 이름표(익명 닉네임 · 실명)
+  const [opLayout, setOpLayout] = useState("memo");
+  const [nameMode, setNameMode] = useState(DEFAULT_OPINION_NAME_MODE);
   // 영역 개수를 고르면 이름 칸이 그 수만큼 — 앞의 이름은 그대로 두고 뒤를 붙이거나 뺍니다
   const setZoneCount = (n) =>
     setZoneNames((prev) => (prev.length >= n ? prev.slice(0, n) : [...prev, ...Array(n - prev.length).fill("")]));
@@ -212,6 +218,8 @@ export default function BookActivityForm({
         zones: isOpinion ? zoneNames.map((n) => n.trim()) : [],
         prompt: isOpinion ? prompt.trim() : "",
         noteMode: isOpinion ? noteMode : undefined,
+        layout: isOpinion ? opLayout : undefined,
+        nameMode: isOpinion ? nameMode : undefined,
         guide: isHashtag ? guide.trim() : "",
         sourceActivityId: isCrossword ? sourceId : null,
       });
@@ -411,6 +419,44 @@ export default function BookActivityForm({
                 </div>
               </div>
             </div>
+            {/* 판 모양 · 이름표 — 한 줄에 나란히. 이름표는 만든 뒤에 못 바꿉니다
+                (이미 붙은 글의 이름표가 섞이므로). 판 모양은 '편집'에서도 바꿉니다. */}
+            <div className="book-field-row">
+              <div className="book-field">
+                <span>판 모양</span>
+                <div className="book-seg">
+                  {OPINION_LAYOUTS.map((m) => (
+                    <button
+                      key={m.key}
+                      type="button"
+                      className={`book-seg-btn${opLayout === m.key ? " active" : ""}`}
+                      onClick={() => setOpLayout(m.key)}
+                      aria-pressed={opLayout === m.key}
+                      title={m.hint}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="book-field">
+                <span>이름표</span>
+                <div className="book-seg">
+                  {OPINION_NAME_MODES.map((m) => (
+                    <button
+                      key={m.key}
+                      type="button"
+                      className={`book-seg-btn${nameMode === m.key ? " active" : ""}`}
+                      onClick={() => setNameMode(m.key)}
+                      aria-pressed={nameMode === m.key}
+                      title={m.hint}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
             {/* 영역 이름 — 한 줄에 셋씩(여섯이어도 두 줄). 이름은 판의 칸 머리에 그대로 섭니다. */}
             <div className="book-field">
               <span>
@@ -435,7 +481,7 @@ export default function BookActivityForm({
               <em className="book-help">
                 {zonesBad
                   ? "영역 이름을 모두 적어 주세요."
-                  : `${OPINION_NOTE_MODES.find((m) => m.key === noteMode)?.hint ?? ""} 만든 뒤에도 ‘편집’에서 이름을 고칠 수 있어요(개수는 그대로).`}
+                  : `${OPINION_LAYOUTS.find((m) => m.key === opLayout)?.hint ?? ""} · ${OPINION_NAME_MODES.find((m) => m.key === nameMode)?.hint ?? ""} 만든 뒤에도 ‘편집’에서 이름을 고칠 수 있어요(개수는 그대로).`}
               </em>
             </div>
           </>

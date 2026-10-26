@@ -40,19 +40,23 @@ export default function ConfirmModal({
 
         <p className="confirm-desc">{description}</p>
 
+        {/* cancelLabel={null}이면 알리기만 하는 창 — 단추 하나(확인)가 줄을 다 씁니다 */}
         <div className="confirm-actions">
-          <button
-            type="button"
-            className="btn-ghost confirm-cancel"
-            onClick={onClose}
-            autoFocus
-          >
-            {cancelLabel}
-          </button>
+          {cancelLabel != null && (
+            <button
+              type="button"
+              className="btn-ghost confirm-cancel"
+              onClick={onClose}
+              autoFocus
+            >
+              {cancelLabel}
+            </button>
+          )}
           <button
             type="button"
             className={`confirm-confirm${danger ? " danger" : ""}`}
             onClick={onConfirm}
+            autoFocus={cancelLabel == null}
           >
             {confirmLabel}
           </button>

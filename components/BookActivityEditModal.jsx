@@ -20,11 +20,15 @@ import { backdropClose } from "@/lib/modal";
 import { renameBookActivity, BOOK_SOLO_TYPES, BOOK_STUDENT_TOPIC_TYPES } from "@/lib/store";
 import { safeBookUrl } from "@/lib/paratext";
 import {
+  OPINION_LAYOUTS,
+  OPINION_NAME_MODES,
   OPINION_NOTE_MODES,
   OPINION_PROMPT_MAX,
   OPINION_ZONE_EXAMPLES,
   OPINION_ZONE_NAME_MAX,
   normalizeZones,
+  opinionLayout,
+  opinionNameMode,
   opinionNoteMode,
 } from "@/lib/opinion";
 import { HASHTAG_GUIDE_MAX } from "@/lib/hashtag";
@@ -42,6 +46,7 @@ export default function BookActivityEditModal({ activity, onClose, onDone }) {
   const [zoneNames, setZoneNames] = useState(() => normalizeZones(activity.zones).map((z) => z.name));
   const [prompt, setPrompt] = useState(activity.prompt ?? "");
   const [noteMode, setNoteMode] = useState(() => opinionNoteMode(activity));
+  const [opLayout, setOpLayout] = useState(() => opinionLayout(activity));
   const zonesBad = isOpinion && zoneNames.some((n) => !n.trim());
   // 여섯 개의 해시태그 — 주제어·도서 주소 대신 안내 문구 하나
   const isHashtag = activity.type === "hashtag";
@@ -72,7 +77,7 @@ export default function BookActivityEditModal({ activity, onClose, onDone }) {
       await renameBookActivity(
         activity.id,
         isOpinion
-          ? { title: nextTitle, topic, bookUrl, zoneNames, prompt, noteMode }
+          ? { title: nextTitle, topic, bookUrl, zoneNames, prompt, noteMode, layout: opLayout }
           : isHashtag
           ? { title: nextTitle, topic: "", bookUrl: "", guide }
           : { title: nextTitle, topic, bookUrl },
@@ -218,6 +223,31 @@ export default function BookActivityEditModal({ activity, onClose, onDone }) {
                 {noteMode === "single" && opinionNoteMode(activity) === "multi"
                   ? "이미 여러 장 붙인 학생의 메모는 그대로 남고, 그 학생은 더 붙이지만 못해요."
                   : OPINION_NOTE_MODES.find((m) => m.key === noteMode)?.hint}
+              </em>
+            </div>
+            {/* 판 모양은 바꿀 수 있어요 — 같은 글을 메모지로도 목록으로도 그립니다.
+                이름표는 이미 붙은 글의 이름이 섞이므로 만들 때 정한 그대로입니다. */}
+            <div className="book-field">
+              <span>판 모양</span>
+              <div className="book-seg">
+                {OPINION_LAYOUTS.map((m) => (
+                  <button
+                    key={m.key}
+                    type="button"
+                    className={`book-seg-btn${opLayout === m.key ? " active" : ""}`}
+                    onClick={() => setOpLayout(m.key)}
+                    aria-pressed={opLayout === m.key}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+              <em className="book-help">
+                {OPINION_LAYOUTS.find((m) => m.key === opLayout)?.hint} · 이름표:{" "}
+                {opinionNameMode(activity) === "auto"
+                  ? "접속 닉네임(예전 방식)"
+                  : OPINION_NAME_MODES.find((m) => m.key === opinionNameMode(activity))?.label}
+                {" "}— 이름표는 만든 뒤에 바꿀 수 없어요.
               </em>
             </div>
           </>
