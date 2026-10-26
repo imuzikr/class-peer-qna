@@ -21771,7 +21771,9 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
 .mate-raft-plan dt { font-size: 11.5px; font-weight: 700; color: var(--text-sub); }
 .mate-raft-plan dd { margin: 2px 0 0; font-size: 13px; color: var(--text); overflow-wrap: anywhere; }
 .mate-raft-plan dd em { font-style: normal; color: var(--text-faint); }
-.mate-raft-write strong { display: block; font-size: 12.5px; color: var(--text-sub); margin-bottom: 4px; }
+/* 글쓰기도 네 요소처럼 흰 칸 하나 — 칸 없이 바탕에 흘러 다른 덩이로 안 읽혔습니다 */
+.mate-raft-write { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px 10px; }
+.mate-raft-write strong { display: block; font-size: 11.5px; font-weight: 700; color: var(--text-sub); margin-bottom: 4px; }
 .mate-raft-write p { margin: 0; font-size: 14px; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--text); }
 @media (max-width: 760px) {
   .peer-split { grid-template-columns: minmax(0, 1fr); }
@@ -29297,7 +29299,10 @@ h4.attendance-seat-help { margin-top: 16px; }
   display: grid;
   grid-template-columns: repeat(var(--zones, 2), minmax(0, 1fr));
   min-width: calc(var(--zones, 2) * 200px);
-  min-height: clamp(300px, calc(100vh - 520px), 640px);
+  /* 창 바닥까지 — 높이는 OpinionBoard가 판의 자리를 재어 --list-h로 줍니다
+     (위에 서는 머리말 · 물음 줄의 높이가 화면마다 달라 고정 값으로는 중간에서
+     끊긴 듯 보였습니다). 재기 전에는 아래 값. */
+  min-height: var(--list-h, clamp(300px, calc(100vh - 340px), 900px));
 }
 .opinion-list-col { padding: 10px; background: var(--tint-zone); }
 .opinion-list-col + .opinion-list-col { border-left: 2px solid var(--tint-line); }

@@ -126,6 +126,28 @@ export default function OpinionBoard({
 
   // ── 판 크기 재기 — 자리 셈이 픽셀을 알아야 합니다 ──
   const bodyRef = useRef(null);
+  // 목록 판은 창 바닥까지 — 판이 선 자리에서 창 끝까지를 잽니다. 판 아래에
+  // 붙는 것(판 테두리 · 페이지 여백)만큼 빼서 페이지 스크롤이 안 생기게.
+  const listRef = useRef(null);
+  const [listH, setListH] = useState(0);
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el) return undefined;
+    const measure = () => {
+      const r = el.getBoundingClientRect();
+      const top = r.top + window.scrollY;
+      const board = el.closest(".opinion-board");
+      const main = el.closest("main");
+      const below =
+        (board ? board.getBoundingClientRect().bottom - r.bottom : 0) +
+        (main ? parseFloat(getComputedStyle(main).paddingBottom) || 0 : 0);
+      const h = Math.max(300, Math.round(window.innerHeight - top - below - 12));
+      setListH((prev) => (prev === h ? prev : h));
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  });
   const [box, setBox] = useState({ w: 0, h: 0 });
   useEffect(() => {
     const el = bodyRef.current;
@@ -388,7 +410,7 @@ export default function OpinionBoard({
               </div>
             ))}
           </div>
-          <div className="opinion-list-body">
+          <div className="opinion-list-body" ref={listRef} style={listH ? { "--list-h": `${listH}px` } : undefined}>
             {zones.map((z, i) => {
               const items = listByZone.get(z.key) ?? [];
               return (
