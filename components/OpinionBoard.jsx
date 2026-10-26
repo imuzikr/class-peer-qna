@@ -19,7 +19,8 @@
 // 저장이 돌아오기 전에 원래 자리로 튀지 않게 놓은 자리를 잠깐 붙들어 둡니다.
 //
 // [판 모양] 활동의 layout — memo(메모지, 위 그대로) / list(목록). 목록이면
-// 판 위의 입력창에서 영역을 고르고 글을 적어 '제출'하고, 글은 그 영역 칸에
+// 영역 머리의 ＋가 쓰기 창(메모지와 같은 창, 색 고르기만 뺌)을 열고, '제출'한
+// 글은 그 영역 칸에
 // **올린 차례대로** 한 줄씩 쌓입니다. 줄을 누르면 같은 크게 보기 창이 뜹니다.
 // 자료는 같은 opinionNotes라 메모지 ↔ 목록을 오가도 글이 그대로입니다
 // (목록에서 쓴 글도 자리 x·y를 함께 적어 둡니다).
@@ -144,8 +145,6 @@ export default function OpinionBoard({
   const [openId, setOpenId] = useState(null);
   const [composeZone, setComposeZone] = useState(null); // 새 메모를 쓰는 중이면 영역 key
   const [error, setError] = useState("");
-  const [listZone, setListZone] = useState(null); // 목록형 입력창에서 고른 영역
-  const listTextRef = useRef(null);
 
   const isMine = (n) => !!uid && n.authorId === uid;
   const layout = opinionLayout(activity);
@@ -348,22 +347,6 @@ export default function OpinionBoard({
         <p className="form-error" role="alert" onClick={() => setError("")}>{error}</p>
       )}
 
-      {isList && (canPost || usedMyOne) && (
-        <OpinionListComposer
-          key={activity.id}
-          zones={zones}
-          pickedZone={listZone}
-          onPickZone={setListZone}
-          textRef={listTextRef}
-          askNick={askNick}
-          nick={nick}
-          onNick={setNick}
-          whoLabel={composeLabel}
-          canPost={canPost}
-          onSubmit={(v) => createNote({ ...v, color: randomColor() })}
-        />
-      )}
-
       {isList ? (
         <section className="opinion-board is-list" style={{ "--zones": zones.length }} aria-label="생각 목록">
           <div className="opinion-heads">
@@ -371,13 +354,18 @@ export default function OpinionBoard({
               <div key={z.key} className={`opinion-zone-head tint-${ZONE_TINTS[i % ZONE_TINTS.length]}`}>
                 <strong>{z.name}</strong>
                 <span className="opinion-zone-count">{byZone.get(z.key) ?? 0}</span>
-                {canPost && (
+                {(canPost || usedMyOne) && (
                   <button
                     type="button"
                     className="opinion-zone-add"
-                    onClick={() => { setListZone(z.key); listTextRef.current?.focus(); }}
-                    aria-label={`‘${z.name}’에 글 쓰기`}
-                    title={`‘${z.name}’에 글 쓰기 — 위 입력창에 이 영역이 골라져요`}
+                    onClick={() => canPost && setComposeZone(z.key)}
+                    disabled={!canPost}
+                    aria-label={canPost ? `‘${z.name}’에 글 쓰기` : "글은 한 사람에 하나예요"}
+                    title={
+                      canPost
+                        ? `‘${z.name}’에 글 쓰기`
+                        : "글은 한 사람에 하나예요 — 내 글을 눌러 고칠 수 있어요"
+                    }
                   >
                     ＋
                   </button>
@@ -548,6 +536,8 @@ export default function OpinionBoard({
             />
           }
           authorLabel={composeLabel}
+          showColors={!isList}
+          submitLabel={isList ? "제출" : "메모 붙이기"}
           askNick={askNick}
           nick={nick}
           onNick={setNick}
@@ -595,6 +585,7 @@ function OpinionNoteModal({
   canEdit = false,
   canRemove = false,
   showColors = true,
+  submitLabel = "메모 붙이기",
   askNick = false,
   nick = "",
   onNick,
@@ -732,7 +723,7 @@ function OpinionNoteModal({
             <div className="modal-actions">
               <button type="button" className="btn-ghost" onClick={cancelEdit}>취소</button>
               <button type="button" className="btn-primary" onClick={submit} disabled={!trimmed || saving}>
-                {saving ? "저장 중…" : isNew ? "메모 붙이기" : "저장"}
+                {saving ? "저장 중…" : isNew ? submitLabel : "저장"}
               </button>
             </div>
           </>
@@ -850,98 +841,5 @@ function NickAlert({ problem, onClose }) {
       onConfirm={onClose}
       onClose={onClose}
     />
-  );
-}
-
-// ─── 목록형 입력창 ─────────────────────────────────────────────
-// 영역 고르기 → (닉네임) → 글 → 제출. 제출하면 그 영역 칸 맨 아래에 붙습니다.
-// 영역과 닉네임은 그대로 두고 글만 비웁니다(잇달아 쓰기 편하게).
-function OpinionListComposer({
-  zones, pickedZone, onPickZone, textRef, askNick, nick, onNick, whoLabel, canPost, onSubmit,
-}) {
-  const [text, setText] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [err, setErr] = useState("");
-  const [nickAlert, setNickAlert] = useState(null);
-  const nickRef = useRef(null);
-  const trimmed = text.trim();
-  const ready = canPost && !!pickedZone && !!trimmed && !saving;
-
-  async function submit() {
-    if (!ready) return;
-    if (askNick) {
-      const problem = nicknameProblem(nick);
-      if (problem) { setNickAlert(problem); return; }
-    }
-    setSaving(true);
-    setErr("");
-    try {
-      await onSubmit({ text: trimmed, zone: pickedZone });
-      setText("");
-      textRef.current?.focus();
-    } catch (e) {
-      setErr(`올리지 못했어요: ${e?.message ?? "알 수 없는 오류"}`);
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  if (!canPost) {
-    return (
-      <p className="opinion-compose-done">
-        이 활동은 한 사람에 글 하나예요 — 아래 내 글을 눌러 고칠 수 있어요.
-      </p>
-    );
-  }
-  return (
-    <section className="opinion-compose" aria-label="생각 쓰기">
-      <div className="opinion-compose-row">
-        <span className="opinion-compose-label">영역</span>
-        <div className="opinion-compose-zones" role="radiogroup" aria-label="영역">
-          {zones.map((z, i) => (
-            <button
-              key={z.key}
-              type="button"
-              role="radio"
-              aria-checked={pickedZone === z.key}
-              className={`opinion-compose-zone tint-${ZONE_TINTS[i % ZONE_TINTS.length]}${pickedZone === z.key ? " on" : ""}`}
-              onClick={() => onPickZone(z.key)}
-            >
-              {z.name}
-            </button>
-          ))}
-        </div>
-        <span className="opinion-compose-who">쓰는 사람 · <b>{whoLabel}</b></span>
-      </div>
-      {askNick && <NickField value={nick} onChange={onNick} inputRef={nickRef} />}
-      <textarea
-        ref={textRef}
-        className="opinion-compose-input"
-        value={text}
-        onChange={(e) => setText(e.target.value.slice(0, OPINION_TEXT_MAX))}
-        onKeyDown={(e) => {
-          if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
-            e.preventDefault();
-            submit();
-          }
-        }}
-        placeholder="내 생각을 적어 보세요. 왜 그렇게 생각하는지도 함께요."
-        maxLength={OPINION_TEXT_MAX}
-      />
-      <div className="opinion-compose-foot">
-        <span className="opinion-compose-hint">
-          {err || (!pickedZone ? "어느 영역에 올릴지 먼저 골라 주세요." : `${text.length} / ${OPINION_TEXT_MAX}`)}
-        </span>
-        <button type="button" className="btn-primary opinion-compose-send" onClick={submit} disabled={!ready}>
-          {saving ? "올리는 중…" : "제출"}
-        </button>
-      </div>
-      {nickAlert && (
-        <NickAlert
-          problem={nickAlert}
-          onClose={() => { setNickAlert(null); setTimeout(() => nickRef.current?.focus(), 0); }}
-        />
-      )}
-    </section>
   );
 }

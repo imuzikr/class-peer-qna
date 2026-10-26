@@ -29290,51 +29290,6 @@ h4.attendance-seat-help { margin-top: 16px; }
 .opinion-modal .opinion-nick > span,
 .opinion-modal .opinion-nick em { color: var(--note-ink); }
 
-/* ── 목록형 — 입력창(판 위) ── */
-.opinion-compose {
-  margin-bottom: 12px;
-  padding: 14px 16px;
-  border: 1.5px solid #eee0cb;
-  border-radius: 16px;
-  background: #fff;
-  box-shadow: 0 1px 2px rgba(120, 90, 50, 0.05);
-}
-.opinion-compose-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-bottom: 10px; }
-.opinion-compose-label { font-size: 13px; font-weight: 700; color: var(--text-sub); }
-.opinion-compose-zones { display: flex; flex-wrap: wrap; gap: 6px; }
-.opinion-compose-zone {
-  padding: 5px 14px;
-  border: 1.5px solid var(--tint-line);
-  border-radius: 999px;
-  background: #fff;
-  color: var(--tint-ink);
-  font-size: 13.5px;
-  font-weight: 700;
-  cursor: pointer;
-}
-.opinion-compose-zone:hover { background: var(--tint-zone); }
-.opinion-compose-zone.on { background: var(--tint-line); color: #fff; }
-.opinion-compose-who { margin-left: auto; font-size: 12.5px; color: var(--text-sub); }
-.opinion-compose-input {
-  width: 100%;
-  min-height: 84px;
-  padding: 10px 12px;
-  font-size: 14.5px;
-  line-height: 1.6;
-  resize: vertical;
-}
-.opinion-compose-foot { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
-.opinion-compose-hint { flex: 1; min-width: 0; font-size: 12.5px; color: var(--text-faint); }
-.opinion-compose-send { flex-shrink: 0; min-width: 96px; }
-.opinion-compose-done {
-  margin: 0 0 12px;
-  padding: 10px 14px;
-  border-radius: 12px;
-  background: var(--neutral);
-  font-size: 13px;
-  color: var(--text-sub);
-}
-
 /* ── 목록형 — 영역마다 한 칸, 글이 올린 차례대로 쌓임 ── */
 .opinion-list-body {
   display: grid;
@@ -29382,9 +29337,6 @@ h4.attendance-seat-help { margin-top: 16px; }
 .opinion-list-who { align-self: flex-start; font-size: 12px; font-weight: 700; color: var(--note-ink); }
 .opinion-list-item.is-teacher .opinion-list-who::before { content: "✦ "; }
 .opinion-list-empty { margin: 8px 4px; font-size: 13px; color: var(--text-faint); }
-@media (max-width: 768px) {
-  .opinion-compose-who { margin-left: 0; flex-basis: 100%; }
-}
 
 /* 만들기 · 편집 창의 영역 이름 칸 — 한 줄에 둘씩 */
 .opinion-zone-inputs {
