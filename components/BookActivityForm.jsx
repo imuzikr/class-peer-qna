@@ -215,7 +215,7 @@ export default function BookActivityForm({
       await onSave({
         type,
         title,
-        topic,
+        topic: isBrainwrite ? "" : topic,
         bookUrl: hasBookUrl ? bookUrl.trim() : "",
         groupMode,
         groupCount,
@@ -279,8 +279,9 @@ export default function BookActivityForm({
               maxLength={40}
             />
           </label>
-          {/* 가로세로는 주제어를 받지 않습니다 — 고른 닿소리의 주제어를 그대로 씁니다 */}
-          {!isHashtag && !isCrossword && (
+          {/* 가로세로는 주제어를 받지 않습니다 — 고른 닿소리의 주제어를 그대로 씁니다.
+              브레인 라이팅도 받지 않습니다 — 질문이 그 자리를 합니다(선생님 요청). */}
+          {!isHashtag && !isCrossword && !isBrainwrite && (
             <label className="book-field">
               <span>
                 주제어 · 도서명

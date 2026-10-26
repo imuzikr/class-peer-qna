@@ -10859,6 +10859,14 @@ pre code {
   background: var(--neutral);
   border: 1px solid var(--border);
 }
+/* 자리 없음(브레인 라이팅 — 모둠이 작아 그 차례가 없는 칸) — 빈 점선 네모 */
+.progress-mark--none,
+.grass-cell--none {
+  background: transparent;
+  border: 1px dashed var(--border);
+}
+.grass-cell--none { cursor: default; }
+.grass-cell--none:hover { transform: none; }
 .progress-legend {
   display: flex;
   flex-wrap: wrap;
@@ -33483,7 +33491,25 @@ button.msgr-receipt:hover { color: var(--text-sub); }
   border-radius: var(--radius);
   overflow: hidden;
 }
-.bw-col--read { max-width: 720px; }
+.bw-col--read { max-width: none; }
+/* 교사 가운데 — 컬럼을 칸 가운데에, 그 위에 같은 폭의 머리(이름 · 모둠 · 수업 시작) */
+.bw-col-wrap {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.bw-col-top {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+}
+.bw-col-top h2 { margin: 0; font-size: 19px; display: flex; align-items: baseline; gap: 6px; }
+.bw-col-top h2 em { font-style: normal; font-size: 13px; color: var(--text-sub); font-weight: 500; }
+.bw-col-top .bw-cast-btn { margin-left: auto; }
 .bw-col-head {
   display: flex;
   flex-direction: column;
@@ -33529,6 +33555,22 @@ button.msgr-receipt:hover { color: var(--text-sub); }
 .bw-row-text { margin: 0; font-size: 15px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--text); }
 .bw-row-text.empty { color: var(--text-faint); font-size: 13.5px; }
 .bw-row-hint { margin: 0; font-size: 12.5px; color: var(--text-sub); }
+.bw-rail-item.ready .bw-rail-state { color: var(--primary-dark); font-weight: 700; }
+/* 앞 사람이 아직 안 써서 잠긴 내 줄 — 쓰는 칸 자리를 같은 높이로 지킵니다 */
+.bw-row-wait {
+  margin: 0;
+  min-height: 84px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px dashed var(--border);
+  border-radius: var(--radius-btn);
+  background: var(--bg);
+  font-size: 13.5px;
+  color: var(--text-sub);
+  text-align: center;
+  padding: 10px 14px;
+}
 .bw-row-input {
   width: 100%;
   min-height: 84px;

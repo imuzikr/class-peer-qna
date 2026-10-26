@@ -42,6 +42,7 @@ const STATE_LABEL = {
   doing: "쓰는 중",
   empty: "시작 전",
   locked: "잠김",
+  none: "자리 없음", // 브레인 라이팅 — 모둠이 작아 그 차례가 없는 칸
 };
 
 export default function BookProgressBoard({
@@ -54,6 +55,7 @@ export default function BookProgressBoard({
   states = ["done", "empty", "locked"], // 범례에 세울 상태(그 활동에 실제로 있는 것만)
   summary = null,        // 범례 오른쪽 끝 한 줄
   headWidth = 232,       // 단계 이름표 칸의 폭 — 이름 길이가 활동마다 달라서
+  labels = null,         // 범례의 상태 이름을 활동마다 바꿀 때 { done: '…' }
   onOpenStudent = null,  // 칸·이름을 누르면 그 학생 화면으로
   onClose,
 }) {
@@ -117,7 +119,7 @@ export default function BookProgressBoard({
             <div className="progress-legend">
               {states.map((st) => (
                 <span key={st} className="progress-legend-item">
-                  <i className={`progress-mark progress-mark--${st}`} /> {STATE_LABEL[st]}
+                  <i className={`progress-mark progress-mark--${st}`} /> {labels?.[st] ?? STATE_LABEL[st]}
                 </span>
               ))}
               {summary && <span className="progress-legend-sum">{summary}</span>}

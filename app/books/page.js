@@ -693,6 +693,8 @@ function BooksPageInner() {
           activity={activeActivity}
           className={activeClassName}
           classPicker={classPicker}
+          classId={activeClassId}
+          user={user}
           roster={roster}
           baseGroupAssignment={baseGroupAssignment}
           onBack={goToList}

@@ -37,3 +37,24 @@ test("줄 · 앞 사람 · 진행", () => {
   assert.deepEqual(writerProgress(M, "e", by).map((p) => p.done), [true, false, false, false]);
   assert.equal(writerChars("e", notes), 2);
 });
+
+import { rowWritable, writerSlots } from "../../lib/brainwrite.js";
+
+test("앞 사람이 써야 내 줄이 열림", () => {
+  const rows = [{ filled: true }, { filled: false }, { filled: false }];
+  assert.equal(rowWritable(rows, 0), true);
+  assert.equal(rowWritable(rows, 1), true);
+  assert.equal(rowWritable(rows, 2), false);
+  assert.equal(rowWritable([{ filled: false }, { filled: true }], 1), true); // 이미 쓴 줄
+});
+
+test("이어 쓰는 차례 — k번째 줄의 주인", () => {
+  const by = notesByColumn([
+    { ownerUid: "a", writerUid: "a", text: "q" },
+    { ownerUid: "a", writerUid: "b", text: "x" },
+  ]);
+  const s = writerSlots(M, "b", by);
+  assert.deepEqual(s.map((x) => x.owner.uid), ["b", "a", "e", "c"]);
+  assert.deepEqual(s.map((x) => x.done), [false, true, false, false]);
+  assert.deepEqual(s.map((x) => x.ready), [true, true, false, false]);
+});

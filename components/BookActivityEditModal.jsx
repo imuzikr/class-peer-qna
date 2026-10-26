@@ -121,7 +121,7 @@ export default function BookActivityEditModal({ activity, onClose, onDone }) {
               maxLength={40}
             />
           </label>
-          {!isHashtag && (
+          {!isHashtag && !isBrainwrite && (
             <label className="book-field">
               <span>
                 주제어 · 도서명

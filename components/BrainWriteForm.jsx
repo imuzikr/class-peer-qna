@@ -19,7 +19,8 @@ import {
   sortMembers,
   columnRows,
   notesByColumn,
-  writerProgress,
+  writerSlots,
+  rowWritable,
 } from "@/lib/brainwrite";
 import { useBookGroups, myBookGroup } from "@/lib/bookGroups";
 import { safeBookUrl } from "@/lib/paratext";
@@ -43,8 +44,9 @@ export default function BrainWriteForm({ activity, user, onBack }) {
 
   const members = useMemo(() => sortMembers(myGroup?.members ?? []), [myGroup]);
   const byColumn = useMemo(() => notesByColumn(notes ?? []), [notes]);
+  // 내가 이어 쓰는 칸들 — 칸 주인마다 '썼나 · 차례가 왔나'
   const progress = useMemo(
-    () => writerProgress(members, user?.uid, byColumn),
+    () => writerSlots(members, user?.uid, byColumn),
     [members, user?.uid, byColumn]
   );
   const doneCount = progress.filter((p) => p.done).length;
@@ -95,6 +97,8 @@ export default function BrainWriteForm({ activity, user, onBack }) {
   const rows = owner ? columnRows(members, owner.uid, byColumn) : [];
   const myAt = rows.findIndex((r) => r.member.uid === user?.uid);
   const prev = myAt > 0 ? rows[myAt - 1] : null;
+  // 앞 사람이 써야 내 줄이 열립니다(선생님 요청) — 첫 줄은 늘, 이미 쓴 줄도 늘.
+  const myOpen = myAt >= 0 && (rowWritable(rows, myAt) || !!String(drafts[owner?.uid] ?? "").trim());
   const prompt = String(activity.prompt ?? "").trim();
 
   return (
@@ -154,16 +158,22 @@ export default function BrainWriteForm({ activity, user, onBack }) {
                   <li key={m.uid}>
                     <button
                       type="button"
-                      className={`bw-rail-item${on ? " on" : ""}${p?.done ? " done" : ""}`}
+                      className={`bw-rail-item${on ? " on" : ""}${p?.done ? " done" : p?.ready ? " ready" : ""}`}
                       onClick={() => pick(m.uid)}
                       aria-pressed={on}
-                      title={p?.done ? "이 칸에 내 글을 남겼어요" : "아직 이 칸에 쓰지 않았어요"}
+                      title={
+                        p?.done
+                          ? "이 칸에 내 글을 남겼어요"
+                          : p?.ready
+                          ? "앞 사람이 썼어요 — 이제 이어 쓸 차례예요"
+                          : "앞 사람이 아직 쓰지 않았어요"
+                      }
                     >
                       <span className="bw-rail-name">
                         {m.name}
                         {me && <em>나</em>}
                       </span>
-                      <span className="bw-rail-state">{p?.done ? "✓ 씀" : "아직"}</span>
+                      <span className="bw-rail-state">{p?.done ? "✓ 씀" : p?.ready ? "내 차례" : "기다림"}</span>
                     </button>
                   </li>
                 );
@@ -197,11 +207,11 @@ export default function BrainWriteForm({ activity, user, onBack }) {
                     </span>
                     {mine ? (
                       <>
-                        {prev && !prev.filled && !String(text).trim() && (
-                          <p className="bw-row-hint">
-                            앞 사람({prev.member.name})이 아직 쓰지 않았어요 — 기다렸다가 이어 써도, 먼저 써도 괜찮아요.
+                        {!myOpen ? (
+                          <p className="bw-row-wait">
+                            앞 사람({prev?.member.name})이 글을 남기면 이어 쓸 수 있어요.
                           </p>
-                        )}
+                        ) : (
                         <textarea
                           className="bw-row-input"
                           value={text}
@@ -215,6 +225,7 @@ export default function BrainWriteForm({ activity, user, onBack }) {
                               : "앞 사람의 글에 이어 질문하거나 생각을 보태요"
                           }
                         />
+                        )}
                       </>
                     ) : (
                       <p className={`bw-row-text${r.filled ? "" : " empty"}`}>
