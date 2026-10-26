@@ -23471,6 +23471,10 @@ span.cloud-word { cursor: default; }
      수업 중에 교사가 답을 읽는 창이라 넉넉해야 합니다. */
   width: 100%;
   max-width: 960px;
+  /* 높이를 못 박습니다(선생님 요청) — 영역마다 글 양이 달라 넘길 때마다 창이
+     늘었다 줄었다 했습니다. 가장 긴 RAFT 글쓰기에 맞춘 값이고, 모자라면 본문만
+     구릅니다. 곁텍스트 · KWLS · 물음표 · 해시태그도 같은 창이라 함께 고정됩니다. */
+  height: min(780px, 88vh);
   max-height: 88vh;
   display: flex;
   flex-direction: column;
@@ -23685,6 +23689,19 @@ span.cloud-word { cursor: default; }
   font-size: clamp(15px, 1.3vw, 19px);
   margin-bottom: 18px;
 }
+
+/* RAFT 글쓰기 — '한 눈에 보기' 카드 모양(EntryCastCard · `look: "card"`).
+   학생 방송 화면과 교사의 수업 화면 창이 같은 조각입니다. 글자 크기는 위의
+   data-size 단계(`.entry-cast-body .paratext-read-text`)가 그대로 정합니다. */
+.entry-cast--card { background: var(--bg); }
+.entry-cast-card .eov-lead { margin: 0 0 16px; }
+.entry-cast-card .eov-card { box-shadow: none; padding: 18px 22px 22px; }
+.entry-cast-card .eov-text { color: var(--text); }
+.entry-cast--card .eov-lead { font-size: clamp(16px, 1.4vw, 22px); }
+.entry-cast--card .eov-card-head .paratext-card-title strong { font-size: clamp(18px, 1.6vw, 26px); }
+.entry-cast--card .eov-state { font-size: 13px; padding: 4px 11px; }
+.entry-cast--card .eov-prompt { font-size: clamp(13px, 1.1vw, 17px); }
+.entry-cast--card .eov-field { padding: 16px 20px; }
 
 /* 두 칸 꾸러미(물음표로 책 읽기 — `columns: 2`) — 칸을 둘씩 한 줄로.
    물음표는 '궁금증 | 이유는' 한 쌍, 나의 생각은 '고른 물음 | 나의 생각'.

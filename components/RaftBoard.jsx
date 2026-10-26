@@ -695,5 +695,8 @@ function buildPayload(activity, card, index) {
     index,
     total: REGION_COUNT,
     fields: [{ label: "", text: String(answers[r.key] ?? "").trim() }],
+    // 글쓰기는 '한 눈에 보기'와 같은 카드 모양으로(EntryCastCard) — 긴 글이라
+    // 문장 한 줄 아래 카드 한 장에 담아야 무엇에 대한 글인지 함께 읽힙니다.
+    ...(r.key === RAFT_WRITING.key ? { look: "card" } : {}),
   };
 }

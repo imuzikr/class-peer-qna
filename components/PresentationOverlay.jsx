@@ -13,6 +13,7 @@ import MindmapCanvas from "./MindmapCanvas";
 import WordCloud from "./WordCloud";
 import HashtagSlide from "./HashtagSlide";
 import { IconGroup } from "./StatusIcons";
+import EntryCastCard from "./EntryCastCard";
 
 // 이 화면이 그릴 줄 아는 방송 종류. 새 종류를 추가하면 여기에도 넣어야 합니다.
 const KNOWN_MODES = ["consonant", "entry", "wall", "mindmap", "lesson", "carousel", "single", "hashtag"];
@@ -295,6 +296,12 @@ export default function PresentationOverlay({ broadcast, noteOpen = false, noteW
         </div>
 
         <div className="broadcast-body">
+          {broadcast.look === "card" ? (
+          // RAFT 글쓰기 — '한 눈에 보기'와 같은 카드 모양(EntryCastCard)
+          <div className="entry-cast entry-cast--card" data-size={size}>
+            <EntryCastCard payload={broadcast} />
+          </div>
+          ) : (
           <div className="entry-cast" data-size={size} data-cols={cols ? "2" : undefined}>
             <header className="entry-cast-head">
               {broadcast.letter && (
@@ -326,6 +333,7 @@ export default function PresentationOverlay({ broadcast, noteOpen = false, noteW
               ))}
             </div>
           </div>
+          )}
         </div>
       </div>
     );

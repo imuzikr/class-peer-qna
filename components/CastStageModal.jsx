@@ -26,6 +26,7 @@ import { useEffect, useState } from "react";
 import { backdropClose } from "@/lib/modal";
 import { addStudentReward, subscribeMyClassRewardCount, REWARD_MAX } from "@/lib/store";
 import { nextFruit } from "./RewardFruits";
+import EntryCastCard from "./EntryCastCard";
 
 export default function CastStageModal({
   // 지금 방송 중인 꾸러미 — 학생 화면(PresentationOverlay)이 받는 그것입니다
@@ -185,7 +186,7 @@ export default function CastStageModal({
             교사가 보는 것이 곧 칠판에 뜬 것이어야 하므로 글자 크기도 그쪽
             것을 그대로 물려받습니다. 칸을 가르는 가로줄도 따라옵니다. */}
         <div className="cast-stage-body">
-          {body ?? (<>
+          {body ?? (payload?.look === "card" ? <EntryCastCard payload={payload} /> : <>
           {payload?.prompt && <p className="entry-cast-prompt">{payload.prompt}</p>}
           {/* RAFT는 낱말 하나만 뜨면 무슨 말인지 몰라 문장을 함께 보여 줍니다 */}
           {payload?.note && <p className="raft-sentence done">{payload.note}</p>}
