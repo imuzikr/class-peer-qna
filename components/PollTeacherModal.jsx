@@ -3,7 +3,7 @@
 // =============================================================
 // 투표 — 교사 창(떠 있는 동그라미의 '투표')
 // -------------------------------------------------------------
-// 두 칸 — 왼쪽 '＋ 새 투표'와 이 반의 투표 목록, 오른쪽 만들기 칸 또는 고른
+// 두 칸 — 왼쪽 이 반의 투표 목록과 그 아래 '＋ 새 투표', 오른쪽 만들기 칸 또는 고른
 // 투표의 결과.
 //  · 만들기: 종류(하나만 고르기 · 여러 개 고르기) · 물음 · 항목(처음 셋, ＋로
 //    열까지). '투표 시작'을 누르면 진행 중이던 투표는 마칩니다(한 번에 하나).
@@ -75,13 +75,6 @@ export default function PollTeacherModal({ classId, onClose }) {
 
         <div className="poll-teacher-body">
           <aside className="poll-side">
-            <button
-              type="button"
-              className={`btn-primary poll-new${showCompose ? " on" : ""}`}
-              onClick={() => setComposing(true)}
-            >
-              ＋ 새 투표
-            </button>
             {polls === null ? (
               <p className="pq-empty">불러오는 중…</p>
             ) : list.length === 0 ? (
@@ -104,6 +97,13 @@ export default function PollTeacherModal({ classId, onClose }) {
                 ))}
               </ul>
             )}
+            <button
+              type="button"
+              className={`btn-primary poll-new${showCompose ? " on" : ""}`}
+              onClick={() => setComposing(true)}
+            >
+              ＋ 새 투표
+            </button>
           </aside>
 
           <div className="poll-main">
