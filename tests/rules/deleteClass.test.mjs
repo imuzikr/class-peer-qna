@@ -54,6 +54,9 @@ describe("반 삭제 시 하위 데이터 정리", () => {
     await db.doc(`classes/${GONE}/popQuizzes/q1/submissions/stu1`).set({
       classId: GONE, quizId: "q1", uid: "stu1", kind: "text", text: "답", status: "submitted",
     });
+    // 투표와 그 아래 학생 표(2단계)
+    await db.doc(`classes/${GONE}/polls/p1`).set({ classId: GONE, kind: "single", title: "투표", open: true });
+    await db.doc(`classes/${GONE}/polls/p1/votes/stu1`).set({ classId: GONE, pollId: "p1", uid: "stu1", picks: ["o1"] });
     // 과일 지급 이력 — 규칙상 아무도 못 지우게 잠가 둔 컬렉션이라, 반을
     // 지울 때 여기서 정말 사라지는지 확인해 두어야 합니다.
     await db.doc(`classes/${GONE}/rewardEvents/e1`).set({
@@ -131,6 +134,8 @@ describe("반 삭제 시 하위 데이터 정리", () => {
     await gone(`classes/${GONE}/questionSignals/stu1`);
     await gone(`classes/${GONE}/popQuizzes/q1`);
     await gone(`classes/${GONE}/popQuizzes/q1/submissions/stu1`);
+    await gone(`classes/${GONE}/polls/p1`);
+    await gone(`classes/${GONE}/polls/p1/votes/stu1`);
     await gone(`classes/${GONE}/rewardEvents/e1`);
     await gone(`classes/${GONE}/classNotices/n1`);
     await gone(`classes/${GONE}/lessonMemos/m1`);

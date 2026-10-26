@@ -17,6 +17,7 @@ const CLASS_SUBCOLLECTIONS = [
   "seatLayouts",       // 자리표(기본 + 날짜별 임시)
   "groupAssignments",  // 반 기본 모둠 — 실명·학번 포함
   "popQuizzes",        // 돌발 퀴즈 + submissions(학생 답) — 2단계까지 recursiveDelete
+  "polls",             // 투표 + votes(학생이 고른 것) — 2단계까지 recursiveDelete
   "rewardEvents",      // 과일 지급 이력 — uid·지급 시각(참여 기록)
   "questionSignals",   // 손들기 — 실명·학번 포함
   "signalEvents",      // 손들기 이력 — 실명·학번·손든 시각(참여 기록)

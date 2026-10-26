@@ -32027,9 +32027,20 @@ h4.attendance-seat-help { margin-top: 16px; }
 }
 .hub-item:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
 .hub-item .hub-item-badge { top: -2px; right: -2px; }
-/* KWLS — K · W · L 세 칸을 살짝 겹쳐 한 덩이로 */
-.hub-kwl-stack { display: flex; }
-.hub-kwl-stack svg + svg { margin-left: -5px; }
+/* 투표 불 — 돌발 퀴즈 불(.pq-btn-dot)과 같은 색: 빨강 = 아직 안 함, 초록 = 공유된 결과 */
+.hub-item-dot,
+.hub-fab-dot {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: #e05a2f;
+  box-shadow: 0 0 0 2px #fff;
+}
+.hub-item-dot { top: 2px; right: 2px; }
+.hub-fab-dot { top: 0; right: 0; }
+.hub-item-dot.is-green,
+.hub-fab-dot.is-green { background: #2f9e5a; }
 /* 출석 — 체크 하나(currentColor)라 '됐다'의 초록으로 */
 .hub-icon-check { color: #3f704b; }
 /* 과일 바구니 — 바구니 창의 그림을 작게(흰 바탕을 원판에 녹임) */
@@ -32088,8 +32099,6 @@ h4.attendance-seat-help { margin-top: 16px; }
   margin-bottom: 1px;
 }
 .hub-center-badge svg { width: 20px; height: 20px; }
-.hub-center-badge .hub-kwl-stack svg { width: 11px; height: 11px; }
-.hub-center-badge .hub-kwl-stack svg + svg { margin-left: -3px; }
 .hub-center-badge .hub-basket-pic { width: 24px; height: 16px; }
 
 /* ── 메신저 창 ── */
@@ -32998,3 +33007,309 @@ button.msgr-receipt:hover { color: var(--text-sub); }
 .xwg-hintpop-legend b { margin-left: auto; font-size: 12px; font-weight: 700; color: var(--text-sub); font-variant-numeric: tabular-nums; }
 .xwg-hintpop-foot { margin: 0; font-size: 12px; color: var(--text-faint); }
 .xwg-hintpop-board .xw-cell.key .xw-ch { color: var(--text-sub); }
+
+/* =============================================================
+   투표 — 교사 창 · 학생 창(components/Poll*.jsx)
+   ============================================================= */
+.poll-kind,
+.poll-state {
+  flex-shrink: 0;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.3;
+  white-space: nowrap;
+  background: var(--bg-deep);
+  color: var(--text-sub);
+}
+.poll-kind { background: var(--primary-light); color: var(--primary-dark); }
+.poll-kind--multi { background: #ece6fa; color: #5b45a0; }
+.poll-state.is-open { background: #fff4d6; color: #8a6200; }
+.poll-state.is-shared { background: #e8f7ed; color: #2f7a4b; }
+.poll-q-head { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.poll-q-title {
+  margin: 8px 0 0;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.45;
+  color: var(--dark);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.poll-q-title--sm { margin: 0; font-size: 14.5px; }
+.poll-hint { margin: 10px 0 0; font-size: 13px; color: var(--text-sub); }
+.poll-voters { margin: 6px 0 0; font-size: 12px; color: var(--text-faint); }
+
+/* 결과 막대(교사 · 학생 공용) */
+.poll-bars { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.poll-bar-head { display: flex; align-items: baseline; gap: 8px; }
+.poll-bar-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.poll-bar.is-top .poll-bar-text { color: var(--dark); }
+.poll-bar-mine {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  vertical-align: 1px;
+}
+.poll-bar-num { flex-shrink: 0; font-size: 13px; font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; }
+.poll-bar-pct { font-weight: 600; color: var(--text-sub); }
+.poll-bar-track {
+  margin-top: 5px;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--neutral);
+  overflow: hidden;
+}
+.poll-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: #efbfa6;
+  transition: width 0.35s ease;
+}
+.poll-bar.is-top .poll-bar-fill { background: var(--primary); }
+.poll-bar-who { margin: 4px 0 0; font-size: 12px; line-height: 1.55; color: var(--text-sub); }
+
+/* ── 학생 창 ── */
+.modal.poll-student-modal {
+  width: min(600px, 96vw);
+  max-width: 600px;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.poll-student-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.poll-options { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+.poll-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.poll-option:hover:not(:disabled) { border-color: var(--primary); }
+.poll-option.on { border-color: var(--primary); background: var(--primary-light); color: var(--dark); }
+.poll-option:disabled { cursor: default; }
+.poll-option:disabled:not(.on) { opacity: 0.7; }
+.poll-option-mark {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: 1.5px solid #cfcac0;
+  border-radius: 999px;
+  background: #fff;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 900;
+}
+.poll-option.is-multi .poll-option-mark { border-radius: 6px; }
+.poll-option.on .poll-option-mark { border-color: var(--primary); background: var(--primary); }
+.poll-option-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.poll-send-row { margin-top: 12px; display: grid; grid-template-columns: minmax(0, 1fr); }
+.poll-send { height: 42px; padding: 0 16px; display: flex; align-items: center; justify-content: center; }
+.poll-result-box {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--bg-deep);
+}
+.poll-result-title { margin: 0; font-size: 13px; font-weight: 800; color: #2f7a4b; }
+.poll-wait { margin: 14px 0 0; font-size: 13px; color: var(--text-sub); }
+.poll-past { border-top: 1px solid var(--border); padding-top: 14px; display: flex; flex-direction: column; gap: 14px; }
+.poll-past-title { margin: 0; font-size: 13.5px; font-weight: 800; color: var(--text-sub); }
+.poll-past-item { padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; background: #fff; }
+
+/* ── 교사 창 ── */
+.modal.poll-teacher-modal {
+  width: min(940px, 96vw);
+  max-width: 940px;
+  height: min(720px, 92vh);
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.poll-teacher-body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 18px;
+}
+.poll-side {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-right: 18px;
+  border-right: 1px solid var(--border);
+}
+.poll-new { height: 40px; padding: 0 14px; display: flex; align-items: center; justify-content: center; }
+.poll-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+.poll-list button {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+}
+.poll-list button:hover { border-color: #efc19a; }
+.poll-list li.on button { border-color: var(--primary); background: var(--primary-light); }
+.poll-list-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.poll-list-meta { display: flex; gap: 5px; }
+.poll-list-meta .poll-state { padding: 1px 8px; font-size: 11px; }
+.poll-main { min-height: 0; overflow-y: auto; padding-right: 2px; }
+.poll-compose,
+.poll-detail { display: flex; flex-direction: column; gap: 14px; }
+.poll-detail { gap: 0; }
+.poll-field { display: flex; flex-direction: column; gap: 6px; }
+.poll-field-label { font-size: 13px; font-weight: 800; color: var(--text); }
+.poll-field-sub { margin-left: 4px; font-weight: 600; color: var(--text-faint); }
+.poll-field input { width: 100%; }
+.poll-kind-seg { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.poll-kind-seg button {
+  height: 40px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--text-sub);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.poll-kind-seg button.on { border-color: var(--primary); background: var(--primary-light); color: var(--primary-dark); }
+.poll-opt-inputs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.poll-opt-inputs li { display: flex; align-items: center; gap: 8px; }
+.poll-opt-no {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--bg-deep);
+  color: var(--text-sub);
+  font-size: 12px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.poll-opt-inputs input { flex: 1; min-width: 0; }
+.poll-opt-del {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-sub);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+.poll-opt-del:hover { background: var(--bg-deep); color: var(--text); }
+.poll-opt-add { align-self: flex-start; margin-top: 2px; }
+.poll-compose-note,
+.poll-share-note { margin: 0; font-size: 12.5px; color: var(--text-sub); }
+.poll-share-note { margin-top: 8px; }
+/* 이어 놓인 단추는 같은 크기 — 둘이면 반씩, 하나면 가로를 다 씀 */
+.poll-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 16px; }
+.poll-compose .poll-actions { margin-top: 0; }
+.poll-actions.is-one { grid-template-columns: minmax(0, 1fr); }
+.poll-actions > button { height: 42px; padding: 0 14px; display: flex; align-items: center; justify-content: center; }
+.poll-actions .poll-close { background: var(--primary-dark); }
+.poll-count-row { margin-top: 10px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.poll-count { font-size: 13.5px; color: var(--text-sub); }
+.poll-count strong { color: var(--dark); font-size: 15px; }
+.poll-who-toggle {
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--text-sub);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.poll-who-toggle.on { border-color: var(--primary); color: var(--primary-dark); background: var(--primary-light); }
+.poll-notyet { margin: 12px 0 0; font-size: 12.5px; line-height: 1.6; color: var(--text-sub); }
+.poll-notyet strong { color: var(--text); }
+.poll-del { margin-top: 22px; padding-top: 12px; border-top: 1px solid var(--border); }
+.poll-del-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--danger);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.poll-del-btn:hover { background: #fef2f2; }
+.poll-del-ask { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 13px; color: var(--text); }
+.poll-del-ask span { flex: 1 1 200px; }
+.poll-del-ask button { height: 34px; padding: 0 14px; }
+.poll-del-go {
+  border: none;
+  border-radius: 10px;
+  background: var(--danger);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+.poll-del-go:disabled { opacity: 0.6; cursor: default; }
+@media (max-width: 760px) {
+  .modal.poll-teacher-modal { height: auto; }
+  .poll-teacher-body { display: flex; flex-direction: column; overflow-y: auto; }
+  .poll-side { padding-right: 0; border-right: none; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+  .poll-list { max-height: 180px; }
+  .poll-main { overflow: visible; }
+}

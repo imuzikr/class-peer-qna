@@ -296,6 +296,41 @@ service cloud.firestore {
              && popHistoryLastOk(nw[nw.size() - 1]);
     }
 
+    // ── 투표 ─────────────────────────────────────────────────
+    // 길이 천장은 lib/poll.js의 POLL_*와 같은 값입니다. 항목 하나하나의 모양은
+    // 규칙이 못 봅니다(반복문이 없음) — 개수만 못 박습니다(교사만 만드는 칸).
+    function pollShapeOk(cId) {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['classId', 'kind', 'title', 'options', 'byUid', 'open', 'shared',
+                               'results', 'voters', 'createdAt', 'closedAt', 'sharedAt'])
+             && d.classId == cId
+             && d.kind in ['single', 'multi']
+             && d.title is string && d.title.size() > 0 && d.title.size() <= 200
+             && d.options is list && d.options.size() >= 2 && d.options.size() <= 10
+             && d.byUid == uid()
+             && d.open == true
+             && d.shared == false
+             && d.results is map && d.results.size() == 0
+             && d.voters == 0
+             && d.createdAt == request.time
+             && d.closedAt == null
+             && d.sharedAt == null;
+    }
+    function pollOf(cId, pId) {
+      return get(/databases/$(database)/documents/classes/$(cId)/polls/$(pId)).data;
+    }
+    // 학생의 표 — 제 자리에, 정해 둔 칸만. 고른 수는 하나만 고르기면 1, 여러 개
+    // 고르기면 1 ~ 항목 수. 없는 key를 적어도 셈(lib/poll.js의 tallyVotes)이 뺍니다.
+    function pollVoteOk(cId, pId) {
+      let d = request.resource.data;
+      let p = pollOf(cId, pId);
+      return d.keys().hasOnly(['classId', 'pollId', 'uid', 'picks', 'at'])
+             && d.classId == cId && d.pollId == pId && d.uid == uid()
+             && d.picks is list && d.picks.size() >= 1
+             && d.picks.size() <= (p.kind == 'single' ? 1 : p.options.size())
+             && d.at == request.time;
+    }
+
     function isMyCornellNote(cId, nId) {
       return request.resource.data.uid == uid()
              && request.resource.data.classId == cId
@@ -740,6 +775,41 @@ service cloud.firestore {
                         && request.resource.data.status == 'completed'
                         && request.resource.data.reviewedAt == request.time
                         && request.resource.data.reviewedBy == uid();
+          allow delete: if isAdmin() || ownsClassEditable(cId);
+        }
+      }
+
+      // ── 투표 ──────────────────────────────────────────────
+      //  · 경로 = classes/{classId}/polls/{pId} (+ votes/{학생 uid})
+      //    셈과 모양은 lib/poll.js. 반마다 열린 투표는 하나 — 열 때 앞의 것을
+      //    닫는 일은 앱이 한 묶음으로 합니다.
+      //  · 투표: 읽기는 반 학생·담당 교사. 만들기·지우기는 담당 교사. 고치기는
+      //    닫기 · 결과 공유/거두기 · 센 수 적기뿐(물음과 항목은 안 바뀜). 닫은
+      //    투표를 다시 열지는 못합니다.
+      //  · 표: 학생은 **제 자리에, 열린 투표에만** 적고 고칩니다. 읽기는 그
+      //    학생과 담당 교사(목록은 교사만) — 학생은 남의 표를 못 읽고, 결과는
+      //    교사가 투표 문서에 적은 수(results · voters)로만 봅니다.
+      //    시험 tests/rules/polls.test.mjs.
+      match /polls/{pId} {
+        allow read: if signedIn() && (isAdmin() || ownsClass(cId) || isClassMember(cId));
+        allow create: if signedIn() && (isAdmin() || ownsClassEditable(cId)) && pollShapeOk(cId);
+        allow update: if signedIn() && (isAdmin() || ownsClassEditable(cId))
+                      && changedOnly(['open', 'closedAt', 'shared', 'sharedAt', 'results', 'voters'])
+                      && (request.resource.data.open == resource.data.open
+                          || request.resource.data.open == false)
+                      && request.resource.data.shared is bool
+                      && request.resource.data.results is map
+                      && request.resource.data.results.size() <= 10
+                      && request.resource.data.voters is int
+                      && request.resource.data.voters >= 0;
+        allow delete: if isAdmin() || ownsClassEditable(cId);
+
+        match /votes/{vUid} {
+          allow get: if signedIn() && (isAdmin() || ownsClass(cId) || vUid == uid());
+          allow list: if signedIn() && (isAdmin() || ownsClass(cId));
+          allow create, update: if signedIn() && vUid == uid() && isClassMember(cId)
+                                && pollOf(cId, pId).open == true
+                                && pollVoteOk(cId, pId);
           allow delete: if isAdmin() || ownsClassEditable(cId);
         }
       }

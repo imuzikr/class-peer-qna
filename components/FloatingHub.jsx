@@ -4,9 +4,10 @@
 // 떠 있는 동그라미 — 메신저와 자주 여는 기능을 한 손에
 // -------------------------------------------------------------
 // 화면 오른쪽 아래의 작은 동그라미(56px). 누르면 **큰 원으로 펼쳐지며**
-// 기능 여섯 개가 둘레에 섭니다 — 메신저 · KWLS · 수업 노트 · 출석 · 리포트 ·
-// 과일 바구니(교사는 메신저 · KWLS 차트 · 출석 관리 · 수업 관리 · 학생 분석 ·
-// 과일 바구니).
+// 기능 일곱 개가 둘레에 섭니다 — 메신저 · 돌발 퀴즈 · 투표 · 수업 노트 · 출석 ·
+// 리포트 · 과일 바구니(교사는 메신저 · 돌발 퀴즈 · 투표 · 출석 관리 · 수업 관리 ·
+// 학생 분석 · 과일 바구니). 투표는 한때 KWLS가 서던 자리입니다 — KWLS는 동그라미에서
+// 걷었고(선생님 요청) 공부방 머리말의 'KWLS 차트'로 엽니다.
 //
 // [모양은 행성 궤도]
 // 가운데 해(고른 기능의 설명) 둘레의 궤도에 작은 행성(동그라미) 여섯이
@@ -17,13 +18,14 @@
 // 이모지 대신 이미 그 기능을 가리키는 그림을 씁니다(components/StatusIcons.jsx)
 // — 메신저는 상단바 '질문방'의 말풍선(IconAnswer — 로고는 가운데 해의 기본 그림), 수업 노트는 IconRecord, 리포트는 IconReport,
 // 학생 분석은 '선생님 대시보드'의 IconTeacher, 수업 관리는 IconBlackboard,
-// KWLS는 K · W · L 세 칸, 출석은 IconCheck. 과일 바구니는 바구니 창의 그림
+// 투표는 막대 그림(PollParts의 IconPoll), 출석은 IconCheck. 과일 바구니는 바구니 창의 그림
 // (`public/fruit-basket.webp`)을 작게 — 원을 펼쳤을 때만 그려 처음 화면에서
 // 그림을 받지 않습니다.
 //
 // [기능은 '그 자리로 데려다 주기']
-// 메신저만 이 자리에서 창을 엽니다. 나머지는 이미 공부방에 있는 창을
-// 주소로 엽니다(`/study?open=kwl|notes|attendance|fruit` — 공부방이 열고
+// 메신저만 이 자리에서 창을 엽니다. 돌발 퀴즈 · 투표는 창 이벤트로 그 조각을
+// 부르고(PopQuizButton · PollCenter), 나머지는 이미 공부방에 있는 창을
+// 주소로 엽니다(`/study?open=notes|attendance|fruit` — 공부방이 열고
 // 주소를 지웁니다). 같은 창을 여기에 한 벌 더 만들면 두 곳이 어긋납니다.
 //
 // [끌어 옮기기 — 교사만]
@@ -62,23 +64,12 @@ import {
   IconTeacher,
   IconBlackboard,
   IconCheck,
-  IconKwlK,
-  IconKwlW,
-  IconKwlL,
   IconQuizMemo,
 } from "./StatusIcons";
 import { POPQUIZ_OPEN_EVENT } from "./PopQuizButton";
+import PollCenter, { POLL_OPEN_EVENT } from "./PollCenter";
+import { IconPoll } from "./PollParts";
 
-// KWLS — 앱에 'KWLS' 한 장짜리 그림이 없어 K · W · L 세 칸을 겹쳐 세웁니다.
-function KwlStack() {
-  return (
-    <span className="hub-kwl-stack">
-      <IconKwlK size={17} />
-      <IconKwlW size={17} />
-      <IconKwlL size={17} />
-    </span>
-  );
-}
 function FruitBasketPic({ show }) {
   if (!show) return <span className="hub-basket-pic" />;
   return <img className="hub-basket-pic" src="/fruit-basket.webp" alt="" width={36} height={24} />;
@@ -87,7 +78,7 @@ const ICONS = {
   // 메신저는 상단바 '질문방'의 말풍선(IconAnswer) — 로고(말풍선 둘)는 가운데 해의
   // 기본 그림이라, 같은 그림을 쓰면 메신저 행성과 해가 구별되지 않았습니다(선생님 요청).
   msg: () => <IconAnswer size={28} />,
-  kwl: () => <KwlStack />,
+  poll: () => <IconPoll size={27} />,
   notes: () => <IconRecord size={26} />,
   attend: () => <IconCheck size={24} className="hub-icon-check" />,
   report: () => <IconReport size={26} />,
@@ -101,7 +92,8 @@ const STUDENT_ITEMS = [
   { key: "msg", label: "메신저", hint: "선생님 · 우리 모둠과 대화해요" },
   // 상단바 메모지는 알림만 — 창은 여기서(PopQuizButton이 이벤트를 받아 엶)
   { key: "quiz", label: "돌발 퀴즈", hint: "퀴즈에 답하고 지난 퀴즈를 봐요", event: POPQUIZ_OPEN_EVENT },
-  { key: "kwl", label: "KWLS", hint: "KWLS 차트를 펼쳐요", href: "/study?open=kwl" },
+  // 한때 KWLS가 서던 자리(선생님 요청 — KWLS는 공부방 머리말에서 엶)
+  { key: "poll", label: "투표", hint: "열린 투표에 참여하고 결과를 봐요", event: POLL_OPEN_EVENT },
   { key: "notes", label: "수업 노트", hint: "지난 수업 노트를 넘겨 봐요", href: "/study?open=notes" },
   { key: "attend", label: "내 출석부", hint: "내 출석 기록을 봐요", href: "/study?open=attendance" },
   { key: "report", label: "리포트", hint: "나의 학습 리포트로 가요", href: "/report" },
@@ -110,7 +102,7 @@ const STUDENT_ITEMS = [
 const TEACHER_ITEMS = [
   { key: "msg", label: "메신저", hint: "학생 · 모둠과 대화해요" },
   { key: "quiz", label: "돌발 퀴즈", hint: "퀴즈를 보내고 답을 확인해요", event: POPQUIZ_OPEN_EVENT },
-  { key: "kwl", label: "KWLS 차트", hint: "반의 KWLS 현황을 펼쳐요", href: "/study?open=kwl" },
+  { key: "poll", label: "투표", hint: "투표를 열고 결과를 확인 · 공유해요", event: POLL_OPEN_EVENT },
   { key: "attend", label: "출석 관리", hint: "출석을 시작하고 기록을 봐요", href: "/study?open=attendance" },
   { key: "lessons", label: "수업 관리", hint: "수업 · 프로젝트 · 자리 배치", href: "/study?panel=lessons" },
   { key: "admin", label: "학생 분석", hint: "선생님 대시보드로 가요", href: "/admin" },
@@ -161,6 +153,8 @@ export default function FloatingHub({ classId: pageClassId, user, isTeacher, lif
   const [hover, setHover] = useState(null);
   // 한 번이라도 펼쳤나 — 바구니 그림은 그때부터 받습니다(닫히는 동안에도 남게).
   const [opened, setOpened] = useState(false);
+  // 투표 불 — 학생: 'red'(열린 투표에 아직 안 함) · 'green'(공유된 결과를 아직 안 봄)
+  const [pollLight, setPollLight] = useState(null);
   const rootRef = useRef(null);
   const fabRef = useRef(null);
   const myUid = user?.uid;
@@ -441,6 +435,12 @@ export default function FloatingHub({ classId: pageClassId, user, isTeacher, lif
             >
               <span className="hub-item-icon" aria-hidden="true">{Icon ? <Icon show={opened} /> : null}</span>
               <span className="hub-item-label">{it.label}</span>
+              {it.key === "poll" && pollLight && (
+                <span
+                  className={`hub-item-dot${pollLight === "green" ? " is-green" : ""}`}
+                  aria-label={pollLight === "green" ? "공유된 결과가 있어요" : "아직 투표하지 않았어요"}
+                />
+              )}
               {it.key === "msg" && unread > 0 && (
                 <span className="hub-item-badge" aria-label={`안 읽은 말 ${unread}개`}>
                   {unread > 99 ? "99+" : unread}
@@ -487,12 +487,24 @@ export default function FloatingHub({ classId: pageClassId, user, isTeacher, lif
         <span className="hub-fab-icon" aria-hidden="true">
           {fabOpen ? <span className="hub-fab-x">×</span> : <ChatIcon />}
         </span>
+        {!fabOpen && unread === 0 && pollLight && (
+          <span className={`hub-fab-dot${pollLight === "green" ? " is-green" : ""}`} aria-hidden="true" />
+        )}
         {!fabOpen && unread > 0 && (
           <span className="hub-fab-badge" aria-label={`안 읽은 말 ${unread}개`}>
             {unread > 99 ? "99+" : unread}
           </span>
         )}
       </button>
+
+      {/* 투표 — 창 · 불 · 교사의 결과 따라 적기(components/PollCenter.jsx).
+          반은 돌발 퀴즈와 같은 값(교사는 공부방에서 고른 반, 없으면 메신저의 반). */}
+      <PollCenter
+        classId={pageClassId || classId}
+        user={user}
+        isTeacher={isTeacher}
+        onLight={setPollLight}
+      />
 
       {msgOpen && (
         <MessengerWindow
