@@ -298,8 +298,10 @@ export default function PresentationOverlay({ broadcast, noteOpen = false, noteW
         <div className="broadcast-body">
           {broadcast.look === "card" ? (
           // RAFT 글쓰기 — '한 눈에 보기'와 같은 카드 모양(EntryCastCard)
-          <div className="entry-cast entry-cast--card" data-size={size}>
-            <EntryCastCard payload={broadcast} />
+          // 글 크기는 미리 정하지 않고 화면에 맞춰 잽니다(EntryCastCard의 fit) —
+          // data-size 단계로 키우면 긴 글이 화면 아래로 잘렸습니다(실제 신고).
+          <div className="entry-cast entry-cast--card entry-cast--fit">
+            <EntryCastCard payload={broadcast} fit />
           </div>
           ) : (
           <div className="entry-cast" data-size={size} data-cols={cols ? "2" : undefined}>

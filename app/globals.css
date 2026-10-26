@@ -23702,6 +23702,25 @@ span.cloud-word { cursor: default; }
 .entry-cast--card .eov-state { font-size: 13px; padding: 4px 11px; }
 .entry-cast--card .eov-prompt { font-size: clamp(13px, 1.1vw, 17px); }
 .entry-cast--card .eov-field { padding: 16px 20px; }
+/* 화면에 맞추기(fit) — 카드가 방송 칸의 높이를 다 쓰고, 글 칸이 남는 높이를 받아
+   그 안에 다 들도록 EntryCastCard가 --fit-size를 잽니다. */
+.broadcast-overlay--entry .broadcast-body:has(.entry-cast--fit) { padding: 20px 24px; }
+.entry-cast--fit {
+  width: min(97vw, 1650px);
+  align-self: stretch;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 22px 30px 26px;
+}
+.entry-cast-card--fit { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.entry-cast-card--fit .eov-card { flex: 1; min-height: 0; }
+.entry-cast-card--fit .eov-fields { flex: 1; min-height: 0; overflow-y: auto; }
+.entry-cast-card--fit .eov-fields .eov-text {
+  font-size: var(--fit-size, 24px);
+  line-height: 1.6;
+  font-weight: 400;
+}
 
 /* 두 칸 꾸러미(물음표로 책 읽기 — `columns: 2`) — 칸을 둘씩 한 줄로.
    물음표는 '궁금증 | 이유는' 한 쌍, 나의 생각은 '고른 물음 | 나의 생각'.
