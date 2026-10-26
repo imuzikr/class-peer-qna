@@ -77,6 +77,8 @@ import HashtagForm from "@/components/HashtagForm";
 import HashtagCardBadge from "@/components/HashtagCardBadge";
 import QmarkBoard from "@/components/QmarkBoard";
 import QmarkForm from "@/components/QmarkForm";
+import BrainWriteBoard from "@/components/BrainWriteBoard";
+import BrainWriteForm from "@/components/BrainWriteForm";
 import { IconBook, IconTrash, IconLockState } from "@/components/StatusIcons";
 import PageTagline from "@/components/PageTagline";
 
@@ -94,6 +96,7 @@ const ACTIVITY_KINDS = [
   { key: "hashtag", label: "여섯 개의 해시태그" },
   { key: "qmark", label: "물음표로 책 읽기" },
   { key: "crossword", label: "가로세로 낱말 퀴즈" },
+  { key: "brainwrite", label: "브레인 라이팅" },
 ];
 
 const ACTIVITY_KIND_BY_KEY = new Map(ACTIVITY_KINDS.map((k) => [k.key, k]));
@@ -420,7 +423,9 @@ function BooksPageInner() {
   const isQmark = activeActivity?.type === "qmark";
   // 가로세로 낱말 퀴즈 — 닿소리의 판(모둠)을 베껴 온 활동이라 모둠 구독은 그대로 겁니다
   const isCrossword = activeActivity?.type === "crossword";
-  const isSolo = isParatext || isRaft || isKwls || isMindmap || isOpinion || isHashtag || isQmark;
+  // 브레인 라이팅 — 늘 모둠 활동이지만 모둠은 화면이 스스로 구독합니다
+  const isBrainwrite = activeActivity?.type === "brainwrite";
+  const isSolo = isParatext || isRaft || isKwls || isMindmap || isOpinion || isHashtag || isQmark || isBrainwrite;
 
   // 연 활동의 모둠 — 학생이 '내 판'으로 바로 들어가려면 내 모둠을 알아야 합니다.
   // 활동 문서는 고칠 때마다 새 객체로 오므로 id로만 다시 구독합니다.
@@ -678,6 +683,24 @@ function BooksPageInner() {
         />
       ) : isMindmap ? (
         <MindmapForm
+          activity={activeActivity}
+          user={user}
+          onBack={goToList}
+        />
+      ) : /* 브레인 라이팅(모둠) — 교사는 모둠 카드 · 컬럼 · 조각 바, 학생은 컬럼 이어 쓰기 */
+      isBrainwrite && admin ? (
+        <BrainWriteBoard
+          activity={activeActivity}
+          className={activeClassName}
+          classPicker={classPicker}
+          roster={roster}
+          baseGroupAssignment={baseGroupAssignment}
+          onBack={goToList}
+          onToast={setToast}
+          classTools={classTools}
+        />
+      ) : isBrainwrite ? (
+        <BrainWriteForm
           activity={activeActivity}
           user={user}
           onBack={goToList}

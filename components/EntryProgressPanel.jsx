@@ -30,6 +30,9 @@ export default function EntryProgressPanel({
   pickedUid = null,
   onPick = null,
   extra = null,   // 줄 오른쪽 끝에 덧붙일 것 (예: '· 글 120자')
+  // 학생마다 칸이 다를 때(브레인 라이팅 — 모둠 크기만큼) 그 학생의 칸 정의.
+  // 주면 rows 대신 이것을 쓰고, cellState는 (row, answers, card)로 부릅니다.
+  rowsOf = null,
 }) {
   const total = rows.length;
 
@@ -37,9 +40,12 @@ export default function EntryProgressPanel({
     () =>
       cards.map((c, i) => {
         const answers = c.entry?.answers ?? {};
-        const states = rows.map((r) => cellState(r, answers));
+        const own = rowsOf ? rowsOf(c) : rows;
+        const states = own.map((r) => cellState(r, answers, c));
         return {
           ...c,
+          rows: own,
+          total: own.length,
           states,
           // '다 씀'만 셉니다 — '쓰는 중'까지 세면 한 글자 쓴 칸이 다 쓴 칸과
           // 같아져, 진행률이 실제보다 앞서 보입니다.
@@ -47,10 +53,10 @@ export default function EntryProgressPanel({
           color: rowColor(i),
         };
       }),
-    [cards, rows, cellState]
+    [cards, rows, cellState, rowsOf]
   );
 
-  const doneCount = list.filter((m) => m.filled >= total && total > 0).length;
+  const doneCount = list.filter((m) => m.filled >= m.total && m.total > 0).length;
 
   return (
     <aside className="dash-side book-group-progress" aria-label={title}>
@@ -59,7 +65,7 @@ export default function EntryProgressPanel({
         {list.length > 0 && (
           <b
             className="book-progress-done"
-            title={`${total}칸을 다 채운 학생 ${doneCount}명 / ${list.length}명`}
+            title={`${rowsOf ? "제 칸" : `${total}칸`}을 다 채운 학생 ${doneCount}명 / ${list.length}명`}
           >
             다 채움 {doneCount} / {list.length}
           </b>
@@ -77,13 +83,13 @@ export default function EntryProgressPanel({
                 <span className="dash-progress-who">{m.name}</span>
               </span>
               <span className="dash-progress-num">
-                {m.filled}/{total}칸
+                {m.filled}/{m.total}칸
                 {extra && <span className="dash-progress-words">{extra(m)}</span>}
               </span>
               <span className="dash-progress-bar">
                 <b
                   style={{
-                    width: total > 0 ? `${(m.filled / total) * 100}%` : 0,
+                    width: m.total > 0 ? `${(m.filled / m.total) * 100}%` : 0,
                     background: barTint(m.color.border),
                   }}
                 />
@@ -99,12 +105,12 @@ export default function EntryProgressPanel({
               >
                 {m.states.map((st, i) => (
                   <i
-                    key={rows[i].key}
+                    key={m.rows[i].key}
                     className={`dash-heat-cell entry-heat-cell entry-heat-cell--${st}${
-                      m.filled >= total && i === total - 1 ? " is-done" : ""
+                      m.filled >= m.total && i === m.total - 1 ? " is-done" : ""
                     }`}
                     style={st === "done" ? { background: m.color.border } : undefined}
-                    title={`${rows[i].label}`}
+                    title={`${m.rows[i].label}`}
                   />
                 ))}
               </button>

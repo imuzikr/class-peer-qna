@@ -1636,6 +1636,29 @@ service cloud.firestore {
                         && request.resource.data.at == request.time;
           allow delete: if isAdmin() || ownsBookActivityEditable(aId);
         }
+
+        // ── 브레인 라이팅 — 컬럼(주인)마다 모둠원이 한 줄씩 ──
+        // 문서 id = 주인uid_쓴사람uid — 한 사람이 한 컬럼에 한 줄.
+        // [읽기] 그 모둠 · 담당 교사  [쓰기] 그 모둠원이 제 줄만 · 주인도 이 모둠원 · 잠기기 전
+        // [지우기] 담당 교사
+        match /bwNotes/{nId} {
+          allow read: if signedIn() && (isAdmin() || ownsBookActivity(aId) || isMyBookGroup(aId, gId));
+          allow create, update: if signedIn()
+                        && isMyBookGroup(aId, gId)
+                        && !isBookActivityLocked(aId)
+                        && request.resource.data.keys().hasOnly(['ownerUid','writerUid','writerName','text','updatedAt'])
+                        && request.resource.data.writerUid == uid()
+                        && request.resource.data.ownerUid is string
+                        && nId == request.resource.data.ownerUid + '_' + uid()
+                        && get(/databases/$(database)/documents/bookActivities/$(aId)/groups/$(gId))
+                             .data.get('memberUids', []).hasAny([request.resource.data.ownerUid])
+                        && request.resource.data.writerName is string
+                        && request.resource.data.writerName.size() <= 40
+                        && request.resource.data.text is string
+                        && request.resource.data.text.size() <= 1000
+                        && request.resource.data.updatedAt == request.time;
+          allow delete: if isAdmin() || ownsBookActivityEditable(aId);
+        }
       }
 
       // ── 가로세로 낱말퀴즈(개별 활동) — 학생마다 제 판의 요약 ──

@@ -32,6 +32,7 @@ import {
   opinionNoteMode,
 } from "@/lib/opinion";
 import { HASHTAG_GUIDE_MAX } from "@/lib/hashtag";
+import { BW_PROMPT_MAX } from "@/lib/brainwrite";
 
 export default function BookActivityEditModal({ activity, onClose, onDone }) {
   const [title, setTitle] = useState(activity.title ?? "");
@@ -51,10 +52,13 @@ export default function BookActivityEditModal({ activity, onClose, onDone }) {
   // 여섯 개의 해시태그 — 주제어·도서 주소 대신 안내 문구 하나
   const isHashtag = activity.type === "hashtag";
   const [guide, setGuide] = useState(activity.guide ?? "");
+  // 브레인 라이팅 — 모든 컬럼의 머리에 서는 질문(비우면 저장을 막음)
+  const isBrainwrite = activity.type === "brainwrite";
+  const promptBad = isBrainwrite && !prompt.trim();
 
   useEffect(() => { titleRef.current?.focus(); }, []);
 
-  const isSolo = BOOK_SOLO_TYPES.includes(activity.type) || activity.type === "opinion" || isHashtag;
+  const isSolo = BOOK_SOLO_TYPES.includes(activity.type) || activity.type === "opinion" || isHashtag || isBrainwrite;
   const perStudent = !isSolo && activity.groupMode === "solo";
   // 만들 때와 같은 기준 — 학생이 자기 자리에서 직접 적을 길이 있는 활동만
   // 주제어를 비워 둘 수 있습니다(BookActivityForm의 topicRequired 참고).
@@ -62,6 +66,7 @@ export default function BookActivityEditModal({ activity, onClose, onDone }) {
     !perStudent &&
     activity.type !== "opinion" &&
     activity.type !== "crossword" && // 가로세로는 닿소리의 주제어를 가져온 것뿐
+    !isBrainwrite &&
     !isHashtag &&
     !BOOK_STUDENT_TOPIC_TYPES.includes(activity.type);
   const urlBad = bookUrl.trim().length > 0 && !safeBookUrl(bookUrl);
@@ -70,7 +75,7 @@ export default function BookActivityEditModal({ activity, onClose, onDone }) {
     e.preventDefault();
     // 조합 중인 한글은 state에 늦게 들어오므로 입력칸의 실제 값을 먼저 읽습니다
     const nextTitle = (titleRef.current?.value ?? title).trim();
-    if (!nextTitle || (topicRequired && !topic.trim()) || urlBad || zonesBad || saving) return;
+    if (!nextTitle || (topicRequired && !topic.trim()) || urlBad || zonesBad || promptBad || saving) return;
     setSaving(true);
     setError("");
     try {
@@ -80,6 +85,8 @@ export default function BookActivityEditModal({ activity, onClose, onDone }) {
           ? { title: nextTitle, topic, bookUrl, zoneNames, prompt, noteMode, layout: opLayout }
           : isHashtag
           ? { title: nextTitle, topic: "", bookUrl: "", guide }
+          : isBrainwrite
+          ? { title: nextTitle, topic, bookUrl, prompt }
           : { title: nextTitle, topic, bookUrl },
         activity
       );
@@ -124,7 +131,7 @@ export default function BookActivityEditModal({ activity, onClose, onDone }) {
                 type="text"
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
-                placeholder={topicRequired ? "예: 어린 왕자" : activity.type === "crossword" ? "예: 어린 왕자" : "비워 두면 학생이 직접 적어요"}
+                placeholder={topicRequired ? "예: 어린 왕자" : activity.type === "crossword" || isBrainwrite ? "예: 어린 왕자" : "비워 두면 학생이 직접 적어요"}
                 maxLength={30}
               />
             </label>
@@ -143,6 +150,20 @@ export default function BookActivityEditModal({ activity, onClose, onDone }) {
               maxLength={HASHTAG_GUIDE_MAX}
               placeholder="예: 이번 주에 읽은 과학 기사 한 편에서 해시태그를 찾아보세요."
             />
+          </label>
+        )}
+
+        {isBrainwrite && (
+          <label className="book-field">
+            <span>질문</span>
+            <input
+              type="text"
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              maxLength={BW_PROMPT_MAX}
+              placeholder="예: 주인공이 그 선택을 한 까닭은 무엇일까?"
+            />
+            {promptBad && <em className="book-help">질문을 비워 둘 수 없어요.</em>}
           </label>
         )}
 
@@ -267,7 +288,7 @@ export default function BookActivityEditModal({ activity, onClose, onDone }) {
           <button
             type="submit"
             className="btn-primary"
-            disabled={!title.trim() || (topicRequired && !topic.trim()) || urlBad || zonesBad || saving}
+            disabled={!title.trim() || (topicRequired && !topic.trim()) || urlBad || zonesBad || promptBad || saving}
           >
             {saving ? "저장 중…" : "저장"}
           </button>

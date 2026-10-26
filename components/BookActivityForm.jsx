@@ -35,6 +35,7 @@ import {
   OPINION_ZONE_NAME_MAX,
 } from "@/lib/opinion";
 import { HASHTAG_GUIDE_MAX } from "@/lib/hashtag";
+import { BW_PROMPT_MAX } from "@/lib/brainwrite";
 
 const TYPES = [
   { key: "consonant", label: "닿소리 채우기", desc: "모둠이 함께 자음 칸을 낱말로 채웁니다", defaultTitle: "닿소리 채우기" },
@@ -46,6 +47,7 @@ const TYPES = [
   { key: "hashtag", label: "여섯 개의 해시태그", desc: "해시태그를 찾아 태그마다 생각을 쓰고, 슬라이드로 띄워 나눕니다", defaultTitle: "여섯 개의 해시태그" },
   { key: "qmark", label: "물음표로 책 읽기", desc: "궁금한 곳에 물음표를 붙이고, 물음과 이유 · 나의 생각을 정리합니다", defaultTitle: "물음표로 책 읽기" },
   { key: "crossword", label: "가로세로 낱말 퀴즈", desc: "닿소리 채우기에서 모은 낱말로 힌트를 쓰고 퀴즈를 풉니다", defaultTitle: "가로세로 낱말 퀴즈" },
+  { key: "brainwrite", label: "브레인 라이팅", desc: "질문 하나에 모둠원이 칸을 돌아가며 앞 사람의 글에 생각을 잇습니다", defaultTitle: "브레인 라이팅" },
 ];
 // 모둠을 정하는 일은 **세 번의 물음**입니다. 한 줄에 다섯 갈래를 늘어놓았더니
 // '기본 모둠'과 '활동 모둠'이 나란히 있어 무엇이 무엇인지 알기 어려웠습니다.
@@ -85,7 +87,8 @@ function baseNote(baseGroupCount) {
 }
 
 // 모둠으로 진행할 수 있는 종류
-const GROUPABLE = ["consonant", "paratext", "raft"];
+// (브레인 라이팅은 늘 모둠 — '개별 활동'을 고를 수 없습니다)
+const GROUPABLE = ["consonant", "paratext", "raft", "brainwrite"];
 
 // "햇살, 바람, 나무" → ["햇살","바람","나무"] (빈 항목은 버림)
 function parseNames(raw) {
@@ -142,7 +145,9 @@ export default function BookActivityForm({
 
   const names = parseNames(namesRaw);
   // 학생이 눌러볼 도서 정보 주소를 받는 종류 — 혼자 읽고 쓰는 활동들입니다.
-  const hasBookUrl = ["paratext", "raft", "kwls", "mindmap", "opinion", "qmark"].includes(type);
+  const hasBookUrl = ["paratext", "raft", "kwls", "mindmap", "opinion", "qmark", "brainwrite"].includes(type);
+  // 브레인 라이팅 — 모든 컬럼의 머리에 서는 질문 하나(필수)
+  const isBrainwrite = type === "brainwrite";
   const isOpinion = type === "opinion";
   // 여섯 개의 해시태그 — 학생마다 읽는 글이 달라 주제어를 받지 않습니다
   // (읽은 글은 학생이 '읽은 글' 칸에 적습니다).
@@ -154,7 +159,7 @@ export default function BookActivityForm({
   // (화면의 흐름과 동료 평가의 범위)입니다.
   const canGroup = GROUPABLE.includes(type);
   // 세 갈래를 저장하는 한 값으로 합칩니다(지금까지와 같은 다섯 가지).
-  const groupMode = !canGroup || !groupWork ? "solo" : useBaseGroups ? "base" : tempMode;
+  const groupMode = !canGroup || (!groupWork && !isBrainwrite) ? "solo" : useBaseGroups ? "base" : tempMode;
   // '개별 활동' — 닿소리는 학생마다 판을 하나씩 깔고, 곁텍스트·RAFT는
   // 지금까지처럼 각자 자기 문서에만 씁니다. 어느 쪽이든 모둠 수·이름이
   // 필요 없어 그 칸을 감춥니다.
@@ -188,11 +193,12 @@ export default function BookActivityForm({
   // lib/store.js의 BOOK_STUDENT_TOPIC_TYPES에 적어 두었습니다).
   // '내 생각은요...'는 물음이 주제 노릇을 해서 주제어를 비워 둘 수 있습니다.
   const topicRequired =
-    !perStudent && !isOpinion && !isHashtag && !isCrossword && !BOOK_STUDENT_TOPIC_TYPES.includes(type);
+    !perStudent && !isOpinion && !isHashtag && !isCrossword && !isBrainwrite && !BOOK_STUDENT_TOPIC_TYPES.includes(type);
+  const promptBad = isBrainwrite && !prompt.trim();
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if ((topicRequired && !topic.trim()) || saving || urlBad || zonesBad || sourceBad) return;
+    if ((topicRequired && !topic.trim()) || saving || urlBad || zonesBad || sourceBad || promptBad) return;
 
     // 이름을 적었는데 모둠 수와 개수가 다르면 만들지 않고 알려 줍니다.
     // (개별 활동은 모둠 이름을 쓰지 않으므로 이 검사를 건너뜁니다)
@@ -216,7 +222,7 @@ export default function BookActivityForm({
         maxPerGroup,
         groupNames: perStudent || fromBase ? [] : names,
         zones: isOpinion ? zoneNames.map((n) => n.trim()) : [],
-        prompt: isOpinion ? prompt.trim() : "",
+        prompt: isOpinion || isBrainwrite ? prompt.trim() : "",
         noteMode: isOpinion ? noteMode : undefined,
         layout: isOpinion ? opLayout : undefined,
         nameMode: isOpinion ? nameMode : undefined,
@@ -284,7 +290,7 @@ export default function BookActivityForm({
                 type="text"
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
-                placeholder={topicRequired ? "예: 어린 왕자" : "비워 두면 학생이 직접 적어요"}
+                placeholder={topicRequired || isBrainwrite ? "예: 어린 왕자" : "비워 두면 학생이 직접 적어요"}
                 maxLength={30}
                 autoFocus
               />
@@ -492,7 +498,21 @@ export default function BookActivityForm({
             {/* ①② 한 줄에 나란히 — '모둠으로 할까'와 '어떤 모둠으로 할까'는
                 이어지는 물음이라 함께 보여야 답하기 쉽습니다. */}
             <div className="book-field-row">
-              {/* ① 모둠으로 할까, 혼자 할까 */}
+              {/* ① 모둠으로 할까, 혼자 할까 — 브레인 라이팅은 늘 모둠이라 이 물음
+                  대신 그 자리에 질문 칸이 섭니다(제 줄을 두면 창이 넘칩니다). */}
+              {isBrainwrite ? (
+                <label className="book-field">
+                  <span>질문</span>
+                  <input
+                    type="text"
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    placeholder="예: 주인공이 그 선택을 한 까닭은 무엇일까?"
+                    maxLength={BW_PROMPT_MAX}
+                    title="모둠원마다 칸이 생기고, 첫 줄은 칸 주인이 · 그 아래로 학번순으로 돌아가며 이어 씁니다"
+                  />
+                </label>
+              ) : (
               <div className="book-field">
                 <span>진행 방식</span>
                 <div className="book-seg">
@@ -514,6 +534,7 @@ export default function BookActivityForm({
                   </button>
                 </div>
               </div>
+              )}
 
               {/* ② 모둠이면 — 반의 기본 모둠 그대로 쓸까, 이 활동만의 모둠을 짤까 */}
               {groupWork && (
@@ -661,6 +682,7 @@ export default function BookActivityForm({
               urlBad ||
               zonesBad ||
               sourceBad ||
+              promptBad ||
               (fromBase && baseGroupCount === 0)
             }
           >
