@@ -221,7 +221,7 @@ export default function BookActivityEditModal({ activity, onClose, onDone }) {
               </div>
               <em className="book-help">
                 {noteMode === "single" && opinionNoteMode(activity) === "multi"
-                  ? "이미 여러 장 붙인 학생의 메모는 그대로 남고, 그 학생은 더 붙이지만 못해요."
+                  ? "이미 붙인 메모는 그대로 남고, 메모가 있는 영역에는 더 붙이지 못해요."
                   : OPINION_NOTE_MODES.find((m) => m.key === noteMode)?.hint}
               </em>
             </div>

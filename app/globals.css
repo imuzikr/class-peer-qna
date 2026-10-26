@@ -28965,6 +28965,7 @@ h4.attendance-seat-help { margin-top: 16px; }
 .tint-rose { --tint-zone: #f9dbdb; --tint-line: #e15241; --tint-ink: #c2453a; }
 .tint-lime { --tint-zone: #e4fee0; --tint-line: #69c44b; --tint-ink: #4a8f35; }
 .tint-peach { --tint-zone: #fbeacc; --tint-line: #ef8a4f; --tint-ink: #c06a2f; }
+.tint-sky { --tint-zone: #ddedfc; --tint-line: #5a9be0; --tint-ink: #3a74b8; }
 
 .opinion-board {
   border: 1.5px solid #eee0cb;
@@ -29266,6 +29267,7 @@ h4.attendance-seat-help { margin-top: 16px; }
   cursor: pointer;
 }
 .opinion-zone-chip.on { background: #fff; border-color: var(--note-ink); color: var(--note-ink); }
+.opinion-zone-chip:disabled { opacity: 0.4; cursor: not-allowed; }
 .opinion-swatches { display: flex; flex-wrap: wrap; gap: 9px; }
 .opinion-swatch {
   width: 30px;

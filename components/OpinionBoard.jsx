@@ -40,6 +40,7 @@ import {
   OPINION_NICK_MAX,
   OPINION_TEXT_MAX,
   canAddOpinionNote,
+  myZoneCount,
   cleanNickname,
   nextNoteSpot,
   nicknameProblem,
@@ -79,7 +80,7 @@ const NOTE_H = 142;
 // 이만큼 움직여야 '끌기' — 그보다 작으면 누른 것으로 봅니다(손 떨림).
 const DRAG_SLOP = 4;
 // 영역 색(바탕 · 경계선) — globals.css의 .tint-*. 차례는 선생님이 주신 그림대로.
-const ZONE_TINTS = ["mint", "rose", "lime", "peach"];
+const ZONE_TINTS = ["mint", "rose", "lime", "peach", "sky"];
 
 export default function OpinionBoard({
   activity,
@@ -175,12 +176,19 @@ export default function OpinionBoard({
       : nameMode === "real"
         ? noteAuthorLabel({ real: true, studentId: user?.studentId, authorName: user?.realName || user?.displayName })
         : noteAuthorLabel({ anon: true, authorName: user?.displayName });
-  // 붙이기 — 한 사람에 한 장이면 이미 붙인 학생은 더 못 붙입니다(고치고 옮기는
-  // 것은 그대로). 교사 메모(byTeacher)는 세지 않습니다.
+  // 붙이기 — 한 장 모드는 **영역마다** 한 장입니다. 그 영역에 이미 붙인 학생은
+  // 그 영역에만 더 못 붙이고, 다른 영역에는 붙입니다(고치는 것은 그대로).
+  // 교사 메모(byTeacher)는 세지 않습니다.
   const noteMode = opinionNoteMode(activity);
-  const myStudentNotes = isTeacher ? 0 : notes.filter((n) => isMine(n) && !n.byTeacher).length;
-  const canPost = canAddOpinionNote({ mode: noteMode, myCount: myStudentNotes, isTeacher, locked });
-  const usedMyOne = !isTeacher && !locked && !canPost;
+  const singleStudent = !isTeacher && noteMode === "single";
+  const canPostIn = (zoneKey) =>
+    canAddOpinionNote({
+      mode: noteMode,
+      myCount: isTeacher ? 0 : myZoneCount(notes, zones, uid, zoneKey),
+      isTeacher,
+      locked,
+    });
+  const canPost = !locked || isTeacher;
   const canMove = (n) => isTeacher || (isMine(n) && !locked);
   const canEdit = (n) => isMine(n) && !locked;
   const canRemove = (n) => isTeacher || (isMine(n) && !locked);
@@ -256,6 +264,12 @@ export default function OpinionBoard({
     const place = placeFromPixels({
       px: cur.left, py: cur.top, boardW: box.w, zoneH: box.h, noteW: NOTE_W, noteH: NOTE_H, zones,
     });
+    // 영역마다 한 장 — 학생은 제 메모를 다른 영역으로 못 옮깁니다(옮긴 뒤 빈
+    // 영역에 또 붙이면 한 영역에 두 장이 됩니다). 제자리로 돌아갑니다.
+    if (singleStudent && place.zone !== zoneOfNote(n, zones)) {
+      setError("메모는 영역마다 한 장이라, 붙인 영역 안에서만 옮길 수 있어요.");
+      return;
+    }
     setPending((p) => ({ ...p, [n.id]: place }));
     try {
       await moveOpinionNote(activity.id, n.id, place);
@@ -272,6 +286,7 @@ export default function OpinionBoard({
 
   // ── 붙이기 · 고치기 · 떼어 내기 ──
   async function createNote({ text, color, zone }) {
+    if (!canPostIn(zone)) throw new Error("이 영역에는 이미 글을 남겼어요. 다른 영역을 골라 주세요.");
     const spot = nextNoteSpot(byZone.get(zone) ?? 0);
     await addOpinionNote(activity.id, user, {
       text, color, zone, ...spot, byTeacher: isTeacher, single: noteMode === "single",
@@ -354,17 +369,17 @@ export default function OpinionBoard({
               <div key={z.key} className={`opinion-zone-head tint-${ZONE_TINTS[i % ZONE_TINTS.length]}`}>
                 <strong>{z.name}</strong>
                 <span className="opinion-zone-count">{byZone.get(z.key) ?? 0}</span>
-                {(canPost || usedMyOne) && (
+                {canPost && (
                   <button
                     type="button"
                     className="opinion-zone-add"
-                    onClick={() => canPost && setComposeZone(z.key)}
-                    disabled={!canPost}
-                    aria-label={canPost ? `‘${z.name}’에 글 쓰기` : "글은 한 사람에 하나예요"}
+                    onClick={() => canPostIn(z.key) && setComposeZone(z.key)}
+                    disabled={!canPostIn(z.key)}
+                    aria-label={canPostIn(z.key) ? `‘${z.name}’에 글 쓰기` : "글은 영역마다 하나예요"}
                     title={
-                      canPost
+                      canPostIn(z.key)
                         ? `‘${z.name}’에 글 쓰기`
-                        : "글은 한 사람에 하나예요 — 내 글을 눌러 고칠 수 있어요"
+                        : "글은 영역마다 하나예요 — 이 영역의 내 글을 눌러 고칠 수 있어요"
                     }
                   >
                     ＋
@@ -436,17 +451,17 @@ export default function OpinionBoard({
               <span className="opinion-zone-count">{byZone.get(z.key) ?? 0}</span>
               {/* 한 장을 이미 붙인 학생은 ＋가 꺼지고 까닭을 툴팁으로 —
                   단추가 그냥 사라지면 고장으로 보입니다. */}
-              {(canPost || usedMyOne) && (
+              {canPost && (
                 <button
                   type="button"
                   className="opinion-zone-add"
-                  onClick={() => canPost && setComposeZone(z.key)}
-                  disabled={!canPost}
-                  aria-label={canPost ? `‘${z.name}’에 메모 붙이기` : "메모는 한 사람에 한 장이에요"}
+                  onClick={() => canPostIn(z.key) && setComposeZone(z.key)}
+                  disabled={!canPostIn(z.key)}
+                  aria-label={canPostIn(z.key) ? `‘${z.name}’에 메모 붙이기` : "메모는 영역마다 한 장이에요"}
                   title={
-                    canPost
+                    canPostIn(z.key)
                       ? `‘${z.name}’에 메모 붙이기`
-                      : "메모는 한 사람에 한 장이에요 — 붙인 메모를 눌러 고칠 수 있어요"
+                      : "메모는 영역마다 한 장이에요 — 이 영역의 내 메모를 눌러 고칠 수 있어요"
                   }
                 >
                   ＋
@@ -522,6 +537,7 @@ export default function OpinionBoard({
           mode="new"
           zones={zones}
           initialZone={composeZone}
+          zoneAllowed={canPostIn}
           who={
             <NoteWho
               note={
@@ -561,6 +577,7 @@ export default function OpinionBoard({
           }
           authorLabel={labelOf(openNote)}
           showColors={!isList}
+          zoneAllowed={singleStudent ? (k) => k === zoneOfNote(openNote, zones) : undefined}
           canEdit={canEdit(openNote)}
           canRemove={canRemove(openNote)}
           onSave={(v) => saveNote(openNote, v)}
@@ -580,6 +597,7 @@ function OpinionNoteModal({
   note = null,
   zones,
   initialZone = null,
+  zoneAllowed = null,
   authorLabel,
   who = null,
   canEdit = false,
@@ -693,6 +711,12 @@ function OpinionNoteModal({
                     type="button"
                     className={`opinion-zone-chip${zone === z.key ? " on" : ""}`}
                     aria-pressed={zone === z.key}
+                    disabled={!!zoneAllowed && zone !== z.key && !zoneAllowed(z.key)}
+                    title={
+                      zoneAllowed && zone !== z.key && !zoneAllowed(z.key)
+                        ? isNew ? "이 영역에는 이미 글을 남겼어요" : "영역마다 한 장이라 다른 영역으로는 못 옮겨요"
+                        : undefined
+                    }
                     onClick={() => setZone(z.key)}
                   >
                     {z.name}

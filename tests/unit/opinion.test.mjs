@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   OPINION_COLORS,
   canAddOpinionNote,
+  myZoneCount,
   cleanNickname,
   nicknameProblem,
   opinionLayout,
@@ -25,9 +26,10 @@ import {
   zonesFromNames,
 } from "@/lib/opinion";
 
-test("영역은 늘 2~4개 — 모자라면 채우고 넘치면 자릅니다", () => {
+test("영역은 늘 2~5개 — 모자라면 채우고 넘치면 자릅니다", () => {
   assert.deepEqual(normalizeZones([]).map((z) => z.name), ["A 영역", "B 영역"]);
-  assert.equal(normalizeZones(zonesFromNames(["가", "나", "다", "라", "마"])).length, 4);
+  assert.equal(normalizeZones(zonesFromNames(["가", "나", "다", "라", "마"])).length, 5);
+  assert.equal(normalizeZones(zonesFromNames(["가", "나", "다", "라", "마", "바"])).length, 5);
   assert.deepEqual(normalizeZones([{ key: "z4", name: "" }]).map((z) => z.name), ["A 영역", "B 영역"]);
   assert.deepEqual(zonesFromNames(["찬성", " ", "잘 모르겠음"]).map((z) => [z.key, z.name]), [
     ["z1", "찬성"], ["z2", "B 영역"], ["z3", "잘 모르겠음"],
@@ -125,6 +127,20 @@ test("메모 수 — 표시가 없는 옛 활동은 여러 장, 한 장 모드�
   // 교사는 모드와 상관없이 · 잠기면 학생은 못 붙임
   assert.equal(canAddOpinionNote({ mode: "single", myCount: 1, isTeacher: true }), true);
   assert.equal(canAddOpinionNote({ mode: "multi", myCount: 0, locked: true }), false);
+});
+
+test("한 장 모드는 영역마다 — 내 학생 메모만 그 영역에서 셈", () => {
+  const zones = zonesFromNames(["찬성", "반대", "중립"]);
+  const notes = [
+    { authorId: "a", zone: "z1" },
+    { authorId: "a", zone: "z9" }, // 없는 영역 → 첫 영역으로 읽음
+    { authorId: "a", zone: "z2", byTeacher: true },
+    { authorId: "b", zone: "z3" },
+  ];
+  assert.equal(myZoneCount(notes, zones, "a", "z1"), 2);
+  assert.equal(myZoneCount(notes, zones, "a", "z2"), 0);
+  assert.equal(myZoneCount(notes, zones, "a", "z3"), 0);
+  assert.equal(myZoneCount(notes, zones, null, "z1"), 0);
 });
 
 test("판 모양 · 이름표 — 표시가 없는 옛 활동은 메모지 · 예전 이름표", () => {
