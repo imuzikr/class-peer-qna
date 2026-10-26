@@ -33,6 +33,8 @@ export default function EntryProgressPanel({
   // 학생마다 칸이 다를 때(브레인 라이팅 — 모둠 크기만큼) 그 학생의 칸 정의.
   // 주면 rows 대신 이것을 쓰고, cellState는 (row, answers, card)로 부릅니다.
   rowsOf = null,
+  // 목록이 빌 때의 말 — 모둠 하나로 좁혀 보이는 화면은 '고르기 전'이 빈 까닭입니다.
+  emptyText = "아직 이 반에 들어온 학생이 없어요.",
 }) {
   const total = rows.length;
 
@@ -72,7 +74,7 @@ export default function EntryProgressPanel({
         )}
       </h3>
       {list.length === 0 ? (
-        <p className="dash-side-empty">아직 이 반에 들어온 학생이 없어요.</p>
+        <p className="dash-side-empty">{emptyText}</p>
       ) : (
         <ul className="dash-progress-list">
           {list.map((m) => (

@@ -303,9 +303,12 @@ export default function BrainWriteBoard({
             )}
           </div>
 
+          {/* 오른쪽은 왼쪽에서 고른 모둠의 학생만 — 반 전체는 전광판이 봅니다(선생님 요청). */}
           <EntryProgressPanel
-            title="학생별 진행"
-            cards={cards}
+            title={open?.group ? `${open.group.groupName} 진행` : "모둠 진행"}
+            cards={open?.group ? cards.filter((c) => c.group?.id === open.group.id) : []}
+            emptyText="왼쪽 모둠 카드에서 학생 이름을 누르면 그 모둠의 진행이 보여요. 반 전체는 전광판에서 봐요."
+
             rows={[]}
             rowsOf={(c) =>
               c.slots.map((p) => ({
