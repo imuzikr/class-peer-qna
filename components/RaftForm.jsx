@@ -284,23 +284,8 @@ export default function RaftForm({ activity, user, onBack }) {
               actions={
                 mates.length > 1 && (
                   <span className="peer-row-actions">
-                    {/* 받은 한 마디가 있으면 여기서 먼저 알려 줍니다 — 목록은
-                        긴 글 아래에 있어 스스로 찾아 내려가기 어렵습니다.
-                        누르면 그 자리로 데려다 줍니다. */}
-                    {gotReviews.length > 0 && (
-                      <button
-                        type="button"
-                        className="btn-ghost peer-got-btn"
-                        onClick={() =>
-                          document
-                            .getElementById("peer-received")
-                            ?.scrollIntoView({ behavior: "smooth", block: "start" })
-                        }
-                        title="친구들이 내게 남긴 한 마디를 봅니다"
-                      >
-                        💬 받은 한 마디<em>{gotReviews.length}</em>
-                      </button>
-                    )}
+                    {/* '받은 한 마디' 바로가기 단추는 걷었습니다(선생님 요청) — 목록은
+                        글 아래(PeerReviewList)에 있어 내려 보면 곧바로 보입니다. */}
                     {peerLocked ? (
                       /* 잠겨 있어도 자리는 남겨 둡니다 — 없어지면 '이 활동에는
                          동료 평가가 없나' 싶어집니다. 이미 쓴 것은 볼 수 있게
