@@ -12,7 +12,10 @@
 // =============================================================
 import { describe, it, before, after, beforeEach } from "node:test";
 import { assertSucceeds, assertFails } from "@firebase/rules-unit-testing";
-import { doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection, deleteField } from "firebase/firestore";
+import {
+  doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection, collectionGroup, deleteField,
+  query, where, serverTimestamp,
+} from "firebase/firestore";
 import { makeEnv, asStudent, asTeacher, seed } from "./helpers.mjs";
 
 const note = (authorId, extra = {}) => ({
@@ -210,6 +213,26 @@ describe("내 생각은요 메모 규칙", () => {
     await assertSucceeds(updateDoc(ref(asStudent(env, "stu1").firestore(), "act1", "n1"), { text: "고쳐 씀" }));
     const snap = await getDoc(ref(asStudent(env, "stu2").firestore(), "act1", "n1"));
     if (snap.data().reply !== "선생님 한 마디") throw new Error("댓글이 사라짐");
+  });
+
+  it("댓글 봤음(replySeenAt) — 쓴 학생만, 잠긴 활동에서도 · 다른 칸과 섞으면 거부", async () => {
+    await seed(env, async (db) => {
+      await updateDoc(ref(db, "act1", "n1"), { reply: "한 마디", replyBy: "teacherA" });
+      await updateDoc(ref(db, "locked1", "n1"), { reply: "한 마디", replyBy: "teacherA" });
+    });
+    const me = asStudent(env, "stu1").firestore();
+    await assertSucceeds(updateDoc(ref(me, "act1", "n1"), { replySeenAt: serverTimestamp() }));
+    await assertSucceeds(updateDoc(ref(me, "locked1", "n1"), { replySeenAt: serverTimestamp() }));
+    await assertFails(updateDoc(ref(me, "locked1", "n1"), { replySeenAt: serverTimestamp(), text: "몰래 고침" }));
+    await assertFails(updateDoc(ref(me, "act1", "n1"), { replySeenAt: new Date(0) }));
+    await assertFails(updateDoc(ref(asStudent(env, "stu2").firestore(), "act1", "n1"), { replySeenAt: serverTimestamp() }));
+  });
+
+  it("알림 벨 — collectionGroup으로 제 메모만 읽는다(남의 메모를 고르는 질의는 거부)", async () => {
+    const me = asStudent(env, "stu1").firestore();
+    await assertSucceeds(getDocs(query(collectionGroup(me, "opinionNotes"), where("authorId", "==", "stu1"))));
+    await assertFails(getDocs(query(collectionGroup(me, "opinionNotes"), where("authorId", "==", "stu2"))));
+    await assertFails(getDocs(collectionGroup(me, "opinionNotes")));
   });
 
   it("쓴 사람은 제 메모를 뗀다", async () => {

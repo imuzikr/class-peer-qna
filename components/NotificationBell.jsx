@@ -6,6 +6,8 @@
 // **두 곳을 함께 구독해 한 목록으로 보여 줍니다.**
 //  · users/{uid}/notifications — Cloud Functions가 씁니다(답변·공지)
 //  · groupMemos 중 내가 받은 안 읽은 것 — 모둠 친구가 직접 씁니다
+//  · '내 생각은요' 내 메모 중 안 본 선생님 댓글 — 교사가 메모 문서에 씁니다
+//    (subscribeMyOpinionReplies · 읽음은 그 메모의 replySeenAt)
 //
 // 왜 나뉘어 있나: 알림함은 **본인만** 읽고 쓸 수 있게 잠가 둔 자리라
 // (교사도 못 읽습니다) 학생끼리 서로의 알림함에 쓰게 열 수 없습니다.
@@ -21,6 +23,8 @@ import { useRouter } from "next/navigation";
 import {
   subscribeMyNotifications,
   subscribeMyUnreadMemos,
+  subscribeMyOpinionReplies,
+  markOpinionReplySeen,
   markGroupMemoRead,
   markNotificationRead,
   markAllNotificationsRead,
@@ -35,12 +39,14 @@ const LABELS = {
   answer_understood: { icon: "💡", text: "내 답변이 채택됐어요" },
   class_notice: { icon: "📢", text: "선생님 공지" },
   group_memo: { icon: "✉️", text: "모둠 친구의 메모" },
+  opinion_reply: { icon: "💬", text: "내 생각에 선생님 댓글" },
 };
 
 export default function NotificationBell({ uid }) {
   const router = useRouter();
   const [notifs, setNotifs] = useState([]);
   const [memos, setMemos] = useState([]);
+  const [replies, setReplies] = useState([]);
   const [open, setOpen] = useState(false);
   const wrapRef = useRef(null);
 
@@ -52,6 +58,11 @@ export default function NotificationBell({ uid }) {
   useEffect(() => {
     if (!uid) { setMemos([]); return; }
     return subscribeMyUnreadMemos(uid, setMemos);
+  }, [uid]);
+
+  useEffect(() => {
+    if (!uid) { setReplies([]); return; }
+    return subscribeMyOpinionReplies(uid, setReplies);
   }, [uid]);
 
   // 두 갈래를 한 목록으로 — 최신순. 메모는 알림함 문서가 아니므로 여기서
@@ -68,10 +79,20 @@ export default function NotificationBell({ uid }) {
       text: stripHtml(m.html || "").slice(0, 80),
       senderName: m.fromName,
     }));
-    return [...a, ...b].sort(
+    // 선생님 댓글 — 시각은 댓글을 단(고친) 때, 줄에는 댓글 글과 내 글 한 토막
+    const c = replies.map((r) => ({
+      id: r.id,
+      _src: "opinion",
+      type: "opinion_reply",
+      createdAt: r.replyAt ?? r.updatedAt ?? r.createdAt,
+      activityId: r.activityId,
+      text: String(r.reply ?? "").slice(0, 120),
+      senderName: `내 글: ${String(r.text ?? "").replace(/\s+/g, " ").slice(0, 30)}`,
+    }));
+    return [...a, ...b, ...c].sort(
       (x, y) => (toDate(y.createdAt)?.getTime() ?? 0) - (toDate(x.createdAt)?.getTime() ?? 0)
     );
-  }, [notifs, memos]);
+  }, [notifs, memos, replies]);
 
   // 읽은 지 오래된 알림 정리 — 접속할 때 한 번, 자기 것만. 화면에는 최근
   // 20개만 보여서 눈에 안 띌 뿐 문서는 계속 쌓입니다(반 공지가 생기면서
@@ -107,6 +128,14 @@ export default function NotificationBell({ uid }) {
       router.push(`/study?memo=${n.fromUid}`);
       return;
     }
+    // 선생님 댓글 — 그 활동으로 가서 그 메모를 크게 엽니다(여는 순간 읽음 —
+    // 모둠 메모와 같은 까닭으로 창이 스스로 처리합니다).
+    if (n._src === "opinion") {
+      if (!n.activityId) return;
+      setOpen(false);
+      router.push(`/books?activity=${n.activityId}&note=${n.id}`);
+      return;
+    }
     // 반 공지는 열어 볼 글이 없습니다 — 내용이 알림 자체에 다 들어 있습니다.
     if (n.type === "class_notice" || !n.questionId) return;
     setOpen(false);
@@ -118,6 +147,7 @@ export default function NotificationBell({ uid }) {
   function handleRead(e, n) {
     e.stopPropagation();
     if (n._src === "memo") markGroupMemoRead(n.id).catch(() => {});
+    else if (n._src === "opinion") markOpinionReplySeen(n.activityId, n.id).catch(() => {});
     else markNotificationRead(uid, n.id).catch(() => {});
   }
 
@@ -128,6 +158,7 @@ export default function NotificationBell({ uid }) {
       await Promise.all([
         markAllNotificationsRead(uid),
         ...memos.map((m) => markGroupMemoRead(m.id)),
+        ...replies.map((r) => markOpinionReplySeen(r.activityId, r.id)),
       ]);
     } catch {
       /* 실패하면 목록이 그대로 남습니다 — 다시 누르면 됩니다 */
@@ -172,12 +203,14 @@ export default function NotificationBell({ uid }) {
               {items.map((n) => {
                 const label = LABELS[n.type] ?? { icon: "🔔", text: "알림" };
                 const isMemo = n._src === "memo";
-                // 반 공지와 모둠 메모는 본문이 알림 줄에 그대로 들어갑니다
-                const isNotice = n.type === "class_notice" || isMemo;
+                const isReply = n._src === "opinion";
+                // 반 공지 · 모둠 메모 · 선생님 댓글은 본문이 알림 줄에 그대로 들어갑니다
+                const isNotice = n.type === "class_notice" || isMemo || isReply;
                 // 반 공지는 열어 볼 글이 없어 눌러도 갈 곳이 없습니다 —
                 // 누를 수 있는 것처럼 보이지 않도록 버튼이 아닌 칸으로 그립니다.
                 // 모둠 메모는 '우리 모둠' 창으로 갑니다.
-                const canOpen = isMemo || (!isNotice && !!n.questionId);
+                // 선생님 댓글은 그 활동의 메모로 갑니다.
+                const canOpen = isMemo || (isReply && !!n.activityId) || (!isNotice && !!n.questionId);
                 const body = (
                   <>
                     <span className="notif-item-head">

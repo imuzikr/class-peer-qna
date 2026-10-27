@@ -31,6 +31,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   addOpinionNote,
   deleteOpinionNote,
+  markOpinionReplySeen,
   moveOpinionNote,
   setOpinionReply,
   subscribeOpinionNotes,
@@ -44,6 +45,7 @@ import {
   canAddOpinionNote,
   myZoneCount,
   cleanNickname,
+  isOpinionReplyUnread,
   nextNoteSpot,
   nicknameProblem,
   noteAuthorLabel,
@@ -232,6 +234,28 @@ export default function OpinionBoard({
   );
   const myCount = notes.filter(isMine).length;
   const openNote = openId ? notes.find((n) => n.id === openId) ?? null : null;
+
+  // 알림 벨에서 왔으면(`?note=<id>`) 그 메모를 크게 엽니다 — 한 번만. 열고 나면
+  // 주소에서 걷어 새로고침해도 다시 안 뜨게 합니다.
+  const deepLinkDone = useRef(false);
+  useEffect(() => {
+    if (!loaded || deepLinkDone.current || typeof window === "undefined") return;
+    deepLinkDone.current = true;
+    const url = new URL(window.location.href);
+    const want = url.searchParams.get("note");
+    if (!want) return;
+    if (notes.some((n) => n.id === want)) setOpenId(want);
+    url.searchParams.delete("note");
+    window.history.replaceState(window.history.state, "", url.pathname + url.search);
+  }, [loaded, notes]);
+
+  // 쓴 학생이 제 메모를 열면 선생님 댓글을 '봤다'로 — 벨의 알림이 사라집니다
+  // (모둠 메모와 같은 약속: 여는 순간 읽음).
+  const seenOpenId = openNote && isMine(openNote) && isOpinionReplyUnread(openNote) ? openNote.id : null;
+  useEffect(() => {
+    if (!seenOpenId) return;
+    markOpinionReplySeen(activity.id, seenOpenId).catch(() => {});
+  }, [seenOpenId, activity.id]);
 
   // 메모 한 장의 화면 자리
   function placeOf(n) {

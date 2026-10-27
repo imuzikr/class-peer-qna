@@ -1770,6 +1770,11 @@ service cloud.firestore {
               && (isBookActivityMember(aId) || ownsBookActivityEditable(aId))
               && !isBookActivityLocked(aId)
               && changedOnly(['text','color','zone','x','y','updatedAt','movedAt']))
+          // 쓴 학생 — 선생님 댓글을 봤다는 표시(replySeenAt) 한 칸만. 상단바 알림 벨이
+          // 이 값으로 '안 본 댓글'을 셉니다. 잠긴 활동에서도 됩니다(읽는 일이라).
+          || (resource.data.authorId == uid()
+              && changedOnly(['replySeenAt'])
+              && request.resource.data.replySeenAt == request.time)
           // 교사 — 자리 옮기기 + 선생님 댓글(reply · replyAt · replyBy). 쓴 학생은
           // 위 갈래의 changedOnly에 이 셋이 없어 못 바꿉니다. 글 500자는
           // lib/opinion.js의 OPINION_REPLY_MAX와 같아야 합니다.
@@ -2007,6 +2012,11 @@ service cloud.firestore {
     // · answers: 질문 게시판은 전체 공유라 로그인 사용자 읽기(경로 규칙과 동일 노출)
     // · cards  : 본인 카드(학생 리포트 '내 카드') / 내 모둠 카드 / 최고 관리자만.
     //   교사에게는 열지 않음 — 반(보드) 격리 유지. 쓰기는 여기 없음(경로 규칙 적용).
+    // · opinionNotes: '내 생각은요' 메모 — 제 메모만(상단바 알림 벨이 선생님 댓글을
+    //   셉니다 — subscribeMyOpinionReplies). 경로 규칙의 반 전체 읽기보다 좁습니다.
+    match /{path=**}/opinionNotes/{nId} {
+      allow read: if signedIn() && resource.data.authorId == uid();
+    }
     match /{path=**}/answers/{aId} {
       allow read: if signedIn();
     }
