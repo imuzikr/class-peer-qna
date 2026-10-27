@@ -2153,6 +2153,44 @@ button.footer-link:hover {
   line-height: 1.55;
 }
 
+/* '내 생각은요' 선생님 댓글 알림 — 내 글과 댓글을 자르지 않고 둘 다 보여 줍니다.
+   메모를 열러 가지 않아도 알림 창에서 무엇에 무슨 말이 달렸는지 읽게.
+   (둘 다 500자 천장이라 한 줄이 한없이 길어지지는 않습니다 — 넘치면
+    알림 창이 구릅니다.) 댓글 색은 메모의 '선생님 댓글' 칸과 같은 초록. */
+.notif-dropdown--wide {
+  width: min(360px, calc(100vw - 24px));
+  max-height: min(520px, 75vh);
+}
+.notif-op-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 7px 9px;
+  border-radius: 8px;
+  border-left: 3px solid var(--border);
+  background: #fff;
+}
+.notif-op-block--reply {
+  border-left-color: #6fbf8a;
+  background: #eef8f1;
+}
+.notif-op-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.notif-op-block--reply .notif-op-label {
+  color: #3f8f5c;
+}
+.notif-op-text {
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
 /* 상단바 질문하기 손들기 */
 .question-signal-wrap {
   position: relative;

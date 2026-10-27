@@ -86,8 +86,10 @@ export default function NotificationBell({ uid }) {
       type: "opinion_reply",
       createdAt: r.replyAt ?? r.updatedAt ?? r.createdAt,
       activityId: r.activityId,
-      text: String(r.reply ?? "").slice(0, 120),
-      senderName: `내 글: ${String(r.text ?? "").replace(/\s+/g, " ").slice(0, 30)}`,
+      // 원문과 댓글을 **자르지 않고** 둘 다 싣습니다 — 알림 창에서 곧바로
+      // 읽게(둘 다 500자 천장이라 목록이 한없이 길어지지는 않습니다)
+      text: String(r.reply ?? ""),
+      original: String(r.text ?? ""),
     }));
     return [...a, ...b, ...c].sort(
       (x, y) => (toDate(y.createdAt)?.getTime() ?? 0) - (toDate(x.createdAt)?.getTime() ?? 0)
@@ -183,7 +185,7 @@ export default function NotificationBell({ uid }) {
       </button>
 
       {open && (
-        <div className="notif-dropdown" role="menu">
+        <div className={`notif-dropdown${replies.length ? " notif-dropdown--wide" : ""}`} role="menu">
           {items.length === 0 ? (
             <p className="notif-empty">읽지 않은 알림이 없어요.</p>
           ) : (
@@ -211,7 +213,22 @@ export default function NotificationBell({ uid }) {
                 // 모둠 메모는 '우리 모둠' 창으로 갑니다.
                 // 선생님 댓글은 그 활동의 메모로 갑니다.
                 const canOpen = isMemo || (isReply && !!n.activityId) || (!isNotice && !!n.questionId);
-                const body = (
+                const body = isReply ? (
+                  <>
+                    <span className="notif-item-head">
+                      <span aria-hidden="true">{label.icon}</span> {label.text}
+                      <span className="notif-item-time">{formatTime(n.createdAt)}</span>
+                    </span>
+                    <span className="notif-op-block notif-op-block--mine">
+                      <span className="notif-op-label">내 글</span>
+                      <span className="notif-op-text">{n.original || "(내용 없음)"}</span>
+                    </span>
+                    <span className="notif-op-block notif-op-block--reply">
+                      <span className="notif-op-label">선생님 댓글</span>
+                      <span className="notif-op-text">{n.text}</span>
+                    </span>
+                  </>
+                ) : (
                   <>
                     <span className="notif-item-head">
                       <span aria-hidden="true">{label.icon}</span> {label.text}
