@@ -33279,8 +33279,8 @@ button.msgr-receipt:hover { color: var(--text-sub); }
   border-right: 1px solid var(--border);
 }
 /* 왼쪽 이름표는 오른쪽 .poll-field와 같은 틈(6px)으로 붙습니다 — 칸 사이 틈이
-   10px이라 4px을 당깁니다. 빈 안내도 오른쪽 종류 단추와 같은 40px 칸이라
-   첫 줄의 위아래가 두 칸에서 같습니다. */
+   10px이라 4px을 당깁니다. 그 바로 아래 '＋ 새 투표'(40px)가 오른쪽 종류
+   단추(40px)와 위아래 끝이 같습니다. 빈 안내도 같은 40px 칸입니다. */
 .poll-side-label { margin-bottom: -4px; }
 .poll-side .pq-empty {
   flex-shrink: 0;

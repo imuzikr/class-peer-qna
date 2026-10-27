@@ -75,9 +75,17 @@ export default function PollTeacherModal({ classId, onClose }) {
 
         <div className="poll-teacher-body">
           <aside className="poll-side">
-            {/* 오른쪽 '종류'와 같은 이름표 줄 — 그래서 아래 목록(또는 빈 안내)이
-                오른쪽 종류 단추와 같은 높이에서 시작합니다(선생님 요청). */}
+            {/* 오른쪽 '종류'와 같은 이름표 줄 — 그래서 바로 아래 '＋ 새 투표'가
+                오른쪽 종류 단추와 같은 높이에서 시작합니다(선생님 요청). 목록은
+                그 아래라 길어져도 단추는 제자리입니다. */}
             <span className="poll-field-label poll-side-label">투표 목록</span>
+            <button
+              type="button"
+              className={`btn-primary poll-new${showCompose ? " on" : ""}`}
+              onClick={() => setComposing(true)}
+            >
+              ＋ 새 투표
+            </button>
             {polls === null ? (
               <p className="pq-empty">불러오는 중…</p>
             ) : list.length === 0 ? (
@@ -100,13 +108,6 @@ export default function PollTeacherModal({ classId, onClose }) {
                 ))}
               </ul>
             )}
-            <button
-              type="button"
-              className={`btn-primary poll-new${showCompose ? " on" : ""}`}
-              onClick={() => setComposing(true)}
-            >
-              ＋ 새 투표
-            </button>
           </aside>
 
           <div className="poll-main">
