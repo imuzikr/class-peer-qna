@@ -14,8 +14,14 @@
 // 카드가 화면 높이를 다 쓰고, 글 칸이 넘치지 않는 가장 큰 크기를 찾습니다
 // (FIT_MAX에서 FIT_MIN까지, 반씩 좁혀 가며). 그래도 넘치면 글 칸 안에서 구릅니다.
 // 교사의 수업 화면 창은 fit 없이 그대로(창 안 본문이 구름).
+//
+// peers — 모둠 RAFT면 꾸러미에 '모둠 친구들이 남긴 한 마디'가 실려 옵니다(선생님
+// 요청). 카드 **아래에** 섭니다. fit일 때도 카드(문장 + 글)는 지금처럼 화면 높이를
+// 다 쓰고 글자 크기도 그대로이며, 한 마디는 화면 아래에 이어져 **굴려 내려** 읽습니다
+// — 한 화면에 다 넣으려고 글자를 줄이지 않습니다.
 // =============================================================
 import { useLayoutEffect, useRef, useState } from "react";
+import { PeerReviewRow } from "./PeerReviewModal";
 
 const FIT_MAX = 64;
 const FIT_MIN = 16;
@@ -66,8 +72,10 @@ export default function EntryCastCard({ payload, fit = false }) {
   }, [fit, textKey]);
 
   const chars = fields.reduce((n, f) => n + String(f.text ?? "").trim().length, 0);
+  const peers = Array.isArray(payload?.peers) ? payload.peers.slice(0, 12) : null;
   return (
-    <div className={`entry-cast-card${fit ? " entry-cast-card--fit" : ""}`}>
+    <div className={`entry-cast-card${fit ? " entry-cast-card--fit" : ""}${peers ? " has-peers" : ""}`}>
+      <div className="entry-cast-main">
       {payload?.note && <p className="raft-sentence done eov-lead">{payload.note}</p>}
       <section className={`eov-card wide${chars > 0 ? " done" : " empty"}`}>
         <header className="eov-card-head">
@@ -103,6 +111,8 @@ export default function EntryCastCard({ payload, fit = false }) {
           )}
         </div>
       </section>
+      </div>
+      {peers && <PeerReviewRow slots={peers} />}
     </div>
   );
 }

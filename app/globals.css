@@ -23726,7 +23726,42 @@ span.cloud-word { cursor: default; }
   padding: 22px 30px 26px;
 }
 .entry-cast-card--fit { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.entry-cast-card--fit .entry-cast-main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .entry-cast-card--fit .eov-card { flex: 1; min-height: 0; }
+/* 모둠 RAFT — 카드 아래 '모둠 친구들이 남긴 한 마디'(꾸러미의 peers, 선생님 요청).
+   카드(문장 + 글)는 지금처럼 방송 칸 한 화면 높이를 그대로 쓰고(글자 크기도 그대로),
+   한 마디는 그 아래로 이어져 방송 칸(.broadcast-body)을 굴려 내려 읽습니다.
+   높이는 방송 칸을 크기 컨테이너로 두고 100cqh(그 칸의 안쪽 높이)에서 카드 틀의 위아래
+   여백(22+26)을 뺍니다 — 한 마디가 없을 때와 카드 높이 · 글자 크기가 같습니다(실측).
+   넘치는 내용을 가운데로 맞추면 위가 잘리므로 위에서부터 쌓습니다. */
+.broadcast-overlay--entry .broadcast-body:has(.entry-cast-card--fit.has-peers) {
+  container-type: size;
+  align-items: flex-start;
+}
+.entry-cast--fit:has(.has-peers) { align-self: flex-start; }
+.entry-cast-card--fit.has-peers { flex: none; }
+.entry-cast-card--fit.has-peers .entry-cast-main {
+  flex: none;
+  height: calc(100cqh - 48px);
+  min-height: 360px;
+}
+.entry-cast--card .eov-peer { margin-top: 22px; }
+.entry-cast--card .eov-peer h4 { font-size: clamp(16px, 1.3vw, 22px); margin-bottom: 12px; }
+.entry-cast--card .eov-peer h4 span { font-size: clamp(13px, 1vw, 16px); }
+.entry-cast--card .eov-peer-row {
+  grid-auto-flow: row;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  overflow-x: visible;
+  gap: 14px;
+}
+.entry-cast--card .eov-peer-row .peer-card {
+  padding: 14px 18px;
+  font-size: clamp(15px, 1.15vw, 20px);
+  line-height: 1.65;
+  min-height: 120px;
+}
+.entry-cast--card .eov-peer-row .peer-card header { font-size: clamp(13px, 1vw, 16px); }
+.entry-cast--card .eov-peer-wait { font-size: clamp(14px, 1.05vw, 18px); }
 .entry-cast-card--fit .eov-fields { flex: 1; min-height: 0; overflow-y: auto; }
 .entry-cast-card--fit .eov-fields .eov-text {
   font-size: var(--fit-size, 24px);

@@ -42,7 +42,7 @@ import GroupFilterRow from "./GroupFilterRow";
 import RaftProgressBoard from "./RaftProgressBoard";
 import BookStudentRail from "./BookStudentRail";
 import EntryProgressPanel from "./EntryProgressPanel";
-import { PeerReviewList, PeerReviewRow } from "./PeerReviewModal";
+import { PeerReviewList, PeerReviewRow, peerReviewSlots } from "./PeerReviewModal";
 import { isGroupedActivity, useBookGroups, isPeerReviewOpen, myBookGroup, groupMembers } from "@/lib/bookGroups";
 
 // 방송할 수 있는 영역 — 네 요소 + 글쓰기
@@ -191,13 +191,27 @@ export default function RaftBoard({
   // 상태로 보입니다.
   const stepRows = useMemo(() => raftRows(), []);
 
+  // 모둠 RAFT — 그 학생이 받은 동료 평가를 모둠 친구 자리마다(한 눈에 보기와 같은 셈).
+  // 글쓰기를 방송할 때 꾸러미에 함께 실어, 카드 아래로 굴려 내려 읽게 합니다(선생님 요청).
+  const peersOf = useCallback(
+    (card) => {
+      if (!grouped || !card) return null;
+      const mates = groupMembers(
+        myBookGroup(groups.filter((g) => !g.retired), card.uid),
+        roster.length ? roster : null
+      ).filter((m) => m.uid !== card.uid);
+      return peerReviewSlots(reviews.filter((r) => r.toUid === card.uid), mates);
+    },
+    [grouped, groups, roster, reviews]
+  );
+
   const castCard = cast.target ? cards.find((c) => c.uid === cast.target.uid) ?? null : null;
   const castIndex = cast.target ? REGIONS.findIndex((r) => r.key === cast.target.key) : -1;
 
   const livePayload = useMemo(() => {
     if (!castCard || castIndex < 0) return null;
-    return buildPayload(activity, castCard, castIndex);
-  }, [castCard, castIndex, activity]);
+    return buildPayload(activity, castCard, castIndex, peersOf(castCard));
+  }, [castCard, castIndex, activity, peersOf]);
   cast.useLiveUpdate(livePayload);
 
   function castRegion(card, index, openStage = true) {
@@ -208,7 +222,7 @@ export default function RaftBoard({
       setStageOpen(true);
       return;
     }
-    cast.cast({ uid: card.uid, key: REGIONS[index].key }, buildPayload(activity, card, index));
+    cast.cast({ uid: card.uid, key: REGIONS[index].key }, buildPayload(activity, card, index, peersOf(card)));
     // **영역만 옮길 때는 창 상태를 안 건드립니다** — 닫아 둔 창이
     // '다음 영역 →'에 되살아나면 닫은 뜻이 없어집니다.
     setStageOpen(openStage);
@@ -622,13 +636,7 @@ export default function RaftBoard({
             `${raftPlanCount(c.entry?.answers)} / ${RAFT_COLUMN_COUNT}칸 · 글 ${raftWritingChars(c.entry?.answers)}자`
           }
           footOf={grouped ? (c) => (
-            <PeerReviewRow
-              reviews={reviews.filter((r) => r.toUid === c.uid)}
-              mates={groupMembers(
-                myBookGroup(groups.filter((g) => !g.retired), c.uid),
-                roster.length ? roster : null
-              ).filter((m) => m.uid !== c.uid)}
-            />
+            <PeerReviewRow slots={peersOf(c)} />
           ) : null}
           leadOf={(c) => ({
             text: raftSentence(c.entry?.answers ?? {}),
@@ -679,7 +687,8 @@ export default function RaftBoard({
 
 // 한 영역을 방송 꾸러미로. RAFT는 낱말 하나만 뜨면 무슨 말인지 알기 어려워서
 // '나는 …이 되어…' 문장을 함께 실어 보냅니다.
-function buildPayload(activity, card, index) {
+// peers — 모둠 RAFT 글쓰기에만 싣는 동료 평가 자리(peerReviewSlots). 개인 활동 · 네 요소는 null.
+function buildPayload(activity, card, index, peers = null) {
   const r = REGIONS[index];
   const answers = card.entry?.answers ?? {};
   return {
@@ -698,5 +707,7 @@ function buildPayload(activity, card, index) {
     // 글쓰기는 '한 눈에 보기'와 같은 카드 모양으로(EntryCastCard) — 긴 글이라
     // 문장 한 줄 아래 카드 한 장에 담아야 무엇에 대한 글인지 함께 읽힙니다.
     ...(r.key === RAFT_WRITING.key ? { look: "card" } : {}),
+    // 모둠 친구들이 남긴 한 마디 — 카드 아래에 섭니다(글자 크기는 그대로, 굴려서 읽음).
+    ...(r.key === RAFT_WRITING.key && Array.isArray(peers) ? { peers } : {}),
   };
 }

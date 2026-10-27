@@ -279,13 +279,28 @@ export function PeerReviewList({ reviews = [], title = "친구들이 남긴 한 
 // 한 눈에 보기(모둠 RAFT) — 받은 한 마디를 **한 줄에 나란히**(선생님 요청).
 // 모둠 친구마다 자리를 미리 깔아 두고(아직 안 썼으면 빈 카드), 모둠에서 빠진
 // 친구가 남긴 것은 뒤에 붙입니다. 카드는 같은 폭이고, 많으면 줄이 옆으로 구릅니다.
-export function PeerReviewRow({ reviews = [], mates = [] }) {
+// 모둠 친구마다 한 자리 — 아직 안 쓴 친구는 빈 자리, 모둠에서 빠진 친구가 남긴 것은 뒤에.
+// 한 눈에 보기와 방송 꾸러미(RaftBoard의 buildPayload)가 같은 셈을 씁니다.
+export function peerReviewSlots(reviews = [], mates = []) {
   const byFrom = new Map(reviews.map((r) => [r.fromUid, r]));
-  const slots = mates.map((m) => ({ uid: m.uid, name: m.name || "친구", review: byFrom.get(m.uid) ?? null }));
+  const slots = mates.map((m) => {
+    const r = byFrom.get(m.uid);
+    return { uid: m.uid, name: m.name || "친구", html: r ? String(r.html ?? "") : null };
+  });
   const mateSet = new Set(mates.map((m) => m.uid));
   reviews.forEach((r) => {
-    if (!mateSet.has(r.fromUid)) slots.push({ uid: r.fromUid, name: r.fromName || "친구", review: r });
+    if (!mateSet.has(r.fromUid)) slots.push({ uid: r.fromUid, name: r.fromName || "친구", html: String(r.html ?? "") });
   });
+  return slots;
+}
+
+// slots를 곧바로 받으면 그대로 그립니다(방송 화면 — 꾸러미에 실려 온 것).
+export function PeerReviewRow({ reviews = [], mates = [], slots: given = null }) {
+  const slots = (Array.isArray(given) ? given : peerReviewSlots(reviews, mates)).map((s) => ({
+    uid: String(s?.uid ?? ""),
+    name: String(s?.name ?? "친구").slice(0, 40),
+    review: typeof s?.html === "string" ? { html: s.html } : null,
+  }));
   const written = slots.filter((s) => s.review).length;
   return (
     <section className="eov-peer" aria-label="모둠 친구들이 남긴 한 마디">
@@ -295,8 +310,8 @@ export function PeerReviewRow({ reviews = [], mates = [] }) {
       </h4>
       {slots.length > 0 && (
         <div className="eov-peer-row">
-          {slots.map((s) => (
-            <article key={s.uid} className={`peer-card${s.review ? "" : " is-empty"}`}>
+          {slots.map((s, i) => (
+            <article key={s.uid || i} className={`peer-card${s.review ? "" : " is-empty"}`}>
               <header>{s.name}</header>
               {s.review ? (
                 <div dangerouslySetInnerHTML={{ __html: richHtml(s.review.html) }} />
