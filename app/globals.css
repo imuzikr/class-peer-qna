@@ -33764,3 +33764,16 @@ button.msgr-receipt:hover { color: var(--text-sub); }
 @media (max-width: 768px) {
   .bw-layout { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* 학생이 여는 브레인 라이팅: 첫 칸은 답변 목록의 제목입니다. */
+.bw-row.bw-question-row {
+  background: #f5ece4;
+  border-left: 4px solid var(--primary);
+  border-bottom: 2px solid #dbc4b2;
+  padding: 22px 18px;
+}
+.bw-question-row .bw-row-who { color: #79452c; }
+.bw-question-row .bw-row-who b { width: auto; padding: 3px 9px; border-radius: 6px; background: #fff; }
+.bw-question-row .bw-row-text:not(.empty),
+.bw-question-row .bw-row-input { font-size: 19px; font-weight: 700; line-height: 1.6; }
+.bw-question-row .bw-row-input { background: #fffcf9; }

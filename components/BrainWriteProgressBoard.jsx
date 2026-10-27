@@ -28,11 +28,11 @@ export default function BrainWriteProgressBoard({ activity, cards = [], onOpenSt
         key: `k${k}`,
         k,
         letter: "",
-        label: k === 0 ? "내 칸 · 첫 줄" : `${k + 1}번째 줄`,
-        hint: k === 0 ? "제 칸 맨 위에 남기는 첫 생각 · 질문" : `친구의 칸에 ${k + 1}번째로 이어 쓰는 줄`,
+        label: k === 0 ? (activity.questionMode === "student" ? "나의 질문" : "내 칸 · 첫 줄") : `${k + 1}번째 줄`,
+        hint: k === 0 ? (activity.questionMode === "student" ? "친구들에게 던지는 나의 질문" : "제 칸 맨 위에 남기는 첫 생각 · 질문") : `친구의 칸에 ${k + 1}번째로 이어 쓰는 줄`,
         locked: null,
       })),
-    [depth]
+    [depth, activity.questionMode]
   );
 
   // 껍데기는 entry.answers를 넘겨 주므로, 학생마다의 칸 정보를 거기 실어 둡니다.

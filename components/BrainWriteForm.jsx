@@ -99,7 +99,8 @@ export default function BrainWriteForm({ activity, user, onBack }) {
   const prev = myAt > 0 ? rows[myAt - 1] : null;
   // 앞 사람이 써야 내 줄이 열립니다(선생님 요청) — 첫 줄은 늘, 이미 쓴 줄도 늘.
   const myOpen = myAt >= 0 && (rowWritable(rows, myAt) || !!String(drafts[owner?.uid] ?? "").trim());
-  const prompt = String(activity.prompt ?? "").trim();
+  const studentQuestions = activity.questionMode === "student";
+  const prompt = studentQuestions ? "" : String(activity.prompt ?? "").trim();
 
   return (
     <main className="books-main">
@@ -184,7 +185,7 @@ export default function BrainWriteForm({ activity, user, onBack }) {
           <section className="bw-col" aria-label={`${owner?.name ?? ""}의 칸`}>
             <header className="bw-col-head">
               <strong>{owner?.name}</strong>
-              <span>{owner?.uid === user?.uid ? "나의 칸 — 첫 줄에 내 생각이나 질문을 남겨요" : "앞 사람의 글에 이어 질문하거나 생각을 보태요"}</span>
+              <span>{owner?.uid === user?.uid ? (studentQuestions ? "나의 질문 — 친구들에게 묻고 싶은 질문을 써요" : "나의 칸 — 첫 줄에 내 생각이나 질문을 남겨요") : (studentQuestions ? "친구의 질문을 읽고 앞 사람의 생각에 이어 써요" : "앞 사람의 글에 이어 질문하거나 생각을 보태요")}</span>
             </header>
             <ol className="bw-rows">
               {rows.map((r, i) => {
@@ -194,9 +195,9 @@ export default function BrainWriteForm({ activity, user, onBack }) {
                   : String(r.note?.text ?? "");
                 const st = mine ? status[owner.uid] : null;
                 return (
-                  <li key={r.member.uid} className={`bw-row${mine ? " mine" : ""}${r.filled ? " filled" : ""}`}>
+                  <li key={r.member.uid} className={`bw-row${studentQuestions && i === 0 ? " bw-question-row" : ""}${mine ? " mine" : ""}${r.filled ? " filled" : ""}`}>
                     <span className="bw-row-who">
-                      <b>{i + 1}</b>
+                      <b>{studentQuestions ? (i === 0 ? "질문" : i) : i + 1}</b>
                       {r.member.name}
                       {mine && <em>나</em>}
                       {st && (
@@ -213,6 +214,7 @@ export default function BrainWriteForm({ activity, user, onBack }) {
                           </p>
                         ) : (
                         <textarea
+                          aria-label={studentQuestions && i === 0 ? "친구들에게 던지는 나의 질문" : `${r.member.name}의 이어 쓰기`}
                           className="bw-row-input"
                           value={text}
                           onChange={(e) => edit(owner.uid, e.target.value)}
@@ -221,7 +223,7 @@ export default function BrainWriteForm({ activity, user, onBack }) {
                           rows={3}
                           placeholder={
                             i === 0
-                              ? "이 질문에 대한 내 생각이나 궁금한 점을 적어요"
+                              ? (studentQuestions ? "친구들에게 던지고 싶은 질문을 적어요" : "이 질문에 대한 내 생각이나 궁금한 점을 적어요")
                               : "앞 사람의 글에 이어 질문하거나 생각을 보태요"
                           }
                         />
@@ -229,7 +231,7 @@ export default function BrainWriteForm({ activity, user, onBack }) {
                       </>
                     ) : (
                       <p className={`bw-row-text${r.filled ? "" : " empty"}`}>
-                        {r.filled ? text : "아직 쓰지 않았어요"}
+                        {r.filled ? text : (studentQuestions && i === 0 ? "아직 질문을 쓰지 않았어요" : "아직 쓰지 않았어요")}
                       </p>
                     )}
                   </li>

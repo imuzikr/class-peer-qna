@@ -58,3 +58,22 @@ test("이어 쓰는 차례 — k번째 줄의 주인", () => {
   assert.deepEqual(s.map((x) => x.done), [false, true, false, false]);
   assert.deepEqual(s.map((x) => x.ready), [true, true, false, false]);
 });
+
+
+test("학생 질문은 본인 첫 칸에 남고 저장된 뒤 친구의 답변 차례가 열림", () => {
+  const empty = columnRows(M, "a", {});
+  assert.equal(empty[0].member.uid, "a");
+  assert.equal(rowWritable(empty, 0), true);
+  assert.equal(rowWritable(empty, 1), false);
+  const by = notesByColumn([
+    { ownerUid: "a", writerUid: "a", text: "주인공은 왜 떠났을까?" },
+    { ownerUid: "a", writerUid: "b", text: "새로운 곳이 궁금해서라고 생각해요." },
+  ]);
+  const rows = columnRows(M, "a", by);
+  assert.equal(rows[0].note.text, "주인공은 왜 떠났을까?");
+  assert.equal(rows[1].member.uid, "b");
+  assert.equal(rowWritable(rows, 1), true);
+  assert.equal(rowWritable(rows, 2), true);
+  assert.equal(rowWritable(rows, 3), false);
+  assert.equal(writerSlots(M, "a", by)[0].done, true);
+});

@@ -45,6 +45,7 @@ export default function BookActivityEditModal({ activity, onClose, onDone }) {
   // 메모가 제 영역에 남습니다). 함께 생각할 물음도 여기서.
   const isOpinion = activity.type === "opinion";
   const [zoneNames, setZoneNames] = useState(() => normalizeZones(activity.zones).map((z) => z.name));
+  const [questionMode, setQuestionMode] = useState(activity.questionMode === "student" ? "student" : "teacher");
   const [prompt, setPrompt] = useState(activity.prompt ?? "");
   const [noteMode, setNoteMode] = useState(() => opinionNoteMode(activity));
   const [opLayout, setOpLayout] = useState(() => opinionLayout(activity));
@@ -54,7 +55,7 @@ export default function BookActivityEditModal({ activity, onClose, onDone }) {
   const [guide, setGuide] = useState(activity.guide ?? "");
   // 브레인 라이팅 — 모든 컬럼의 머리에 서는 질문(비우면 저장을 막음)
   const isBrainwrite = activity.type === "brainwrite";
-  const promptBad = isBrainwrite && !prompt.trim();
+  const promptBad = isBrainwrite && questionMode !== "student" && !prompt.trim();
 
   useEffect(() => { titleRef.current?.focus(); }, []);
 
@@ -86,7 +87,7 @@ export default function BookActivityEditModal({ activity, onClose, onDone }) {
           : isHashtag
           ? { title: nextTitle, topic: "", bookUrl: "", guide }
           : isBrainwrite
-          ? { title: nextTitle, topic, bookUrl, prompt }
+          ? { title: nextTitle, topic, bookUrl, prompt, questionMode }
           : { title: nextTitle, topic, bookUrl },
         activity
       );
@@ -154,6 +155,18 @@ export default function BookActivityEditModal({ activity, onClose, onDone }) {
         )}
 
         {isBrainwrite && (
+          <div className="book-field">
+            <span>질문 방식</span>
+            <div className="book-seg" role="group" aria-label="질문 방식">
+              {[ ["teacher", "선생님이 질문하기"], ["student", "학생이 질문하기"] ].map(([value, label]) => (
+                <button key={value} type="button" className={`book-seg-btn${questionMode === value ? " active" : ""}`}
+                  aria-pressed={questionMode === value} onClick={() => setQuestionMode(value)}>{label}</button>
+              ))}
+            </div>
+            {questionMode === "student" && <em className="book-help">학생이 본인 카드의 첫 칸에 친구들에게 던질 질문을 쓰고, 친구들은 그 아래에 생각을 이어 씁니다.</em>}
+          </div>
+        )}
+        {isBrainwrite && questionMode === "teacher" && (
           <label className="book-field">
             <span>질문</span>
             <input

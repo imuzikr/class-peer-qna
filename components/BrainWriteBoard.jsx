@@ -103,7 +103,8 @@ export default function BrainWriteBoard({
 
   const startedCount = cards.filter((c) => c.slots.some((p) => p.done)).length;
   const doneCount = cards.filter((c) => c.slots.length > 0 && c.slots.every((p) => p.done)).length;
-  const prompt = String(activity.prompt ?? "").trim();
+  const studentQuestions = activity.questionMode === "student";
+  const prompt = studentQuestions ? "" : String(activity.prompt ?? "").trim();
   const bookUrl = safeBookUrl(activity.bookUrl);
 
   // ── 방송 — 한 학생의 컬럼 한 장 ──
@@ -119,8 +120,8 @@ export default function BrainWriteBoard({
     writerName: card.name,
     label: `${card.name}의 칸`,
     labelEn: card.group?.groupName ?? "",
-    prompt,
-    fields: rowsOf(card).map((r, i) => ({
+    prompt: studentQuestions ? String(rowsOf(card)[0]?.note?.text ?? "").trim() : prompt,
+    fields: (studentQuestions ? rowsOf(card).slice(1) : rowsOf(card)).map((r, i) => ({
       label: `${i + 1} · ${r.member.name}`,
       text: r.filled ? String(r.note.text).trim() : "",
     })),
@@ -283,14 +284,14 @@ export default function BrainWriteBoard({
                   <section className="bw-col bw-col--read" aria-label={`${open.name}의 칸`}>
                     <ol className="bw-rows">
                       {openRows.map((r, i) => (
-                        <li key={r.member.uid} className={`bw-row${r.filled ? " filled" : ""}`}>
+                        <li key={r.member.uid} className={`bw-row${studentQuestions && i === 0 ? " bw-question-row" : ""}${r.filled ? " filled" : ""}`}>
                           <span className="bw-row-who">
-                            <b>{i + 1}</b>
+                            <b>{studentQuestions ? (i === 0 ? "질문" : i) : i + 1}</b>
                             {r.member.name}
-                            {i === 0 && <em>주인</em>}
+                            {i === 0 && <em>{studentQuestions ? "질문한 친구" : "주인"}</em>}
                           </span>
                           <p className={`bw-row-text${r.filled ? "" : " empty"}`}>
-                            {r.filled ? r.note.text : "아직 쓰지 않았어요"}
+                            {r.filled ? r.note.text : (studentQuestions && i === 0 ? "아직 질문을 쓰지 않았어요" : "아직 쓰지 않았어요")}
                           </p>
                         </li>
                       ))}
@@ -314,7 +315,7 @@ export default function BrainWriteBoard({
               c.slots.map((p) => ({
                 key: `k${p.k}`,
                 k: p.k,
-                label: p.k === 0 ? "제 칸 · 첫 줄" : `${p.owner.name}의 칸 · ${p.k + 1}번째 줄`,
+                label: p.k === 0 ? (studentQuestions ? "나의 질문" : "제 칸 · 첫 줄") : `${p.owner.name}의 칸 · ${p.k + 1}번째 줄`,
               }))
             }
             cellState={(row, _a, c) => {
