@@ -33767,13 +33767,44 @@ button.msgr-receipt:hover { color: var(--text-sub); }
 
 /* 학생이 여는 브레인 라이팅: 첫 칸은 답변 목록의 제목입니다. */
 .bw-row.bw-question-row {
-  background: #f5ece4;
-  border-left: 4px solid var(--primary);
-  border-bottom: 2px solid #dbc4b2;
+  background: #edf7ec;
+  border-left: 4px solid #79a973;
+  border-bottom: 2px solid #c8dfc4;
   padding: 22px 18px;
 }
-.bw-question-row .bw-row-who { color: #79452c; }
+.bw-question-row .bw-row-who { color: #365e38; }
 .bw-question-row .bw-row-who b { width: auto; padding: 3px 9px; border-radius: 6px; background: #fff; }
 .bw-question-row .bw-row-text:not(.empty),
 .bw-question-row .bw-row-input { font-size: 19px; font-weight: 700; line-height: 1.6; }
-.bw-question-row .bw-row-input { background: #fffcf9; }
+.bw-question-row .bw-row-input { background: #fafff8; }
+
+/* 질문 방식은 아래 질문 칸과 폭을 맞추고, 두 단추가 반씩 채웁니다. */
+.bw-question-mode-field { width: calc((100% - 12px) / 2); }
+.bw-question-mode { flex-wrap: nowrap; }
+.bw-question-mode .book-seg-btn { flex: 1 1 0; min-width: 0; max-width: none; }
+.book-field .bw-teacher-question-input:disabled {
+  background: var(--bg-deep);
+  color: var(--text-faint);
+  cursor: not-allowed;
+  opacity: 1;
+}
+@media (max-width: 768px) {
+  .bw-question-mode-field { width: 100%; }
+}
+
+.bw-cast-question {
+  margin: 0 0 24px;
+  padding: 22px 26px;
+  border: 1px solid #c8dfc4;
+  border-left: 5px solid #79a973;
+  border-radius: 14px;
+  background: #edf7ec;
+  color: #294c2d;
+  overflow-wrap: anywhere;
+}
+.bw-cast-question-by { display: flex; align-items: center; gap: 10px; font-size: 15px; }
+.bw-cast-question p { margin: 12px 0 0; font-size: clamp(23px, 2.6vw, 36px); font-weight: 750; line-height: 1.5; white-space: pre-wrap; }
+.bw-cast-question p.empty { color: #60765e; font-size: 20px; font-weight: 500; }
+@media (max-width: 768px) {
+  .bw-cast-question { padding: 18px; }
+}

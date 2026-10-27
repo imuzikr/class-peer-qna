@@ -293,7 +293,7 @@ export default function RaftBoard({
       onClick={() => setBoardOpen(true)}
       title="R·A·F·T와 글쓰기 × 반 전체를 한 격자로 봅니다"
     >
-      전광판
+      살펴보기
     </button>
   );
 

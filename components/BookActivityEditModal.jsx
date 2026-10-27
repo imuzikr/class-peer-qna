@@ -157,22 +157,23 @@ export default function BookActivityEditModal({ activity, onClose, onDone }) {
         {isBrainwrite && (
           <div className="book-field">
             <span>질문 방식</span>
-            <div className="book-seg" role="group" aria-label="질문 방식">
+            <div className="book-seg bw-question-mode" role="group" aria-label="질문 방식">
               {[ ["teacher", "선생님이 질문하기"], ["student", "학생이 질문하기"] ].map(([value, label]) => (
                 <button key={value} type="button" className={`book-seg-btn${questionMode === value ? " active" : ""}`}
                   aria-pressed={questionMode === value} onClick={() => setQuestionMode(value)}>{label}</button>
               ))}
             </div>
-            {questionMode === "student" && <em className="book-help">학생이 본인 카드의 첫 칸에 친구들에게 던질 질문을 쓰고, 친구들은 그 아래에 생각을 이어 씁니다.</em>}
           </div>
         )}
-        {isBrainwrite && questionMode === "teacher" && (
+        {isBrainwrite && (
           <label className="book-field">
             <span>질문</span>
             <input
               type="text"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
+              className="bw-teacher-question-input"
+              disabled={questionMode === "student"}
               maxLength={BW_PROMPT_MAX}
               placeholder="예: 주인공이 그 선택을 한 까닭은 무엇일까?"
             />

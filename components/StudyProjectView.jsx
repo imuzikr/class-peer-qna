@@ -807,7 +807,7 @@ export default function StudyProjectView({
                     type="button"
                     className="study-chip study-progress-btn"
                     onClick={() => setProgressOpen(true)}
-                    title={`${studying.title} — 눌러서 공부중 전광판 열기`}
+                    title={`${studying.title} — 눌러서 공부 현황 살펴보기`}
                   >
                     ✍️ 공부중 {studying.label}
                   </button>

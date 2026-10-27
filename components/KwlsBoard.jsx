@@ -168,7 +168,7 @@ export default function KwlsBoard({
       onClick={() => setBoardOpen(true)}
       title="K·W·L·S 네 칸 × 반 전체를 한 격자로 봅니다"
     >
-      전광판
+      살펴보기
     </button>
   );
 

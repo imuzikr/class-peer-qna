@@ -22,6 +22,7 @@
 // **닫기(×·Esc·배경)는 수업을 끝내지 않습니다** — 창만 걷고 방송은 그대로
 // 둡니다. 끝내는 길은 '수업 종료' 하나뿐이라 둘을 선으로 갈라 둡니다.
 // =============================================================
+import BrainWriteQuestionTitle from "./BrainWriteQuestionTitle";
 import { useEffect, useRef, useState } from "react";
 import { backdropClose } from "@/lib/modal";
 import { addStudentReward, subscribeMyClassRewardCount, REWARD_MAX, setBroadcastScroll, castScrollKey } from "@/lib/store";
@@ -222,7 +223,7 @@ export default function CastStageModal({
             것을 그대로 물려받습니다. 칸을 가르는 가로줄도 따라옵니다. */}
         <div className="cast-stage-body" ref={bodyRef}>
           {body ?? (payload?.look === "card" ? <EntryCastCard payload={payload} /> : <>
-          {payload?.prompt && <p className="entry-cast-prompt">{payload.prompt}</p>}
+          {payload?.studentQuestion ? <BrainWriteQuestionTitle name={payload.writerName} text={payload.prompt} /> : payload?.prompt ? <p className="entry-cast-prompt">{payload.prompt}</p> : null}
           {/* RAFT는 낱말 하나만 뜨면 무슨 말인지 몰라 문장을 함께 보여 줍니다 */}
           {payload?.note && <p className="raft-sentence done">{payload.note}</p>}
           {/* 두 칸 꾸러미(물음표로 책 읽기)는 학생 화면과 같이 나란히 */}

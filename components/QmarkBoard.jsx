@@ -141,7 +141,7 @@ export default function QmarkBoard({
       onClick={() => setBoardOpen(true)}
       title="궁금증 · 이유 · 나의 생각 × 반 전체를 한 격자로 봅니다"
     >
-      전광판
+      살펴보기
     </button>
   );
 

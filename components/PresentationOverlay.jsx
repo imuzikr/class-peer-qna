@@ -6,6 +6,7 @@
 // 그대로). 학생 쪽에는 닫기 버튼이 없고, 교사가 방송을 끝내면(또는
 // 모달을 닫으면) 자동으로 사라집니다.
 // =============================================================
+import BrainWriteQuestionTitle from "./BrainWriteQuestionTitle";
 import { useEffect } from "react";
 import { sanitizeHtml } from "@/lib/html";
 import { CONSONANT_LABELS, GRID_SLOTS, CELL_COUNT, cellKey, groupColorOf } from "@/lib/consonants";
@@ -336,7 +337,7 @@ export default function PresentationOverlay({ broadcast, noteOpen = false, noteW
               )}
             </header>
 
-            {broadcast.prompt && <p className="entry-cast-prompt">{broadcast.prompt}</p>}
+            {broadcast?.studentQuestion ? <BrainWriteQuestionTitle name={broadcast.writerName} text={broadcast.prompt} /> : broadcast?.prompt ? <p className="entry-cast-prompt">{broadcast.prompt}</p> : null}
             {/* RAFT는 낱말 하나만 뜨면 무슨 말인지 몰라 문장을 함께 보여 줍니다 */}
             {broadcast.note && <p className="raft-sentence done">{broadcast.note}</p>}
 

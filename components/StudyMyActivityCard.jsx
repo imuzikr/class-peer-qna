@@ -479,7 +479,7 @@ export default function StudyMyActivityCard({
             type="button"
             className="study-chip study-progress-btn"
             onClick={onOpenProgress}
-            title={progressTitle ? `${progressTitle} — 눌러서 공부중 전광판 열기` : "공부중 전광판 — 학생별·활동별 작성 현황"}
+            title={progressTitle ? `${progressTitle} — 눌러서 공부 현황 살펴보기` : "공부 현황 살펴보기 — 학생별·활동별 작성 현황"}
           >
             ✍️ {progressLabel || "공부중"}
           </button>

@@ -115,6 +115,7 @@ export default function BrainWriteBoard({
     card?.group ? columnRows(card.members, card.uid, notesByColumn(notesBy[card.group.id] ?? [])) : [];
   const payloadOf = (card) => ({
     mode: "entry",
+    studentQuestion: studentQuestions,
     activityTitle: activity.title ?? "",
     topic: activity.topic ?? "",
     writerName: card.name,
@@ -175,7 +176,7 @@ export default function BrainWriteBoard({
                 onClick={() => setBoardOpen(true)}
                 title="이어 쓰는 차례 × 반 전체를 한 격자로 봅니다"
               >
-                전광판
+                살펴보기
               </button>
             )}
             {activity.locked && (
@@ -308,7 +309,7 @@ export default function BrainWriteBoard({
           <EntryProgressPanel
             title={open?.group ? `${open.group.groupName} 진행` : "모둠 진행"}
             cards={open?.group ? cards.filter((c) => c.group?.id === open.group.id) : []}
-            emptyText="왼쪽 모둠 카드에서 학생 이름을 누르면 그 모둠의 진행이 보여요. 반 전체는 전광판에서 봐요."
+            emptyText="왼쪽 모둠 카드에서 학생 이름을 누르면 그 모둠의 진행이 보여요. 반 전체는 ‘살펴보기’에서 봐요."
 
             rows={[]}
             rowsOf={(c) =>

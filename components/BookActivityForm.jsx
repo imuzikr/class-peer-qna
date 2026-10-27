@@ -497,15 +497,14 @@ export default function BookActivityForm({
         )}
 
         {isBrainwrite && (
-          <div className="book-field">
+          <div className="book-field bw-question-mode-field">
             <span>질문 방식</span>
-            <div className="book-seg" role="group" aria-label="질문 방식">
+            <div className="book-seg bw-question-mode" role="group" aria-label="질문 방식">
               {[ ["teacher", "선생님이 질문하기"], ["student", "학생이 질문하기"] ].map(([value, label]) => (
                 <button key={value} type="button" className={`book-seg-btn${questionMode === value ? " active" : ""}`}
                   aria-pressed={questionMode === value} onClick={() => setQuestionMode(value)}>{label}</button>
               ))}
             </div>
-            {questionMode === "student" && <em className="book-help">학생이 본인 카드의 첫 칸에 친구들에게 던질 질문을 쓰고, 친구들은 그 아래에 생각을 이어 씁니다.</em>}
           </div>
         )}
 
@@ -516,7 +515,7 @@ export default function BookActivityForm({
             <div className="book-field-row">
               {/* ① 모둠으로 할까, 혼자 할까 — 브레인 라이팅은 늘 모둠이라 이 물음
                   대신 그 자리에 질문 칸이 섭니다(제 줄을 두면 창이 넘칩니다). */}
-              {isBrainwrite ? (questionMode === "teacher" && (
+              {isBrainwrite ? (
                 <label className="book-field">
                   <span>질문</span>
                   <input
@@ -524,11 +523,13 @@ export default function BookActivityForm({
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
                     placeholder="예: 주인공이 그 선택을 한 까닭은 무엇일까?"
+                    className="bw-teacher-question-input"
+                    disabled={questionMode === "student"}
                     maxLength={BW_PROMPT_MAX}
                     title="모둠원마다 칸이 생기고, 첫 줄은 칸 주인이 · 그 아래로 학번순으로 돌아가며 이어 씁니다"
                   />
                 </label>
-              )) : (
+              ) : (
               <div className="book-field">
                 <span>진행 방식</span>
                 <div className="book-seg">
