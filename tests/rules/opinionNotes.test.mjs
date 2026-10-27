@@ -8,10 +8,11 @@
 //   ④ 익명 활동은 학생이 적은 닉네임으로(학번 없음), 실명 활동은 학번·이름으로
 //      붙인다 — 학번을 적으면 제 학번·이름이어야 한다 · 학생은 '선생님' 이름표를 못 쓴다
 //   ⑤ 잠긴 활동은 학생이 손대지 못한다
+//   ⑥ 선생님 댓글(reply · replyAt · replyBy)은 담당 교사만 쓰고 지운다(500자)
 // =============================================================
 import { describe, it, before, after, beforeEach } from "node:test";
 import { assertSucceeds, assertFails } from "@firebase/rules-unit-testing";
-import { doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection } from "firebase/firestore";
+import { doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection, deleteField } from "firebase/firestore";
 import { makeEnv, asStudent, asTeacher, seed } from "./helpers.mjs";
 
 const note = (authorId, extra = {}) => ({
@@ -184,6 +185,31 @@ describe("내 생각은요 메모 규칙", () => {
     await assertFails(setDoc(ref(db, "act1", "stu2"), again));
     // 고치기(글·색)는 그대로 된다
     await assertSucceeds(updateDoc(ref(db, "act1", "stu2"), { text: "고쳐 씀" }));
+  });
+
+  it("선생님 댓글 — 담당 교사는 쓰고 고치고 지운다 · 500자 넘으면 거부", async () => {
+    const db = asTeacher(env, "teacherA").firestore();
+    await assertSucceeds(updateDoc(ref(db, "act1", "n1"), { reply: "좋은 생각이에요", replyAt: new Date(), replyBy: "teacherA" }));
+    await assertSucceeds(updateDoc(ref(db, "act1", "n1"), { reply: "까닭도 적어 볼까요?", replyAt: new Date() }));
+    await assertFails(updateDoc(ref(db, "act1", "n1"), { reply: "가".repeat(501) }));
+    await assertFails(updateDoc(ref(db, "act1", "n1"), { reply: "" }));
+    // 댓글을 핑계로 글은 못 고친다
+    await assertFails(updateDoc(ref(db, "act1", "n1"), { reply: "음", text: "바꿈" }));
+    await assertSucceeds(updateDoc(ref(db, "act1", "n1"), { reply: deleteField(), replyAt: deleteField(), replyBy: deleteField() }));
+  });
+
+  it("선생님 댓글 — 학생(쓴 사람 · 남) · 남의 반 교사는 못 쓰고, 쓴 사람은 댓글을 못 지운다", async () => {
+    await seed(env, async (db) => {
+      await updateDoc(ref(db, "act1", "n1"), { reply: "선생님 한 마디", replyBy: "teacherA" });
+    });
+    await assertFails(updateDoc(ref(asStudent(env, "stu1").firestore(), "act1", "n1"), { reply: "내가 씀" }));
+    await assertFails(updateDoc(ref(asStudent(env, "stu1").firestore(), "act1", "n1"), { reply: deleteField() }));
+    await assertFails(updateDoc(ref(asStudent(env, "stu2").firestore(), "act1", "n1"), { reply: "남이 씀" }));
+    await assertFails(updateDoc(ref(asTeacher(env, "teacherB").firestore(), "act1", "n1"), { reply: "남의 반" }));
+    // 쓴 사람이 글을 고쳐도 댓글은 그대로 남는다
+    await assertSucceeds(updateDoc(ref(asStudent(env, "stu1").firestore(), "act1", "n1"), { text: "고쳐 씀" }));
+    const snap = await getDoc(ref(asStudent(env, "stu2").firestore(), "act1", "n1"));
+    if (snap.data().reply !== "선생님 한 마디") throw new Error("댓글이 사라짐");
   });
 
   it("쓴 사람은 제 메모를 뗀다", async () => {

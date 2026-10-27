@@ -1770,8 +1770,15 @@ service cloud.firestore {
               && (isBookActivityMember(aId) || ownsBookActivityEditable(aId))
               && !isBookActivityLocked(aId)
               && changedOnly(['text','color','zone','x','y','updatedAt','movedAt']))
+          // 교사 — 자리 옮기기 + 선생님 댓글(reply · replyAt · replyBy). 쓴 학생은
+          // 위 갈래의 changedOnly에 이 셋이 없어 못 바꿉니다. 글 500자는
+          // lib/opinion.js의 OPINION_REPLY_MAX와 같아야 합니다.
           || (ownsBookActivityEditable(aId)
-              && changedOnly(['zone','x','y','movedAt']))
+              && changedOnly(['zone','x','y','movedAt','reply','replyAt','replyBy'])
+              && (!('reply' in request.resource.data)
+                  || (request.resource.data.reply is string
+                      && request.resource.data.reply.size() > 0
+                      && request.resource.data.reply.size() <= 500)))
         );
         allow delete: if signedIn() && (
           isAdmin() || ownsBookActivityEditable(aId)

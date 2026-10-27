@@ -32,12 +32,14 @@ import {
   addOpinionNote,
   deleteOpinionNote,
   moveOpinionNote,
+  setOpinionReply,
   subscribeOpinionNotes,
   updateOpinionNote,
 } from "@/lib/store";
 import {
   OPINION_COLORS,
   OPINION_NICK_MAX,
+  OPINION_REPLY_MAX,
   OPINION_TEXT_MAX,
   canAddOpinionNote,
   myZoneCount,
@@ -45,6 +47,7 @@ import {
   nextNoteSpot,
   nicknameProblem,
   noteAuthorLabel,
+  noteReplyText,
   noteRealLabel,
   noteStackTime,
   noteTilt,
@@ -62,7 +65,7 @@ import {
 import { safeBookUrl } from "@/lib/paratext";
 import { backdropClose } from "@/lib/modal";
 import ConfirmModal from "./ConfirmModal";
-import { IconBook, IconLock, IconUnlock } from "./StatusIcons";
+import { IconAnswer, IconBook, IconLock, IconUnlock } from "./StatusIcons";
 
 // 닉네임을 이 기기에 기억 — 다음 활동에서도 같은 이름으로 시작하게
 const nickStoreKey = (uid) => `opinion_nick:${uid}`;
@@ -442,13 +445,16 @@ export default function OpinionBoard({
                             <span className="opinion-list-no" aria-hidden="true">{k + 1}</span>
                             <span className="opinion-list-main">
                               <span className="opinion-list-text">{n.text}</span>
-                              <NoteWho
-                                note={n}
-                                label={labelOf(n)}
-                                real={isRevealed(n) ? realOf(n) : null}
-                                onToggle={canReveal(n) ? () => toggleReveal(n) : null}
-                                className="opinion-list-who"
-                              />
+                              <span className="opinion-list-meta">
+                                <NoteWho
+                                  note={n}
+                                  label={labelOf(n)}
+                                  real={isRevealed(n) ? realOf(n) : null}
+                                  onToggle={canReveal(n) ? () => toggleReveal(n) : null}
+                                  className="opinion-list-who"
+                                />
+                                {noteReplyText(n) && <ReplyMark />}
+                              </span>
                             </span>
                           </li>
                         );
@@ -516,7 +522,7 @@ export default function OpinionBoard({
                   key={n.id}
                   className={`opinion-note${dragging ? " is-dragging" : ""}${isMine(n) ? " is-mine" : ""}${
                     canMove(n) ? " is-movable" : ""
-                  }${n.byTeacher ? " is-teacher" : ""}`}
+                  }${n.byTeacher ? " is-teacher" : ""}${noteReplyText(n) ? " has-reply" : ""}`}
                   style={{
                     left: pos.left,
                     top: pos.top,
@@ -546,6 +552,7 @@ export default function OpinionBoard({
                     onToggle={canReveal(n) ? () => toggleReveal(n) : null}
                   />
                   <p className="opinion-note-text">{n.text}</p>
+                  {noteReplyText(n) && <ReplyMark compact />}
                 </div>
               );
             })
@@ -602,6 +609,8 @@ export default function OpinionBoard({
           zoneAllowed={singleStudent ? (k) => k === zoneOfNote(openNote, zones) : undefined}
           canEdit={canEdit(openNote)}
           canRemove={canRemove(openNote)}
+          canReply={isTeacher && !openNote.byTeacher}
+          onReply={(t) => setOpinionReply(activity.id, openNote.id, t, uid)}
           onSave={(v) => saveNote(openNote, v)}
           onRemove={() => removeNote(openNote)}
           onClose={() => setOpenId(null)}
@@ -624,6 +633,8 @@ function OpinionNoteModal({
   who = null,
   canEdit = false,
   canRemove = false,
+  canReply = false,
+  onReply,
   showColors = true,
   submitLabel = "메모 붙이기",
   askNick = false,
@@ -776,6 +787,7 @@ function OpinionNoteModal({
         ) : (
           <>
             <p className="opinion-modal-text">{note.text}</p>
+            <NoteReply note={note} canReply={canReply} onReply={onReply} />
             {(canEdit || canRemove) && (
               <div className="opinion-modal-tools">
                 {canRemove && (
@@ -811,6 +823,103 @@ function OpinionNoteModal({
         />
       )}
     </div>
+  );
+}
+
+// ─── 선생님 댓글이 있다는 표식 — 목록 줄 · 메모지 ───────────────────
+// 판을 훑으며 '선생님이 어디에 한 마디 남겼나'를 열어 보지 않고 압니다.
+function ReplyMark({ compact = false }) {
+  return (
+    <span
+      className={`opinion-reply-mark${compact ? " opinion-reply-mark--note" : ""}`}
+      title="선생님 댓글이 있어요"
+      aria-label="선생님 댓글이 있어요"
+    >
+      <IconAnswer size={compact ? 13 : 14} />
+      {!compact && "선생님 댓글"}
+    </span>
+  );
+}
+
+// ─── 선생님 댓글 — 크게 보기 창 안, 학생 글 아래 ─────────────────────
+// 학생은 읽기만, 교사는 쓰고 · 고치고 · 지웁니다(메모 한 장에 하나). 반 전체가
+// 메모를 다 읽는 판이라 댓글도 모두에게 보입니다.
+function NoteReply({ note, canReply = false, onReply }) {
+  const reply = noteReplyText(note);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(reply);
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState("");
+  const inputRef = useRef(null);
+
+  useEffect(() => { if (!editing) setDraft(reply); }, [reply, editing]);
+  useEffect(() => { if (editing) inputRef.current?.focus(); }, [editing]);
+
+  if (!reply && !canReply) return null;
+
+  async function save(text) {
+    if (saving) return;
+    setSaving(true);
+    setErr("");
+    try {
+      await onReply?.(text);
+      setEditing(false);
+    } catch (e) {
+      setErr(`저장하지 못했어요: ${e?.message ?? "알 수 없는 오류"}`);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <section className="opinion-reply" aria-label="선생님 댓글">
+      <div className="opinion-reply-head">
+        <IconAnswer size={15} />
+        <strong>선생님 댓글</strong>
+        {canReply && reply && !editing && (
+          <span className="opinion-reply-tools">
+            <button type="button" className="opinion-reply-btn" onClick={() => setEditing(true)}>고치기</button>
+            <button type="button" className="opinion-reply-btn danger" onClick={() => save("")} disabled={saving}>
+              지우기
+            </button>
+          </span>
+        )}
+      </div>
+      {editing ? (
+        <>
+          <textarea
+            ref={inputRef}
+            className="opinion-reply-input"
+            value={draft}
+            maxLength={OPINION_REPLY_MAX}
+            onChange={(e) => setDraft(e.target.value.slice(0, OPINION_REPLY_MAX))}
+            onKeyDown={(e) => {
+              if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+                e.preventDefault();
+                if (draft.trim()) save(draft);
+              }
+            }}
+            placeholder="이 생각에 대한 한 마디를 남겨 주세요."
+          />
+          <div className="opinion-reply-foot">
+            <span className="opinion-modal-count">{draft.length} / {OPINION_REPLY_MAX}</span>
+            <button type="button" className="btn-ghost" onClick={() => { setEditing(false); setDraft(reply); setErr(""); }}>
+              취소
+            </button>
+            <button type="button" className="btn-primary" onClick={() => save(draft)} disabled={!draft.trim() || saving}>
+              {saving ? "저장 중…" : "댓글 남기기"}
+            </button>
+          </div>
+        </>
+      ) : reply ? (
+        <p className="opinion-reply-text">{reply}</p>
+      ) : (
+        <button type="button" className="opinion-reply-add" onClick={() => setEditing(true)}>
+          ＋ 댓글 남기기
+        </button>
+      )}
+      {err && <p className="form-error">{err}</p>}
+    </section>
   );
 }
 
