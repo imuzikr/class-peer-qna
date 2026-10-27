@@ -33808,3 +33808,53 @@ button.msgr-receipt:hover { color: var(--text-sub); }
 @media (max-width: 768px) {
   .bw-cast-question { padding: 18px; }
 }
+
+.opinion-modal-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 1px solid color-mix(in srgb, var(--note-ink) 20%, transparent);
+}
+.opinion-modal-nav > span { color: var(--note-ink); font-size: 13px; font-variant-numeric: tabular-nums; }
+.opinion-modal-nav button { min-width: 88px; }
+
+/* 교실 뒤에서도 함께 읽을 수 있는 큰 메모지 */
+.modal-backdrop.opinion-modal-backdrop {
+  overflow-y: auto;
+  align-items: safe center;
+  padding: 32px 16px;
+}
+.modal.opinion-modal {
+  width: min(1040px, 94vw);
+  flex-shrink: 0;
+  padding: 40px 44px 30px;
+}
+.opinion-modal-zone { font-size: 18px; }
+.opinion-modal-who { font-size: 22px; }
+.opinion-modal-text {
+  min-height: 220px;
+  font-size: clamp(26px, 2.5vw, 36px);
+  line-height: 1.65;
+}
+.opinion-modal-input { font-size: 25px; }
+.opinion-modal .opinion-reply { padding: 18px 22px; }
+.opinion-modal .opinion-reply-head { font-size: 18px; flex-wrap: wrap; }
+.opinion-modal .opinion-reply-text,
+.opinion-modal .opinion-reply-input { font-size: 25px; }
+.opinion-modal .opinion-reply-btn,
+.opinion-modal .opinion-reply-add,
+.opinion-modal .btn-ghost,
+.opinion-modal .btn-primary { font-size: 17px; }
+.opinion-modal-nav > span { font-size: 18px; }
+.opinion-modal .btn-close { font-size: 28px; min-width: 40px; min-height: 40px; }
+@media (max-width: 768px) {
+  .modal.opinion-modal { padding: 30px 20px 22px; }
+  .opinion-modal-text { min-height: 160px; font-size: 26px; }
+  .opinion-modal-who { font-size: 19px; }
+  .opinion-modal .opinion-reply { padding: 14px; }
+  .opinion-modal .opinion-reply-text,
+  .opinion-modal .opinion-reply-input { font-size: 22px; }
+}

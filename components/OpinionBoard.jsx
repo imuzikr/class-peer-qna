@@ -234,6 +234,13 @@ export default function OpinionBoard({
   );
   const myCount = notes.filter(isMine).length;
   const openNote = openId ? notes.find((n) => n.id === openId) ?? null : null;
+  // 목록과 같은 차례: 왼쪽 영역부터, 각 영역에 보이는 글 순서대로 읽습니다.
+  const readingNotes = useMemo(
+    () => zones.flatMap((z) => listByZone.get(z.key) ?? []),
+    [zones, listByZone]
+  );
+  const readingIndex = readingNotes.findIndex((n) => n.id === openId);
+
 
   // 알림 벨에서 왔으면(`?note=<id>`) 그 메모를 크게 엽니다 — 한 번만. 열고 나면
   // 주소에서 걷어 새로고침해도 다시 안 뜨게 합니다.
@@ -616,8 +623,13 @@ export default function OpinionBoard({
       )}
       {openNote && (
         <OpinionNoteModal
+          key={openNote.id}
           mode="view"
           note={openNote}
+          readingIndex={readingIndex}
+          readingTotal={readingNotes.length}
+          onPrevious={readingIndex > 0 ? () => setOpenId(readingNotes[readingIndex - 1].id) : null}
+          onNext={readingIndex >= 0 && readingIndex < readingNotes.length - 1 ? () => setOpenId(readingNotes[readingIndex + 1].id) : null}
           zones={zones}
           who={
             <NoteWho
@@ -649,6 +661,10 @@ export default function OpinionBoard({
 // 창이라 '쓰던 메모가 그대로 판에 붙는다'로 보입니다.
 function OpinionNoteModal({
   mode,
+  readingIndex = -1,
+  readingTotal = 0,
+  onPrevious = null,
+  onNext = null,
   note = null,
   zones,
   initialZone = null,
@@ -669,6 +685,7 @@ function OpinionNoteModal({
   onClose,
 }) {
   const isNew = mode === "new";
+  const [replyBusy, setReplyBusy] = useState(false);
   const [nickAlert, setNickAlert] = useState(null);
   const nickRef = useRef(null);
   const [editing, setEditing] = useState(isNew);
@@ -723,7 +740,7 @@ function OpinionNoteModal({
   }
 
   return (
-    <div className="modal-backdrop" {...backdropClose(onClose)}>
+    <div className="modal-backdrop opinion-modal-backdrop" {...backdropClose(onClose)}>
       <div
         className="modal opinion-modal"
         role="dialog"
@@ -811,7 +828,7 @@ function OpinionNoteModal({
         ) : (
           <>
             <p className="opinion-modal-text">{note.text}</p>
-            <NoteReply note={note} canReply={canReply} onReply={onReply} />
+            <NoteReply note={note} canReply={canReply} onReply={onReply} onBusyChange={setReplyBusy} />
             {(canEdit || canRemove) && (
               <div className="opinion-modal-tools">
                 {canRemove && (
@@ -827,6 +844,15 @@ function OpinionNoteModal({
               </div>
             )}
           </>
+        )}
+        {!isNew && readingTotal > 0 && (
+          <nav className="opinion-modal-nav" aria-label="글 이어 보기">
+            <button type="button" className="btn-ghost" onClick={onPrevious}
+              disabled={!onPrevious || editing || saving || replyBusy}>← 이전</button>
+            <span aria-live="polite">{readingIndex + 1} / {readingTotal}</span>
+            <button type="button" className="btn-ghost" onClick={onNext}
+              disabled={!onNext || editing || saving || replyBusy}>다음 →</button>
+          </nav>
         )}
       </div>
       {nickAlert && (
@@ -868,7 +894,7 @@ function ReplyMark({ compact = false }) {
 // ─── 선생님 댓글 — 크게 보기 창 안, 학생 글 아래 ─────────────────────
 // 학생은 읽기만, 교사는 쓰고 · 고치고 · 지웁니다(메모 한 장에 하나). 반 전체가
 // 메모를 다 읽는 판이라 댓글도 모두에게 보입니다.
-function NoteReply({ note, canReply = false, onReply }) {
+function NoteReply({ note, canReply = false, onReply, onBusyChange }) {
   const reply = noteReplyText(note);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(reply);
@@ -876,6 +902,10 @@ function NoteReply({ note, canReply = false, onReply }) {
   const [err, setErr] = useState("");
   const inputRef = useRef(null);
 
+  useEffect(() => {
+    onBusyChange?.(editing || saving);
+    return () => onBusyChange?.(false);
+  }, [editing, saving, onBusyChange]);
   useEffect(() => { if (!editing) setDraft(reply); }, [reply, editing]);
   useEffect(() => { if (editing) inputRef.current?.focus(); }, [editing]);
 
