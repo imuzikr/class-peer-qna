@@ -6,6 +6,7 @@
 // 그대로). 학생 쪽에는 닫기 버튼이 없고, 교사가 방송을 끝내면(또는
 // 모달을 닫으면) 자동으로 사라집니다.
 // =============================================================
+import { useEffect } from "react";
 import { sanitizeHtml } from "@/lib/html";
 import { CONSONANT_LABELS, GRID_SLOTS, CELL_COUNT, cellKey, groupColorOf } from "@/lib/consonants";
 import { normalizeMindmap } from "@/lib/mindmap";
@@ -26,6 +27,21 @@ const KNOWN_MODES = ["consonant", "entry", "wall", "mindmap", "lesson", "carouse
 // 좁아집니다. 가려지는 것은 감수하는 손실입니다 — 필기하면서 답하려고 편
 // 것이라, 그 순간 학생이 보는 주인공은 슬라이드가 아니라 제 칸입니다.
 export default function PresentationOverlay({ broadcast, noteOpen = false, noteWide = false }) {
+  // 교사가 수업 화면 창을 굴리면 같은 비율로 따라 굴립니다(`scroll` 0~1 —
+  // lib/data/lessons.js의 setBroadcastScroll). 크기가 달라 픽셀이 아니라 비율입니다.
+  const scroll = typeof broadcast?.scroll === "number" ? broadcast.scroll : null;
+  const scrollKey = broadcast?.scrollKey ?? "";
+  useEffect(() => {
+    if (scroll == null) return undefined;
+    const raf = requestAnimationFrame(() => {
+      const el = document.querySelector(".broadcast-overlay .broadcast-body");
+      if (!el) return;
+      const room = el.scrollHeight - el.clientHeight;
+      if (room <= 0) return;
+      el.scrollTo({ top: Math.round(room * scroll), behavior: "smooth" });
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [scroll, scrollKey]);
   const shrink = noteOpen
     ? noteWide
       ? " broadcast-overlay--noted broadcast-overlay--noted2"

@@ -22,9 +22,9 @@
 // **닫기(×·Esc·배경)는 수업을 끝내지 않습니다** — 창만 걷고 방송은 그대로
 // 둡니다. 끝내는 길은 '수업 종료' 하나뿐이라 둘을 선으로 갈라 둡니다.
 // =============================================================
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { backdropClose } from "@/lib/modal";
-import { addStudentReward, subscribeMyClassRewardCount, REWARD_MAX } from "@/lib/store";
+import { addStudentReward, subscribeMyClassRewardCount, REWARD_MAX, setBroadcastScroll, castScrollKey } from "@/lib/store";
 import { nextFruit } from "./RewardFruits";
 import EntryCastCard from "./EntryCastCard";
 
@@ -57,6 +57,41 @@ export default function CastStageModal({
 }) {
   const [rewardCount, setRewardCount] = useState(0);
   const [awarding, setAwarding] = useState(false);
+
+  // 본문을 굴리면 학생 방송 화면도 같은 비율로 굴립니다(선생님 요청 — 긴 글 아래의
+  // 동료 평가 한 마디를 함께 내려 읽으려고). 0.15초에 한 번만 보내고, 거의 같은
+  // 값(1% 아래 차이)은 안 보냅니다. 학생 · 영역이 바뀌면 맨 위에서 다시 시작합니다.
+  const bodyRef = useRef(null);
+  const scrollKey = castScrollKey(payload);
+  const sentRef = useRef({ key: "", ratio: 0 });
+  const payloadRef = useRef(payload);
+  payloadRef.current = payload;
+  useEffect(() => {
+    const el = bodyRef.current;
+    if (el) el.scrollTop = 0;
+    sentRef.current = { key: scrollKey, ratio: 0 };
+  }, [scrollKey]);
+  useEffect(() => {
+    const el = bodyRef.current;
+    if (!el || !classId) return undefined;
+    let timer = null;
+    const send = () => {
+      timer = null;
+      const room = el.scrollHeight - el.clientHeight;
+      const ratio = room > 0 ? el.scrollTop / room : 0;
+      const last = sentRef.current;
+      const near = Math.abs(last.ratio - ratio) < 0.01 && ratio > 0 && ratio < 1;
+      if (last.key === scrollKey && (last.ratio === ratio || near)) return;
+      sentRef.current = { key: scrollKey, ratio };
+      setBroadcastScroll(classId, payloadRef.current, ratio).catch(() => {});
+    };
+    const onScroll = () => { if (!timer) timer = setTimeout(send, 150); };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      el.removeEventListener("scroll", onScroll);
+      if (timer) clearTimeout(timer);
+    };
+  }, [classId, scrollKey]);
 
   // 과일 개수는 **그 학생 문서 한 건**만 봅니다(`subscribeMyClassRewardCount`
   // — 이름이 `My…`지만 uid를 받는 함수라 교사가 남의 것을 보는 데도 그대로
@@ -185,7 +220,7 @@ export default function CastStageModal({
         {/* 본문 — **학생 화면과 같은 것**을 씁니다(`.entry-cast-body`).
             교사가 보는 것이 곧 칠판에 뜬 것이어야 하므로 글자 크기도 그쪽
             것을 그대로 물려받습니다. 칸을 가르는 가로줄도 따라옵니다. */}
-        <div className="cast-stage-body">
+        <div className="cast-stage-body" ref={bodyRef}>
           {body ?? (payload?.look === "card" ? <EntryCastCard payload={payload} /> : <>
           {payload?.prompt && <p className="entry-cast-prompt">{payload.prompt}</p>}
           {/* RAFT는 낱말 하나만 뜨면 무슨 말인지 몰라 문장을 함께 보여 줍니다 */}
