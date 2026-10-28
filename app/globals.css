@@ -33886,7 +33886,7 @@ button.msgr-receipt:hover { color: var(--text-sub); }
   border-radius: 16px;
   visibility: hidden;
   pointer-events: none;
-  transition: visibility 0s linear .48s;
+  transition: visibility 0s linear .9s;
 }
 .feedback-open .cornell-feedback-track {
   visibility: visible;
@@ -33905,7 +33905,7 @@ button.msgr-receipt:hover { color: var(--text-sub); }
   flex-direction: column;
   overflow: hidden;
   transform: translateX(-100%);
-  transition: transform .48s cubic-bezier(.22, 1, .36, 1);
+  transition: transform .9s cubic-bezier(.45, 0, .55, 1);
   will-change: transform;
 }
 .feedback-open .cornell-feedback-wing { transform: translateX(0); }
@@ -33921,9 +33921,7 @@ button.msgr-receipt:hover { color: var(--text-sub); }
   /* 가로 폭이 부족하면 노트 위치를 옮기는 대신 오른쪽 위에 날개를 겹칩니다. */
   .cornell-feedback-track { left: auto; right: 0; width: min(420px, 100%); }
 }
-@media (prefers-reduced-motion: reduce) {
-  .cornell-feedback-wing, .cornell-feedback-track { transition: none; }
-}
+/* 이 패널은 명시적으로 요청한 슬라이드 동작을 유지합니다. */
 
 .cornell-feedback-wing .cornell-read-fbhead { flex-shrink: 0; }
 @media (max-height: 540px) {
