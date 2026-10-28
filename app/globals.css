@@ -33858,3 +33858,35 @@ button.msgr-receipt:hover { color: var(--text-sub); }
   .opinion-modal .opinion-reply-text,
   .opinion-modal .opinion-reply-input { font-size: 22px; }
 }
+
+/* 수업 노트 옆에 펼치는 피드백 날개 */
+.modal.modal-cornell-read.cornell-wing-modal { max-width: 900px; width: 96vw; transition: max-width .24s ease; }
+.modal.modal-cornell-read.cornell-wing-modal.feedback-open { max-width: 1360px; }
+.cornell-wing-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; }
+.cornell-wing-layout.is-open { grid-template-columns: minmax(0, 1.65fr) minmax(320px, 1fr); }
+.cornell-wing-note { min-width: 0; }
+.cornell-feedback-wing {
+  min-width: 0;
+  padding: 22px;
+  border: 1px solid #d4e3d0;
+  border-radius: 16px;
+  background: #f5faf3;
+  animation: cornell-wing-in .24s ease-out;
+}
+.cornell-feedback-wing[hidden] { display: none; }
+.cornell-feedback-wing .cornell-read-feedback { margin: 0; gap: 16px; height: 100%; }
+.cornell-feedback-wing label b { font-size: 18px; }
+.cornell-feedback-wing label em { font-size: 12px; margin-top: 5px; }
+.cornell-feedback-wing textarea { flex: 1; width: 100%; min-height: 320px; font-size: 18px; line-height: 1.8; padding: 16px; background: #fff; }
+.cornell-feedback-wing .cornell-read-actions { flex-wrap: wrap; margin-top: auto; }
+.cornell-feedback-toggle { white-space: nowrap; }
+.cornell-wing-modal .cornell-read-bar { flex-wrap: wrap; }
+@keyframes cornell-wing-in { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: translateX(0); } }
+@media (max-width: 960px) {
+  .cornell-wing-layout.is-open { grid-template-columns: minmax(0, 1fr); }
+  .cornell-feedback-wing textarea { min-height: 260px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cornell-feedback-wing { animation: none; }
+  .modal.modal-cornell-read.cornell-wing-modal { transition: none; }
+}

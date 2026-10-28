@@ -60,6 +60,7 @@ export default function CornellNoteReadModal({
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(true);
 
   // ── 과일 주기 ────────────────────────────────────────────
   // 노트를 읽는 그 자리에서 바로 줍니다 — 잘 쓴 노트를 보고 격려하려면
@@ -169,6 +170,7 @@ export default function CornellNoteReadModal({
   // 자리라, 한 번 끌 때마다 칸이 아래로 튀면 노트가 화면에서 사라집니다.
   // 글자를 치기 시작하면 브라우저가 알아서 커서를 보여 줍니다.
   const addQuote = useCallback((quote) => {
+    setFeedbackOpen(true);
     const head = draftRef.current.replace(/\s+$/, "");
     const next = `${head ? `${head}\n\n` : ""}${quoteBlock(quote)}`.slice(0, FEEDBACK_MAX);
     setDraft(next);
@@ -256,7 +258,7 @@ export default function CornellNoteReadModal({
   return (
     <div className="modal-backdrop" {...backdropClose(onClose)}>
       <div
-        className="modal modal-cornell-read"
+        className={`modal modal-cornell-read cornell-wing-modal${feedbackOpen ? " feedback-open" : ""}`}
         role="dialog"
         aria-modal="true"
         aria-label="수업 노트 읽기"
@@ -285,6 +287,8 @@ export default function CornellNoteReadModal({
           <>
             {/* 날짜 넘기기 — 한 학생의 흐름을 따라가는 자리입니다.
                 ‹ ›는 붙여 둡니다(학생 화면과 같은 모양) */}
+            <div className={`cornell-wing-layout${feedbackOpen ? " is-open" : ""}`}>
+            <div className="cornell-wing-note">
             <div className="cornell-read-bar">
               <select
                 className="cornell-read-date"
@@ -320,6 +324,11 @@ export default function CornellNoteReadModal({
                   ›
                 </button>
               </div>
+              <button type="button" className="btn-ghost cornell-feedback-toggle"
+                aria-expanded={feedbackOpen} aria-controls="cornell-feedback-wing"
+                onClick={() => setFeedbackOpen((open) => !open)}>
+                {feedbackOpen ? "피드백 접기 →" : "피드백 펼치기 ←"}
+              </button>
               <span className="cornell-read-count">
                 {counted.index} / {counted.total}
               </span>
@@ -349,6 +358,9 @@ export default function CornellNoteReadModal({
               onMarkRemove={removeMark}
             />
 
+            </div>
+            <aside id="cornell-feedback-wing" className="cornell-feedback-wing"
+              aria-label="선생님 피드백" hidden={!feedbackOpen}>
             <div className="cornell-read-feedback">
               {/* 이름표 줄 오른쪽 끝에 과일 단추 — 노트를 읽은 바로 그
                   자리에서 격려합니다. 값도 길도 카드 격자·활동 칸의 단추와
@@ -396,7 +408,7 @@ export default function CornellNoteReadModal({
               <textarea
                 id="cornell-feedback"
                 ref={fbRef}
-                rows={3}
+                rows={14}
                 value={draft}
                 onChange={(e) => {
                   setDraft(e.target.value.slice(0, FEEDBACK_MAX));
@@ -418,6 +430,8 @@ export default function CornellNoteReadModal({
                   {saving ? "저장 중…" : "피드백 저장"}
                 </button>
               </div>
+            </div>
+            </aside>
             </div>
           </>
         )}
