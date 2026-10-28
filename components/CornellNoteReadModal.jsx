@@ -347,6 +347,7 @@ export default function CornellNoteReadModal({
               )}
             </div>
 
+            <div className="cornell-wing-sheet-scroll" tabIndex={0} role="region" aria-label="학생 수업 노트 내용">
             <CornellNoteSheet
               note={note}
               showFeedback={false}
@@ -354,6 +355,7 @@ export default function CornellNoteReadModal({
               onMarkAdd={addMark}
               onMarkRemove={removeMark}
             />
+            </div>
 
             </div>
 
@@ -361,7 +363,7 @@ export default function CornellNoteReadModal({
           </>
         )}
       </div>
-            {loaded && notes.length > 0 && <aside id="cornell-feedback-wing" className="cornell-feedback-wing"
+            {loaded && notes.length > 0 && <div className="cornell-feedback-track"><aside id="cornell-feedback-wing" className="cornell-feedback-wing"
               aria-label="선생님 피드백" aria-hidden={!feedbackOpen} inert={!feedbackOpen}>
             <button type="button" className="btn-ghost cornell-wing-close" onClick={() => setFeedbackOpen(false)}>← 피드백 접기</button>
             <div className="cornell-read-feedback">
@@ -434,7 +436,7 @@ export default function CornellNoteReadModal({
                 </button>
               </div>
             </div>
-            </aside>}
+            </aside></div>}
       </div>
     </div>
   );

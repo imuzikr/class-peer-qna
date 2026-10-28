@@ -33860,42 +33860,74 @@ button.msgr-receipt:hover { color: var(--text-sub); }
 }
 
 /* 노트는 제자리에 두고 피드백만 오른쪽 날개로 펼칩니다. */
-.cornell-wing-shell { position: relative; width: min(900px, 96vw); max-width: 100%; }
-.modal.modal-cornell-read.cornell-wing-modal { width: 100%; max-width: none; }
+.cornell-wing-shell { position: relative; width: min(960px, 96vw); max-width: 100%; height: min(860px, calc(100dvh - 48px)); }
+.modal.modal-cornell-read.cornell-wing-modal {
+  width: 100%; max-width: none; height: 100%; max-height: none;
+  box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden;
+}
+.cornell-wing-modal > .modal-head { flex-shrink: 0; }
+.cornell-wing-modal .cornell-wing-layout,
+.cornell-wing-modal .cornell-wing-layout.is-open { display: flex; flex: 1; min-height: 0; }
+.cornell-wing-note { display: flex; flex-direction: column; width: 100%; min-height: 0; }
+.cornell-wing-note > .cornell-read-bar,
+.cornell-wing-note > .cornell-hl-bar { flex-shrink: 0; }
+.cornell-wing-sheet-scroll { flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
+
 .cornell-wing-layout, .cornell-wing-layout.is-open { display: block; }
 .cornell-wing-note { min-width: 0; }
-.cornell-feedback-wing {
+.cornell-feedback-track {
   position: absolute;
   z-index: 2;
   top: 0;
   bottom: 0;
   left: calc(100% + 12px);
   width: 380px;
+  overflow: hidden;
+  border-radius: 16px;
+  visibility: hidden;
+  pointer-events: none;
+  transition: visibility 0s linear .48s;
+}
+.feedback-open .cornell-feedback-track {
+  visibility: visible;
+  pointer-events: auto;
+  transition-delay: 0s;
+}
+.cornell-feedback-wing {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
   padding: 22px;
   border: 1px solid #d4e3d0;
   border-radius: 16px;
   background: #f5faf3;
-  box-shadow: 0 12px 40px #0003;
-  overflow-y: auto;
-  opacity: 0;
-  visibility: hidden;
-  transform: translateX(-36px);
-  transition: transform .28s ease, opacity .28s ease, visibility .28s;
-  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: translateX(-100%);
+  transition: transform .48s cubic-bezier(.22, 1, .36, 1);
+  will-change: transform;
 }
-.feedback-open .cornell-feedback-wing { opacity: 1; visibility: visible; transform: translateX(0); pointer-events: auto; }
-.cornell-wing-close { margin-bottom: 18px; }
-.cornell-feedback-wing .cornell-read-feedback { margin: 0; gap: 16px; min-height: calc(100% - 60px); }
+.feedback-open .cornell-feedback-wing { transform: translateX(0); }
+.cornell-wing-close { margin-bottom: 18px; align-self: flex-start; flex-shrink: 0; }
+.cornell-feedback-wing .cornell-read-feedback { margin: 0; gap: 16px; flex: 1; min-height: 0; }
 .cornell-feedback-wing label b { font-size: 18px; }
 .cornell-feedback-wing label em { font-size: 12px; margin-top: 5px; }
-.cornell-feedback-wing textarea { flex: 1; width: 100%; min-height: 300px; font-size: 18px; line-height: 1.8; padding: 16px; background: #fff; }
-.cornell-feedback-wing .cornell-read-actions { flex-wrap: wrap; margin-top: auto; }
+.cornell-feedback-wing textarea { flex: 1; width: 100%; min-height: 0; height: 0; resize: none; overflow-y: auto; font-size: 18px; line-height: 1.8; padding: 16px; background: #fff; }
+.cornell-feedback-wing .cornell-read-actions { flex-wrap: wrap; margin-top: auto; flex-shrink: 0; }
 .cornell-feedback-toggle { white-space: nowrap; }
 .cornell-wing-modal .cornell-read-bar { flex-wrap: wrap; }
 @media (max-width: 1720px) {
   /* 가로 폭이 부족하면 노트 위치를 옮기는 대신 오른쪽 위에 날개를 겹칩니다. */
-  .cornell-feedback-wing { left: auto; right: 0; width: min(420px, 100%); transform: translateX(36px); }
+  .cornell-feedback-track { left: auto; right: 0; width: min(420px, 100%); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .cornell-feedback-wing { transition: none; }
+  .cornell-feedback-wing, .cornell-feedback-track { transition: none; }
+}
+
+.cornell-feedback-wing .cornell-read-fbhead { flex-shrink: 0; }
+@media (max-height: 540px) {
+  .cornell-feedback-wing { padding: 14px; }
+  .cornell-wing-close { margin-bottom: 8px; }
+  .cornell-feedback-wing .cornell-read-feedback { gap: 8px; }
 }
