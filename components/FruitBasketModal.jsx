@@ -34,7 +34,7 @@ import { toDate, dateKeyOf, dateKeyLabel } from "@/lib/dates";
 import ConfirmModal from "@/components/ConfirmModal";
 
 // 이벤트 기록 서랍이 창 뒤로 들어가는 시간 — CSS .fb-door.is-closing의 길이와 같아야 합니다.
-const DOOR_MS = 360;
+const DOOR_MS = 500;
 
 // 바구니 그림 — public/fruit-basket.webp(색연필 그림, 1200×800 · 약 270KB).
 // 크기를 적어 두어 그림이 오기 전에도 자리가 잡혀 창이 흔들리지 않습니다.
