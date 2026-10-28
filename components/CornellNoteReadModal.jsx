@@ -60,7 +60,7 @@ export default function CornellNoteReadModal({
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [feedbackOpen, setFeedbackOpen] = useState(true);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   // ── 과일 주기 ────────────────────────────────────────────
   // 노트를 읽는 그 자리에서 바로 줍니다 — 잘 쓴 노트를 보고 격려하려면
@@ -257,13 +257,10 @@ export default function CornellNoteReadModal({
 
   return (
     <div className="modal-backdrop" {...backdropClose(onClose)}>
-      <div
-        className={`modal modal-cornell-read cornell-wing-modal${feedbackOpen ? " feedback-open" : ""}`}
-        role="dialog"
-        aria-modal="true"
-        aria-label="수업 노트 읽기"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className={`cornell-wing-shell${feedbackOpen ? " feedback-open" : ""}`}
+        role="dialog" aria-modal="true" aria-label="수업 노트 읽기"
+        onClick={(e) => e.stopPropagation()}>
+      <div className="modal modal-cornell-read cornell-wing-modal">
         <div className="modal-head">
           <h3 className="head-icon">
             {onBack && (
@@ -327,7 +324,7 @@ export default function CornellNoteReadModal({
               <button type="button" className="btn-ghost cornell-feedback-toggle"
                 aria-expanded={feedbackOpen} aria-controls="cornell-feedback-wing"
                 onClick={() => setFeedbackOpen((open) => !open)}>
-                {feedbackOpen ? "피드백 접기 →" : "피드백 펼치기 ←"}
+                {feedbackOpen ? "피드백 접기 ←" : "피드백 펼치기 →"}
               </button>
               <span className="cornell-read-count">
                 {counted.index} / {counted.total}
@@ -359,8 +356,14 @@ export default function CornellNoteReadModal({
             />
 
             </div>
-            <aside id="cornell-feedback-wing" className="cornell-feedback-wing"
-              aria-label="선생님 피드백" hidden={!feedbackOpen}>
+
+            </div>
+          </>
+        )}
+      </div>
+            {loaded && notes.length > 0 && <aside id="cornell-feedback-wing" className="cornell-feedback-wing"
+              aria-label="선생님 피드백" aria-hidden={!feedbackOpen} inert={!feedbackOpen}>
+            <button type="button" className="btn-ghost cornell-wing-close" onClick={() => setFeedbackOpen(false)}>← 피드백 접기</button>
             <div className="cornell-read-feedback">
               {/* 이름표 줄 오른쪽 끝에 과일 단추 — 노트를 읽은 바로 그
                   자리에서 격려합니다. 값도 길도 카드 격자·활동 칸의 단추와
@@ -431,10 +434,7 @@ export default function CornellNoteReadModal({
                 </button>
               </div>
             </div>
-            </aside>
-            </div>
-          </>
-        )}
+            </aside>}
       </div>
     </div>
   );
