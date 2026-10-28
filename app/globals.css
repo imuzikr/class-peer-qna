@@ -33882,7 +33882,9 @@ button.msgr-receipt:hover { color: var(--text-sub); }
   bottom: 0;
   left: calc(100% + 12px);
   width: 380px;
-  overflow: hidden;
+  perspective: 1400px;
+  perspective-origin: left center;
+  overflow: visible;
   border-radius: 16px;
   visibility: hidden;
   pointer-events: none;
@@ -33904,11 +33906,26 @@ button.msgr-receipt:hover { color: var(--text-sub); }
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  transform: translateX(-100%);
+  position: relative;
+  transform-origin: left center;
+  backface-visibility: hidden;
+  transform: rotateY(-90deg);
+  box-shadow: 0 12px 30px #0002;
   transition: transform .9s cubic-bezier(.45, 0, .55, 1);
   will-change: transform;
 }
-.feedback-open .cornell-feedback-wing { transform: translateX(0); }
+.feedback-open .cornell-feedback-wing { transform: rotateY(0deg); }
+.cornell-feedback-wing::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #20321d40, transparent);
+  opacity: 1;
+  pointer-events: none;
+  transition: opacity .9s cubic-bezier(.45, 0, .55, 1);
+}
+.feedback-open .cornell-feedback-wing::after { opacity: 0; }
 .cornell-wing-close { margin-bottom: 18px; align-self: flex-start; flex-shrink: 0; }
 .cornell-feedback-wing .cornell-read-feedback { margin: 0; gap: 16px; flex: 1; min-height: 0; }
 .cornell-feedback-wing label b { font-size: 18px; }
@@ -33921,7 +33938,7 @@ button.msgr-receipt:hover { color: var(--text-sub); }
   /* 가로 폭이 부족하면 노트 위치를 옮기는 대신 오른쪽 위에 날개를 겹칩니다. */
   .cornell-feedback-track { left: auto; right: 0; width: min(420px, 100%); }
 }
-/* 이 패널은 명시적으로 요청한 슬라이드 동작을 유지합니다. */
+/* 이 패널은 명시적으로 요청한 경첩 펼침 동작을 유지합니다. */
 
 .cornell-feedback-wing .cornell-read-fbhead { flex-shrink: 0; }
 @media (max-height: 540px) {
