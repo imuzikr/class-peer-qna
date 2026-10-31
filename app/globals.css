@@ -29089,6 +29089,34 @@ h4.attendance-seat-help { margin-top: 16px; }
    비율을 픽셀로 바꿉니다. 색은 lib/opinion.js의 OPINION_COLORS(인라인
    --note-bg · --note-ink)에서 옵니다.
    ============================================================= */
+.opinion-main .books-head-main { flex-wrap: wrap; }
+.opinion-layout-toggle {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: 2px;
+  margin-left: auto;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-deep);
+}
+.opinion-layout-toggle > button {
+  padding: 6px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.opinion-layout-toggle > button[aria-pressed="true"] {
+  background: var(--primary);
+  color: #fff;
+}
+.opinion-layout-toggle > button:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
 .opinion-bar {
   display: flex;
   align-items: center;

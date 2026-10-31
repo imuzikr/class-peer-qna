@@ -102,6 +102,12 @@ export default function OpinionBoard({
   const zones = useMemo(() => normalizeZones(activity.zones), [activity.zones]);
   const locked = !!activity.locked;
   const uid = user?.uid ?? null;
+  // 활동의 기본 모양으로 시작하되, 보기 전환은 이 화면에만 적용합니다.
+  const [layoutChoice, setLayoutChoice] = useState(null);
+  const layout = layoutChoice && layoutChoice.activityId === activity.id
+    ? layoutChoice.layout
+    : opinionLayout(activity);
+  const isList = layout === "list";
 
   useEffect(() => {
     setLoaded(false);
@@ -162,7 +168,7 @@ export default function OpinionBoard({
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [loaded]);
+  }, [loaded, isList]);
 
   // 놓은 자리를 저장이 돌아올 때까지 붙들어 둡니다 { [id]: {zone,x,y} }.
   const [pending, setPending] = useState({});
@@ -175,8 +181,6 @@ export default function OpinionBoard({
   const [error, setError] = useState("");
 
   const isMine = (n) => !!uid && n.authorId === uid;
-  const layout = opinionLayout(activity);
-  const isList = layout === "list";
   const unit = isList ? "글" : "메모";
   const nameMode = opinionNameMode(activity);
   const askNick = !isTeacher && nameMode === "nick";
@@ -368,6 +372,12 @@ export default function OpinionBoard({
   const prompt = (activity.prompt ?? "").trim();
   const studentTotal = roster.length;
 
+  function pickLayout(next) {
+    dragRef.current = null;
+    setDrag(null);
+    setLayoutChoice({ activityId: activity.id, layout: next });
+  }
+
   return (
     <main className="books-main opinion-main">
       <div className="books-head">
@@ -400,6 +410,14 @@ export default function OpinionBoard({
               <IconBook size={15} /> 도서 정보
             </a>
           )}
+          <div className="opinion-layout-toggle" role="group" aria-label="보기 방식">
+            <button type="button" aria-pressed={!isList} onClick={() => pickLayout("memo")}>
+              메모지형
+            </button>
+            <button type="button" aria-pressed={isList} onClick={() => pickLayout("list")}>
+              목록형
+            </button>
+          </div>
         </div>
       </div>
 
