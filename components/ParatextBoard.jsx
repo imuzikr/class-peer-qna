@@ -229,7 +229,6 @@ export default function ParatextBoard({
           <h1 className="book-group-title">{activity.title}</h1>
           <button type="button" className="btn-ghost" onClick={onBack}>← 활동 목록</button>
           {classTools}
-          {boardBtn}
         </div>
         <div className="books-head-row">
           <div className="books-head-main">
@@ -252,6 +251,7 @@ export default function ParatextBoard({
             <span className="paratext-sum">
               시작 {startedCount}명 · 완성 {doneCount}명 / 전체 {cards.length}명
             </span>
+            {boardBtn}
             {/* 잠김 안내도 이 줄에 — 예전엔 머리말 아래 제 줄을 차지했는데,
                 이 줄은 배지 두어 개뿐이라 오른쪽이 비어 있었습니다.
                 '지금 잠겨 있다'는 활동에 붙는 상태라 배지와 같은 성격입니다. */}
@@ -299,16 +299,13 @@ export default function ParatextBoard({
                     <strong>{g.name}</strong>
                     <span className="book-group-count">{g.cards.length}명</span>
                   </button>
-                  <span className="book-rail-members">
-                    시작 {g.cards.filter((c) => paratextCharCount(c.entry?.answers) > 0).length}명 · 완성 {g.cards.filter((c) => paratextDoneCount(c.entry?.answers) === PARATEXT_SECTION_COUNT).length}명
-                  </span>
                   <div className="book-rail-chips">
                     {g.cards.map((c) => (
                       <button key={c.uid} type="button"
                         className={`book-rail-chip${open?.uid === c.uid ? " is-picked" : ""}`}
                         aria-pressed={open?.uid === c.uid}
                         onClick={() => { setPickedGroup(g.id); setOpenUid(c.uid); }}>
-                        {c.emoji} {c.name}
+                        {c.name}
                       </button>
                     ))}
                   </div>

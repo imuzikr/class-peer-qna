@@ -21360,7 +21360,12 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
 .book-workspace-center > .entry-detail-grid { margin-top: 12px; }
 .paratext-workspace-main .books-head-main { flex-wrap: wrap; }
 .paratext-overview-btn { margin-left: auto; flex-shrink: 0; }
-.paratext-group-rail .book-rail-card { cursor: default; }
+.paratext-group-rail .book-rail-card {
+  cursor: default;
+  flex-shrink: 0;
+  background: var(--card-bg);
+  border-width: 1px;
+}
 .paratext-group-pick {
   width: 100%;
   padding: 0;
@@ -21369,7 +21374,11 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
   text-align: left;
   cursor: pointer;
 }
-.paratext-group-rail button.book-rail-chip,
+.paratext-group-rail .book-rail-card .book-rail-chip {
+  border: 0;
+  background: var(--bg-deep);
+  cursor: pointer;
+}
 .paratext-member-pick {
   border: 1px solid var(--border);
   cursor: pointer;
