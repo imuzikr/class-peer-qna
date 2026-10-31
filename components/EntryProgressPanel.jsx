@@ -29,6 +29,7 @@ export default function EntryProgressPanel({
   cellState,      // (row, answers) => 'done' | 'doing' | 'empty' | 'locked'
   pickedUid = null,
   onPick = null,
+  nameAsButton = false,
   extra = null,   // 줄 오른쪽 끝에 덧붙일 것 (예: '· 글 120자')
   // 학생마다 칸이 다를 때(브레인 라이팅 — 모둠 크기만큼) 그 학생의 칸 정의.
   // 주면 rows 대신 이것을 쓰고, cellState는 (row, answers, card)로 부릅니다.
@@ -82,7 +83,11 @@ export default function EntryProgressPanel({
               <span className="dash-progress-name">
                 <i className="dash-dot" style={{ background: m.color.border }} />
                 {m.studentId && <em className="dash-progress-sid">{m.studentId}</em>}
-                <span className="dash-progress-who">{m.name}</span>
+                {nameAsButton ? (
+                  <button type="button" className="book-rail-chip paratext-member-pick"
+                    aria-pressed={m.uid === pickedUid}
+                    onClick={() => onPick?.(m.uid)}>{m.name}</button>
+                ) : <span className="dash-progress-who">{m.name}</span>}
               </span>
               <span className="dash-progress-num">
                 {m.filled}/{m.total}칸

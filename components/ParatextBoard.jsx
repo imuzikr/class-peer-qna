@@ -1,7 +1,7 @@
 "use client";
 
 // =============================================================
-// 곁텍스트 읽기 — 교사 화면 (개인 활동)
+// 곁텍스트 읽기 — 교사 화면 (개인·모둠 활동)
 // -------------------------------------------------------------
 // 두 단계입니다.
 //   1) 학생 목록 — 반 명단대로 한 명당 카드 한 장. 어디까지 썼는지 보입니다.
@@ -17,7 +17,7 @@ import { useEffect, useMemo, useState } from "react";
 import { subscribeParatextEntries, composeBookGroups } from "@/lib/store";
 import { useEntryCast } from "@/lib/useEntryCast";
 import GroupComposer from "./GroupComposer";
-import GroupFilterRow from "./GroupFilterRow";
+import EntryProgressPanel from "./EntryProgressPanel";
 import ParatextProgressBoard from "./ParatextProgressBoard";
 import BookStudentRail from "./BookStudentRail";
 import { isGroupedActivity, useBookGroups } from "@/lib/bookGroups";
@@ -25,7 +25,6 @@ import {
   PARATEXT_SECTIONS,
   PARATEXT_SECTION_COUNT,
   isSectionDone,
-  isSectionStarted,
   paratextDoneCount,
   paratextCharCount,
   paratextRows,
@@ -97,35 +96,42 @@ export default function ParatextBoard({
     return [...fromRoster, ...strays];
   }, [roster, entries]);
 
-  // 고른 모둠으로 좁힌 카드 — 방송·통계는 반 전체(cards) 그대로 보고,
-  // 격자에 늘어놓는 것만 좁힙니다.
-  const shownCards = useMemo(() => {
-    if (!pickedGroup) return cards;
-    const g = groups.find((x) => x.id === pickedGroup);
-    if (!g) return cards;
-    const mine = new Set(g.memberUids ?? (g.members ?? []).map((m) => m.uid));
-    return cards.filter((c) => mine.has(c.uid));
-  }, [cards, groups, pickedGroup]);
-
-  // 모둠 줄에 적을 '시작한 인원 / 전체' — 이미 받아 둔 것으로 셉니다
-  const groupCounts = useMemo(() => {
-    if (!grouped) return null;
-    const started = new Set(
-      cards.filter((c) => paratextCharCount(c.entry?.answers) > 0).map((c) => c.uid)
-    );
-    const out = {};
-    groups.forEach((g) => {
-      out[g.id] = (g.members ?? []).filter((m) => started.has(m.uid)).length;
+  // 모둠 명단은 현재 학생 카드와 맞추고, 미배정 학생도 열 수 있게 둡니다.
+  const groupCards = useMemo(() => {
+    if (!grouped) return [];
+    const assigned = new Set();
+    const list = groups.map((g) => {
+      const uids = new Set(g.memberUids ?? (g.members ?? []).map((m) => m.uid));
+      const members = cards.filter((c) => uids.has(c.uid));
+      members.forEach((c) => assigned.add(c.uid));
+      return { ...g, name: g.groupName || `${g.groupIndex}모둠`, cards: members };
     });
-    return out;
+    const unassigned = cards.filter((c) => !assigned.has(c.uid));
+    if (unassigned.length) list.push({ id: "unassigned", name: "미배정", cards: unassigned });
+    return list;
   }, [grouped, groups, cards]);
+  const selectedGroup = groupCards.find((g) => g.id === pickedGroup) ?? groupCards[0] ?? null;
+  const shownCards = useMemo(
+    () => grouped ? selectedGroup?.cards ?? [] : cards,
+    [grouped, selectedGroup, cards]
+  );
+
+  function pickStudent(uid) {
+    setOpenUid(uid);
+    if (grouped) {
+      const group = groupCards.find((g) => g.cards.some((c) => c.uid === uid));
+      if (group) setPickedGroup(group.id);
+    }
+  }
 
   const startedCount = cards.filter((c) => paratextCharCount(c.entry?.answers) > 0).length;
   const doneCount = cards.filter(
     (c) => paratextDoneCount(c.entry?.answers) === PARATEXT_SECTION_COUNT
   ).length;
 
-  const open = openUid ? cards.find((c) => c.uid === openUid) ?? null : null;
+  const open = grouped
+    ? shownCards.find((c) => c.uid === openUid) ?? shownCards[0] ?? null
+    : cards.find((c) => c.uid === openUid) ?? null;
 
   // 왼쪽 목록의 네모·오른쪽 패널의 칸이 쓰는 단계 정의 — 전광판과 **같은**
   // 것입니다(lib/paratext.js). 한쪽만 고치면 같은 학생이 두 화면에서 다른
@@ -161,7 +167,7 @@ export default function ParatextBoard({
     setStageOpen(openStage);
     // 뒤의 화면도 따라옵니다 — 창을 닫았을 때 그 학생이 열려 있어야
     // 방금 본 답을 이어서 읽습니다.
-    setOpenUid(card.uid);
+    pickStudent(card.uid);
   }
 
   // 창을 닫는 것과 수업을 끝내는 것은 다릅니다 — 끝낼 때만 방송을 끕니다.
@@ -198,10 +204,6 @@ export default function ParatextBoard({
     castSection(castCard, next, stageOpen);
   }
 
-  // 전광판 단추 — 서는 자리가 둘입니다: 모둠 칩이 있으면 그 줄 끝,
-  // 없으면 머리말의 진행 요약 옆. 어느 쪽이든 보여 주는 것은 **반 전체**
-  // 입니다(모둠으로 좁혀 봐도 격자는 반 전체).
-  const chipRow = grouped && groups.length > 0;
   const boardBtn = cards.length > 0 && (
     <button
       type="button"
@@ -214,7 +216,7 @@ export default function ParatextBoard({
   );
 
   return (
-    <main className="books-main book-workspace-main">
+    <main className="books-main book-workspace-main paratext-workspace-main">
       <div className="books-head">
         {/* 제목 · 돌아가는 길 · 도구 순서 — 닿소리 머리말(BookGroupBoard)과
             같은 차례입니다. 화면을 한 단계 되돌리는 버튼은 '무엇을 읽는
@@ -227,6 +229,7 @@ export default function ParatextBoard({
           <h1 className="book-group-title">{activity.title}</h1>
           <button type="button" className="btn-ghost" onClick={onBack}>← 활동 목록</button>
           {classTools}
+          {boardBtn}
         </div>
         <div className="books-head-row">
           <div className="books-head-main">
@@ -249,8 +252,6 @@ export default function ParatextBoard({
             <span className="paratext-sum">
               시작 {startedCount}명 · 완성 {doneCount}명 / 전체 {cards.length}명
             </span>
-            {/* 칩 줄이 없는 활동에서는 전광판이 여기 섭니다 */}
-            {!chipRow && boardBtn}
             {/* 잠김 안내도 이 줄에 — 예전엔 머리말 아래 제 줄을 차지했는데,
                 이 줄은 배지 두어 개뿐이라 오른쪽이 비어 있었습니다.
                 '지금 잠겨 있다'는 활동에 붙는 상태라 배지와 같은 성격입니다. */}
@@ -270,43 +271,63 @@ export default function ParatextBoard({
               <IconBook size={15} /> 도서 정보
             </a>
           )}
+          <button
+            type="button"
+            className="btn-ghost paratext-overview-btn"
+            onClick={() => setOverviewOpen(true)}
+            disabled={!open}
+            title="선택한 학생의 활동을 한꺼번에 봅니다"
+          >
+            한 눈에 보기
+          </button>
         </div>
       </div>
-
-      {/* 모둠 고르는 줄 — 그 끝(마지막 모둠 뒤)에 전광판을 엽니다.
-          모둠이 없는 활동에서는 이 줄에 전광판 단추만 섭니다.
-          전광판은 **고른 모둠이 아니라 반 전체**를 보여 줍니다(cards). */}
-      {/* 모둠 칩 줄 — 그 끝(마지막 모둠 뒤)에 전광판을 엽니다.
-          칩이 없으면 이 줄을 아예 안 그리고 전광판은 머리말로 갑니다
-          (단추 하나를 세우려고 줄 하나를 쓰지 않게). */}
-      <GroupFilterRow
-        groups={grouped ? groups : []}
-        value={pickedGroup}
-        onChange={setPickedGroup}
-        counts={groupCounts}
-        trailing={chipRow ? boardBtn : null}
-      />
 
       {cards.length === 0 ? (
         <p className="empty-note">
           아직 이 반에 들어온 학생이 없어요. 학생이 반에 들어오면 카드가 생깁니다.
         </p>
       ) : (
-        /* ── 두 칸 — 왼쪽 학생 목록 · 가운데 그 학생의 여덟 영역 ──
-           닿소리 채우기(BookGroupBoard)와 **같은 뼈대·같은 CSS**입니다.
-           오른쪽 '학생별 진행'은 걷었습니다 — 같은 조각 바가 왼쪽 카드에
-           이미 있어, 모둠 활동이어도 두 벌이었습니다(선생님 요청). */
         <div className="book-workspace">
-          <BookStudentRail
-            cards={shownCards}
-            allCards={cards}
-            pickedUid={openUid}
-            onPick={setOpenUid}
-            rows={stepRows}
-            cellState={paratextCellState}
-            castUid={cast.target?.uid ?? null}
-            extra={(c) => ` · ${paratextCharCount(c.entry?.answers)}자`}
-          />
+          {grouped ? (
+            <aside className="book-group-rail paratext-group-rail" aria-label="모둠 목록">
+              {groupCards.map((g) => (
+                <section key={g.id} className={`book-rail-card${selectedGroup?.id === g.id ? " on" : ""}`}>
+                  <button type="button" className="book-rail-head paratext-group-pick"
+                    aria-pressed={selectedGroup?.id === g.id}
+                    onClick={() => { setPickedGroup(g.id); setOpenUid(g.cards[0]?.uid ?? null); }}>
+                    <strong>{g.name}</strong>
+                    <span className="book-group-count">{g.cards.length}명</span>
+                  </button>
+                  <span className="book-rail-members">
+                    시작 {g.cards.filter((c) => paratextCharCount(c.entry?.answers) > 0).length}명 · 완성 {g.cards.filter((c) => paratextDoneCount(c.entry?.answers) === PARATEXT_SECTION_COUNT).length}명
+                  </span>
+                  <div className="book-rail-chips">
+                    {g.cards.map((c) => (
+                      <button key={c.uid} type="button"
+                        className={`book-rail-chip${open?.uid === c.uid ? " is-picked" : ""}`}
+                        aria-pressed={open?.uid === c.uid}
+                        onClick={() => { setPickedGroup(g.id); setOpenUid(c.uid); }}>
+                        {c.emoji} {c.name}
+                      </button>
+                    ))}
+                  </div>
+                  {g.cards.length === 0 && <span className="book-group-empty">아직 모둠원이 없어요</span>}
+                </section>
+              ))}
+            </aside>
+          ) : (
+            <BookStudentRail
+              cards={shownCards}
+              allCards={cards}
+              pickedUid={openUid}
+              onPick={pickStudent}
+              rows={stepRows}
+              cellState={paratextCellState}
+              castUid={cast.target?.uid ?? null}
+              extra={(c) => ` · ${paratextCharCount(c.entry?.answers)}자`}
+            />
+          )}
 
           <div className="book-workspace-center">
             {open ? (
@@ -326,14 +347,6 @@ export default function ParatextBoard({
                   <span className="book-group-class">
                     {paratextDoneCount(open.entry?.answers)} / {PARATEXT_SECTION_COUNT}칸
                   </span>
-                  <button
-                    type="button"
-                    className="btn-ghost eov-open-btn"
-                    onClick={() => setOverviewOpen(true)}
-                    title="이 학생이 쓴 것을 큰 창에서 한꺼번에 봅니다 — 이전 · 다음으로 다른 학생도"
-                  >
-                    한 눈에 보기
-                  </button>
                 </div>
 
                 <div className="entry-detail-grid">
@@ -387,10 +400,22 @@ export default function ParatextBoard({
                 </div>
               </>
             ) : (
-              <p className="empty-note">왼쪽에서 학생을 골라 주세요.</p>
+              <p className="empty-note">{grouped ? "모둠의 학생 이름을 눌러 활동판을 열어 주세요." : "왼쪽에서 학생을 골라 주세요."}</p>
             )}
           </div>
-
+          {grouped && (
+            <EntryProgressPanel
+              title={`${selectedGroup?.name ?? "모둠"} 학생 정보`}
+              cards={shownCards}
+              rows={stepRows}
+              cellState={paratextCellState}
+              pickedUid={open?.uid ?? null}
+              onPick={pickStudent}
+              nameAsButton
+              extra={(c) => ` · ${paratextCharCount(c.entry?.answers)}자`}
+              emptyText="이 모둠에는 아직 학생이 없어요."
+            />
+          )}
         </div>
       )}
 
@@ -422,7 +447,7 @@ export default function ParatextBoard({
           activityTitle={activity.title}
           cards={shownCards.some((c) => c.uid === open.uid) ? shownCards : cards}
           uid={open.uid}
-          onPick={setOpenUid}
+          onPick={pickStudent}
           onClose={() => setOverviewOpen(false)}
           sectionsOf={(c) =>
             PARATEXT_SECTIONS.map((r, i) => ({
@@ -441,7 +466,7 @@ export default function ParatextBoard({
         <ParatextProgressBoard
           activity={activity}
           cards={cards}
-          onOpenStudent={(uid) => { setOpenUid(uid); setBoardOpen(false); }}
+          onOpenStudent={(uid) => { pickStudent(uid); setBoardOpen(false); }}
           onClose={() => setBoardOpen(false)}
         />
       )}

@@ -21358,6 +21358,33 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
   container-type: inline-size;
 }
 .book-workspace-center > .entry-detail-grid { margin-top: 12px; }
+.paratext-workspace-main .books-head-main { flex-wrap: wrap; }
+.paratext-overview-btn { margin-left: auto; flex-shrink: 0; }
+.paratext-group-rail .book-rail-card { cursor: default; }
+.paratext-group-pick {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+.paratext-group-rail button.book-rail-chip,
+.paratext-member-pick {
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+.paratext-group-rail .book-rail-chip.is-picked,
+.paratext-member-pick[aria-pressed="true"] {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #fff;
+}
+.paratext-group-rail button:focus-visible,
+.paratext-member-pick:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
 /* 세 칸 안에서는 KWLS 네 칸이 화면 높이만큼 늘어나지 않습니다 — 가운데가
    제 스크롤을 가지므로 그 안에서 100vh를 잡으면 늘 스크롤이 생깁니다. */
 .book-workspace-center .kwls-detail-grid { min-height: 0; }
