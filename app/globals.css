@@ -21358,15 +21358,15 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
   container-type: inline-size;
 }
 .book-workspace-center > .entry-detail-grid { margin-top: 12px; }
-.paratext-workspace-main .books-head-main { flex-wrap: wrap; }
-.paratext-overview-btn { margin-left: auto; flex-shrink: 0; }
-.paratext-group-rail .book-rail-card {
+.book-entry-workspace-main .books-head-main { flex-wrap: wrap; }
+.entry-overview-btn { margin-left: auto; flex-shrink: 0; }
+.entry-group-rail .book-rail-card {
   cursor: default;
   flex-shrink: 0;
   background: var(--card-bg);
   border-width: 1px;
 }
-.paratext-group-pick {
+.entry-group-pick {
   width: 100%;
   padding: 0;
   border: 0;
@@ -21374,7 +21374,7 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
   text-align: left;
   cursor: pointer;
 }
-.paratext-group-rail .book-rail-card .book-rail-chip {
+.entry-group-rail .book-rail-card .book-rail-chip {
   border: 0;
   background: var(--bg-deep);
   cursor: pointer;
@@ -21383,13 +21383,13 @@ button.wall-who-btn.open strong { color: var(--primary-dark); }
   border: 1px solid var(--border);
   cursor: pointer;
 }
-.paratext-group-rail .book-rail-chip.is-picked,
+.entry-group-rail .book-rail-chip.is-picked,
 .paratext-member-pick[aria-pressed="true"] {
   border-color: var(--primary);
   background: var(--primary);
   color: #fff;
 }
-.paratext-group-rail button:focus-visible,
+.entry-group-rail button:focus-visible,
 .paratext-member-pick:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;

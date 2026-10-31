@@ -20,6 +20,7 @@ import GroupComposer from "./GroupComposer";
 import EntryProgressPanel from "./EntryProgressPanel";
 import ParatextProgressBoard from "./ParatextProgressBoard";
 import BookStudentRail from "./BookStudentRail";
+import BookEntryGroupRail from "./BookEntryGroupRail";
 import { isGroupedActivity, useBookGroups } from "@/lib/bookGroups";
 import {
   PARATEXT_SECTIONS,
@@ -216,7 +217,7 @@ export default function ParatextBoard({
   );
 
   return (
-    <main className="books-main book-workspace-main paratext-workspace-main">
+    <main className="books-main book-workspace-main book-entry-workspace-main">
       <div className="books-head">
         {/* 제목 · 돌아가는 길 · 도구 순서 — 닿소리 머리말(BookGroupBoard)과
             같은 차례입니다. 화면을 한 단계 되돌리는 버튼은 '무엇을 읽는
@@ -273,7 +274,7 @@ export default function ParatextBoard({
           )}
           <button
             type="button"
-            className="btn-ghost paratext-overview-btn"
+            className="btn-ghost entry-overview-btn"
             onClick={() => setOverviewOpen(true)}
             disabled={!open}
             title="선택한 학생의 활동을 한꺼번에 봅니다"
@@ -290,29 +291,13 @@ export default function ParatextBoard({
       ) : (
         <div className="book-workspace">
           {grouped ? (
-            <aside className="book-group-rail paratext-group-rail" aria-label="모둠 목록">
-              {groupCards.map((g) => (
-                <section key={g.id} className={`book-rail-card${selectedGroup?.id === g.id ? " on" : ""}`}>
-                  <button type="button" className="book-rail-head paratext-group-pick"
-                    aria-pressed={selectedGroup?.id === g.id}
-                    onClick={() => { setPickedGroup(g.id); setOpenUid(g.cards[0]?.uid ?? null); }}>
-                    <strong>{g.name}</strong>
-                    <span className="book-group-count">{g.cards.length}명</span>
-                  </button>
-                  <div className="book-rail-chips">
-                    {g.cards.map((c) => (
-                      <button key={c.uid} type="button"
-                        className={`book-rail-chip${open?.uid === c.uid ? " is-picked" : ""}`}
-                        aria-pressed={open?.uid === c.uid}
-                        onClick={() => { setPickedGroup(g.id); setOpenUid(c.uid); }}>
-                        {c.name}
-                      </button>
-                    ))}
-                  </div>
-                  {g.cards.length === 0 && <span className="book-group-empty">아직 모둠원이 없어요</span>}
-                </section>
-              ))}
-            </aside>
+            <BookEntryGroupRail
+              groups={groupCards}
+              pickedGroupId={selectedGroup?.id}
+              pickedUid={open?.uid}
+              onPickGroup={(g) => { setPickedGroup(g.id); setOpenUid(g.cards[0]?.uid ?? null); }}
+              onPickStudent={pickStudent}
+            />
           ) : (
             <BookStudentRail
               cards={shownCards}
