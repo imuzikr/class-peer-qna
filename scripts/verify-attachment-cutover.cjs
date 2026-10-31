@@ -12,6 +12,7 @@ if (mode === "--record-deployment") {
   const output = resolve(`${reportPath}.deployed.json`);
   writeFileSync(output, JSON.stringify({ version: 1, kind: "attachment-storage-final-deployed", projectId,
     storageRulesHash: report.storageRulesHash, manifestHash: report.manifestHash,
+    scope: report.scope || "all-files", preservationHash: report.preservationHash || null,
     deployedAt: new Date().toISOString() }, null, 2) + "\n", { mode: 0o600 });
   chmodSync(output, 0o600);
   console.log(`Successful final Storage deployment recorded: ${output}`);

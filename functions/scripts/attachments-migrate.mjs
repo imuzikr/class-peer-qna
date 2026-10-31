@@ -6,12 +6,12 @@ import { dirname, resolve } from "node:path";
 import { pipeline } from "node:stream/promises";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
-const { referencesIn, rewriteReferences, buildManifest, assertManifest, hash } = require("../attachmentMigration.cjs");
+const { referencesIn, rewriteReferences, buildManifest, assertManifest, hash, preservedFiles, selectedLegacyReferences } = require("../attachmentMigration.cjs");
 const { assertDeploymentRecord } = require("../attachmentCutover.cjs");
 
 function argsOf(argv) {
   const values = {};
-  const flags = new Set(["apply", "writes-paused", "gateway-verified", "iam-private-verified"]);
+  const flags = new Set(["apply", "writes-paused", "gateway-verified", "iam-private-verified", "preserve-unresolved"]);
   for (let i = 0; i < argv.length; i += 1) {
     const key = argv[i].replace(/^--/, "");
     if (!argv[i].startsWith("--")) throw new Error(`Unexpected argument: ${argv[i]}`);
@@ -36,6 +36,10 @@ function save(file, value) {
 }
 const fixture = options.fixture ? json(options.fixture) : null;
 let manifest = options.manifest ? assertManifest(json(options.manifest)) : null;
+if (options["preserve-unresolved"] && !manifest) throw new Error("Preservation requires an explicit reviewed manifest");
+const preserved = manifest ? preservedFiles(manifest, options["preserve-unresolved"]) : [];
+const preservedByPath = new Map(preserved.map((file) => [file.legacyPath, file]));
+const preservationHash = preserved.length ? hash(JSON.stringify(preserved)) : null;
 const projectId = options.project || manifest?.projectId || fixture?.projectId;
 const bucketName = options.bucket || manifest?.bucket || fixture?.bucket;
 if (!projectId || !bucketName) throw new Error("Provide --project and --bucket explicitly (or a reviewed manifest/fixture).");
@@ -49,10 +53,20 @@ if (["revoke", "verify"].includes(phase) && (options.apply || phase === "verify"
   const record = options["deployed-report"] ? json(options["deployed-report"]) : null;
   assertDeploymentRecord(record, { projectId,
     storageRules: readFileSync(new URL("../../storage.rules", import.meta.url), "utf8"),
-    manifestHash: hash(JSON.stringify(manifest)) });
+    manifestHash: hash(JSON.stringify(manifest)), preservationHash });
 }
 
 let db, bucket, FieldValue;
+// Full scans must finish inside the write-maintenance window. Bound cloud
+// reads across all recursion levels; no write operation uses this queue.
+let activeReads = 0;
+const waitingReads = [];
+async function cloudRead(operation) {
+  if (activeReads === 8) await new Promise((resume) => waitingReads.push(resume));
+  else activeReads += 1;
+  try { return await operation(); }
+  finally { const resume = waitingReads.shift(); if (resume) resume(); else activeReads -= 1; }
+}
 async function connect() {
   if (db) return;
   const emulatorHosts = [process.env.FIRESTORE_EMULATOR_HOST, process.env.FIREBASE_STORAGE_EMULATOR_HOST];
@@ -67,6 +81,12 @@ async function connect() {
   db = firestore.getFirestore(app);
   FieldValue = firestore.FieldValue;
   bucket = getStorage(app).bucket(bucketName);
+  if (options["writes-paused"] && !process.env.FIRESTORE_EMULATOR_HOST) {
+    const control = await db.doc("_attachmentOperations/maintenance").get();
+    if (!control.exists || control.data().manifestHash !== hash(JSON.stringify(manifest))) {
+      throw new Error("Live write-maintenance control must exist and match this reviewed manifest");
+    }
+  }
 }
 async function documentsWithLegacyReferences() {
   const documents = [];
@@ -75,10 +95,10 @@ async function documentsWithLegacyReferences() {
   async function walk(collection) {
     // listDocuments also includes missing ancestor documents with subcollections.
     // collection.stream() alone silently misses their nested attachments.
-    const refs = await collection.listDocuments();
+    const refs = await cloudRead(() => collection.listDocuments());
     for (let offset = 0; offset < refs.length; offset += 100) {
-      const snapshots = await db.getAll(...refs.slice(offset, offset + 100));
-      for (const doc of snapshots) {
+      const snapshots = await cloudRead(() => db.getAll(...refs.slice(offset, offset + 100)));
+      await Promise.all(snapshots.map(async (doc) => {
         count += 1;
         if (count > limit) throw new Error(`Document limit (${limit}) reached; inventory is incomplete`);
         if (doc.exists) {
@@ -86,25 +106,23 @@ async function documentsWithLegacyReferences() {
           if (references.length) documents.push({ path: doc.ref.path,
             updateTime: doc.updateTime?.toDate().toISOString(), references });
         }
-        for (const sub of await doc.ref.listCollections()) await walk(sub);
-      }
+        const subs = await cloudRead(() => doc.ref.listCollections());
+        await Promise.all(subs.map(walk));
+      }));
     }
   }
-  for (const collection of await db.listCollections()) {
-    if (collection.id === "_attachments") continue;
-    await walk(collection);
-  }
+  const roots = await cloudRead(() => db.listCollections());
+  await Promise.all(roots.filter((collection) => collection.id !== "_attachments").map(walk));
   return documents;
 }
 async function objectInventory() {
   const [files] = await bucket.getFiles({ prefix: "uploads/" });
-  const objects = [];
-  for (const file of files) {
-    const [metadata] = await file.getMetadata();
-    objects.push({ name: file.name, generation: metadata.generation, size: metadata.size,
+  const objects = await Promise.all(files.map(async (file) => {
+    const [metadata] = await cloudRead(() => file.getMetadata());
+    return { name: file.name, generation: metadata.generation, size: metadata.size,
       crc32c: metadata.crc32c, contentType: metadata.contentType,
-      metadata: metadata.metadata, acl: metadata.acl });
-  }
+      metadata: metadata.metadata, acl: metadata.acl };
+  }));
   return objects;
 }
 const checkpointFile = resolve(options.checkpoint || `${options.manifest || output}.checkpoint.json`);
@@ -140,6 +158,15 @@ if (phase === "inventory") {
   const ready = manifest.files.filter((file) => file.status === "ready");
   const readyByPath = new Map(ready.map((file) => [file.legacyPath, file]));
   const replacements = new Map(ready.map((file) => [file.legacyPath, file.ref]));
+  const selectedReferences = (docs) => selectedLegacyReferences(docs, manifest, preserved);
+  function validatePreservedObjects(objects) {
+    for (const file of preserved) {
+      const object = objects.find((item) => item.name === file.legacyPath);
+      if (file.status === "missing" ? !!object : !object ||
+        String(object.generation) !== String(file.sourceGeneration) || Number(object.size) !== file.size ||
+        object.crc32c !== file.crc32c) throw new Error("Preserved object changed; regenerate and review inventory");
+    }
+  }
   const backupDir = resolve(options["backup-dir"] || `${options.manifest}.backups`);
   mkdirSync(backupDir, { recursive: true, mode: 0o700 });
 
@@ -200,9 +227,10 @@ if (phase === "inventory") {
       if (!snapshot.exists) { checkpoint.rewritten[document.path] = { deleted: true }; persist(); continue; }
       const before = snapshot.data();
       const current = referencesIn(before, bucketName);
-      const unknown = current.filter((reference) => !readyByPath.has(reference.path));
+      const unknown = selectedReferences([{ path: document.path, references: current }])
+        .flatMap((doc) => doc.references).filter((reference) => !readyByPath.has(reference.path));
       if (unknown.length) throw new Error(`Unreviewed/missing attachment in ${document.path}; regenerate inventory`);
-      if (current.length) {
+      if (current.some((reference) => readyByPath.has(reference.path))) {
         // Backups contain private document content and potentially old tokens.
         // The directory/file permissions are intentional; never commit these.
         const backup = resolve(backupDir, `${hash(document.path)}.json`);
@@ -218,13 +246,14 @@ if (phase === "inventory") {
   if (phase === "revoke") {
     // Run a full fresh scan: a manifest alone cannot establish that old clients
     // stopped uploading or that no later write introduced another token URL.
-    const remaining = await documentsWithLegacyReferences();
+    const remaining = selectedReferences(await documentsWithLegacyReferences());
     if (remaining.length) throw new Error(`Legacy references remain in ${remaining.length} documents; revoke aborted`);
-    if (manifest.files.some((file) => file.status !== "ready")) {
+    if (manifest.files.some((file) => file.status !== "ready" && !preservedByPath.has(file.legacyPath))) {
       throw new Error("Unreferenced/review/missing files remain. Resolve them in a reviewed manifest before revocation/cutover.");
     }
     const freshObjects = await objectInventory();
-    if (freshObjects.some((object) => !readyByPath.has(object.name))) {
+    validatePreservedObjects(freshObjects);
+    if (freshObjects.some((object) => !readyByPath.has(object.name) && !preservedByPath.has(object.name))) {
       throw new Error("New/unreviewed legacy objects appeared after inventory; revoke aborted");
     }
     for (const file of ready) {
@@ -253,10 +282,13 @@ if (phase === "inventory") {
 
   if (["prepare-cutover", "verify"].includes(phase)) {
     const preCutover = phase === "prepare-cutover";
-    const remaining = await documentsWithLegacyReferences();
+    const allRemaining = await documentsWithLegacyReferences();
+    const remaining = selectedReferences(allRemaining);
     const failures = [];
     const freshObjects = await objectInventory();
+    validatePreservedObjects(freshObjects);
     for (const object of freshObjects) {
+      if (preservedByPath.has(object.name)) continue;
       if (!readyByPath.has(object.name)) failures.push({ reason: "unreviewed-legacy-object" });
       else if (String(object.generation) !== String(readyByPath.get(object.name).sourceGeneration)) {
         failures.push({ id: readyByPath.get(object.name).id, reason: "legacy-generation-changed" });
@@ -270,6 +302,9 @@ if (phase === "inventory") {
       try { await verifyProtected(file); } catch { failures.push({ id: file.id, reason: "protected-integrity" }); }
       if (!checkpoint.copied[file.legacyPath]) failures.push({ id: file.id, reason: "not-copied" });
       if (!preCutover && !checkpoint.revoked[file.legacyPath]) failures.push({ id: file.id, reason: "not-revoked" });
+      if (!preCutover && file.hasDownloadTokens && !checkpoint.legacyProbes.some((probe) => probe.id === file.id)) {
+        failures.push({ id: file.id, reason: "missing-original-url-probe" });
+      }
     }
     if (!preCutover) for (const probe of checkpoint.legacyProbes) {
       try {
@@ -278,7 +313,7 @@ if (phase === "inventory") {
         if (![401, 403, 404].includes(response.status)) failures.push({ id: probe.id, reason: `old-url-status-${response.status}` });
       } catch { failures.push({ id: probe.id, reason: "old-url-probe-unavailable" }); }
     }
-    const unresolved = manifest.files.filter((file) => file.status !== "ready").length;
+    const unresolved = manifest.files.filter((file) => file.status !== "ready" && !preservedByPath.has(file.legacyPath)).length;
     const basePassed = !remaining.length && !unresolved && !failures.length &&
       options["gateway-verified"] === true && options["iam-private-verified"] === true;
     const complete = preCutover ? basePassed && options["writes-paused"] === true
@@ -286,6 +321,8 @@ if (phase === "inventory") {
     const report = { version: 1, phase: preCutover ? "prepared" : "verified", projectId, bucket: bucketName,
       environment: process.env.FIREBASE_STORAGE_EMULATOR_HOST ? "loopback-emulator" : "firebase",
       verifiedAt: new Date().toISOString(), manifestHash: hash(JSON.stringify(manifest)),
+      scope: preserved.length ? "selected-files" : "all-files", preservationHash,
+      preservedFiles: preserved.length, preservedLegacyReferences: allRemaining.length - remaining.length,
       storageRulesHash: hash(readFileSync(new URL("../../storage.rules", import.meta.url), "utf8")),
       legacyReferences: remaining.length, unresolvedFiles: unresolved,
       plannedFiles: ready.length,
@@ -295,11 +332,12 @@ if (phase === "inventory") {
       gatewayVerified: options["gateway-verified"] === true,
       iamPrivateVerified: options["iam-private-verified"] === true,
       ...(preCutover ? { writesPaused: true, tokenRevocationPending: true, readyForStorageCutover: complete }
-        : { storageDeploymentRecorded: true, protectionVerified: complete }) };
+        : { storageDeploymentRecorded: true, selectedProtectionVerified: complete,
+          protectionVerified: complete && preserved.length === 0 }) };
     save(output, report);
     console.log(JSON.stringify({ phase, report: output,
       ...(preCutover ? { readyForStorageCutover: complete, tokenRevocationPending: true }
-        : { protectionVerified: complete }),
+        : { selectedProtectionVerified: complete, protectionVerified: complete && preserved.length === 0 }),
       legacyReferences: remaining.length, unresolvedFiles: unresolved, failures: failures.length }));
     if (!complete) process.exitCode = 1;
   } else {

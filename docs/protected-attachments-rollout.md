@@ -124,6 +124,28 @@ Inventory는 실제 소속 문서에서 파일로 향하는 역색인을 만듭�
 아무 반에 배정하지 않습니다. 관리자 검토 후 별도 보관/정리하고 inventory를 다시 만듭니다.
 이 미해결 항목이 남으면 전환 준비 검증은 통과하지 않습니다.
 
+### 관리자가 보존을 지정한 항목이 있는 경우
+
+확인된 정상 파일만 전환하려면 같은 검토 manifest와 `--preserve-unresolved`를
+rewrite·prepare-cutover·revoke·verify에 모두 명시합니다. 이 옵션은 manifest의
+`missing`·`unreferenced` 항목만 보존 대상으로 묶으며 `review` 항목은 허용하지 않습니다.
+보존 파일은 복사·문서 교체·토큰 폐기 대상에서 제외합니다. 예전에 확인한 경로·필드·URL
+해시가 모두 같은 보존 참조만 예외이며, 새 참조·새 객체·변경된 원본 generation은 계속 중지합니다.
+준비 및 배포 기록은 manifest 해시와 보존 목록 해시를 함께 묶습니다.
+
+선택 전환의 마지막 보고서는 `selectedProtectionVerified=true`일 수 있지만,
+보존 항목이 있으므로 전체 버킷의 `protectionVerified`는 false로 유지합니다.
+보존 파일의 옛 토큰은 그대로 남을 수 있습니다. 파일 보존은 그 파일의 공개 URL까지
+보호 완료했다는 뜻이 아닙니다. 최종 Storage 직접 접근 차단은 버킷 전체에 적용합니다.
+
+실제 쓰기 중지는 `_attachmentOperations/maintenance` 서버 전용 문서와 임시 Firestore
+규칙으로 수행합니다. control에는 검토 manifest의 `manifestHash`를 저장해야 합니다.
+gateway와 callable 함수는 control이 있는 동안 쓰기를 거부하고 읽기는 유지합니다.
+`functions/attachmentMaintenance.cjs`는 기존 읽기 조건은 유지하고 모든 클라이언트 쓰기만
+거부하는 임시 규칙을 만듭니다. 규칙 배포 성공과 실제 거부를 확인한 뒤 control을 만들고,
+전환 완료 후 원래 Firestore 규칙을 복구한 다음 control을 삭제합니다.
+명령에 `--writes-paused`를 적는 것만으로 실제 유지보수 상태가 된 것으로 취급하지 않습니다.
+
 복사는 deterministic ID와 destination generation=0으로 덮어쓰기를 막고, size/CRC32C를
 비교합니다. 토큰을 포함한 옛 metadata는 복사하지 않습니다. 문서 변경은 현재 snapshot을
 백업하고 updateTime precondition으로 동시에 바뀐 문서를 덮어쓰지 않습니다. 각 단계는

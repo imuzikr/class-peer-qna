@@ -2,7 +2,7 @@ import { createRequire } from "node:module";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 const require = createRequire(import.meta.url);
-const { legacyPath, referencesIn, rewriteReferences, buildManifest, assertManifest } = require("../../functions/attachmentMigration.cjs");
+const { legacyPath, referencesIn, rewriteReferences, buildManifest, assertManifest, preservedFiles, selectedLegacyReferences } = require("../../functions/attachmentMigration.cjs");
 const bucket = "private.firebasestorage.app";
 const url = (path, target = bucket) => `https://firebasestorage.googleapis.com/v0/b/${target}/o/${encodeURIComponent(path)}?alt=media&token=OLDSECRET`;
 const path = "uploads/student/old.jpg";
@@ -64,4 +64,23 @@ test("unsupported parent collections are review items, not invisible migrated fi
     objects: [{ name: path, size: 1 }] });
   assert.equal(manifest.files[0].status, "review");
   assert.deepEqual(manifest.files[0].invalidParents, ["unknownCollection/doc"]);
+});
+
+test("preserved exceptions exclude only exact inventoried references, never new paths or uses", () => {
+  const manifest = buildManifest({ projectId: "demo", bucket,
+    documents: [{ path: "broadcasts/old", data: { image: url(path) } }],
+    objects: [{ name: "uploads/teacher/orphan.jpg", generation: "1", size: 1 }] });
+  assert.deepEqual(preservedFiles(manifest, false), []);
+  const preserved = preservedFiles(manifest, true);
+  assert.equal(preserved.length, 2);
+  assert.deepEqual(selectedLegacyReferences(manifest.documents, manifest, preserved), []);
+  for (const patch of [{ path: "broadcasts/new" }, { references: [{ ...manifest.documents[0].references[0], field: "/new" }] },
+    { references: [{ ...manifest.documents[0].references[0], urlHash: "changed" }] }]) {
+    assert.equal(selectedLegacyReferences([{ ...manifest.documents[0], ...patch }], manifest, preserved).length, 1);
+  }
+  assert.throws(() => preservedFiles({ ...manifest, files: [{ status: "review" }] }, true));
+  const data = { held: url(path), selected: url("uploads/teacher/good.jpg") };
+  const rewritten = rewriteReferences(data, bucket, new Map([["uploads/teacher/good.jpg", "attachment:good1234567890123"]]));
+  assert.equal(rewritten.held, data.held);
+  assert.equal(rewritten.selected, "attachment:good1234567890123");
 });

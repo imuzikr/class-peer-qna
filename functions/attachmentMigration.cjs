@@ -113,4 +113,22 @@ function assertManifest(manifest) {
   return manifest;
 }
 
-module.exports = { legacyPath, referencesIn, rewriteReferences, buildManifest, assertManifest, hash };
+function preservedFiles(manifest, enabled) {
+  if (!enabled) return [];
+  const files = manifest.files.filter((file) => file.status !== "ready");
+  if (!files.length || files.some((file) => !["missing", "unreferenced"].includes(file.status))) {
+    throw new Error("Preservation requires explicitly inventoried missing/unreferenced files; review items cannot be excluded");
+  }
+  return files;
+}
+
+function selectedLegacyReferences(documents, manifest, preserved) {
+  const paths = new Set(preserved.map((file) => file.legacyPath));
+  const known = new Set(manifest.documents.flatMap((doc) => doc.references
+    .filter((ref) => paths.has(ref.path)).map((ref) => JSON.stringify([doc.path, ref.path, ref.field, ref.urlHash]))));
+  return documents.map((doc) => ({ ...doc, references: doc.references.filter((ref) =>
+    !known.has(JSON.stringify([doc.path, ref.path, ref.field, ref.urlHash]))) })).filter((doc) => doc.references.length);
+}
+
+module.exports = { legacyPath, referencesIn, rewriteReferences, buildManifest, assertManifest, hash,
+  preservedFiles, selectedLegacyReferences };

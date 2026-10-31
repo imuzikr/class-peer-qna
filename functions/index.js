@@ -30,6 +30,12 @@ const admin = require("firebase-admin");
 admin.initializeApp();
 const db = admin.firestore();
 
+async function assertWritesAvailable() {
+  if ((await db.doc("_attachmentOperations/maintenance").get()).exists) {
+    throw new HttpsError("unavailable", "자료를 안전하게 전환하고 있습니다. 잠시 후 다시 시도해 주세요.");
+  }
+}
+
 // 서울 리전에서 실행. `maxInstances`는 **요금 안전장치**입니다.
 //
 // 인스턴스는 함수를 돌리는 일꾼 한 명입니다. 요청이 몰리면 구글이 일꾼을
@@ -153,6 +159,7 @@ exports.onAnswerDeleted = onDocumentDeleted(
 //   await fn({ uid: "대상_유저_uid", role: "teacher" });
 // =============================================================
 exports.setUserRole = onCall({ enforceAppCheck: true }, async (request) => {
+  await assertWritesAvailable();
   // 로그인 필수
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "로그인이 필요합니다.");
@@ -353,6 +360,7 @@ async function purgeStudentData(uid, warnings) {
 //  · 선생님(중간 관리자): 학생 계정만 삭제 (다른 선생님/관리자 삭제 불가)
 // =============================================================
 exports.deleteAuthUser = onCall({ enforceAppCheck: true }, async (request) => {
+  await assertWritesAvailable();
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "로그인이 필요합니다.");
   }
@@ -414,6 +422,7 @@ async function canDeleteStudent(callerUid, targetUid) {
 // 순서: 로그인 계정 먼저 → 데이터. 중간에 실패해도 최소한 다시 로그인해
 // 되살아나는 일은 없고, 같은 요청을 다시 보내면 남은 것만 마저 지웁니다.
 exports.deleteStudentAccount = onCall({ enforceAppCheck: true }, async (request) => {
+  await assertWritesAvailable();
   if (!request.auth) throw new HttpsError("unauthenticated", "로그인이 필요합니다.");
 
   const callerRole = request.auth.token.role;
@@ -498,6 +507,7 @@ async function deleteAttachedFilesAdmin(cardData) {
 // 없어, Admin 권한으로 규칙을 우회해 서버에서 한 번에 처리합니다.
 // =============================================================
 exports.deleteClass = onCall({ enforceAppCheck: true }, async (request) => {
+  await assertWritesAvailable();
   if (!request.auth) throw new HttpsError("unauthenticated", "로그인이 필요합니다.");
   const callerRole = request.auth.token.role;
   const callerIsAdmin =
@@ -553,6 +563,7 @@ const NOTICE_MAX_LEN = 500;
 const NOTICE_BATCH = 400;
 
 exports.sendClassNotice = onCall({ enforceAppCheck: true }, async (request) => {
+  await assertWritesAvailable();
   if (!request.auth) throw new HttpsError("unauthenticated", "로그인이 필요합니다.");
   const callerRole = request.auth.token.role;
   const callerIsAdmin =

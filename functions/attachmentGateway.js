@@ -82,7 +82,7 @@ function makeFirebaseDependencies({ admin, db, bucket, fetchImpl = fetch, projec
   };
 }
 
-function createHttpHandler({ service, verifyIdToken, verifyAppCheck, fileStream, origins, emulator = false, requireAppCheck = false, log = () => {} }) {
+function createHttpHandler({ service, verifyIdToken, verifyAppCheck, fileStream, origins, emulator = false, requireAppCheck = false, writesPaused = async () => false, log = () => {} }) {
   return async function attachmentGateway(req, res) {
     const origin = req.get?.("origin") || req.headers.origin;
     res.set("Vary", "Origin");
@@ -111,6 +111,10 @@ function createHttpHandler({ service, verifyIdToken, verifyAppCheck, fileStream,
         catch { throw problem(401, "app-check-required", "앱 인증을 확인하지 못했습니다."); }
       }
       const identity = { uid: decoded.uid || decoded.sub, token: match[1], appCheckToken };
+      if (["POST", "DELETE"].includes(req.method) && await writesPaused()) {
+        res.set("Retry-After", "60");
+        throw problem(503, "maintenance", "첨부파일을 안전하게 전환하고 있습니다. 잠시 후 다시 시도해 주세요.");
+      }
       const path = (req.path || new URL(req.url, "https://attachment.invalid").pathname).replace(/\/+$/, "") || "/";
       if (req.method === "POST" && path === "/upload") {
         const bytes = req.rawBody;
@@ -160,6 +164,7 @@ function createFirebaseGateway(admin, db) {
   return createHttpHandler({
     service, origins, emulator: process.env.FUNCTIONS_EMULATOR === "true",
     requireAppCheck: process.env.ATTACHMENT_REQUIRE_APP_CHECK === "true",
+    writesPaused: async () => (await db.doc("_attachmentOperations/maintenance").get()).exists,
     verifyIdToken: (token) => admin.auth().verifyIdToken(token, true),
     verifyAppCheck: (token) => admin.appCheck().verifyToken(token),
     fileStream: (path, range) => bucket.file(path).createReadStream(range || {}),

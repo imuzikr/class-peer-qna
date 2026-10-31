@@ -216,6 +216,22 @@ class Response extends Writable {
 }
 const request = (method, path, headers = {}, extra = {}) => ({ method, path, headers, get(key) { return this.headers[key.toLowerCase()]; }, ...extra });
 
+test("maintenance rejects mutations while keeping authenticated file reads available", async () => {
+  const f = fixture();
+  await upload(f);
+  const handler = createHttpHandler({ service: f.service, verifyIdToken: async () => ({ uid: alice.uid }),
+    writesPaused: async () => true, fileStream: () => Readable.from(Buffer.from("image bytes")) });
+  for (const [method, path] of [["POST", "/upload"], ["POST", "/bind"], ["DELETE", `/file/${ID}`]]) {
+    const res = new Response();
+    await handler(request(method, path, { authorization: "Bearer token" }), res);
+    assert.equal(res.statusCode, 503);
+    assert.equal(res.jsonBody.error.code, "maintenance");
+  }
+  const res = new Response();
+  await handler(request("GET", `/file/${ID}`, { authorization: "Bearer token" }), res);
+  assert.equal(res.statusCode, 200);
+});
+
 test("HTTP bind forwards the caller App Check token through parent authorization", async () => {
   const f = fixture();
   await upload(f);

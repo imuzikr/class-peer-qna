@@ -32,3 +32,17 @@ test("token revocation and final verification require a matching successful deny
     assert.throws(() => assertDeploymentRecord({ ...record, ...patch }, target));
   }
 });
+
+test("selected-file cutover binds the preserved inventory without claiming a global cutover", () => {
+  const preservationHash = "a".repeat(64);
+  const selected = { ...report, scope: "selected-files", preservedFiles: 13, preservationHash };
+  assert.equal(assertCutoverReport(selected, { projectId: "demo", storageRules }), true);
+  for (const patch of [{ preservationHash: null }, { preservedFiles: 0 }, { scope: "all-files" }]) {
+    assert.throws(() => assertCutoverReport({ ...selected, ...patch }, { projectId: "demo", storageRules }));
+  }
+  const record = { version: 1, kind: "attachment-storage-final-deployed", projectId: "demo",
+    storageRulesHash: rulesHash, manifestHash: report.manifestHash, preservationHash, deployedAt: "now" };
+  const target = { projectId: "demo", storageRules, manifestHash: report.manifestHash, preservationHash };
+  assert.equal(assertDeploymentRecord(record, target), true);
+  assert.throws(() => assertDeploymentRecord(record, { ...target, preservationHash: null }));
+});
