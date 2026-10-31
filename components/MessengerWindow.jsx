@@ -42,6 +42,7 @@
 // 안 들어갑니다 — 손바닥 불이 이미 알린 말이라서요. 섞는 셈은 lib/messenger.js의
 // dmTimeline. 밖에서 이 창을 그 방으로 여는 길은 openMessenger(initialRoom).
 // =============================================================
+import SecureHtml from "./SecureHtml";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   sendChatMessage,
@@ -185,6 +186,9 @@ export default function MessengerWindow({
   const [roomSel, setRoomSel] = useState({ cls: classId, room: null });
   const room = roomSel.cls === classId ? roomSel.room : null;
   const setRoom = (next) => setRoomSel({ cls: classId, room: next });
+  useEffect(() => {
+    window.dispatchEvent(new Event("attachment-scope-change"));
+  }, [classId, room]);
   // 쓰는 칸은 서식 에디터(비제어) — 글은 HTML로 받아 두고, 보낸 뒤에는 열쇠를
   // 바꿔 새 칸으로 갈아 끼웁니다(composeSeq).
   const [draft, setDraft] = useState("");
@@ -697,11 +701,11 @@ export default function MessengerWindow({
                       </button>
                     )}
                     {m.html ? (
-                      <div
+                      <SecureHtml
                         data-mid={m.id}
                         className="msgr-bubble msgr-bubble--rich"
                         // 저장할 때 정화했지만 남이 쓴 값이라 그릴 때 한 번 더 거릅니다
-                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(m.html) }}
+                        html={sanitizeHtml(m.html)}
                       />
                     ) : (
                       <div className="msgr-bubble" data-mid={m.id}>

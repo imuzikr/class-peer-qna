@@ -33998,3 +33998,26 @@ button.msgr-receipt:hover { color: var(--text-sub); }
   .cornell-wing-close { margin-bottom: 8px; }
   .cornell-feedback-wing .cornell-read-feedback { gap: 8px; }
 }
+
+/* 첨부 연결 재시도 — 글을 다시 올려 중복 저장하지 않도록 안내합니다. */
+.attachment-binding-status {
+  position: fixed;
+  z-index: 4000;
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card-bg);
+  box-shadow: var(--shadow-soft);
+  color: var(--text);
+  font-size: 13px;
+}
+.attachment-binding-status > button { flex-shrink: 0; }

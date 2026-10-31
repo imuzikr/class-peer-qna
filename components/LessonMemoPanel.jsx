@@ -54,6 +54,7 @@
 // 저장되는 값은 HTML 문자열입니다. 서식이 붙기 전에 적은 메모는 순수
 // 텍스트로 남아 있어, 읽을 때 richHtml()이 둘을 함께 다룹니다.
 // =============================================================
+import SecureHtml from "./SecureHtml";
 import { useEffect, useMemo, useState } from "react";
 import RichTextEditor from "./RichTextEditor";
 import {
@@ -825,10 +826,10 @@ function MemoClassPanel({ classId, name, memos, readOnly, onClose }) {
                         체크 목록의 네모는 **여기서** 켜고 끕니다 — 할 일을
                         적어 두고 나중에 지우는 자리가 이 목록이라, 켜려고
                         '수정'으로 들어갔다 나오게 하면 뜻이 없습니다. */}
-                    <div
+                    <SecureHtml
                       className="memo-item-text"
                       onClick={(e) => onCheck(e, m)}
-                      dangerouslySetInnerHTML={{ __html: richHtml(m.text) }}
+                      html={richHtml(m.text)}
                     />
                   </>
                 )}
@@ -1179,10 +1180,10 @@ function MemoCalendarPanel({ byDate, nameOfClass, archivedClassIds, currentClass
                     )}
                     {open && <MemoProgressLine memo={m} />}
                     {open && (
-                      <div
+                      <SecureHtml
                         className="memo-cal-memo-body"
                         onClick={(e) => onCheck(e, m)}
-                        dangerouslySetInnerHTML={{ __html: richHtml(m.text) }}
+                        html={richHtml(m.text)}
                       />
                     )}
                   </li>

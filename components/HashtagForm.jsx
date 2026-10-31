@@ -27,6 +27,7 @@
 //
 // 저장은 자동입니다(입력을 멈추면 조용히). '제출'은 없습니다.
 // =============================================================
+import SecureImage from "./SecureImage";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   subscribeMyHashtagPost,
@@ -519,7 +520,7 @@ export default function HashtagForm({ activity, user, onBack }) {
               <div className="ht-image">
                 <div className={`ht-image-box${post.image.url ? " has" : ""}`}>
                   {post.image.url ? (
-                    <img src={post.image.url} alt={post.image.caption || "대표 이미지"} />
+                    <SecureImage src={post.image.url} alt={post.image.caption || "대표 이미지"} />
                   ) : (
                     <span>{imgBusy ? "올리는 중…" : "이미지 없음"}</span>
                   )}

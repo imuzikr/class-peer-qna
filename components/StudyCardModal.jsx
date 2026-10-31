@@ -3,6 +3,8 @@
 // =============================================================
 // 공부방 카드 통합 모달 — 읽기 + 수정 + 삭제 + 질문하기 + 관련 질문
 // =============================================================
+import SecureHtml from "./SecureHtml";
+import { downloadAttachment as downloadProtectedAttachment } from "@/lib/attachments";
 import { backdropClose } from "@/lib/modal";
 import { useState, useEffect, useRef } from "react";
 import {
@@ -271,11 +273,12 @@ export default function StudyCardModal({
       .map((a) => ({ id: a.id, src: a.dataUrl })),
   ];
 
-  function downloadAttachment(att) {
-    const a = document.createElement("a");
-    a.href = att.dataUrl;
-    a.download = att.name;
-    a.click();
+  async function downloadAttachment(att) {
+    try {
+      await downloadProtectedAttachment(att.dataUrl, att.name);
+    } catch {
+      alert("첨부 파일을 내려받지 못했어요. 권한과 연결 상태를 확인해 주세요.");
+    }
   }
 
   // 현재 입력값 → 저장할 { titleToSave, htmlToSave, valid }
@@ -688,9 +691,9 @@ export default function StudyCardModal({
               {card.title && (
                 <h4 className="study-card-read-title">{card.title}</h4>
               )}
-              <div
+              <SecureHtml
                 className="study-card-body"
-                dangerouslySetInnerHTML={{ __html: sanitizeHtml(card.content) }}
+                html={sanitizeHtml(card.content)}
               />
 
               {/* 크게 보기(발표 크기)에서는 첨부를 감춥니다 — 텍스트만 슬라이드처럼 */}
@@ -975,9 +978,9 @@ function ActivityWriteModal({
                 선생님이 이 활동을 열어 주면 입력할 수 있어요.
               </p>
             ) : (
-              <div
+              <SecureHtml
                 className="study-card-content activity-write-body"
-                dangerouslySetInnerHTML={{ __html: sanitizeHtml(content ?? "") }}
+                html={sanitizeHtml(content ?? "")}
               />
             )}
           </>

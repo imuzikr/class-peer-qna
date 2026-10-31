@@ -16,6 +16,7 @@
 // 내용이 어느 칸에 속하는지 어긋나기 때문입니다(StudyProjectView가 전에
 // 하던 검사를 그대로 옮겼습니다).
 // =============================================================
+import SecureImage from "./SecureImage";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   subscribeStudyCards,
@@ -674,7 +675,7 @@ function MaterialSection({ board, activities }) {
 
                   {m.image ? (
                     <div className="study-material-image">
-                      <img src={m.image} alt="제공 자료" />
+                      <SecureImage src={m.image} alt="제공 자료" />
                       <button
                         type="button"
                         className="attach-image-grid-del"

@@ -31,6 +31,7 @@
 // 층마다 글자 크기가 달라도 그림 크기까지 달라지면 그림이 중요도처럼
 // 읽힙니다. 글자는 그림 아래에 붙고, 그림만 있으면 글자 줄은 비웁니다.
 // =============================================================
+import SecureImage from "./SecureImage";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
   layoutPositions,
@@ -644,7 +645,7 @@ export default function MindmapCanvas({
                 {isUploading ? (
                   <span className="mm-node-img mm-node-img--loading">올리는 중…</span>
                 ) : hasImg ? (
-                  <img className="mm-node-img" src={n.image} alt={n.text || "노드 이미지"} draggable={false} />
+                  <SecureImage className="mm-node-img" src={n.image} alt={n.text || "노드 이미지"} draggable={false} />
                 ) : null}
                 {isEditing ? (
                   <input

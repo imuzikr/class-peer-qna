@@ -32,8 +32,10 @@
 // 자리를 재고 글자를 맞춰 보는 셈은 전부 `lib/cornellMarks.js`에 있습니다.
 // 교사 창만 `onMarkAdd`·`onMarkRemove`를 함께 주어 끌어서 만들고 눌러서
 // 지웁니다 — 안 주면 읽기 전용이라 누를 수도 없습니다.
+import SecureHtml from "./SecureHtml";
+import ProtectedAttachmentLink from "./ProtectedAttachmentLink";
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { richHtml, stripHtml } from "@/lib/html";
+import { htmlHasImage, richHtml, stripHtml } from "@/lib/html";
 import { blocksOf, blockEmpty } from "@/lib/cornell";
 import { marksOf, measureMarks, offsetsOf, quoteOf, sameRects } from "@/lib/cornellMarks";
 
@@ -126,7 +128,7 @@ export default function CornellNoteSheet({
   const topic = String(note.lessonTitle ?? "").trim();
   // 빈 덩어리는 빼되, 다 비었으면 한 줄은 남겨 '비어 있어요'를 보입니다.
   const all = blocksOf(note);
-  const used = all.filter((b) => !blockEmpty(b));
+  const used = all.filter((b) => !blockEmpty(b) || htmlHasImage(b.notes ?? ""));
   const rows = used.length > 0 ? used : all.slice(0, 1);
   const summary = String(note.summary ?? "").trim();
   const feedback = String(note.feedback ?? "").trim();
@@ -153,7 +155,7 @@ export default function CornellNoteSheet({
         {rows.map((b) => {
           const cue = String(b.cue ?? "").trim();
           const notesHtml = richHtml(b.notes ?? "");
-          const hasNotes = stripHtml(notesHtml).length > 0;
+          const hasNotes = stripHtml(notesHtml).length > 0 || htmlHasImage(notesHtml);
           return (
             <Fragment key={b.id}>
               <section className="cornell-sheet-cue">
@@ -161,9 +163,9 @@ export default function CornellNoteSheet({
               </section>
               <section className="cornell-sheet-notes">
                 {hasNotes ? (
-                  <div
+                  <SecureHtml
                     className="cornell-sheet-rich"
-                    dangerouslySetInnerHTML={{ __html: notesHtml }}
+                    html={notesHtml}
                   />
                 ) : (
                   <p className="cornell-sheet-blank">비어 있어요</p>
@@ -187,7 +189,7 @@ export default function CornellNoteSheet({
           <h4>📎 수업 자료</h4>
           <div className="cornell-sheet-handout-list">
             {handouts.map((m, i) => (
-              <a
+              <ProtectedAttachmentLink
                 key={`${m.url}_${i}`}
                 className="cornell-handout"
                 href={m.url}
@@ -196,7 +198,7 @@ export default function CornellNoteSheet({
                 title={m.name}
               >
                 {m.kind === "image" ? "🖼" : "📄"} {m.name}
-              </a>
+              </ProtectedAttachmentLink>
             ))}
           </div>
         </section>

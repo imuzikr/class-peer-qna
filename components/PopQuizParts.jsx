@@ -6,6 +6,7 @@
 // 물음(제목 · 글/코드 · 설명)과 답 하나를 읽기 전용으로 그립니다. 두 창이
 // 따로 그리면 같은 퀴즈가 교사와 학생 화면에서 다른 모양이 됩니다.
 // =============================================================
+import SecureHtml from "./SecureHtml";
 import { sanitizeHtml } from "@/lib/html";
 import { quizKindLabel, quizThread, splitQuizDesc } from "@/lib/popQuiz";
 import { formatTime } from "@/lib/store";
@@ -63,9 +64,9 @@ export function PopQuizAnswerBody({ answer }) {
     );
   }
   return (
-    <div
+    <SecureHtml
       className="pq-answer pq-answer--text study-card-content"
-      dangerouslySetInnerHTML={{ __html: sanitizeHtml(answer.text ?? "") }}
+      html={sanitizeHtml(answer.text ?? "")}
     />
   );
 }

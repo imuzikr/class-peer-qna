@@ -1,5 +1,6 @@
 "use client";
 
+import SecureImage from "./SecureImage";
 import { formatTime, getDirectoryUser } from "@/lib/store";
 import { stripHtml } from "@/lib/html";
 import { cardActivitySummary, isTeacherAuthoredCard } from "@/lib/activities";
@@ -136,7 +137,7 @@ export default function StudyCard({
       {/* 이미지가 첨부됐을 때만 썸네일, 없으면 invisible 텍스트로 높이 유지 */}
       {thumbSrc ? (
         <div className="study-card-thumb-wrap">
-          <img className="study-card-thumb" src={thumbSrc} alt="" aria-hidden="true" />
+          <SecureImage className="study-card-thumb" src={thumbSrc} alt="" aria-hidden="true" />
         </div>
       ) : (
         <p className="study-card-preview" aria-hidden="true">{preview}</p>

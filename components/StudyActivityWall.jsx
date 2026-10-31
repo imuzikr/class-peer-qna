@@ -22,6 +22,7 @@
 // 실명이 펼쳐집니다 — 학급 화면에 띄우는 이름도 익명입니다. anonName이
 // 없으면 지금까지처럼 name을 그대로 씁니다(공부방 프로젝트는 실명 공간).
 // =============================================================
+import SecureHtml from "./SecureHtml";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { backdropClose } from "@/lib/modal";
 import { REWARD_MAX } from "@/lib/store";
@@ -284,9 +285,9 @@ export default function StudyActivityWall({
                     <span className={`wall-card-chars${done ? " ok" : ""}`}>{r.chars}자</span>
                   </header>
 
-                  <div
+                  <SecureHtml
                     className="study-card-content wall-card-body"
-                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(r.html) }}
+                    html={sanitizeHtml(r.html)}
                   />
 
                   <footer className="wall-card-foot">

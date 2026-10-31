@@ -22,7 +22,7 @@ const {
   onDocumentUpdated,
   onDocumentDeleted,
 } = require("firebase-functions/v2/firestore");
-const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { onCall, onRequest, HttpsError } = require("firebase-functions/v2/https");
 const { purgeClassData } = require("./purgeClass");
 const { setGlobalOptions } = require("firebase-functions/v2");
 const admin = require("firebase-admin");
@@ -46,6 +46,15 @@ const db = admin.firestore();
 // 일꾼을 켜 두는 설정이라 아무도 안 쓰는 시간에도 요금이 붙습니다. 하루에
 // 몇 번 도는 이 앱에서는 콜드 스타트 몇 초를 없애자고 낼 값이 아닙니다.
 setGlobalOptions({ region: "asia-northeast3", maxInstances: 10 });
+
+// Private attachment bytes are served only after the parent document's real
+// Firestore read rules authorize this caller. Uploads do not mint public URLs.
+const { createFirebaseGateway, makeFirebaseDependencies } = require("./attachmentGateway");
+const { cleanupProtectedAttachmentRefs, cleanupProtectedAttachmentsForOwner } = require("./protectedAttachmentCleanup");
+exports.attachmentGateway = onRequest(
+  { timeoutSeconds: 120, memory: "512MiB", concurrency: 8, cors: false },
+  createFirebaseGateway(admin, db),
+);
 
 // 역할 종류와 최초 관리자 이메일
 // (첫 관리자는 아직 admin 클레임이 없으므로, 이 이메일로 로그인한
@@ -299,6 +308,8 @@ async function purgeStudentData(uid, warnings) {
   // 5) 업로드한 파일 전부 (uploads/{uid}/ 아래)
   try {
     await admin.storage().bucket().deleteFiles({ prefix: `uploads/${uid}/` });
+    const attachmentDeps = makeFirebaseDependencies({ admin, db, bucket: admin.storage().bucket() });
+    await cleanupProtectedAttachmentsForOwner(db, attachmentDeps, uid);
   } catch (e) {
     warnings.push(`첨부 파일: ${e && e.message}`);
   }
@@ -458,6 +469,8 @@ function storagePathFromUrl(url) {
   }
 }
 async function deleteAttachedFilesAdmin(cardData) {
+  const attachmentDeps = makeFirebaseDependencies({ admin, db, bucket: admin.storage().bucket() });
+  await cleanupProtectedAttachmentRefs(attachmentDeps, cardData);
   const urls = [
     cardData.imageUrl,
     ...(cardData.images || []),

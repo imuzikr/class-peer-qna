@@ -16,7 +16,8 @@
     "books:to-solo": "node functions/scripts/consonant-to-solo.mjs",
     "books:rescue": "node functions/scripts/rescue-activity.mjs",
     "books:purge-orphans": "node functions/scripts/purge-orphan-notifications.mjs",
-    "notes:purge-orphans": "node functions/scripts/purge-orphan-cornell-notes.mjs"
+    "notes:purge-orphans": "node functions/scripts/purge-orphan-cornell-notes.mjs",
+    "test:attachments:pilot": "tests/rules/node_modules/.bin/firebase emulators:exec --only auth,firestore,storage --project demo-attachment-pilot --config firebase.attachments-test.json \"node tests/attachments/pilot.cjs\""
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.18.0",

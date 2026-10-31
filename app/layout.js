@@ -1,5 +1,6 @@
 import "./globals.css";
 import { AuthProvider } from "@/lib/authContext";
+import AttachmentBindingStatus from "@/components/AttachmentBindingStatus";
 
 export const metadata = {
   title: "배움나눔 — 우리 반 질문/답변 게시판",
@@ -47,7 +48,7 @@ export default function RootLayout({ children }) {
           같은 판정을 여러 번 치르고, 그중 하나만 실패해도 화면이 로그인
           상태를 달리 보게 됩니다(lib/authContext.jsx). */}
       <body suppressHydrationWarning>
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider><AttachmentBindingStatus />{children}</AuthProvider>
       </body>
     </html>
   );

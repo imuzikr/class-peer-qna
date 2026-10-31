@@ -10,6 +10,8 @@
 // 여기에 추가하는 것을 잊으면 그 테스트가 잡아 줍니다.
 // =============================================================
 
+const { collectRefs } = require("./attachments/service");
+
 // 반 문서 아래에 달리는 하위 컬렉션들. recursiveDelete가 알아서 훑지만,
 // 무엇이 지워지는지 눈에 보이게 남겨 둡니다(테스트도 이 목록을 씁니다).
 const CLASS_SUBCOLLECTIONS = [
@@ -43,9 +45,10 @@ const CLASS_SCOPED_COLLECTIONS = [
 ];
 
 // 쿼리로 찾은 문서를 400개씩 나눠 지웁니다(배치 상한 회피).
-async function deleteByQuery(db, query, warnings, label) {
+async function deleteByQuery(db, query, warnings, label, remember) {
   try {
     const snap = await query.get();
+    if (remember) snap.docs.forEach((doc) => remember(doc.data()));
     for (let i = 0; i < snap.docs.length; i += 400) {
       const batch = db.batch();
       snap.docs.slice(i, i + 400).forEach((d) => batch.delete(d.ref));
@@ -60,10 +63,11 @@ async function deleteByQuery(db, query, warnings, label) {
 }
 
 // 쿼리로 찾은 문서들을 하위 컬렉션까지 통째로 지웁니다.
-async function deleteMatchingDocsDeep(db, query, warnings, label) {
+async function deleteMatchingDocsDeep(db, query, warnings, label, rememberTree) {
   try {
     const snap = await query.get();
     for (const d of snap.docs) {
+      if (rememberTree) await rememberTree(d.ref, d.data());
       await db.recursiveDelete(d.ref);
     }
     return snap.size;
@@ -78,23 +82,35 @@ async function deleteMatchingDocsDeep(db, query, warnings, label) {
  *
  * @param db Firestore 인스턴스(admin SDK)
  * @param classId 지울 반
- * @param onCardAttachments 공부방 카드의 첨부 파일을 지우는 콜백(선택).
- *        Storage를 쓰지 않는 테스트에서는 넘기지 않습니다.
+ * @param onCardAttachments 삭제한 문서의 첨부 파일을 정리하는 Admin 콜백(선택).
+ *        호출 이름은 하위 호환으로 유지합니다. 보호된 파일은 다른 부모가 계속
+ *        참조하는지 확인하며, Storage를 쓰지 않는 테스트에서는 넘기지 않습니다.
  * @returns warnings — 실패한 항목 목록. 비어 있어야 완전히 지워진 것입니다.
  */
 async function purgeClassData(db, classId, onCardAttachments) {
   const warnings = [];
+  const attachmentsToClean = [];
+  const remember = onCardAttachments ? (data) => {
+    if (data && (collectRefs(data).size || data.imageUrl || data.images?.length || data.attachments?.length)) {
+      attachmentsToClean.push(data);
+    }
+  } : null;
+  async function rememberTree(ref, data) {
+    remember(data);
+    for (const collection of await ref.listCollections()) {
+      const children = await collection.get();
+      for (const child of children.docs) await rememberTree(child.ref, child.data());
+    }
+  }
 
-  // 1) 공부방 보드 — 카드 첨부 파일(Storage)을 먼저 지우고 보드를 통째로.
-  //    recursiveDelete가 cards 하위 컬렉션까지 함께 정리합니다.
+  // 1) 공부방 보드 — 먼저 참조를 모으고 보드를 통째로 지웁니다.
+  //    파일은 모든 문서를 지운 뒤 정리해야 같은 반의 다른 사본에 남아 있던
+  //    참조를 사용 중으로 잘못 판정하지 않습니다. 반 밖의 사본은 계속 보호합니다.
   try {
     const boardsSnap = await db.collection("studyBoards").where("classId", "==", classId).get();
     for (const boardDoc of boardsSnap.docs) {
       if (onCardAttachments) {
-        const cardsSnap = await boardDoc.ref.collection("cards").get();
-        for (const cardDoc of cardsSnap.docs) {
-          await onCardAttachments(cardDoc.data());
-        }
+        await rememberTree(boardDoc.ref, boardDoc.data());
       }
       await db.recursiveDelete(boardDoc.ref);
     }
@@ -108,17 +124,20 @@ async function purgeClassData(db, classId, onCardAttachments) {
     db,
     db.collection("bookActivities").where("classId", "==", classId),
     warnings,
-    "책방 활동"
+    "책방 활동",
+    onCardAttachments ? rememberTree : null
   );
 
   // 3) classId 필드로 묶인 최상위 기록들
   for (const { name, label } of CLASS_SCOPED_COLLECTIONS) {
-    await deleteByQuery(db, db.collection(name).where("classId", "==", classId), warnings, label);
+    await deleteByQuery(db, db.collection(name).where("classId", "==", classId), warnings, label, remember);
   }
 
   // 4) 방송 문서 — 문서 ID가 곧 classId
   try {
-    await db.doc(`broadcasts/${classId}`).delete();
+    const ref = db.doc(`broadcasts/${classId}`);
+    if (remember) remember((await ref.get()).data());
+    await ref.delete();
   } catch (e) {
     warnings.push(`방송 상태: ${e && e.message}`);
   }
@@ -129,9 +148,20 @@ async function purgeClassData(db, classId, onCardAttachments) {
   //    맨 마지막에 지웁니다. 중간에 실패하면 반 문서가 남아 있어야 교사가
   //    다시 삭제를 눌러 이어서 정리할 수 있습니다.
   try {
-    await db.recursiveDelete(db.doc(`classes/${classId}`));
+    const ref = db.doc(`classes/${classId}`);
+    if (remember) await rememberTree(ref, (await ref.get()).data());
+    await db.recursiveDelete(ref);
   } catch (e) {
     warnings.push(`반 문서: ${e && e.message}`);
+  }
+
+  // Trusted Admin callback checks every surviving parent before deleting a
+  // protected object. Errors remain visible and can be retried safely.
+  if (onCardAttachments) {
+    for (const data of attachmentsToClean) {
+      try { await onCardAttachments(data); }
+      catch (e) { warnings.push(`첨부 파일: ${e && e.message}`); }
+    }
   }
 
   return warnings;

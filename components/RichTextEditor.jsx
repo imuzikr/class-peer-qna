@@ -26,7 +26,8 @@
 // =============================================================
 import { useEffect, useMemo, useRef, useState } from "react";
 import { uploadImage } from "@/lib/storageUpload";
-import { escapeHtml, CHECK_ITEM_SELECTOR, hitCheckBox } from "@/lib/html";
+import { escapeHtml, CHECK_ITEM_SELECTOR, hitCheckBox, prepareSecureHtml, sanitizeHtml } from "@/lib/html";
+import { getSecureImageCache, hydrateSecureImages, releaseSecureImages, serializeSecureHtml } from "@/lib/secureImage";
 
 // ───── 툴바 아이콘 (선 스타일 SVG) ─────
 const svgProps = {
@@ -172,6 +173,7 @@ export default function RichTextEditor({
   children, // 툴바에 끼워 넣을 추가 도구 (첨부, 그리기 등)
 }) {
   const ref = useRef(null);
+  const imageRefs = useRef([]);
   const [active, setActive] = useState({}); // 현재 커서 위치의 서식 상태
 
   // 배열을 그대로 deps에 두면 부모가 다시 그릴 때마다 새 배열이라 매번
@@ -182,13 +184,37 @@ export default function RichTextEditor({
 
   // 초기 내용 채우기 (마운트 시 한 번만)
   useEffect(() => {
+    const heldImages = imageRefs.current;
     if (initialHtml && ref.current && !ref.current.innerHTML) {
-      ref.current.innerHTML = initialHtml;
-      onChange(initialHtml);
+      ref.current.innerHTML = prepareSecureHtml(sanitizeHtml(initialHtml));
+      onChange(serializeSecureHtml(ref.current));
     }
+    hydrateSecureImages(ref.current, imageRefs.current);
     if (autoFocus) ref.current?.focus();
+    return () => releaseSecureImages(heldImages);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // 같은 편집기를 열어 둔 채 로그아웃·계정 전환이 일어나도 이전 사용자의
+  // 그림이 남지 않게 지우고, 현재 사용자의 권한으로 다시 확인합니다.
+  useEffect(() => getSecureImageCache().subscribe((event) => {
+    if (event?.type === "clear") {
+      releaseSecureImages(imageRefs.current);
+      ref.current?.querySelectorAll("img[data-attachment-ref]").forEach((image) => image.removeAttribute("src"));
+    } else {
+      // 다른 문서의 첨부가 저장될 때 이 편집기의 정상 이미지까지 다시 받지 않습니다.
+      const retryRefs = new Set(event?.refs ?? []);
+      const held = imageRefs.current;
+      const retry = [];
+      for (let index = held.length - 1; index >= 0; index--) {
+        const item = held[index];
+        if (retryRefs.has(item.src) && !item.img.getAttribute("src")) retry.push(...held.splice(index, 1));
+      }
+      if (retry.length === 0) return;
+      releaseSecureImages(retry);
+    }
+    hydrateSecureImages(ref.current, imageRefs.current);
+  }), []);
 
   // 커서를 움직일 때마다 어떤 서식이 켜져 있는지 추적해 버튼 강조
   useEffect(() => {
@@ -210,7 +236,7 @@ export default function RichTextEditor({
   function exec(command) {
     ref.current?.focus();
     document.execCommand(command, false, null);
-    onChange(ref.current.innerHTML);
+    onChange(serializeSecureHtml(ref.current));
   }
 
   // ── 체크 줄 ─────────────────────────────────────────────────
@@ -236,7 +262,7 @@ export default function RichTextEditor({
       if (allCheck) li.classList.remove("check", "done");
       else li.classList.add("check");
     });
-    onChange(ref.current.innerHTML);
+    onChange(serializeSecureHtml(ref.current));
   }
 
   // ul.checklist(옛 모양) → 그 안의 li마다 check 표시로
@@ -269,7 +295,7 @@ export default function RichTextEditor({
     if (!hitCheckBox(li, e.clientX)) return; // 글자를 누른 것 — 커서만 옮깁니다
     e.preventDefault();
     li.classList.toggle("done");
-    onChange(ref.current.innerHTML);
+    onChange(serializeSecureHtml(ref.current));
   }
 
   function insertCodeBlock() {
@@ -300,7 +326,7 @@ export default function RichTextEditor({
         s2.addRange(r);
       }
     }
-    onChange(ref.current.innerHTML);
+    onChange(serializeSecureHtml(ref.current));
   }
 
   // 방금 넣은 코드 블록 — insertHTML 뒤 커서가 블록 **밖**에 설 수도 있어
@@ -311,7 +337,7 @@ export default function RichTextEditor({
   }
 
   function handleInput() {
-    onChange(ref.current.innerHTML);
+    onChange(serializeSecureHtml(ref.current));
   }
 
   // 본문에 이미지를 붙여넣으면 data URL이 문서에 박혀(1MB 한도·피드 부하) 문제이므로,
@@ -324,11 +350,20 @@ export default function RichTextEditor({
         e.preventDefault();
         const file = it.getAsFile();
         if (!file) return;
+        const editor = ref.current;
+        if (!editor) return;
         try {
           const url = await uploadImage(file);
-          ref.current?.focus();
-          document.execCommand("insertHTML", false, `<img src="${url}" alt="">`);
-          onChange(ref.current.innerHTML);
+          // 업로드를 기다리는 동안 다른 카드나 편집기로 이동할 수 있습니다.
+          // 원래 편집기가 사라졌거나 포커스를 얻지 못하면 전역 명령을 실행해
+          // 다른 학생·활동의 입력칸에 그림이 들어가는 일을 막습니다.
+          if (ref.current !== editor || !editor.isConnected) return;
+          const ownerDocument = editor.ownerDocument;
+          editor.focus();
+          if (ownerDocument.activeElement !== editor && !editor.contains(ownerDocument.activeElement)) return;
+          ownerDocument.execCommand("insertHTML", false, prepareSecureHtml(sanitizeHtml(`<img src="${escapeHtml(url)}" alt="">`)));
+          hydrateSecureImages(editor, imageRefs.current);
+          onChange(serializeSecureHtml(editor));
         } catch {
           alert("이미지 업로드에 실패했어요. 잠시 후 다시 시도해 주세요.");
         }
@@ -399,7 +434,7 @@ export default function RichTextEditor({
     // 잡을 것 없이 정확하고, Ctrl+Z 한 번으로 되돌아옵니다.
     document.execCommand("delete", false, null);
     document.execCommand("insertUnorderedList", false, null);
-    onChange(ref.current.innerHTML);
+    onChange(serializeSecureHtml(ref.current));
     return true;
   }
 
@@ -573,7 +608,7 @@ export default function RichTextEditor({
     r.collapse(true);
     sel.removeAllRanges();
     sel.addRange(r);
-    onChange(ref.current.innerHTML);
+    onChange(serializeSecureHtml(ref.current));
   }
 
   // 이번 지우기로 코드 블록이 비게 되는가.
@@ -609,7 +644,7 @@ export default function RichTextEditor({
     r.collapse(true);
     sel.removeAllRanges();
     sel.addRange(r);
-    onChange(ref.current.innerHTML);
+    onChange(serializeSecureHtml(ref.current));
   }
 
   function handleKeyDown(e) {
@@ -632,7 +667,7 @@ export default function RichTextEditor({
         if (e.key === "Enter") preNewline(pre);
         else if (e.shiftKey) preOutdent(pre);
         else document.execCommand("insertText", false, PY_INDENT);
-        onChange(ref.current.innerHTML);
+        onChange(serializeSecureHtml(ref.current));
         return;
       }
     }

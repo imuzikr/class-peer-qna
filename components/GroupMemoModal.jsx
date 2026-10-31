@@ -27,6 +27,7 @@
 // [읽음 처리] 그 대화를 **연 순간** 받은 것을 읽음으로 바꿉니다 — 알림의
 // '읽음'을 따로 누르게 하면, 읽고 답까지 했는데 배지가 남습니다.
 // =============================================================
+import SecureHtml from "./SecureHtml";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { backdropClose } from "@/lib/modal";
 import {
@@ -336,9 +337,9 @@ export default function GroupMemoModal({
                                   {m.replyToText}
                                 </p>
                               )}
-                              <div
+                              <SecureHtml
                                 className="gmemo-text"
-                                dangerouslySetInnerHTML={{ __html: richHtml(m.html) }}
+                                html={richHtml(m.html)}
                               />
                             </div>
                             <div className="gmemo-msg-meta">

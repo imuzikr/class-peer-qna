@@ -25,6 +25,7 @@
 // 닫히거나 화면을 벗어날 때 한 번 더 저장합니다 — 방송이 꺼지며 화면이
 // 바뀌어도 쓰던 글이 날아가지 않게.
 // =============================================================
+import ProtectedAttachmentLink from "./ProtectedAttachmentLink";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   subscribeMyCornellNote,
@@ -723,7 +724,7 @@ export default function CornellNoteDrawer({
                 <section className="cornell-handouts">
                   <span className="cornell-handouts-tag">📎 오늘 수업 자료</span>
                   {handouts.map((m, i) => (
-                    <a
+                    <ProtectedAttachmentLink
                       key={`${m.url}_${i}`}
                       className="cornell-handout"
                       href={m.url}
@@ -732,7 +733,7 @@ export default function CornellNoteDrawer({
                       title={m.name}
                     >
                       {m.kind === "image" ? "🖼" : "📄"} {m.name}
-                    </a>
+                    </ProtectedAttachmentLink>
                   ))}
                 </section>
               )}

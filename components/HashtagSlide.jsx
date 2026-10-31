@@ -18,6 +18,7 @@
 //   "page"  — 화면 안의 한 칸(교사 가운데 · 친구 보기). 글자는 본문 크기.
 //   "cast"  — 칠판. 글이 적을수록 크게(data-size, 곁텍스트·KWLS 방송과 같은 생각).
 // =============================================================
+import SecureImage from "./SecureImage";
 import {
   hashtagSlideSize,
   hashtagSourceLine,
@@ -63,7 +64,7 @@ export default function HashtagSlide({ slide, variant = "page", maxCols = 3 }) {
         </div>
         {s.image.url && (
           <figure className="hts-figure">
-            <img src={s.image.url} alt={s.image.caption || "대표 이미지"} />
+            <SecureImage src={s.image.url} alt={s.image.caption || "대표 이미지"} />
             {s.image.caption && <figcaption>{s.image.caption}</figcaption>}
           </figure>
         )}

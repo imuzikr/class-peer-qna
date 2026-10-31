@@ -23,11 +23,16 @@ function emulatorTarget() {
   return { host, port: Number(port) };
 }
 
-export async function makeEnv(projectId) {
+export async function makeEnv(projectId, { storage = false } = {}) {
   const { host, port } = emulatorTarget();
   return initializeTestEnvironment({
     projectId,
     firestore: { rules: readFileSync(RULES_PATH, "utf8"), host, port },
+    ...(storage ? { storage: {
+      rules: readFileSync(resolve(here, "../../storage.rules"), "utf8"),
+      host: (process.env.FIREBASE_STORAGE_EMULATOR_HOST || "127.0.0.1:9199").split(":")[0],
+      port: Number((process.env.FIREBASE_STORAGE_EMULATOR_HOST || "127.0.0.1:9199").split(":")[1]),
+    } } : {}),
   });
 }
 

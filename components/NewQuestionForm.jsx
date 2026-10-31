@@ -2,6 +2,7 @@
 
 // 새 질문 작성 + 수정 모달 — 키워드 + 제목 + 내용(서식 지원) + 이미지 첨부 + 그리기
 // question prop이 있으면 "수정 모드"로 동작합니다 (기존 내용을 미리 채움).
+import SecureImage from "./SecureImage";
 import { backdropClose } from "@/lib/modal";
 import { useState } from "react";
 import { KEYWORDS, addQuestion, updateQuestion } from "@/lib/store";
@@ -196,7 +197,7 @@ export default function NewQuestionForm({
             <div className="attach-multi">
               {images.map((src, i) => (
                 <div key={i} className="attach-thumb">
-                  <img src={src} alt="첨부 미리보기" className="attach-preview" />
+                  <SecureImage src={src} alt="첨부 미리보기" className="attach-preview" />
                   <button
                     type="button"
                     className="attach-image-del"

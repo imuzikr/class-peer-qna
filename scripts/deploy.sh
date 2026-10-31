@@ -7,6 +7,10 @@
 #   npm run deploy -- --rules-only
 #   npm run deploy -- --functions-only
 #   npm run deploy -- --indexes-only # 색인(firestore.indexes.json)만
+#   npm run deploy -- --attachments-storage-transition --confirm-project PROJECT
+#                              # preparatory legacy-compatible Storage rules only
+#   npm run deploy -- --attachments-storage-final READY_REPORT --confirm-project PROJECT --writes-paused
+#                              # final deny rules, gated on migration verification
 #   npm run deploy -- --skip-tests   # 규칙 테스트를 건너뜀 (권장하지 않음)
 #
 # 색인은 기본 대상에 넣지 않았습니다. 색인 배포는 파일에 없는 기존 색인을
@@ -28,30 +32,56 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 TARGET="firestore:rules,functions"
 SKIP_TESTS=0
+CONFIG="firebase.json"
+CUTOVER_REPORT=""
+CONFIRM_PROJECT=""
+STORAGE_MODE=""
+WRITES_PAUSED=0
 
-for arg in "$@"; do
-  case "$arg" in
+while [[ "$#" -gt 0 ]]; do
+  case "$1" in
     --rules-only) TARGET="firestore:rules" ;;
     --functions-only) TARGET="functions" ;;
     --indexes-only) TARGET="firestore:indexes" ;;
+    --attachments-storage-transition) TARGET="storage"; STORAGE_MODE="transition"; CONFIG="firebase.attachments-transition.json" ;;
+    --attachments-storage-final)
+      [[ "$#" -ge 2 ]] || { echo "검증 보고서 경로가 필요합니다." >&2; exit 1; }
+      TARGET="storage"; STORAGE_MODE="final"; CUTOVER_REPORT="$2"; shift ;;
+    --confirm-project)
+      [[ "$#" -ge 2 ]] || { echo "프로젝트 ID가 필요합니다." >&2; exit 1; }
+      CONFIRM_PROJECT="$2"; shift ;;
+    --writes-paused) WRITES_PAUSED=1 ;;
     --skip-tests) SKIP_TESTS=1 ;;
     *)
-      echo "알 수 없는 옵션: $arg" >&2
-      echo "사용법: npm run deploy -- [--rules-only|--functions-only|--indexes-only] [--skip-tests]" >&2
-      exit 1
-      ;;
+      echo "알 수 없는 옵션: $1" >&2
+      echo "사용법: npm run deploy -- [--rules-only|--functions-only|--indexes-only|--attachments-storage-transition|--attachments-storage-final REPORT] [--confirm-project PROJECT] [--skip-tests]" >&2
+      exit 1 ;;
   esac
+  shift
 done
 
-if [[ "$TARGET" == *"firestore:rules"* && "$SKIP_TESTS" -ne 1 ]]; then
-  echo "▶ 배포 전 Firestore 규칙 테스트를 먼저 돌립니다 (건너뛰려면 --skip-tests)"
+# Storage must never be part of an ordinary deploy before the existing objects
+# and token URLs have been migrated. Its separate explicit target is deliberate.
+if [[ -n "$STORAGE_MODE" ]]; then
+  [[ "$TARGET" == "storage" ]] || { echo "Storage 전환 대상과 다른 배포 대상을 섞지 마세요." >&2; exit 1; }
+  [[ -n "$CONFIRM_PROJECT" ]] || { echo "Storage 배포에는 --confirm-project PROJECT가 필요합니다." >&2; exit 1; }
+  if [[ "$STORAGE_MODE" == "final" ]]; then
+    [[ "$WRITES_PAUSED" -eq 1 ]] || { echo "최종 Storage 전환 중 첨부 쓰기를 중지하고 --writes-paused를 명시하세요." >&2; exit 1; }
+    [[ "$SKIP_TESTS" -eq 0 ]] || { echo "최종 Storage 전환은 테스트를 생략할 수 없습니다." >&2; exit 1; }
+    node scripts/verify-attachment-cutover.cjs "$CUTOVER_REPORT" "$CONFIRM_PROJECT"
+  else
+    echo "▶ 준비 단계 Storage 규칙: 기존 토큰 URL은 아직 차단되지 않습니다."
+  fi
+fi
+
+if [[ ( "$TARGET" == *"firestore:rules"* || "$TARGET" == "storage" ) && "$SKIP_TESTS" -ne 1 ]]; then
+  echo "▶ 배포 전 Firestore + Storage 규칙 테스트를 돌립니다"
   if [ ! -d tests/rules/node_modules ]; then
     echo "  tests/rules/node_modules가 없어 먼저 설치합니다..."
     npm --prefix tests/rules install
   fi
   npm run test:rules
   echo "✔ 규칙 테스트 통과"
-  echo ""
 fi
 
 if [[ "$TARGET" == *"functions"* ]]; then
@@ -62,4 +92,15 @@ fi
 
 echo "▶ 배포 대상: $TARGET"
 echo "  (최초 1회는 'npx firebase-tools login'으로 먼저 로그인해야 합니다)"
-npx firebase-tools deploy --only "$TARGET"
+if [[ -n "$CONFIRM_PROJECT" ]]; then
+  npx firebase-tools deploy --config "$CONFIG" --project "$CONFIRM_PROJECT" --only "$TARGET"
+else
+  npx firebase-tools deploy --config "$CONFIG" --only "$TARGET"
+fi
+
+# Only a successful firebase deploy reaches here. Token revocation/verification
+# occurs AFTER direct legacy metadata reads have been denied, preventing a user
+# from obtaining a freshly regenerated token between verification and closure.
+if [[ "$STORAGE_MODE" == "final" ]]; then
+  node scripts/verify-attachment-cutover.cjs "$CUTOVER_REPORT" "$CONFIRM_PROJECT" --record-deployment
+fi

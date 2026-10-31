@@ -23,6 +23,9 @@
 // 곁텍스트 읽기와 같은 방식(useEntryCast)으로, 그 활동만 학급 전체 화면에
 // 띄웁니다. 방송 중 다른 활동 버튼을 누르면 곧바로 그리로 전환됩니다.
 // =============================================================
+import SecureHtml from "./SecureHtml";
+import ProtectedAttachmentLink from "./ProtectedAttachmentLink";
+import { downloadAttachment as downloadProtectedAttachment } from "@/lib/attachments";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { backdropClose } from "@/lib/modal";
 import { addStudyCard, updateStudyCard, deleteStudyCard, formatTime } from "@/lib/store";
@@ -363,11 +366,12 @@ export default function StudyMyActivityCard({
   function removeAttachment(id) {
     setAttachments((prev) => prev.filter((a) => a.id !== id));
   }
-  function downloadAttachment(att) {
-    const a = document.createElement("a");
-    a.href = att.dataUrl;
-    a.download = att.name;
-    a.click();
+  async function downloadAttachment(att) {
+    try {
+      await downloadProtectedAttachment(att.dataUrl, att.name);
+    } catch {
+      alert("첨부 파일을 내려받지 못했어요. 권한과 연결 상태를 확인해 주세요.");
+    }
   }
 
   // 활동 i가 가진 첨부 — actIndex가 없는 예전 첨부는 첫 활동 것으로 봅니다.
@@ -595,7 +599,7 @@ export default function StudyMyActivityCard({
                   이름을 단 링크로 내놓습니다. 새 탭으로 여는 이유: 여기서
                   바로 열면 쓰던 활동 카드를 벗어나게 됩니다. */}
               {m.file?.url && (
-                <a
+                <ProtectedAttachmentLink
                   className="study-material-view-file"
                   href={m.file.url}
                   target="_blank"
@@ -609,7 +613,7 @@ export default function StudyMyActivityCard({
                       {formatFileSize(m.file.size)}
                     </span>
                   )}
-                </a>
+                </ProtectedAttachmentLink>
               )}
             </section>
           ))}
@@ -717,9 +721,9 @@ export default function StudyMyActivityCard({
                 <>
                   <p className="study-mycard-col-title">{activityTitles[i] ?? act}</p>
                   {stripHtml(activityContents[i] ?? "").trim() || htmlHasImage(activityContents[i] ?? "") ? (
-                    <div
+                    <SecureHtml
                       className="study-card-content study-mycard-col-body"
-                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(shownHtml(activityContents[i])) }}
+                      html={sanitizeHtml(shownHtml(activityContents[i]))}
                     />
                   ) : (
                     <p className="activity-form-locked-note">
@@ -762,11 +766,9 @@ export default function StudyMyActivityCard({
                   >
                     {stripHtml(activityContents[i] ?? "").trim() ||
                     htmlHasImage(activityContents[i] ?? "") ? (
-                      <div
+                      <SecureHtml
                         className="study-card-content study-mycard-preview-body"
-                        dangerouslySetInnerHTML={{
-                          __html: sanitizeHtml(shownHtml(activityContents[i])),
-                        }}
+                        html={sanitizeHtml(shownHtml(activityContents[i]))}
                       />
                     ) : cellMode && exampleOf(board, act) ? (
                       // 선생님 예시 코드 — 빈 칸에만 희미하게(placeholder처럼).

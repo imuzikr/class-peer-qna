@@ -20,6 +20,8 @@
 //
 // 이전 / 다음 / 종료 — 종료하면 방송이 꺼져 학생 화면도 원래대로 돌아갑니다.
 // =============================================================
+import SecureImage from "./SecureImage";
+import ProtectedAttachmentLink from "./ProtectedAttachmentLink";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   startBroadcast,
@@ -1123,7 +1125,7 @@ export default function LessonMode({
 
             <div className="lesson-stage">
               {cur ? (
-                <img className="lesson-slide-img" src={cur.imageUrl} alt={`슬라이드 ${idx + 1}`} />
+                <SecureImage className="lesson-slide-img" src={cur.imageUrl} alt={`슬라이드 ${idx + 1}`} />
               ) : (
                 // '슬라이드 없이 만들기'로 만든 수업이 여기로 옵니다. 고장이
                 // 아니라 고른 모습이므로, 무엇이 없고 무엇을 할 수 있는지
@@ -1692,13 +1694,13 @@ export default function LessonMode({
                         <li key={m.id} className="lesson-board-file">
                           {m.image ? (
                             <>
-                              <img className="lesson-board-file-thumb" src={m.image} alt="" />
+                              <SecureImage className="lesson-board-file-thumb" src={m.image} alt="" />
                               <span className="lesson-board-file-name">이미지 자료</span>
                             </>
                           ) : (
                             <>
                               <span className="lesson-board-file-icon" aria-hidden="true">📎</span>
-                              <a
+                              <ProtectedAttachmentLink
                                 className="lesson-board-file-name"
                                 href={m.file.url}
                                 target="_blank"
@@ -1706,7 +1708,7 @@ export default function LessonMode({
                                 title={m.file.name}
                               >
                                 {m.file.name}
-                              </a>
+                              </ProtectedAttachmentLink>
                               <span className="lesson-board-file-size">
                                 {formatFileSize(m.file.size)}
                               </span>

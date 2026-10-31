@@ -9,6 +9,7 @@
 // =============================================================
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import SecureImage from "./SecureImage";
 
 export default function ZoomableImage({ src, alt = "", className = "", ...rest }) {
   const [open, setOpen] = useState(false);
@@ -28,7 +29,7 @@ export default function ZoomableImage({ src, alt = "", className = "", ...rest }
 
   return (
     <>
-      <img
+      <SecureImage
         src={src}
         alt={alt}
         className={`${className} zoomable-img`.trim()}
@@ -46,7 +47,7 @@ export default function ZoomableImage({ src, alt = "", className = "", ...rest }
             <button className="lightbox-close" onClick={() => setOpen(false)} aria-label="닫기">
               ×
             </button>
-            <img
+            <SecureImage
               className="lightbox-img"
               src={src}
               alt={alt}

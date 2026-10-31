@@ -5,6 +5,8 @@
 //   [왼쪽] 질문 내용(서식 지원) + 첨부 이미지 미리보기 + 상태 토글
 //   [오른쪽] 채팅형 대화방: 서식 입력 + 이미지 첨부 + 그리기
 // =============================================================
+import SecureImage from "./SecureImage";
+import SecureHtml from "./SecureHtml";
 import { backdropClose } from "@/lib/modal";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -398,11 +400,9 @@ export default function QuestionModal({
                 </div>
               )}
 
-              <div
+              <SecureHtml
                 className="qa-content"
-                dangerouslySetInnerHTML={{
-                  __html: sanitizeHtml(question.content),
-                }}
+                html={sanitizeHtml(question.content)}
               />
 
               {(question.images?.length || question.imageUrl) && (
@@ -577,7 +577,7 @@ export default function QuestionModal({
                 <div className="chat-attach-preview attach-multi">
                   {answerImages.map((src, i) => (
                     <div key={i} className="attach-thumb">
-                      <img src={src} alt="첨부 미리보기" />
+                      <SecureImage src={src} alt="첨부 미리보기" />
                       <button
                         type="button"
                         className="attach-image-del"
@@ -836,8 +836,8 @@ function ChatMessage({
       ) : (
         <div className="chat-bubble">
           {hasText && (
-            <div
-              dangerouslySetInnerHTML={{ __html: sanitizeHtml(html) }}
+            <SecureHtml
+              html={sanitizeHtml(html)}
             />
           )}
           {pics.map((src, i) => (

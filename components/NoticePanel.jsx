@@ -1,6 +1,7 @@
 "use client";
 
 // 3단: 공지사항 패널 — 실시간 공지 목록 + 공지 작성(서식 지원)
+import SecureHtml from "./SecureHtml";
 import { useState } from "react";
 import { addNotice, deleteNotice, formatTime, toDate } from "@/lib/store";
 import { getCurrentUser, isTeacher, isAdmin } from "@/lib/user";
@@ -121,7 +122,7 @@ export default function NoticePanel({ notices }) {
         return (
           <div className="notice-item" key={n.id}>
             <h4>{n.title}</h4>
-            <div className="notice-content" dangerouslySetInnerHTML={{ __html: sanitizeHtml(n.content) }} />
+            <SecureHtml className="notice-content" html={sanitizeHtml(n.content)} />
             <div className="notice-foot">
               {/* 공지 작성자는 항상 "선생님"으로 표시됩니다 */}
               <time className="notice-author">

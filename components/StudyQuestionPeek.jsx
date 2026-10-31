@@ -7,6 +7,8 @@
 // 답변 작성·궁금해요 등 상호작용은 의도적으로 막아 작성에 집중하게 하는
 // "참고 전용" 화면입니다. 닫으면 곧장 카드 작성으로 돌아갑니다.
 // =============================================================
+import SecureImage from "./SecureImage";
+import SecureHtml from "./SecureHtml";
 import { useEffect, useState } from "react";
 import { subscribeAnswers, formatTime } from "@/lib/store";
 import { sanitizeHtml } from "@/lib/html";
@@ -50,9 +52,9 @@ export default function StudyQuestionPeek({ question, onClose, onBackToList }) {
         </div>
 
         <div className="study-peek-body">
-          <div
+          <SecureHtml
             className="study-card-body"
-            dangerouslySetInnerHTML={{ __html: sanitizeHtml(question.content) }}
+            html={sanitizeHtml(question.content)}
           />
 
           <div className="study-peek-answers">
@@ -79,12 +81,12 @@ export default function StudyQuestionPeek({ question, onClose, onBackToList }) {
                       )}
                       <time>{formatTime(a.createdAt)}</time>
                     </div>
-                    <div
+                    <SecureHtml
                       className="study-card-body"
-                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(a.content) }}
+                      html={sanitizeHtml(a.content)}
                     />
                     {[...(a.imageUrl ? [a.imageUrl] : []), ...(a.images ?? [])].map((src, i) => (
-                      <img
+                      <SecureImage
                         key={i}
                         src={src}
                         alt="첨부 이미지"

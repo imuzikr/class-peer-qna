@@ -19,6 +19,7 @@
 // 뒷자리에서 읽혀야 하는 화면이라 글자 크기를 폭에 맞춰 키우는 뼈대가 따로
 // 있습니다. 둘이 받는 자료가 같아 한쪽에만 있는 칸이 생기지 않습니다.
 // =============================================================
+import SecureImage from "./SecureImage";
 import {
   normalizeHashtagSlide,
   sourceKindLabel,
@@ -72,7 +73,7 @@ export default function HashtagInfographic({ slide }) {
         </div>
         {s.image.url && (
           <figure className="htg-figure">
-            <img src={s.image.url} alt={s.image.caption || "대표 이미지"} />
+            <SecureImage src={s.image.url} alt={s.image.caption || "대표 이미지"} />
             {s.image.caption && <figcaption>{s.image.caption}</figcaption>}
           </figure>
         )}

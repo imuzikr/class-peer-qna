@@ -1,0 +1,37 @@
+{
+  "environment": "loopback Firebase Auth/Firestore/Storage emulators",
+  "productionRepresentative": false,
+  "revocationMethod": "emulator explicit admin revoke; production metadata removal requires live anonymous probe",
+  "imageBytes": 262144,
+  "measuredAt": "2026-10-31T18:53:57.613Z",
+  "results": [
+    {
+      "label": "legacy_token_download_256KiB",
+      "samples": 20,
+      "firstMs": 3.06,
+      "p50Ms": 2.79,
+      "p95Ms": 8.96
+    },
+    {
+      "label": "protected_download_256KiB",
+      "samples": 20,
+      "firstMs": 46.93,
+      "p50Ms": 16.52,
+      "p95Ms": 46.93
+    },
+    {
+      "label": "legacy_authenticated_upload_256KiB",
+      "samples": 10,
+      "firstMs": 27.33,
+      "p50Ms": 30.37,
+      "p95Ms": 39.99
+    },
+    {
+      "label": "protected_upload_256KiB",
+      "samples": 10,
+      "firstMs": 19.65,
+      "p50Ms": 21.2,
+      "p95Ms": 25.8
+    }
+  ]
+}

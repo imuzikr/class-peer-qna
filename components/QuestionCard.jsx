@@ -4,6 +4,7 @@
 // 상태(🙋 궁금해요 / ✅ 해결됐어요)는 표시 전용 배지입니다.
 // 해결 처리는 반드시 상세 모달의 인사이트 흐름을 거치도록 했기 때문에,
 // 카드에서 모달 없이 해결로 바꾸는 동작은 두지 않습니다.
+import SecureImage from "./SecureImage";
 import { formatTime } from "@/lib/store";
 import { stripHtml } from "@/lib/html";
 import { isTeacher } from "@/lib/user";
@@ -64,7 +65,7 @@ export default function QuestionCard({ question, onClick }) {
         {images.length > 0 && (
           <div className="card-thumbs" aria-label={`이미지 ${images.length}장`}>
             {images.map((src, i) => (
-              <img
+              <SecureImage
                 key={i}
                 src={src}
                 alt={`첨부 이미지 ${i + 1}`}

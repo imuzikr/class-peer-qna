@@ -17,6 +17,13 @@ rules_version = '2';
 // =============================================================
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Attachment ownership/source bindings are server-owned. Allowing a browser
+    // to forge parents here would turn a readable public document into a grant
+    // for someone else's private file. The gateway accesses these via Admin SDK.
+    match /_attachments/{attachmentId} {
+      allow read, write: if false;
+    }
+
 
     function signedIn() { return request.auth != null; }
     function uid() { return request.auth.uid; }

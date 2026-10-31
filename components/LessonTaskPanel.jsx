@@ -62,6 +62,7 @@
 // 그래서 아직 카드가 없는 학생은 저장에 실패하는데, 써 보고서야 알게 하지
 // 않으려고 화면에서 미리 막고 까닭을 적습니다.
 // =============================================================
+import SecureHtml from "./SecureHtml";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   fetchStudyBoard,
@@ -354,9 +355,9 @@ export default function LessonTaskPanel({ task, user, onType }) {
 
       {/* 잠겼거나 모둠이면 읽기만 — 지금까지 쓴 것은 그대로 보입니다. */}
       {!canWrite && written && (
-        <div
+        <SecureHtml
           className="study-card-content ltask-read"
-          dangerouslySetInnerHTML={{ __html: sanitizeHtml(mine) }}
+          html={sanitizeHtml(mine)}
         />
       )}
 
@@ -421,9 +422,9 @@ export default function LessonTaskPanel({ task, user, onType }) {
               {open && cellMode && (
                 <div className="ltask-cells">
                   {text && (stripHtml(text).trim() || htmlHasImage(text)) ? (
-                    <div
+                    <SecureHtml
                       className="study-card-content ltask-cells-peek"
-                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(tidyCellsHtml(text)) }}
+                      html={sanitizeHtml(tidyCellsHtml(text))}
                     />
                   ) : exampleOf(board, acts[i]) ? (
                     <div className="study-mycard-example ltask-cells-peek" aria-label="선생님 예시 코드">

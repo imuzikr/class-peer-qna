@@ -1,0 +1,29 @@
+{
+  "projectId": "demo-attachment-migration-fixture",
+  "bucket": "demo-attachment-migration-fixture.firebasestorage.app",
+  "documents": [
+    {
+      "path": "bookActivities/activityA/entries/studentA",
+      "data": {
+        "answers": { "nodes": [
+          { "id": "root", "parentId": null, "text": "원문을 보존합니다" },
+          { "id": "branch", "parentId": "root", "image": "https://firebasestorage.googleapis.com/v0/b/demo-attachment-migration-fixture.firebasestorage.app/o/uploads%2FstudentA%2Fexample.jpg?alt=media&token=FAKE_FIXTURE_TOKEN" }
+        ] }
+      }
+    },
+    {
+      "path": "lessons/teacherLesson",
+      "data": {
+        "slides": [{ "imageUrl": "https://firebasestorage.googleapis.com/v0/b/demo-attachment-migration-fixture.firebasestorage.app/o/uploads%2FstudentA%2Fexample.jpg?alt=media&token=FAKE_FIXTURE_TOKEN" }]
+      }
+    }
+  ],
+  "objects": [
+    {
+      "name": "uploads/studentA/example.jpg", "generation": "1", "size": "1024", "crc32c": "AAAAAA==",
+      "contentType": "image/jpeg", "metadata": { "firebaseStorageDownloadTokens": "FAKE_FIXTURE_TOKEN" }
+    },
+    { "name": "uploads/studentA/orphan.jpg", "generation": "2", "size": "100", "contentType": "image/jpeg" }
+  ],
+  "iam": { "checked": false, "note": "Offline fixture; no real bucket queried" }
+}

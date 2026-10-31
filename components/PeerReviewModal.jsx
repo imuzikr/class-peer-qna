@@ -13,6 +13,7 @@
 // 칸을 셋으로 나누지는 않았습니다 — 나누면 세 칸을 다 채워야 할 것 같아
 // 한 줄도 못 쓰는 학생이 생깁니다. 안내만 하고 칸은 하나입니다.
 // =============================================================
+import SecureHtml from "./SecureHtml";
 import { useEffect, useMemo, useState } from "react";
 import { backdropClose } from "@/lib/modal";
 import RichTextEditor from "./RichTextEditor";
@@ -190,9 +191,9 @@ export default function PeerReviewModal({
                     <IconLock size={15} /> 지금은 {showWork ? "감상 쓰기" : "동료 평가"}가 잠겨 있어요. 선생님이 열어 주면 쓸 수 있고, 쓴 것은 그대로 남아 있습니다.
                   </p>
                   {existing ? (
-                    <div
+                    <SecureHtml
                       className="peer-read"
-                      dangerouslySetInnerHTML={{ __html: richHtml(existing.html) }}
+                      html={richHtml(existing.html)}
                     />
                   ) : (
                     <p className="empty-note">이 친구에게는 아직 쓰지 않았어요.</p>
@@ -268,7 +269,7 @@ export function PeerReviewList({ reviews = [], title = "친구들이 남긴 한 
         {reviews.map((r) => (
           <article key={r.id ?? peerReviewId(r.toUid, r.fromUid)} className="peer-card">
             <header>{r.fromName || "친구"}</header>
-            <div dangerouslySetInnerHTML={{ __html: richHtml(r.html) }} />
+            <SecureHtml html={richHtml(r.html)} />
           </article>
         ))}
       </div>
@@ -314,7 +315,7 @@ export function PeerReviewRow({ reviews = [], mates = [], slots: given = null })
             <article key={s.uid || i} className={`peer-card${s.review ? "" : " is-empty"}`}>
               <header>{s.name}</header>
               {s.review ? (
-                <div dangerouslySetInnerHTML={{ __html: richHtml(s.review.html) }} />
+                <SecureHtml html={richHtml(s.review.html)} />
               ) : (
                 <p className="eov-peer-wait">아직 남기지 않았어요</p>
               )}

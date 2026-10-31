@@ -8,6 +8,7 @@
 // · 상단에 진행 위치(n / 총원)와 학생 실명 표시
 // · 하단에 🍊 과일 주기 버튼 — 발표를 보며 바로 '멋진 순간' 부여
 // =============================================================
+import SecureHtml from "./SecureHtml";
 import { useEffect, useState } from "react";
 import {
   subscribeClassRewards,
@@ -171,9 +172,9 @@ export default function StudyPresentModal({ board, cards = [], onClose }) {
                     <section key={i} className="present-activity">
                       <h3 className="present-activity-title">{sec.title || `활동 ${i + 1}`}</h3>
                       {secText.length > 0 ? (
-                        <div
+                        <SecureHtml
                           className="present-slide-content study-card-body"
-                          dangerouslySetInnerHTML={{ __html: secHtml }}
+                          html={secHtml}
                         />
                       ) : (
                         <p className="present-empty">아직 작성한 내용이 없어요.</p>
@@ -186,9 +187,9 @@ export default function StudyPresentModal({ board, cards = [], onClose }) {
               <>
                 {card.title && <h2 className="present-slide-title">{card.title}</h2>}
                 {hasText ? (
-                  <div
+                  <SecureHtml
                     className="present-slide-content study-card-body"
-                    dangerouslySetInnerHTML={{ __html: textHtml }}
+                    html={textHtml}
                   />
                 ) : (
                   <p className="present-empty">아직 작성한 내용이 없어요.</p>

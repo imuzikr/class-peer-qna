@@ -24,6 +24,7 @@
 // 안 쓴 학생을 빼면 '누가 아직 안 썼나'가 이 화면에서 사라집니다. 자리표·
 // 출석부와 같은 기준(학번순)이라 이름으로 짚기도 쉽습니다.
 // =============================================================
+import SecureHtml from "./SecureHtml";
 import { useEffect, useMemo, useState } from "react";
 import { matchActivitySections } from "@/lib/activities";
 import { sanitizeHtml, stripHtml, htmlHasImage } from "@/lib/html";
@@ -154,9 +155,9 @@ export default function LessonAnswerPanel({
           서랍에서 쓴 코드 블록이 여기서만 밋밋한 글로 보입니다. */}
       <div className="lesson-ans-body">
         {cur && (cur.chars > 0 || cur.hasImage) ? (
-          <div
+          <SecureHtml
             className="study-card-content"
-            dangerouslySetInnerHTML={{ __html: sanitizeHtml(cur.html) }}
+            html={sanitizeHtml(cur.html)}
           />
         ) : (
           <p className="lesson-ans-empty">아직 안 썼어요.</p>
