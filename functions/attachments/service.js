@@ -113,7 +113,7 @@ function createAttachmentService(deps) {
       if (!cache.has(path)) {
         let valid;
         try { valid = parentPath(path); } catch { return Promise.resolve(null); }
-        cache.set(path, deps.readParentAsUser(valid, identity.token));
+        cache.set(path, deps.readParentAsUser(valid, identity.token, identity.appCheckToken));
       }
       return cache.get(path);
     };

@@ -24,7 +24,7 @@ function makeFirebaseDependencies({ admin, db, bucket, fetchImpl = fetch, projec
     async hasProfile(uid) { return (await db.doc(`users/${uid}`).get()).exists; },
     async getAsset(id) { const doc = await registry.doc(id).get(); return doc.exists ? doc.data() : null; },
     async createAsset(id, asset) { await registry.doc(id).create(asset); },
-    async readParentAsUser(path, token) {
+    async readParentAsUser(path, token, appCheckToken) {
       // Admin SDK reads bypass Firestore rules. This request deliberately uses
       // the caller's Firebase ID token so the same deployed rules used by the
       // app authorize the parent, including group/private/archived exceptions.
@@ -32,7 +32,8 @@ function makeFirebaseDependencies({ admin, db, bucket, fetchImpl = fetch, projec
       let response;
       try {
         response = await fetchImpl(`${base}/projects/${encodeURIComponent(project)}/databases/(default)/documents/${encodedPath}`, {
-          headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(10000),
+          headers: { Authorization: `Bearer ${token}`,
+            ...(appCheckToken ? { "X-Firebase-AppCheck": appCheckToken } : {}) }, signal: AbortSignal.timeout(10000),
         });
       } catch {
         throw problem(503, "permission-unavailable", "첨부파일 권한을 확인하지 못했습니다. 잠시 뒤 다시 해 주세요.");
@@ -103,12 +104,13 @@ function createHttpHandler({ service, verifyIdToken, verifyAppCheck, fileStream,
       let decoded;
       try { decoded = await verifyIdToken(match[1]); }
       catch { throw problem(401, "unauthenticated", "로그인 상태를 다시 확인해 주세요."); }
+      const appCheckToken = req.get?.("X-Firebase-AppCheck") || req.headers["x-firebase-appcheck"];
       if (requireAppCheck) {
-        const token = req.get?.("X-Firebase-AppCheck") || req.headers["x-firebase-appcheck"];
+        const token = appCheckToken;
         try { if (!token || !verifyAppCheck) throw new Error(); await verifyAppCheck(token); }
         catch { throw problem(401, "app-check-required", "앱 인증을 확인하지 못했습니다."); }
       }
-      const identity = { uid: decoded.uid || decoded.sub, token: match[1] };
+      const identity = { uid: decoded.uid || decoded.sub, token: match[1], appCheckToken };
       const path = (req.path || new URL(req.url, "https://attachment.invalid").pathname).replace(/\/+$/, "") || "/";
       if (req.method === "POST" && path === "/upload") {
         const bytes = req.rawBody;

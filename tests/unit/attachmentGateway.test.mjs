@@ -23,8 +23,8 @@ function fixture() {
     newId: () => ID,
     getAsset: async (id) => assets.get(id),
     createAsset: async (id, data) => assets.set(id, data),
-    readParentAsUser: async (path, token) => {
-      requests.push({ path, token });
+    readParentAsUser: async (path, token, appCheckToken) => {
+      requests.push({ path, token, ...(appCheckToken ? { appCheckToken } : {}) });
       return readable.get(path)?.has(token) ? documents.get(path) : null;
     },
     readParentForCleanup: async (path) => documents.get(path),
@@ -196,8 +196,11 @@ test("Firestore authorization uses the caller bearer token and handles outages w
     request = { url, options };
     return { ok: true, status: 200, json: async () => ({ fields: { image: { stringValue: REF } } }) };
   } });
-  assert(collectRefs(await deps.readParentAsUser("questions/q1", "caller-token")).has(REF));
+  assert(collectRefs(await deps.readParentAsUser("questions/q1", "caller-token", "caller-app-check")).has(REF));
   assert.equal(request.options.headers.Authorization, "Bearer caller-token");
+  assert.equal(request.options.headers["X-Firebase-AppCheck"], "caller-app-check");
+  await deps.readParentAsUser("questions/q1", "caller-token");
+  assert.equal(request.options.headers["X-Firebase-AppCheck"], undefined);
   assert(request.url.includes("/projects/project/databases/(default)/documents/questions/q1"));
   const failed = makeFirebaseDependencies({ admin: {}, db, bucket: {}, projectId: "project", fetchImpl: async () => ({ status: 503, ok: false }) });
   await denied(failed.readParentAsUser("questions/q1", "token"), 503);
@@ -212,6 +215,19 @@ class Response extends Writable {
   json(value) { this.jsonBody = value; this.end(JSON.stringify(value)); return this; }
 }
 const request = (method, path, headers = {}, extra = {}) => ({ method, path, headers, get(key) { return this.headers[key.toLowerCase()]; }, ...extra });
+
+test("HTTP bind forwards the caller App Check token through parent authorization", async () => {
+  const f = fixture();
+  await upload(f);
+  f.publish("questions/saved", [alice]);
+  const handler = createHttpHandler({ service: f.service, verifyIdToken: async () => ({ uid: alice.uid }) });
+  const response = new Response();
+  await handler(request("POST", "/bind", { authorization: `Bearer ${alice.token}`, "x-firebase-appcheck": "caller-app-check" }, {
+    body: { parentPath: "questions/saved", refs: [REF] },
+  }), response);
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(f.requests[0], { path: "questions/saved", token: alice.token, appCheckToken: "caller-app-check" });
+});
 
 test("HTTP gateway streams authorized byte ranges and never redirects to a public URL", async () => {
   const f = fixture();
