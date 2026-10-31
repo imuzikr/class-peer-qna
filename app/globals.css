@@ -23090,6 +23090,7 @@ span.cloud-word { cursor: default; }
   word-break: break-word;
   box-shadow: 0 1px 3px rgba(61, 61, 58, 0.12);
   user-select: none;
+  cursor: default;
 }
 .mm-node.root {
   max-width: 200px;
@@ -23099,11 +23100,12 @@ span.cloud-word { cursor: default; }
   font-weight: 800;
 }
 .mm-node.sel { box-shadow: 0 0 0 3px var(--primary-light), 0 1px 3px rgba(61, 61, 58, 0.12); }
+.mm-node-text { white-space: pre-wrap; }
 .mm-node-empty { font-style: normal; font-weight: 600; opacity: 0.55; }
 /* 노드 이미지 — 어느 층이든 **같은 크기**(lib/mindmap.js의 MINDMAP_IMAGE_W·_H와
    같은 값). 가득 채워 자르므로(cover) 사진 비율이 제각각이어도 판 위의 틀은
-   하나입니다. 계층형 배치가 이 높이(90 + 글자와의 틈 6)로 행을 띄우므로
-   여기를 고치면 lib/mindmap.js의 IMAGE_EXTRA_H도 함께 고치세요.
+   하나입니다. 배치는 MindmapCanvas가 잰 노드 전체 크기를 사용합니다.
+   실측 전 크기 추정도 맞도록 위 상수와 글자 사이의 틈을 함께 유지하세요.
    pointer-events를 끄는 것은 그림 위에서도 노드의 더블클릭·우클릭·끌기가
    그대로 먹게 하려는 것입니다(그림이 이벤트를 가로채면 끌 때 그림만 끌려
    나옵니다). */
@@ -23151,43 +23153,24 @@ span.cloud-word { cursor: default; }
 .mm-node-imgbtn:disabled { opacity: 0.55; cursor: progress; }
 .mm-node.has-img .mm-node-text,
 .mm-node.has-img .mm-node-input { display: block; margin-top: 6px; }
-/* 방사형 편집판에서만 노드를 끌 수 있습니다(계층형은 자리가 자동) */
-.mm-viewport.draggable .mm-node { cursor: grab; }
-.mm-viewport.draggable .mm-node:active { cursor: grabbing; }
-.mm-node.reorderable { cursor: grab; }
-.mm-node.reorderable:active,
-.mm-node.reorderable.dragging { cursor: grabbing; }
+/* 두 형태 모두 가운데 주제 이외의 가지를 위아래로 끌 수 있습니다. */
+.mm-node.draggable { cursor: grab; }
+.mm-node.draggable:active,
+.mm-node.draggable.dragging { cursor: grabbing; }
 .mm-node.dragging {
   opacity: 0.78;
   filter: saturate(0.95);
-  transform: translate(-50%, -50%) scale(1.03);
   box-shadow: 0 8px 18px rgba(61, 61, 58, 0.18);
 }
 .mm-node.drag-child {
   opacity: 0.56;
   filter: blur(0.25px) saturate(0.92);
   pointer-events: none;
-  transition: top 0.12s ease, opacity 0.14s ease, filter 0.14s ease;
-}
-.mm-drop-guide {
-  position: absolute;
-  left: 116px;
-  top: 0;
-  width: 340px;
-  height: 0;
-  border-top: 2px dashed rgba(217, 119, 87, 0.58);
-  box-shadow: 0 0 14px rgba(217, 119, 87, 0.22);
-  pointer-events: none;
-  transform: translateY(-50%);
-  animation: mm-drop-guide-pulse 0.9s ease-in-out infinite alternate;
+  transition: opacity 0.14s ease, filter 0.14s ease;
 }
 @keyframes mm-edge-drift {
   from { stroke-dashoffset: 0; }
   to { stroke-dashoffset: -17; }
-}
-@keyframes mm-drop-guide-pulse {
-  from { opacity: 0.38; }
-  to { opacity: 0.82; }
 }
 /* 우클릭으로 편집 중인 노드 — 안의 입력칸이 노드 크기를 그대로 씁니다 */
 .mm-node.editing { cursor: text; }

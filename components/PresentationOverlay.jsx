@@ -175,11 +175,11 @@ export default function PresentationOverlay({ broadcast, noteOpen = false, noteW
   // 학생 쪽은 보기 전용이라 편집 막대 없이 그림과 확대/축소만 나옵니다.
   if (broadcast.mode === "mindmap") {
     const map = normalizeMindmap(
-      { layout: broadcast.layout, nodes: broadcast.nodes },
+      { layout: broadcast.layout, nodes: broadcast.nodes, verticalGap: broadcast.verticalGap },
       broadcast.topic
     );
     const mapSignature = map.nodes
-      .map((n) => `${n.id}:${n.parentId ?? ""}:${n.text}:${n.edgeLabel ?? ""}:${n.x ?? ""}:${n.y ?? ""}:${n.image ? n.image.length : 0}`)
+      .map((n) => `${n.id}:${n.parentId ?? ""}:${n.text}:${n.edgeLabel ?? ""}:${n.x ?? ""}:${n.y ?? ""}:${n.radialOffsetY ?? 0}:${n.treeOffsetY ?? 0}:${n.image ? n.image.length : 0}`)
       .join("|");
     const hasVisibleNode = map.nodes.some((n) => n.text?.trim() || n.image);
     return (
@@ -201,7 +201,7 @@ export default function PresentationOverlay({ broadcast, noteOpen = false, noteW
           {hasVisibleNode ? (
             <MindmapCanvas
               map={map}
-              fitKey={`${broadcast.writerName ?? ""}-${map.layout}-${mapSignature}`}
+              fitKey={`${broadcast.writerName ?? ""}-${map.layout}-${map.verticalGap}-${mapSignature}`}
               className="broadcast-mindmap-stage"
             />
           ) : (

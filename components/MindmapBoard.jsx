@@ -28,6 +28,7 @@ import {
   maxDepth,
   mindmapStarted,
   normalizeMindmap,
+  normalizeVerticalGap,
 } from "@/lib/mindmap";
 import { safeBookUrl } from "@/lib/paratext";
 import MindmapCanvas from "./MindmapCanvas";
@@ -333,6 +334,7 @@ function buildPayload(activity, card) {
         ? "아직 작성된 가지가 없습니다."
         : `주제: ${activity.topic ?? ""}\n가지 ${branchTotal}개 · ${depth}단계`,
     layout: card.map.layout,
+    verticalGap: normalizeVerticalGap(card.map.verticalGap),
     nodes: card.map.nodes.map((n) => ({
       id: n.id,
       parentId: n.parentId,
@@ -343,6 +345,8 @@ function buildPayload(activity, card) {
       // Firestore는 undefined를 저장하지 못해 빈 자리는 null로 맞춥니다
       x: Number.isFinite(n.x) ? n.x : null,
       y: Number.isFinite(n.y) ? n.y : null,
+      radialOffsetY: Number.isFinite(n.radialOffsetY) ? n.radialOffsetY : 0,
+      treeOffsetY: Number.isFinite(n.treeOffsetY) ? n.treeOffsetY : 0,
     })),
   };
 }
