@@ -59,7 +59,7 @@ export default function ClassNotesManagerModal({
   const [myClasses, setMyClasses] = useState([]);
   // 다른 반을 고른 동안의 명단. **`null`은 '아직 안 왔다'**, `[]`는 '없다'
   // 입니다 — 갈라 두지 않으면 반을 바꿀 때마다 '입장한 학생이 없어요'가
-  // 한 번 스칩니다(CLAUDE.md '첫 화면' 절의 그 함정).
+  // 한 번 스칩니다(docs/overview.md '첫 화면' 절의 그 함정).
   const [otherRoster, setOtherRoster] = useState(null);
 
   // 화면에서 반을 바꾸면 창도 따라갑니다 — 안 그러면 머리말은 새 반인데

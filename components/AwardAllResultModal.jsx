@@ -20,7 +20,7 @@
 //
 // [낱개 주기와 같은 길] 다시 주기도 `onRetry` → `onAward(uid, 개수, +1)`,
 // 곧 델타입니다. 절대값으로 보내면 구독으로 돌아오기 전의 옛 값을 쓰게 됩니다
-// (CLAUDE.md의 '＋1·−1 단추는 반드시 addStudentReward(델타)로').
+// (docs/classroom.md의 '＋1·−1 단추는 반드시 addStudentReward(델타)로').
 // =============================================================
 import { useState } from "react";
 import { backdropClose } from "@/lib/modal";

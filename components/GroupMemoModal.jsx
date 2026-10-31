@@ -88,7 +88,7 @@ export default function GroupMemoModal({
   }, [assignment, myUid]);
 
   // 모둠에 저장된 members는 배정하던 때의 스냅샷이라 반에서 빠진 학생이
-  // 남아 있을 수 있습니다(CLAUDE.md '모둠 현황' 참고). 명단이 도착했을
+  // 남아 있을 수 있습니다(docs/classroom.md '모둠 현황' 참고). 명단이 도착했을
   // 때만 걸러 냅니다 — 받는 중(빈 배열)에 거르면 모둠원이 통째로 사라집니다.
   const mates = useMemo(() => {
     const all = (myGroup?.members ?? []).filter((m) => m.uid && m.uid !== myUid);

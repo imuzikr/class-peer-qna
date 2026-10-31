@@ -91,4 +91,4 @@ lib/store.js         데이터 레이어 (Firestore ↔ 데모 모드 자동 전
 functions/index.js   Cloud Functions (서버 코드)
 ```
 
-자세한 아키텍처·규칙 세부는 `CLAUDE.md`를 참고하세요.
+핵심 규칙은 `CLAUDE.md`, 기능별 세부는 `docs/README.md`의 문서 지도를 참고하세요.

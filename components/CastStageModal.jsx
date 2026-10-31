@@ -111,7 +111,7 @@ export default function CastStageModal({
     setAwarding(true);
     try {
       // **델타로 줍니다**(절대값 아님) — 빨리 두 번 누를 때 두 번째가
-      // 묻히지 않게. 자세한 것은 CLAUDE.md의 '과일 지급 이력' 절.
+      // 묻히지 않게. 자세한 것은 docs/classroom.md의 '과일 지급 이력' 절.
       await addStudentReward(classId, student.uid, +1, {
         name: student.name,
         emoji: student.emoji,

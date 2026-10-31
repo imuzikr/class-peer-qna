@@ -328,7 +328,7 @@ export default function LessonMemoPanel({ classId, className = "", user, active 
   // 고른 반의 지난 메모. 지금 이 반이면 **이미 구독 중인 것을 그대로** 씁니다
   // — 같은 컬렉션에 리스너를 둘 걸 이유가 없습니다.
   //
-  // null은 '없다'가 아니라 '아직 안 왔다'입니다(CLAUDE.md의 그 함정) — 빈
+  // null은 '없다'가 아니라 '아직 안 왔다'입니다(docs/overview.md '첫 화면' 절의 그 함정) — 빈
   // 배열로 두면 반을 바꾼 순간 '메모가 없어요'가 한 번 스칩니다.
   const [pickedMemos, setPickedMemos] = useState(null);
   const classPanelOn = historyView === "class";
@@ -602,7 +602,7 @@ export default function LessonMemoPanel({ classId, className = "", user, active 
 //
 // **memos === null은 '없다'가 아니라 '아직 안 왔다'입니다.** 빈 배열과 갈라
 // 두지 않으면 반을 바꿀 때마다 '아직 적어 둔 메모가 없어요'가 한 번 스칩니다
-// (CLAUDE.md '아직 모름과 없음을 가릅니다'와 같은 함정).
+// (docs/overview.md '첫 화면' 절과 같은 함정).
 function MemoClassPanel({ classId, name, memos, readOnly, onClose }) {
   const [editing, setEditing] = useState(null); // { id, text, date, topic, pageFrom, pageTo }
   const [confirmDelete, setConfirmDelete] = useState(null); // memoId
