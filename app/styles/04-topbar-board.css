@@ -1,0 +1,529 @@
+/* 게시판 3단 레이아웃 · 상단바 · 전광판(상단바) · 익명 프로필 — 원래 app/globals.css 607~1134줄. 차례는 globals.css의 @import 순서가 정합니다. */
+/* ===================== 게시판 3단 레이아웃 ===================== */
+.board-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/* ── 상단바 — 넓은 화면에서 **한 줄**입니다 ─────────────────────
+   로고 '배움나눔' · 이동 메뉴 …… 전광판 …… 돌발 퀴즈/확성기/과일/알림 · 프로필
+
+   **1180px 아래에서는 이동 메뉴만 2행으로** 내려갑니다(아래 1179px 규칙 —
+   order와 `.topbar-gap`). 768px 이하는 따로(모바일 블록).
+
+   한동안 모든 폭에서 두 줄(1행 로고·문구·전광판·아이콘 / 2행 메뉴)이었는데,
+   문구('작은 변화로 시작하는 성장의 기록')를 각 화면 제목 곁으로 옮기면서
+   메뉴가 로고 옆으로 올라왔습니다(선생님 요청). 한 줄이던 옛 시절에 전광판이
+   모자랐던 까닭은 문구 285px이 함께 서 있어서였고, 그것이 빠지면 1180px에서도
+   전광판에 250px 남짓(학생 · 메뉴 다섯) 남습니다.
+
+   **1180px은 한 줄이 서는 바닥입니다.** 로고 129 + 메뉴 505(학생, 교사는
+   넷이라 더 좁음) + 아이콘 215 + 여백에, 전광판 바닥(140px)을 넉넉히 넘겨야
+   이름이 두어 자로 접히지 않습니다. 그 아래에서 한 줄을 고집하면 메뉴가
+   옆으로 구르거나 전광판이 부스러기가 됩니다. */
+.topbar {
+  min-height: 56px;
+  background: #fff;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  /* 줄 사이는 좁게 — 두 줄이 한 묶음으로 읽혀야 합니다 */
+  row-gap: 2px;
+  padding: 5px 20px;
+  flex-shrink: 0;
+}
+
+.topbar .logo {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: 19px;
+  color: var(--dark);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 상단바 왼쪽: 로고 + 접속 사용자 프로필 */
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  order: 1;
+  /* 로고는 어느 폭에서도 줄어들지 않습니다 — 0으로 못 박아 둡니다 — 예전에 줄이 꽉 찼을 때 브라우저가
+     '배움나눔'을 '움/나'로 쪼개 세로로 세웠습니다(실제 신고). 양보하는
+     것은 늘 전광판이어야 합니다(아래 `flex-shrink: 100`). */
+  flex-shrink: 0;
+}
+
+/* ── 첫 줄 오른쪽 끝 — 돌발 퀴즈 · 확성기 · 과일 · 알림 · 프로필 ──
+   늘 눈에 띄어야 하는 것들이라 로고와 **같은 줄**입니다. 한때 2행으로
+   내렸는데, 그러면 1행 오른쪽이 통째로 비고
+   아이콘은 메뉴 줄에 얹혀 눈에 덜 들어왔습니다.
+   `margin-left: auto`는 **전광판이 없을 때를 위한 것**입니다 — 있을 때는
+   그 칸이 남는 가로를 다 받아 자동 여백에 돌아갈 것이 없습니다. */
+.user-area {
+  order: 4;
+  margin-left: auto;
+}
+/* 줄바꿈 — 폭 100%·높이 0짜리 빈 줄. **1180px 아래에서만** 섭니다(아래
+   규칙) — 그때 1행(로고·전광판·아이콘)과 2행(이동 메뉴)을 가릅니다.
+   **`flex: 0 0 100%`여야 합니다.** 폭이 100%면 어느 줄에도 함께 설 수
+   없어 제 줄을 차지하는데, 높이가 0이라 눈에는 두 줄로 보입니다. */
+.topbar-gap {
+  display: none;
+  order: 5;
+  flex: 0 0 100%;
+  width: 100%;
+  height: 0;
+  min-width: 0;
+}
+/* ── 이동 메뉴 — 로고 바로 오른쪽(order 2) ─────────────────────
+   넓은 화면에서는 **제 글자만큼**입니다(`flex: 0 0 auto`) — 남는 가로는
+   전광판 칸이 받습니다. 여기서 늘어나면 로고 옆에 빈 띠가 생기고
+   전광판이 오른쪽으로 밀립니다.
+   **단추 글자는 지킵니다** — 좁아지면 단추를 줄이는 대신 이 줄이 옆으로
+   구릅니다(`overflow-x` + 단추의 `flex-shrink: 0`). 줄이면 '질문방'이
+   '질문/방'으로 쪼개집니다(실제 신고). */
+.topnav-menu {
+  order: 2;
+  flex: 0 0 auto;
+  min-width: 0;
+  overflow-x: auto;
+}
+/* 줄이 좁아도 단추는 제 크기 그대로 — 위 규칙의 가로 스크롤이 받습니다 */
+.topnav-menu > .btn-ghost { flex-shrink: 0; }
+
+/* 1180px 아래 — 이동 메뉴만 2행으로. 로고 옆 세로선도 함께 접습니다(메뉴와
+   로고를 가르려고 있는 선이라, 메뉴가 내려가면 로고 뒤에 짧은 막대 하나가
+   홀로 남습니다). 2행의 메뉴는 **기준 폭 0**이라야 합니다(`flex: 1 1 0`) —
+   제 내용 폭(505px)을 기준으로 두면 좁은 화면에서 줄이 하나 더 접힙니다
+   (줄을 나누는 셈은 줄인 뒤가 아니라 기준 폭으로 하기 때문입니다).
+   이 폭에서는 탭 차례(메뉴가 로고 다음)와 보이는 차례(메뉴가 2행)가
+   다릅니다 — 넓은 화면을 기준으로 DOM 차례를 정했습니다. */
+@media (max-width: 1179px) {
+  .topbar-divider { display: none; }
+  .topbar-gap { display: block; }
+  .topnav-menu {
+    order: 6;
+    flex: 1 1 0;
+  }
+}
+
+/* ── 전광판 ────────────────────────────────────────────────
+   **셋째 자리**입니다(로고 1 · 이동 메뉴 2 · 전광판 3 · 아이콘 4).
+   **글자만큼만 차지합니다**(`flex-basis: auto`) — `flex: 1`로 남는 가로를
+   다 받게 했더니 글이 짧을 때 900px짜리 빈 띠가 생겨 알약이 아니라 넓은
+   판으로 보였습니다(실측).
+
+   [**왼쪽 묶음과 오른쪽 묶음 사이, 그 한가운데**]
+   첫 줄은 `로고·이동 메뉴 … 전광판 … 아이콘`입니다(1180px 아래는 `로고 …
+   전광판 … 아이콘`). 이 칸이 그 사이 남는 가로를
+   통째로 받고 알약은 그 안에서 가운데에 서므로, **알약 좌우 여백이
+   같습니다**. 한때 오른쪽 끝에 붙여 봤다가 그 앞이 1,100px 비어 알약이
+   구석으로 밀려난 것처럼 읽혔고(실제 신고), 아이콘을 2행으로 내렸을 때는
+   1행 오른쪽이 통째로 비어 가운데가 오른쪽으로 치우쳤습니다.
+   한 줄이던 시절의 '남는 가로는 뒤에' 규칙은 여기서 안 통합니다 — 그때는
+   알약이 제 글자 폭으로 직접 서서 남는 가로를 어느 쪽에 두느냐가 곧 글자
+   자리였지만, 지금은 이 칸이 그것을 받고 알약은 제 글자만큼 자랍니다.
+
+   [줄이 꽉 차면 이 칸이 **먼저** 줄어듭니다 — 그래서 shrink가 100]
+   줄에 빈자리가 없으면 모자란 만큼을 나눠 줄여야 하는데, shrink를 크게 두면
+   이 칸이 거의 다 떠안아(글이 말줄임으로 접힐 뿐) 옆의 로고·메뉴가 안 눌립니다.
+
+   `min-width`는 그 **바닥**입니다. `0`으로 두면 좁은 화면에서 28px짜리
+   부스러기가 됩니다(실측). 여기를 `auto`로 되돌리지 마세요 — flex 항목이
+   내용보다 좁아지기를 거부해 긴 글이 줄을 넘칩니다.
+
+   **`max-width`는 560px 그대로**입니다. 넓은 화면에서는 남는 가로가 커서 이 값을
+   풀면 긴 글이 상단바를 가로지르는 띠가 됩니다. 걸리는 글은 이름 한 줄이라
+   560px이면 넉넉합니다(가장 긴 '이달의 주니어 개발자 10101 홍길동'이
+   324px — 실측). */
+/* 전광판이 앉는 칸 — 남는 가로를 받는 것은 **이 칸**이고 알약은 그 안에서
+   글자만큼만 자랍니다. 왜 한 겹이 필요한지는 TopNav.jsx의 주석 참고
+   (알약의 기준 폭이 그대로 줄바꿈을 불러 769px에서 네 줄이 됐습니다). */
+.topbar-mq-slot {
+  order: 3;
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  /* 가운데 — 이 칸이 메뉴(또는 로고)와 아이콘 줄 **사이**의 남는 가로를 통째로 받으므로,
+     알약 좌우 여백이 같아집니다. `flex-end`로 되돌리면 알약이 아이콘 줄에
+     달라붙습니다. */
+  justify-content: center;
+}
+.app-marquee {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 100 auto;
+  min-width: 140px;
+  max-width: 560px;
+  /* 글자를 15px로 키우면서 알약도 함께 — 32px에 두면 글자가 위아래로 낍니다 */
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  /* 연한 회색 바탕에 검은 글자 — 살구색 바탕에 주황 글자였는데, 상단바에서
+     가장 먼저 읽혀야 하는 줄이 색으로 튀기만 하고 정작 글자는 덜 또렷했습니다.
+     바탕을 죽이고 글자를 살립니다. */
+  background: var(--neutral);
+}
+/* **폭 때문에 알약을 감추는 규칙은 768px 이하 하나뿐입니다.** 1180px
+   아래에서는 메뉴가 2행으로 내려가 첫 줄이 로고·전광판·아이콘뿐이라
+   769px에서도 알약에 자리가 남습니다. 768px 이하는 첫 줄이 로고+아이콘이라
+   결이 다릅니다(아래 모바일 블록). */
+.app-marquee-text {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  /* 상단바에서 눈에 들어와야 하는 한 줄이라 본문(13px)보다 큽니다. 로고
+     (세리프 19px)보다는 작게 둬 둘이 경쟁하지 않게 합니다.
+     이모지·아이콘은 안 답니다 — 읽을 것은 이름 하나뿐이라 그림이 앞에 붙으면
+     눈이 먼저 그것을 짚습니다(컴포넌트 주석 참고). */
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--dark);
+  /* 글이 바뀔 때 조용히 갈립니다 — key가 바뀌며 다시 그려지므로 이 애니
+     메이션이 처음부터 돕니다. 흐르는 글씨로 하지 않은 까닭은 컴포넌트
+     주석 참고(수업 중 화면 위에서 계속 움직이면 눈길을 뺏습니다). */
+  animation: marquee-in 0.45s ease;
+}
+.app-marquee-text--empty {
+  font-weight: 600;
+  color: var(--text-faint);
+}
+@keyframes marquee-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+/* 움직임을 줄여 달라고 한 기기에서는 전환 없이 글자만 갈립니다 */
+@media (prefers-reduced-motion: reduce) {
+  .app-marquee-text { animation: none; }
+}
+/* 몇 번째 글인가 — 여러 개일 때만 섭니다 */
+.app-marquee-dots {
+  display: flex;
+  gap: 3px;
+  flex-shrink: 0;
+}
+.app-marquee-dots i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--dark);
+  opacity: 0.25;
+}
+.app-marquee-dots i.on { opacity: 1; }
+.app-marquee-edit {
+  flex-shrink: 0;
+  border: none;
+  background: none;
+  padding: 2px 4px;
+  font-size: 13px;
+  color: var(--text-sub);
+  cursor: pointer;
+}
+.app-marquee-edit:hover { color: var(--dark); }
+
+/* 전광판 편집 창 */
+.modal.modal-marquee { max-width: 520px; }
+.mq-hint {
+  margin: 0 0 12px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--text-sub);
+}
+.mq-add {
+  display: flex;
+  gap: 6px;
+}
+.mq-add input {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13.5px;
+}
+.mq-add .btn-ghost { flex-shrink: 0; }
+.mq-count {
+  display: block;
+  margin: 5px 0 12px;
+  font-size: 11.5px;
+  color: var(--text-faint);
+}
+.mq-list {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+.mq-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 11px;
+  border-radius: 8px;
+  background: var(--neutral);
+}
+.mq-item-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  word-break: break-word;
+}
+
+.topbar-divider {
+  width: 1px;
+  height: 22px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+/* 익명 프로필 — 동그라미 아바타 + 닉네임 */
+.profile {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+/* 프로필 메뉴 (클릭 드롭다운) */
+.profile-wrap {
+  position: relative;
+  min-width: 0;
+}
+.profile-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 10px;
+  transition: background 0.15s;
+}
+.profile-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+.profile-caret {
+  font-size: 10px;
+  color: var(--text-sub);
+}
+.avatar {
+  position: relative;
+}
+.profile-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--danger, #d64545);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+}
+.profile-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 300;
+  min-width: 170px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(46, 36, 26, 0.14);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.profile-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+}
+.profile-menu-item:hover {
+  background: var(--primary-light);
+}
+/* 로그아웃 — 메뉴의 마지막에 선으로 갈라 둡니다. 위 둘은 '여는 것'이고
+   이것은 '나가는 것'이라, 나란히 두면 잘못 눌러 로그아웃됩니다.
+   상단바에 나와 있던 것을 여기로 옮겼습니다(전광판 자리를 비우려고 —
+   components/UserProfile.jsx 주석 참고). */
+/* '선생님 대시보드' — 이 메뉴에서 유일하게 **화면을 옮기는** 항목이라,
+   아래의 '여는 것'들과 선으로 갈라 둡니다(로그아웃을 가른 것과 같은 까닭,
+   방향만 반대라 선이 아래에 붙습니다). */
+.profile-menu-item--go {
+  margin-bottom: 4px;
+  padding-bottom: 11px;
+  border-bottom: 1px solid var(--border);
+  border-radius: 8px 8px 0 0;
+}
+.profile-menu-item--out {
+  margin-top: 4px;
+  padding-top: 11px;
+  border-top: 1px solid var(--border);
+  border-radius: 0 0 8px 8px;
+  color: var(--text-sub);
+}
+.profile-modal-hint {
+  font-size: 12.5px;
+  color: var(--text-sub);
+  line-height: 1.6;
+  margin: 10px 2px 0;
+}
+
+/* 상단바 알림 벨 */
+.notif-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+.notif-wrap .notif-btn {
+  position: relative;
+  font-size: 18px;
+  line-height: 1;
+  /* 5px → 28px 상자. 메모지·확성기와 같은 값입니다(아래 .notice-btn 참고) */
+  padding: 5px;
+  background: none;
+  border: none;
+}
+.notif-wrap .notif-btn:hover {
+  background: var(--neutral);
+}
+.notif-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--danger, #d64545);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+}
+/* 반 공지(교사) — 상단바 확성기 버튼과 그 팝오버.
+   버튼 모양은 옆의 알림 종(.notif-btn)과 같게 맞춥니다 — 나란히 선 아이콘
+   둘이 크기·여백이 다르면 줄이 흐트러져 보입니다. */
+.notice-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+.notice-wrap .notice-btn {
+  position: relative;
+  font-size: 18px;
+  line-height: 1;
+  /* 종·메모지와 같은 5px — 세 아이콘의 상자를 8px에서 줄여 사이를 좁혔습니다.
+     여백은 곧 아이콘 사이 거리라, 여기만 남겨 두면 한 개만 떨어져 보입니다. */
+  padding: 5px;
+  background: none;
+  border: none;
+}
+.notice-wrap .notice-btn:hover {
+  background: var(--neutral);
+}
+.notice-pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 300;
+  width: 320px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(46, 36, 26, 0.14);
+  padding: 12px;
+}
+.notice-pop-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.notice-pop-head strong {
+  font-size: 13.5px;
+  color: var(--text);
+}
+/* 어느 반에 몇 명에게 가는지 — 잘못된 반에 보내는 실수를 막는 자리라
+   흐리게 두지 않고 읽히는 색으로 둡니다. */
+.notice-pop-target {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--primary-dark);
+  white-space: nowrap;
+}
+.notice-pop-field {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  font-family: inherit;
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+.notice-pop-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 8px;
+}
+.notice-pop-left {
+  font-size: 11.5px;
+  color: var(--text-sub);
+}
+.notice-pop-left.warn {
+  color: var(--danger, #d64545);
+  font-weight: 700;
+}
+.notice-pop-send {
+  padding: 7px 16px;
+  font-size: 13px;
+}
+.notice-pop-result {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.notice-pop-result.ok {
+  color: var(--primary-dark);
+}
+.notice-pop-result.bad {
+  color: var(--danger, #d64545);
+}
+.notice-pop-hint {
+  margin: 8px 0 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--text-sub);
+}
+

@@ -1,0 +1,115 @@
+/* 수업 노트 학습 자료 · 자리표 머리말 단추 — 원래 app/globals.css 27907~28020줄. 차례는 globals.css의 @import 순서가 정합니다. */
+/* ===== 수업 노트에 걸린 그날 학습 자료 ===== */
+.cornell-handouts {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  background: var(--bg-deep);
+}
+.cornell-handouts-tag {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-sub);
+}
+.cornell-handout {
+  max-width: 100%;
+  border-radius: 999px;
+  padding: 3px 10px;
+  background: #fff;
+  border: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary-dark);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cornell-handout:hover { border-color: var(--primary); }
+/* 노트 한 장 안에서는 요약 아래 한 줄로 */
+.cornell-sheet-handouts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  background: #fdfcfa;
+}
+.cornell-sheet-handout-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* 모둠 줄 오른쪽 끝의 단추 묶음 — '동료 평가' */
+.peer-row-actions { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; }
+.peer-row-actions .peer-open-btn { margin-left: 0; }
+/* 잠긴 동안의 '동료 평가' — 자리는 남기되 지금은 쓰는 자리가 아님을 색으로 */
+.peer-open-btn.is-locked { color: var(--text-sub); }
+.peer-open-btn.is-locked em { background: var(--neutral); color: var(--text-sub); }
+
+/* 자리표 머리말의 단추 묶음 — 보기 방향 · 확대
+   손바닥 뱃지와 나란히 오른쪽 끝에 섭니다(margin-left: auto). 셋이 같은
+   알약 모양·같은 바탕이라 한 줄로 읽힙니다 — 하나만 테두리가 있으면 그것만
+   '누르는 것'처럼 보여 나머지가 눌리는 줄 모릅니다. */
+/* **모자라면 오른쪽에 붙인 채 접습니다**(`flex-wrap` + `justify-content: flex-end`).
+   '🍊 다 함께'가 들어오며 넷이 됐는데 패널 안쪽은 312px로 못 박혀 있고, 그
+   넷이 한 줄에 서느냐는 **기기의 한글 폰트에 달렸습니다** — 이 앱은
+   Pretendard를 먼저 부르지만 없는 기기(학교 크롬북 등)는 Malgun Gothic·시스템
+   폰트로 떨어지고, 그중 넓은 것에서는 못 섭니다. 접어 두면 그럴 때 **패널
+   밖으로 삐져나가는 대신** 둘째 줄로 내려갑니다.
+   **'멋진 순간' 패널의 이 줄에는 단추 셋만 둡니다** — 다 함께 · 보기 방향 ·
+   확대. '출석 n/N'과 손바닥 뱃지(🖐️)는 패널 설명 줄(`.reward-sub`) 끝으로
+   옮겼습니다(`SeatPickGrid`의 `showHands={false}`). 넷·다섯이 함께 서면
+   '선생님 보기'처럼 긴 글자에서 넘쳐 두 줄로 접혔습니다(실제 신고, 두 번).
+   셋이면 대체 폰트(WenQuanYi)의 '선생님 보기'에서도 한 줄이고 61px이
+   남습니다(실측). */
+.reward-seat-head-btns {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+/* 묶음 안에서는 밀어낼 자리가 없습니다 — 바깥 auto와 겹치지 않게 지웁니다 */
+.reward-seat-head-btns .reward-seat-zoom { margin-left: 0; }
+.reward-seat-flip {
+  flex-shrink: 0;
+  padding: 5px 12px;
+  border: none;
+  border-radius: 999px;
+  background: #f1eee8;
+  color: var(--text-sub);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.reward-seat-flip:hover { background: var(--primary-light); color: var(--primary-dark); }
+/* '🍊 멋진 순간' — 출석한 학생 모두에게 과일 하나씩.
+   모양·크기는 옆의 두 알약과 같게 두되 **혼자 색이 있습니다.** 위 주석의
+   '하나만 달라 보이면 나머지가 눌리는 줄 모른다'는 셋이 같은 종류일 때의
+   이야기입니다 — 이것은 보는 방법을 바꾸는 것이 아니라 스물몇 명의 기록을
+   건드리는 단추라, 눈에 띄는 편이 맞습니다.
+   `.reward-seat-flip` 규칙을 함께 받아 크기가 저절로 맞습니다(따로 적으면
+   글자 크기·여백이 어긋나 줄이 들쭉날쭉해집니다). */
+.reward-seat-all {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+}
+.reward-seat-all:hover:not(:disabled) { background: var(--primary); color: #fff; }
+/* 못 누르는 때(출석 확인 전·받는 중·출석 0명)와 보내는 중. 까닭은 툴팁에
+   적혀 있습니다 — 눌러 보고서야 알게 하지 않으려고요. */
+.reward-seat-all:disabled {
+  background: #f1eee8;
+  color: var(--text-faint);
+  cursor: not-allowed;
+}
+

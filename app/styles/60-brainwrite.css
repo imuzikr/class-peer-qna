@@ -1,0 +1,363 @@
+/* 브레인 라이팅 — 원래 app/globals.css 33662~34023줄. 차례는 globals.css의 @import 순서가 정합니다. */
+/* =============================================================
+   브레인 라이팅 (BrainWriteForm · BrainWriteBoard)
+   모둠원마다 세로 칸(컬럼) 하나 — 맨 위 주인의 첫 줄, 그 아래로 이어 쓴 줄.
+   ============================================================= */
+.bw-prompt {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0 0 14px;
+  padding: 12px 16px;
+  background: var(--primary-light);
+  border-radius: var(--radius);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--dark);
+  line-height: 1.5;
+}
+.bw-prompt-tag {
+  flex: none;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.bw-layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.bw-rail {
+  background: var(--card-bg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+}
+.bw-rail h3 { margin: 0 0 8px; font-size: 13.5px; color: var(--text-sub); }
+.bw-rail ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.bw-rail-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px 11px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-btn);
+  background: #fff;
+  font: inherit;
+  font-size: 14px;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+.bw-rail-item:hover { border-color: var(--primary); }
+.bw-rail-item.on { border-color: var(--primary); background: var(--primary-light); }
+.bw-rail-name { display: flex; align-items: center; gap: 6px; min-width: 0; font-weight: 600; }
+.bw-rail-name em,
+.bw-row-who em {
+  font-style: normal;
+  font-size: 11.5px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  font-weight: 700;
+}
+.bw-rail-state { flex: none; font-size: 12px; color: var(--text-faint); }
+.bw-rail-item.done .bw-rail-state { color: #3f8f5c; font-weight: 700; }
+
+.bw-col {
+  max-width: 760px;
+  width: 100%;
+  margin: 0;
+  background: var(--card-bg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.bw-col--read { max-width: none; }
+/* 교사 가운데 — 컬럼을 칸 가운데에, 그 위에 같은 폭의 머리(이름 · 모둠 · 수업 시작) */
+.bw-col-wrap {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.bw-col-top {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+}
+.bw-col-top h2 { margin: 0; font-size: 19px; display: flex; align-items: baseline; gap: 6px; }
+.bw-col-top h2 em { font-style: normal; font-size: 13px; color: var(--text-sub); font-weight: 500; }
+.bw-col-top .bw-cast-btn { margin-left: auto; }
+.bw-col-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 18px;
+  border-bottom: 1.5px solid var(--border);
+  background: var(--bg);
+}
+.bw-col-head strong { font-size: 18px; color: var(--dark); }
+.bw-col-head span { font-size: 12.5px; color: var(--text-sub); }
+.bw-rows { list-style: none; margin: 0; padding: 0; }
+.bw-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 18px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.bw-row:last-child { border-bottom: none; }
+.bw-row.filled { border-left: 4px solid #8cc79f; padding-left: 14px; }
+.bw-row.mine { background: #fffaf6; border-left: 4px solid var(--primary); padding-left: 14px; }
+.bw-row-who {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text);
+}
+.bw-row-who b {
+  width: 20px;
+  height: 20px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--neutral);
+  font-size: 11.5px;
+  color: var(--text-sub);
+}
+.bw-row-save { margin-left: auto; font-size: 12px; font-weight: 500; color: var(--text-faint); }
+.bw-row-save.saved { color: #3f8f5c; }
+.bw-row-save.error { color: #c0392b; }
+.bw-row-text { margin: 0; font-size: 15px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--text); }
+.bw-row-text.empty { color: var(--text-faint); font-size: 13.5px; }
+.bw-row-hint { margin: 0; font-size: 12.5px; color: var(--text-sub); }
+.bw-rail-item.ready .bw-rail-state { color: var(--primary-dark); font-weight: 700; }
+/* 앞 사람이 아직 안 써서 잠긴 내 줄 — 쓰는 칸 자리를 같은 높이로 지킵니다 */
+.bw-row-wait {
+  margin: 0;
+  min-height: 84px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px dashed var(--border);
+  border-radius: var(--radius-btn);
+  background: var(--bg);
+  font-size: 13.5px;
+  color: var(--text-sub);
+  text-align: center;
+  padding: 10px 14px;
+}
+.bw-row-input {
+  width: 100%;
+  min-height: 84px;
+  resize: vertical;
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.6;
+}
+@media (max-width: 768px) {
+  .bw-layout { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* 학생이 여는 브레인 라이팅: 첫 칸은 답변 목록의 제목입니다. */
+.bw-row.bw-question-row {
+  background: #edf7ec;
+  border-left: 4px solid #79a973;
+  border-bottom: 2px solid #c8dfc4;
+  padding: 22px 18px;
+}
+.bw-question-row .bw-row-who { color: #365e38; }
+.bw-question-row .bw-row-who b { width: auto; padding: 3px 9px; border-radius: 6px; background: #fff; }
+.bw-question-row .bw-row-text:not(.empty),
+.bw-question-row .bw-row-input { font-size: 19px; font-weight: 700; line-height: 1.6; }
+.bw-question-row .bw-row-input { background: #fafff8; }
+
+/* 질문 방식은 아래 질문 칸과 폭을 맞추고, 두 단추가 반씩 채웁니다. */
+.bw-question-mode-field { width: calc((100% - 12px) / 2); }
+.bw-question-mode { flex-wrap: nowrap; }
+.bw-question-mode .book-seg-btn { flex: 1 1 0; min-width: 0; max-width: none; }
+.book-field .bw-teacher-question-input:disabled {
+  background: var(--bg-deep);
+  color: var(--text-faint);
+  cursor: not-allowed;
+  opacity: 1;
+}
+@media (max-width: 768px) {
+  .bw-question-mode-field { width: 100%; }
+}
+
+.bw-cast-question {
+  margin: 0 0 24px;
+  padding: 22px 26px;
+  border: 1px solid #c8dfc4;
+  border-left: 5px solid #79a973;
+  border-radius: 14px;
+  background: #edf7ec;
+  color: #294c2d;
+  overflow-wrap: anywhere;
+}
+.bw-cast-question-by { display: flex; align-items: center; gap: 10px; font-size: 15px; }
+.bw-cast-question p { margin: 12px 0 0; font-size: clamp(23px, 2.6vw, 36px); font-weight: 750; line-height: 1.5; white-space: pre-wrap; }
+.bw-cast-question p.empty { color: #60765e; font-size: 20px; font-weight: 500; }
+@media (max-width: 768px) {
+  .bw-cast-question { padding: 18px; }
+}
+
+.opinion-modal-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 1px solid color-mix(in srgb, var(--note-ink) 20%, transparent);
+}
+.opinion-modal-nav > span { color: var(--note-ink); font-size: 13px; font-variant-numeric: tabular-nums; }
+.opinion-modal-nav button { min-width: 88px; }
+
+/* 교실 뒤에서도 함께 읽을 수 있는 큰 메모지 */
+.modal-backdrop.opinion-modal-backdrop {
+  overflow-y: auto;
+  align-items: safe center;
+  padding: 32px 16px;
+}
+.modal.opinion-modal {
+  width: min(1040px, 94vw);
+  flex-shrink: 0;
+  padding: 40px 44px 30px;
+}
+.opinion-modal-zone { font-size: 18px; }
+.opinion-modal-who { font-size: 22px; }
+.opinion-modal-text {
+  min-height: 220px;
+  font-size: clamp(26px, 2.5vw, 36px);
+  line-height: 1.65;
+}
+.opinion-modal-input { font-size: 25px; }
+.opinion-modal .opinion-reply { padding: 18px 22px; }
+.opinion-modal .opinion-reply-head { font-size: 18px; flex-wrap: wrap; }
+.opinion-modal .opinion-reply-text,
+.opinion-modal .opinion-reply-input { font-size: 25px; }
+.opinion-modal .opinion-reply-btn,
+.opinion-modal .opinion-reply-add,
+.opinion-modal .btn-ghost,
+.opinion-modal .btn-primary { font-size: 17px; }
+.opinion-modal-nav > span { font-size: 18px; }
+.opinion-modal .btn-close { font-size: 28px; min-width: 40px; min-height: 40px; }
+@media (max-width: 768px) {
+  .modal.opinion-modal { padding: 30px 20px 22px; }
+  .opinion-modal-text { min-height: 160px; font-size: 26px; }
+  .opinion-modal-who { font-size: 19px; }
+  .opinion-modal .opinion-reply { padding: 14px; }
+  .opinion-modal .opinion-reply-text,
+  .opinion-modal .opinion-reply-input { font-size: 22px; }
+}
+
+/* 노트는 제자리에 두고 피드백만 오른쪽 날개로 펼칩니다. */
+.cornell-wing-shell { position: relative; width: min(960px, 96vw); max-width: 100%; height: min(860px, calc(100dvh - 48px)); }
+.modal.modal-cornell-read.cornell-wing-modal {
+  width: 100%; max-width: none; height: 100%; max-height: none;
+  box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden;
+}
+.cornell-wing-modal > .modal-head { flex-shrink: 0; }
+.cornell-wing-modal .cornell-wing-layout,
+.cornell-wing-modal .cornell-wing-layout.is-open { display: flex; flex: 1; min-height: 0; }
+.cornell-wing-note { display: flex; flex-direction: column; width: 100%; min-height: 0; }
+.cornell-wing-note > .cornell-read-bar,
+.cornell-wing-note > .cornell-hl-bar { flex-shrink: 0; }
+.cornell-wing-sheet-scroll { flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
+
+.cornell-wing-layout, .cornell-wing-layout.is-open { display: block; }
+.cornell-wing-note { min-width: 0; }
+.cornell-feedback-track {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  bottom: 0;
+  left: calc(100% + 12px);
+  width: 380px;
+  overflow: hidden;
+  border-radius: 16px;
+  visibility: hidden;
+  pointer-events: none;
+  transition: visibility 0s linear .35s;
+}
+.feedback-open .cornell-feedback-track {
+  visibility: visible;
+  pointer-events: auto;
+  transition-delay: 0s;
+}
+.cornell-feedback-wing {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 22px;
+  border: 1px solid #d4e3d0;
+  border-radius: 16px;
+  background: #f5faf3;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  transform: translateX(-100%);
+  box-shadow: 0 12px 30px #0002;
+  transition: transform .35s ease-in-out;
+  will-change: transform;
+}
+.feedback-open .cornell-feedback-wing { transform: translateX(0); }
+.cornell-wing-close { margin-bottom: 18px; align-self: flex-start; flex-shrink: 0; }
+.cornell-feedback-wing .cornell-read-feedback { margin: 0; gap: 16px; flex: 1; min-height: 0; }
+.cornell-feedback-wing label b { font-size: 18px; }
+.cornell-feedback-wing label em { font-size: 12px; margin-top: 5px; }
+.cornell-feedback-wing textarea { flex: 1; width: 100%; min-height: 0; height: 0; resize: none; overflow-y: auto; font-size: 18px; line-height: 1.8; padding: 16px; background: #fff; }
+.cornell-feedback-wing .cornell-read-actions { flex-wrap: wrap; margin-top: auto; flex-shrink: 0; }
+.cornell-feedback-toggle { white-space: nowrap; }
+.cornell-wing-modal .cornell-read-bar { flex-wrap: wrap; }
+@media (max-width: 1720px) {
+  /* 가로 폭이 부족하면 노트 위치를 옮기는 대신 오른쪽 위에 날개를 겹칩니다. */
+  .cornell-feedback-track { left: auto; right: 0; width: min(420px, 100%); }
+}
+/* 이 패널은 명시적으로 요청한 슬라이드 동작을 유지합니다. */
+
+.cornell-feedback-wing .cornell-read-fbhead { flex-shrink: 0; }
+@media (max-height: 540px) {
+  .cornell-feedback-wing { padding: 14px; }
+  .cornell-wing-close { margin-bottom: 8px; }
+  .cornell-feedback-wing .cornell-read-feedback { gap: 8px; }
+}
+
+/* 첨부 연결 재시도 — 글을 다시 올려 중복 저장하지 않도록 안내합니다. */
+.attachment-binding-status {
+  position: fixed;
+  z-index: 4000;
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card-bg);
+  box-shadow: var(--shadow-soft);
+  color: var(--text);
+  font-size: 13px;
+}
+.attachment-binding-status > button { flex-shrink: 0; }

@@ -1,0 +1,99 @@
+/* 개인 활동 교사 상세 화면 — 원래 app/globals.css 23452~23549줄. 차례는 globals.css의 @import 순서가 정합니다. */
+/* =============================================================
+   개인 활동 교사 상세 화면 — 영역을 한 화면에 펼치고 영역별로 방송
+   (곁텍스트 읽기 8영역 · RAFT 글쓰기 5영역 · KWLS 4칸 공용)
+   ============================================================= */
+.entry-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 14px;
+  margin-top: 14px;
+}
+.entry-region {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 14px 15px 16px;
+  background: var(--card-bg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.entry-region.done { border-color: #8cc79f; }
+/* 지금 학생 화면에 띄우고 있는 영역 — 한눈에 찾을 수 있게 */
+.entry-region.live {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+.entry-region.done .paratext-letter { background: #3d8a72; }
+/* 방송 중인 아이콘은 회색 — 안 쓴 칸(주황)과 헷갈리지 않게. 다 쓴 칸이어도
+   지금은 '방송 중'이 더 중요한 정보라 done의 초록보다 우선합니다 */
+.entry-region.live .paratext-letter { background: #8a8a82; }
+/* 영역 머리말의 방송 버튼은 오른쪽 끝으로 */
+.entry-region .paratext-card-head .dash-cast-btn { margin-left: auto; flex-shrink: 0; }
+.entry-region-body {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+/* 한 단계 안에 물음이 여럿입니다(곁텍스트의 제목 단계는 다섯 칸). 지금까지
+   칸 사이가 9px 간격뿐이었고 물음 이름도 답과 굵기가 같아, 한 카드 안의
+   물음·답·물음·답이 통째로 한 덩이로 읽혔습니다 — 어디까지가 한 물음의
+   답인지 눈으로 갈라야 했습니다(실제 신고).
+   **줄은 칸과 칸 사이에만** 긋습니다 — 첫 칸 위에도 그으면 바로 위 안내
+   글(.paratext-prompt)과 붙어 머리말을 가르는 선처럼 보입니다.
+   위아래 여백을 11px로 맞춘 것은 부모의 flex gap이 9px이라, 위쪽에 2px을
+   더해야 선이 두 칸 한가운데 서기 때문입니다(실측). */
+/* 선생님이 낸 안내(.paratext-prompt)와 학생이 쓴 첫 답 사이도 조금 벌립니다 —
+   칸과 칸이 22px로 갈리는데 안내와 첫 칸만 9px이면, 안내가 첫 물음의 일부처럼
+   붙어 읽힙니다. 칸 사이보다는 좁게 둡니다(줄이 물음의 경계라는 것이 그대로
+   가장 세야 합니다). */
+.entry-region .paratext-prompt { margin-bottom: 5px; }
+.paratext-read-field + .paratext-read-field {
+  margin-top: 2px;
+  padding-top: 11px;
+  border-top: 1px solid var(--border);
+}
+/* 물음 이름 — 답(14.5px)보다 한 단계 또렷하게. **크기만 키우면 모자랍니다**:
+   지금도 16px로 답보다 컸는데 굵기가 같아 한 문단으로 이어져 읽혔습니다.
+   굵기를 함께 올려야 '여기서 새 물음이 시작한다'가 보입니다.
+   (칠판에 띄우는 화면은 아래 `.entry-cast-body`가 크기만 따로 정합니다 —
+   그 규칙이 파일에서 뒤에 오므로 여기 크기는 안 이깁니다.) */
+.paratext-read-label {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 15.5px;
+  font-weight: 700;
+  line-height: 1.45;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+/* 학생이 쓴 글(곁텍스트·RAFT·KWLS 공용) — 지금까지 이 클래스에 기본 스타일이
+   없어 <p> 기본값(white-space: normal)을 그대로 썼고, 학생이 줄바꿈으로 여러
+   줄을 나눠 써도 화면에는 공백으로 뭉개져 한 줄로 보였습니다. pre-wrap으로
+   줄바꿈은 그대로 살리고 긴 줄은 필요할 때 자동 줄바꿈되게 둡니다. */
+.paratext-read-text {
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.paratext-read-text.empty { color: var(--text-sub); }
+/* RAFT 글쓰기 칸은 내용이 길어 한 줄을 통째로 씁니다 */
+/* RAFT는 **두 칸 고정**입니다 — R·A 한 줄, F·T 한 줄, 글쓰기가 아래 한 줄.
+   `.entry-detail-grid`의 `auto-fill`을 그대로 두면 가운데 칸 폭에 따라 한 줄에
+   셋이 서다 둘이 서다 하고, 셋이 서는 화면에서는 R·A·F 다음에 T 하나만 덩그러니
+   남아 네 요소가 한 묶음으로 안 읽힙니다. RAFT는 개수가 넷으로 못 박힌 틀이라
+   폭에 맡길 것이 아닙니다.
+   (`.entry-detail-grid` 뒤에 놓이므로 선택자를 한 겹 좁히지 않아도 이깁니다 —
+   `.kwls-detail-grid`가 `.entry-detail-grid.kwls-detail-grid`로 적혀 있는 것은
+   그쪽 규칙이 파일에서 **앞**에 오기 때문입니다) */
+.raft-detail-grid { grid-template-columns: repeat(2, 1fr); }
+.raft-detail-grid .entry-region.wide { grid-column: 1 / -1; }
+/* 좁아지면 한 줄에 하나 — 두 칸을 우겨 넣으면 카드가 좁아 글이 자꾸 접힙니다 */
+@media (max-width: 900px) {
+  .raft-detail-grid { grid-template-columns: 1fr; }
+}
+
+/* ── 방송 상태 막대 ── */

@@ -1,0 +1,865 @@
+/* 공부 기록 창 · 수업 노트 읽기 · 서랍 목록 · 크게 보기 — 원래 app/globals.css 27043~27906줄. 차례는 globals.css의 @import 순서가 정합니다. */
+/* ===== 공부 기록 모달 — 누가기록 · 수업 노트 · 선생님 메모 ===== */
+.notes-mgr-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 2px 0 10px;
+  border-bottom: 1px solid var(--border);
+}
+.notes-mgr-tab {
+  border: none;
+  background: none;
+  padding: 8px 12px;
+  margin-bottom: -1px;
+  border-bottom: 2px solid transparent;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-sub);
+  cursor: pointer;
+}
+.notes-mgr-tab:hover { color: var(--primary-dark); }
+.notes-mgr-tab.active {
+  color: var(--primary-dark);
+  border-bottom-color: var(--primary);
+}
+
+/* 수업 노트 탭 — 날짜 한 줄 + 학생 격자 */
+.cornell-mgr-bar { align-items: center; }
+.cornell-mgr-date {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.cornell-mgr-date input[type="date"] {
+  width: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  padding: 5px 8px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background: #fff;
+}
+.cornell-read-step {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: #fff;
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--text-sub);
+  cursor: pointer;
+}
+.cornell-read-step:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+.cornell-read-step:disabled { opacity: 0.35; cursor: default; }
+
+
+/* ===== 수업 노트 읽기 모달 (교사) ===== */
+.modal.modal-cornell-read { max-width: 860px; }
+.cornell-read-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 2px 0 10px;
+}
+/* 칸을 flex:1로 늘이면 아래 노트보다 넓어져 두 상자의 폭이 어긋납니다.
+   내용만큼만 차지하게 두고, 남는 자리는 오른쪽 '몇 번째'가 가져갑니다. */
+.cornell-read-date {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 420px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  padding: 6px 8px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background: #fff;
+}
+/* ‹ ›를 붙여 둡니다 — 긴 칸 양끝에 떼어 놓으면 한 장 넘길 때마다
+   손이 화면을 가로질러 오갑니다. */
+.cornell-read-nav {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.cornell-read-count {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-sub);
+  font-variant-numeric: tabular-nums;
+  /* 좁은 화면에서 '1 / 3'이 세 줄로 접혀 줄 높이가 들쭉날쭉해집니다 */
+  white-space: nowrap;
+}
+/* PDF로 저장 — '몇 번째' 오른쪽. margin-left:auto가 '몇 번째'에 있어
+   이 묶음은 자연히 오른쪽 끝에 섭니다. */
+.cornell-read-print {
+  display: inline-flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.cornell-read-pdf {
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-sub);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+.cornell-read-pdf:hover:not(:disabled) {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  color: var(--primary-dark);
+}
+.cornell-read-pdf:disabled { opacity: 0.45; cursor: default; }
+/* 학습 리포트의 '수업 노트' 머리말 — 제목과 '12장' 사이. margin-left:auto가
+   남는 자리를 먹어, 줄이 space-between이어도 단추와 장수가 오른쪽에 붙습니다. */
+.report-cornell-pdf { margin-left: auto; }
+.cornell-read-lesson {
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+/* ── 학생 글에 하이라이트 (교사) ──────────────────────────────
+   드래그한 자리를 형광펜처럼 덮고, 같은 대목이 아래 피드백 칸에 인용으로
+   들어갑니다.
+   **글자를 감싸지 않고 위에 덧그립니다** — 노트 본문은 React가
+   dangerouslySetInnerHTML로, 단서·요약은 React가 직접 그리는 자리라 <mark>를
+   끼워 넣으면 React가 들고 있던 텍스트 노드와 어긋납니다. Range의 줄 상자를
+   그대로 덮으므로 여러 줄·여러 칸에 걸친 선택도 자연히 맞습니다. */
+.cornell-hl-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 6px;
+}
+/* 안내·예시 글자는 --text-faint (읽을 것이 아니라 참고할 것) */
+.cornell-hl-tip {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--text-faint);
+}
+.cornell-hl-tip b { font-weight: 800; color: var(--text-sub); }
+.cornell-hl-clear {
+  margin-left: auto;
+  flex-shrink: 0;
+  padding: 3px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.cornell-hl-clear:hover { border-color: var(--primary); color: var(--primary-dark); }
+/* 덮개는 `CornellNoteSheet` 안에 있어 **교사·학생 화면에 다 걸립니다**
+   (교사 열람 · 노트 크게 보기 · 리포트 · 서랍의 노트). */
+.cornell-hl-wrap { position: relative; }
+.cornell-hl {
+  position: absolute;
+  border-radius: 2px;
+  background: #ffe08a;
+  /* 글자 **위**에 덮이는 층이라 곱하기로 깝니다. 반투명으로 덮으면 글자까지
+     함께 옅어져 정작 짚은 대목이 읽기 어려워집니다. */
+  mix-blend-mode: multiply;
+}
+/* 누를 수 있는 것은 교사 창뿐입니다 — 학생 화면의 표시는 읽는 것이라
+   손 모양도 hover 색도 없습니다(눌러 볼 것이 없는데 눌러 보게 됩니다). */
+.cornell-hl.is-editable { cursor: pointer; }
+.cornell-hl.is-editable:hover { background: #ffcf5c; }
+/* 끄는 동안에도 형광펜 색으로 보입니다 — '드래그 = 하이라이트'가 손에
+   먼저 읽히게. **교사 창 안으로만** 한정합니다(학생 화면에서 글을 긁을 때
+   노란색이 뜨면 제가 칠할 수 있다는 뜻으로 읽힙니다). */
+.modal-cornell-read .cornell-hl-wrap ::selection { background: #ffe08a; }
+
+.cornell-read-feedback {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+}
+/* 이름표 줄 — 왼쪽에 '선생님 한 마디', 오른쪽 끝에 과일 단추.
+   `align-items: flex-start`인 것은 왼쪽이 두 줄(제목 + 딸림글)이라 가운데로
+   맞추면 과일이 두 줄 한가운데에 떠 제목과 어긋나 보이기 때문입니다. */
+.cornell-read-fbhead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.cornell-read-award { font-size: 17px; }
+/* 과일을 준 뒤 단추 자리에 남는 표시 — 누를 수 없는 알약입니다.
+   초록은 이 앱에서 늘 '됐다'는 뜻이라, 기록 관리 수업 노트 탭의 '과일 준
+   카드'(`.notes-mgr-card.awarded`)와 **같은 값**을 씁니다. 두 화면이 같은
+   사실을 말하는데 색이 다르면 한쪽을 보고 다른 쪽을 오해합니다. */
+.cornell-read-given {
+  flex-shrink: 0;
+  padding: 3px 9px;
+  border: 1px solid #a6d8b6;
+  border-radius: 999px;
+  background: #e8f7ed;
+  color: #2f6b45;
+  font-size: 11.5px;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: default;
+}
+.cornell-read-feedback label { display: flex; flex-direction: column; gap: 1px; }
+.cornell-read-feedback label b { font-size: 12.5px; font-weight: 800; color: var(--dark); }
+.cornell-read-feedback label em {
+  font-size: 11px;
+  font-style: normal;
+  color: var(--text-sub);
+}
+.cornell-read-feedback textarea {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--text);
+  resize: vertical;
+}
+.cornell-read-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  /* 쓰는 칸 아래선과 단추가 붙어 보여 한 칸 띄웁니다 — 단추가 칸의
+     일부처럼 보이면 '이걸 눌러야 저장된다'가 흐려집니다. */
+  margin-top: 6px;
+  padding-bottom: 2px;
+}
+.cornell-read-hint { font-size: 12px; color: var(--text-sub); }
+
+/* ===== 학습 리포트의 수업 노트 구간 ===== */
+.report-cornell-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.report-cornell-row {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card, 14px);
+  background: #fff;
+  overflow: hidden;
+}
+.report-cornell-row.open { border-color: var(--primary); }
+.report-cornell-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  border: none;
+  background: none;
+  padding: 10px 12px;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.report-cornell-head:hover { background: var(--primary-light); }
+.report-cornell-date {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+  font-variant-numeric: tabular-nums;
+}
+.report-cornell-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.report-cornell-fb {
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--primary);
+  color: #fff;
+}
+.report-cornell-caret { font-size: 12px; color: var(--text-sub); }
+/* 펼친 노트는 줄 안에 들어가므로 바깥 테두리를 지웁니다 */
+.report-cornell-row .cornell-sheet {
+  border: none;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+}
+
+/* 좁은 화면 — 코넬 2단은 세로로 눕힙니다(단서 칸이 200px면 글이 못 들어갑니다) */
+@media (max-width: 768px) {
+  .cornell-sheet-grid { grid-template-columns: 1fr; }
+  .cornell-sheet-cue {
+    border-right: none;
+    border-bottom: 2px solid var(--primary-light);
+  }
+
+  /* 한 칸으로 눕으면 머리 줄이 뜻을 잃습니다(이름표 둘이 맨 위에 겹쳐 서고
+     아래 행들은 이름표 없이 흐릅니다). 머리를 감추고 칸마다 붙입니다. */
+  .cornell-sheet-th { display: none; }
+  .cornell-sheet-cue::before,
+  .cornell-sheet-notes::before {
+    font-size: 11.5px;
+    font-weight: 800;
+    color: var(--primary-dark);
+    letter-spacing: 0.02em;
+  }
+  .cornell-sheet-cue::before { content: "단서 · 핵심 질문"; }
+  .cornell-sheet-notes::before { content: "필기"; }
+  .cornell-mgr-bar { align-items: stretch; }
+  .cornell-mgr-date { flex-wrap: wrap; }
+}
+
+/* ===== 수업 노트 — 선생님 한 마디가 도착했다는 표시 ===== */
+/* 손잡이의 숫자 배지. 점(cornell-handle-dot)은 '오늘 쓴 게 있다'는 뜻이고
+   이건 '읽을 것이 있다'는 뜻이라, 같은 자리에서 숫자가 점을 대신합니다. */
+.cornell-handle-badge {
+  min-width: 17px;
+  height: 17px;
+  border-radius: 999px;
+  padding: 0 5px;
+  background: #fff;
+  color: var(--primary-dark);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 17px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 지난 노트에 달린 한 마디 목록 — 서랍 맨 위 */
+.cornell-newfb {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-btn);
+  background: var(--primary-light);
+}
+.cornell-newfb-tag {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--primary-dark);
+}
+/* 줄 + 그 줄에서 펼친 노트가 한 덩어리 */
+.cornell-newfb-row { display: flex; flex-direction: column; gap: 6px; }
+.cornell-newfb-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: baseline;
+  gap: 7px;
+  width: 100%;
+  border: none;
+  background: none;
+  padding: 4px 2px;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 6px;
+}
+.cornell-newfb-item:hover { background: rgba(255, 255, 255, 0.6); }
+.cornell-newfb-item.open { background: rgba(255, 255, 255, 0.75); }
+.cornell-newfb-item time {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--primary-dark);
+  font-variant-numeric: tabular-nums;
+}
+/* 한 마디는 두 줄까지 — 서랍이 좁아 길면 노트 칸을 밀어냅니다.
+   전문은 줄을 눌러 펼치면 그 아래 노트와 함께 보입니다. */
+.cornell-newfb-text {
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.cornell-newfb-item.open .cornell-newfb-text {
+  display: block;
+  -webkit-line-clamp: none;
+}
+.cornell-newfb-caret { font-size: 11px; color: var(--text-sub); }
+/* 서랍 안에 펼친 노트는 폭이 좁아 코넬 2단을 세로로 눕힙니다 */
+.cornell-newfb .cornell-sheet-grid { grid-template-columns: 1fr; }
+.cornell-newfb .cornell-sheet-cue {
+  border-right: none;
+  border-bottom: 2px solid var(--primary-light);
+}
+.cornell-newfb .cornell-sheet-th { display: none; }
+.cornell-newfb .cornell-sheet-cue::before,
+.cornell-newfb .cornell-sheet-notes::before {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--primary-dark);
+}
+.cornell-newfb .cornell-sheet-cue::before { content: "단서 · 핵심 질문"; }
+.cornell-newfb .cornell-sheet-notes::before { content: "필기"; }
+.cornell-newfb .cornell-sheet { font-size: 12.5px; }
+
+/* 손잡이는 세로쓰기(writing-mode: vertical-rl)라 그 안의 숫자까지 눕습니다.
+   배지만 가로쓰기로 되돌립니다 — 글자는 세로로 흘러도 숫자는 바로 서야
+   한눈에 읽힙니다. */
+.cornell-handle-badge {
+  writing-mode: horizontal-tb;
+  text-orientation: mixed;
+  letter-spacing: 0;
+}
+
+/* ===== 서랍 머리말의 '저장' 단추 =====
+   자동 저장은 그대로 두고 하나 더 둡니다. 단추가 곧 상태 표시라
+   (저장 / 저장 중… / 저장됨) 같은 말을 두 군데 두지 않습니다. */
+.cornell-save {
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 10px;
+  background: #fff;
+  color: var(--text-sub);
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+.cornell-save.on {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+.cornell-save:disabled { cursor: default; }
+.cornell-save:not(:disabled):hover { border-color: var(--primary-dark); }
+
+/* ===== 서랍 아래 '지난 노트' 목록 ===== */
+.cornell-past {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.cornell-past-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+.cornell-past-head b { font-size: 12.5px; font-weight: 800; color: var(--dark); }
+.cornell-past-head span { font-size: 11px; color: var(--text-sub); }
+.cornell-past-row { display: flex; flex-direction: column; gap: 6px; }
+.cornell-past-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  border: none;
+  background: none;
+  padding: 5px 4px;
+  border-radius: 6px;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.cornell-past-item:hover { background: var(--neutral); }
+.cornell-past-item.open { background: var(--neutral); }
+.cornell-past-item time {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-sub);
+  font-variant-numeric: tabular-nums;
+}
+/* 제목은 한 줄로 자릅니다 — 줄 수가 들쭉날쭉하면 날짜가 눈으로 안 따라옵니다 */
+.cornell-past-title {
+  font-size: 12.5px;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cornell-past-fb { font-size: 11px; }
+.cornell-past-caret { font-size: 11px; color: var(--text-sub); }
+/* 서랍은 좁아 여기서도 코넬 2단을 세로로 눕힙니다 */
+.cornell-past .cornell-sheet-grid { grid-template-columns: 1fr; }
+.cornell-past .cornell-sheet-cue {
+  border-right: none;
+  border-bottom: 2px solid var(--primary-light);
+}
+.cornell-past .cornell-sheet-th { display: none; }
+.cornell-past .cornell-sheet-cue::before,
+.cornell-past .cornell-sheet-notes::before {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--primary-dark);
+}
+.cornell-past .cornell-sheet-cue::before { content: "단서 · 핵심 질문"; }
+.cornell-past .cornell-sheet-notes::before { content: "필기"; }
+/* ===== 손잡이는 열려 있을 때도 남습니다 =====
+   서랍 왼쪽 가장자리로 옮겨 붙어 그대로 '닫기'가 됩니다. 여닫는 자리가 늘
+   같은 곳이라야 손이 기억합니다(예전에는 열리는 순간 사라졌습니다).
+   서랍과 겹치지 않게 오른쪽 여백을 서랍 폭만큼 줍니다. */
+.cornell-handle.open {
+  right: var(--cornell-w);
+  background: var(--card-bg);
+  border-color: var(--border);
+  color: var(--text-sub);
+}
+/* 날개를 펴면 손잡이도 그만큼 더 왼쪽으로 — 서랍과 겹치지 않게 */
+.cornell-handle.open.wide { right: var(--cornell-w2); }
+.cornell-handle.open:hover {
+  color: var(--primary-dark);
+  border-color: var(--primary);
+}
+/* 여는 쪽 ‹ / 닫는 쪽 › — 손잡이가 세로쓰기라 화살표만 가로로 되돌립니다
+   (배지와 같은 이유. 안 그러면 위아래를 가리켜 뜻이 뒤집힙니다) */
+.cornell-handle-caret {
+  writing-mode: horizontal-tb;
+  font-size: 13px;
+  line-height: 1;
+  opacity: 0.55;
+  flex-shrink: 0;
+}
+
+/* 좁은 화면 — 서랍이 아래에서 올라오는 시트라 손잡이는 그 **위**에 얹습니다
+   (오른쪽으로 비키면 시트가 화면 폭을 다 쓰므로 갈 자리가 없습니다) */
+@media (max-width: 760px) {
+  .cornell-handle.open,
+  .cornell-handle.open.wide {
+    right: 0;
+    bottom: calc(60vh + 10px);
+  }
+}
+
+/* ===== 내 수업 노트 크게 보기 (학생) =====
+   서랍(z-index 3001) 위에 떠야 합니다 — 보통 모달 배경은 100이라
+   그대로 두면 서랍 밑에 깔려 아무것도 안 보입니다. */
+.cornell-viewer-backdrop { z-index: 3010; }
+/* 폭을 조금 줄이고 2단 영역이 남는 높이를 다 차지하게 해 정사각형에 가깝게
+   만듭니다. 짧은 노트도 '공책 한 장'처럼 보이고, 왼쪽 단서 칸이 세로로
+   길어야 오른쪽을 가리고 떠올리는 복습이 실제로 됩니다.
+   최소 높이(vh)를 주면 머리말·날짜 줄·요약을 더한 총 높이가 창을 넘겨
+   **바깥 스크롤바**가 생겼습니다. 그래서 flex로 '남는 만큼'만 차지하게
+   두고, 넘치는 것은 단서·필기 칸 **안에서만** 구릅니다. */
+.modal.modal-cornell-viewer {
+  max-width: 820px;
+  /* 높이를 잡아 둡니다 — 안 그러면 짧은 노트에서 창이 내용만큼 납작해져
+     좌우로만 긴 모양이 됩니다. 화면이 작으면 88vh까지만(한 화면 안에). */
+  height: min(88vh, 760px);
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+/* 하이라이트를 얹으려고 시트를 감싼 칸(.cornell-hl-wrap)이 여기서는 **flex
+   항목 자리를 대신 차지합니다.** 그냥 두면 시트의 `flex: 1`이 한 겹 안쪽으로
+   밀려 안 먹고, 아래 격자의 안쪽 스크롤이 통째로 풀립니다. 감싼 칸에 같은
+   값을 주어 layout 상 없는 것처럼 지나가게 합니다. */
+.modal-cornell-viewer .cornell-hl-wrap,
+.modal-cornell-viewer .cornell-sheet {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+/* 덩어리가 여럿이면 **격자 하나가** 구릅니다 — 칸마다 따로 구르면 짝지어
+   둔 왼쪽 물음과 오른쪽 필기가 서로 어긋나 흐릅니다(그러라고 행으로 묶은
+   것이 아닙니다). 이름표 줄은 붙어 남습니다. */
+.modal-cornell-viewer .cornell-sheet-grid { flex: 1; min-height: 0; overflow-y: auto; }
+.modal-cornell-viewer .cornell-sheet-cue,
+.modal-cornell-viewer .cornell-sheet-notes { overflow: visible; }
+.modal-cornell-viewer .cornell-sheet-th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #fff;
+}
+.modal-cornell-viewer .cornell-sheet-cue.cornell-sheet-th { background: #fdfcfa; }
+/* 제목·요약·한 마디는 줄어들지 않습니다 — 늘 보여야 하는 줄입니다 */
+.modal-cornell-viewer .cornell-sheet-topic,
+.modal-cornell-viewer .cornell-sheet-summary,
+.modal-cornell-viewer .cornell-sheet-feedback { flex-shrink: 0; }
+.modal-cornell-viewer .modal-head,
+.modal-cornell-viewer .cornell-read-bar,
+.modal-cornell-viewer .cornell-viewer-hint { flex-shrink: 0; }
+/* 복습하는 자리라 글씨를 서랍보다 키웁니다 */
+.modal-cornell-viewer .cornell-sheet p,
+.modal-cornell-viewer .cornell-sheet-rich { font-size: 15px; line-height: 1.75; }
+.modal-cornell-viewer .cornell-sheet-cue,
+.modal-cornell-viewer .cornell-sheet-notes,
+.modal-cornell-viewer .cornell-sheet-summary { padding: 16px 18px; }
+.modal-cornell-viewer .cornell-sheet-grid { grid-template-columns: 240px 1fr; }
+.cornell-viewer-hint {
+  margin-top: 10px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-sub);
+}
+
+/* ── 크게 보기의 탭 둘 — 코넬 노트 / KWLS 노트 ──────────────────
+   알약 줄 자체는 .dash-view-tabs를 그대로 씁니다(이 앱에서 '한 자리에 두
+   얼굴'을 고르는 자리는 늘 그 모양입니다). 여기서는 자리만 잡습니다. */
+.cornell-view-tabs { align-self: flex-start; margin: 0 0 10px; flex-shrink: 0; }
+/* 탭 한 칸 — 창이 flex column이라 남는 높이를 여기서 다시 나눠 줍니다.
+   숨길 때 display:none이 이기도록 [hidden]을 따로 적어 둡니다(display를
+   준 요소는 hidden 속성만으로 안 숨습니다). */
+.cornell-view-pane {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.cornell-view-pane[hidden] { display: none; }
+/* 달력 단추 — 팝업이 이 줄 아래로 펴지도록 자리를 잡아 둡니다.
+   단추가 줄 오른쪽 끝이라 팝업도 오른쪽에 맞춰 답니다 — 왼쪽 기준(.kwlfs-cal의
+   기본)으로 두면 340px이 창 밖으로 나가는데, 이 창은 overflow:hidden이라
+   그대로 잘립니다(실측). */
+.cornell-read-calwrap { position: relative; flex-shrink: 0; }
+.cornell-read-calwrap .kwlfs-cal { left: auto; right: 0; }
+.cornell-read-pdf.on {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  color: var(--primary-dark);
+}
+
+/* ── KWLS 한 장 — K·W·L·S 네 칸 ───────────────────────────────
+   껍데기는 코넬 한 장과 같은 것(.cornell-sheet)이고 안쪽만 다릅니다.
+   2×2로 두어 위가 읽기 전(K·W), 아래가 읽은 뒤(L·S)입니다 — 학생이 쓸 때
+   본 배치와 같아야 어디에 무엇을 썼는지 그대로 읽힙니다. */
+.kwls-sheet-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-auto-rows: 1fr;
+}
+.kwls-sheet-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  min-height: 0;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+/* 오른쪽 칸·마지막 줄은 바깥 테두리와 겹치므로 선을 빼 둡니다 */
+.kwls-sheet-cell--w, .kwls-sheet-cell--s { border-right: none; }
+.kwls-sheet-cell--l, .kwls-sheet-cell--s { border-bottom: none; }
+/* 읽기 전 두 칸에만 옅은 바탕 — 코넬의 단서 칸과 같은 색입니다.
+   '읽기 전 / 읽은 뒤'가 색으로도 갈립니다. */
+.kwls-sheet-cell--k, .kwls-sheet-cell--w { background: #fdfcfa; }
+.kwls-sheet-cell h4 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+/* 크게 보기에서는 네 칸이 남는 높이를 나눠 갖고, 길면 칸 안에서 구릅니다 */
+.modal-cornell-viewer .kwls-sheet-grid { flex: 1; min-height: 0; }
+.modal-cornell-viewer .kwls-sheet-cell { overflow-y: auto; padding: 16px 18px; }
+
+@media (max-width: 768px) {
+  /* 한 줄에 하나 — 두 칸을 우겨 넣으면 글이 자꾸 접힙니다 */
+  .kwls-sheet-grid { grid-template-columns: 1fr; grid-auto-rows: auto; }
+  .kwls-sheet-cell { border-right: none; }
+  .kwls-sheet-cell--l { border-bottom: 1px solid var(--border); }
+  /* 세로로 쌓이면 네 칸이 창보다 길어집니다 — 칸마다 따로 구르면 어디를
+     굴리는지 알 수 없으므로 **격자 하나만** 구릅니다(질문 모달의 단일
+     스크롤과 같은 생각). 안 그러면 아래 한 줄 안내가 창 밖으로 잘립니다. */
+  .modal-cornell-viewer .kwls-sheet-grid { overflow-y: auto; }
+  .modal-cornell-viewer .kwls-sheet-cell { overflow: visible; }
+}
+
+@media (max-width: 768px) {
+  .modal-cornell-viewer .cornell-sheet-grid { grid-template-columns: 1fr; }
+}
+
+/* ===== 저장 줄 — 서랍 맨 아래 고정 =====
+   머리말에 뒀을 때는 요약을 다 쓰고 손이 화면 꼭대기까지 올라가야 했고,
+   본문 안(요약 칸 바로 아래)에 뒀을 때는 노트가 길어지면 스크롤 밖으로
+   밀렸습니다. 여기는 쓰는 칸 아래이면서 늘 보입니다.
+   .cornell-body가 flex:1로 남은 높이를 다 먹으므로 이 줄은 안 밀립니다. */
+.cornell-foot {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--card-bg);
+}
+.cornell-foot .cornell-save {
+  padding: 7px 20px;
+  font-size: 13px;
+}
+
+/* ===== 코넬 노트 맨 윗줄 — 제목 =====
+   코넬 노트는 원래 '무엇에 대한 필기인가'를 맨 위에 적습니다. 이게 없으면
+   단서·필기부터 시작해, 나중에 펴 봤을 때 무슨 수업이었는지 알 수 없습니다. */
+.cornell-sheet-topic {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--primary-light);
+}
+.cornell-sheet-topic h3 {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--dark);
+  line-height: 1.4;
+  word-break: break-word;
+}
+.cornell-sheet-topic h3.cornell-sheet-blank {
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.cornell-sheet-topic time {
+  flex-shrink: 0;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--primary-dark);
+  font-variant-numeric: tabular-nums;
+}
+/* 크게 보기에서는 제목도 함께 커집니다 */
+.modal-cornell-viewer .cornell-sheet-topic { padding: 14px 18px; }
+.modal-cornell-viewer .cornell-sheet-topic h3 { font-size: 17px; }
+
+/* 서랍의 제목 입력 칸 — 한 줄이라 textarea가 아니라 input */
+.cornell-zone--topic input {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text);
+  background: #fff;
+}
+.cornell-zone--topic input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+
+/* ===== 모둠원별 진행 — 채웠나만, 다 채우면 붉은 점 ===== */
+/* 14칸을 다 채운 줄의 마지막 칸에 점 하나. 상단바 돌발 퀴즈의 빨간 불
+   (.pq-btn-dot)과 같은 색이라, 화면이 달라도 '여기 봐 달라'는 신호가 하나로
+   읽힙니다. */
+.dash-heat-cell.is-done { position: relative; }
+.dash-heat-cell.is-done::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  margin: -3.5px 0 0 -3.5px;
+  border-radius: 999px;
+  background: #e05a2f;
+  box-shadow: 0 0 0 2px #fff;
+}
+
+/* 한 사람만 보는 중이라는 안내 — 판 위에 한 줄 */
+.canvas-focus-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  /* 아래 여백·높이는 .canvas-legend와 한 곳에서 함께 정합니다(위쪽 참고) */
+  padding: 7px 11px;
+  border-radius: var(--radius-btn);
+  background: var(--primary-light);
+  font-size: 12.5px;
+  color: var(--primary-dark);
+}
+.canvas-focus-note b { font-weight: 800; }
+.canvas-focus-clear {
+  border: 1px solid var(--primary);
+  border-radius: 999px;
+  padding: 2px 10px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--primary-dark);
+  cursor: pointer;
+}
+
+/* ===== 낱말 칸 안쪽 스크롤바 — 칸 배경에 묻히게 =====
+   흰 궤도가 그대로 보여 칸마다 흰 띠가 하나씩 생겼습니다. 궤도를 비우면
+   그 칸의 배경(판 색·초록·흰색 무엇이든)이 그대로 비쳐 자연스럽습니다. */
+.consonant-words {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(46, 36, 26, 0.26) transparent;
+}
+.consonant-words::-webkit-scrollbar { width: 9px; }
+.consonant-words::-webkit-scrollbar-track { background: transparent; }
+.consonant-words::-webkit-scrollbar-thumb {
+  background: rgba(46, 36, 26, 0.22);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+.consonant-words:hover::-webkit-scrollbar-thumb {
+  background: rgba(46, 36, 26, 0.34);
+  background-clip: content-box;
+}
+
+/* ===== 판 위 모둠원 칩 — 누르면 그 학생의 낱말만 =====
+   모둠 목록 카드 안에도 이름 단추를 뒀었는데, 모둠을 고르는 것인지 학생을
+   고르는 것인지 구분이 어려웠습니다. 이름표가 이미 판 위에 색과 함께 있으니
+   그것을 그대로 단추로 씁니다(교사 화면에서만). */
+.canvas-legend-pick {
+  /* 칩 크기는 '○○의 낱말만 보는 중' 줄에 맞춰 둡니다 — 두 줄이 서로
+     바뀌는 자리라 높이가 어긋나면 아래 판이 위아래로 튑니다.
+     테두리 없이 연한 회색 바탕만 — 흰 바탕에 테두리를 두르면 판(연한
+     초록) 위에서 칩 여섯이 한 줄로 도드라져 눈이 그리로 먼저 갑니다.
+     모둠 카드 안의 이름 칩(.book-rail-chip)과 같은 모습입니다. */
+  padding: 6px 12px;
+  border: none;
+  border-radius: 999px;
+  background: var(--bg-deep);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, box-shadow 0.12s;
+}
+.canvas-legend-pick:hover {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+}
+.canvas-legend-pick:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+

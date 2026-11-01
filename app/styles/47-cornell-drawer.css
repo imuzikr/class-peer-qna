@@ -1,0 +1,676 @@
+/* 수업 노트 서랍 · 코넬 시트 — 원래 app/globals.css 26368~27042줄. 차례는 globals.css의 @import 순서가 정합니다. */
+/* ===================== 수업 노트 서랍 (학생) ===================== */
+/* 학생이 스스로 공부하려고 남기는 기록이라, 방송과 상관없이 어느 화면에서나
+   같은 자리(오른쪽 가장자리)에서 열립니다. 발표 오버레이는 z-index 3000이라
+   서랍은 그보다 한 칸 위에 서고, 서랍이 열리면 오버레이가 그만큼 좁아집니다
+   (.broadcast-overlay--noted) — 덮는 게 아니라 밀어냅니다. */
+:root {
+  --cornell-w: 380px;
+  /* 날개를 편 폭 — **칸 하나가 380px 그대로 둘**입니다. 노트 칸은 이 폭에
+     맞춰 만든 것이라(코넬 세 칸을 세로로 쌓는 까닭이 그것입니다), 날개를
+     펴도 지금까지 쓰던 자리가 그대로 유지됩니다.
+     좁은 창에서는 손잡이가 설 자리(28px + 여백)를 남겨 둡니다 — 안 그러면
+     날개를 편 순간 닫을 길이 화면 밖으로 나갑니다. */
+  --cornell-w2: min(calc(var(--cornell-w) * 2), calc(100vw - 96px));
+  /* 미끄러지는 길이 — **서랍 · 손잡이 · 발표 화면이 한 값을 함께 씁니다.**
+     셋이 저마다 다른 속도로 움직이면 손잡이가 서랍에서 떨어져 나온 것처럼
+     보이고, 발표 화면 가장자리가 뒤늦게 따라옵니다.
+     `CornellNoteDrawer`의 `SLIDE_MS`도 **같은 값**이어야 합니다 — 닫을 때
+     그만큼 서랍을 더 그려 두고서 걷어 내는 데 쓰는 값입니다.
+     길이는 파이썬 실행기 서랍(`.py-panel`, 0.25s)과 같습니다 — 이 앱에서
+     옆에서 나오는 서랍은 늘 같은 속도로 움직입니다. */
+  --cornell-slide: 0.25s;
+}
+
+/* 접혀 있을 때의 손잡이 — 세로 탭. 조용하되 늘 같은 자리에 */
+.cornell-handle {
+  position: fixed;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 3001;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: 28px;
+  padding: 16px 0;
+  border: 1px solid var(--border);
+  border-right: none;
+  border-radius: 12px 0 0 12px;
+  background: var(--card-bg);
+  color: var(--text-sub);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  cursor: pointer;
+  box-shadow: -2px 0 10px rgba(46, 36, 26, 0.1);
+  writing-mode: vertical-rl;
+  justify-content: center;
+  /* 서랍과 **나란히** 미끄러집니다 — 서랍은 transform으로, 손잡이는
+     `right`로 움직이지만 길이와 곡선이 같아 둘이 붙어 다닙니다.
+     **`transform`은 넣지 마세요** — 이 단추는 `translateY(-50%)`로 세로
+     가운데를 잡고 있어, 전환 목록에 넣으면 날개를 펼 때마다 그 값까지
+     다시 계산되어 위아래로 흔들립니다. */
+  transition: right var(--cornell-slide) ease, width 0.12s ease,
+    color 0.12s ease, border-color 0.12s ease;
+}
+.cornell-handle:hover {
+  width: 32px;
+  color: var(--primary-dark);
+  border-color: var(--primary);
+}
+/* 오늘 적어 둔 것이 있으면 작은 점 하나 — 열지 않아도 알 수 있게 */
+.cornell-handle-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--primary);
+  flex-shrink: 0;
+}
+/* 선생님 피드백이 와 있으면 손잡이부터 색이 바뀝니다 */
+.cornell-handle.has-feedback {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+/* 모달이 열려 있으면 손잡이를 감춥니다 — z-index가 모달보다 위라 그대로
+   두면 모달 오른쪽 자리를 가리고 탭까지 가로챕니다(FAB와 같은 이유).
+   발표 오버레이는 .modal-backdrop이 아니므로 그 위에서는 그대로 보입니다. */
+body:has(.modal-backdrop) .cornell-handle,
+body:has(.confirm-backdrop) .cornell-handle {
+  display: none;
+}
+
+.cornell-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3001;
+  width: var(--cornell-w);
+  display: flex;
+  flex-direction: column;
+  background: var(--card-bg);
+  border-left: 1px solid var(--border);
+  /* 검은 발표 화면 위에서도, 흰 일반 화면 위에서도 떠 보이게 */
+  box-shadow: -6px 0 26px rgba(46, 36, 26, 0.16);
+  /* ── 미끄러져 나오고 들어갑니다 ──────────────────────────────────
+     기본값이 '화면 밖'이고, 열리면 `.shown`이 제자리로 끌어옵니다. 닫을
+     때도 그대로 되감기므로 **여는 길과 닫는 길이 같습니다**.
+     여는 쪽 미끄러짐(transform)과 **날개를 펴고 접는 폭**(width)을 같은
+     길이·같은 곡선으로 굴립니다 — 한 서랍이 두 속도로 움직이면 날개만
+     따로 노는 것처럼 보입니다(파이썬 실행기 서랍에서 배운 것). */
+  transform: translateX(100%);
+  transition: transform var(--cornell-slide) ease,
+    width var(--cornell-slide) ease;
+}
+/* 손잡이를 눌러 연 상태 — 자리에 와 있습니다.
+   **닫혀 있는 동안에도 서랍은 잠깐 더 그려져 있습니다**(컴포넌트의
+   `SLIDE_MS`) — 곧바로 걷어 내면 미끄러질 것이 없어져 그냥 사라집니다. */
+.cornell-drawer.shown { transform: translateX(0); }
+/* 날개를 편 서랍 — 노트와 활동이 나란히 섭니다. 선생님 화면(발표 오버레이)이
+   그만큼 더 좁아지는데, 그 손실은 '필기하면서 답한다'와 맞바꾼 것입니다. */
+.cornell-drawer.wide { width: var(--cornell-w2); }
+.cornell-head {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 12px 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.cornell-head strong { font-size: 15px; color: var(--dark); }
+.cornell-date {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+  font-variant-numeric: tabular-nums;
+}
+.cornell-status {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.cornell-close {
+  /* 저장 단추가 머리말을 떠나 요약 칸 아래로 내려가면서, 오른쪽으로 미는
+     일을 여기가 맡습니다(예전에는 그 단추의 margin-left:auto가 했습니다) */
+  margin-left: auto;
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: none;
+  border-radius: 8px;
+  font-size: 19px;
+  line-height: 1;
+  color: var(--text-sub);
+  cursor: pointer;
+}
+.cornell-close:hover { background: var(--neutral); color: var(--text); }
+.cornell-lesson {
+  flex-shrink: 0;
+  padding: 8px 16px;
+  background: var(--bg-deep);
+  border-bottom: 1px solid var(--border);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cornell-empty { padding: 20px 16px; font-size: 13px; color: var(--text-sub); }
+
+/* 두 칸(노트 · 활동)이 나란히 서는 자리. 날개를 안 폈을 때도 이 줄은
+   그대로 있고, 안 보이는 칸만 감춰져 있습니다. */
+.cornell-panes {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: row;
+  /* ── 날개를 펴고 접는 동안 칸이 짜부라지지 않게 ──────────────────
+     칸을 `flex: 1`로 두면 폭이 380 → 760으로 벌어지는 **내내** 두 칸이
+     남는 폭을 나눠 가져, 학생이 지금 글을 쓰고 있는 칸이 380 → 190 →
+     380으로 출렁입니다. 칸 폭을 못 박고 넘치는 만큼을 여기서 가리면,
+     칸은 제자리에 가만히 있고 **새 칸이 드러나고 가려질** 뿐입니다
+     (파이썬 실행기 2단이 `.py-main`에서 하는 것과 같은 방법).
+     오른쪽 끝으로 모으는 까닭: 서랍의 오른쪽은 화면 가장자리에 붙박이라
+     날개를 펴면 **왼쪽**이 새로 생기는 자리입니다. 그래서 넘치는 쪽도
+     왼쪽이어야 활동 칸이 제자리에 남습니다. */
+  justify-content: flex-end;
+  overflow: hidden;
+}
+/* 한 칸 — 구르는 본문(.cornell-body) + (노트에만) 저장 줄.
+   칸마다 제 스크롤을 가져야 노트를 내려도 활동 칸이 따라 밀리지 않습니다. */
+.cornell-pane {
+  flex: 0 0 var(--cornell-w);
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+/* 탭을 오갈 때 안 보이는 쪽은 지우지 않고 감춥니다(다시 읽지 않으려고).
+   display를 여기서 정해 두었으므로 hidden 속성만으로는 안 숨습니다. */
+.cornell-pane[hidden] { display: none; }
+/* 두 칸이 나란히 서 있을 때만 가르는 선 — 오른쪽(활동) 칸에 붙입니다.
+   판정을 `.wide`가 아니라 **보이는 칸 둘**로 하는 까닭: 날개를 접는
+   250ms 동안에도 두 칸이 그려져 있는데(컴포넌트의 `linger`) `.wide`는
+   이미 빠진 뒤라, 그것으로 보면 접히는 내내 선만 먼저 사라집니다. */
+.cornell-pane:not([hidden]) + .cornell-pane:not([hidden]) {
+  border-left: 1px solid var(--border);
+}
+
+.cornell-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 14px 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* 코넬 세 칸 — 서랍이 380px뿐이라 좌우 2단 대신 세로로 쌓습니다.
+   순서(단서 → 필기 → 요약)는 그대로라 코넬의 흐름은 지켜집니다.
+   진짜 2단은 나중에 복습 화면에서 펼칩니다. */
+.cornell-zone { display: flex; flex-direction: column; gap: 6px; }
+.cornell-zone label { display: flex; flex-direction: column; gap: 1px; }
+.cornell-zone label b { font-size: 12.5px; font-weight: 800; color: var(--dark); }
+.cornell-zone label em {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--text-sub);
+}
+.cornell-zone textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  font-family: inherit;
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+/* 단서 칸은 코넬 노트에서 왼쪽에 서는 칸이라, 세로로 쌓아도 그 자리임이
+   보이도록 왼쪽에 띠를 답니다. --primary-light(#f8ece5)는 흰 바탕에서
+   거의 안 보여(대비 1.1) 한 단계 진한 값을 씁니다. */
+.cornell-zone--cue textarea {
+  border-left: 3px solid #e2ab8d;
+}
+.cornell-zone--cue textarea:focus {
+  border-left-color: var(--primary);
+}
+/* ── 덩어리 한 줄 (서랍) ───────────────────────────────────────
+   '단서 한 칸 + 필기 한 칸'을 한 묶음으로 두릅니다. 서랍은 폭이 380px이라
+   둘을 위아래로 쌓지만, 묶여 있는 것이 보여야 나중에 2단으로 펴 볼 때
+   어느 물음이 어느 필기의 것인지 알 수 있습니다. */
+.cornell-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 12px 12px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--primary-light);
+  border-radius: var(--radius-btn);
+  background: #fdfcfa;
+}
+.cornell-block-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 20px;
+}
+.cornell-block-no {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--primary-light);
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--primary-dark);
+  font-variant-numeric: tabular-nums;
+}
+.cornell-block-del {
+  margin-left: auto;
+  border: none;
+  background: none;
+  padding: 0 2px;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--text-faint);
+  cursor: pointer;
+}
+.cornell-block-del:hover { color: var(--danger); }
+/* 덩어리 안에서는 이름표를 작게 — 줄마다 되풀이되는 글자라서요 */
+.cornell-block .cornell-zone label b { font-size: 11.5px; }
+.cornell-block .cornell-rte .rte-area { min-height: 110px; }
+/* 새 주제로 넘어갈 때 누르는 단추 — 덩어리 목록 바로 아래 */
+.cornell-block-add {
+  align-self: flex-start;
+  border: 1px dashed var(--border);
+  border-radius: 999px;
+  background: none;
+  padding: 6px 14px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+  cursor: pointer;
+}
+.cornell-block-add:hover:not(:disabled) {
+  border-color: var(--primary);
+  border-style: solid;
+  color: var(--primary-dark);
+}
+.cornell-block-add:disabled { opacity: 0.45; cursor: default; }
+
+.cornell-rte .rte-area { min-height: 150px; font-size: 13.5px; }
+.cornell-rte .rte-toolbar { padding: 4px 6px; }
+.cornell-rte .rte-tool { width: 26px; height: 26px; }
+
+/* 선생님이 남긴 한 마디 — 맨 위에, 눈에 띄게 */
+.cornell-feedback {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  background: var(--primary-light);
+  border-radius: var(--radius-btn);
+}
+.cornell-feedback-tag {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--primary-dark);
+}
+.cornell-feedback p {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text);
+  white-space: pre-wrap;
+}
+/* 몰래 보는 것이 아니라 알고 쓰는 것이 되도록 */
+.cornell-note-hint {
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--text-sub);
+}
+
+/* 서랍이 열리면 발표 화면이 그만큼 좁아집니다 — 덮지 않고 밀어냅니다.
+   **서랍과 같은 길이로 함께 줄어듭니다** — 서랍은 미끄러지는데 발표 화면만
+   한 번에 끊겨 좁아지면, 미는 쪽과 밀리는 쪽이 따로 노는 것으로 보입니다.
+   전환은 열려 있지 않을 때도 걸어 둡니다(닫힐 때 되돌아와야 하므로). */
+.broadcast-overlay {
+  transition: right var(--cornell-slide) ease, bottom var(--cornell-slide) ease;
+}
+.broadcast-overlay--noted { right: var(--cornell-w); }
+/* 날개를 편 만큼 더 — 선생님 화면이 그만큼 더 좁아집니다 */
+.broadcast-overlay--noted2 { right: var(--cornell-w2); }
+
+/* 움직임을 줄여 달라고 한 기기에서는 미끄러지지 않고 곧바로 제자리에
+   섭니다. **길이만 0으로 줄입니다**(transition을 통째로 끄지 않고) —
+   컴포넌트는 그대로 `SLIDE_MS` 뒤에 서랍을 걷어 내는데, 그 사이에도
+   화면은 이미 끝난 모습이라 보는 사람에게는 곧바로 닫힌 것과 같습니다. */
+@media (prefers-reduced-motion: reduce) {
+  :root { --cornell-slide: 0.01s; }
+}
+
+/* 좁은 화면 — 옆에 세울 자리가 없어 아래에서 올라오는 시트로 바꿉니다.
+   슬라이드는 위에 남습니다(가리지 않게 화면의 60%까지만). */
+@media (max-width: 760px) {
+  .cornell-handle {
+    top: auto;
+    bottom: 84px;
+    writing-mode: horizontal-tb;
+    width: auto;
+    padding: 8px 14px;
+    border-radius: 999px 0 0 999px;
+  }
+  .cornell-handle:hover { width: auto; }
+  .cornell-drawer {
+    top: auto;
+    left: 0;
+    height: 60vh;
+    width: auto;
+    border-left: none;
+    border-top: 1px solid var(--border);
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -6px 26px rgba(46, 36, 26, 0.18);
+    /* **아래에서 올라옵니다** — 여기서는 시트라 오른쪽이 아니라 바닥이
+       들어오는 쪽입니다. 미끄러지는 방향은 서랍이 붙어 있는 가장자리를
+       따라갑니다. `.shown`은 `translateX(0)`이라 축이 무엇이든 제자리로
+       돌아오므로 그대로 씁니다. */
+    transform: translateY(100%);
+  }
+  /* 좁은 화면에서는 날개를 못 폅니다 — 칸을 고르는 일은 JS가 이미 하나로
+     줄이지만(CornellNoteDrawer의 narrow), CSS 쪽도 함께 막아 둡니다.
+     `.cornell-drawer.wide`는 특이도가 한 칸 높아 그냥 두면 여기서 이깁니다. */
+  .cornell-drawer.wide { width: auto; }
+  /* 여기서는 시트가 화면 폭을 다 쓰고 칸도 한 번에 하나뿐이라, 칸을
+     380px에 못 박아 두면 좁은 폰에서는 넘치고 넓은 태블릿에서는 오른쪽에
+     붙은 채 왼쪽이 빕니다. 남는 폭을 그대로 쓰게 되돌립니다. */
+  .cornell-panes { justify-content: flex-start; }
+  .cornell-pane { flex: 1 1 auto; }
+  .broadcast-overlay--noted,
+  .broadcast-overlay--noted2 { right: 0; bottom: 60vh; }
+}
+
+/* ===== 수업 노트 — 지난 노트 보러 가기 (서랍 맨 아래) ===== */
+.cornell-past-link {
+  align-self: flex-start;
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary-dark);
+  cursor: pointer;
+}
+.cornell-past-link:hover { text-decoration: underline; }
+
+/* ===== 수업 노트 한 장 — 읽기 전용 코넬 2단 =====
+   서랍은 좁아 세 칸을 세로로 쌓지만, 넓은 화면에서는 본래 모양대로 폅니다.
+   왼쪽 단서 칸을 좁게 고정하는 것이 핵심입니다 — 오른쪽을 손으로 가리고
+   왼쪽만 보며 떠올리는 것이 코넬 노트의 복습 방법이라, 두 칸 폭이 비슷해지면
+   그 쓸모가 사라집니다. */
+.cornell-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid var(--border);
+  background: #fff;
+  overflow: hidden;
+  /* 양쪽 끝 세로선을 지웁니다 — 남는 것은 행을 가르는 가로 줄과 단서·필기를
+     가르는 세로선 하나뿐이라, 상자가 아니라 **줄 친 노트**로 읽힙니다.
+     테두리가 위아래만 남으므로 둥근 모서리도 함께 뺍니다(옆이 없는 채로
+     모서리만 굴리면 선이 허공에서 끊깁니다). */
+  border-left: none;
+  border-right: none;
+  border-radius: 0;
+}
+.cornell-sheet-grid {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+}
+.cornell-sheet-cue,
+.cornell-sheet-notes,
+.cornell-sheet-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+}
+/* 코넬 노트의 그 세로선 — 단서와 필기를 가르는 선입니다 */
+.cornell-sheet-cue {
+  border-right: 2px solid var(--primary-light);
+  background: #fdfcfa;
+}
+/* 덩어리마다 한 행. 행을 가르는 가로 줄을 칸 위쪽에 둡니다 — 머리 줄
+   (.cornell-sheet-th) 바로 아래도 이 선으로 갈립니다. */
+.cornell-sheet-cue,
+.cornell-sheet-notes { border-top: 1px solid var(--border); }
+.cornell-sheet-th {
+  border-top: none;
+  padding-bottom: 6px;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--primary-dark);
+  letter-spacing: 0.02em;
+}
+.cornell-sheet-summary {
+  border-top: 1px solid var(--border);
+  background: #fdfcfa;
+}
+.cornell-sheet h4 {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--primary-dark);
+  letter-spacing: 0.02em;
+}
+.cornell-sheet p {
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.cornell-sheet-blank {
+  color: var(--text-sub);
+  font-style: italic;
+}
+.cornell-sheet-rich {
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: var(--text);
+  word-break: break-word;
+}
+.cornell-sheet-rich ul,
+.cornell-sheet-rich ol { padding-left: 20px; }
+.cornell-sheet-rich li { margin: 2px 0; }
+.cornell-sheet-feedback {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--border);
+  background: var(--primary-light);
+}
+.cornell-sheet-feedback p {
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* ===== 고치는 한 장 (CornellNoteEditSheet) =====
+   읽기 전용 한 장과 **같은 껍데기·같은 격자**를 그대로 쓰고, 글이 있던
+   자리만 입력칸이 됩니다 — '고치기'를 눌러도 보던 배치가 안 바뀝니다.
+   칸 자체의 테두리는 지웁니다: 격자의 가로 줄과 가운데 세로선이 이미 칸을
+   가르고 있어, 상자를 한 겹 더 두르면 줄 친 노트가 표 무더기로 보입니다. */
+.cornell-sheet--edit .cornell-edit-topic,
+.cornell-sheet--edit textarea {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  color: var(--text);
+  padding: 0;
+  resize: none;
+}
+.cornell-sheet--edit .cornell-edit-topic:focus,
+.cornell-sheet--edit textarea:focus { outline: none; }
+/* 지금 어느 칸을 고치는 중인지는 **바탕색**으로 알립니다(테두리를 두르면
+   위 규칙이 지운 상자가 초점마다 되살아납니다). */
+.cornell-sheet--edit .cornell-edit-topic:focus,
+.cornell-sheet--edit textarea:focus,
+.cornell-sheet--edit .cornell-edit-rte .rte-area:focus {
+  background: #fffdf6;
+}
+.cornell-edit-topic {
+  font-size: 15px;
+  font-weight: 800;
+}
+/* 단서·요약은 글만큼 늘어나지 않으므로(textarea) 최소 높이를 둡니다.
+   두 칸이 같은 자리에서 읽히도록 글자 크기는 읽기 전용과 같은 13.5px. */
+.cornell-edit-cue,
+.cornell-edit-summary {
+  font-size: 13.5px;
+  line-height: 1.7;
+  min-height: 66px;
+}
+.cornell-edit-summary { min-height: 54px; }
+.cornell-sheet--edit .cornell-edit-rte { border: none; background: transparent; }
+.cornell-sheet--edit .cornell-edit-rte .rte-area {
+  font-size: 13.5px;
+  line-height: 1.7;
+  min-height: 66px;
+  padding: 0;
+}
+/* 줄 지우기 — 단서 칸 아래 작은 글자. 눌러서 지우는 것이라 눈에 먼저
+   들어올 이유가 없습니다. */
+.cornell-edit-del {
+  align-self: flex-start;
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 11px;
+  color: var(--text-faint);
+  cursor: pointer;
+}
+.cornell-edit-del:hover { color: var(--primary-dark); text-decoration: underline; }
+.cornell-edit-add {
+  display: flex;
+  justify-content: center;
+  padding: 8px;
+  border-top: 1px solid var(--border);
+}
+.cornell-edit-add button {
+  border: 1px dashed var(--border);
+  background: none;
+  color: var(--text-sub);
+  padding: 5px 14px;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.cornell-edit-add button:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+.cornell-edit-add button:disabled { opacity: 0.5; cursor: default; }
+/* 고치기 전 안내 — 읽을 것이 아니라 참고할 것이라 딸림글 짙기까지만. */
+.cornell-edit-warn {
+  margin: 0 0 8px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: var(--primary-light);
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--text-sub);
+}
+/* 머리줄의 '고치기' — 인쇄 단추 왼쪽. 고치는 중에는 채운 색이 되어
+   '지금 고치는 중'을 그 자리가 그대로 말합니다. */
+.cornell-read-edit {
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  color: var(--text-sub);
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.cornell-read-edit:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+.cornell-read-edit.on {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+.cornell-read-edit:disabled { opacity: 0.5; cursor: default; }
+
+
+/* ===== 체크 줄 (수업 메모) ===========================================
+   표시가 목록(<ul>)이 아니라 **줄(<li>)**에 붙습니다 — 한 목록 안에서
+   글머리 기호 줄과 체크 줄을 섞어 쓸 수 있어야 하기 때문입니다.
+   `ul.checklist`는 예전 모양(목록 통째로 체크)이라 함께 받아 줍니다.
+   <input type="checkbox">를 안 쓰는 까닭은 lib/html.js 주석 참고 —
+   네모는 여기서 CSS로 그립니다.
+
+   **네모는 글머리 기호가 서던 자리(글자 왼쪽)에 그립니다.** 그래야 한 목록
+   안에서 '• 줄'과 '☐ 줄'의 글자가 같은 세로선에 섭니다. 누르는 자리 판정도
+   그 자리에 맞춰야 합니다 — lib/html.js의 hitCheckBox 한 곳에 있습니다. */
+ul.checklist { list-style: none; }
+li.check,
+ul.checklist > li {
+  list-style: none;
+  position: relative;
+}
+li.check::before,
+ul.checklist > li::before {
+  content: "";
+  position: absolute;
+  left: -18px;          /* 목록 padding-left(20px) 안쪽 — 글머리 기호 자리 */
+  top: 0.3em;
+  width: 13px;
+  height: 13px;
+  box-sizing: border-box;
+  border: 1.5px solid var(--border);
+  border-radius: 3px;
+  background: #fff;
+  cursor: pointer;
+}
+li.check::before:hover,
+ul.checklist > li::before:hover { border-color: var(--primary); }
+/* 켠 줄 — 초록 네모에 흰 체크. 글자는 옅어지고 줄이 그어집니다.
+   체크 표시는 ::after로 그린 'ㄴ'을 돌린 것입니다(글꼴에 기대지 않게). */
+li.check.done::before,
+ul.checklist > li.done::before {
+  border-color: #3f704b;
+  background: #3f704b;
+}
+li.check.done::after,
+ul.checklist > li.done::after {
+  content: "";
+  position: absolute;
+  left: -14px;
+  top: calc(0.3em + 2px);
+  width: 4px;
+  height: 7px;
+  box-sizing: border-box;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(42deg);
+}
+li.check.done,
+ul.checklist > li.done {
+  color: var(--text-faint);
+  text-decoration: line-through;
+}
+

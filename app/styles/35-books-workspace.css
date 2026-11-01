@@ -1,0 +1,1072 @@
+/* 책방 교사 작업 화면(3분할) — 원래 app/globals.css 21194~22264줄. 차례는 globals.css의 @import 순서가 정합니다. */
+/* ===================== 책방 교사 작업 화면 (3분할) ===================== */
+/* 왼쪽 모둠 목록 · 가운데 모둠 판 · 오른쪽 진행 —
+   가운데 판이 화면 아래까지 채워지도록 .book-workspace-main부터
+   .book-workspace → .book-workspace-center → .canvas-embed까지
+   flex:1/min-height:0 체인을 이어갑니다(.canvas-main과 같은 패턴). */
+.book-workspace-main {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+.book-workspace {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: 16px;
+}
+.book-group-rail {
+  /* 모둠원 이름이 한 줄에 셋 들어가고 잘리지 않을 만큼 */
+  width: 240px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+}
+.book-rail-card {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 100%;
+  text-align: left;
+  padding: 11px 13px;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  background: var(--card-bg);
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.book-rail-card:hover {
+  border-color: var(--primary);
+}
+/* 지금 보고 있는 모둠 */
+.book-rail-card.on {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+.book-rail-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.book-rail-head strong {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text);
+}
+.book-rail-members {
+  font-size: 12px;
+  color: var(--text-sub);
+  line-height: 1.45;
+}
+/* 모둠 카드 안의 이름 — 한 줄에 셋씩 칩으로.
+   자리가 늘 셋으로 고정돼야 카드끼리 줄이 맞습니다(넷째부터 아랫줄).
+   이름이 길면 칸을 넘기지 않고 칩 안에서 줄을 바꿉니다 — 잘라 내면
+   '황보소윤'이 '황보소…'가 되어 누구인지 알 수 없습니다. */
+.book-rail-chips {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+.book-rail-chip {
+  padding: 3px 5px;
+  border-radius: 999px;
+  background: var(--bg-deep);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text);
+  text-align: center;
+  line-height: 1.35;
+  word-break: keep-all;
+}
+/* 고른 모둠은 카드 바탕이 연한 주황이라 칩이 묻힙니다 — 흰 바탕으로 띄웁니다 */
+.book-rail-card.on .book-rail-chip { background: #fff; }
+.book-workspace-center {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+/* ── 곁텍스트·RAFT·KWLS의 세 칸 화면에서 더 쓰는 것들 ──
+   뼈대(.book-workspace·.book-group-rail·.book-workspace-center·.dash-side)는
+   닿소리 채우기의 것을 그대로 씁니다 — 네 활동의 교사 화면이 서로 다른
+   모양이면 교사가 화면마다 다시 익혀야 합니다. */
+/* 왼쪽 카드 안의 단계 네모는 오른쪽 '학생별 진행'의 조각 바와 **같은 규칙**
+   (.dash-heat · .dash-heat-cell · .entry-heat-cell--*)을 그대로 씁니다 —
+   여기에 따로 덧대지 마세요(BookStudentRail 머리글 참고). */
+/* 학생 카드 한 장 = 오른쪽 '학생별 진행'의 한 줄(`.dash-progress-list li`)과
+   같은 격자 — 점·학번·이름 | n/N칸 · 글자 수, 그 아래 막대, 그 아래 조각 바.
+   막대·조각 바는 제 규칙이 `grid-column: 1 / -1`을 이미 갖고 있습니다. */
+.book-rail-progress {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 8px;
+  align-items: center;
+  min-width: 0;
+}
+.book-rail-progress .dash-progress-name { min-width: 0; overflow: hidden; }
+.book-rail-progress .dash-progress-who { overflow: hidden; text-overflow: ellipsis; }
+.book-rail-progress .book-rail-topic,
+.book-rail-progress .book-rail-meta { grid-column: 1 / -1; }
+.book-rail-topic {
+  font-size: 11.5px;
+  color: var(--text-sub);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.book-rail-meta {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.book-rail-card.on .book-rail-meta,
+.book-rail-card.on .book-rail-topic { color: var(--primary-dark); }
+
+/* 가운데 칸의 머리 — 지금 누구를 보고 있는지. 머리말의 제목은 활동 이름이라
+   이 줄이 없으면 학생 이름이 화면 어디에도 없습니다(왼쪽 목록의 켜진 카드만
+   으로는 약합니다). */
+.entry-detail-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.entry-detail-head h2 {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--text);
+}
+.entry-detail-head h2 em {
+  font-style: normal;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+  font-variant-numeric: tabular-nums;
+}
+/* 가운데 칸은 제 안에서 구릅니다 — 페이지가 통째로 구르면 왼쪽 목록과
+   오른쪽 패널이 함께 밀려 올라가, 학생을 바꾸려면 도로 올라와야 합니다. */
+.book-workspace-center {
+  overflow-y: auto;
+  /* 이 칸의 '폭'을 기준으로 안쪽 배치를 접을 수 있게 합니다(@container).
+     화면 폭 기준 미디어 쿼리로는 여기를 다룰 수 없습니다 — 창이 1900px이어도
+     양옆에 '오늘' 패널·학생 목록·진행 패널·'멋진 순간'이 서면 가운데는
+     600px밖에 안 남는데, 미디어 쿼리는 창만 보고 '넓다'고 판단합니다. */
+  container-type: inline-size;
+}
+.book-workspace-center > .entry-detail-grid { margin-top: 12px; }
+.book-entry-workspace-main .books-head-main { flex-wrap: wrap; }
+.entry-overview-btn { margin-left: auto; flex-shrink: 0; }
+.entry-group-rail .book-rail-card {
+  cursor: default;
+  flex-shrink: 0;
+  background: var(--card-bg);
+  border-width: 1px;
+}
+.entry-group-pick {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+.entry-group-rail .book-rail-card .book-rail-chip {
+  border: 0;
+  background: var(--bg-deep);
+  cursor: pointer;
+}
+.paratext-member-pick {
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+.entry-group-rail .book-rail-chip.is-picked,
+.paratext-member-pick[aria-pressed="true"] {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #fff;
+}
+.entry-group-rail button:focus-visible,
+.paratext-member-pick:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+/* 세 칸 안에서는 KWLS 네 칸이 화면 높이만큼 늘어나지 않습니다 — 가운데가
+   제 스크롤을 가지므로 그 안에서 100vh를 잡으면 늘 스크롤이 생깁니다. */
+.book-workspace-center .kwls-detail-grid { min-height: 0; }
+
+/* 오른쪽 패널의 단계 네모 — 누르면 그 학생 화면으로 갑니다 */
+.entry-heat {
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+}
+.entry-heat-cell--doing { background: #f3c99a; }
+.entry-heat-cell--locked {
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(0, 0, 0, 0.13) 0 2px,
+    transparent 2px 5px
+  );
+}
+
+.book-workspace-center > .empty-note {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+}
+/* 가운데에 끼워 넣은 판 — 자체 머리말이 없으므로 위 여백만 정리 */
+.canvas-embed {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.book-progress-sum {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+  margin-bottom: 6px;
+}
+/* 머리말의 '전체 보기' — 활동 이름 오른쪽. ← 활동 목록·주제·반 배지와 같은 크기 */
+.book-allview-btn {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  font-size: 13px;
+  line-height: 1;
+}
+
+/* 집계 머리말의 버튼 묶음 (중계 · 전체 화면) */
+.dash-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* 전체 보기 머리말 — 한 줄 (공부방 머리말 .study-title-row와 같은 짜임)
+   -------------------------------------------------------------
+   제목 아래 두 번째 줄에 숫자를 깔던 것을 한 줄로 폈습니다. 두 줄이면 그
+   아래 격자가 그만큼 내려앉는데, 이 화면은 14칸을 한눈에 담는 것이 전부라
+   세로 한 줄이 아깝습니다.
+   접지 않고(flex-wrap: nowrap) 자리가 모자라면 가로로 밉니다 — 접히면
+   격자가 통째로 내려가 화면이 출렁입니다. 막대는 옅게 보여 줍니다.
+   공부방에서 같은 이유로 쓰는 방식입니다.
+   작업 화면(ConsonantCanvas)은 그대로 두 줄이라 .dash-root 아래로 한정합니다. */
+.dash-root > .canvas-head {
+  gap: 10px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+}
+.dash-root > .canvas-head > * { flex-shrink: 0; }
+.canvas-head-name {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--text);
+  white-space: nowrap;
+}
+/* 숫자는 오른쪽 끝으로. 버튼 사이에 끼우면 무엇이 누를 것이고 무엇이 읽을
+   것인지 흐려집니다. */
+.canvas-head-stats {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--text-sub);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+/* 간격은 위의 gap이 냅니다 — 배지가 갖고 있던 margin까지 더하면 두 번 벌어집니다 */
+.canvas-head-stats .dash-done-count { margin-left: 0; }
+.dash-cast-btn.on {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+
+/* 학생 화면에 중계된 집계 — 격자가 화면을 가득 채우게 */
+.broadcast-overlay--consonant .broadcast-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+.cast-grid {
+  height: 100%;
+}
+.dash-zoom-backdrop {
+  z-index: 3100; /* 중계 오버레이(3000) 위 */
+}
+
+@media (max-width: 900px) {
+  /* 좁은 화면에서는 세 칸을 위아래로 */
+  .book-workspace { flex-direction: column; }
+  .book-group-rail {
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .book-rail-card { width: auto; flex: 1 1 150px; }
+  /* 좁은 화면에서는 카드가 가로로 늘어서 폭이 제각각입니다 — 셋을 고집하면
+     이름이 칩 안에서 두 줄이 되므로, 들어가는 만큼만 넣습니다. */
+  .book-rail-chips { grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); }
+  .book-group-progress { width: 100%; }
+}
+
+/* ── 교사 화면에 끼워 넣은 집계 ── 별도 화면이 아니므로 위쪽만 띄웁니다 */
+.dash-embed {
+  margin-top: 28px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+/* 전체 화면(칠판) 모드에서는 끼워 넣은 상태라도 화면을 가득 씁니다 */
+.dash-embed.zoom {
+  margin-top: 0;
+  padding: 18px 24px 22px;
+  border-top: none;
+  background: var(--bg);
+}
+
+.consonant-chip-x {
+  border: none;
+  background: none;
+  color: var(--text-sub);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 1px;
+}
+.consonant-chip-x:hover { color: var(--danger); }
+.consonant-input {
+  border: 1px solid var(--primary);
+  border-radius: 8px;
+  padding: 5px 8px;
+  font-size: 13px;
+  width: 100%;
+  flex-shrink: 0;
+  color: var(--text);
+}
+/* 한가운데 주제어 칸 */
+.consonant-center {
+  background: var(--sidebar-bg);
+  border-color: var(--sidebar-bg);
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 4px;
+}
+.consonant-center-label { font-size: 11px; color: var(--sidebar-text); }
+.consonant-center-topic {
+  font-size: 18px;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.3;
+  word-break: keep-all;
+}
+
+/* ── 집계 대시보드 (교사) ── */
+.dash-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: 16px;
+}
+.dash-grid { flex: 1; min-width: 0; }
+
+/* ── 개별 활동 — 판이 없는 학생 알림 (교사, 왼쪽 목록 맨 위) ──
+   활동을 시작한 뒤 반에 들어온 학생입니다. 드물게 일어나는 일이라 **눈에는
+   띄되 목록을 밀어내지 않게** 옅은 살구 상자 하나로 둡니다 — 학생 카드와
+   같은 폭·같은 모서리라 목록의 한 줄처럼 읽힙니다. */
+.book-rail-missing {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--primary-light);
+  border-radius: 10px;
+  background: #fdf6ef;
+}
+.book-rail-missing-head {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--text);
+}
+/* 이름은 딸림글 — 몇 명인지가 먼저 읽히고, 누구인지는 그다음입니다 */
+.book-rail-missing-names {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-sub);
+  line-height: 1.5;
+}
+.book-rail-missing .btn-ghost {
+  justify-content: center;
+  width: 100%;
+}
+
+/* ── 잔디 보기 — 세로 닿소리 14줄 × 가로 학생 ──
+   전광판(`.progress-grass`·`.grass-*`)의 격자를 그대로 가져다 **모달이 아니라
+   이 자리에** 그립니다. 세 화면(공부방 전광판 · 책방 전광판 · 여기)이 같은
+   격자를 써야 교사가 같은 것을 세 번 익히지 않습니다.
+
+   **뿌리 클래스는 `.dash-grass`입니다.** `.consonant-progress`나
+   `.book-progress`로 짓지 마세요 — 앞의 것은 활동 만들기 창들과 학생 카드의
+   진행 배지가 이미 쓰고 있고, 뒤의 것은 `-legend`·`-done`·`-sum`이 따로
+   있어 뿌리로 쓰면 그것들이 이 격자의 자식처럼 읽힙니다(책방 전광판이
+   `.bookboard`로 이름을 바꾼 것과 같은 까닭). */
+.dash-body--grass {
+  /* 가로가 인원만큼 늘어나므로 진행 패널을 접고 폭을 다 씁니다(구름과 같음) */
+  display: block;
+  overflow: hidden;
+}
+.dash-grass {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+/* 줄 이름표는 닿소리 한 글자뿐이라 책방 전광판(232px)만큼 넓을 까닭이
+   없습니다 — 글자 알약 17px + 진행률 38px + 사이 여백입니다. */
+.dash-grass .grass-act {
+  display: grid;
+  grid-template-columns: 17px 38px;
+  gap: 8px;
+  align-items: center;
+  width: 77px;
+  padding-right: 14px;
+}
+/* 진행률은 오른쪽 끝에 붙이고 숫자 폭을 고정합니다 — 자릿수가 달라도
+   (`0/26` · `12/26`) 열네 줄의 오른쪽 끝이 한 줄로 섭니다. */
+.dash-grass .grass-act-count {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+/* 14칸을 다 채운 학생은 이름 **위에** 붉은 점. 다 채운 줄은 초록이 열넷이라
+   옆줄과 잘 안 갈려서, '누가 끝냈나'가 이름 줄에서 바로 읽히게 합니다.
+   색·크기는 '모둠원별 진행'의 완료 점(`.dash-heat-cell.is-done`)과 **같은
+   값**이고, 색은 돌발 퀴즈 불(`.pq-btn-dot`)과도 같습니다 — 화면이
+   달라도 '여기 봐 달라'는 신호가 하나로 읽혀야 합니다.
+
+   **자리는 이 화면의 모든 이름이 비워 둡니다**(`.dash-grass .grass-name`의
+   padding-top). 점이 있는 이름에만 여백을 주면 그 이름만 10px 내려앉아,
+   스물몇 개가 늘어선 줄이 들쭉날쭉해집니다. 빈 자리는 다 채우기 전까지
+   아무것도 없을 뿐입니다.
+
+   **`.grass-name`에 직접 주지 마세요** — 책방 전광판(`BookProgressBoard`)이
+   같은 클래스를 씁니다. 거기는 '다 채움'이라는 개념 자체가 없어(줄마다 제
+   상태가 따로입니다) 점이 영영 안 붙는데 이름만 내려앉고 글자 자리가 10px
+   줄어듭니다.
+
+   **흰 테두리를 두르지 마세요.** 저 둘은 색칠한 칸 위에 얹히는 점이라 흰
+   고리가 '사이를 띄운 자리'로 읽히지만, 여기는 크림색 바탕(`--bg`) 위라
+   고리가 그대로 흰 무리로 보입니다.
+
+   **`position`을 건드리지 마세요.** `.grass-name`은 `sticky`라 그것만으로
+   이미 점의 기준입니다(sticky도 '자리를 잡은' 요소입니다). `relative`를
+   덧대면 sticky가 풀려 세로로 구를 때 이름 줄이 위에 안 붙습니다. */
+.dash-grass .grass-name { padding-top: 12px; }
+.dash-grass .grass-name.is-done::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  margin-left: -3.5px;
+  border-radius: 999px;
+  background: #e05a2f;
+}
+/* 이 격자는 모달이 아니라 대시보드 안이라 `.progress-scroll`의 68vh 제한이
+   필요 없습니다 — 남는 높이를 그대로 씁니다. */
+.dash-grass .progress-scroll {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+}
+/* 격자는 학생 수만큼만 넓어서, 왼쪽에 붙여 두면 넓은 화면에서 오른쪽이 통째로
+   비었습니다(선생님 요청 — 가운데로). 범례와 격자를 한 덩이로 묶어 가운데에 두어
+   범례가 격자의 왼쪽 끝에 맞춰 섭니다. `max-width: 100%`라 격자가 칸보다 넓으면
+   덩이가 칸 폭을 다 쓰고 안의 `.progress-scroll`이 옆으로 구릅니다. 세로는 위에서
+   시작합니다(남는 높이를 그대로 써서 세로로 구름). */
+.dash-grass-inner {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  width: max-content;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+/* ── 모둠 고르기 줄 (교사) — 곁텍스트·RAFT의 학생 카드를 모둠으로 좁히기 ──
+   닿소리의 왼쪽 모둠 목록과 같은 일을 하되 한 줄입니다. 이 화면들은 카드
+   격자가 주인공이라, 왼쪽에 판을 두면 카드가 좁아져 이름이 잘립니다. */
+.group-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.group-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card-bg);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+  cursor: pointer;
+}
+.group-filter-btn em {
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-sub);
+  opacity: 0.8;
+  font-variant-numeric: tabular-nums;
+}
+.group-filter-btn:hover { border-color: var(--primary); }
+.group-filter-btn.on {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  color: var(--primary-dark);
+}
+.group-filter-btn.on em { color: var(--primary-dark); }
+/* 마지막 모둠 뒤에 붙는 단추(전광판) — 칩 줄과 한 줄에 서지만 성격이
+   다릅니다. 칩은 '어느 모둠을 볼까'를 고르는 것이고 이것은 '지금 열어라'라
+   비워 둔 채 테두리만 둡니다(칩과 같이 채우면 켜진 모둠처럼 보입니다).
+   글자가 이미 할 일이라 자물쇠·아이콘을 달지 않습니다. */
+.group-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+/* 감싸는 줄이 아래 여백을 맡으므로 안쪽 칩 줄의 것은 풉니다(안 그러면 겹쳐
+   24px이 됩니다) */
+.group-filter-row .group-filter { margin-bottom: 0; }
+.group-filter-act {
+  padding: 6px 14px;
+  border: 1px solid var(--primary);
+  border-radius: 999px;
+  background: none;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--primary-dark);
+  cursor: pointer;
+  transition: background 0.14s;
+}
+.group-filter-act:hover { background: var(--primary-light); }
+
+/* ── 우리 모둠 명단 줄 (학생) — 자기가 쓰는 칸 바로 위 ──────────────
+   모둠으로 묶여도 글은 각자 한 장이라, 이 줄이 없으면 학생 화면에서는
+   모둠이 있는지조차 알 수 없습니다. 색은 닿소리 판의 이름표와 같은
+   팔레트(모둠 안 자리 순서)입니다. */
+.mates-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  margin-bottom: 12px;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  background: var(--bg-deep);
+}
+.mates-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--text);
+  white-space: nowrap;
+}
+.mates-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.mates-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 11px;
+  border: 1px solid;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+.mates-chip em {
+  font-style: normal;
+  font-size: 10.5px;
+  font-weight: 800;
+  opacity: 0.75;
+}
+.mates-chip--pick { cursor: pointer; }
+.mates-chip--pick:hover { box-shadow: 0 0 0 3px var(--primary-light); }
+/* 모둠 고르기(자유 구성) — 아직 어느 모둠도 내 것이 아니라 사람 색이 없습니다 */
+.mates-chip--join {
+  background: var(--card-bg);
+  border-color: var(--border);
+  color: var(--text);
+  cursor: pointer;
+}
+.mates-chip--join:hover:not(:disabled) { border-color: var(--primary); color: var(--primary-dark); }
+.mates-chip--join:disabled { opacity: 0.5; cursor: default; }
+.mates-hint { font-size: 11.5px; color: var(--text-sub); }
+.mates-row--join { border-style: dashed; }
+/* 모둠 줄 오른쪽 끝의 '동료 평가' — 명단 바로 옆이라야 '이 친구들에게
+   쓰는 것'으로 읽힙니다. 머리말에 두면 활동 전체의 도구로 보입니다. */
+.peer-open-btn { margin-left: auto; padding: 6px 12px; font-size: 12.5px; }
+.peer-open-btn em {
+  font-style: normal;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+/* ── 동료 평가 ────────────────────────────────────────────────── */
+.peer-lock-btn { padding: 5px 11px; font-size: 12px; }
+.peer-lock-btn.on {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  color: var(--primary-dark);
+}
+.peer-lock-btn em {
+  font-style: normal;
+  margin-left: 6px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.peer-modal { width: min(94vw, 620px); }
+/* 모둠 RAFT — 왼쪽 친구의 글 · 오른쪽 나의 감상. .modal의 max-width(640)를 함께 올립니다. */
+.peer-modal--work { width: min(96vw, 1040px); max-width: min(96vw, 1040px); }
+.peer-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.peer-split--one { display: block; }
+.peer-work {
+  border: 1px solid var(--border); border-radius: 12px; background: var(--bg);
+  padding: 12px 14px; max-height: min(60vh, 560px); overflow-y: auto;
+}
+.peer-work-title { margin: 0 0 8px; font-size: 13.5px; font-weight: 800; color: var(--dark); }
+.mate-raft .raft-sentence { margin: 0 0 10px; }
+.mate-raft-plan { margin: 0 0 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.mate-raft-plan > div { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px; min-width: 0; }
+.mate-raft-plan dt { font-size: 11.5px; font-weight: 700; color: var(--text-sub); }
+.mate-raft-plan dd { margin: 2px 0 0; font-size: 13px; color: var(--text); overflow-wrap: anywhere; }
+.mate-raft-plan dd em { font-style: normal; color: var(--text-faint); }
+/* 글쓰기도 네 요소처럼 흰 칸 하나 — 칸 없이 바탕에 흘러 다른 덩이로 안 읽혔습니다 */
+.mate-raft-write { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px 10px; }
+.mate-raft-write strong { display: block; font-size: 11.5px; font-weight: 700; color: var(--text-sub); margin-bottom: 4px; }
+.mate-raft-write p { margin: 0; font-size: 14px; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--text); }
+@media (max-width: 760px) {
+  .peer-split { grid-template-columns: minmax(0, 1fr); }
+  .peer-work { max-height: 40vh; }
+}
+.peer-head-group {
+  margin-left: 10px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.peer-body { display: flex; flex-direction: column; gap: 12px; }
+/* 누구에게 쓸지 — 발표를 들으며 이름을 눌러 옮겨 다니는 줄 */
+.peer-people { display: flex; flex-wrap: wrap; gap: 6px; }
+.peer-person {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 13px;
+  border: 1.5px solid var(--border);
+  border-radius: 999px;
+  background: var(--card-bg);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-sub);
+  cursor: pointer;
+}
+.peer-person:hover { border-color: var(--primary); }
+.peer-person.on { font-weight: 800; }
+/* 이미 쓴 친구 — 누구를 아직 안 썼는지 이름줄만 보고 알게 */
+.peer-done-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.75;
+}
+.peer-write { display: flex; flex-direction: column; gap: 10px; }
+.peer-hints {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font-size: 11.5px;
+  color: var(--text-sub);
+  line-height: 1.6;
+}
+.peer-hints b { color: var(--text); font-weight: 800; }
+.peer-editor { min-height: 150px; }
+.peer-actions { display: flex; align-items: center; gap: 10px; }
+.peer-actions .btn-primary { margin-left: auto; }
+.peer-del { color: var(--danger); padding: 6px 12px; font-size: 12.5px; }
+.peer-state { font-size: 12px; color: var(--text-sub); }
+.peer-read {
+  padding: 11px 13px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  background: var(--bg-deep);
+  font-size: 14px;
+  line-height: 1.7;
+}
+/* 받은 한 마디 — 학생 화면 아래와 교사의 학생 상세에서 같이 씁니다 */
+.peer-received { margin-top: 18px; }
+.peer-received h4 {
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 9px;
+}
+.peer-received-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px;
+}
+.peer-card {
+  padding: 11px 13px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  background: var(--card-bg);
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: var(--text);
+}
+.peer-card header {
+  margin-bottom: 5px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--primary-dark);
+}
+
+/* ── 보는 방법 고르기 (격자 / 낱말 구름) ──────────────────────────
+   같은 집계를 보는 방법만 바뀌는 자리라 알약 하나에 둘을 붙여 둡니다 —
+   '다른 화면으로 간다'가 아니라 '같은 것을 달리 본다'로 읽히게. */
+.dash-view-tabs {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card-bg);
+}
+.dash-view-tab {
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text-sub);
+}
+.dash-view-tab:hover { color: var(--text); }
+.dash-view-tab.on { background: var(--primary); color: #fff; }
+
+/* ── 낱말 구름 ──────────────────────────────────────────────────
+   판이 넓을수록 글자가 커지므로(자리 잡기가 판 넓이에 맞춰 통째로 크기를
+   정합니다) 가로를 다 쓰고 세로도 남는 만큼 다 씁니다. */
+.dash-body--cloud { flex-direction: column; }
+.cloud-wrap {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cloud-box {
+  position: relative;
+  flex: 1;
+  min-height: 300px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  /* 자리 잡기가 판 안으로만 놓지만, 서체가 바뀌어 폭이 어긋나도 판 밖으로
+     새지 않게 잘라 둡니다(구름은 굴려 보는 화면이 아닙니다) */
+  overflow: hidden;
+}
+.cloud-word {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+  /* 굵기는 WordCloud.jsx의 WEIGHT와 반드시 같아야 합니다 — 폭을 재는
+     canvas와 실제 글자의 굵기가 다르면 낱말끼리 겹칩니다. */
+  font-weight: 800;
+  line-height: 1.16;
+  letter-spacing: -0.02em;
+  padding: 0;
+  border: none;
+  background: none;
+  animation: cloud-in 0.32s ease both;
+  /* 낱말이 늘면 자리가 조금씩 바뀝니다 — 툭 튀지 않고 미끄러지게 */
+  transition: left 0.45s ease, top 0.45s ease, font-size 0.45s ease;
+}
+button.cloud-word { cursor: pointer; }
+button.cloud-word:hover { text-decoration: underline; text-underline-offset: 4px; }
+span.cloud-word { cursor: default; }
+@keyframes cloud-in { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .cloud-word { animation: none; transition: none; }
+}
+.cloud-empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  color: var(--text-sub);
+}
+.cloud-hint {
+  flex-shrink: 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-sub);
+}
+/* 학생 화면에 중계된 구름 — 가운데 정렬로 오그라들지 않게 판을 채웁니다 */
+.broadcast-overlay--consonant .broadcast-body > .cloud-wrap {
+  width: 100%;
+  height: 100%;
+}
+
+.dash-side {
+  width: 268px;
+  flex-shrink: 0;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  overflow-y: auto;
+}
+.dash-side h3 { font-size: 13px; font-weight: 800; color: var(--text); margin-bottom: 12px; }
+.dash-side-empty { font-size: 12.5px; color: var(--text-sub); }
+.dash-progress-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+.dash-progress-list li { display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; align-items: center; }
+.dash-progress-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text);
+}
+.dash-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.dash-progress-num {
+  font-size: 11.5px;
+  color: var(--text-sub);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.dash-progress-words { color: var(--primary-dark); }
+.dash-progress-bar {
+  grid-column: 1 / -1;
+  height: 7px;
+  background: var(--neutral);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.dash-progress-bar b { display: block; height: 100%; border-radius: 999px; transition: width 0.25s; }
+/* 낱말 분포 히트맵 — 자음 14칸, 낱말이 많이 모인 칸일수록 진하게 */
+.dash-heat {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(14, 1fr);
+  gap: 2px;
+  margin-top: 3px;
+}
+.dash-heat-cell {
+  display: block;
+  height: 15px;
+  border-radius: 3px;
+  background: var(--neutral);
+  transition: opacity 0.2s;
+}
+/* 집계 카드 — 모둠 색 테두리.
+   글자 수가 달라도 폭을 고정해야 '줄 길이 = 언급 횟수'가 성립합니다.
+   (긴 낱말이 몇 개 없어도 많이 나온 것처럼 보이던 착시 방지)
+   넘치는 글자는 말줄임표로 자르고, 전체 낱말은 hover 툴팁으로 확인합니다. */
+.dash-chip {
+  display: inline-block;
+  width: 62px;
+  padding: 2px 6px;
+  background: #fff;
+  border-width: 1.5px;
+  border-style: solid;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+}
+/* 같은 단어 = 한 줄. 나온 횟수만큼 카드를 반복해 줄 길이로 빈도를 보여 줌 */
+.dash-rows {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+.dash-word-row {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+.dash-row-count {
+  font-style: normal;
+  font-size: 10.5px;
+  font-weight: 800;
+  color: var(--text-sub);
+  flex-shrink: 0;
+  margin-left: 2px;
+}
+/* 격자 칸을 버튼으로 — 눌러서 크게 보기 */
+.dash-cell {
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+}
+.dash-cell:hover { border-color: var(--primary); }
+
+/* 자음 한 칸 크게 보기 모달 — 칠판에 띄우는 용도라 크게, 그리고 고정 크기.
+   낱말 수에 따라 모달이 커졌다 작아지면 화면이 출렁여 보기 불편합니다. */
+.dash-zoom-modal {
+  width: min(94vw, 1180px);
+  max-width: none;
+  height: min(88vh, 800px);
+  max-height: none;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.dash-zoom-modal .modal-head h3 {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.dash-zoom-label { font-size: 24px; font-weight: 800; color: var(--primary-dark); }
+.dash-zoom-topic { font-size: 13px; font-weight: 700; color: var(--text-sub); }
+.dash-zoom-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 8px 2px;
+  align-content: flex-start;
+}
+.dash-rows.big { gap: 8px; }
+.dash-rows.big .dash-word-row { flex-wrap: wrap; }
+.dash-rows.big .dash-chip { width: 132px; font-size: 20px; padding: 7px 12px; }
+.dash-rows.big .dash-row-count { font-size: 15px; }
+.dash-rows.big .dash-word-row { gap: 6px; }
+.dash-zoom-hint {
+  font-size: 12px;
+  color: var(--text-sub);
+  margin-top: 12px;
+  text-align: center;
+}
+
+/* ── 모바일 ── */
+@media (max-width: 768px) {
+  .books-main { padding: 16px 12px 60px; }
+  .canvas-main { padding: 12px 10px 16px; overflow-y: auto; }
+  .consonant-grid {
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: none;
+    min-height: 0;
+  }
+  .consonant-cell { min-height: 110px; }
+  .consonant-center { grid-column: 1 / -1; min-height: 80px; }
+  .canvas-progress-bar { width: 90px; }
+  .dash-body { flex-direction: column; }
+  .dash-side { width: auto; }
+  /* 곁텍스트 — 좁은 화면에서는 카드를 한 줄에 하나씩 */
+  .paratext-grid { grid-template-columns: 1fr; }
+  .paratext-card-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  /* 공부방 활동 대시보드도 마찬가지로 한 줄에 하나씩 */
+  .activity-dash-grid { grid-template-columns: 1fr; }
+  /* 만들기 창 — 좁은 화면에서는 항목 짝짓기(.book-field-row)를 풀어 한 줄에
+     하나씩 놓습니다. 활동 종류는 아래 560px에서 한 열로 접습니다. */
+  .book-field-row { flex-wrap: wrap; }
+  .book-field-row .book-field { flex: 1 1 100%; }
+  /* 좁은 화면에서는 자리를 미리 잡지 않습니다 — 줄이 세로로 풀려 '이 활동만의
+     모둠'은 어차피 164px를 넘고, 짧은 갈래에는 빈 자리만 크게 남습니다. */
+  .book-group-detail { min-height: 0; }
+  .book-field-row .book-field--narrow { flex: 0 0 108px; }
+}
+
+/* 활동 만들기 — 모둠 이름 일괄 입력 */
+.book-optional {
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-sub);
+  background: var(--neutral);
+  border-radius: 999px;
+  padding: 1px 7px;
+  margin-left: 5px;
+}
+.book-cnt {
+  font-style: normal;
+  font-size: 11.5px;
+  font-weight: 800;
+  margin-left: 6px;
+}
+.book-cnt.ok { color: #3d8a72; }
+.book-cnt.bad { color: var(--danger); }
+
+/* 모둠 대시보드 — 이 활동이 어느 반 것인지 (book-group-topic과 같은 크기) */
+.book-group-class {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-sub);
+  background: var(--neutral);
+  border-radius: var(--radius-btn);
+  padding: 6px 12px;
+  line-height: 1;
+  white-space: nowrap;
+}
+

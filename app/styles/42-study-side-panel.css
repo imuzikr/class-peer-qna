@@ -1,0 +1,841 @@
+/* 공부방 왼쪽 사이드 패널 — 원래 app/globals.css 23914~24753줄. 차례는 globals.css의 @import 순서가 정합니다. */
+/* =============================================================
+   공부방 왼쪽 사이드 패널 — 프로젝트 활동 추가 (StudyActivityPanel)
+   KWL 패널(.kwl-panel)과 같은 자리를 씁니다 — 어두운 사이드바 톤을
+   그대로 이어받아 KWL 패널을 다시 켜도 나란히 어색하지 않게 맞춥니다.
+   ============================================================= */
+.study-activity-panel {
+  width: 300px;
+  flex-shrink: 0;
+  background: var(--sidebar-bg);
+  color: var(--sidebar-text);
+  overflow-y: auto;
+  padding: 20px 14px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 접힌 상태 — 세로 슬림 바 (오른쪽 '멋진 순간' 패널과 같은 패턴).
+   왼쪽 패널이라 펼치기 화살표가 오른쪽(»)을 가리킵니다. */
+.study-activity-panel.study-activity-panel--collapsed {
+  width: 44px;
+  padding: 14px 0 16px;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  overflow: hidden;
+}
+.study-activity-panel.study-activity-panel--collapsed:hover {
+  background: #2f2f2d;
+}
+.activity-collapsed-expand {
+  font-size: 15px;
+  font-weight: 800;
+  color: #9a988e;
+}
+.activity-collapsed-icon { font-size: 16px; }
+/* 세로로 세운 제목 — 슬림 바가 44px뿐이라 가로로는 못 씁니다 */
+.activity-collapsed-title {
+  writing-mode: vertical-rl;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #c2c0b6;
+  white-space: nowrap;
+}
+.activity-head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.activity-collapse-btn {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  color: #c2c0b6;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.activity-collapse-btn:hover { background: rgba(255, 255, 255, 0.16); }
+
+.study-activity-panel-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.study-activity-panel-title {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #c5c4bc;
+}
+
+.study-activity-panel-project {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.study-activity-panel-empty,
+.study-activity-panel-hint {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #9a988e;
+}
+
+.study-activity-panel-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.study-activity-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 8px;
+}
+
+/* 끌기 손잡이 — 이름 칸은 글자를 고르고 고치는 자리라 끌기를 겹칠 수
+   없습니다. 평소에도 희미하게 보여 두고(아예 감추면 끌 수 있다는 걸
+   알 길이 없습니다) 줄에 마우스를 올리면 또렷해집니다. 어두운 패널이라
+   색은 밝은 쪽으로. */
+.study-activity-drag {
+  flex-shrink: 0;
+  width: 14px;
+  padding: 3px 0;
+  font-size: 12px;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.22);
+  background: none;
+  border: none;
+  cursor: grab;
+  transition: color 0.15s;
+}
+.study-activity-row:hover .study-activity-drag,
+.study-activity-drag:focus-visible {
+  color: #9a988e;
+}
+.study-activity-drag:active { cursor: grabbing; }
+/* 집어 든 줄 — 원래 자리는 옅게 남겨 어디서 왔는지 보이게 */
+.study-activity-row.is-dragging { opacity: 0.4; }
+/* 놓을 자리 — 줄을 통째로 칠하면 바꿔치기처럼 읽히므로 선만 긋습니다 */
+.study-activity-row.is-over--up { box-shadow: inset 0 2px 0 0 var(--primary); }
+.study-activity-row.is-over--down { box-shadow: inset 0 -2px 0 0 var(--primary); }
+
+.study-activity-row-input {
+  flex: 1;
+  min-width: 0;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #e8e8e4;
+  font-size: 13px;
+  font-family: inherit;
+  padding: 8px 10px;
+  box-sizing: border-box;
+}
+.study-activity-row-input::placeholder { color: #9a988e; }
+.study-activity-row-input:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.09);
+}
+
+/* 자물쇠 — 활동이 학생에게 열려 있는지(잠금 아이콘 채워짐) 즉시 토글 */
+.study-activity-lock {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: #e8956c;
+  cursor: pointer;
+}
+.study-activity-lock.locked {
+  background: rgba(255, 255, 255, 0.03);
+  color: #6b6a63;
+}
+
+.study-activity-row-count {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #9a988e;
+  white-space: nowrap;
+}
+
+.study-activity-row-del {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: #9a988e;
+  font-size: 12px;
+  padding: 4px 5px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.study-activity-row-del:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.study-activity-panel-add {
+  background: none;
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  padding: 8px;
+  font-size: 13px;
+  color: #9a988e;
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.15s, color 0.15s;
+}
+.study-activity-panel-add:hover {
+  border-color: var(--primary);
+  color: #e8956c;
+}
+
+/* ── 자료 제공 — 패널 맨 아래 버튼 + 화면 가운데 모달 ──
+   버튼은 활동 한 줄(.study-activity-row)과 같은 크기라 활동 목록 끝에 한 줄이
+   더 있는 것처럼 보입니다. 누르면 가운데 모달이 열립니다 — 패널 폭(약 260px)
+   안에서 펼치면 설명 입력칸이 너무 좁았습니다.
+   아래 폼 요소들은 흰 모달 안에 놓이므로 밝은 색으로 맞춥니다(패널의 어두운
+   배색을 쓰는 것은 .study-material-toggle 하나뿐입니다). */
+.study-material {
+  margin-top: auto; /* 활동이 몇 개든 항상 맨 아래 */
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.study-material-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: #d8d6cc;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.study-material-toggle:hover {
+  border-color: var(--primary);
+  background: rgba(217, 119, 87, 0.14);
+}
+.study-material-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+/* 이미 올린 자료가 있으면 접힌 상태에서도 몇 개인지 알 수 있게 */
+.study-material-count {
+  min-width: 17px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 800;
+  text-align: center;
+}
+.study-material-caret { color: #9a988e; font-size: 13px; font-weight: 800; }
+
+/* ── 자료 제공 모달 ── */
+.study-material-modal {
+  max-width: 720px;
+  display: flex;
+  flex-direction: column;
+}
+/* 어느 프로젝트의 자료인지 — 제목 옆에 작게 */
+.study-material-modal-project {
+  margin-left: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-sub);
+}
+.study-material-hint {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--text-sub);
+}
+.study-material-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+/* 자료 한 장 — 활동 고르기 + 글 + 이미지 */
+.study-material-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  background: var(--bg-deep);
+}
+.study-material-item-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.study-material-select {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  background: #fff;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+}
+.study-material-select:focus { outline: none; border-color: var(--primary); }
+/* 모달 안에서는 자료 삭제 ✕도 밝은 배경에 맞춥니다 */
+.study-material-item .study-activity-row-del {
+  color: var(--text-sub);
+}
+.study-material-item .study-activity-row-del:hover {
+  color: var(--danger);
+}
+/* 좁은 패널에서 벗어난 만큼 입력칸을 넉넉하게 — 여기가 이 모달의 핵심입니다 */
+.study-material-text {
+  width: 100%;
+  min-height: 200px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  background: #fff;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1.75;
+  resize: vertical;
+}
+.study-material-text:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+.study-material-image {
+  position: relative;
+  border-radius: var(--radius-btn);
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.study-material-image img {
+  display: block;
+  width: 100%;
+  max-height: 260px;
+  object-fit: contain;
+  background: #fff;
+}
+.study-material-image-add {
+  display: block;
+  padding: 12px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-btn);
+  font-size: 13px;
+  color: var(--text-sub);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.study-material-image-add:hover {
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+/* 받아 주는 종류를 버튼 안에 적어 둡니다 — 올린 뒤에 "이건 안 돼요"를
+   보는 것보다, 고르기 전에 아는 편이 낫습니다. */
+.study-material-image-add small {
+  display: block;
+  margin-top: 3px;
+  font-size: 11px;
+  color: var(--text-sub);
+  opacity: 0.75;
+}
+
+/* 사진이 아닌 첨부 — 미리보기가 없으니 이름·크기로 알아보게 합니다 */
+.study-material-file {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 40px 10px 12px;
+  font-size: 13px;
+  background: var(--neutral);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+}
+.study-material-file-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.study-material-file-size {
+  flex-shrink: 0;
+  color: var(--text-sub);
+  font-size: 12px;
+}
+.study-material-file .attach-image-grid-del {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+}
+
+/* 학생 화면의 첨부 — 눌러서 여는 링크 */
+.study-material-view-file {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--text);
+  text-decoration: none;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+}
+.study-material-view-file:hover {
+  border-color: var(--primary);
+  background: var(--neutral);
+}
+.study-material-view-file-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.study-material-view-file-size {
+  flex-shrink: 0;
+  color: var(--text-sub);
+  font-size: 12px;
+}
+.study-material-add {
+  padding: 10px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-btn);
+  background: none;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-sub);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.study-material-add:hover {
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+/* 저장 줄 — 자료가 많아 본문이 길어져도 버튼이 늘 보이게 아래에 고정 */
+/* 모달 아래 단추 줄 (독서 활동 만들기 · 도서명 묻기)
+   -------------------------------------------------------------
+   예전에는 .modal-actions에 규칙이 아예 없어, 안의 두 단추가 각자 기본값을
+   썼습니다 — 취소는 .btn-ghost(6px 12px · 13px), 실행은 .btn-primary(12px ·
+   15px). 높이가 15px 넘게 벌어져 한쪽은 알약, 한쪽은 사각형으로 보였습니다.
+   자료 제공 모달(.study-material-modal-foot)과 같은 짜임으로 맞춥니다:
+   높이·모서리는 같게, 실행 단추만 채워 앞세우고 줄을 채웁니다. */
+/* **두 단추를 같은 크기로** — 격자 두 칸. 예전에는 실행 단추가 `flex: 1`로
+   줄을 다 채우고 취소는 글자만 한 크기라, 900px짜리 만들기 창에서 850 : 70쯤
+   으로 벌어져 취소가 곁다리처럼 보였습니다.
+   flex로 반씩 나누지 않는 까닭: `flex: 1 1 0`은 기준을 내용 상자로 재서
+   테두리가 있는 쪽(btn-ghost 1px)이 없는 쪽(btn-primary)보다 2px 넓어집니다
+   (실측 190 : 188). 격자 칸은 딱 반씩입니다. */
+.modal-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: 10px;
+  margin-top: 18px;
+}
+.modal-actions > .btn-ghost,
+.modal-actions > .btn-primary {
+  height: 44px;
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  border-radius: var(--radius-btn);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+.modal-actions > .btn-ghost {
+  color: var(--text);
+  background: var(--neutral);
+  border-color: transparent;
+}
+.modal-actions > .btn-ghost:hover { background: var(--border); }
+
+/* 도서명·주제 묻는 모달 — 한 가지만 묻는 자리라 좁게 */
+.modal-topic-ask { max-width: 420px; }
+.modal-topic-note {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--text-sub);
+  line-height: 1.6;
+}
+.modal-topic-input {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: inherit;
+  font-size: 15px;
+}
+
+/* 학생이 스스로 적는 주제어 배지 — 눌러서 고칠 수 있음을 보여 줍니다 */
+.book-topic-edit {
+  font-family: inherit;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+.book-topic-edit:hover { border-color: var(--primary); }
+/* (아직 안 적었을 때의 점선 배지 .book-topic-edit.is-empty는 없앴습니다 —
+   네 학생 화면 모두 '도서명/주제 적기'를 제목 줄의 btn-ghost로 올렸습니다.
+   배지 자리에 두면 눌러야 하는 것인지 알기 어려웠습니다.) */
+/* 활동에 주제어가 없을 때의 머리말 배지 — 값이 아니라 안내라 옅게 */
+.book-group-topic.soft {
+  color: var(--text-sub);
+  background: var(--neutral);
+  font-weight: 700;
+}
+/* 교사 화면의 학생 카드 — 그 학생이 읽는 책 */
+.paratext-student-topic {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary-dark);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.study-material-modal-foot {
+  position: sticky;
+  bottom: -28px; /* .modal의 아래 padding만큼 당겨 바닥에 붙입니다 */
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+  padding: 14px 0;
+  border-top: 1px solid var(--border);
+  background: #fff;
+}
+.study-material-cancel,
+.study-material-save {
+  flex: 1;
+  border: none;
+  border-radius: var(--radius-btn);
+  padding: 11px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.study-material-cancel {
+  background: var(--neutral);
+  color: var(--text);
+}
+.study-material-cancel:hover { background: var(--border); }
+.study-material-save {
+  background: var(--primary);
+  color: #fff;
+}
+.study-material-save:hover:not(:disabled) { background: var(--primary-dark); }
+.study-material-save:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── 오늘의 움직임 — 프로젝트를 열기 전 왼쪽 패널 ──
+   어두운 패널 위라 글자는 밝은 쪽, 칸은 흰색을 살짝 얹은 정도로 둡니다. */
+.today-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+}
+.today-feed-counts {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+/* 네 칸은 누르는 버튼입니다 — 눌러야 '아직 안 한 학생' 명단이 펼쳐집니다 */
+.today-feed-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 7px 2px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  font-family: inherit;
+  font-size: 10.5px;
+  color: #9a988e;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.today-feed-chip:hover { background: rgba(255, 255, 255, 0.12); }
+.today-feed-chip.is-open {
+  border-color: var(--primary);
+  background: rgba(217, 119, 87, 0.18);
+  color: #e8956c;
+}
+.today-feed-chip.is-open b { color: #f0a980; }
+
+/* 펼친 명단 — 목록과 구분되게 한 칸 안에 담습니다 */
+.today-feed-detail {
+  padding: 10px 11px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.18);
+}
+.today-feed-detail-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 7px;
+  font-size: 11.5px;
+  color: #9a988e;
+}
+.today-feed-detail-head b {
+  font-family: var(--font-mono);
+  font-weight: 800;
+  color: #e8e6dd;
+  font-variant-numeric: tabular-nums;
+}
+.today-feed-detail-empty {
+  margin: 0;
+  font-size: 11.5px;
+  color: #83817a;
+}
+.today-feed-names {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.today-feed-name {
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 11.5px;
+  color: #d8d6cc;
+  white-space: nowrap;
+}
+/* 과일 개수 — 이름 뒤에 작게 */
+.today-feed-name em {
+  font-style: normal;
+  font-family: var(--font-mono);
+  font-weight: 800;
+  color: #e8956c;
+}
+.today-feed-chip b {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 800;
+  color: #e8e6dd;
+  font-variant-numeric: tabular-nums;
+}
+/* 목록이 길어져도 패널 아래(자료 제공)를 밀어내지 않게 여기서만 스크롤 */
+.today-feed-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+  min-height: 0;
+}
+.today-feed-item {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  padding: 6px 4px;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #c2c0b6;
+}
+.today-feed-item + .today-feed-item {
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+.today-feed-icon { flex-shrink: 0; font-size: 12px; }
+.today-feed-body { flex: 1; min-width: 0; }
+.today-feed-body b { color: #e8e6dd; font-weight: 700; }
+.today-feed-time {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: #83817a;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 어두운 패널 위에서는 --danger(#c04a3f)가 거의 안 읽혀 밝은 쪽으로 올립니다 */
+.study-activity-panel-error {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: #f0a094;
+}
+
+.study-activity-panel-actions {
+  display: flex;
+  gap: 8px;
+}
+.study-activity-panel-cancel,
+.study-activity-panel-save {
+  flex: 1;
+  border: none;
+  border-radius: var(--radius-btn);
+  padding: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.study-activity-panel-cancel {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--sidebar-text);
+}
+.study-activity-panel-cancel:hover { background: rgba(255, 255, 255, 0.14); }
+.study-activity-panel-save {
+  background: var(--primary);
+  color: #fff;
+}
+.study-activity-panel-save:hover:not(:disabled) { background: var(--primary-dark); }
+.study-activity-panel-save:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.study-activity-mobile-close {
+  display: none;
+}
+
+.study-activity-fab {
+  display: none;
+}
+
+.study-activity-mobile-backdrop {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  /* 프로젝트 활동 패널 — KWL 패널과 같은 왼쪽 슬라이드인 오버레이 방식 */
+  .study-activity-panel {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    z-index: 500;
+    width: 88vw;
+    max-width: 320px;
+    padding-top: 52px;
+    overflow-y: auto;
+    box-shadow: 6px 0 32px rgba(0, 0, 0, 0.4);
+  }
+  .study-activity-panel.study-activity-panel--open { display: flex; }
+
+  .study-activity-mobile-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 499;
+    background: rgba(0, 0, 0, 0.45);
+  }
+
+  .study-activity-mobile-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 56px;
+    right: 10px;
+    width: 28px;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.12);
+    border: none;
+    border-radius: 50%;
+    color: var(--sidebar-text);
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .study-activity-fab {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    position: fixed;
+    bottom: 20px;
+    right: 16px;
+    z-index: 300;
+    background: var(--primary, #d97757);
+    color: #fff;
+    border: none;
+    border-radius: 24px;
+    padding: 11px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 4px 18px rgba(217, 119, 87, 0.45);
+    cursor: pointer;
+    transition: transform 0.15s, background 0.15s;
+  }
+  .study-activity-fab:active { background: #c86844; transform: scale(0.96); }
+
+  /* 모달이 열려 있으면 FAB를 숨깁니다 (kwl-fab과 같은 이유) */
+  body:has(.modal-backdrop) .study-activity-fab,
+  body:has(.confirm-backdrop) .study-activity-fab {
+    display: none;
+  }
+
+  /* ── 자료 제공 모달 ──
+     이 규칙들은 반드시 이 블록에 둡니다 — 위쪽 공용 모바일 블록(768px)에
+     적으면 아래의 기본 규칙이 나중에 나와 그대로 덮어써 버립니다
+     (미디어 쿼리는 우선순위를 올리지 않고 순서만 따집니다). */
+  .study-material-cancel,
+  .study-material-save { min-height: 46px; }
+  .study-material-add,
+  .study-material-image-add { min-height: 44px; }
+  /* 저장 줄은 .modal 아래 패딩만큼 끌어내려 바닥에 붙입니다 —
+     모바일은 그 패딩이 36px이라 데스크톱(28px)과 다릅니다. */
+  .study-material-modal-foot { bottom: -36px; }
+}
+
+@media (max-width: 480px) {
+  .study-activity-panel { width: 92vw; max-width: 92vw; }
+  .study-activity-fab { bottom: 16px; right: 12px; padding: 10px 14px; font-size: 13px; }
+}
+

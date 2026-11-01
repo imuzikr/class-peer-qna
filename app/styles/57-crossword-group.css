@@ -1,0 +1,322 @@
+/* 가로세로 낱말퀴즈 — 모둠 활동 — 원래 app/globals.css 31883~32203줄. 차례는 globals.css의 @import 순서가 정합니다. */
+/* =============================================================
+   가로세로 낱말퀴즈 — 모둠 활동 (CrosswordGroupStudent · CrosswordGroupBoard)
+   학생: 왼쪽 우리 모둠 낱말·힌트 쓰기 | 가운데 함께 채우는 판 | 오른쪽 힌트 목록
+   교사: 왼쪽 힌트 제출 / 모둠별 미니맵 | 가운데 판 | 오른쪽 낱말 힌트(모둠별)
+   접는 기준은 화면이 아니라 이 칸의 폭입니다(책방은 양옆 패널이 섬).
+   ============================================================= */
+.xwg {
+  display: grid;
+  grid-template-columns: minmax(260px, 300px) minmax(0, 1fr) minmax(240px, 290px);
+  gap: 16px;
+  align-items: start;
+  container-type: inline-size;
+}
+.xwg-side { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.xwg-center { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.xwg-center .xw-grid,
+.xwg-center .xw-typing { margin: 0 auto; }
+@media (max-width: 1180px) {
+  .xwg { grid-template-columns: minmax(240px, 300px) minmax(0, 1fr); }
+  .xwg > .xwg-right { grid-column: 1 / -1; }
+}
+@media (max-width: 860px) {
+  .xwg { grid-template-columns: minmax(0, 1fr); }
+}
+/* 교사 — 세 칸(미니맵·제출 | 판 | 낱말 힌트). 책방 교사 화면은 양옆에 '오늘'·
+   '멋진 순간' 패널이 서서 창 폭과 이 칸의 폭이 따로 놀므로, 창 폭(@media)이 아니라
+   이 화면(.xw-main)의 폭으로 접습니다. 1440px 창에 양옆 패널이 다 서면 이 칸이
+   740px 남짓이라, 양옆 칸을 %로 두어 판에 280px 안팎을 남깁니다.
+   특이도를 한 칸 올려(.xwg.xwg--teacher) 위의 @media 규칙에 지지 않게 합니다. */
+.xwg.xwg--teacher {
+  grid-template-columns: minmax(200px, min(24%, 300px)) minmax(0, 1fr);
+}
+/* 낱말 힌트는 셋째 칸이 아니라 떠 있는 패널입니다(아래 '.xwg-float') — 판이 그만큼
+   넓어집니다(선생님 요청). 한때 가운데 판과 힌트 카드를 한 묶음(.xwg-pair)으로 둬
+   바닥을 맞췄습니다. */
+@container xwmain (max-width: 719px) {
+  .xwg.xwg--teacher { grid-template-columns: minmax(200px, 260px) minmax(0, 1fr); }
+}
+@container xwmain (max-width: 520px) {
+  .xwg.xwg--teacher { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* 판 — 열쇠 칸 · 채우는 중 */
+.xw-cell.key { background: #fbf0dc; border-color: #d9b77a; }
+.xw-cell.key .xw-ch { color: #7d5811; }
+.xw-cell.key.right { background: #fbf0dc; border-color: #d9b77a; }
+.xw-cell:disabled { cursor: default; }
+.xw-cell:disabled .xw-ch { color: var(--text); }
+
+/* 미니맵 — 글자 없이 색만. 칸은 작게, 판 모양 그대로.
+   교사 · 학생 화면이 같은 칸 5px입니다(선생님 요청 — 한때 교사 11px · 학생 10px).
+   한쪽만 고치지 마세요 — 아래 학생 규칙의 5px과 같은 값이어야 합니다. */
+.xw-grid--mini {
+  grid-template-columns: repeat(var(--xw-cols), 5px);
+  gap: 1px;
+  width: max-content;
+  max-width: 100%;
+  margin: 0;
+}
+.xw-grid--mini .xw-cell {
+  border-width: 1px;
+  border-radius: 1px;
+  border-color: #d5cfc5;
+  background: #fff;
+  cursor: default;
+}
+.xw-grid--mini .xw-cell--void { border: none; background: transparent; }
+.xw-grid--mini .xw-cell.key { background: #f0e2c4; border-color: #e0cfa8; }
+.xw-grid--mini .xw-cell.filled { background: #e9e6e1; }
+/* 학생 왼쪽 칸의 미니맵 — 칸 5px까지(22px → 15px → 10px → 5px, 선생님 요청 — 교사
+   미니맵과 같은 크기), 카드 폭 안에서 칸이 함께 줄어듭니다(21칸이어도 넘치지 않게).
+   지금 고른 낱말은 살구 테두리. */
+.xwg-mymap .xw-grid--mini {
+  width: 100%;
+  grid-template-columns: repeat(var(--xw-cols), minmax(0, 5px));
+  justify-content: center;
+}
+.xwg-mymap .xw-grid--mini .xw-cell.sel { box-shadow: 0 0 0 1.5px var(--primary); z-index: 1; }
+/* 개별 활동 — 가장 많이 채운 친구의 미니맵. 나의 미니맵과 같은 크기 */
+.xwg-leader .xw-grid--mini {
+  width: 100%;
+  grid-template-columns: repeat(var(--xw-cols), minmax(0, 5px));
+  justify-content: center;
+}
+/* 교사 왼쪽 — 모둠별(학생별) 미니맵은 카드 가운데(선생님 요청 — 한때 왼쪽에 붙음) */
+.xwg-rank .xw-grid--mini { align-self: center; }
+.xwg-leader-name { margin: 0 0 8px; }
+.xwg-leader-name strong { color: var(--dark); }
+.xwg-leader-me { color: var(--primary-dark); font-weight: 700; }
+
+.xwg-swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin: 0 4px 0 8px;
+  border-radius: 3px;
+  border: 1px solid #b9b2a6;
+  vertical-align: -1px;
+}
+.xwg-swatch:first-child { margin-left: 0; }
+.xwg-swatch.key { background: #fbf0dc; border-color: #d9b77a; }
+.xwg-swatch.right { background: #e8f7ed; border-color: #a6d8b6; }
+.xwg-swatch.filled { background: #e9e6e1; border-color: #d5cfc5; }
+.xwg-legend { font-size: 12px; }
+
+/* 왼쪽 — 우리 모둠 낱말 */
+.xwg-words { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.xwg-words > li {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+}
+.xwg-words > li.done { border-color: #a6d8b6; background: #f3faf5; }
+.xwg-word-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.xwg-word-head strong { font-size: 15px; color: var(--text); }
+.xwg-word-head .xw-badge { margin-left: auto; height: 22px; }
+.xwg-word-tag { font-size: 11.5px; font-weight: 800; color: var(--primary-dark); white-space: nowrap; }
+.xwg-pills { display: flex; flex-wrap: wrap; gap: 5px; }
+.xwg-pill {
+  height: 28px;
+  padding: 0 11px;
+  border: 1.5px solid var(--border);
+  border-radius: 999px;
+  background: var(--card-bg);
+  color: var(--text-sub);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.xwg-pill.me { color: var(--text); }
+.xwg-pill:hover:not(:disabled) { border-color: var(--primary); }
+.xwg-pill.on { background: var(--primary); border-color: var(--primary); color: #fff; }
+.xwg-pill:disabled { cursor: not-allowed; opacity: 0.55; }
+.xwg-pill.on:disabled { opacity: 1; }
+.xwg-hint-read { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--text); }
+.xwg-writer { font-style: normal; font-size: 12px; color: var(--text-sub); }
+
+.xwg-bar { height: 8px; border-radius: 999px; background: var(--neutral); overflow: hidden; }
+.xwg-bar > span { display: block; height: 100%; background: #6fbf8a; transition: width 0.3s; }
+
+/* 오른쪽 — 힌트 목록 */
+.xw-clue:disabled { cursor: default; }
+.xw-clue:disabled:hover { background: transparent; }
+.xw-clue.own { background: #fdf7ea; }
+.xw-clue-own {
+  font-style: normal;
+  display: inline-block;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #f0e2c4;
+  color: #7d5811;
+  font-size: 11px;
+  font-weight: 700;
+}
+.xw-clue-wait { color: var(--text-faint); }
+/* 학생 — 세 칸(왼쪽 · 판 · 힌트 목록)이 같은 높이, 힌트 목록은 스크롤 없이 다 펼칩니다
+   (선생님 요청 — 한때 판 높이에 맞춰 잘라 안에서 굴렸는데, 판 아래로 내려 보며 힌트를
+   찾느라 두 곳을 오갔습니다). 줄 높이는 셋 가운데 가장 긴 것이 정하고, 나머지 둘은
+   아래에 빈 자리가 남더라도 그 높이까지 늘어납니다(왼쪽은 맨 아래 카드가 늘어남).
+   **`contain: size`나 max-height를 되살리지 마세요** — 다시 스크롤이 생깁니다. */
+.xwg:not(.xwg--teacher) { align-items: stretch; }
+.xwg:not(.xwg--teacher) > .xwg-left > .xw-card:last-child,
+.xwg:not(.xwg--teacher) > .xwg-right > .xw-card { flex: 1; }
+/* 힌트 패널이 판 아래로 내려가 가로를 다 쓰면 판 카드는 왼쪽 칸 높이만 따라갑니다 */
+
+/* 교사 — 머리말 단계 표시 */
+.xwg-stage { margin-left: auto; }
+
+/* 교사 왼쪽 — 힌트 제출(모둠별 학생 목록) */
+.xwg-subgroup {
+  border-left: 3px solid var(--xwg-c, var(--border));
+  padding: 2px 0 2px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.xwg-subgroup-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.xwg-subgroup-head strong { font-size: 14px; color: var(--text); }
+.xwg-subgroup-meta { font-size: 12px; color: var(--text-sub); }
+.xwg-subgroup ul,
+.xwg-solo-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+.xwg-stu {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  padding: 5px 9px;
+  border-radius: 8px;
+  background: var(--bg);
+  font-size: 13px;
+}
+/* 이름이 먼저 — 칸이 좁으면(양옆 패널이 선 1440px 창) 이름을 줄이지 않고 상태
+   알약이 다음 줄 오른쪽으로 내려갑니다. '학…'으로 잘리면 누구인지 모릅니다. */
+.xwg-stu-name { flex-shrink: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+.xwg-stu-state {
+  flex-shrink: 0;
+  margin-left: auto;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  background: var(--neutral);
+  color: var(--text-sub);
+}
+.xwg-stu--done { background: #f3faf5; }
+.xwg-stu--done .xwg-stu-state { background: #e8f7ed; color: #2f7a45; }
+.xwg-stu--doing .xwg-stu-state { background: #fdf0dc; color: #8a5a12; }
+.xwg-stu--free { opacity: 0.6; }
+
+/* 교사 왼쪽 — 모둠별 미니맵(맞힌 순서) */
+.xwg-ranks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.xwg-rank {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1.5px solid var(--border);
+  border-left: 4px solid var(--xwg-c, var(--border));
+  border-radius: 10px;
+  background: var(--card-bg);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.xwg-rank:hover { border-color: var(--xwg-c); }
+.xwg-rank.on { background: var(--xwg-bg, var(--bg)); border-color: var(--xwg-c); }
+.xwg-rank-head { display: flex; align-items: center; gap: 8px; }
+.xwg-rank-head strong { font-size: 14px; color: var(--text); }
+.xwg-rank-head .xw-badge { margin-left: auto; }
+.xwg-rank-no {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--xwg-c);
+  color: #fff;
+  font-size: 12px;
+}
+
+/* 교사 — 모둠별 낱말과 힌트(떠 있는 패널 '낱말 힌트' 안). */
+.xwg-hint-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+/* 떠 있는 패널(FloatingPanel) — 화면 위에 떠서 뒤를 막지 않는 창. 머리줄을 끌어 옮기고
+   ▾로 접습니다. 몸통 높이는 컴포넌트가 화면 바닥까지로 정하고(max-height) 넘치면 그
+   안에서 구릅니다. z-index 90 — 모달 배경(100) 아래. */
+.float-panel {
+  position: fixed;
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  background: var(--card-bg, #fff);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(58, 49, 46, 0.18), 0 2px 6px rgba(58, 49, 46, 0.08);
+  overflow: hidden;
+}
+.float-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 46px;
+  padding: 0 8px 0 10px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+.float-panel-head:active { cursor: grabbing; }
+.float-panel.is-closed .float-panel-head { border-bottom: none; }
+.float-panel-head h3 { margin: 0; font-size: 15px; font-weight: 800; color: var(--text); white-space: nowrap; }
+.float-panel-grip { color: var(--text-faint); font-size: 15px; line-height: 1; }
+.float-panel-toggle {
+  margin-left: auto;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text-sub);
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+.float-panel-toggle:hover { border-color: var(--primary); color: var(--primary-dark); }
+.float-panel.is-closed .float-panel-toggle svg { transform: rotate(-90deg); }
+.float-panel-body {
+  padding: 12px 14px 14px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+/* 낱말 힌트 패널 안에서는 모둠이 한 줄에 하나 */
+.xwg-float .xwg-hint-groups { grid-template-columns: minmax(0, 1fr); }
+
+.xwg-hint-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.xwg-hint-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text);
+}
+.xwg-hint-list li > span:not(.xwg-word-tag):not(.xw-used) { flex-basis: 100%; }
+

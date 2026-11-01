@@ -1,0 +1,1483 @@
+/* 선생님 메모 · 손들기 · 알림 — 원래 app/globals.css 1283~2764줄. 차례는 globals.css의 @import 순서가 정합니다. */
+/* ===== 선생님 메모 (교사) ===== */
+/* 쓰는 칸 위 날짜 줄 — 누가기록(.notes-date-row)과 같은 모양을 그대로
+   씁니다. 두 기록이 '언제 일인가'를 같은 방식으로 묻는 자리라서입니다. */
+.lesson-memo-editor .notes-date-row {
+  margin-bottom: 10px;
+}
+/* 고칠 때는 메모 한 건 안에 들어가므로 조금 좁게 */
+.memo-item .notes-date-row {
+  margin-bottom: 8px;
+  font-size: 11.5px;
+}
+
+/* 메모 입력칸 — 서식 에디터(RichTextEditor)입니다. 줄글보다 갈래를 늘어놓는
+   일이 잦아 글머리 기호·번호 목록·굵게·밑줄만 붙였습니다. */
+.memo-rte {
+  border-radius: var(--radius-btn);
+}
+.memo-rte .rte-area {
+  line-height: 1.65;
+}
+/* 지난 메모를 고칠 때·달력 패널 안 — 한 단계 작게 (패널 폭이 320px) */
+.memo-rte--sm .rte-area {
+  font-size: 13px;
+  padding: 9px 11px;
+}
+.memo-rte--sm .rte-toolbar {
+  padding: 4px 6px;
+}
+.memo-rte--sm .rte-tool {
+  width: 26px;
+  height: 26px;
+}
+/* ── 진도 칸 (주제 · 페이지) ────────────────────────────────
+   수업 메모는 진도만 적는 자리가 아니라, 두 칸을 늘 띄우지 않고 이 토글로
+   켤 때만 내놓습니다. 켠 상태는 localStorage에 기억합니다. */
+.memo-date-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+/* 토글은 날짜 줄 오른쪽 끝으로 — 날짜·주제·페이지가 '어느 수업의 일인가'를
+   말하는 한 묶음이라 같은 줄에서 켭니다. */
+/* 진도 토글은 **캘린더 보기 단추와 같은 것**입니다 — 크기도 모양도.
+   `.memo-cal-btn`을 함께 달아 주므로 여기에는 따로 적을 것이 없습니다
+   (한쪽만 고치면 나란히 선 두 단추의 높이가 어긋납니다).
+   한때 날짜 줄 오른쪽 끝에 알약으로 혼자 있었는데, 켜고 끄는 단추가 창
+   안에 흩어져 있어 찾기 어려웠습니다. */
+/* 주제가 넓고 페이지가 좁습니다 — 주제는 '조건문과 반복문 되짚기'처럼
+   길어지고, 페이지는 '112~119' 여덟 글자면 넉넉합니다. */
+.memo-prog-row {
+  display: grid;
+  grid-template-columns: 1fr 186px;
+  gap: 8px;
+  margin: 8px 0 10px;
+}
+.memo-prog-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.memo-prog-field > span {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.memo-prog-field > input {
+  min-width: 0;
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+}
+/* 페이지는 한 묶음 안에 칸 둘 — `페이지 [112] ~ [119]`.
+   두 칸이 **같은 폭**이라야 '시작과 끝'으로 읽힙니다(한쪽이 넓으면 그쪽이
+   주된 값처럼 보입니다). 가운데 물결은 글자만큼만 차지합니다. */
+.memo-prog-pages > input {
+  flex: 1 1 0;
+  text-align: center;
+}
+.memo-prog-pages > em {
+  flex-shrink: 0;
+  font-style: normal;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+/* 옆 패널(320px 안팎)의 고치는 폼에서는 위아래로 풉니다 — 주제 칸이
+   80px까지 줄어 두어 글자밖에 안 보입니다(실측). */
+.memo-side-panel .memo-prog-row {
+  grid-template-columns: 1fr;
+}
+/* 좁은 패널(320px) 안에서는 두 칸을 위아래로 — 나란히 두면 페이지 칸에
+   '112~119'가 접힙니다. */
+@media (max-width: 768px) {
+  .memo-prog-row { grid-template-columns: 1fr; }
+}
+.memo-side-panel .memo-prog-row {
+  grid-template-columns: 1fr;
+  gap: 6px;
+  margin: 8px 0;
+}
+
+/* 읽는 자리의 진도 한 줄 — 주제는 짙게, 페이지는 딸림값으로 옅게.
+   훑을 때 눈이 짚는 것은 주제입니다. */
+.memo-prog-line {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 2px 0 6px;
+  font-size: 13px;
+}
+.memo-prog-line b {
+  font-weight: 800;
+  color: var(--primary-dark, #c15a2a);
+}
+.memo-prog-line span {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+
+.memo-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 8px;
+}
+/* 저장이 막힌 까닭 — 평소에는 아예 없는 줄입니다(있을 때만 그립니다).
+   왼쪽 끝 '진도'와 오른쪽 끝 '저장' 사이에 섭니다. */
+.memo-hint {
+  min-width: 0;
+  font-size: 11.5px;
+  color: var(--text-sub);
+}
+/* 서식 태그까지 2000자를 넘겼을 때 — 저장 버튼이 잠기므로 왜인지 말해 줍니다 */
+.memo-hint.over {
+  color: var(--danger, #d64545);
+  font-weight: 700;
+}
+.memo-save {
+  flex: none; /* 안내 글이 길어져도 단추는 안 줄어듭니다 */
+  padding: 7px 18px;
+  font-size: 13px;
+}
+/* 왼쪽 끝의 '진도'도 같은 이유로 안 줄어듭니다 */
+.memo-foot > .memo-prog-toggle { flex: none; }
+.memo-history {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+/* 이 줄의 왼쪽 — 예전에는 펼치는 단추(.memo-history-toggle)였는데, 목록이
+   옆 패널로 나가면서 펼칠 것이 없어졌습니다. 이제 아래 반 버튼 줄이
+   무엇인지 말해 주는 이름표입니다. */
+.memo-history-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+.memo-caret {
+  display: inline-block;
+  transition: transform 0.15s;
+  color: var(--text-sub);
+}
+.memo-caret.open {
+  transform: rotate(90deg);
+}
+
+.lesson-memo-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 16px;
+}
+.lesson-memo-panel:has(> .memo-side-panel) {
+  grid-template-columns: minmax(0, 1fr) 320px;
+}
+.lesson-memo-editor { min-width: 0; }
+
+.memo-history-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+/* 바로 위 '저장'(.memo-save)과 같은 모양·같은 크기입니다 — 모서리도 글자
+   크기도 안쪽 여백도. 테두리 1px만큼 위아래를 덜어 높이를 맞춥니다.
+   채우지 않고 테두리만 두른 것은 색까지 같으면 '저장'과 어느 쪽이 먼저인지
+   흐려지기 때문입니다(이 줄에서 앞서는 행동은 저장입니다). */
+.memo-cal-btn {
+  padding: 6px 18px;
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-btn);
+  background: none;
+  color: var(--primary-dark);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.14s, border-color 0.14s, color 0.14s;
+}
+.memo-cal-btn:hover { background: var(--primary-light); }
+.memo-cal-btn.on { background: var(--primary-light); }
+/* 토글 둘이 나란히 — 진도 · 캘린더 보기 */
+.memo-head-btns {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── 반 버튼 줄 ──
+   내가 맡은 반이 알약으로 섭니다. 누르면 그 반의 지난 메모가 옆 패널로
+   나옵니다.
+
+   **한 줄에 셋씩, 격자입니다**(flex-wrap 아님). 이름 길이대로 흘려 두었더니
+   한 줄에 넷이 서다 셋이 서다 해서 줄 수가 반 이름에 따라 달라졌고, 같은
+   반이 창을 열 때마다 다른 자리에 있었습니다. 칸을 고정하면 반이 여섯이든
+   일곱이든 자리가 늘 같습니다.
+   칸은 `1fr`이라 마지막 줄에 하나만 남아도 그 알약이 줄을 통째로 늘여 잡지
+   않습니다(활동 열기 칩에서 `flex: 1 1 0`으로 겪은 그 모양). */
+.memo-class-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-top: 8px;
+}
+.memo-class-btn {
+  /* 칸 안에서 넘치지 않게 — 긴 반 이름은 말줄임으로 접습니다 */
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+  /* 세로 5px일 때는 높이가 29px이라 알약이라기엔 납작했습니다. 8px으로
+     35px입니다(글자 12.5px에 줄높이 normal = 17px + 여백 16 + 테두리 2).
+     **flex로 바꾸지 마세요** — 가운데 정렬을 flex로 하면 긴 반 이름의
+     말줄임(text-overflow)이 안 걸려 '인공지능 기초 A'가 칸을 넘칩니다. */
+  padding: 8px 13px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-deep, #f7f5f0);
+  color: var(--text-sub);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.14s, border-color 0.14s, color 0.14s;
+}
+.memo-class-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+/* 지금 이 반 — 모달을 연 맥락이라 조금 또렷하게. 켜짐(.on)과는 다릅니다:
+   이쪽은 '어느 반에 쓰는 중인가', 저쪽은 '지금 어느 반을 펼쳐 뒀는가'. */
+.memo-class-btn.mine {
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+.memo-class-btn.on {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+/* 보관된 반 — 있다는 건 알리되(지난 메모는 그대로 읽힙니다) 조용하게 */
+.memo-class-btn.archived {
+  opacity: 0.6;
+  font-weight: 600;
+}
+/* 폰에서는 둘씩. 좁은 창에서 셋으로 나누면 칸이 100px 안팎이라
+   '인공지능 기초 A'가 '인공지능 기…'로 접힙니다(실측). */
+@media (max-width: 768px) {
+  .memo-class-row { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ── 옆 패널 (지난 메모 · 달력) ──
+   둘은 같은 자리에 서므로 껍데기를 함께 씁니다(.memo-side-panel). 한 번에
+   하나만 열립니다 — 자리가 하나뿐이라 둘이 겹칩니다. */
+.memo-side-panel {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--card-bg, #fff);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  animation: memo-cal-slide 0.22s ease;
+}
+@keyframes memo-cal-slide {
+  from { opacity: 0; transform: translateX(-22px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.memo-side-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--border);
+}
+/* 진도 보기 — 목록을 '주제·페이지가 있는 것'만으로 좁힙니다.
+   머리줄의 `justify-content: space-between`이 반 이름과 × 사이를 벌리므로,
+   이 단추는 `margin-left: auto`로 × 바로 왼쪽에 붙습니다.
+   위 머리말의 진도 토글보다 작습니다 — 저기는 '쓰는 칸을 늘리는' 단추라
+   저장 단추와 같은 줄에서 크기를 맞춘 것이고, 여기는 보고 있는 목록을
+   좁히는 작은 손잡이입니다. */
+.memo-prog-filter {
+  flex-shrink: 0;
+  margin-left: auto;
+  padding: 4px 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: none;
+  color: var(--text-sub);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.14s, border-color 0.14s, color 0.14s;
+}
+.memo-prog-filter:hover {
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+.memo-prog-filter.on {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+.memo-side-panel-head h4 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text);
+}
+/* 지난 메모 건수 — 반 버튼에는 없고 여기에만 있습니다(그걸 버튼에 적으려면
+   반마다 메모를 미리 읽어야 합니다). */
+.memo-panel-count {
+  flex: none;
+  font-style: normal;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--primary);
+  border-radius: 999px;
+  padding: 1px 7px;
+}
+.memo-side-panel-body {
+  padding: 12px 16px 16px;
+  overflow-y: auto;
+}
+@media (max-width: 900px) {
+  .lesson-memo-panel:has(> .memo-side-panel) { grid-template-columns: minmax(0, 1fr); }
+}
+
+
+/* 달력 격자는 출석부의 것을 그대로 씁니다(.study-attendance-calendar).
+   패널이 좁아 칸만 낮춥니다. **건수(.study-cal-count)는 안 그립니다** —
+   '어느 날에 적어 뒀나'는 칸 색이 이미 말하고, 날짜 아래 작은 숫자를 더 두면
+   한 칸에 숫자가 둘이라 어느 것이 날짜인지 한 번 더 보게 됩니다. 칸이
+   `justify-content: center`라 숫자 하나만 남아도 가운데에 그대로 섭니다.
+   출석 달력과 KWLS 달력은 건수를 계속 그립니다 — 거기서는 '몇 명이'가
+   그 화면의 주제라 뜻이 다릅니다. */
+.memo-cal-panel .study-cal-cell { min-height: 38px; }
+/* 다른 반 메모만 있는 날 — 있다는 건 알리되 이 반 날짜보다 조용하게 */
+.memo-cal-panel .study-cal-cell.memo-cal-other { opacity: 0.6; }
+.memo-cal-panel .study-cal-cell:disabled { cursor: default; }
+
+.memo-cal-hint {
+  margin: 12px 0 0;
+  font-size: 12.5px;
+  color: var(--text-sub);
+  text-align: center;
+}
+
+/* 날짜 → 반 → 메모, 세 걸음이 같은 자리에서 갈아 끼워집니다 */
+.memo-cal-step { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 10px; }
+.memo-cal-step-head {
+  margin: 0 0 8px;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--text);
+}
+.memo-cal-step-back { display: flex; align-items: center; gap: 8px; }
+.memo-cal-back {
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--primary-dark);
+  cursor: pointer;
+}
+.memo-cal-step-where { font-size: 11.5px; font-weight: 700; color: var(--text-sub); }
+
+.memo-cal-picks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.memo-cal-pick {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  padding: 9px 11px;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.14s, background 0.14s;
+}
+.memo-cal-pick:hover { border-color: var(--primary); }
+/* 지금 연 반 — 모달을 연 맥락이라 앞세웁니다 */
+.memo-cal-pick.mine { background: var(--primary-light); border-color: transparent; }
+.memo-cal-pick-name { font-weight: 800; }
+.memo-cal-pick.mine .memo-cal-pick-name { color: var(--primary-dark); }
+.memo-cal-pick-count { margin-left: auto; font-size: 11.5px; font-weight: 700; color: var(--text-sub); }
+.memo-cal-pick-caret { color: var(--text-sub); }
+
+/* 메모 한 건 — 접힌 채로는 첫 줄만. 길면 목록이 아니라 글 뭉치가 됩니다. */
+.memo-cal-memo { align-items: flex-start; flex-direction: column; gap: 4px; }
+.memo-cal-memo .memo-item-clock { font-size: 11px; }
+.memo-cal-memo-text { font-size: 13px; line-height: 1.55; color: var(--text); white-space: pre-wrap; }
+.memo-cal-memo-text.clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.memo-cal-memo.open { background: #fff; border-color: var(--primary); }
+/* 펼친 본문 — 서식이 들어오므로 버튼 밖, 줄 전체를 차지합니다
+   (버튼 안에는 목록을 넣을 수 없습니다) */
+.memo-cal-memo-body {
+  flex-basis: 100%;
+  margin: -2px 0 2px; /* 시각 칸과 한 덩어리로 보이게 (줄 간격 6px을 줄여서) */
+  padding: 8px 10px;
+  background: #fff;
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-btn);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+/* 반을 고르면 달력이 접히고 이 자리가 그 반의 메모가 됩니다 — 읽기만 하는
+   자리가 아니라 여기서 바로 적고 고칩니다. 달력이 없으니 위 구분선도
+   필요 없습니다(바로 위가 패널 머리입니다). */
+.memo-cal-step--open { margin-top: 0; border-top: none; padding-top: 0; }
+.memo-cal-write { margin-bottom: 12px; }
+.memo-cal-write .memo-rte {
+  width: 100%;
+  box-sizing: border-box;
+}
+.memo-cal-write-foot {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+.memo-cal-readonly {
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  font-size: 12px;
+  color: var(--text-sub);
+}
+/* 메모 한 줄 = 펼치는 버튼 + 수정. 수정은 늘 보이되 조용하게 둡니다 —
+   이 목록에서 앞서는 동작은 '읽기'입니다. */
+.memo-cal-row { display: flex; align-items: flex-start; gap: 6px; flex-wrap: wrap; }
+.memo-cal-row > .memo-cal-pick { flex: 1; min-width: 0; }
+.memo-cal-edit { flex-shrink: 0; align-self: center; }
+.memo-cal-editing { display: flex; flex-direction: column; gap: 6px; }
+.memo-cal-editing .memo-rte { width: 100%; box-sizing: border-box; }
+/* ── 메모를 고치는 줄 (지난 메모 패널 · 달력 패널 공용) ──
+   목록의 '수정·삭제'와 같은 `.memo-item-actions`를 쓰지만 하는 일이 달라
+   자리와 크기를 여기서 따로 정합니다. **두 패널이 이 한 규칙을 함께 씁니다**
+   — 한쪽만 고치면 같은 창의 두 자리에서 저장 단추가 다르게 보입니다. */
+.memo-edit-actions {
+  justify-content: flex-end; /* 왼쪽에 붙어 오른쪽이 160px 비어 있었습니다 */
+  /* 쓰는 칸과 단추 사이 — **두 패널 모두 12px**입니다. 2px일 때는 저장이
+     입력칸에 달라붙어 칸의 일부처럼 보였습니다. 달력 패널은 부모
+     (`.memo-cal-editing`)가 flex 세로 gap 6px을 이미 주므로 아래에서 6px만
+     더합니다 — 여기 값을 고치면 그쪽도 함께 고쳐 둘을 같게 두세요. */
+  margin-top: 12px;
+}
+.memo-cal-editing .memo-edit-actions {
+  margin-top: 6px; /* + 부모 gap 6px = 12px */
+}
+/* `.btn-primary`에는 `line-height`가 없어 `normal`(12.5px 글자에 약 17px)을
+   물려받습니다 — 옆의 `.btn-ghost`는 `line-height: 1`이라 저장이 2.5px 더
+   높았습니다(실측 29 대 26.5). 줄높이를 맞추고, 테두리가 없는 만큼 위아래
+   1px씩을 여백으로 채워 **둘 다 26.5px**로 만듭니다.
+   `.memo-save`를 통째로 고치지 않는 까닭: 수업 메모 본 창의 저장 단추는
+   `.memo-cal-btn`이 높이를 맞춰 쓰고 있어(그쪽 주석 참고) 함께 움직입니다.
+   선택자에 `.memo-side-panel`을 함께 적는 것은 **아래에 오는**
+   `.memo-side-panel .memo-save`(padding 6px 12px)와 특이도가 같으면 그쪽이
+   이기기 때문입니다 — 순서에 기대지 않게 한 단계 올려 둡니다. */
+.memo-side-panel .memo-edit-actions .memo-save {
+  padding: 7px 12px;
+  line-height: 1;
+}
+/* 패널 안에서는 버튼을 한 단계 작게 — 폭이 320px입니다 */
+.memo-side-panel .memo-save,
+.memo-side-panel .btn-ghost { padding: 6px 12px; font-size: 12.5px; }
+
+/* ── 지난 메모 패널 안의 목록 ──
+   모달 안에 펼치던 것과 같은 목록(.memo-list·.memo-item)이지만, 자리가
+   320px로 좁아진 만큼 두 가지를 손봅니다. */
+/* ① 목록 제 스크롤을 풉니다 — 구르는 것은 패널 몸통 하나여야 합니다.
+      스크롤이 둘로 겹치면 내리다 안쪽 끝에서 멈춘 것처럼 보입니다
+      (모둠 메모의 .gmemo-chat과 같은 이유). */
+.memo-class-panel .memo-list {
+  max-height: none;
+  overflow: visible;
+  margin-top: 0;
+}
+/* ② 날짜·시각·수정/삭제가 한 줄에 안 들어갑니다 — 접히게 둡니다 */
+.memo-class-panel .memo-item-head { flex-wrap: wrap; }
+.memo-class-panel .memo-item-text { font-size: 13px; }
+.memo-class-panel .memo-empty { margin-top: 0; }
+.memo-class-panel .memo-cal-readonly { margin-top: 0; }
+.memo-empty {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--text-sub);
+}
+.memo-list {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  max-height: 300px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.memo-item {
+  background: var(--neutral);
+  border-radius: 10px;
+  padding: 9px 11px;
+}
+.memo-item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 3px;
+}
+/* 메모 한 건의 머리 — '언제 일'인가(날짜)를 앞세우고, 쓴 시각은 뒤에
+   옅게 답니다. 같은 날 여러 번 적을 때 순서를 알아볼 수 있어야 합니다. */
+.memo-item-time {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.memo-item-date {
+  font-weight: 800;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.memo-item-clock {
+  font-weight: 700;
+  opacity: 0.75;
+  font-variant-numeric: tabular-nums;
+}
+.memo-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.memo-mini-btn {
+  border: none;
+  background: none;
+  padding: 2px 4px;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+  cursor: pointer;
+}
+.memo-mini-btn:hover {
+  color: var(--primary-dark);
+}
+.memo-mini-btn.danger {
+  color: var(--danger, #d64545);
+}
+/* 메모 본문 — 서식이 붙은 HTML입니다. 예전 순수 텍스트 메모의 줄바꿈은
+   읽을 때 <br>로 바꿔 넣으므로(lib/html.js의 richHtml) pre-wrap이 필요
+   없습니다 — 오히려 태그 사이 공백까지 그려져 줄이 벌어집니다. */
+.memo-item-text {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--text);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+/* 메모 목록은 그 자체가 <ul>이라(.memo-list·.memo-cal-picks) 브라우저 기본
+   규칙(ul ul)이 안쪽 글머리를 속 빈 동그라미로 바꿉니다 — 쓸 때 보던
+   에디터와 달라지므로 되돌려 둡니다. */
+.memo-item-text ul,
+.memo-item-text ol,
+.memo-cal-memo-body ul,
+.memo-cal-memo-body ol {
+  padding-left: 20px;
+  margin: 4px 0;
+}
+.memo-item-text ul,
+.memo-cal-memo-body ul {
+  list-style-type: disc;
+}
+.memo-item-text ol,
+.memo-cal-memo-body ol {
+  list-style-type: decimal;
+}
+.memo-item-text p,
+.memo-item-text div,
+.memo-cal-memo-body p,
+.memo-cal-memo-body div {
+  margin: 0;
+}
+
+/* 보낸 공지 이력 — 입력칸 아래. 최근 것만 보여 주고 넘치면 스크롤합니다.
+   팝오버 전체가 길어지면 화면 밖으로 나가므로 여기서만 높이를 묶습니다. */
+.notice-log {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.notice-log-head {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+  margin-bottom: 6px;
+}
+.notice-log-empty {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-sub);
+}
+.notice-log-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 180px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.notice-log-item {
+  background: var(--neutral);
+  border-radius: 8px;
+  padding: 7px 9px;
+}
+.notice-log-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+.notice-log-time {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+/* 몇 명에게 갔는지 — 반 인원이 바뀌면 같은 반이라도 수가 달라지므로
+   보낸 시점의 실제 발송 수를 그대로 둡니다. */
+.notice-log-count {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--primary-dark);
+  white-space: nowrap;
+}
+.notice-log-text {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+/* 알림 목록의 '반 · 보낸 사람' 줄 */
+.notif-item-from {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--primary-dark);
+}
+
+.notif-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 300;
+  width: 300px;
+  max-height: 360px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(46, 36, 26, 0.14);
+  padding: 6px;
+}
+.notif-empty {
+  padding: 16px 10px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-sub);
+}
+.notif-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.notif-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  padding: 9px 10px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.notif-item:hover {
+  background: var(--primary-light);
+}
+.notif-item.unread {
+  background: #fff4e0;
+}
+.notif-item.unread:hover {
+  background: #fce8c8;
+}
+/* 반 공지처럼 눌러서 갈 곳이 없는 알림 — 손 모양 커서와 hover 반응을 뺍니다.
+   누를 수 있는 것처럼 보이는데 아무 일도 안 일어나는 게 제일 나쁩니다. */
+.notif-item--static {
+  cursor: default;
+}
+.notif-item--static:hover {
+  background: #fff4e0;
+}
+
+/* 알림 한 줄 = 본문 + 오른쪽 '읽음' 버튼.
+   '읽음'을 눌러야 목록에서 빠집니다 — 본문을 눌러 질문을 보러 가는 것과
+   치우는 것을 갈라 둔 이유는 NotificationBell의 주석 참고. */
+.notif-row {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+}
+.notif-row .notif-item {
+  flex: 1;
+  min-width: 0;
+}
+.notif-read-btn {
+  flex-shrink: 0;
+  align-self: center;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text-sub);
+  border-radius: 999px;
+  padding: 4px 9px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+.notif-read-btn:hover {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #fff;
+}
+
+/* 목록 맨 위 — 안 읽은 수와 '모두 읽음' */
+.notif-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 10px 8px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+.notif-tools-count {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.notif-readall {
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text-sub);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+.notif-readall:hover:not(:disabled) {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #fff;
+}
+.notif-readall:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.notif-item-head {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+.notif-item-time {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-sub);
+  flex-shrink: 0;
+}
+.notif-item-sub {
+  font-size: 12.5px;
+  color: var(--text-sub);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* 반 공지는 이 줄이 곧 공지 내용입니다 — 한 줄로 잘라 '…'로 끝내면 학생이
+   내용을 끝까지 못 읽습니다(질문 알림은 제목이라 잘려도 눌러서 볼 수
+   있지만, 공지는 눌러서 갈 곳이 없습니다). 그래서 여기만 줄바꿈을 허용하고
+   최대 6줄까지 보여 줍니다 — 그보다 길면 목록이 공지 하나로 가득 찹니다. */
+.notif-item-sub--full {
+  display: -webkit-box;
+  -webkit-line-clamp: 6;
+  -webkit-box-orient: vertical;
+  white-space: pre-wrap;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  line-height: 1.55;
+}
+
+/* '내 생각은요' 선생님 댓글 알림 — 내 글과 댓글을 자르지 않고 둘 다 보여 줍니다.
+   메모를 열러 가지 않아도 알림 창에서 무엇에 무슨 말이 달렸는지 읽게.
+   (둘 다 500자 천장이라 한 줄이 한없이 길어지지는 않습니다 — 넘치면
+    알림 창이 구릅니다.) 댓글 색은 메모의 '선생님 댓글' 칸과 같은 초록. */
+.notif-dropdown--wide {
+  width: min(360px, calc(100vw - 24px));
+  max-height: min(520px, 75vh);
+}
+.notif-op-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 7px 9px;
+  border-radius: 8px;
+  border-left: 3px solid var(--border);
+  background: #fff;
+}
+.notif-op-block--reply {
+  border-left-color: #6fbf8a;
+  background: #eef8f1;
+}
+.notif-op-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.notif-op-block--reply .notif-op-label {
+  color: #3f8f5c;
+}
+.notif-op-text {
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+/* 상단바 질문하기 손들기 */
+.question-signal-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+/* 손든 학생이 없을 때 교사 화면에서 그 자리를 대신 지키는 빈 상자.
+   그림은 그대로 안 그립니다 — 자리만 남깁니다. 없애면 손이 오르내릴 때마다
+   오른쪽 묶음의 폭이 28px씩 달라져, 거기 붙어 있는 **전광판이 그만큼
+   밀립니다**. 아래 `.question-signal-btn`과 **같은 28px**이라야 맞습니다 —
+   그 값을 고치면 여기도 함께 고치세요. */
+.question-signal-hold {
+  flex-shrink: 0;
+  width: 28px;
+}
+.question-signal-btn {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 999px;
+  /* 옆의 종·확성기(18px 글자 + 5px 여백 = 28px 상자)와 같은 크기·같은 글자.
+     예전에는 이 상자만 38px에 글자 23px이라 나란히 두면 손바닥만 커
+     보였습니다. 세 상자를 28px로 함께 줄여 아이콘 사이를 좁혔습니다. */
+  font-size: 18px;
+  line-height: 1;
+  border: none;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  transition: transform 0.14s ease, filter 0.14s ease, opacity 0.14s ease;
+}
+.question-signal-btn:hover {
+  background: none;
+  transform: translateY(-1px);
+}
+.question-signal-btn.on {
+  background: none;
+  filter: saturate(1.25) drop-shadow(0 2px 4px rgba(214, 117, 48, 0.28));
+}
+.question-signal-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.question-signal-hand {
+  display: block;
+  transform-origin: 50% 85%;
+}
+.question-signal-btn.on .question-signal-hand {
+  transform: rotate(-8deg) scale(1.08);
+}
+.question-signal-dot {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #e05a2f;
+  box-shadow: 0 0 0 2px #fff;
+}
+/* 학생 손바닥의 초록 불 — 선생님 답변이 왔다(안 읽음). 빨간 불(손 들었음)과
+   크기·자리는 같고 색만 다릅니다. 색은 자리표의 이벤트 점(.attend-seat-event)과
+   같은 초록 — 이 앱에서 초록은 '됐다'. */
+.question-signal-dot.is-reply { background: #2f9e5a; }
+/* 교사 손바닥의 불 — 같은 자리에 손든 인원을 담습니다(투표처럼 셈).
+   점보다 커지므로 손바닥 상자 밖으로 반쯤 걸쳐 앉혀 손바닥을 덜 덮습니다.
+   absolute라 버튼 폭(28px)은 그대로 — 숫자가 늘어도 전광판이 안 밀립니다.
+   한때 손바닥 옆 칸에 따로 세웠는데 둘로 나뉘어 보여 걷었습니다(선생님 요청). */
+.question-signal-dot.question-signal-count {
+  /* 위로 올려 손가락 끝만 살짝 걸치게 — 오른쪽으로는 5px만(옆 메모지 사이 틈이
+     4px이라 더 내밀면 그 상자를 덮음) */
+  top: -5px;
+  right: -4px;
+  width: auto;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+}
+/* 다 답했지만 손은 아직 올라가 있음 — 숫자는 남기고 불만 끕니다 */
+.question-signal-dot.question-signal-count.is-quiet { background: #8f8a84; }
+/* ── 손들기: 학생이 함께 보내는 태그·메모 ────────────────────────
+   손바닥 하나로는 '질문이 있다'까지만 전해집니다. 태그와 짧은 메모를 함께
+   보내면 교사가 다가가기 전에 무엇인지 압니다(lib/questionTags.js).
+   학생 창과 교사 목록이 **같은 알약**을 씁니다 — 학생이 고른 것과 교사가
+   보는 것이 다른 모양이면 서로 다른 것으로 읽힙니다. */
+/* 뒤에 오는 .question-signal-dropdown(330px)과 특이도가 같아, 이름을 겹쳐
+   써서 이깁니다 — 순서에 기대지 않게. */
+.question-signal-dropdown.question-signal-ask {
+  width: 400px;
+  padding: 10px 12px 12px;
+  /* 대화가 서면 360px로는 아래 단추가 밀려 구릅니다(대화 칸은 제 안에서 구름). */
+  max-height: min(600px, 80vh);
+}
+.question-signal-ask .question-signal-head { padding: 0 0 8px; }
+.question-signal-ask .btn-close { font-size: 20px; line-height: 1; }
+
+/* 셋 다 **같은 크기** — 한 줄 3칸 격자(1fr)라 글자 길이와 무관합니다 */
+.qsig-tags {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.qsig-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+  padding: 7px 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text-sub);
+  cursor: pointer;
+  /* 줄바꿈은 낱말 단위로 — 좁아지면 '선생님, / 질문이요!'로 접히고,
+     셋 다 같은 높이를 지킵니다(min-height). 글자가 잘리지 않게. */
+  white-space: normal;
+  word-break: keep-all;
+  text-align: center;
+  min-height: 34px;
+}
+.qsig-tag:hover { border-color: var(--text-sub); color: var(--text); }
+/* 고른 태그 — 갈래마다 다른 색. 교사 목록에서도 같은 색으로 섭니다. */
+.qsig-tag.on { color: #fff; border-color: transparent; }
+.qsig-tag--ask.on { background: #d97757; }
+.qsig-tag--idea.on { background: #3f704b; }
+.qsig-tag--bug.on { background: #b8474b; }
+
+.qsig-note-label {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--dark);
+}
+.qsig-note-label em { font-style: normal; font-weight: 600; color: var(--text-sub); }
+.qsig-note {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text);
+  resize: vertical;
+}
+.qsig-note:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+.qsig-note-count {
+  display: block;
+  margin: 4px 0 10px;
+  text-align: right;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+/* 두 단추는 한 줄에 반씩 — 모달 아래 두 단추와 같은 규칙입니다
+   (`.modal-actions` 참고: `flex: 1 1 0`으로 두면 테두리가 있는 `.btn-ghost`가
+   `.btn-primary`보다 2px 넓어져, 격자로 정확히 반씩 나눕니다).
+   둘 다 손을 드는 단추이고, 적은 내용이 있는 쪽만 채운 색입니다.
+   창이 400px이라 '내용과 함께 손들기'가 한 줄에 그대로 섭니다. */
+.qsig-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+/* `justify-content: center`가 **꼭 있어야 합니다.** `.btn-ghost`는
+   `display: inline-flex`인데 여기서 폭을 100%로 늘이므로, 안 주면 글자가
+   왼쪽에 붙습니다(실측 왼쪽 13px · 오른쪽 73px). 옆의 `.btn-primary`는
+   보통 button이라 글자가 저절로 가운데라, 두 단추의 글자가 서로 다른
+   자리에 섰습니다. */
+.qsig-actions button { width: 100%; white-space: nowrap; justify-content: center; }
+
+/* ── 손들기 대화 ─────────────────────────────────────────────
+   손든 학생과 교사가 주고받는 말(lib/signalThread.js). 첫 물음(태그·메모)부터
+   시간순으로 쌓이고, 교사가 '확인'·'닫기'로 손을 내릴 때까지 그대로입니다.
+   **보는 사람의 말이 오른쪽**(살구빛), 상대의 말이 왼쪽(선생님 말은 연한 초록
+   — 초록은 이 앱에서 '됐다', 학생 말은 회색 바탕). 모둠 메모의 대화
+   (.gmemo-chat)와 같은 생각입니다. 교사 목록에서는 아바타 폭(38px)만큼
+   들여 이름과 세로선을 맞춥니다. */
+.qsig-thread {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 2px 2px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 260px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.qsig-thread--compact {
+  margin: 6px 0 4px 38px;
+  padding: 0;
+  max-height: none;
+  overflow: visible;
+  gap: 6px;
+}
+.qsig-msg {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  max-width: 88%;
+}
+.qsig-msg--mine { align-self: flex-end; align-items: flex-end; }
+.qsig-msg-bubble {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  background: var(--bg-deep, #f7f5f0);
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text);
+}
+.qsig-msg--teacher .qsig-msg-bubble { background: #e8f7ed; border: 1px solid #a6d8b6; }
+.qsig-msg--mine .qsig-msg-bubble { background: var(--primary-light); border: 1px solid transparent; }
+.qsig-msg--teacher.qsig-msg--mine .qsig-msg-bubble { border-color: #a6d8b6; background: #e8f7ed; }
+.qsig-msg-text { white-space: pre-wrap; word-break: break-word; }
+.qsig-msg-empty { color: var(--text-sub); font-style: italic; }
+.qsig-msg-meta { font-size: 10.5px; color: var(--text-faint); }
+/* 대화 안의 태그 알약은 **작아야 합니다** — 주인공은 학생의 글입니다.
+   기본 `.qsig-tag`의 `min-height: 34px`는 학생 창에서 셋이 한 줄에 서며
+   접힐 때 높이를 맞추려던 값이라, 여기서는 풀고 `nowrap`으로 접히지 않게. */
+.qsig-msg .qsig-tag {
+  min-height: 0;
+  padding: 3px 9px;
+  font-size: 10.5px;
+  white-space: nowrap;
+  cursor: default;
+}
+.qsig-msg .qsig-tag > span[aria-hidden] { font-size: 9.5px; }
+/* 답을 기다리는 학생 — 이름 아래 작은 글씨로(교사 손바닥의 빨간 불과 같은 색) */
+.qsig-waiting { color: #e05a2f; font-weight: 700; }
+.question-signal-list > li.is-waiting .question-signal-item { box-shadow: inset 3px 0 0 #e05a2f; }
+.qsig-follow { min-height: 64px; margin-bottom: 8px; }
+.qsig-thread-closed { margin: 0 0 10px; font-size: 12px; line-height: 1.5; color: var(--text-sub); }
+.qsig-actions--one { grid-template-columns: 1fr; }
+
+/* 손들고 대화한 이력(교사) — 자리표 과일 창에서 엽니다. 과일 팝오버(320)
+   위에 떠야 하고, 그 팝오버가 다른 모달 안에서 열릴 때도 있습니다. 창 높이를
+   못 박고 본문만 구릅니다(머리줄·아래 안내는 제자리). */
+.modal-backdrop.signal-history-backdrop { z-index: 340; }
+.modal.signal-history-modal {
+  width: min(560px, 94vw);
+  max-width: min(560px, 94vw);
+  height: min(640px, 88vh);
+  max-height: none;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.signal-history-who { margin-left: 8px; font-size: 13.5px; font-weight: 700; color: var(--text-sub); }
+.signal-history-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 2px 2px 6px;
+}
+.signal-history-thread {
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+  overflow: hidden;
+}
+/* 접고 펴는 머리줄 — 줄 전체가 단추(반별 현황의 반 머리줄과 같은 모양) */
+.signal-history-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  padding: 11px 12px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.signal-history-head:hover { background: var(--bg); }
+.signal-history-caret {
+  flex-shrink: 0;
+  color: var(--text-sub);
+  transition: transform 0.15s;
+}
+.signal-history-thread.open .signal-history-caret { transform: rotate(90deg); }
+.signal-history-date {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--dark);
+}
+/* 접힌 줄의 첫 물음 한 줄 — 남는 폭을 다 받고 넘치면 말줄임 */
+.signal-history-preview {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12.5px;
+  color: var(--text-sub);
+}
+.signal-history-count {
+  flex-shrink: 0;
+  margin-left: auto;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-faint);
+}
+.signal-history-thread-body { padding: 0 12px 12px; }
+.signal-history-thread .qsig-thread { max-height: none; overflow: visible; margin: 0; }
+.signal-history-empty { margin: 24px 0; text-align: center; font-size: 13px; color: var(--text-sub); }
+.signal-history-note { margin: 10px 0 0; font-size: 11.5px; color: var(--text-faint); }
+
+/* 교사 — 대화 아래 '💬 답하기' → 그 자리에서 쓰는 칸 */
+.qsig-reply-row,
+.qsig-reply-edit {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  margin: 4px 0 6px 38px;
+}
+.qsig-reply-row { flex-direction: row; justify-content: flex-end; gap: 6px; }
+.qsig-reply-edit { align-items: stretch; }
+.qsig-reply-edit .qsig-note { min-height: 64px; }
+.qsig-reply-btns { display: flex; justify-content: flex-end; gap: 6px; }
+.qsig-reply-btns .question-signal-confirm { margin-left: 0; }
+.qsig-reply-err { display: block; margin: -4px 0 8px; font-size: 12px; color: #c0392b; }
+.qsig-reply-edit .qsig-reply-err { margin: 0; }
+.qsig-reply-start {
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-sub);
+  cursor: pointer;
+}
+.qsig-reply-start:hover { border-color: var(--primary); color: var(--primary-dark); background: var(--primary-light); }
+
+.question-signal-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 300;
+  /* 280px일 때는 버튼이 하나였습니다. '확인'과 '닫기' 둘이 되면서 이름 칸이
+     71px로 눌려 '20223 · 방금 전'이 두 줄로 접혔습니다(실측). */
+  width: 380px;
+  /* 학생 줄마다 대화가 붙어 330 × 360px에서 넓히고 올렸습니다 */
+  max-height: min(560px, 80vh);
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(46, 36, 26, 0.14);
+  padding: 6px;
+}
+/* 목록 머리 — 왼쪽 '질문 대기 n명', 오른쪽 '자리확인' 입구 */
+.question-signal-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px 8px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+.question-signal-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text);
+}
+.question-signal-seats {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  padding: 4px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-sub);
+  cursor: pointer;
+}
+.question-signal-seats:hover {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+/* '모두 손 내리기' — 자리확인 옆, 같은 크기 알약. 한 번 누르면 'n명 내릴까요?'로
+   바뀌고(살구) 한 번 더 누르면 내립니다. */
+.question-signal-lower {
+  flex-shrink: 0;
+  padding: 4px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-sub);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.question-signal-lower:hover,
+.question-signal-lower.is-asking {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+.question-signal-lower:disabled { opacity: 0.6; cursor: default; }
+.question-signal-empty {
+  padding: 16px 10px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-sub);
+}
+.question-signal-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.question-signal-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  background: #fffaf0;
+}
+.question-signal-confirm {
+  flex-shrink: 0;
+  margin-left: auto;
+  height: 28px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.question-signal-confirm:hover:not(:disabled) {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+.question-signal-confirm:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+/* 닫기 — 과일 없이 손만 내립니다. 격려('확인')가 주된 길이라 이쪽은 한
+   단계 물러난 모습으로 두어, 눌러야 할 버튼이 눈에 먼저 들어오게 합니다. */
+.question-signal-close {
+  flex-shrink: 0;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: none;
+  color: var(--text-sub);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.question-signal-close:hover:not(:disabled) {
+  background: var(--neutral);
+  border-color: var(--border);
+}
+.question-signal-close:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.question-signal-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: var(--primary-light);
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.question-signal-name {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.question-signal-name strong {
+  font-size: 13.5px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* 학번과 시각은 한 줄로 — 접히면 항목 높이가 들쭉날쭉해집니다. 이름이 아주
+   길면 줄이 늘어나는 대신 말줄임으로 끊습니다. */
+.question-signal-name small {
+  font-size: 11.5px;
+  color: var(--text-sub);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--primary-light);
+  border: 1.5px solid #ecbfa9;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  flex-shrink: 0;
+}
+
+.profile-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+  min-width: 0;
+}
+
+.profile-text strong {
+  font-size: 14px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+

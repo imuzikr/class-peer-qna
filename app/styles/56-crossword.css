@@ -1,0 +1,324 @@
+/* 가로세로 낱말퀴즈 — 원래 app/globals.css 31560~31882줄. 차례는 globals.css의 @import 순서가 정합니다. */
+/* =============================================================
+   가로세로 낱말퀴즈 — 닿소리 채우기의 '가로세로'
+   (CrosswordGroupStudent · CrosswordGroupBoard — 모둠 · 개별 활동 공용)
+   ============================================================= */
+/* 학생 '내 판' 머리말 — '← 활동 목록'과 '가로세로'가 같은 크기로.
+   격자 두 칸(1fr)이라 긴 쪽 글자에 맞춰 둘 다 같은 폭이 됩니다. */
+.canvas-head-pair {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.canvas-head-pair .btn-ghost {
+  justify-content: center;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.xw-main { overflow-y: auto; container: xwmain / inline-size; }
+.xw-main > .canvas-head { flex-wrap: wrap; }
+
+/* 학생 화면 — 왼쪽 내 낱말 풀이 · 오른쪽 퀴즈. 좁으면 위아래로. */
+.xw-student {
+  display: grid;
+  grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+  container-type: inline-size;
+}
+@media (max-width: 960px) {
+  .xw-student { grid-template-columns: minmax(0, 1fr); }
+}
+
+.xw-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.xw-card + .xw-card { margin-top: 0; }
+.xw-teacher { gap: 14px; }
+.xw-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.xw-card-head h3 { margin: 0; font-size: 16px; font-weight: 800; color: var(--text); }
+.xw-card-note { margin: 0; font-size: 13px; line-height: 1.55; color: var(--text-sub); }
+.xw-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--neutral);
+  color: var(--text-sub);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.xw-badge.done { background: #e8f7ed; color: #2f7a45; }
+.xw-empty { margin: 0; font-size: 13px; color: var(--text-faint); line-height: 1.6; }
+
+/* 낱말 고르기 칩 */
+.xw-word-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.xw-word-chip {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1.5px solid var(--border);
+  background: #fff;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text);
+  cursor: pointer;
+}
+.xw-word-chip:hover:not(:disabled) { border-color: var(--primary); }
+.xw-word-chip.on { background: var(--primary); border-color: var(--primary); color: #fff; }
+.xw-word-chip:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.xw-pick-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.xw-pick-list > li {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--bg);
+}
+.xw-pick-head { display: flex; align-items: center; gap: 8px; }
+.xw-pick-no {
+  width: 22px; height: 22px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--primary-light); color: var(--primary-dark);
+  font-size: 12px; font-weight: 800;
+}
+.xw-pick-head strong { font-size: 15px; color: var(--text); }
+.xw-pick-len { font-size: 12px; color: var(--text-sub); }
+.xw-pick-x {
+  margin-left: auto;
+  width: 26px; height: 26px; border-radius: 50%;
+  border: none; background: transparent; color: var(--text-sub);
+  font-size: 17px; cursor: pointer;
+}
+.xw-pick-x:hover { background: var(--neutral); color: var(--text); }
+.xw-pick-clue {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  min-height: 52px;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.xw-pick-warn { font-size: 12px; color: #b4472f; }
+.xw-save { margin: 0; min-height: 18px; font-size: 12px; color: var(--text-sub); }
+
+/* ── 퍼즐 판 ── */
+.xw {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(220px, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+@container (max-width: 760px) {
+  .xw { grid-template-columns: minmax(0, 1fr); }
+}
+.xw-board-col { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.xw-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--xw-cols), minmax(0, 44px));
+  gap: 2px;
+  max-width: 100%;
+  width: max-content;
+}
+.xw-cell {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  min-width: 0;
+  padding: 0;
+  border: 1.5px solid #b9b2a6;
+  border-radius: 4px;
+  background: #fff;
+  font-family: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.xw-cell--void { border: none; background: transparent; cursor: default; }
+.xw-cell.sel { background: #fff4e8; border-color: var(--primary); }
+.xw-cell.mine { box-shadow: inset 0 0 0 2px var(--primary-light); }
+.xw-cell.right { background: #e8f7ed; border-color: #a6d8b6; }
+.xw-cell.wrong { background: #fdecea; border-color: #e6a29a; }
+.xw-num {
+  position: absolute;
+  top: 1px;
+  left: 3px;
+  font-style: normal;
+  font-size: 9.5px;
+  font-weight: 800;
+  color: var(--text-sub);
+  line-height: 1;
+}
+.xw-ch { font-size: clamp(13px, 2.2vw, 18px); font-weight: 800; color: var(--text); }
+
+.xw-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--primary-light);
+}
+.xw-entry-tag { font-size: 12px; font-weight: 800; color: var(--primary-dark); }
+.xw-entry-clue { font-size: 14px; line-height: 1.5; color: var(--text); }
+.xw-entry-help { font-size: 12px; line-height: 1.5; color: var(--text-faint); }
+
+/* 판에 직접 적기(CrosswordTyping) — 숨은 입력칸 하나가 지금 칸 위에 투명하게
+   얹혀 글자를 받습니다. 글자는 칸이 그리므로 입력칸의 글자·커서·테두리는 모두
+   감춥니다. font-size 16px는 iOS가 입력칸을 누를 때 화면을 확대하지 않게 하는
+   값입니다(16px 아래면 확대됨). */
+.xw-typing { position: relative; width: max-content; max-width: 100%; }
+.xw-typing-input {
+  position: absolute;
+  z-index: 1;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: transparent;
+  caret-color: transparent;
+  font-size: 16px;
+  opacity: 0.01;
+  pointer-events: none;
+}
+.xw-typing-input:focus { outline: none; box-shadow: none; }
+.xw-cell.cur { box-shadow: inset 0 0 0 2.5px var(--primary); background: #ffe9d6; }
+/* 네모가 맞힌 칸 · 열쇠 칸에 서면 테두리만 — 바탕은 그 칸의 색(초록 · 베이지)을
+   지켜야 '맞혔다'가 그대로 보입니다. */
+.xw-cell.right.cur { background: #e8f7ed; }
+.xw-cell.key.cur { background: #fbf0dc; }
+.xw-cell.typing .xw-ch { color: var(--primary-dark); }
+.xw-cell.filled .xw-ch { color: var(--text); }
+
+.xw-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.xw-score { font-size: 13px; font-weight: 700; color: var(--text-sub); }
+.xw-score.all { color: #2f7a45; }
+
+.xw-clues { display: grid; grid-template-columns: 1fr; gap: 14px; min-width: 0; }
+.xw-clues-col h4 { margin: 0 0 6px; font-size: 13px; font-weight: 800; color: var(--text-sub); }
+.xw-clues-col ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.xw-clue {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  color: var(--text);
+}
+.xw-clue:hover { background: var(--bg); }
+.xw-clue.on { background: #fff4e8; border-color: var(--primary); }
+.xw-clue.mine { box-shadow: inset 3px 0 0 var(--primary); }
+.xw-clue.done { color: var(--text-sub); }
+.xw-clue > b { min-width: 18px; font-size: 13px; color: var(--primary-dark); }
+.xw-clue-text { flex: 1; min-width: 0; font-size: 13.5px; line-height: 1.5; }
+.xw-clue-len, .xw-clue-ans {
+  font-style: normal;
+  margin-left: 6px;
+  font-size: 11.5px;
+  color: var(--text-faint);
+}
+.xw-clue-ans { display: block; margin-left: 0; color: var(--primary-dark); font-weight: 700; }
+.xw-clue-ok { color: #2f7a45; font-weight: 800; }
+
+/* ── 교사 화면 ── */
+/* 안내가 앞, 단추 묶음이 그 오른쪽. 칸이 좁으면(가운데 칸은 양옆 패널 탓에
+   300px 안팎까지 줄어듭니다) 단추 묶음이 안내 아래로, 더 좁으면 한 줄에 하나씩.
+   창 폭이 아니라 이 줄의 폭으로 접습니다(@container xwgen). */
+.xw-gen-row { container: xwgen / inline-size; }
+/* 안내 옆에 180px이 안 남으면 단추 묶음이 다음 줄 오른쪽 끝으로 내려갑니다 */
+.xw-gen-inner { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; }
+.xw-gen-note { flex: 1 1 180px; min-width: 0; font-size: 12.5px; color: var(--text-sub); line-height: 1.5; }
+/* 단추는 모두 같은 크기 — 가장 긴 글자에 맞춘 같은 폭 · 같은 높이(격자 1fr) */
+.xw-gen-btns {
+  flex: none;
+  max-width: 100%;
+  margin-left: auto;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+.xw-gen-btn {
+  height: 40px;
+  min-width: 0;
+  padding: 0 14px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: filter 0.15s;
+}
+.xw-gen-btn:hover:not(:disabled) { filter: brightness(0.96); }
+.xw-gen-btn:disabled { opacity: 0.5; cursor: default; }
+.xw-gen-btn--make { background: var(--primary-dark); color: #fff; }
+.xw-gen-btn--step { background: var(--primary); color: #fff; }
+.xw-gen-btn--off { background: var(--primary-light); color: var(--primary-dark); border-color: color-mix(in srgb, var(--primary) 30%, transparent); }
+/* 단추 셋이 한 줄에 안 드는 폭 — 한 줄에 하나씩, 줄 폭을 다 씁니다(그래도 같은 크기) */
+@container xwgen (max-width: 360px) {
+  .xw-gen-btns { grid-auto-flow: row; grid-auto-rows: 1fr; width: 100%; margin-left: 0; }
+}
+/* 더 좁으면 글자가 줄을 바꿉니다(잘리지 않게) */
+@container xwgen (max-width: 200px) {
+  .xw-gen-btn { height: auto; min-height: 40px; padding: 6px 10px; white-space: normal; }
+}
+/* 카드 머리줄 오른쪽의 옅은 한 줄(아직 퀴즈 없음 등) */
+.xw-card-head-note { font-size: 13px; color: var(--text-faint); }
+
+.xw-subs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.xw-subs > li {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1.5px solid transparent;
+  background: var(--bg);
+}
+.xw-subs > li.on { border-color: var(--primary); background: var(--primary-light); }
+.xw-sub-who { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.xw-sub-who em { font-style: normal; font-size: 12px; color: var(--text-sub); font-variant-numeric: tabular-nums; }
+.xw-sub-who b { font-size: 14px; color: var(--text); }
+.xw-subs ol { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; }
+.xw-subs ol li { font-size: 13.5px; line-height: 1.5; color: var(--text); }
+.xw-subs ol li strong { margin-right: 6px; }
+.xw-sub-empty { color: var(--text-faint); }
+.xw-used {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: #e8f7ed;
+  color: #2f7a45;
+  font-size: 11px;
+  font-weight: 700;
+}
+

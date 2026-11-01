@@ -1,0 +1,253 @@
+/* 피드 필터 드롭다운 — 원래 app/globals.css 3330~3581줄. 차례는 globals.css의 @import 순서가 정합니다. */
+/* ===================== 피드 필터 드롭다운 ===================== */
+.filter-wrap {
+  position: relative;
+}
+
+.filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  background: #fff;
+}
+
+/* 기본값(모든 글)이 아닌 필터가 켜져 있으면 강조 */
+.filter-btn.filter-on {
+  background: var(--primary-light);
+  border-color: #ecbfa9;
+  color: var(--primary-dark);
+  font-weight: 700;
+}
+
+/* 바깥 클릭으로 닫기 위한 투명 배경 */
+.filter-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+}
+
+.filter-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  width: 220px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 12px 36px rgba(46, 36, 26, 0.16);
+  padding: 10px;
+  z-index: 81;
+}
+
+.filter-title {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--text-sub);
+  padding: 4px 12px 10px;
+}
+
+.filter-item {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  border: none;
+  background: none;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  color: var(--text);
+  text-align: left;
+  margin-bottom: 2px;
+}
+
+.filter-item:hover {
+  background: var(--bg-deep);
+}
+
+.filter-item.active {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  font-weight: 700;
+}
+
+.filter-icon {
+  font-size: 19px;
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.question-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 26px 28px;
+  margin-bottom: 22px;
+  cursor: pointer;
+  box-shadow: var(--shadow-soft);
+  transition: box-shadow 0.15s, transform 0.15s;
+}
+
+.question-card:hover {
+  box-shadow: 0 6px 20px rgba(46, 36, 26, 0.1);
+  transform: translateY(-1px);
+}
+
+.question-card.is-pinned {
+  border-color: #e7b78f;
+  box-shadow: 0 1px 3px rgba(46, 36, 26, 0.06),
+    0 8px 24px rgba(184, 92, 63, 0.12);
+}
+
+.card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-sub);
+  margin-bottom: 12px;
+}
+
+.keyword-chip {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.pin-chip {
+  padding: 3px 4px;
+  font-size: 14px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.question-card h3 {
+  font-size: 17px;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.card-preview {
+  font-size: 14px;
+  color: var(--text-sub);
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.card-foot {
+  margin-top: 14px;
+  font-size: 13px;
+  color: #3A312E;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.card-foot > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.empty-note {
+  text-align: center;
+  color: var(--text-sub);
+  padding: 60px 0;
+  font-size: 14px;
+}
+
+/* --- 3단: 공지사항 --- */
+.notice-col {
+  width: 360px;
+  background: #fff;
+  border-left: 1px solid var(--border);
+  padding: 28px 26px;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.notice-col h2 {
+  font-size: 16px;
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.notice-col-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  line-height: 1;
+}
+/* 접기 버튼과 개수 배지는 모바일 전용 — 데스크톱은 항상 펼쳐져 있습니다 */
+.notice-toggle-btn,
+.notice-count {
+  display: none;
+}
+.notice-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.notice-sort-btn {
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.notice-item {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--primary);
+  border-radius: var(--radius-btn);
+  padding: 12px 14px;
+  margin-bottom: 10px;
+}
+
+.notice-item h4 {
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.notice-item p {
+  font-size: 13px;
+  color: var(--text-sub);
+  line-height: 1.6;
+}
+
+.notice-item time {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: #a8a69d;
+}
+
+.notice-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 6px;
+}
+
+.notice-delete-btn {
+  padding: 3px 6px;
+  color: var(--text-sub);
+}
+.notice-delete-btn:hover {
+  color: var(--danger);
+}
+

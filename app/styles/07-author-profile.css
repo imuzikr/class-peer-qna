@@ -1,0 +1,474 @@
+/* 게시물 작성자 프로필 — 원래 app/globals.css 2765~3237줄. 차례는 globals.css의 @import 순서가 정합니다. */
+/* ===================== 게시물 작성자 프로필 ===================== */
+.author {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+/* 관리자에게만 클릭 가능 표시 */
+.author-clickable {
+  cursor: pointer;
+}
+
+.author-clickable:hover .author-name {
+  text-decoration: underline;
+  text-decoration-color: var(--primary);
+  text-underline-offset: 3px;
+}
+
+/* 카드/채팅용 작은 아바타 */
+.avatar-sm {
+  width: 22px;
+  height: 22px;
+  font-size: 12px;
+  border-width: 1px;
+}
+
+.author-name {
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 관리자가 클릭했을 때 나타나는 실명 칩 */
+.author-real {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--dark);
+  color: #faf9f5;
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.topbar .user-area {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--text-sub);
+}
+
+/* 아이콘 사이 — 손바닥·확성기·종·과일은 저마다 안쪽 여백을 갖고 있어,
+   여기에 12px을 더 주면 실제로 벌어지는 거리가 25px을 넘습니다. 한 묶음으로
+   읽혀야 할 것들이라 좁힙니다.
+   실제로 눈에 보이는 거리는 '여백 + gap + 여백'입니다. 여백을 8px→5px로
+   줄이고 gap을 4px로 두어 그림끼리 14px — 예전 22px의 3분의 2입니다. */
+.topbar .user-area { gap: 4px; }
+/* 다만 글자 요소(이름)까지 4px로 붙으면 답답합니다. 아이콘 묶음이
+   끝나는 자리에서만 다시 벌립니다. */
+.topbar .user-area .profile-wrap { margin-left: 6px; }
+
+/* 상단바 프로필 왼쪽 — 학생이 받은 과일 총 개수 */
+.fruit-total-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  /* 세로 5px — 옆의 손바닥·종과 같은 높이(28px)로 맞춥니다 */
+  padding: 5px 6px;
+  background: none;
+  border: none;
+  color: #a06a00;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.user-badge {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+/* 눌러서 켜 두는 btn-ghost(예: KWLS 차트 토글) — 지금 켜져 있음을 색으로 */
+.btn-ghost.active {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary-dark);
+  font-weight: 700;
+}
+
+.btn-ghost {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  padding: 6px 12px;
+  font-size: 13px;
+  color: var(--text-sub);
+  /* 아이콘 + 글자 세로 중앙 정렬 (아이콘이 글자 기준선보다 내려가던 문제 해결) */
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  line-height: 1;
+}
+
+.btn-ghost:hover {
+  background: var(--neutral);
+  color: var(--text);
+}
+
+.btn-ghost:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.btn-ghost:disabled:hover {
+  background: none;
+  color: var(--text-sub);
+}
+
+/* 아이콘 + 글자 버튼 세로 중앙 정렬 일괄 (아이콘이 글자 기준선보다 내려가던 문제) */
+.status-toggle,
+.study-code-btn,
+.joincode-regen,
+.study-form-title-pen,
+.notice-author,
+.kwl-entry-edit-btn,
+.kwl-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  line-height: 1;
+}
+/* 공부방 설정 칩 — '복제·삭제'는 전체 폭을 유지하므로 inline-flex가 아닌 flex */
+.study-chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  line-height: 1.1;
+}
+/* 인라인 SVG 아이콘 기본 정렬 보정 */
+.btn-ghost svg,
+.status-toggle svg,
+.study-chip svg,
+.metoo-btn svg,
+.filter-item svg {
+  flex-shrink: 0;
+}
+
+/* [개발용] 관리자/학생 보기 전환 토글 */
+.role-switch {
+  display: inline-flex;
+  gap: 2px;
+  background: var(--neutral);
+  border-radius: 999px;
+  padding: 3px;
+}
+
+.role-switch button {
+  border: none;
+  background: none;
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-sub);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.role-switch button.active {
+  background: var(--primary);
+  color: #fff;
+}
+
+.three-cols {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+/* --- 1단: 키워드 사이드바 --- */
+.keyword-col {
+  width: 300px;
+  background: var(--sidebar-bg);
+  color: var(--sidebar-text);
+  padding: 24px 20px;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.keyword-col h2 {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #87867f;
+  padding: 0 10px 10px;
+}
+
+.keyword-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: none;
+  border: none;
+  color: var(--sidebar-text);
+  padding: 11px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  text-align: left;
+  margin-bottom: 3px;
+}
+
+.keyword-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.keyword-item.active {
+  background: var(--sidebar-active);
+  color: #fff;
+  font-weight: 700;
+}
+
+.keyword-item.active .keyword-count {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.keyword-count {
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+
+/* ── 키워드 항목 관리(교사): ⋯ 더보기 · 드래그 정렬 · 인라인 편집 ── */
+.keyword-item-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.keyword-item-wrap[draggable="true"] {
+  cursor: grab;
+}
+.keyword-item-wrap .keyword-item {
+  flex: 1;
+  min-width: 0;
+  margin-bottom: 0;
+}
+.keyword-item.has-more {
+  padding-right: 34px; /* ⋯ 버튼 자리 */
+}
+.keyword-item-wrap { margin-bottom: 3px; }
+.keyword-item-wrap.drag-over {
+  box-shadow: inset 0 2px 0 var(--primary);
+  border-radius: 8px;
+}
+.keyword-item-wrap.dragging { opacity: 0.4; }
+
+.kw-more-btn {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--sidebar-text);
+  opacity: 0.55;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+.keyword-item-wrap:hover .kw-more-btn { opacity: 0.9; }
+.kw-more-btn:hover { background: rgba(255, 255, 255, 0.14); opacity: 1; }
+
+.kw-menu {
+  position: absolute;
+  right: 6px;
+  top: calc(100% - 2px);
+  z-index: 40;
+  min-width: 134px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+  padding: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.kw-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 10px;
+  border: none;
+  background: transparent;
+  border-radius: 7px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+.kw-menu-item:hover { background: var(--primary-light); }
+.kw-menu-item--danger { color: var(--danger, #d64545); }
+.kw-menu-item--danger:hover { background: #fdecec; }
+
+/* 인라인 편집 / 추가 행 — 삭제 확인은 ConfirmModal(모달)로 처리합니다 */
+.keyword-item--edit,
+.keyword-item--add {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+}
+.kw-edit-input {
+  flex: 1;
+  min-width: 0;
+  width: auto;
+  padding: 7px 10px;
+  font-size: 13.5px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--sidebar-text);
+}
+.kw-edit-input::placeholder { color: rgba(255, 255, 255, 0.5); }
+.kw-edit-save {
+  flex-shrink: 0;
+  padding: 7px 11px;
+  border-radius: 7px;
+  border: none;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  background: var(--primary);
+  color: #fff;
+}
+.kw-edit-save:disabled { opacity: 0.5; cursor: default; }
+
+.keyword-add-btn {
+  width: 100%;
+  margin-top: 6px;
+  padding: 10px 14px;
+  border: 1px dashed rgba(255, 255, 255, 0.28);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--sidebar-text);
+  opacity: 0.75;
+  font-size: 13.5px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.keyword-add-btn:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* --- 2단: 질문 게시판 --- */
+.feed-col {
+  flex: 1;
+  overflow-y: auto;
+  /* 위 패딩 0 — 상단 고정 헤더가 스크롤 콘텐츠를 완전히 덮도록(여백은 헤더가 가짐) */
+  padding: 0 40px 32px;
+  min-width: 0;
+}
+
+.feed-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  /* 피드 컬럼 스크롤 시 상단 고정 — 필터/인사이트/질문하기 항상 노출 */
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--bg);
+  padding: 20px 0 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 6px 8px -6px rgba(46, 36, 26, 0.08);
+}
+
+.feed-head h2 {
+  font-size: 19px;
+}
+
+/* 문구 + 제목 한 줄 — 문구가 **왼쪽**, 세로선으로 가릅니다(공부방·책방은
+   제목 위). 이 머리줄은 스크롤해도 붙어 있어 한 줄을 더 쌓으면 그만큼
+   질문 목록이 늘 가려지므로 옆에 둡니다. */
+.feed-head-title {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+.feed-head-title .page-tagline {
+  margin: 0;
+  padding-right: 14px;
+  border-right: 1px solid var(--border);
+  /* 마지막 방어선 — 긴 키워드 제목과 만나 모자라면 문구 쪽이 말줄임으로 */
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* **칸이 좁으면 문구를 접습니다.** 가운데 피드 칸은 양옆에 키워드·공지 칸이
+   서서 창보다 훨씬 좁습니다 — 문구(255) + 제목(키워드가 붙으면 160 남짓) +
+   오른쪽 단추 묶음(326)이 한 줄에 서려면 780px이 필요하고, 그 칸 폭은 창이
+   1440px일 때 700 · 1600px일 때 860입니다(실측). 창 폭이 아니라 **이 줄의
+   폭**으로 판정해야 하므로 컨테이너 질의입니다. 접지 않고 두었을 때는
+   문구가 안 줄어드는 채로 제목을 눌러 '전체 질문 7개'가 한 글자씩 세로로
+   섰습니다(실측 1280px에서 제목 폭 19px). */
+.feed-head { container: feed-head / inline-size; }
+@container feed-head (max-width: 779px) {
+  .feed-head-title .page-tagline { display: none; }
+}
+
+.feed-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* feed-actions 안의 모든 버튼을 동일 높이로 통일 */
+.feed-actions .btn-primary,
+.feed-actions .filter-btn,
+.feed-actions .btn-insight {
+  height: 36px;
+  padding-top: 0;
+  padding-bottom: 0;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* 인사이트 보기 — 보조(고스트) 버튼 */
+.feed-actions .btn-insight {
+  gap: 6px;
+  padding-left: 12px;
+  padding-right: 12px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  color: var(--text);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.feed-actions .btn-insight:hover {
+  border-color: var(--primary, #e07a5f);
+  color: var(--primary-dark, #b85c4a);
+}
+

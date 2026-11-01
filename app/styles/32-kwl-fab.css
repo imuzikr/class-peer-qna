@@ -1,0 +1,16 @@
+/* KWL FAB(모바일) — 원래 app/globals.css 19851~19865줄. 차례는 globals.css의 @import 순서가 정합니다. */
+/* =============================================================
+   KWL FAB (모바일 전용 — 데스크톱에서는 숨김)
+   ============================================================= */
+.kwl-fab {
+  display: none;
+}
+
+.kwl-mobile-backdrop {
+  display: none;
+}
+
+.kwl-mobile-close {
+  display: none;
+}
+

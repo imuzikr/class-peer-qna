@@ -1,0 +1,194 @@
+/* 과일 축포 · 공부방 휴지통 — 원래 app/globals.css 25361~25553줄. 차례는 globals.css의 @import 순서가 정합니다. */
+/* ===================== 과일 축포 (학생 화면) ===================== */
+/* 폭죽은 3.2초, 배지는 마지막 지급부터 3.2초 표시합니다. 캔버스도 뱃지도 클릭을
+   가로채지 않아, 터지는 동안에도 아래 화면을 그대로 쓸 수 있습니다. */
+.reward-cheer {
+  position: fixed;
+  inset: 0;
+  z-index: 3200; /* 모달(3100)보다 위 — 모달을 보고 있어도 보입니다 */
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.reward-cheer-canvas {
+  position: absolute;
+  inset: 0;
+}
+/* 잠깐의 밤하늘 — 0.7이라는 값은 눈대중이 아닙니다. 이 값에서 불티 여섯 색이
+   모두 3:1을 넘습니다(가장 낮은 색 3.66:1). 0.62에서는 두 색이 3 아래로
+   떨어집니다.
+
+   [들어오는 것과 나가는 것을 갈라 둡니다] 예전에는 3.2초짜리 키프레임 하나가
+   페이드인·유지·페이드아웃을 다 맡았습니다. 그러면 **첫 지급 때 한 번 돌고
+   끝나서**, 과일을 연달아 주면 3.2초 뒤부터 하늘이 걷힌 채 뱃지만 떠 있었고,
+   그렇다고 key로 다시 마운트하면 지급할 때마다 어둠이 0.26초씩 깜빡였습니다.
+   지금은 들어오는 것만 키프레임(마운트 때 한 번)이고, 걷는 것은 컴포넌트가
+   붙이는 `.is-out`입니다 — 늦게 온 지급에는 이 클래스가 떨어져 다시 짙어집니다.
+   0.64초는 `RewardCelebration`의 `FADE_MS`와 **같은 값이어야** 합니다(캔버스의
+   불티도 같은 구간에 옅어집니다). */
+.reward-cheer-sky {
+  position: absolute;
+  inset: 0;
+  background: rgba(24, 22, 20, 0.7);
+  opacity: 1;
+  animation: reward-cheer-sky-in 0.26s ease-out;
+  transition: opacity 0.64s ease-out;
+}
+.reward-cheer-sky.is-out { opacity: 0; }
+@keyframes reward-cheer-sky-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.reward-cheer-enter {
+  position: relative;
+  z-index: 1;
+  animation: reward-cheer-pop 0.7s ease-out;
+}
+.reward-cheer-badge {
+  /* 하늘·캔버스가 absolute라, 위치를 주지 않으면 뱃지가 그 아래로 깔려
+     같이 어두워집니다(실제로 그랬습니다). */
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 28px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 2px solid var(--primary);
+  border-radius: 999px;
+  box-shadow: 0 10px 30px rgba(46, 36, 26, 0.18);
+  /* RewardCelebration의 LIFE_MS(4.2초)와 같은 값 */
+  animation: reward-cheer-fade 4.2s ease-out forwards;
+}
+.reward-cheer-emoji { font-size: 34px; line-height: 1; }
+.reward-cheer-plus {
+  font-size: 30px;
+  font-weight: 800;
+  color: var(--primary-dark);
+}
+.reward-cheer-text {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--dark);
+}
+@keyframes reward-cheer-pop {
+  0%   { transform: scale(0.5); opacity: 0; }
+  55%  { transform: scale(1.12); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes reward-cheer-fade {
+  0%, 80% { opacity: 1; }
+  100%    { opacity: 0; }
+}
+/* 움직임을 줄인 설정 — 커졌다 작아지는 것 없이 그대로 떠 있다 사라집니다
+   (조각은 컴포넌트가 아예 그리지 않습니다). */
+@media (prefers-reduced-motion: reduce) {
+  /* 움직임을 줄인 설정에서는 불티를 아예 안 쏘므로 하늘을 덮을 이유도
+     없습니다 — 덮기만 하면 그냥 화면이 어두워졌다 밝아질 뿐입니다. */
+  .reward-cheer-sky { display: none; }
+  .reward-cheer-enter { animation: none; }
+}
+@media (max-width: 768px) {
+  .reward-cheer-badge { padding: 14px 20px; gap: 8px; }
+  .reward-cheer-emoji { font-size: 26px; }
+  .reward-cheer-plus { font-size: 24px; }
+  .reward-cheer-text { font-size: 14px; }
+}
+
+/* ── 공부방 프로젝트 휴지통 (교사) ──
+   프로젝트 하나에 반 학생 전원의 카드가 달려 있어, 잘못 지웠을 때 되돌릴
+   자리가 필요합니다. 목록 맨 아래에 접어 두고 열 때만 읽습니다. */
+.study-trash {
+  margin-top: 28px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+/* 머리줄 — 왼쪽 '🗑 휴지통', 오른쪽 끝 '휴지통 비우기'(펼쳤을 때만) */
+.study-trash-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.study-trash-empty-btn { margin-left: auto; }
+.study-trash-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-sub);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.study-trash-toggle:hover,
+.study-trash-toggle.on {
+  border-color: var(--primary);
+  color: var(--text);
+}
+.study-trash-caret { font-size: 9px; }
+.study-trash-empty {
+  margin: 12px 0 0;
+  font-size: 13px;
+  color: var(--text-sub);
+}
+.study-trash-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.study-trash-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+}
+.study-trash-name {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.study-trash-name strong {
+  font-size: 14px;
+  color: var(--dark);
+}
+.study-trash-name small {
+  font-size: 12px;
+  color: var(--text-sub);
+}
+.study-trash-warn {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--danger);
+}
+.study-trash-btn {
+  flex-shrink: 0;
+  padding: 7px 12px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+}
+.study-trash-btn:hover:not(:disabled) { border-color: var(--primary); }
+.study-trash-btn.danger { color: var(--danger); }
+.study-trash-btn.danger:hover:not(:disabled) { border-color: var(--danger); }
+.study-trash-btn:disabled { opacity: 0.5; cursor: default; }
+

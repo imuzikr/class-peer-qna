@@ -1,0 +1,305 @@
+/* 서식 에디터 · 채팅 입력 — 원래 app/globals.css 5405~5708줄. 차례는 globals.css의 @import 순서가 정합니다. */
+/* ===================== 서식 입력 에디터 (RichTextEditor) ===================== */
+/* 둥근 박스 안에 툴바가 내장된 형태.
+   variant=full → 툴바가 위 / variant=chat → 툴바가 아래 + 전송 버튼 */
+.rte {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.rte:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(217, 119, 87, 0.16);
+}
+
+/* 도구가 줄보다 많으면 **줄어들지 않고 옆으로 구릅니다** — 아이콘을 쭈그려
+   알아보기 어렵게 만드는 것보다 낫습니다(상단바 이동 메뉴와 같은 방식).
+   단추마다 `flex-shrink: 0`이 있어야 이 구르기가 실제로 걸립니다. */
+.rte-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.rte-toolbar::-webkit-scrollbar {
+  display: none;
+}
+
+.rte-full .rte-toolbar {
+  border-bottom: 1px solid var(--border);
+}
+
+.rte-chat .rte-toolbar {
+  border-top: 1px solid var(--border);
+}
+/* 툴바를 위로 올린 채팅 에디터(toolbarTop) — 가르는 선도 따라 넘어갑니다.
+   안 그러면 툴바 위에 선이 그어져 창 머리와 붙어 보입니다. */
+.rte-chat.rte-toolbar-top .rte-toolbar {
+  border-top: none;
+  border-bottom: 1px solid var(--border);
+}
+
+/* 툴바 아이콘 버튼 */
+.rte-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  background: none;
+  border-radius: 8px;
+  color: var(--text-sub);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.rte-tool:hover {
+  background: var(--neutral);
+  color: var(--text);
+}
+
+/* 커서 위치에 해당 서식이 켜져 있으면 강조 */
+.rte-tool.active {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+}
+
+.rte-glyph {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.rte-serif {
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+code.rte-code-glyph {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: -0.5px;
+  font-weight: 700;
+  font-style: normal;
+  text-decoration: none;
+}
+
+.rte-divider {
+  width: 1px;
+  height: 18px;
+  background: var(--border);
+  margin: 0 6px;
+  flex-shrink: 0;
+}
+
+/* 전송 버튼 — 박스 **바깥 아래**의 제 줄, 오른쪽 끝.
+   한때 채팅 툴바 오른쪽 끝에 있었는데, 그 줄에 도구가 아홉이라 좁은 칸
+   (질문 모달 오른쪽 390px 남짓)에서 줄을 넘겨 **버튼이 세로로 잘렸습니다**
+   (실제 신고). 줄을 따로 두면 폭에 안 걸리고 글자도 달 수 있습니다. */
+.rte-sendrow {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+  flex-shrink: 0;
+}
+/* 모둠 메모 칸은 제 `gap`(10px)이 이미 줄 사이를 벌려 둡니다 — 거기서는
+   위 여백을 풀어야 이 줄만 위아래 간격이 다르게 벌어지지 않습니다. */
+.gmemo-thread-pane > .rte-sendrow {
+  margin-top: 0;
+}
+
+.rte-send {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 10px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.rte-send:hover {
+  background: var(--primary-dark);
+}
+
+.rte-send:disabled {
+  background: #d9d6cb;
+  cursor: default;
+}
+
+/* 글 입력 영역 (박스 내부라 자체 테두리 없음) */
+.rte-area {
+  border: none;
+  outline: none;
+  padding: 12px 14px;
+  font-size: 14px;
+  line-height: 1.7;
+  overflow-y: auto;
+}
+
+.rte-full .rte-area {
+  min-height: 130px;
+  max-height: 320px;
+}
+
+.rte-chat .rte-area {
+  min-height: 42px;
+  max-height: 140px;
+}
+
+.rte-sm .rte-area {
+  min-height: 70px;
+}
+
+/* 비어 있을 때 회색 안내 문구 표시 */
+.rte-area:empty::before {
+  content: attr(data-placeholder);
+  color: #a8a69d;
+  pointer-events: none;
+}
+
+/* 코드 블록 — 어두운 배경에 진짜 코드처럼 표시 */
+/* `.study-card-content`·`.study-card-body`가 여기 빠져 있어, 공부방 카드에
+   넣은 코드만 밋밋한 글로 나왔습니다 — 에디터에서는 검은 블록이던 것이
+   저장하고 보면 평범한 글이 되니 '서식이 안 먹는다'로 보입니다. */
+.rte-area pre,
+.qa-content pre,
+.chat-bubble pre,
+.msgr-bubble pre,
+.notice-item pre,
+.study-card-content pre,
+.study-card-body pre {
+  background: var(--dark);
+  color: #ede9e0;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.6;
+  padding: 12px 14px;
+  border-radius: 10px;
+  overflow-x: auto;
+  white-space: pre;
+  margin: 6px 0;
+}
+
+pre code {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+/* 코드 셀의 **결과**(lib/pyCells.js의 `pre.py-result`) — 읽는 자리에서.
+   코드와 같은 검은 블록이면 어디까지가 코드고 어디부터가 출력인지 안
+   갈려서, 옅은 바탕 + 왼쪽 선으로 '프로그램이 낸 말'임을 보입니다.
+   '실행 결과' 이름은 **코드 셀 바로 뒤일 때만** CSS가 그립니다 — 옛
+   '결과 붙이기'는 `<p>실행 결과</p>` 줄을 글로 넣어 두어, 거기까지 달면
+   이름이 두 번 섭니다. 출력은 길어도 접어 보이게(pre-wrap) 둡니다. */
+.rte-area pre.py-result,
+.study-card-content pre.py-result,
+.study-card-body pre.py-result {
+  background: var(--bg-deep);
+  color: var(--text);
+  border-left: 3px solid #a6d8b6;
+  border-radius: 0 10px 10px 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.rte-area pre.py-code + pre.py-result,
+.study-card-content pre.py-code + pre.py-result,
+.study-card-body pre.py-code + pre.py-result {
+  margin-top: -2px;
+}
+.rte-area pre.py-code + pre.py-result::before,
+.study-card-content pre.py-code + pre.py-result::before,
+.study-card-body pre.py-code + pre.py-result::before {
+  content: "실행 결과";
+  display: block;
+  margin-bottom: 2px;
+  font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-sub);
+}
+
+/* 파이썬 연계 활동의 **글 셀**(lib/pyCells.js의 `div.py-text`) — 읽는 자리에서.
+   코드(검은 블록)와 결과(옅은 바탕 + 초록 선) 사이에서 글만 맨바닥에 흘러,
+   어디까지가 한 셀인지 안 보였습니다. 흰 바탕 + 옅은 테두리 + 살구빛 왼쪽
+   선으로 '학생이 쓴 글' 한 덩이를 보입니다 — 결과의 초록 선과 색으로 갈립니다.
+   둘레(모서리·여백·위아래 간격)는 코드·결과 블록과 같은 값입니다. */
+.study-card-content .py-text,
+.study-card-body .py-text {
+  margin: 6px 0;
+  padding: 10px 14px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--primary);
+  border-radius: 0 10px 10px 0;
+  overflow-wrap: anywhere;
+}
+.study-card-content .py-text > :first-child,
+.study-card-body .py-text > :first-child { margin-top: 0; }
+.study-card-content .py-text > :last-child,
+.study-card-body .py-text > :last-child { margin-bottom: 0; }
+
+/* 글머리 기호 들여쓰기 (에디터·말풍선·본문·공지 공통) */
+.rte-area ul,
+.rte-area ol,
+.chat-bubble ul,
+.chat-bubble ol,
+.msgr-bubble ul,
+.msgr-bubble ol,
+.qa-content ul,
+.qa-content ol,
+.notice-item ul,
+.notice-item ol,
+.study-card-content ul,
+.study-card-content ol,
+.study-card-body ul,
+.study-card-body ol {
+  padding-left: 20px;
+  margin: 4px 0;
+}
+
+/* ===================== 채팅 입력 영역 ===================== */
+.chat-compose {
+  background: #fff;
+  border-top: 1px solid var(--border);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-attach-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.chat-attach-preview img {
+  max-height: 64px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+/* 말풍선 안 첨부 이미지 */
+.chat-image {
+  display: block;
+  max-width: 100%;
+  border-radius: 8px;
+  margin-top: 6px;
+}
+

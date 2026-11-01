@@ -1,0 +1,423 @@
+/* 질문 상세 모달 — 원래 app/globals.css 4638~5059줄. 차례는 globals.css의 @import 순서가 정합니다. */
+/* ===================== 질문 상세 모달 (2열 구조) ===================== */
+/* 모바일 전용 헤더 — 데스크톱에서는 숨깁니다 */
+.qa-mobile-header { display: none; }
+
+.modal-wide {
+  max-width: 1000px;
+  padding: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.modal-close-float {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  z-index: 2;
+}
+
+.qa-grid {
+  display: flex;
+  height: min(72vh, 640px);
+}
+
+/* --- 왼쪽: 질문 본문 + 첨부 이미지 --- */
+.qa-left {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+}
+
+/* 본문 스크롤 영역 (qa-foot은 아래에 고정) */
+.qa-left-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 28px;
+}
+
+/* 왼쪽 하단 고정 푸터 — 나도 궁금해요 + 수정 */
+.qa-foot {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 28px;
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+}
+
+/* 왼쪽 하단 버튼 4개(나도 궁금해요·고정하기·수정·삭제) — 아이콘 크기가
+   서로 달라(나도 궁금해요만 22px) 높이가 들쭉날쭉했던 것을 여기서만 맞춤 */
+.qa-foot .metoo-btn,
+.qa-foot .btn-ghost {
+  height: 36px;
+}
+
+/* 수정 버튼 — 고정하기와 삭제 사이 자리에 자연스럽게 흐르도록
+   (예전엔 소유자 전용이라 margin-left:auto로 오른쪽 끝에 띄웠지만,
+   이제 교사도 보이고 고정하기·삭제와 나란히 두는 편이 자연스럽습니다) */
+.qa-edit {
+  background: #fff;
+}
+
+/* 삭제 버튼 */
+.qa-delete {
+  background: #fff;
+  color: #b91c1c;
+}
+
+.qa-delete:hover {
+  background: #fef2f2;
+}
+
+/* 상단 고정 토글(교사 전용) — 고정 중이면 채워진 색으로 눈에 띄게 */
+.qa-pin {
+  background: #fff;
+}
+.qa-pin.on {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+
+/* 해결 표시(교사 — 글쓴이가 아닐 때) — 해결된 질문이면 초록으로 '됐다'를 말합니다 */
+.qa-resolve {
+  background: #fff;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.qa-resolve.on {
+  background: #e8f7ed;
+  border-color: #a6d8b6;
+  color: #2f6b45;
+}
+
+.qa-title {
+  font-size: 20px;
+  line-height: 1.4;
+  margin: 10px 0 14px;
+}
+
+.qa-content {
+  font-size: 15px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  color: var(--text);
+}
+
+.qa-figure {
+  margin-top: 18px;
+}
+
+.qa-figure figcaption {
+  font-size: 13px;
+  color: var(--text-sub);
+  margin-bottom: 8px;
+}
+
+.qa-image {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+/* --- 오른쪽: 채팅형 대화방 --- */
+.qa-right {
+  width: 380px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+
+.chat-head {
+  padding: 14px 16px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--primary-dark);
+  background: #fff;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1;
+}
+
+.chat-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.chat-msg {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.chat-msg.mine {
+  align-items: flex-end;
+}
+
+.chat-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-sub);
+  margin: 0 4px 3px;
+}
+
+.chat-badge {
+  background: var(--primary);
+  color: #fff;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 1px 8px;
+  margin-right: 4px;
+}
+
+/* 다른 사람 말풍선 — 왼쪽, 은은한 크림/그레이 채움 (흰 배경과 구분) */
+.chat-bubble {
+  background: #f0ede6;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  border-top-left-radius: 4px;
+  padding: 9px 13px;
+  max-width: 88%;
+  font-size: 14px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* 내 말풍선 — 오른쪽, 테라코타 (다른 사람과 색을 다르게) */
+
+.chat-msg.mine .chat-bubble {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+  border-radius: 14px;
+  border-top-right-radius: 4px;
+}
+
+.chat-msg.understood .chat-bubble {
+  background: #f1f8ef;
+  border-color: #92c795;
+  box-shadow: 0 4px 14px rgba(92, 158, 104, 0.14);
+}
+
+.chat-msg.mine.understood .chat-bubble {
+  background: #5c9e68;
+  border-color: #5c9e68;
+  color: #fff;
+}
+
+/* 말풍선 아래 한 줄 — 반응(왼쪽) + 내 글 고치기·지우기(오른쪽).
+   줄을 따로 두면 말풍선 사이가 그만큼 벌어져 대화가 성기어집니다. */
+.chat-msg-foot {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 4px 0;
+}
+
+/* 답변 말풍선 아래 작은 반응(엄지 척/하트/웃는 얼굴) */
+.chat-reactions {
+  display: flex;
+  gap: 4px;
+}
+.chat-reaction-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  font-size: 12px;
+  line-height: 1.6;
+  cursor: pointer;
+}
+.chat-reaction-btn:hover:not(:disabled) {
+  background: var(--neutral);
+}
+.chat-reaction-btn:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+.chat-reaction-btn.active {
+  background: var(--primary-light);
+  border-color: var(--primary);
+}
+.chat-reaction-emoji {
+  font-size: 13px;
+  line-height: 1;
+}
+.chat-reaction-count {
+  min-width: 8px;
+  color: var(--text-sub);
+  font-weight: 700;
+}
+.chat-reaction-btn.active .chat-reaction-count {
+  color: var(--primary-dark);
+}
+
+/* 내 답변 고치기·지우기 — 글자만 둡니다. 옆의 반응이 테두리 있는 알약이라,
+   여기까지 알약을 두면 한 줄에 누를 것이 다섯이 되어 무엇이 '내 글에 하는
+   일'인지 묻힙니다. 삭제만 위험한 빛깔로 갈라 둡니다. */
+.chat-own-tools {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.chat-own-btn {
+  padding: 2px 6px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--text-sub);
+  font-size: 12px;
+  line-height: 1.6;
+  cursor: pointer;
+}
+.chat-own-btn:hover:not(:disabled) {
+  background: var(--neutral);
+  color: var(--text);
+}
+.chat-own-btn--del:hover:not(:disabled) {
+  color: var(--danger);
+}
+.chat-own-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* 고치는 동안에는 그 말풍선만 가로를 다 씁니다 — 88%짜리 말풍선 폭에
+   에디터를 욱여넣으면 툴바가 넘칩니다. */
+.chat-msg--editing {
+  align-items: stretch;
+}
+.chat-edit {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+.chat-edit-note {
+  margin: 6px 2px 0;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+.chat-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 8px;
+}
+.chat-edit-actions .btn-ghost,
+.chat-edit-actions .btn-primary {
+  padding: 6px 14px;
+  font-size: 13px;
+}
+
+.understood-bulb {
+  width: 24px;
+  height: 24px;
+  border: 1px solid #ded8ca;
+  background: #fffdf8;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #a8a69d;
+  opacity: 0.8;
+  flex-shrink: 0;
+  transition: background 0.15s, border-color 0.15s, color 0.15s,
+    opacity 0.15s, transform 0.12s, box-shadow 0.15s;
+}
+
+.understood-icon {
+  width: 16px;
+  height: 16px;
+  display: block;
+  fill: currentColor;
+}
+
+button.understood-bulb:hover {
+  border-color: #e2bd4f;
+  color: #b8791f;
+  opacity: 1;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(184, 121, 31, 0.16);
+}
+
+.understood-bulb.on {
+  background: #fff2c9;
+  border-color: #e2bd4f;
+  color: #9a6516;
+  opacity: 1;
+  box-shadow: 0 0 0 3px rgba(212, 167, 44, 0.18);
+}
+
+.understood-bulb.readonly {
+  cursor: default;
+}
+
+.understood-bulb.readonly:not(.on) {
+  background: #faf9f5;
+  color: #c5c1b7;
+}
+
+.chat-empty {
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-sub);
+  padding: 24px 0;
+  line-height: 1.8;
+}
+
+.chat-input {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  background: #fff;
+  border-top: 1px solid var(--border);
+}
+
+.chat-input textarea {
+  flex: 1;
+  resize: none;
+}
+
+.chat-input .btn-primary {
+  width: 64px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 760px) {
+  .qa-grid {
+    flex-direction: column;
+    height: 80vh;
+  }
+
+  .qa-left {
+    flex: 0 0 42%;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .qa-right {
+    width: 100%;
+    flex: 1;
+    min-height: 0;
+  }
+}
+

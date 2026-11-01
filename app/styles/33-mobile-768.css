@@ -1,0 +1,585 @@
+/* MOBILE — 768px 이하 반응형 — 원래 app/globals.css 19866~20449줄. 차례는 globals.css의 @import 순서가 정합니다. */
+/* =============================================================
+   MOBILE — 768px 이하 반응형
+   ============================================================= */
+@media (max-width: 768px) {
+
+  /* ──────────────────────────────────────────────────────────
+     TopNav: 두 줄 레이아웃
+       1줄 — 로고 …… 돌발 퀴즈·과일·프로필·로그아웃(항상 눈에 띄어야 함)
+       2줄 — 이동 메뉴(질문방·공부방·책방·파이썬 실행기·알림·리포트)
+     **줄을 나누는 방식은 769px 위와 같습니다**(1행 로고…아이콘 / 2행
+     메뉴) — 화면이 좁아 그 사이의 전광판만 빠집니다.
+     **아이콘을 2행으로 내리지 마세요**: 그 줄은 가로로 구르는 메뉴가
+     차지해, 함께 두면 프로필이 화면 밖으로 밀려납니다.
+     아이콘만 남기고 다닥다닥 붙여 두던 예전 방식은 아이콘끼리
+     겹쳐 보이는 문제가 있어, 이름을 보여주는 균일한 크기의 칸으로
+     둘째 줄에 펼칩니다(줄에 다 못 들어가면 가로 스크롤).
+     ────────────────────────────────────────────────────────── */
+  .topbar {
+    min-height: 52px;
+    padding: 8px 14px;
+    gap: 8px 0;
+  }
+  .topbar-left { gap: 8px; }
+  .topbar-divider { display: none; }
+  /* 전광판은 여기서 접습니다 —
+     400px에 로고와 아이콘 줄을 세우고 나면 알약의 바닥 140px도 안 남습니다.
+     **감싼 칸까지 접어야 합니다**: 알약만 감추면 그 칸은 그대로 남아
+     `flex: 1 1 0`으로 첫 줄의 남는 가로를 통째로 받습니다 — 아이콘 줄이
+     오른쪽 끝으로 못 가고 로고 옆에 붙습니다(실측 400px에서 x=108). */
+  .topbar-mq-slot { display: none; }
+  /* 빈 칸은 접습니다 — 여기서는 메뉴가 `flex-basis: 100%`로 스스로 줄을
+     가르므로 줄바꿈용 빈 칸이 필요 없고, 그대로 두면 아이콘과 메뉴 사이에
+     빈 줄이 하나 더 생깁니다. */
+  .topbar-gap { display: none; }
+  .user-area { order: 2; }
+  .topnav-menu {
+    order: 3;
+    flex-basis: 100%;
+    width: 100%;
+    margin-left: 0;
+    justify-content: flex-start;
+    gap: 6px;
+    padding-bottom: 2px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* 이동 메뉴 칸 — 아이콘 위에 이름을 작게 두 줄까지 보여주는 균일한
+     정사각형에 가까운 칸. flex:0 0으로 고정해 이름 길이와 무관하게
+     모두 같은 크기입니다. */
+  .topnav-menu .btn-ghost {
+    flex: 0 0 60px;
+    width: 60px;
+    height: 52px;
+    padding: 6px 2px;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+  }
+  .topnav-menu .btn-ghost .nav-label {
+    display: block;
+    font-size: 10px;
+    line-height: 1.15;
+    white-space: normal;
+    text-align: center;
+  }
+
+  /* 알림 뱃지 — 버튼 패딩은 줄어드는데 뱃지는 그대로라 종 아이콘을
+     너무 많이 가렸습니다. 숫자를 작은 점처럼 줄여 아이콘이 보이게 합니다. */
+  .notif-badge {
+    min-width: 13px;
+    height: 13px;
+    padding: 0 3px;
+    font-size: 8px;
+    top: 1px;
+    right: 1px;
+  }
+
+  /* 역할 전환 스위치 숨김 (개발용) */
+  .role-switch { display: none; }
+
+  /* 사용자 아바타만 남기고 이름 숨김 (아바타 탭 → 프로필 메뉴) */
+  .profile { cursor: pointer; }
+  .profile-text { display: none; }
+  .profile-caret { display: none; }
+  .profile-btn { padding: 4px; }
+  .avatar { width: 32px; height: 32px; font-size: 16px; }
+
+  /* 로그아웃 버튼 최소화 */
+  .user-area { gap: 4px; }
+  .user-area .btn-ghost:last-child {
+    font-size: 12px;
+    padding: 5px 8px;
+    color: var(--text-sub);
+  }
+
+  /* ──────────────────────────────────────────────────────────
+     데모 배너: 모바일용 짧은 버전 표시
+     ────────────────────────────────────────────────────────── */
+  .demo-banner { padding: 5px 14px; font-size: 11px; text-align: left; }
+  .demo-banner-full { display: none; }
+  .demo-banner-short { display: inline; }
+
+  /* ──────────────────────────────────────────────────────────
+     게시판: 피드만 전체 너비 사용
+     ────────────────────────────────────────────────────────── */
+  .three-cols { flex-direction: column; }
+  .keyword-col { display: none; }
+  .feed-col { padding: 0 14px 80px; }
+
+  /* ──────────────────────────────────────────────────────────
+     공지사항 — 좁은 화면에선 3단 배치가 무너져 예전엔 통째로 숨겼지만,
+     그러면 휴대폰만 쓰는 학생은 공지를 볼 방법이 없습니다.
+     질문 목록 위(order: -1)에 접힌 상태로 두고, 제목줄의 ⌄ 버튼으로
+     펼치게 합니다. (DOM 순서상 공지는 피드 뒤라 order로 끌어올림)
+     ────────────────────────────────────────────────────────── */
+  .notice-col {
+    display: block;
+    order: -1;
+    width: auto;
+    flex: none;
+    overflow: visible;
+    border-left: none;
+    border-bottom: 1px solid var(--border);
+    padding: 10px 14px;
+  }
+  .notice-col h2 { margin: 0; }
+  .notice-col-title { font-size: 15px; }
+  /* 제목 옆 개수 배지 — 접힌 상태에서 공지 유무를 알려 줍니다 */
+  .notice-count {
+    display: inline-grid;
+    place-items: center;
+    min-width: 20px;
+    height: 20px;
+    margin-left: 6px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: var(--primary);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 800;
+  }
+  .notice-toggle-btn {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    font-size: 15px;
+    line-height: 1;
+  }
+  /* 접힘이 기본 — 펼치면 화면 절반까지만 쓰고 그 안에서 스크롤 */
+  .notice-body { display: none; }
+  .notice-col.is-open .notice-body {
+    display: block;
+    max-height: 50vh;
+    overflow-y: auto;
+    margin-top: 10px;
+  }
+  /* 접혀 있을 땐 정렬 토글도 숨겨 제목줄을 간결하게 */
+  .notice-col:not(.is-open) .notice-sort-btn { display: none; }
+
+  .feed-head {
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .feed-head h1 { font-size: 17px; }
+  .feed-actions { gap: 6px; }
+
+  /* 필터 — 모바일에선 아이콘만 */
+  .feed-actions .filter-label { display: none; }
+
+  /* 필터·인사이트 — 배경/테두리 없이 아이콘만 (질문하기만 강조) */
+  .feed-actions .filter-btn,
+  .feed-actions .btn-insight {
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+    padding: 0 8px;
+  }
+
+  /* 질문 카드 */
+  .question-card { padding: 14px 14px 12px; }
+  .question-card-title { font-size: 15px; }
+  .question-card-meta { font-size: 11px; gap: 6px; }
+
+  /* ──────────────────────────────────────────────────────────
+     공부방 레이아웃
+     ────────────────────────────────────────────────────────── */
+  .study-body { position: relative; }
+  .study-cols-wrap { padding: 0 10px 80px; }
+
+  .study-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding-top: 14px;
+  }
+  .study-head h1 { font-size: 17px; }
+  .study-title-row { flex-wrap: wrap; gap: 6px; }
+
+  /* 프로젝트 그리드: 좁은 화면에서는 한 줄에 한 장씩 */
+  .study-project-grid,
+  .study-project-cards {
+    grid-template-columns: 1fr;
+  }
+  .study-project-head { gap: 10px; }
+  .study-project-head-main h2 { font-size: 18px; }
+  /* 학생 상태 배지(개별 활동·활동 n개·나만 보기)는 좁은 화면에서 제목 옆에
+     세로로 쌓여 머리말을 세 줄로 늘렸습니다. 아래 줄로 통째로 내려 가로로
+     눕힙니다. 교사 도구(발표·전광판·설정)는 크기가 작아 제목과 한 줄에
+     그대로 두는 편이 낫기 때문에, 도구가 없는 경우에만 적용합니다. */
+  .study-project-head-main:not(:has(.study-project-live-tools)) {
+    flex-wrap: wrap;
+  }
+  .study-project-head-badges:not(:has(.study-project-live-tools)) {
+    flex: 1 0 100%;
+    justify-content: flex-start;
+  }
+
+  /* ──────────────────────────────────────────────────────────
+     발표 모드 · KWL 전체 보기 모달: 좁은 화면 대응
+     — 헤더가 한 줄에 안 들어가 화살표·닫기가 화면 밖으로 밀리던 문제
+     ────────────────────────────────────────────────────────── */
+  .present-modal {
+    width: 100vw;
+    height: 100dvh;
+    border-radius: 0;
+  }
+  .present-head {
+    position: relative;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 44px 10px 12px; /* 오른쪽은 닫기(×) 자리 */
+  }
+  /* 닫기 버튼은 항상 오른쪽 위에 고정 */
+  .present-head .btn-close {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+  }
+  .present-who {
+    flex-wrap: wrap;
+    row-gap: 6px;
+    gap: 8px;
+  }
+  .present-name { font-size: 18px; white-space: normal; }
+  .present-avatar { font-size: 22px; }
+  .kwlfs-date-nav { flex-wrap: wrap; row-gap: 6px; }
+  .kwlfs-head-actions { gap: 8px; }
+  .kwlfs-refresh-btn { font-size: 12px; padding: 5px 9px; }
+  .present-body { padding: 16px 14px; }
+  .present-slide { padding: 28px 22px; border-radius: 18px; }
+  .present-slide-title { font-size: 24px; margin-bottom: 18px; }
+  .present-slide-content { font-size: 18px; line-height: 1.75; }
+  .present-activities { gap: 24px; }
+  .present-activity + .present-activity { padding-top: 20px; }
+  .present-activity-title { font-size: 20px; }
+  .present-foot { padding: 10px 12px; }
+  .broadcast-bar { padding: 10px 14px; font-size: 13px; }
+  .broadcast-body { padding: 20px 14px; }
+  .broadcast-stop-pill { right: 12px; bottom: 12px; font-size: 12px; padding: 8px 14px; }
+  /* 수업하기 — 좁은 화면에서는 슬라이드 카드 위 / 해설 카드 아래로 */
+  .lesson-page { padding: 12px 12px 28px; }
+  .lesson-deck { grid-template-columns: 1fr; gap: 28px; }
+  /* 자리표는 활동 관리 아래로 내려갑니다 */
+  .lesson-lower { grid-template-columns: 1fr; gap: 28px; }
+  /* 세로로 쌓이면 옆에 높이를 정해 줄 카드가 없으므로 일반 흐름으로 되돌립니다
+     (절대 배치를 그대로 두면 해설 카드 높이가 0이 됩니다) */
+  .lesson-note-body { position: static; padding: 0; }
+  .lesson-note-body > * { position: static; inset: auto; overflow: visible; }
+  .lesson-note-input { width: 100%; min-height: 200px; }
+  .lesson-note-text { font-size: 19px; line-height: 1.55; }
+  .lesson-title { font-size: 14px; }
+  .lesson-ctrl-btn { width: 88px; padding: 9px 4px; font-size: 13px; }
+  .lesson-dots { display: none; }
+  .lesson-activity { margin-top: 40px; }
+  .present-nav {
+    width: 40px;
+    height: 40px;
+    font-size: 26px;
+  }
+
+  /* ──────────────────────────────────────────────────────────
+     대시보드·리포트 잔디 히트맵: 세로 배치
+     — 오른쪽 레이더 패널(고정 350px)이 폭을 다 차지해
+       히트맵이 0px로 찌그러져 안 보이던 문제
+     ────────────────────────────────────────────────────────── */
+  .heatmap-outer { flex-direction: column; }
+  .activity-overview {
+    width: 100%;
+    margin-left: 0;
+    padding-left: 0;
+    border-left: none;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* ──────────────────────────────────────────────────────────
+     KWL 패널: 왼쪽에서 슬라이드인 오버레이
+     ────────────────────────────────────────────────────────── */
+  .kwl-panel {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    z-index: 500;
+    width: 88vw;
+    max-width: 320px;
+    padding-top: 52px;
+    overflow-y: auto;
+    box-shadow: 6px 0 32px rgba(0,0,0,0.4);
+  }
+
+  /* 참여 보상 패널은 모바일에서 숨김(교사 관리용, 데스크톱 전용) */
+  .reward-panel { display: none; }
+  .kwl-panel.kwl-panel--open { display: flex; }
+  /* 모바일에선 패널이 position: fixed로 떠오르므로 슬롯은 폭을 벌리지
+     않습니다(벌리면 본문이 밀린 채 빈 칸만 생깁니다) */
+  .study-kwl-slot.open { width: 0; }
+  .study-kwl-slot { overflow: visible; }
+
+  .kwl-mobile-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 499;
+    background: rgba(0,0,0,0.45);
+  }
+
+  .kwl-mobile-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 56px;
+    right: 10px;
+    width: 28px;
+    height: 28px;
+    background: rgba(255,255,255,0.12);
+    border: none;
+    border-radius: 50%;
+    color: var(--sidebar-text);
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .kwl-fab {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    position: fixed;
+    bottom: 20px;
+    right: 16px;
+    z-index: 300;
+    background: var(--primary, #d97757);
+    color: #fff;
+    border: none;
+    border-radius: 24px;
+    padding: 11px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 4px 18px rgba(217,119,87,0.45);
+    cursor: pointer;
+    transition: transform 0.15s, background 0.15s;
+  }
+  .kwl-fab:active { background: #c86844; transform: scale(0.96); }
+
+  /* 모달이 열려 있으면 FAB를 숨깁니다 — FAB(z-index 300)가 모달 배경
+     (z-index 100)보다 위에 있어, 그대로 두면 모달 오른쪽 아래 버튼
+     ('저장하고 닫기' 등)을 가리고 탭까지 가로챕니다.
+     공부방에서 열리는 모달이 여러 컴포넌트에 흩어져 있어 페이지에서
+     일일이 상태로 추적하기 어려우므로 :has()로 한 번에 처리합니다. */
+  body:has(.modal-backdrop) .kwl-fab,
+  body:has(.confirm-backdrop) .kwl-fab {
+    display: none;
+  }
+
+  /* ──────────────────────────────────────────────────────────
+     프로젝트 머리말 버튼 — 데스크톱 기준 24~27px이라 손가락으로는 너무
+     작습니다. 버튼 사이 간격이 8px뿐이라 여백만 넓히면 옆 버튼과 탭 영역이
+     겹치므로, 버튼 자체를 34px로 키웁니다.
+     ────────────────────────────────────────────────────────── */
+  .study-present-btn {
+    width: 34px;
+    height: 34px;
+  }
+  .study-panel-toggle {
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+  }
+
+  /* 모달 닫기(×) — 글자만 있어 13×22px밖에 안 됩니다. 눈에 보이는 크기는
+     그대로 두고 탭 영역만 40px로 넓힙니다. */
+  .btn-close {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    margin: -8px;
+  }
+
+  /* 보드 설정 칩(공개 범위·편집 상태·복제·삭제) — 높이 25px는 너무 얇습니다 */
+  .study-chip {
+    min-height: 34px;
+    padding: 6px 12px;
+  }
+
+  /* ──────────────────────────────────────────────────────────
+     모달: 하단 슬라이드업 시트
+     ────────────────────────────────────────────────────────── */
+  .modal-backdrop {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .modal {
+    max-width: 100%;
+    width: 100%;
+    border-radius: 20px 20px 0 0;
+    max-height: 90vh;
+    padding: 20px 16px 36px;
+    margin: 0;
+  }
+  /* ── modal-wide: 전체화면 ── */
+  .modal-wide {
+    max-width: 100%;
+    width: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .modal-form { padding: 20px 16px 32px; }
+
+  /* qa-grid: 단일 스크롤 컨테이너 — 질문·채팅 모두 여기서 스크롤 */
+  .qa-grid {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    height: auto;
+    flex-direction: column;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* 제목 탭: 스크롤해도 항상 상단 고정 */
+  .qa-mobile-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 12px 52px 12px 16px;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    background: #fff;
+    cursor: pointer;
+    font-family: var(--font-serif);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--dark);
+    text-align: left;
+    line-height: 1.3;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+  .qa-expand-chevron {
+    flex-shrink: 0;
+    font-size: 11px;
+    color: var(--text-sub);
+    line-height: 1;
+  }
+  .qa-mobile-title {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* 질문 영역: 기본 접힘 */
+  .qa-left { flex: 0 0 auto; border-right: none; }
+  .qa-left-scroll { display: none; }
+  .qa-foot { display: none; }
+
+  /* 펼친 상태: qa-grid 스크롤 안으로 자연스럽게 흐름 */
+  .qa-left.qa-left--expanded .qa-left-scroll {
+    display: block;
+    flex: none;
+    overflow-y: visible;
+    padding: 16px;
+  }
+  .qa-left.qa-left--expanded .qa-foot {
+    display: flex;
+    padding: 12px 16px;
+  }
+
+  /* qa-right: 투명 래퍼 — 자식들이 qa-grid 플렉스 아이템으로 편입 */
+  .qa-right { display: contents; }
+
+  /* 채팅 메시지: 독립 스크롤 해제 — qa-grid 스크롤로 통합
+     flex:none 으로 데스크톱 flex:1 무효화 → 내용 높이만큼 자연 확장 */
+  .chat-scroll {
+    flex: none;
+    overflow-y: visible;
+    min-height: 50vh;
+  }
+
+  /* 입력창 */
+  .chat-compose { flex-shrink: 0; background: #fff; }
+
+  /* ── 에디터 툴바: 좁은 화면에서는 버튼을 조금 줄여 한 줄에 더 담습니다
+     (넘치면 옆으로 구릅니다 — 전송은 이제 아래 제 줄이라 안 걸립니다) ── */
+  .rte-toolbar { padding: 4px; gap: 1px; }
+  .rte-tool { width: 26px; height: 26px; border-radius: 6px; }
+  .rte-divider { margin: 0 3px; }
+  .rte-sendrow { margin-top: 6px; }
+  .rte-send { height: 32px; padding: 0 14px; border-radius: 8px; }
+
+  /* ──────────────────────────────────────────────────────────
+     카드 내 텍스트 레이블 숨김 → 아이콘+숫자만 표시
+     ────────────────────────────────────────────────────────── */
+
+  /* 키워드 칩 숨김 (C안: 모바일에서 카드 내 키워드 표시 제거) */
+  .keyword-chip { display: none; }
+
+  /* ──────────────────────────────────────────────────────────
+     터치 영역 확보 (최소 44px)
+     ────────────────────────────────────────────────────────── */
+  .btn-primary { min-height: 44px; font-size: 15px; }
+  /* 파이썬 실행기의 세 단추 — 위 규칙이 .btn-primary에만 걸려 그 하나만
+     44px가 되고 나머지 둘은 34px로 남습니다. 셋을 함께 올립니다. */
+  .py-actions button { height: 44px; min-height: 44px; font-size: 13px; }
+  .kwl-save-btn { min-height: 44px; }
+  .filter-btn { min-height: 40px; }
+  .vote-btn { min-height: 40px; min-width: 40px; }
+
+  /* 과일 흐름·자리표에 새로 붙인 조작들 — 데스크톱 기준으로 잡아 둔 크기가
+     손가락에는 작습니다. 글자는 그대로 두고 높이만 확보합니다. */
+  .rwtrend-toggle { min-height: 40px; padding: 4px 16px; }
+  .lesson-seat-collapse-btn { min-height: 40px; padding: 5px 16px; }
+  .lesson-seat-tabs button { min-height: 38px; }
+  .lesson-seat-toggle { min-height: 48px; }
+  /* 모달 제목 옆 뒤로 화살표 — 22px 글자만으로는 짚기 어려워 정사각으로 */
+  .modal-back {
+    min-width: 40px;
+    min-height: 40px;
+    margin-right: 4px;
+    padding: 0;
+  }
+}
+
+/* ── 480px 이하: 더 좁은 화면 ── */
+@media (max-width: 480px) {
+  .topbar { padding: 0 10px; }
+  .topbar-left .logo { font-size: 15px; }
+  .topnav-drop-btn { font-size: 12px; padding: 4px 8px; }
+  .modal { padding: 16px 14px 32px; }
+  .kwl-panel { width: 92vw; max-width: 92vw; }
+  /* 우리 모둠 — 두 칸을 나란히 둘 폭이 없어 위아래로 풉니다. 목록은 높이를
+     제한해(구름) 아래 대화가 화면 밖으로 밀리지 않게 하고, 창이 통째로
+     구르도록 되돌립니다(좁은 화면에서 칸마다 구르면 어느 것을 만지는지
+     알 수 없습니다). */
+  .group-memo-modal { height: auto; overflow-y: auto; }
+  .gmemo-cols { flex-direction: column; gap: 14px; }
+  .gmemo-side {
+    flex: none;
+    max-height: 40vh;
+    padding: 0 0 14px;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+  .gmemo-main { overflow-y: visible; }
+  .kwl-fab { bottom: 16px; right: 12px; padding: 10px 14px; font-size: 13px; }
+}
+

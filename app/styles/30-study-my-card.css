@@ -1,0 +1,1082 @@
+/* 공부방 — 내 카드 활동 페이지 — 원래 app/globals.css 18522~19602줄. 차례는 globals.css의 @import 순서가 정합니다. */
+/* =============================================================
+   공부방 — 내 카드 활동 페이지 (StudyMyActivityCard)
+   모달 대신 상세 페이지로, 활동을 RAFT 글쓰기처럼 나란히 배치합니다.
+   ============================================================= */
+/* 활동 상세는 그리드(.study-project-view) 자리를 통째로 갈아 끼웁니다 —
+   그래서 스크롤 컨테이너 노릇도 같이 넘겨받아야 합니다. 이게 없으면 바깥
+   .study-cols-wrap(overflow: hidden)에 잘려, 활동이 두 줄이 되는 순간
+   아래쪽 활동이 화면 밖에 남고 휠도 먹지 않았습니다. */
+.study-mycard-page {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  padding-bottom: 40px;
+}
+.study-mycard-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.study-mycard-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text);
+}
+/* 제목 · '프로젝트로' · 진행(n / N개) · 만든 날 · 저장 상태는 왼쪽에 이어
+   붙이고(선생님 요청), 돌발 퀴즈 · 삭제(교사)만 오른쪽 끝으로 밀어냅니다 —
+   그 사이의 빈 칸(이 클래스, 폭 0)이 남는 가로를 받습니다. 예전에는 진행
+   알약이 이 값을 가져 진행·시각까지 오른쪽 끝에 떠 있었습니다. */
+.study-mycard-head-rest {
+  margin-left: auto;
+}
+.study-mycard-time {
+  font-size: 12px;
+  color: var(--text-sub);
+}
+/* 한 줄에 활동 넉 장 — 폭을 내용에 맡기지 않고 고정합니다.
+   auto-fit + minmax는 화면 폭에 따라 한 줄에 4장이 되었다 6장이 되었다
+   해서, 활동 8개짜리 프로젝트가 '6+2'처럼 어중간하게 잘렸습니다. 넷으로
+   못박아 두면 8개는 4+4로 반듯하게 두 줄이 됩니다.
+   .raft-grid.study-mycard-grid로 묶어 우선순위를 높입니다 — 이 규칙이
+   .raft-grid의 grid-template-columns보다 파일 앞쪽에 있어서, 클래스
+   하나짜리 선택자로는 뒤에 나오는 .raft-grid에 밀려 무시됩니다. */
+.raft-grid.study-mycard-grid {
+  grid-template-columns: repeat(4, 1fr);
+}
+.study-mycard-col-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+/* 칸이 좁으면(양옆 패널이 서서 180px 남짓) 단추 덩이가 다음 줄 오른쪽으로
+   내려갑니다 — 넘치게 두면 칸 테두리 밖으로 삐져나갔습니다(실측 22px).
+   번호·글자 수는 한 줄로 붙듭니다(안 붙들면 '활/동/1'로 세로로 섭니다). */
+.study-mycard-col-head .activity-dash-no,
+.study-mycard-col-head .activity-dash-count,
+.study-mycard-col-head .activity-dash-lock {
+  white-space: nowrap;
+}
+/* 활동 번호 + 과일 단추 — 한 덩이로 묶어 번호 · 글자 수 · 단추 덩이(여닫기 ·
+   발표 모드, 아래 .study-mycard-col-tools) 세 자리를 지킵니다. */
+.study-mycard-col-no {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+/* 여닫기 + 발표 모드 — 한 덩이(위 번호 덩이와 같은 까닭) */
+.study-mycard-col-tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  min-width: 0;
+  margin-left: auto;
+}
+/* 활동 여닫기(교사) — 색은 카드 격자 위 '활동 열기' 칩과 같은 뜻:
+   열림은 살구, 잠김은 회색. 그림(자물쇠)이 함께 상태를 말합니다. */
+.study-mycard-lock {
+  justify-content: center;
+  padding: 5px 7px;
+  color: var(--primary-dark);
+  background: var(--primary-light);
+  flex-shrink: 0;
+}
+.study-mycard-lock.is-locked {
+  color: var(--text-sub);
+  background: var(--neutral);
+}
+/* 활동 칸은 좁아 카드 격자의 16px보다 한 치수 작게 답니다 */
+.study-mycard-award {
+  font-size: 15px;
+}
+.study-mycard-col.locked {
+  background: var(--neutral);
+}
+.study-mycard-col-title {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text-sub);
+  margin: 0;
+}
+.study-mycard-col-body {
+  font-size: 14px;
+}
+/* 활동 칸의 본문은 '미리보기'입니다 — 누르면 큰 모달에서 씁니다.
+   높이를 고정해 두어 글이 길어져도 칸이 늘어나지 않습니다(예전에는 칸이
+   한없이 길어져 옆 활동과 높이가 어긋나고 화면 밖으로 밀렸습니다). */
+.study-mycard-preview {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 260px;
+  overflow: hidden;
+  text-align: left;
+  padding: 10px 12px 26px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+  font-family: inherit;
+  cursor: text;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.study-mycard-preview:hover,
+.study-mycard-preview:focus-visible {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-light);
+  outline: none;
+}
+/* 본문은 **칸 안에서 구릅니다** — 칸 높이(260px)를 넘는 글을 예전에는
+   흐리게 잘라 두고 '크게 보기'를 눌러야 읽었는데, 서랍을 연 채로 옆에서
+   쓴 것을 확인하는 자리라 창을 열고 닫는 일이 잦았습니다. 칸 전체가 아니라
+   본문만 굴러, 위의 '파이썬 실행기' 단추와 아래 '크게 보기'는 제자리에
+   남습니다. 끝에 닿으면 페이지가 따라 구르지 않습니다(overscroll). */
+.study-mycard-preview-body {
+  display: block;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  padding-right: 4px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text);
+}
+.study-mycard-preview-empty {
+  font-size: 13.5px;
+  color: var(--text-sub);
+}
+/* (예전의 아래쪽 흐림은 걷었습니다 — 본문이 구르게 되어, 끝까지 내려도
+   마지막 줄이 흐림에 덮여 읽히지 않았습니다. 더 있다는 표시는 스크롤
+   막대가 맡습니다.) */
+.study-mycard-preview-open {
+  position: absolute;
+  right: 10px;
+  bottom: 7px;
+  z-index: 1;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--primary-dark);
+}
+.study-mycard-col { min-height: 420px; }
+
+/* 활동 하나를 크게 쓰는 모달 */
+/* 수업 노트 서랍(3001) 위 — 서랍이 열린 채로 칸을 누르면 서랍이 창의
+   오른쪽(× 단추)을 덮었습니다. 서랍의 오늘의 활동이 여는 셀 창(PyCellModal)도
+   같은 층입니다. 노트 크게 보기(3010)와 같은 층. */
+.study-act-backdrop { z-index: 3010; }
+
+.modal.study-act-modal {
+  width: min(980px, 94vw);
+  max-width: 94vw;
+  height: min(84vh, 900px);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px 22px 22px;
+  overflow: hidden;
+}
+.study-act-modal-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.study-act-modal-title {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 12px;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--dark);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+}
+.study-act-modal-title:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+/* 편집기가 남은 높이를 모두 씁니다 */
+.study-act-modal-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.study-act-modal-body .rte-full {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.study-act-modal-body .rte-full .rte-area {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+  height: auto;
+  overflow-y: auto;
+}
+
+/* 선생님이 준 자료 — 학생 활동 화면 맨 위, 평소엔 접힘 */
+.study-material-view {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-deep);
+  padding: 8px 12px;
+}
+.study-material-view > summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  list-style: none;
+}
+.study-material-view > summary::-webkit-details-marker { display: none; }
+.study-material-view > summary::before {
+  content: "▸ ";
+  color: var(--text-sub);
+}
+.study-material-view[open] > summary::before { content: "▾ "; }
+.study-material-view-count {
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--neutral);
+  font-size: 11px;
+  color: var(--text-sub);
+}
+/* 자료 하나 — 자료가 여럿이면 사이를 옅은 회색 선으로 갈라 둡니다 */
+.study-material-view-item { padding: 10px 0 2px; }
+.study-material-view-item + .study-material-view-item {
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+}
+.study-material-view-label {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--primary-dark);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.study-material-view-text {
+  margin-top: 6px;
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: var(--text);
+  white-space: pre-wrap;
+}
+.study-material-view-img {
+  margin-top: 10px;
+  max-width: min(100%, 520px);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+/* 활동 한 칸의 첨부 — 칸 맨 아래에 붙습니다(그 위 편집기가 남은 높이를 씀) */
+.study-act-attach {
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.study-act-attach-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.study-act-attach-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+/* 칸 폭이 좁아 이미지는 2열로 작게 */
+/* 활동 칸에 붙인 사진 — **작은 딱지**로 둡니다.
+   카드 상세는 활동이 여덟 칸씩 세로로 늘어서는 화면이라, 사진 한 장이
+   150px을 차지하면 그 칸만 두 배로 길어져 아래 활동이 화면 밖으로 밀립니다.
+   여기서는 '붙였다'는 것만 보이면 되고, 크게 볼 일은 눌러서 합니다
+   (ZoomableImage — 라이트박스). 그래서 늘어나는 2단이 아니라 64px 고정
+   딱지를 줄줄이 늘어놓습니다. 다른 화면의 .attach-image-grid는 그대로. */
+.attach-image-grid.study-act-images {
+  margin-top: 0;
+  gap: 6px;
+  grid-template-columns: repeat(auto-fill, 64px);
+}
+.study-act-images .attach-image-cell { border-radius: 8px; }
+/* 지우기 단추도 딱지에 맞춰 — 24px이면 사진을 거의 다 덮습니다 */
+.study-act-images .attach-image-grid-del {
+  top: 3px;
+  right: 3px;
+  width: 18px;
+  height: 18px;
+  font-size: 11px;
+}
+.attach-add-btn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.study-mycard-foot {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+/* 좁은 화면에서는 넷을 나란히 두면 칸이 글자 몇 개 폭으로 좁아집니다 —
+   .raft-grid와 같은 단계(2열 → 1열)로 접습니다. */
+@media (max-width: 900px) {
+  .raft-grid.study-mycard-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 560px) {
+  .raft-grid.study-mycard-grid { grid-template-columns: 1fr; }
+  .study-mycard-head { gap: 8px; }
+  .study-mycard-title { font-size: 17px; }
+}
+
+/* 읽기 모드 활동 섹션 — 질문(제목)은 위쪽에 소제목처럼, 답은 그 아래
+   사각형 박스 안에 놓입니다. 실제 HTML은 <h4 class="activity-title">
+   바로 뒤에 답 내용이 형제 노드로 이어지는 구조라(공용 편집 틀), 제목을
+   박스 위에 겹치는 띠로 절대 배치해 시각적으로만 분리합니다 — 그래야
+   답이 <p> 하나든 여러 줄이든 항상 하나의 박스로 보입니다. */
+.study-card-body .activity-section {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  /* 위쪽 34px는 원래 제목 띠(약 33px) 높이만 겨우 가려서, 띠 아래
+     경계선과 답 텍스트가 거의 붙어 보였습니다. 48px로 늘려 경계선과
+     텍스트 사이에 실제 여백을 둡니다. */
+  padding: 48px 14px 12px;
+  margin-bottom: 14px;
+  background: #fff;
+}
+.study-card-body .activity-section:last-child {
+  margin-bottom: 0;
+}
+.study-card-body .activity-title {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+  border-radius: 10px 10px 0 0;
+  background: var(--bg);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary-dark, #c15a2a);
+  font-family: var(--font-serif);
+}
+.activity-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--dark);
+  margin-bottom: 6px;
+  font-family: var(--font-serif);
+}
+
+/* 카드 목록에서 보이는 제목 */
+.study-card-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--dark);
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 모달 작성/수정 모드 제목 입력 */
+.study-card-title-input {
+  width: 100%;
+  padding: 9px 12px;
+  font-size: 15px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--dark);
+  outline: none;
+  margin-bottom: 10px;
+  font-family: inherit;
+}
+
+.study-card-title-input:focus {
+  border-color: var(--primary);
+  background: #fff;
+}
+
+.study-card-title-input::placeholder {
+  color: var(--text-sub);
+  font-weight: 400;
+}
+
+/* 모달 읽기 모드 제목 */
+.study-card-read-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--dark);
+  font-family: var(--font-serif);
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
+
+.study-card-preview {
+  font-size: 13px;
+  line-height: 1.5;
+  min-height: calc(13px * 1.5 * 3); /* 내용 없어도 3줄 높이 보장 */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 0;
+  color: transparent;
+  user-select: none;
+}
+
+/* 모달 내 카드 본문 */
+.study-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0 12px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 12px;
+}
+
+.study-card-meta strong {
+  font-size: 14px;
+  color: var(--text);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 55%;
+}
+
+.study-card-meta-time {
+  font-size: 12px;
+  color: var(--text-sub);
+  margin-left: auto; /* 시각만 오른쪽 끝으로 (크게보기 버튼은 이름 옆) */
+}
+
+.study-card-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 24px;
+  min-height: 280px;
+}
+
+.study-card-body {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text);
+  word-break: break-word;
+}
+
+.study-card-image {
+  margin-top: 8px;
+  max-width: 100%;
+  border-radius: 8px;
+}
+
+/* 모달 하단 액션 영역 */
+.study-card-modal-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  margin-top: 12px;
+}
+
+.study-card-modal-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.study-card-modal-save-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+/* 자동저장 상태 — 저장 행 왼쪽(오류 안내용) */
+.study-autosave {
+  margin-right: auto;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+  transition: color 0.2s;
+}
+.study-autosave--saved {
+  color: #5c9e68;
+}
+.study-autosave--error {
+  color: var(--danger);
+}
+
+/* 자동저장 배지 — 제목 줄에 잠깐 표시됐다가 사라짐(다음 입력 때 재표시) */
+.study-autosave-pill {
+  margin-left: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--neutral);
+  color: var(--text-sub);
+  vertical-align: middle;
+  white-space: nowrap;
+  animation: autosave-pill-in 0.25s ease;
+}
+@keyframes autosave-pill-in {
+  from { opacity: 0; transform: translateY(-2px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.study-autosave-pill--saving {
+  background: var(--neutral);
+  color: var(--text-sub);
+}
+.study-autosave-pill--saved {
+  background: #e7f3e9;
+  color: #3f8a4f;
+}
+.study-autosave-pill--error {
+  background: #fdecea;
+  color: var(--danger);
+}
+
+/* 모달 푸터의 두 버튼을 동일한 크기·주황(강조) 색으로 통일 */
+.study-card-modal-save-row > .btn-primary,
+.study-peek-foot > .btn-primary {
+  padding: 9px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  min-width: 96px;
+  text-align: center;
+}
+
+/* 삭제 확인 인라인 */
+.study-delete-confirm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.study-delete-warn {
+  font-size: 13px;
+  color: #c0392b;
+  font-weight: 600;
+  flex: 1;
+  min-width: 0;
+}
+
+/* 카드 하단 삭제 확인 버튼 — 저장 버튼과 동일 크기(btn-primary), 색만 다르게 */
+.study-foot-danger {
+  background: var(--danger);
+}
+.study-foot-danger:hover {
+  background: #a83a30;
+}
+.study-foot-ghost {
+  background: var(--bg);
+  color: var(--text-sub);
+  border: 1px solid var(--border);
+}
+.study-foot-ghost:hover {
+  background: var(--neutral);
+}
+
+/* 관련 질문(모달 내 버전) */
+.study-related-modal {
+  margin-top: 4px;
+}
+
+/* modal-study-card 너비 */
+.modal-study-card {
+  max-width: 640px;
+  min-height: 480px;
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+  transition: max-width 0.2s ease;
+}
+/* 크게 보기(발표 크기) — 창을 무작정 키우기보다, 첨부는 감추고
+   제목·본문 텍스트를 슬라이드 한 장처럼 가운데에 크게 보여줍니다. */
+.modal-study-card.modal-study-card--expanded {
+  max-width: 880px;
+  width: 90vw;
+  height: 86vh;
+  max-height: 86vh;
+}
+.study-card-modal-body.study-slide-mode {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 12px 40px 24px;
+}
+.study-slide-mode .study-card-title-input {
+  font-family: var(--font-serif);
+  font-size: 30px;
+  font-weight: 800;
+  text-align: center;
+  margin-bottom: 24px;
+}
+.study-slide-mode .study-card-read-title {
+  font-family: var(--font-serif);
+  font-size: 32px;
+  text-align: center;
+  margin-bottom: 24px;
+}
+.study-slide-mode .study-card-body,
+.study-slide-mode .rte-full .rte-area {
+  font-size: 21px;
+  line-height: 1.9;
+}
+.study-card-expand-btn {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text-sub);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.study-card-expand-btn:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+/* 관련 질문 읽기 전용 미리보기 (편집 모달 위에 겹침) */
+.study-peek-backdrop {
+  z-index: 110;
+  background: rgba(38, 38, 37, 0.35);
+}
+
+.modal-peek {
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  max-height: 85vh;
+}
+
+.study-peek-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.study-peek-readonly {
+  font-size: 12px;
+  color: var(--text-sub);
+  background: #f2efe9;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-weight: 600;
+}
+
+.study-peek-body {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.study-peek-answers {
+  margin-top: 18px;
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+}
+
+.study-peek-answers h4 {
+  font-size: 13px;
+  color: var(--text-sub);
+  margin-bottom: 10px;
+}
+
+.study-peek-answers h4 span {
+  color: var(--primary-dark);
+  font-weight: 700;
+}
+
+.study-peek-answer {
+  background: #faf8f4;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+
+.study-peek-answer.understood {
+  border-color: #e7b78f;
+  background: #fff8ef;
+}
+
+.study-peek-answer-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.study-peek-answer-head time {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-sub);
+}
+
+.study-peek-understood {
+  font-size: 11px;
+  font-weight: 700;
+  color: #8a5a12;
+  background: #fff4d7;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.study-peek-foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  margin-top: 12px;
+}
+
+.study-chip {
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.study-chip:hover {
+  background: var(--primary-light);
+}
+
+.study-chip.open {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.study-chip.ghost {
+  color: var(--text-sub);
+}
+
+.study-chip.danger {
+  color: #c0392b;
+  border-color: #e6b8b2;
+}
+
+/* 관련 질문 아코디언 */
+.study-related {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.study-related-empty {
+  font-size: 12px;
+  color: var(--text-sub);
+  line-height: 1.5;
+}
+
+.study-related-item {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  gap: 0 8px;
+  text-align: left;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.study-related-item:hover {
+  border-color: var(--primary);
+}
+
+.mini-status {
+  grid-row: 1 / 3;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+}
+.mini-status.open { color: var(--primary); }
+.mini-status.done { color: #5c9e68; }
+
+.study-related-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.study-related-preview {
+  font-size: 12px;
+  color: var(--text-sub);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 보드 추가 폼 입력 */
+/* 프로젝트 안내 입력 — 아래에 활동 목록이 이어지므로, 예전 보드 폼처럼
+   350px를 잡아 두면 만들기 버튼이 화면 밖으로 밀려납니다. */
+.study-board-desc-input {
+  min-height: 120px;
+  resize: vertical;
+}
+
+/* 키워드 칩 다중 선택 */
+.study-keyword-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 2px 0 4px;
+}
+
+.study-keyword-chip {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 11px;
+  border-radius: 999px;
+  border: 1.5px solid var(--border);
+  background: #fff;
+  color: var(--text-sub);
+  cursor: pointer;
+  transition: border-color 0.1s, color 0.1s, background 0.1s;
+}
+
+/* 키워드 추가 '+' 칩 + 인라인 입력 */
+.study-keyword-add {
+  font-weight: 700;
+  color: var(--primary);
+  border-style: dashed;
+  padding: 5px 12px;
+}
+.study-keyword-add:hover {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+.study-keyword-add-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.study-keyword-add-inline input {
+  width: 120px;
+  padding: 5px 10px;
+  border: 1.5px solid var(--primary);
+  border-radius: 999px;
+  font-size: 12px;
+}
+.study-keyword-add-inline button {
+  padding: 5px 12px;
+  border: none;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.study-keyword-chip:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.study-keyword-chip.selected {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+
+.study-link-hint {
+  font-size: 12px;
+  color: var(--text-sub);
+  line-height: 1.5;
+}
+
+.study-form-board {
+  margin-left: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+/* 질문 상세의 "수업으로 돌아가기" */
+/* 돌아가기 버튼 묶음 — 한 줄에 중앙 정렬로 높이/정렬 일치 */
+.back-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 12px;
+}
+
+.back-to-study {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  box-sizing: border-box;
+  padding: 0 14px;
+  background: #fffaf0;
+  border: 1px solid #e8d9b8;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #8a6d2c;
+  cursor: pointer;
+}
+
+.back-to-study svg {
+  display: block;
+  flex-shrink: 0;
+}
+
+.back-to-study:hover {
+  background: #fdf3df;
+}
+
+/* 인사이트로 돌아가기 — 인사이트 테마 색 */
+.back-to-insight {
+  background: #fff7ed;
+  border-color: #e7d3c4;
+  color: #8a6258;
+}
+.back-to-insight:hover {
+  background: #fdeede;
+}
+
+/* 학습 리포트 — 공부방 활동 섹션 */
+.study-report {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.study-report-bar {
+  height: 8px;
+  background: var(--bg);
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 4px 0 14px;
+}
+
+.study-report-fill {
+  height: 100%;
+  background: var(--primary);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.study-report-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  /* 최대 5개까지 보이고, 그 이상은 스크롤 */
+  max-height: 230px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.study-report-item {
+  display: grid;
+  /* 키워드 · 제목 · 미리보기 · 진행(칸 막대+칸수+시각) — 네 열.
+     키워드가 없는 줄도 빈 칸을 두어(page.js) 열이 밀리지 않게 합니다. */
+  grid-template-columns: auto auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+
+.study-report-item:hover {
+  background: var(--bg);
+}
+
+.study-report-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.study-report-preview {
+  font-size: 13px;
+  color: var(--text-sub);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.study-report-item time {
+  font-size: 12px;
+  color: var(--text-sub);
+  white-space: nowrap;
+}
+
+@media (max-width: 820px) {
+  /* 좁은 화면에서는 최근 활동·KWL을 세로로 */
+  .admin-bottom-row {
+    grid-template-columns: 1fr;
+  }
+  .study-report-item {
+    grid-template-columns: auto 1fr;
+  }
+  .study-report-preview,
+  .study-report-item time {
+    display: none;
+  }
+}
+

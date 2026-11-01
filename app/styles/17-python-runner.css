@@ -1,0 +1,392 @@
+/* 파이썬 실행 패널 — 원래 app/globals.css 5709~6099줄. 차례는 globals.css의 @import 순서가 정합니다. */
+/* ===================== 파이썬 실행 패널 ===================== */
+.py-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 440px;
+  max-width: 92vw;
+  background: #fff;
+  border-left: 1px solid var(--border);
+  box-shadow: -12px 0 40px rgba(46, 36, 26, 0.15);
+  display: flex;
+  flex-direction: column;
+  padding: 18px;
+  gap: 10px;
+  z-index: 105; /* 모달(100) 위, peek(110) 아래 */
+  transform: translateX(105%);
+  /* 처음 열릴 때의 미끄러짐(transform)과 **2단이 여닫힐 때의 폭**을 같은
+     길이·같은 곡선으로 굴립니다 — 한 서랍이 두 가지 속도로 움직이면 2단이
+     따로 노는 것처럼 보입니다. 끄는 중에는 `.dragging`이 이걸 통째로 끕니다. */
+  transition: transform 0.25s ease, width 0.25s ease;
+}
+
+.py-panel.open {
+  transform: translateX(0);
+}
+
+/* 드래그 중에는 슬라이드 애니메이션을 꺼서 즉시 따라오게 */
+.py-panel.dragging {
+  transition: none;
+}
+
+/* 2단 — 프로젝트 연계.
+   **화면을 덮지 않습니다.** 서랍이 프로젝트 칸 너비(--py-link-w)만큼 한 칸
+   더 열릴 뿐입니다 — 폭은 컴포넌트가 인라인으로 줍니다(1단 폭 + 그만큼).
+   예전에는 여기서 100vw로 벌려 화면을 통째로 덮었는데, 그건 없앤 '전체
+   화면'이 하던 일이라 2단이 그것을 물려받을 이유가 없습니다. */
+.py-main {
+  display: flex;
+  gap: 16px;
+  flex: 1;
+  min-height: 0;
+  /* 폭이 벌어지는 동안 프로젝트 칸이 **가려졌다 드러납니다**. 이게 없으면
+     칸이 처음부터 제자리에 있고 대신 에디터가 짜부라졌다 돌아와, 여는
+     내내 코드가 출렁입니다. */
+  overflow: hidden;
+}
+
+/* 2단이 여닫히는 동안 에디터·입출력 칸이 제 폭을 지킵니다 — `flex: 1`만
+   두면 전환 중에는 아직 좁은 패널을 프로젝트 칸(안 줄어듦)과 나눠 가지느라
+   그만큼 줄어듭니다. `--py-body-w`는 컴포넌트가 인라인으로 줍니다. */
+.py-panel.linked .py-body {
+  min-width: var(--py-body-w, 0);
+}
+
+/* 프로젝트 연계 칸 — 세 칸 중 가장 오른쪽, 폭은 고정입니다.
+   `flex: 1`로 두면 창이 넓어질수록 고르개 두 개가 덩그러니 늘어나고,
+   정작 넓어야 할 에디터가 그만큼 줄어듭니다. */
+.py-project {
+  flex: 0 0 300px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-left: 16px;
+  border-left: 1px solid var(--border);
+  overflow-y: auto;
+}
+.py-project-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.py-project-head h4 {
+  margin: 0;
+  font-size: 14px;
+}
+.py-project-scope {
+  font-style: normal;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+/* 프로젝트·활동 고르개 두 개를 한 줄에 나란히 */
+.py-project-picks {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.py-project-pick {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0; /* 없으면 긴 이름이 칸을 밀어 두 칸이 안 맞습니다 */
+}
+.py-project-label {
+  font-size: 12px;
+  color: var(--text-sub);
+}
+.py-project-select,
+.py-project-input {
+  width: 100%;
+  padding: 7px 9px;
+  font-size: 13px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text);
+}
+.py-project-make {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+.py-project-make button {
+  flex: 1 1 0;
+  font-size: 12px;
+  padding: 6px 8px;
+}
+.py-project-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+}
+.py-project-form-actions {
+  display: grid; /* 모달 아래 두 단추와 같은 규칙 — 정확히 반씩 */
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.py-project-form-actions button { width: 100%; font-size: 12.5px; padding: 6px 8px; }
+
+.py-project-where {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 13px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+}
+.py-project-where strong,
+.py-project-where span { overflow-wrap: anywhere; }
+.py-project-where span { color: var(--text-sub); font-size: 12.5px; }
+.py-project-lock {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 6px;
+  font-style: normal;
+  font-size: 12px;
+  color: var(--text-sub);
+}
+
+.py-project-send { margin-top: 4px; }
+.py-project-why { margin: 0; font-size: 12px; color: var(--text-faint); }
+.py-project-note { margin: 0; font-size: 12.5px; }
+.py-project-note--ok { color: #3f704b; }
+.py-project-note--err { color: #b8474b; }
+.py-project-hint {
+  margin: auto 0 0; /* 칸 맨 아래로 */
+  padding-top: 10px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--text-faint);
+}
+
+/* 좁은 화면에서는 세 칸이 세로로 풀립니다(1024px 밑에서 300px을 떼면
+   에디터가 못 씁니다). 그때는 프로젝트 칸이 맨 아래에 옵니다. */
+@media (max-width: 1024px) {
+  .py-main { flex-direction: column; overflow: visible; }
+  /* 세로로 풀리면 지킬 폭이 없습니다 — 그대로 두면 가로로 넘칩니다. */
+  .py-panel.linked .py-body { min-width: 0; }
+  .py-project {
+    flex: 0 0 auto;
+    padding-left: 0;
+    padding-top: 12px;
+    border-left: none;
+    border-top: 1px solid var(--border);
+  }
+}
+
+/* 왼쪽 가장자리 크기 조절 핸들 */
+.py-resizer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 7px;
+  cursor: ew-resize;
+  z-index: 1;
+}
+
+.py-resizer:hover {
+  background: linear-gradient(
+    to right,
+    rgba(217, 119, 87, 0.35),
+    transparent
+  );
+}
+
+.py-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.py-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.py-copy-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+.py-copy-btn:hover {
+  background: var(--neutral);
+}
+
+/* 예시 코드 — 빈 칸에 옅게 뜨는 안내입니다(실제 내용이 아니라, 한 글자만
+   쳐도 저절로 사라집니다). CodeMirror의 placeholder 자리에 줄마다 <div>로
+   쌓아 넣으므로, 여기서는 편집기 글자와 같은 줄 높이만 맞춰 줍니다. */
+.py-sample {
+  color: var(--text-faint);
+  white-space: pre;
+}
+.py-sample > div { line-height: 1.4; }
+
+/* 본문 배치: 보통은 세로, 전체 화면은 좌우 분할 */
+.py-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+  min-height: 0;
+  /* flex 항목의 기본값 `min-width: auto`는 **내용보다 좁아지기를 거부**합니다.
+     세로로 쌓기만 하던 때는 부모가 열이라 티가 안 났는데, `.py-main`으로
+     감싸 가로줄이 되자 이 칸이 부모보다 13px 넓어져 잘렸습니다(실측
+     403 대 416). 0으로 풀어 두면 부모 폭을 그대로 따릅니다. */
+  min-width: 0;
+}
+
+.py-right {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+  min-height: 0;
+}
+
+.py-head h3 {
+  font-size: 17px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.py-btn-active {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+
+/* CodeMirror 에디터 */
+.py-editor {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.py-editor .cm-editor {
+  height: 240px;
+  font-size: 13.5px;
+}
+
+.py-editor .cm-editor.cm-focused {
+  outline: 2px solid var(--primary);
+}
+
+.py-editor .cm-scroller {
+  font-family: var(--font-mono);
+  line-height: 1.6;
+}
+
+.py-editor .cm-gutters {
+  background: var(--bg-deep);
+  color: #a8a69d;
+  border-right: 1px solid var(--border);
+}
+
+/* 실행기의 입력값 칸 — 고정폭 글꼴.
+   **`.py-code`로 되돌리지 마세요** — 그 이름은 카드에 저장되는 코드 셀
+   (`pre.py-code`, lib/pyCells.js)이 씁니다. 여기 규칙(min-height 200px ·
+   밝은 바탕)이 그대로 새어 카드의 코드 셀이 전부 커다란 흰 상자가 됩니다. */
+.py-mono {
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  line-height: 1.6;
+  min-height: 200px;
+  resize: vertical;
+  background: var(--bg);
+  white-space: pre;
+  overflow-x: auto;
+}
+
+.py-label {
+  font-size: 13px;
+  color: var(--text-sub);
+  margin-bottom: -4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.py-stdin {
+  min-height: 56px;
+}
+
+.py-actions {
+  display: flex;
+  flex-wrap: wrap; /* 공간이 부족하면 버튼 단위로만 줄바꿈(글자는 안 깨짐) */
+  align-items: center;
+  gap: 8px;
+}
+/* 세 단추의 **높이를 하나로**. 저마다 세로 padding으로 정하고 있었고
+   '질문 만들기'에는 아이콘까지 들어 있어, 나란히 선 셋의 높이가 다
+   달랐습니다(실행 33 · 질문 만들기 36 · 출력 지우기 29px).
+   높이를 못 박고 안쪽 정렬은 inline-flex가 맡습니다. */
+.py-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 34px;
+  padding: 0 12px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.py-run-hint {
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.85;
+  margin-left: 2px;
+}
+
+/* 실행 결과 (터미널 느낌의 어두운 영역) */
+.py-output {
+  flex: 1;
+  min-height: 120px;
+  overflow-y: auto;
+  background: var(--dark);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.py-line {
+  display: block;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: #dcd9ce;
+}
+
+.py-line.err {
+  color: #ff9b8a;
+}
+
+.py-line.result {
+  color: #e8a87c;
+}
+
+.py-line.info {
+  color: #87867f;
+}
+

@@ -1,0 +1,521 @@
+/* 활동보기 — 자리표 패널의 첫 탭 — 원래 app/globals.css 9941~10460줄. 차례는 globals.css의 @import 순서가 정합니다. */
+/* ===== 활동보기 — 자리표 패널의 첫 탭 =====
+   지금 내보낸 활동에 학생들이 쓴 답을 이전/다음으로 한 명씩. 자리표와 같은
+   자리에서 갈아 끼우므로 키(.lesson-seat-body)는 자리표가 정합니다 — 답이
+   길면 그 안에서 구릅니다. */
+/* 키는 안 잡습니다 — `.lesson-seat-body > *`가 이미 `flex: 1 1 auto`와
+   `min-height: 0`을 줍니다. 여기서 `height: 100%`를 덧대면 그 칸이 키를 못
+   박은 순간(자리표를 아직 안 그려 bodyH가 0일 때) 0으로 접힙니다. */
+.lesson-ans {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+}
+.lesson-ans-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.lesson-ans-tag {
+  flex-shrink: 0;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  font-size: 12px;
+  font-weight: 800;
+}
+.lesson-ans-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--dark);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* '쓴 사람 n / N' — 이름이 짧아 남는 자리를 받지 않게 오른쪽 끝으로 밀어
+   둡니다(이름 줄이 없는 활동에서도 자리가 안 흔들립니다). */
+.lesson-ans-sum {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-sub);
+  font-variant-numeric: tabular-nums;
+}
+.lesson-ans-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-deep);
+}
+.lesson-ans-arrow {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card-bg);
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--text);
+  cursor: pointer;
+}
+.lesson-ans-arrow:hover:not(:disabled) { border-color: var(--primary); }
+.lesson-ans-arrow:disabled { opacity: 0.4; cursor: default; }
+.lesson-ans-who {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  overflow: hidden;
+}
+.lesson-ans-who b {
+  font-size: 13.5px;
+  color: var(--dark);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lesson-ans-who em {
+  flex-shrink: 0;
+  font-style: normal;
+  font-size: 11.5px;
+  color: var(--text-sub);
+  font-variant-numeric: tabular-nums;
+}
+.lesson-ans-pos {
+  flex-shrink: 0;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+  font-variant-numeric: tabular-nums;
+}
+/* 답 — 구르는 것은 이 칸 하나입니다(머리·이전/다음은 늘 보여야 합니다) */
+.lesson-ans-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card-bg);
+  font-size: 13.5px;
+  line-height: 1.7;
+}
+.lesson-ans-empty { font-size: 13px; color: var(--text-faint); }
+
+.lesson-seat-panel {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-deep);
+  padding: 16px 14px 18px;
+}
+.lesson-seat-panel .lesson-card-head {
+  padding-bottom: 0;
+}
+.lesson-seat-hint {
+  margin: 2px 0 12px;
+  font-size: 11.5px;
+  color: var(--text-sub);
+}
+.lesson-seat-collapse-btn {
+  margin-left: auto;
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--text-sub);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.lesson-seat-collapse-btn:hover {
+  background: var(--neutral);
+}
+.lesson-seat-panel .lesson-note-empty {
+  margin: 0;
+}
+
+/* 개별/모둠/궁금한 순간 전환 — 패널 머리에 한 줄. 예전에는 자리표
+   머리줄('칠판' 자리)에 끼워 넣었는데, 세 번째 보기는 자리표가 없어
+   그 안에 둘 수 없습니다. 손든 인원은 오른쪽 끝에 붙여, 어느 보기에서든
+   보이게 합니다.
+   참여 전광판의 보기 탭(.attend-mode-tabs)과 같은 모양으로 맞췄습니다. */
+/* 탭 내용이 들어가는 자리 — 키는 JS가 자리표(개별 보기) 기준으로 못 박습니다.
+   세 보기의 키가 100px 넘게 달라, 이게 없으면 탭을 누를 때마다 페이지가
+   늘었다 줄었다 하며 화면이 밀립니다. 자리표보다 긴 보기는 이 안에서
+   구릅니다 — 페이지는 한 치도 움직이지 않습니다. */
+.lesson-seat-body {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+.lesson-seat-body > * { flex: 1 1 auto; min-height: 0; }
+.lesson-seat-tabrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  /* 아주 좁은 화면(320px 기기 → 패널 268px)에서는 탭과 보기 단추·손든
+     인원이 한 줄에 못 들어갑니다. 글자를 잘라 먹는 대신 아랫줄로 내립니다. */
+  flex-wrap: wrap;
+}
+.lesson-seat-tabrow .lesson-seat-tabs { flex: 1 1 210px; }
+.lesson-seat-tabrow .attend-seatmap-hands { margin-left: auto; }
+/* 자리표 안쪽의 손든 인원은 감춥니다 — 위 탭 줄에 이미 있어, 두 개가
+   나란히 있으면 어느 쪽이 지금 값인지 헷갈립니다. SeatPickGrid는 다른
+   화면들과 함께 쓰는 컴포넌트라 이 패널 안으로만 좁혀 감춥니다. */
+.lesson-seat-panel .attend-seatmap-head .attend-seatmap-hands { display: none; }
+/* 이 패널에서는 자리표 머리줄에 그릴 것이 하나도 없습니다 — 보기 방향
+   단추는 위 탭 줄에 있고, 칠판 표시는 걷었습니다.
+   높이 0짜리 빈 줄에 아래 여백 8px만 남아 칠판 띠를 그만큼 밀어내므로
+   줄째로 접습니다. **이 패널의 자리표 머리줄에 설 것을 새로 넘긴다면
+   (`headTrail` 등) 이 줄을 함께 지우세요** — 안 그러면 조용히 안 보입니다. */
+.lesson-seat-panel .attend-seatmap-head { display: none; }
+.lesson-seat-tabs {
+  flex: 1;
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--neutral);
+}
+/* flex:1(균등 분할)이 아니라 글자 폭 기준으로 나눕니다 — 탭이 셋이 되면서
+   '궁금한 순간'이 '개별 보기'보다 길어졌는데, 균등 분할이면 좁은 화면에서
+   긴 쪽이 두 줄로 접혀 탭 줄 높이가 25 → 40px로 뜁니다(재 봤습니다).
+   nowrap으로 못 박고 남는 자리만 고르게 나눠 가집니다. */
+.lesson-seat-tabs button {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 5px 6px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-sub);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.lesson-seat-tabs button:hover:not(:disabled):not(.active) {
+  color: var(--text);
+}
+.lesson-seat-tabs button.active {
+  background: #fff;
+  color: var(--primary-dark);
+  box-shadow: 0 1px 3px rgba(46, 36, 26, 0.12);
+}
+.lesson-seat-tabs button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* ── 모둠 보기 — 개별 보기의 자리표를 그대로, 첫 칸이 모둠 이름 ────────
+   뿌리가 `.attend-seatmap-grid`라 열 수(6칸)도 gap도 자리 칸 크기도
+   **개별 보기 그대로**입니다. 한때 모둠마다 색 띠를 두른 상자를 세우고 그
+   안에 학생 칸을 52px로 흘려 놓았는데, 같은 패널에서 탭만 바꿨을 뿐인데
+   칸이 작아지고 한 줄에 드는 수도 달라져 두 화면이 남남처럼 보였습니다.
+   그래서 **학생 칸에는 아무것도 덧대지 않습니다** — 여기서 width나 flex를
+   주면 그때부터 두 보기가 다시 갈립니다.
+
+   모둠을 가르는 것은 **그 줄의 첫 칸에 선 모둠 이름**입니다
+   (`grid-column-start: 1`). 이름 칸이 늘 1열에서 시작하므로 앞 모둠이 줄을
+   덜 채웠어도 격자가 다음 줄로 건너뛰고, 그 뒤로 모둠원이 차례로 섭니다 —
+   자리표 한 판 안에서 줄이 곧 모둠입니다. 한 줄에 다 안 드는 모둠은 다음
+   줄로 이어지고(이름 칸 아래), 그다음 모둠은 다시 새 줄에서 시작합니다.
+
+   **이름 칸을 `grid-row: span N`으로 늘이지 마세요.** 모둠원을 늘 2~6열에만
+   세우면 이어지는 줄이 더 깔끔하지만, N을 내려면 '한 줄에 몇 명인가'를 JS가
+   알아야 합니다 — 그 값은 6이 아니라 **768px 아래에서 4**로 바뀝니다
+   (`@media` 안의 `.attend-seatmap-grid`). 한쪽만 고치면 좁은 화면에서 빈 칸이
+   줄줄이 생기므로, 열 수를 모르고도 맞는 지금 방식을 씁니다.
+
+   아래 규칙은 모두 `.lesson-seat-groupgrid` 아래로 한정합니다 — 자리표와
+   같은 격자를 쓰는 만큼, 모둠 보기에만 있어야 할 것이 개별 보기로 새지
+   않게 뿌리를 하나 두고 그 안에서만 말합니다. */
+.lesson-seat-groupgrid > .lesson-seat-group-name {
+  grid-column-start: 1;
+  /* 자리 칸과 같은 정사각형 — 학생 칸이 선 줄에서는 줄 높이가 이미 칸
+     높이라 그대로 맞고, 아무도 없는 모둠의 줄에서는 이 값이 줄 높이를
+     정해 줍니다(안 그러면 그 줄만 납작해집니다). */
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  /* 테두리가 2px이라 안쪽이 1px 좁아지는 만큼 padding에서 돌려줍니다
+     (`.attend-seat--me`와 같은 셈). */
+  padding: 3px 2px;
+  border: 2px solid var(--group-color, var(--border));
+  border-radius: 10px;
+  background: #fff;
+  /* 학생 이름(`.attend-seat-name`)과 **같은 12.5px** — 한 판에 나란히 선
+     칸이라 크기가 다르면 이름 칸만 따로 놉니다. */
+  font-size: 12.5px;
+  font-weight: 800;
+  line-height: 1.2;
+  color: var(--group-color, var(--text-sub));
+  text-align: center;
+  /* 모둠 이름은 교사가 지어 길 수 있습니다('3모둠'은 37px인데 가장 좁은
+     패널의 칸 안쪽이 40px뿐입니다 — 실측). 넘치면 줄을 바꿔 담고, 그래도
+     넘치면 잘립니다. */
+  overflow-wrap: anywhere;
+  overflow: hidden;
+}
+/* 아무도 없는 모둠 — 이름 칸 오른쪽 남은 자리를 다 씁니다. 칸 하나만 한
+   폭(48px)에 넣으면 글자가 서너 자씩 접힙니다. */
+.lesson-seat-groupgrid > .lesson-seat-group-empty {
+  grid-column: 2 / -1;
+  align-self: center;
+  font-size: 11px;
+  font-style: normal;
+  color: var(--text-sub);
+}
+
+/* compact은 '칠판 안내 문구를 빼는' 용도로만 쓰고(공부방 패널과 달리 이
+   패널은 본문 절반 폭이라 칸이 충분히 큽니다), 글자는 원래 크기로 되돌립니다
+   — 좁은 패널 기준으로 줄여 둔 8.5px를 그대로 두면 큰 칸에 깨알 글씨가
+   박힙니다. */
+.lesson-seat-panel .attend-seatmap--compact .attend-seatmap-grid {
+  gap: 6px;
+}
+.lesson-seat-panel .attend-seatmap--compact .attend-seat-name {
+  font-size: 12.5px;
+}
+.lesson-seat-panel .attend-seatmap--compact .attend-seat-no {
+  font-size: 10.5px;
+}
+.lesson-seat-panel .attend-seatmap--compact .attend-seat-fruit {
+  font-size: 10px;
+}
+.lesson-seat-panel .attend-seatmap--compact .attend-seat-hand {
+  font-size: 13px;
+  top: 2px;
+  right: 3px;
+}
+
+/* ── 수업 준비: 공부방 연동 ── */
+.lesson-board {
+  margin-top: 40px;
+}
+.lesson-board-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.lesson-board-pick {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.lesson-board-pick label {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.lesson-board-select {
+  flex: 1;
+  min-width: 160px;
+  max-width: 320px;
+  padding: 9px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+}
+.lesson-board-select:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+.lesson-board-add {
+  padding: 9px 14px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--primary-dark, #c15a2a);
+  background: var(--primary-light);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-btn);
+  cursor: pointer;
+}
+.lesson-board-add:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.lesson-board-cancel {
+  padding: 9px 14px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-sub);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  cursor: pointer;
+}
+.lesson-board-cancel:hover:not(:disabled) {
+  background: var(--neutral);
+}
+.lesson-board-cancel:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+/* 가져올 프로젝트를 골랐을 때 — 무엇이 따라오고 무엇이 안 따라오는지.
+   고르는 자리에서 바로 읽혀야 하므로 줄 전체를 차지해 아래로 내려갑니다
+   (.lesson-board-pick은 wrap flex). */
+.lesson-board-import-note {
+  flex-basis: 100%;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-sub);
+}
+/* 활동 목록 — 학생 카드에 그대로 들어갈 항목들.
+   번호를 '활동 1'처럼 직접 그리므로 기본 목록 마커 자리는 비웁니다. */
+.lesson-board-acts {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 15px;
+}
+/* 활동 이름이 곧 학생 카드의 질문이라 한 문장이 통째로 들어옵니다.
+   글자 수를 막지 않는 대신 길면 줄바꿈해 흐르게 두므로, 줄이 여러 개일 때
+   번호가 첫 줄 옆에 오도록 위쪽으로 맞춥니다. */
+.lesson-board-acts li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+/* '활동 1' 번호 — 폭을 고정해 이름이 세로로 가지런히 놓이게.
+   글자가 작아 이름의 첫 줄과 눈높이가 맞도록 조금 내려 둡니다. */
+.lesson-board-act-no {
+  flex-shrink: 0;
+  min-width: 46px;
+  padding-top: 5px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--primary-dark, #c15a2a);
+}
+/* 끌기 손잡이 — 평소엔 옅게 두었다가 줄에 마우스를 올리면 또렷해집니다.
+   늘 진하게 두면 여덟 줄에 여덟 개의 점무늬가 서서 목록보다 손잡이가 먼저
+   눈에 들어옵니다. */
+.lesson-board-act-drag {
+  flex-shrink: 0;
+  width: 22px;
+  padding: 3px 0;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--border);
+  background: none;
+  border: none;
+  border-radius: 6px;
+  cursor: grab;
+  transition: color 0.15s;
+}
+.lesson-board-acts li:hover .lesson-board-act-drag,
+.lesson-board-act-drag:focus-visible {
+  color: var(--text-sub);
+}
+.lesson-board-act-drag:active {
+  cursor: grabbing;
+}
+.lesson-board-act-drag:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+/* 집어 든 줄 — 원래 자리는 옅게 남겨 어디서 왔는지 보이게 */
+.lesson-board-acts li.is-dragging {
+  opacity: 0.4;
+}
+/* 놓을 자리 — 그 줄 전체를 물들이지 않고 윗선만 그어 '이 사이로 들어간다'를
+   보여 줍니다(줄을 통째로 칠하면 바꿔치기처럼 읽힙니다). */
+.lesson-board-acts li.is-over--up {
+  box-shadow: inset 0 2px 0 0 var(--primary);
+}
+.lesson-board-acts li.is-over--down {
+  box-shadow: inset 0 -2px 0 0 var(--primary);
+}
+
+/* 이름 자체가 '고치기' 버튼입니다 — 겉모습은 글자 그대로 두고, 마우스를
+   올렸을 때만 눌러도 된다는 표시를 냅니다. */
+.lesson-board-act-name {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 3px 6px;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.lesson-board-act-name:hover:not(:disabled) {
+  background: var(--neutral);
+}
+.lesson-board-act-name:disabled {
+  cursor: default;
+}
+/* 이름 고치는 중 — 목록 한 줄 안에서 입력칸이 자리를 차지합니다 */
+.lesson-board-act-edit {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.lesson-board-act-edit input {
+  flex: 1;
+  min-width: 160px;
+  padding: 6px 10px;
+  font-family: inherit;
+  font-size: 15px;
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-btn);
+  outline: none;
+}
+.lesson-board-act-edit button {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--primary);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-btn);
+  cursor: pointer;
+}
+.lesson-board-act-edit button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.lesson-board-act-edit .lesson-board-act-editcancel {
+  color: var(--text-sub);
+  background: #fff;
+  border-color: var(--border);
+}
+.lesson-board-act-edit .lesson-board-act-editcancel:hover:not(:disabled) {
+  background: var(--neutral);
+}
+

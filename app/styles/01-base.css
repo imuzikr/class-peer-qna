@@ -1,0 +1,96 @@
+/* 디자인 토큰(:root) · 기본 요소 · placeholder · 헤딩 — 원래 app/globals.css 1~95줄. 차례는 globals.css의 @import 순서가 정합니다. */
+:root {
+  /* Claude 시그니처 테라코타/코럴 */
+  --primary: #d97757;
+  --primary-dark: #b85c3f;
+  --primary-light: #f8ece5;
+  /* 따뜻한 차콜 사이드바 */
+  --sidebar-bg: #262625;
+  --sidebar-text: #c2c0b6;
+  --sidebar-active: #d97757;
+  /* 따뜻한 오프화이트/크림 배경 */
+  --bg: #faf9f5;
+  --bg-deep: #f5f4ef;
+  --card-bg: #ffffff;
+  --border: #e8e5dd;
+  --neutral: #ebe9e2;
+  --dark: #1a1a18;
+  --text: #3d3d3a;
+  --text-sub: #8a8a82;
+  /* 안내·예시처럼 '살짝 보이면 되는' 글자 — 읽을 것이 아니라 참고할 것입니다.
+     본문(--text)·딸림글(--text-sub) 다음 단계라, 이보다 더 내리지 마세요
+     (bg-deep 위에서 대비가 2.4:1이라 여기가 바닥입니다). */
+  --text-faint: #a09f96;
+  --danger: #c04a3f;
+  --radius: 16px;
+  --radius-btn: 12px;
+  --shadow-soft: 0 1px 3px rgba(46, 36, 26, 0.06), 0 4px 14px rgba(46, 36, 26, 0.05);
+  --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", "Noto Serif KR",
+    Batang, serif;
+  --font-mono: "Consolas", "D2Coding", "SF Mono", "Courier New", monospace;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic",
+    -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* 입력칸의 예시 글(placeholder) — 앱 전체를 여기 한 줄로 정합니다.
+   정해 두지 않으면 브라우저 기본색(크롬은 #757575쯤)이라 본문만큼 짙어,
+   학생이 '이미 쓰여 있는 글'로 읽습니다. 이건 쓰는 순간 사라지는 예시라
+   살짝 보이기만 하면 됩니다.
+   어두운 패널의 입력칸(.kw-edit-input · .study-activity-row-input ·
+   .kwl-textarea · .mm-node-input)은 아래에 제 규칙이 있어 그것이 이깁니다 —
+   이 규칙을 그 아래로 옮기지 마세요.
+   opacity를 함께 두는 까닭: 파이어폭스는 placeholder 기본 opacity가 0.54라,
+   색만 정하면 여기서 한 번 더 옅어져 거의 안 보입니다. */
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-faint);
+  opacity: 1;
+}
+
+/* 헤딩은 클래식한 세리프 — Claude의 "종이와 잉크" 무드 */
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--dark);
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+input,
+textarea,
+select {
+  font-family: inherit;
+  font-size: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  padding: 10px 12px;
+  width: 100%;
+  background: #fff;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(217, 119, 87, 0.18);
+}
+

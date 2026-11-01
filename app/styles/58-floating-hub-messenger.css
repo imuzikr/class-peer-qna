@@ -1,0 +1,1139 @@
+/* 떠 있는 동그라미 · 간편 메신저 — 원래 app/globals.css 32204~33341줄. 차례는 globals.css의 @import 순서가 정합니다. */
+/* =============================================================
+   떠 있는 동그라미 · 간편 메신저 (components/FloatingHub.jsx · MessengerWindow.jsx)
+   -------------------------------------------------------------
+   오른쪽 아래의 작은 동그라미(56px)가 누르면 큰 원(300px)으로 펼쳐집니다.
+   큰 원은 동그라미의 가운데를 기준점으로 0.19배 → 1배로 자랍니다 — 원의
+   오른쪽 아래 모서리가 동그라미의 오른쪽 아래와 같은 자리라, 동그라미는
+   큰 원 바깥 모서리에 그대로 남아 닫기(×)가 됩니다.
+   z-index는 90대 — 모달 배경(100) **아래**입니다. 이 동그라미로 연 창(과일
+   바구니 등)이 뜨면 그 뒤로 가려져 창의 단추를 덮지 않습니다.
+   `.hub-disc`의 300px은 FloatingHub.jsx의 `DISC`와 같아야 합니다.
+   ============================================================= */
+.hub-root {
+  --hub-right: 20px;
+  --hub-bottom: 20px;
+}
+.hub-root.is-lifted {
+  /* 교사 화면의 '방송 종료' 알약(오른쪽 아래 · 높이 40px 남짓) 위로 */
+  --hub-bottom: 74px;
+}
+/* 끌어 옮긴 자리 — 네 변 거리(--hub-left/top/right/bottom)는 컴포넌트가 인라인으로
+   줍니다(lib/hubPlace.js). 왼쪽 · 위쪽 절반이면 큰 원 · 메신저 창을 화면 가운데
+   쪽으로 펼칩니다. 끄는 동안은 움직임(transition)을 꺼 손을 바로 따라오게. */
+.hub-root.is-dragging .hub-fab,
+.hub-root.is-dragging .hub-disc,
+.hub-root.is-dragging .msgr { transition: none; }
+.hub-root.is-dragging .hub-fab { cursor: grabbing; transform: scale(1.06); }
+/* 끌 수 있는 것은 교사의 동그라미뿐 — 손가락으로 끌 때 화면이 대신 구르지 않게.
+   학생 동그라미는 그대로 두어 그 위에서 시작한 손짓도 화면을 굴립니다. */
+.hub-root.can-drag .hub-fab { touch-action: none; }
+.hub-root.is-left .hub-disc { right: auto; left: var(--hub-left); }
+.hub-root.is-top .hub-disc { bottom: auto; top: var(--hub-top); }
+.hub-root.is-left .hub-disc { --hub-ox: 28px; }
+.hub-root.is-top .hub-disc { --hub-oy: 28px; }
+.hub-root.is-left .msgr { right: auto; left: var(--hub-left); }
+.hub-root.is-top .msgr {
+  bottom: auto;
+  top: calc(var(--hub-top) + 68px);
+  height: min(580px, calc(100vh - var(--hub-top) - 84px));
+}
+.hub-root.is-placed:not(.is-top) .msgr {
+  height: min(580px, calc(100vh - var(--hub-bottom) - 84px));
+}
+
+.hub-fab {
+  position: fixed;
+  right: var(--hub-right);
+  bottom: var(--hub-bottom);
+  z-index: 96;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  background: var(--primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 20px rgba(217, 119, 87, 0.42), 0 2px 6px rgba(46, 36, 26, 0.12);
+  cursor: pointer;
+  transition: transform 0.18s ease, background 0.18s ease, bottom 0.25s ease;
+}
+.hub-fab:hover { transform: translateY(-2px); background: var(--primary-dark); }
+.hub-fab:active { transform: scale(0.95); }
+.hub-fab.is-open { background: var(--dark); box-shadow: 0 6px 18px rgba(26, 26, 24, 0.3); }
+.hub-fab-icon { display: flex; }
+.hub-fab-x { font-size: 30px; line-height: 1; font-weight: 300; margin-top: -3px; }
+.hub-fab-badge,
+.hub-item-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+  border: 2px solid #fff;
+  box-sizing: content-box;
+}
+
+/* 큰 원 — 접힌 동안은 작게 · 투명 · visibility hidden(안의 단추에 초점이 안 감) */
+.hub-disc {
+  position: fixed;
+  right: var(--hub-right);
+  bottom: var(--hub-bottom);
+  z-index: 95;
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  /* 동그라미의 가운데(오른쪽 아래에서 28px 안쪽)에서 자랍니다 — 끌어 옮겨 왼쪽 ·
+     위쪽으로 펼칠 때는 그쪽 28px(--hub-ox · --hub-oy) */
+  transform-origin: var(--hub-ox, calc(100% - 28px)) var(--hub-oy, calc(100% - 28px));
+  transform: scale(0.19);
+  opacity: 0;
+  visibility: hidden;
+  transition: transform 0.26s cubic-bezier(0.2, 0.9, 0.3, 1.15), opacity 0.18s ease,
+    visibility 0s linear 0.26s, bottom 0.25s ease;
+}
+.hub-disc.is-open {
+  transform: scale(1);
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+/* ── 행성 궤도 — 바탕 원판은 없습니다(선생님 요청) ──
+   원판은 배경도 테두리도 없는 투명한 자리 틀일 뿐입니다 — 행성 일곱과 가운데 해만
+   떠 있습니다. 틀은 남겨 둡니다: 행성 자리(%)와 펼칠 때 동그라미에서 자라는
+   움직임(scale)이 이 300px 틀을 기준으로 합니다.
+   틀은 누름을 받지 않습니다(pointer-events: none) — 행성 사이 빈자리를 누르면 뒤
+   화면이 눌리고, 그것이 '바깥'이라 원이 접힙니다. 행성 · 해만 누름을 받습니다.
+   예전의 점선 궤도 · 실선 고리도 걷었습니다(선이 행성 사이를 가로질러 어수선). */
+.hub-disc { background: none; box-shadow: none; pointer-events: none; }
+.hub-disc.is-open .hub-item,
+.hub-disc.is-open .hub-center { pointer-events: auto; }
+
+/* 항목 — 궤도 위의 작은 행성(동그라미). 그림은 앱의 아이콘(StatusIcons) 그대로 */
+.hub-item {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 70px;
+  height: 70px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--card-bg);
+  /* 바탕 원판이 없어 페이지 위에 곧바로 뜨므로 그림자를 조금 짙게 */
+  box-shadow: 0 4px 14px rgba(46, 36, 26, 0.2), inset 0 0 0 1px var(--border);
+  color: var(--dark);
+  cursor: pointer;
+  font: inherit;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+.hub-item-icon {
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.hub-item-label { font-size: 11.5px; font-weight: 700; white-space: nowrap; letter-spacing: -0.2px; }
+.hub-item.is-hover {
+  background: var(--primary-light);
+  box-shadow: 0 5px 14px rgba(217, 119, 87, 0.28), inset 0 0 0 1.5px #ecc7b6;
+  transform: translate(-50%, -50%) scale(1.06);
+}
+.hub-item:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+.hub-item .hub-item-badge { top: -2px; right: -2px; }
+/* 투표 불 — 돌발 퀴즈 불(.pq-btn-dot)과 같은 색: 빨강 = 아직 안 함, 초록 = 공유된 결과 */
+.hub-item-dot,
+.hub-fab-dot {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: #e05a2f;
+  box-shadow: 0 0 0 2px #fff;
+}
+.hub-item-dot { top: 2px; right: 2px; }
+.hub-fab-dot { top: 0; right: 0; }
+.hub-item-dot.is-green,
+.hub-fab-dot.is-green { background: #2f9e5a; }
+/* 출석 — 체크 하나(currentColor)라 '됐다'의 초록으로 */
+.hub-icon-check { color: #3f704b; }
+/* 과일 바구니 — 바구니 창의 그림을 작게(흰 바탕을 원판에 녹임) */
+.hub-basket-pic {
+  display: block;
+  width: 36px;
+  height: 24px;
+  object-fit: contain;
+  mix-blend-mode: multiply;
+}
+/* 펼칠 때 행성이 하나씩 차례로 떠오릅니다 */
+.hub-disc.is-open .hub-item {
+  animation: hub-pop 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.3) both;
+  animation-delay: calc(var(--i) * 35ms + 60ms);
+}
+@keyframes hub-pop {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+/* 가운데 — 해. 고른 기능의 설명 */
+.hub-center {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 116px;
+  height: 116px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #e88c6c, var(--primary) 55%, var(--primary-dark));
+  /* 바깥 빛 고리는 행성(궤도 101px · 70px)에 안 닿게 6 + 4px */
+  box-shadow: 0 0 0 6px rgba(217, 119, 87, 0.14), 0 0 0 10px rgba(217, 119, 87, 0.07);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 10px;
+  text-align: center;
+  box-sizing: border-box;
+}
+.hub-center strong { font-size: 13.5px; font-weight: 800; line-height: 1.2; }
+.hub-center > span:not(.hub-center-badge) { font-size: 10.5px; line-height: 1.3; opacity: 0.88; word-break: keep-all; }
+/* 가운데의 그림 — 흰 동그라미(30px) 안에. 행성의 그림을 그대로 줄여 씁니다 */
+.hub-center-badge {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(120, 50, 25, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1px;
+}
+.hub-center-badge svg { width: 20px; height: 20px; }
+.hub-center-badge .hub-basket-pic { width: 24px; height: 16px; }
+
+/* ── 메신저 창 ── */
+.msgr {
+  position: fixed;
+  right: var(--hub-right);
+  bottom: calc(var(--hub-bottom) + 68px);
+  z-index: 94;
+  width: min(380px, calc(100vw - 32px));
+  height: min(580px, calc(100vh - 160px));
+  display: flex;
+  flex-direction: column;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: 0 18px 48px rgba(46, 36, 26, 0.2), 0 4px 12px rgba(46, 36, 26, 0.08);
+  overflow: hidden;
+  animation: msgr-in 0.22s ease both;
+  transform-origin: calc(100% - 28px) calc(100% + 40px);
+}
+@keyframes msgr-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+.msgr-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 12px 12px 14px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.msgr-head-title { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.msgr-head-title strong { font-size: 15px; color: var(--dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.msgr-head-title span { font-size: 12px; color: var(--text-sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.msgr-back {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  font-size: 22px;
+  line-height: 1;
+  color: var(--text);
+  cursor: pointer;
+  padding-bottom: 3px;
+}
+.msgr-back:hover { background: var(--bg-deep); }
+.msgr-close { flex-shrink: 0; }
+.msgr-avatar {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #e8f3ea;
+  color: #3f704b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 800;
+}
+.msgr-avatar--group { background: var(--primary-light); color: var(--primary-dark); border-radius: 12px; }
+
+.msgr-list { flex: 1; overflow-y: auto; padding: 6px 8px 12px; }
+.msgr-sec + .msgr-sec { margin-top: 6px; }
+.msgr-sec-title {
+  margin: 10px 8px 6px;
+  font-family: inherit; /* h4는 앱 전체가 세리프 — 목록 머리는 본문 글꼴로 */
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.msgr-sec-title span { color: var(--text-faint); font-weight: 600; margin-left: 2px; }
+.msgr-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 8px;
+  border: none;
+  background: none;
+  border-radius: 12px;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+.msgr-row:hover { background: var(--bg-deep); }
+.msgr-row-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.msgr-row-name { font-size: 14px; font-weight: 700; color: var(--dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.msgr-row-name em { font-style: normal; font-weight: 500; font-size: 11.5px; color: var(--text-faint); margin-left: 6px; }
+.msgr-row-preview { font-size: 12.5px; color: var(--text-sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.msgr-row-time { flex-shrink: 0; font-size: 11px; color: var(--text-faint); align-self: flex-start; margin-top: 3px; }
+.msgr-unread {
+  flex-shrink: 0;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+  box-sizing: border-box;
+}
+.msgr-empty { margin: 4px 10px 8px; font-size: 12.5px; color: var(--text-faint); }
+.msgr-empty--center { text-align: center; margin-top: 18px; }
+
+.msgr-thread {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 12px 14px 8px;
+  background: var(--bg);
+}
+.msgr-notice {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--bg-deep);
+  font-size: 11.5px;
+  color: var(--text-sub);
+  text-align: center;
+  line-height: 1.5;
+}
+.msgr-notice strong { color: var(--text); }
+/* 1:1 방의 손들기 대화 카드 — 접힌 한 줄, 누르면 손바닥 창과 같은 말풍선(읽기 전용).
+   메신저 말과 갈리도록 점선 테두리 · 가운데 정렬. */
+.msgr-sig { margin: 8px auto; width: min(100%, 420px); border: 1px dashed var(--border); border-radius: 12px; background: #fff; }
+.msgr-sig-head {
+  width: 100%; display: flex; align-items: center; gap: 6px; padding: 7px 10px;
+  background: none; border: 0; border-radius: 12px; font: inherit; font-size: 12px; color: var(--text-sub);
+  text-align: left; cursor: pointer;
+}
+.msgr-sig-head:hover { background: var(--primary-light); }
+.msgr-sig-label { flex: none; font-weight: 700; color: var(--dark); }
+.msgr-sig-preview { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.msgr-sig-head small { flex: none; margin-left: auto; color: var(--text-faint); }
+.msgr-sig-body { padding: 2px 10px 10px; }
+.msgr-sig .qsig-thread { max-height: none; overflow: visible; margin: 0; }
+.msgr-day {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0 8px;
+  font-size: 11.5px;
+  color: var(--text-faint);
+}
+.msgr-day::before,
+.msgr-day::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+.msgr-msg {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+.msgr-msg--mine { align-items: flex-end; }
+.msgr-msg-name { font-size: 11.5px; font-weight: 700; color: var(--text-sub); margin: 0 0 3px 4px; }
+.msgr-bubble {
+  max-width: 82%;
+  padding: 9px 12px;
+  border-radius: 16px 16px 16px 6px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.msgr-msg--teacher .msgr-bubble { background: #eef6ef; border-color: #cfe5d4; }
+.msgr-msg--mine .msgr-bubble {
+  border-radius: 16px 16px 6px 16px;
+  background: var(--primary-light);
+  border-color: #efd2c4;
+  color: var(--dark);
+}
+.msgr-msg-meta { font-size: 10.5px; color: var(--text-faint); margin: 3px 4px 0; }
+/* 교사의 '지우기' — 말에 마우스를 올리거나 초점이 갈 때만(가운뎃점까지 함께) */
+.msgr-del-wrap { opacity: 0; transition: opacity 0.12s ease; }
+.msgr-msg:hover .msgr-del-wrap,
+.msgr-del-wrap:focus-within,
+.msgr-del-wrap.is-sure { opacity: 1; }
+.msgr-del {
+  border: none;
+  background: none;
+  padding: 0 2px;
+  font: inherit;
+  color: var(--text-faint);
+  cursor: pointer;
+}
+.msgr-del:hover { color: var(--text); }
+.msgr-del--sure { color: var(--danger); font-weight: 700; }
+
+/* 읽음 — 시각 옆에 옅게, 모두 읽었으면 진한 살구. 모둠은 눌러 누가 읽었는지 펼칩니다. */
+.msgr-receipt {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: var(--text-faint);
+}
+button.msgr-receipt { cursor: pointer; text-decoration: underline dotted; text-underline-offset: 2px; }
+button.msgr-receipt:hover { color: var(--text-sub); }
+.msgr-receipt.is-all { color: var(--primary-dark); font-weight: 700; }
+.msgr-receipt-list {
+  max-width: 82%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 4px 4px 0;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: var(--bg-deep);
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--text-sub);
+  overflow-wrap: anywhere;
+}
+.msgr-receipt-list b { color: var(--text); margin-right: 4px; }
+
+/* 인용 답장 — 말풍선 위에 붙는 옅은 한 덩이(왼쪽 살구 선). 말풍선과 같은 폭 천장이고
+   두 줄에서 접습니다. 누르면 원문으로 굴러갑니다. */
+.msgr-quote {
+  max-width: 82%;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: 0 0 3px;
+  padding: 5px 10px 5px 9px;
+  border: none;
+  border-left: 3px solid var(--primary);
+  border-radius: 4px 10px 10px 4px;
+  background: var(--bg-deep);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.msgr-quote:hover:not(:disabled) { background: var(--primary-light); }
+.msgr-quote:disabled { cursor: default; opacity: 0.8; }
+.msgr-quote-name { font-size: 11px; font-weight: 700; color: var(--primary-dark); }
+.msgr-quote-text {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text-sub);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+/* 인용을 눌러 굴러간 원문 — 잠깐 밝아집니다 */
+.msgr-msg.is-flash .msgr-bubble { animation: msgr-flash 1.4s ease; }
+@keyframes msgr-flash {
+  0%, 30% { box-shadow: 0 0 0 3px rgba(217, 119, 87, 0.45); }
+  100% { box-shadow: 0 0 0 0 rgba(217, 119, 87, 0); }
+}
+/* 쓰는 칸 위에 붙은 인용 — 빼기(×)가 오른쪽 끝 */
+.msgr-quote-draft {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 8px;
+  padding: 6px 6px 6px 10px;
+  border-left: 3px solid var(--primary);
+  border-radius: 4px 10px 10px 4px;
+  background: var(--bg-deep);
+}
+.msgr-quote-draft-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.msgr-quote-x {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--text-sub);
+  cursor: pointer;
+}
+.msgr-quote-x:hover { background: var(--card-bg); color: var(--text); }
+
+.msgr-compose {
+  display: flex;
+  flex-direction: column; /* 서식 에디터가 박스와 '보내기' 줄을 형제로 내놓습니다 */
+  padding: 10px 12px 4px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+/* 쓰는 칸은 글만큼 늘되 다섯 줄 남짓에서 멈추고 안에서 구릅니다 — 창이 580px라
+   칸이 한없이 자라면 대화가 밀려 사라집니다. */
+.msgr-rte .rte-area {
+  min-height: 44px;
+  max-height: 132px;
+  overflow-y: auto;
+  font-size: 14px;
+}
+.msgr-hint { margin: 0; padding: 0 14px 10px; font-size: 11px; color: var(--text-faint); flex-shrink: 0; }
+
+/* 768px 아래 — 공부방의 다른 떠 있는 단추(KWLS · 오늘 패널)가 아래쪽을 쓰므로
+   한 칸 위로, 메신저 창은 화면 폭을 거의 다 씁니다. */
+@media (max-width: 768px) {
+  .hub-root { --hub-right: 14px; --hub-bottom: 76px; }
+  .hub-root.is-lifted { --hub-bottom: 120px; }
+  .msgr,
+  .hub-root.is-left .msgr {
+    right: 8px;
+    left: 8px;
+    width: auto;
+    height: min(560px, calc(100dvh - var(--hub-bottom) - 96px));
+  }
+  .hub-root.is-top .msgr { height: min(560px, calc(100dvh - var(--hub-top) - 84px)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hub-disc,
+  .hub-fab,
+  .msgr { transition: none; animation: none; }
+  .hub-disc.is-open .hub-item { animation: none; }
+  .msgr-msg.is-flash .msgr-bubble { animation: none; box-shadow: 0 0 0 3px rgba(217, 119, 87, 0.45); }
+}
+
+/* 메신저 — 교사의 반 고르기 줄 · 학생의 대화 탭(선생님 · 우리 모둠) */
+.msgr-classbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-deep);
+  flex-shrink: 0;
+}
+.msgr-classbar label { font-size: 12px; font-weight: 700; color: var(--text-sub); flex-shrink: 0; }
+.msgr-class-select {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  padding: 4px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--dark);
+  cursor: pointer;
+}
+.msgr-class-name { font-size: 13.5px; font-weight: 700; color: var(--dark); }
+/* 탭은 늘 같은 폭(선생님 요청 — 이어 놓인 단추는 크기를 맞춥니다). minmax(0, 1fr)이라
+   안 읽은 수 배지 · 긴 모둠 이름이 붙어도 그 칸만 넓어지지 않습니다. */
+.msgr-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.msgr-tab {
+  position: relative;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-sub);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 10px;
+}
+.msgr-tab:hover:not(:disabled):not(.on) { background: var(--bg-deep); color: var(--text); }
+.msgr-tab.on { background: var(--primary); border-color: var(--primary); color: #fff; }
+.msgr-tab:disabled { color: var(--text-faint); background: var(--bg-deep); cursor: default; }
+.msgr-tab-badge {
+  display: inline-block;
+  min-width: 18px;
+  height: 18px;
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 11px;
+  line-height: 18px;
+  text-align: center;
+  vertical-align: 1px;
+  box-sizing: border-box;
+}
+
+/* 메신저 — 서식 말풍선 · 반 공지 */
+.msgr-bubble--rich { white-space: normal; }
+.msgr-bubble--rich > :first-child { margin-top: 0; }
+.msgr-bubble--rich > :last-child { margin-bottom: 0; }
+.msgr-bubble--rich p { margin: 0; }
+.msgr-bubble--rich pre { white-space: pre; max-width: 100%; }
+/* 말은 못 고치므로 말풍선의 체크 상자는 누르는 것이 아닙니다 */
+.msgr-bubble li.check::before,
+.msgr-bubble ul.checklist > li::before { cursor: default; }
+.msgr-tabs--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.msgr-notice-list { display: flex; flex-direction: column; gap: 6px; padding: 0 2px 4px; }
+.msgr-notice-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--primary);
+  border-radius: 0 12px 12px 0;
+  background: var(--card-bg);
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.msgr-notice-card:hover { background: var(--bg-deep); }
+.msgr-notice-meta { display: flex; gap: 8px; font-size: 11px; color: var(--text-faint); }
+.msgr-notice-text {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.msgr-notice-card.is-open .msgr-notice-text { display: block; }
+
+/* ── 한 눈에 보기 (EntryOverviewModal) ──────────────────────────────
+   책방 교사 화면의 가운데 칸 머리 오른쪽 '한 눈에 보기'가 여는 창.
+   한 학생이 쓴 것을 영역별 카드로 한 창에 보고, 아래 이전 · 다음으로
+   왼쪽 목록 차례대로 넘깁니다. 구르는 것은 본문 한 칸뿐입니다 — 머리줄과
+   넘기는 줄은 늘 제자리여야 손이 같은 곳을 짚습니다(수업 화면 창과 같음). */
+.entry-detail-head .eov-open-btn { margin-left: auto; flex-shrink: 0; }
+/* 모둠 RAFT — 모둠 칩(+ 전광판)이 이름 · 학번 · 주제 옆에 섭니다. 제 줄에서
+   쓰던 아래 여백은 이 머리 안에서는 풉니다. */
+.entry-detail-tools {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.entry-detail-tools .eov-open-btn { margin-left: 0; }
+.entry-detail-head .group-filter,
+.entry-detail-head .group-filter-row { margin-bottom: 0; }
+/* 모둠 RAFT의 왼쪽 모둠 카드 — 카드는 고르는 단추가 아니라 담는 칸이고(div),
+   누르는 것은 이름 알약입니다. 그래서 카드 자체에는 손 모양 · hover가 없습니다. */
+.raft-group-card { cursor: default; }
+.raft-group-card:hover { border-color: var(--border); }
+.raft-group-card.on:hover { border-color: var(--primary); }
+.raft-mate-pill {
+  border: 1px solid transparent;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.14s, border-color 0.14s, color 0.14s;
+}
+.raft-mate-pill:hover { border-color: var(--primary); }
+/* 다 쓴 학생 — 이 앱에서 초록은 늘 '됐다' */
+.raft-mate-pill.done { background: #e8f7ed; color: #2f6b47; }
+.book-rail-card.on .raft-mate-pill.done { background: #e8f7ed; }
+/* 지금 가운데에 연 학생 */
+.raft-mate-pill.on,
+.book-rail-card.on .raft-mate-pill.on {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+/* 모둠을 골라 좁혀 볼 때 — 이름 알약 아래 R·A·F·T 네 칸과 글자 수.
+   칸 색은 학생 카드의 네모와 같은 값(쓴 칸 초록 · 빈 칸 회색)입니다. */
+/* 모둠을 골라 좁혔을 때는 한 줄에 한 명 — 이름 · R·A·F·T · 글자 수가 그 학생 칸에
+   위아래로 쌓입니다(선생님 요청). 한 줄에 셋이면 네 칸 줄이 이름 폭에 끼어
+   옆 학생의 것과 이어져 보였습니다. */
+.book-rail-chips.raft-mate-list {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+.raft-mate-list .raft-mate-cell {
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid var(--border);
+  align-items: flex-start;
+}
+.raft-mate-list .raft-mate-pill { padding: 3px 12px; }
+.raft-mate-list .raft-mate-mark { width: 20px; height: 20px; line-height: 20px; font-size: 11px; }
+.raft-mate-list .raft-mate-marks { gap: 3px; }
+.raft-mate-list .raft-mate-chars { text-align: left; }
+/* 학생 칸의 셋째 줄 — RAFT로 만든 한 문장(이름 · R·A·F·T · 문장 · 글자 수 차례) */
+.raft-mate-sentence {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.raft-mate-sentence.soft { color: var(--text-faint); }
+.raft-mate-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  min-width: 0;
+}
+.raft-mate-marks {
+  display: flex;
+  justify-content: center;
+  gap: 2px;
+}
+.raft-mate-mark {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  background: var(--neutral);
+  color: var(--text-faint);
+  font-size: 9.5px;
+  font-weight: 800;
+  line-height: 16px;
+  text-align: center;
+}
+.raft-mate-mark.done { background: #8cc79f; color: #fff; }
+.raft-mate-chars {
+  font-size: 11px;
+  color: var(--text-sub);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.modal.modal-entry-overview {
+  /* `.modal`의 max-width 640px 천장을 함께 올려야 넓어집니다 */
+  width: min(1120px, 96vw);
+  max-width: min(1120px, 96vw);
+  height: min(840px, 92vh);
+  max-height: min(840px, 92vh);
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+.eov-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--primary-light);
+}
+.eov-who { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.eov-kicker {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary-dark);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.eov-who h3 {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--text);
+}
+.eov-who h3 em {
+  font-style: normal;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-sub);
+  font-variant-numeric: tabular-nums;
+}
+.eov-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  margin-left: auto;
+  justify-content: flex-end;
+}
+.eov-count {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+  font-variant-numeric: tabular-nums;
+}
+.eov-head .btn-close { flex-shrink: 0; }
+
+.eov-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.eov-nav::-webkit-scrollbar { display: none; }
+.eov-nav-chip {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 11px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-deep);
+  color: var(--text-sub);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.eov-nav-chip b {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: inherit;
+}
+.eov-nav-chip.done {
+  background: #e8f7ed;
+  border-color: #a6d8b6;
+  color: #2f6b47;
+}
+.eov-nav-chip:hover { border-color: var(--primary); }
+.eov-nav-sum {
+  flex-shrink: 0;
+  margin-left: auto;
+  padding-left: 8px;
+  font-size: 12px;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+
+.eov-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 18px 20px 22px;
+  background: var(--bg);
+}
+.eov-lead { margin: 0 0 14px; }
+.eov-empty-note {
+  margin: 0 0 14px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--bg-deep);
+  color: var(--text-sub);
+  font-size: 13px;
+}
+.eov-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+.eov-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px 16px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: #fff;
+  box-shadow: var(--shadow-soft);
+  scroll-margin-top: 12px;
+}
+.eov-card.wide { grid-column: 1 / -1; }
+.eov-card.done { border-color: #a6d8b6; }
+.eov-card.done .paratext-letter { background: #3d8a72; }
+.eov-card.empty { background: #fcfbf8; }
+.eov-card-head { display: flex; align-items: center; gap: 10px; }
+.eov-state {
+  flex-shrink: 0;
+  margin-left: auto;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--bg-deep);
+  color: var(--text-faint);
+  font-size: 11.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.eov-state.done { background: #e8f7ed; color: #2f6b47; }
+.eov-prompt {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text-faint);
+}
+.eov-fields { display: flex; flex-direction: column; gap: 10px; }
+/* 두 칸 꾸러미(물음표로 책 읽기 — '궁금증 | 이유는')는 한 쌍이 한 줄 */
+.eov-fields.cols {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 14px;
+}
+.eov-field {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+.eov-label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--primary-dark);
+}
+.eov-text {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.eov-text.empty { color: var(--text-faint); font-size: 13.5px; }
+
+.eov-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-deep);
+}
+.eov-step {
+  font-size: 14px;
+  font-weight: 700;
+  padding: 9px 18px;
+}
+/* 모둠 RAFT — 받은 한 마디를 한 줄에 나란히(같은 폭 · 많으면 옆으로 구름) */
+.eov-peer { margin-top: 16px; }
+.eov-peer h4 {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 0 9px;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--text);
+}
+.eov-peer h4 span { font-size: 12px; font-weight: 600; color: var(--text-faint); }
+.eov-peer-row {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(220px, 1fr);
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+.eov-peer-row .peer-card { min-width: 0; background: #fff; box-shadow: var(--shadow-soft); }
+.eov-peer-row .peer-card { min-height: 96px; }
+.eov-peer-row .peer-card.is-empty { background: #fcfbf8; border-style: dashed; box-shadow: none; }
+.eov-peer-row .peer-card.is-empty header { color: var(--text-sub); }
+.eov-peer-wait { margin: 0; font-size: 13px; color: var(--text-faint); }
+.eov-hint {
+  flex: 1;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+@media (max-width: 760px) {
+  .modal.modal-entry-overview { width: 100vw; max-width: 100vw; height: 100dvh; max-height: 100dvh; border-radius: 0; }
+  .eov-grid,
+  .eov-fields.cols { grid-template-columns: minmax(0, 1fr); }
+  .eov-head { flex-wrap: wrap; }
+  .eov-meta { margin-left: 0; justify-content: flex-start; order: 3; width: 100%; }
+  .eov-head .btn-close { margin-left: auto; }
+  .eov-hint { display: none; }
+  .eov-foot { justify-content: space-between; }
+}
+
+/* RAFT 학생 화면 — 주제어 · 진행 · 네 요소 문장을 한 줄에(선생님 요청).
+   문장이 남는 가로를 다 받고, 좁으면 문장만 다음 줄로 내려갑니다.
+   저장 상태는 이 줄이 아니라 고친 카드 머리에 섭니다(.raft-card-saved). */
+.raft-summary-row { flex-wrap: nowrap; align-items: center; }
+.raft-summary {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+}
+.raft-summary .book-group-topic,
+.raft-summary .paratext-progress,
+.raft-summary .paratext-saved { flex-shrink: 0; }
+.raft-summary .raft-sentence {
+  flex: 1 1 360px;
+  min-width: 0;
+  margin: 0;
+  padding: 8px 14px;
+}
+.raft-col-head .raft-card-saved { margin-left: auto; flex-shrink: 0; font-size: 12px; }
+.raft-write-meta { display: inline-flex; align-items: baseline; gap: 10px; }
+.raft-write-meta .raft-card-saved { font-size: 12px; }
+@media (max-width: 760px) {
+  .raft-summary-row { flex-wrap: wrap; }
+}
+
+/* 가로세로 '모둠별 풀이' — 모둠 카드를 누르면 마우스 옆에 그 모둠의 낱말 · 힌트
+   (components/XwGroupHintPopover.jsx). 자리는 lib/popover.js가 인라인으로 줍니다. */
+.xwg-hintpop {
+  position: fixed;
+  z-index: 320;
+  width: min(420px, calc(100vw - 16px));
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-top: 4px solid var(--xwg-c, var(--primary));
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(46, 36, 26, 0.16);
+  overflow: hidden;
+}
+.xwg-hintpop-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px 8px;
+  border-bottom: 1px solid var(--border);
+}
+.xwg-hintpop-head strong { flex: 1; min-width: 0; font-size: 14.5px; color: var(--dark); }
+.xwg-hintpop-head .btn-close { width: 28px; height: 28px; font-size: 18px; }
+.xwg-hintpop-body {
+  padding: 10px 12px 12px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.xwg-hintpop > .xw-empty { padding: 12px; }
+.xwg-hintpop-person h4 {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 0 6px;
+  font-size: 13.5px;
+  color: var(--dark);
+}
+.xwg-hintpop-person h4 span { font-size: 12px; font-weight: 500; color: var(--text-sub); }
+.xwg-hintpop-person.none h4 { color: var(--text-sub); }
+/* 힌트 · 정답 두 탭 — 같은 크기의 두 칸(이어 놓인 단추는 같은 크기) */
+.xwg-hintpop-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.xwg-hintpop-tabs button {
+  height: 30px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--text-sub);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.xwg-hintpop-tabs button.on {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+/* 정답 탭 — 그 모둠의 퀴즈판을 팝오버 폭에 맞춰 그림. 맞힌 낱말은 맞힌 학생의
+   색, 우리 모둠 낱말은 연한 회색(CrosswordGrid의 paint — 인라인 색). */
+.xwg-hintpop-board { display: flex; justify-content: center; }
+.xwg-hintpop-board .xw-grid {
+  grid-template-columns: repeat(var(--xw-cols), minmax(0, 30px));
+  gap: 1px;
+  width: 100%;
+  justify-content: center;
+}
+.xwg-hintpop-board .xw-cell { border-width: 1px; border-radius: 2px; cursor: default; }
+.xwg-hintpop-board .xw-cell--void { border: none; }
+.xwg-hintpop-board .xw-ch { font-size: clamp(8px, 2.6cqw, 13px); font-weight: 700; }
+.xwg-hintpop-board .xw-num { font-size: 7px; top: 0; left: 1px; }
+.xwg-hintpop-board { container-type: inline-size; }
+.xwg-hintpop-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 12px;
+}
+.xwg-hintpop-legend li { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 13px; color: var(--text); }
+.xwg-hintpop-legend li.muted { color: var(--text-sub); }
+.xwg-hintpop-legend i { flex: none; width: 14px; height: 14px; border: 1.5px solid; border-radius: 3px; }
+.xwg-hintpop-legend span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.xwg-hintpop-legend b { margin-left: auto; font-size: 12px; font-weight: 700; color: var(--text-sub); font-variant-numeric: tabular-nums; }
+.xwg-hintpop-foot { margin: 0; font-size: 12px; color: var(--text-faint); }
+.xwg-hintpop-board .xw-cell.key .xw-ch { color: var(--text-sub); }
+

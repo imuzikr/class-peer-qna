@@ -1,0 +1,184 @@
+/* 이미지 확대 · 반별 입장 코드 — 원래 app/globals.css 4301~4483줄. 차례는 globals.css의 @import 순서가 정합니다. */
+/* ===================== 이미지 확대(라이트박스) ===================== */
+.zoomable-img {
+  cursor: zoom-in;
+}
+.lightbox-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(20, 16, 12, 0.86);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  cursor: zoom-out;
+}
+.lightbox-img {
+  max-width: 95vw;
+  max-height: 92vh;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  cursor: default;
+}
+.lightbox-close {
+  position: fixed;
+  top: 18px;
+  right: 22px;
+  width: 42px;
+  height: 42px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-size: 26px;
+  line-height: 1;
+  cursor: pointer;
+}
+.lightbox-close:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+/* ===================== 반별 입장 코드 ===================== */
+.class-mgr-row--with-code {
+  flex-direction: column;
+  align-items: stretch;
+}
+.class-mgr-row-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+/* 카드 안의 입장 코드는 '한 줄'입니다 — 반이 여섯이면 그만큼 되풀이되는
+   줄이라, 쌓아 두면 목록이 화면 하나를 넘깁니다. 재발급은 이 줄이 아니라
+   머리줄의 편집(✏) 옆에 있고, 안내 한 줄은 목록 위에 한 번만 섭니다.
+   아래 자식 규칙은 전부 이 껍데기 안으로 한정해, 같은 클래스를 쓰는
+   전체 화면(.joincode-fullscreen-content)의 쌓인 배치를 안 건드립니다. */
+.class-joincode {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px;
+  row-gap: 4px;
+  padding: 8px 12px;
+  border-radius: var(--radius-btn);
+  background: var(--neutral);
+  cursor: auto;
+}
+.class-joincode .joincode-label {
+  margin: 0;
+  flex-shrink: 0;
+}
+.class-joincode .joincode-value {
+  margin: 0;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+/* 유효기간·만료 안내는 말줄임으로 자르지 않습니다 — 줄이 모자라면
+   제 줄로 내려갑니다('⚠️ 만료된 코드예요'가 잘리면 뜻이 없어집니다). */
+.class-joincode .joincode-expiry {
+  margin: 0;
+  min-width: 0;
+}
+.joincode-label {
+  margin: 0 0 6px;
+  color: var(--text-sub);
+  font-size: 13px;
+  font-weight: 600;
+}
+.joincode-value {
+  margin: 0 0 8px;
+  color: var(--primary);
+  font-family: var(--font-mono);
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: 0.12em;
+}
+.joincode-hint, .joincode-expiry {
+  margin: 4px 0 0;
+  color: var(--text-sub);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.joincode-expiry.expired {
+  color: var(--danger);
+  font-weight: 600;
+}
+.joincode-actions {
+  margin-top: 12px;
+}
+.joincode-regen {
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  background: #fff;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.joincode-regen:hover {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+.joincode-regen:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.joincode-expand {
+  margin-left: auto;
+  flex-shrink: 0;
+  align-self: center;
+  font-size: 13px;
+}
+.joincode-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 3300;
+  height: 100dvh;
+  overflow-y: auto;
+  background: #fff;
+  padding: 72px 24px 32px;
+  display: flex;
+  text-align: center;
+}
+.joincode-close {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+}
+.joincode-fullscreen-content {
+  width: 100%;
+  margin: auto;
+}
+.joincode-class {
+  margin: 0 0 24px;
+  color: var(--text);
+  font-size: clamp(20px, 3vw, 40px);
+  overflow-wrap: anywhere;
+}
+.joincode-fullscreen .joincode-label {
+  font-size: clamp(16px, 2vw, 24px);
+}
+.joincode-fullscreen .joincode-value {
+  margin: 16px 0 24px;
+  font-size: clamp(36px, 12vw, 180px);
+}
+.joincode-fullscreen .joincode-hint,
+.joincode-fullscreen .joincode-expiry {
+  font-size: clamp(14px, 2vw, 22px);
+}
+.joincode-fullscreen .joincode-actions {
+  margin-top: 24px;
+}
+@media (max-width: 480px) {
+  .class-mgr-row--archived { flex-wrap: wrap; }
+  .class-mgr-row--archived .class-mgr-name { flex-basis: 100%; }
+  .class-joincode { padding: 8px 10px; }
+  .class-joincode .joincode-expiry { flex-basis: 100%; }
+  .class-mgr-regen-label { display: none; }
+}
+

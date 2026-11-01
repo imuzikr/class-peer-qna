@@ -1,0 +1,408 @@
+/* 역할 관리 · 회원가입 역할 · 인사이트 미완료 · 상단 메뉴 · 토스트 — 원래 app/globals.css 8122~8528줄. 차례는 globals.css의 @import 순서가 정합니다. */
+/* ===================== 역할 관리 ===================== */
+/* 상단바 '역할 관리' 버튼 + 승인 대기 배지 */
+.topnav-role-btn {
+  position: relative;
+}
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  margin-left: 4px;
+  border-radius: 9px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.role-manager-modal {
+  max-width: 540px;
+  padding: 32px 34px 26px;
+}
+
+.role-manager-hint {
+  font-size: 13px;
+  color: var(--text-sub);
+  margin: 4px 0 18px;
+  line-height: 1.55;
+}
+
+.role-manager-field {
+  margin-bottom: 14px;
+}
+
+.role-manager-match {
+  font-size: 13px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  margin: -4px 0 14px;
+}
+.role-manager-match.found {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+}
+.role-manager-match.not-found {
+  background: var(--neutral);
+  color: var(--text-sub);
+}
+.role-manager-current {
+  color: var(--text-sub);
+}
+
+.role-manager-message {
+  font-size: 13px;
+  margin-top: 14px;
+  line-height: 1.5;
+}
+.role-manager-message.success { color: #2e7d32; }
+.role-manager-message.error { color: var(--danger); }
+
+/* 선생님 승인 대기 목록 */
+.role-pending {
+  background: #fffbf3;
+  border: 1.5px solid #e8a817;
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+}
+.role-pending-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #a06a00;
+  margin-bottom: 10px;
+}
+.role-pending-desc {
+  font-size: 12px;
+  color: var(--text-sub);
+  margin: -4px 0 10px;
+}
+.role-pending-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.role-pending-item {
+  padding: 4px 0;
+}
+.role-pending-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.role-pending-user {
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+  min-width: 0;
+}
+.role-pending-user small {
+  color: var(--text-sub);
+  font-size: 11px;
+}
+.role-pending-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.role-pending-actions .btn-ghost,
+.role-pending-actions .btn-primary {
+  padding: 5px 12px;
+  font-size: 12px;
+}
+
+/* 현재 선생님(중간 관리자) 관리 목록 */
+.role-teachers {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 18px;
+}
+.role-teachers-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+.role-danger-btn {
+  color: var(--danger);
+}
+.role-danger-btn:hover {
+  background: var(--primary-light);
+}
+
+/* 사용자 검색 콤보박스 */
+.role-combo {
+  position: relative;
+}
+.role-combo-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+  max-height: 240px;
+  overflow-y: auto;
+}
+.role-combo-list li { list-style: none; }
+.role-combo-list button {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 8px 10px;
+  background: none;
+  border: none;
+  border-radius: 7px;
+  cursor: pointer;
+  text-align: left;
+}
+.role-combo-list button:hover {
+  background: var(--bg);
+}
+.role-combo-name {
+  font-size: 13px;
+  font-weight: 600;
+}
+.role-combo-meta {
+  font-size: 11px;
+  color: var(--text-sub);
+}
+
+/* ===================== 회원가입 역할 선택 ===================== */
+.signup-role-select {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 6px 0 4px;
+}
+.signup-role-q {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+.signup-role-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+}
+.signup-role-card:hover {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+.signup-role-emoji {
+  font-size: 30px;
+  flex-shrink: 0;
+}
+.signup-role-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.signup-role-text strong {
+  font-size: 15px;
+}
+.signup-role-text small {
+  font-size: 12px;
+  color: var(--text-sub);
+  line-height: 1.45;
+}
+.signup-role-chosen {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 12px;
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  border-radius: 8px;
+}
+.signup-role-change {
+  background: none;
+  border: none;
+  color: var(--primary-dark);
+  font-size: 12px;
+  text-decoration: underline;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.signup-role-note {
+  font-size: 12px;
+  color: var(--text-sub);
+  line-height: 1.5;
+  margin-top: -4px;
+}
+
+/* ===================== 인사이트 미완료 섹션 ===================== */
+.pending-section {
+  background: #fffbf3;
+  border: 1.5px solid #e8a817;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+}
+
+.pending-section .admin-panel-head h2 {
+  color: #92400e;
+}
+
+.pending-section .admin-panel-head > span {
+  color: #a16207;
+  font-size: 13px;
+}
+
+.pending-global {
+  margin: 0;
+  padding: 10px 24px 14px;
+  border-radius: 0;
+  border: none;
+  border-bottom: 1.5px solid #e8a817;
+}
+
+.student-mini {
+  font-size: 13px;
+  color: var(--text-sub);
+  white-space: nowrap;
+}
+
+/* ===================== 상단 내비게이션 메뉴 ===================== */
+.topnav-menu {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* 이동 메뉴의 단추는 **기본 `.btn-ghost`(6/12)보다 좌우가 좁습니다.**
+   다섯 개가 한 줄에 서는 자리라 여백 1px이 다섯 배로 돌아오고, 그만큼이
+   그대로 전광판의 글자 자리가 됩니다. 글자 크기(14px)는 그대로 둡니다 —
+   늘 보고 누르는 것이라 작아지면 안 됩니다.
+   **`.btn-ghost` 자체를 고치지 마세요** — 앱 전체가 쓰는 클래스라 모든
+   화면의 단추가 함께 좁아집니다. */
+.topnav-menu .btn-ghost {
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 8px;
+}
+
+.btn-ghost.nav-active {
+  background: var(--primary-light);
+  color: var(--primary);
+  font-weight: 700;
+}
+
+/* ── TopNav 학습 공간 드롭다운 ── */
+.topnav-drop-wrap {
+  position: relative;
+}
+
+.topnav-drop-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 14px;
+}
+
+.topnav-drop-chevron {
+  font-size: 9px;
+  opacity: 0.6;
+}
+
+.topnav-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 200;
+  min-width: 150px;
+}
+
+.topnav-drop-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  border-radius: 7px;
+  padding: 9px 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+  transition: background 0.1s;
+}
+.topnav-drop-item:hover { background: var(--neutral); }
+.topnav-drop-item.active {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  font-weight: 700;
+}
+
+/* ===================== 토스트 알림 ===================== */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 32px;
+  transform: translateX(-50%);
+  background: var(--dark);
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22);
+  z-index: 1200;
+  animation: toast-in 0.22s ease;
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translate(-50%, 10px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+.link-button {
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-weight: 700;
+  cursor: pointer;
+  font-size: inherit;
+  padding: 0;
+}
+

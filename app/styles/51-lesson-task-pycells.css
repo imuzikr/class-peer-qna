@@ -1,0 +1,818 @@
+/* 수업 중 활동 내보내기 · 서랍 활동 탭 · 셀 편집기 — 원래 app/globals.css 28267~29083줄. 차례는 globals.css의 @import 순서가 정합니다. */
+/* ══════════════════════════════════════════════════════════════
+   수업 중 활동 내보내기 — 교사 줄 · 학생 서랍의 활동 탭
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── 교사: 칩 줄 아래의 '지금 무엇이 나가 있나' 한 줄 ──
+   보내는 것은 칩이고, 이 줄은 나가 있는 것의 이름을 적고 거두는 자리입니다.
+   나가 있는 것이 이 화면에 안 보이는 칩일 수 있어(다른 프로젝트의 활동, 안
+   고른 독서 활동) 이름이 필요합니다. */
+.lesson-push-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+/* 같은 줄에 서는 것들은 높이를 하나로 — 세로 padding으로 저마다 정하면
+   글자 크기가 다른 만큼 줄이 들쭉날쭉해집니다(출석 관리 줄과 같은 생각). */
+.lesson-push-btn {
+  flex-shrink: 0;
+  height: 30px;
+  padding: 0 14px;
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-btn);
+  background: var(--primary);
+  color: #fff;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.lesson-push-btn:disabled { opacity: 0.5; cursor: default; }
+.lesson-push-btn--stop {
+  background: none;
+  border-color: var(--border);
+  color: var(--text-sub);
+}
+.lesson-push-btn--stop:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+/* 내보내는 중 — 방송 중임을 알리는 점을 그대로 씁니다(같은 뜻의 신호가
+   화면마다 다른 모양이면 두 번 익혀야 합니다). */
+.lesson-push-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--primary-dark);
+}
+.lesson-push-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12.5px;
+  color: var(--text-sub);
+}
+
+/* ── 학생: 서랍의 탭 줄 ──
+   **이 줄만 켜기/끄기입니다** — 둘 다 켜면 서랍이 두 칸 폭으로 벌어집니다
+   (날개 펴기). 그래서 노트 크게 보기 창·닿소리 '전체 보기'가 쓰는 공용
+   알약(`.dash-view-tabs`)을 **일부러 안 씁니다**: 그쪽은 '하나 고르기'라,
+   같은 생김새가 화면마다 다르게 움직이면 눌러 봐야 알게 됩니다.
+   여기는 체크 표시로 켜짐이 한눈에 보이게 합니다.
+   머리줄 밑줄에 바로 붙으면 제목의 딸린 줄처럼 보입니다 — 아래 내용을
+   고르는 줄이라 그 사이를 띄워 둡니다. */
+.cornell-tabrow {
+  flex-shrink: 0;
+  display: flex;
+  gap: 6px;
+  margin: 12px 14px 10px;
+}
+.cornell-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-deep);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.cornell-tab:hover { border-color: var(--primary); }
+.cornell-tab.on {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+/* 체크 자리는 꺼져 있을 때도 비워 둡니다 — 켜고 끌 때마다 글자가 4px씩
+   움직이면 두 단추가 나란히 흔들립니다(실측 7px). */
+.cornell-tab-mark {
+  display: inline-block;
+  width: 9px;
+  font-size: 11px;
+  line-height: 1;
+  text-align: center;
+}
+
+/* ── 학생: 코드 셀의 ▶ 실행 · 중단 단추(PyCellEditor) ──
+   서랍이 380px이라 작게. 예전에는 활동 칸 아래 '실행 줄'(▶ 실행 · 결과
+   붙이기)이 따로 섰는데, 셀이 코드와 결과를 제 것으로 들면서 셀 머리로
+   옮겼습니다(그 줄의 .ltask-run · -attach · -kbd는 걷었습니다). */
+.ltask-run-btn,
+.ltask-run-stop {
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  cursor: pointer;
+}
+.ltask-run-btn {
+  background: var(--primary-light);
+  border-color: #efc19a;
+  color: var(--primary-dark);
+}
+.ltask-run-btn:hover:not(:disabled),
+.ltask-run-stop:hover { border-color: var(--primary); }
+.ltask-run-btn:disabled { opacity: 0.55; cursor: default; }
+
+/* 입력값 — input()을 쓰는 코드일 때만 뜹니다 */
+.ltask-stdin {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+}
+.ltask-stdin > span {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--dark);
+}
+.ltask-stdin em {
+  margin-left: 5px;
+  font-style: normal;
+  font-weight: 600;
+  color: var(--text-faint);
+}
+.ltask-stdin textarea {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  resize: vertical;
+}
+
+/* 출력 — 코드 블록과 같은 어두운 바탕이라 '프로그램이 낸 말'로 읽힙니다.
+   **긴 출력은 이 칸 안에서만 구릅니다**(max-height) — 안 그러면 for문 한 번에
+   서랍이 한없이 길어져 쓰던 칸이 화면 밖으로 밀립니다. */
+.ltask-out {
+  margin-top: 6px;
+  max-height: 180px;
+  overflow: auto;
+  padding: 9px 11px;
+  border-radius: 10px;
+  background: var(--dark);
+  color: #ede9e0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.ltask-out-line { display: block; }
+.ltask-out-line--err { color: #ffb4a2; }
+.ltask-out-line--info { color: #b8b2a6; }
+.ltask-out-line--result { color: #a7d7a7; }
+
+/* input()이 찍은 '입력한 값' — 출력보다 옅게(components/PyLineText.jsx).
+   `print(input())`에서 같은 값이 두 줄 서는데, 하나는 입력이고 하나는
+   출력이라 색으로 갈라 둡니다. 실행기(.py-output)와 서랍(.ltask-out)이
+   **같은 값**을 씁니다 — 같은 코드의 결과가 두 곳에서 달라 보이면 안 됩니다.
+   실행기의 안내 줄(.py-line.info, #87867f)과 색이 거의 같아 점선 밑줄을
+   함께 둡니다 — 안내는 줄 하나를 통째로 쓰고 입력한 값은 줄 안의 조각이라
+   자리로도 갈리지만, 짧은 값 하나가 한 줄일 때는 모양이 같아집니다. */
+.py-echo {
+  color: #8f8a80;
+  text-decoration: underline dotted rgba(143, 138, 128, 0.7);
+  text-underline-offset: 3px;
+}
+
+/* ── 학생: 활동 탭 ── */
+.ltask {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ltask-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+}
+.ltask-tag {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--primary-dark);
+}
+.ltask-name {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--dark);
+}
+.ltask-board { font-size: 12px; color: var(--text-sub); }
+.ltask-guide {
+  margin: 4px 0 0;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--text-sub);
+}
+.ltask-blocked {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--bg-deep);
+  font-size: 12.5px;
+  color: var(--text-sub);
+}
+/* 잠긴 활동·모둠 프로젝트에서 지금까지 쓴 것만 보여 주는 칸 */
+.ltask-read {
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+  font-size: 13.5px;
+  line-height: 1.7;
+}
+.ltask-note {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--text-faint);
+}
+
+/* 쓰는 칸 — 탭을 열면 곧바로 여기입니다(큰 창을 따로 열지 않습니다).
+   서랍이 세로로 구르므로 높이는 최소만 잡고 글만큼 늘어납니다. */
+.ltask-rte { min-height: 220px; }
+/* 파이썬 연계 프로젝트의 칸 — 서랍에서는 쓴 것의 미리보기와 '크게 열어 쓰기'만
+   (쓰는 것은 큰 셀 창 PyCellModal). 미리보기는 제 안에서 구릅니다 — 코드가
+   길면 서랍이 한없이 길어져 아래 칸이 밀립니다. */
+.ltask-cells { display: flex; flex-direction: column; gap: 8px; }
+.ltask-cells-peek {
+  max-height: 240px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+}
+.ltask-cells-empty {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--text-faint);
+}
+.ltask-cells-open { align-self: stretch; }
+.ltask-status {
+  margin: -4px 0 0;
+  font-size: 11.5px;
+  color: var(--text-faint);
+}
+
+/* ── 서랍의 책방 활동 ──
+   서랍에는 학생이 쓸 수 있는 것이 다 있고, 보내기는 그중 하나로 눈을
+   맞춥니다. 그래서 '보낸 칸'을 색이 아니라 **테두리와 바탕**으로 짚습니다 —
+   글자색까지 건드리면 나머지 칸이 못 쓰는 것처럼 보입니다. */
+.ltask-field--on textarea {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+
+/* 곁텍스트 — 접힌 단계 한 줄. 누르면 그 자리에서 펴져 고칠 수 있습니다. */
+.ltask-fold {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  font-family: inherit;
+  font-size: 12.5px;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+.ltask-fold:hover { border-color: var(--primary); }
+.ltask-fold-no {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--neutral);
+  color: var(--text-sub);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 18px;
+  text-align: center;
+}
+.ltask-fold-name { flex: none; font-weight: 700; }
+/* 미리보기는 **한 줄로 자릅니다** — 접어 둔 뜻이 길이를 줄이는 것이라,
+   여기서 두 줄이 되면 줄마다 높이가 달라져 목록이 들쭉날쭉해집니다. */
+.ltask-fold-peek {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--text-sub);
+}
+.ltask-fold-peek.empty { color: var(--text-faint); }
+.ltask-fold-caret { flex: none; color: var(--text-faint); }
+/* 편 상태 — 같은 줄이 그대로 '접기'가 됩니다. 여닫는 자리가 늘 같은 곳이라야
+   손이 기억합니다(수업 노트 서랍의 손잡이와 같은 생각). 화살표가 아래를
+   가리켜 지금 펴져 있음을 말하고, 미리보기가 빠진 자리는 이름이 채웁니다. */
+.ltask-fold.open {
+  background: var(--neutral);
+  border-color: transparent;
+}
+.ltask-fold.open .ltask-fold-name { flex: 1; min-width: 0; }
+.ltask-fold.open .ltask-fold-caret { transform: rotate(90deg); }
+/* 지금 보낸 칸의 이름 줄 — 누르는 자리가 아닙니다(늘 펼쳐져 있습니다).
+   방송 점을 달아 이 칸이 지금 하라고 온 것임을 말합니다. */
+.ltask-fold.now {
+  background: var(--primary-light);
+  color: var(--primary-dark, #c15a2a);
+  cursor: default;
+}
+.ltask-fold.now .ltask-fold-no {
+  background: var(--primary);
+  color: #fff;
+}
+
+/* 펼친 단계 — 여는 줄과 쓰는 칸을 한 묶음으로 둡니다. */
+.ltask-step { display: flex; flex-direction: column; gap: 8px; }
+
+/* ── 파이썬 연계 활동의 셀 편집기(components/PyCellEditor.jsx) ──
+   셀마다 테두리를 두르지 않습니다 — 글 셀의 서식 에디터와 코드 셀의 코드 칸이
+   이미 제 테두리가 있어, 한 겹 더 두르면 선이 겹겹이 섭니다.
+   셀 **위에는 아무것도 없고** 칸이 곧바로 시작합니다. 이름표와 단추는 칸
+   **아래 한 줄**(.pycell-foot)입니다 — 왼쪽 이름표 · ↑ ↓ ✕, 오른쪽 ＋ 글 ·
+   ＋ 코드 · ▶ 실행. 그래야 두 열 셀 창에서 왼쪽 예시 코드와 오른쪽 첫 셀이
+   같은 높이에서 시작합니다(선생님 요청).
+   고른 셀을 짚던 **왼쪽 띠는 걷었습니다**(선생님 요청) — 되살리지 마세요.
+   초점은 코드 칸의 테두리(:focus-within)가 이미 말합니다. */
+.pycells { display: flex; flex-direction: column; gap: 14px; }
+.pycell { display: flex; flex-direction: column; gap: 6px; }
+.pycell-foot { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; min-height: 28px; }
+.pycell-acts { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+.pycell-kind,
+.pycell .pycell-run,
+.pycell .pycell-add-btn {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 800;
+  line-height: 1;
+}
+.pycell-kind {
+  min-width: 52px;
+  border: 1px solid var(--bg-deep);
+  background: var(--bg-deep);
+  color: var(--text-sub);
+}
+.pycell--code .pycell-kind { background: var(--dark); border-color: var(--dark); color: #ede9e0; }
+.pycell-tools { display: flex; gap: 2px; }
+.pycell-tool {
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text-faint);
+  cursor: pointer;
+}
+.pycell-tool:hover:not(:disabled) { background: var(--bg-deep); color: var(--text); }
+.pycell-tool:disabled { opacity: 0.35; cursor: default; }
+.pycell-tool--del:hover:not(:disabled) { color: #c0392b; }
+/* 코드 칸 — 실행기의 코드 칸(.py-editor)과 같은 글꼴·줄 간격 */
+.pycell-code {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--card-bg);
+}
+.pycell-code:focus-within { border-color: var(--primary); }
+.pycell-code .cm-editor { font-size: 13px; max-height: 480px; }
+.pycell-code .cm-editor.cm-focused { outline: none; }
+.pycell-code .cm-scroller { font-family: var(--font-mono); line-height: 1.6; }
+/* 빈 코드 셀도 **열 줄 남짓** 높이로 섭니다 — 코드는 여러 줄에 걸쳐 쓰는데
+   두 줄 높이로 시작하면 짜기 전부터 좁아 보였습니다(선생님 지적). 높이는
+   scroller가 아니라 내용·줄 번호 칸에 줘야 줄 번호 띠가 바닥까지 이어지고,
+   아래 빈 곳을 눌러도 커서가 갑니다. 글이 넘치면 480px까지 늘고 그 뒤로는
+   셀 안에서 구릅니다. */
+.pycell-code .cm-content,
+.pycell-code .cm-gutter { min-height: 216px; }
+.pycell-code .cm-gutters {
+  background: var(--bg-deep);
+  color: #a8a69d;
+  border-right: 1px solid var(--border);
+}
+/* 접기 칸은 뺍니다 — 셀 하나가 짧은 코드라 쓸 일이 없고 폭만 먹습니다 */
+.pycell-code .cm-foldGutter { display: none; }
+.pycell .ltask-stdin,
+.pycell .ltask-out { margin-top: 0; }
+.pycell-text .rte-area { min-height: 64px; }
+.pycell-undo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--bg-deep);
+  font-size: 12px;
+  color: var(--text-sub);
+}
+.pycell-undo button {
+  margin-left: auto;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--primary-dark);
+  cursor: pointer;
+}
+/* ＋ 글 · ＋ 코드 — 셀 아래 줄 오른쪽, ▶ 실행 왼쪽. 크기는 위 알약 규칙
+   그대로(28px)이고 점선으로 '새로 넣는 단추'임을 말합니다. 한때 셀 목록 맨
+   아래에 반씩 나눈 줄로 따로 섰습니다(.pycell-add — 걷음). */
+.pycell .pycell-add-btn {
+  border: 1px dashed var(--border);
+  background: transparent;
+  font-family: inherit;
+  font-weight: 700;
+  color: var(--text-sub);
+  cursor: pointer;
+}
+.pycell .pycell-add-btn:hover {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  color: var(--primary-dark);
+}
+/* RAFT 문장은 책방 화면과 같은 규칙(.raft-sentence)을 그대로 쓰고,
+   서랍에서만 위아래 여백을 줄입니다. */
+.ltask .raft-sentence { margin: 0; font-size: 13px; }
+/* 형식 칩 줄 — 그 칸 바로 아래에 붙습니다. 칸 사이 간격(9px)을 그대로 두면
+   위아래가 똑같이 떨어져 어느 칸에 딸린 줄인지 흐려집니다. */
+.ltask-chips { margin-top: -4px; }
+
+
+/* 별도 창 전광판 — 같은 자리표를 창 너비에 맞춰 보여 줍니다. */
+.attend-window-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.attend-window-actions button { word-break: keep-all; }
+.attend-window-status {
+  color: var(--text-sub);
+  font-size: 13px;
+  word-break: keep-all;
+  margin: 0;
+}
+.attend-popout {
+  min-height: 100vh;
+  padding: 20px;
+  background: var(--bg-deep);
+}
+.attend-popout .attend-shell {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  width: 100%;
+  max-height: none;
+  overflow: visible;
+}
+.attend-popout .attend-modal {
+  flex: 1;
+  min-width: 0;
+  width: auto;
+  max-width: none;
+  max-height: none;
+  overflow: visible;
+}
+.attend-popout .attend-notes-panel {
+  position: sticky;
+  top: 20px;
+  right: auto;
+  left: auto;
+  flex: 0 0 340px;
+  width: 340px;
+  margin: 0;
+  transform: none;
+  max-height: calc(100vh - 40px);
+  animation: none;
+}
+@media (max-width: 1100px) {
+  .attend-popout .attend-shell { flex-wrap: wrap; }
+  .attend-popout .attend-modal { flex-basis: 100%; }
+  .attend-popout .attend-notes-panel {
+    position: static;
+    flex-basis: 100%;
+    width: 100%;
+  }
+}
+@media (max-width: 768px) {
+  .attend-popout { padding: 12px; }
+  .attend-window-actions { gap: 4px; }
+  .attend-modal > .modal-head { flex-wrap: wrap; gap: 8px; }
+}
+
+/* 출석 관리는 저장된 자리배치 위에 같은 날짜의 출석 기록을 표시합니다. */
+.seat-pairs-grid.attendance-seat-grid {
+  --seat-min-width: 96px;
+  row-gap: 8px;
+}
+.attendance-seat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+  min-height: 116px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-deep);
+  text-align: center;
+  color: var(--text);
+}
+.attendance-seat--present { background: #e8f7ed; border-color: #8fcea3; }
+.attendance-seat strong { max-width: 100%; font-size: 14px; overflow-wrap: anywhere; }
+.attendance-seat-number,
+/* 찍힌 시각은 **고정폭 숫자**로 — 밀리초까지 적으면 자리마다 글자 폭이
+   달라 세로로 훑을 때 자릿수가 어긋나 보입니다(표에서는 열이 들쭉날쭉).
+   한 줄에 다 서야 순서를 눈으로 좇을 수 있어 줄바꿈도 막습니다. */
+.attendance-seat-time,
+.study-attendance-at {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.attendance-seat-time { font-size: 11.5px; color: var(--text-sub); }
+/* 내 출석 목록에서는 '출석' 뒤에 붙는 딸림값이라 한 칸 띄웁니다 */
+.study-attendance-list .study-attendance-at {
+  margin-left: 8px;
+  color: var(--text-sub);
+  font-size: 12px;
+}
+.attendance-seat .study-attendance-status { flex-shrink: 0; white-space: nowrap; }
+/* 출결 수정 중 — 칸이 단추가 됩니다. 단추 기본 모양을 걷고 칸 모양 그대로,
+   누를 수 있다는 것만 손 모양과 점선 테두리로 알립니다. */
+button.attendance-seat {
+  width: 100%;
+  font: inherit;
+  cursor: pointer;
+}
+.attendance-seat--editable { border-style: dashed; border-color: var(--primary); }
+.attendance-seat--editable:hover { box-shadow: 0 0 0 2px var(--primary-light); }
+.attendance-seat--editable.is-busy { opacity: .55; cursor: progress; }
+/* 선생님이 남긴 기록 — 목록형 표의 시각 앞 '수정' */
+.attendance-seat-manual { font-family: inherit; font-weight: 700; color: var(--primary-dark); }
+.attendance-seat--empty { border-style: dashed; background: transparent; color: var(--text-sub); font-size: 12px; }
+.attendance-seat-help { margin: 0 0 12px; font-size: 13px; color: var(--text-sub); }
+h4.attendance-seat-help { margin-top: 16px; }
+.study-attendance-date-picker input[type="date"] {
+  width: auto;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font: inherit;
+  color: var(--text);
+  background: #fff;
+}
+@media (max-width: 768px) {
+  .study-attendance-toolbar { flex-wrap: wrap; gap: 8px; }
+  .study-attendance-toolbar > .study-attendance-controls {
+    flex-basis: 100%;
+    height: auto;
+    flex-wrap: wrap;
+  }
+  .study-attendance-controls > * { flex-shrink: 0; white-space: nowrap; }
+  .study-attendance-export { margin-left: 0; }
+}
+
+/* ── 프로젝트 연계 두 단추 (ProjectLinkOptions) — 만들기 창 · 편집 창 공용 ──
+   키워드 · 파이썬 실행기. 두 창이 같은 조각이라 규칙도 한 벌입니다.
+   한 줄에 반씩 선 누름 단추이고, 꺼짐은 연한 살구 · 켜짐은 살구로 채웁니다
+   (활동 유형 두 단추 `.board-acttype-btn`과 같은 격자). */
+.project-links {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.project-link-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.project-link-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  min-width: 0;
+  padding: 11px 14px;
+  border: 1.5px solid #f0d5c6;
+  border-radius: 10px;
+  background: var(--primary-light);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+.project-link-btn strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 14px;
+  font-weight: 700;
+}
+.project-link-btn small {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-sub);
+  line-height: 1.4;
+  word-break: keep-all;
+}
+.project-link-btn:hover:not(:disabled) {
+  border-color: var(--primary);
+}
+.project-link-btn.on {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+.project-link-btn.on small {
+  color: rgba(255, 255, 255, 0.88);
+}
+.project-link-btn.on:hover {
+  background: var(--primary-dark);
+  border-color: var(--primary-dark);
+}
+.project-link-btn:disabled {
+  background: var(--bg);
+  border-color: var(--border);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+.project-link-chips {
+  padding: 0;
+}
+/* 만들기 창의 '연계하기' 칸 — 아래 '활동' 칸과 같은 머리·가름선 */
+.project-form-links {
+  gap: 8px;
+}
+@media (max-width: 480px) {
+  .project-link-grid { grid-template-columns: 1fr; }
+}
+
+/* 셀 창(PyCellModal)의 제목은 입력칸이 아니라 글자입니다 — 학생이 활동
+   이름을 고칠 일이 없습니다(선생님 요청). */
+.study-act-modal-title.study-act-modal-title--view {
+  border-color: transparent;
+  background: none;
+  padding-left: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* 셀 창의 몸통 — 셀이 쌓이면 이 칸만 구릅니다(머리줄은 제자리). 셀 편집기는
+   서랍 폭(380px)에 맞춰 만든 것이라 넓은 창에서는 가운데 한 기둥으로 둡니다 —
+   코드 줄이 창 끝까지 늘어나면 눈이 줄 끝과 다음 줄 처음을 오가기 멉니다. */
+.study-act-modal-body.study-act-cells-body {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 2px 4px 8px;
+}
+.study-act-cells-body > .pycells {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+/* ── 프로젝트 원본 편집 (StudyTemplateEditModal) ──
+   '수업 관리' 창(배경 z 100) 위에, 되묻는 창(200) 아래에 섭니다. */
+.tpl-edit-backdrop {
+  z-index: 150;
+}
+/* 고친 것이 어디까지 닿는지 — 창 맨 위 한 줄 */
+.tpl-edit-scope {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--bg);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-sub);
+  word-break: keep-all;
+}
+
+/* ── 프로젝트 가져오기 (StudyProjectImportModal) ──
+   줄 모양은 수업 관리 프로젝트 탭과 같은 .lesson-row · .tpl-row. 여기만의
+   것은 안내 한 줄 · 빈 상태 · 맨 아래 만들기 단추뿐입니다. */
+.tpl-import-modal {
+  width: 640px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.tpl-import-hint {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-sub);
+  word-break: keep-all;
+}
+.tpl-import-create {
+  width: 100%;
+}
+.tpl-import-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  padding: 24px 8px 8px;
+  text-align: center;
+}
+.tpl-import-empty p {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--text-sub);
+  word-break: keep-all;
+}
+/* .lesson-create-btn은 가로 줄에 서도록 flex: 1이라, 세로로 쌓는 이 창에서는
+   높이를 나눠 갖지 않게 풉니다. */
+.tpl-import-modal .lesson-create-btn,
+.tpl-import-empty .lesson-create-btn {
+  flex: none;
+}
+
+/* ── 실행기 '＋ 새 프로젝트' — 활동 여럿 (PyProjectPanel) ──
+   활동 칸마다 한 줄, 둘째 줄부터 ✕. '＋ 활동 추가'는 목록 아래 제 줄
+   (만들기 창 .study-activity-add와 같은 점선 모양, 칸이 좁아 작게). */
+.py-project-actrow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.py-project-actrow .py-project-input {
+  flex: 1;
+  min-width: 0;
+}
+.py-project-actdel {
+  flex: 0 0 26px;
+  height: 26px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--text-sub);
+  font-size: 12px;
+  cursor: pointer;
+}
+.py-project-actdel:hover {
+  background: var(--neutral);
+  color: var(--text);
+}
+.py-project-actadd {
+  padding: 6px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text-sub);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.py-project-actadd:hover {
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+.py-project-actdel--gap {
+  cursor: default;
+}
+

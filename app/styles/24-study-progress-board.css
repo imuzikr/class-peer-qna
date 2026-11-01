@@ -1,0 +1,481 @@
+/* 공부중 전광판 — 원래 app/globals.css 10461~10940줄. 차례는 globals.css의 @import 순서가 정합니다. */
+/* ===================== 공부중 전광판 ===================== */
+/* 왼쪽 학생 이름 열은 고정, 오른쪽 활동 열은 개수만큼 늘어납니다.
+   활동이 많아지면 표만 가로로 스크롤됩니다(모달은 그대로). */
+/* 잔디 격자는 반 인원만큼 칸이 가로로 늘어섭니다(30명이면 ~800px).
+   폭을 크게 못박아 두면 인원이 적은 반에서 오른쪽이 텅 비므로, 내용 폭에
+   맞춰(max-content) 딱 붙게 하고 화면을 넘길 때만 줄입니다. */
+.progress-modal {
+  width: max-content;
+  max-width: 97vw;
+  padding: 20px 22px 22px;
+}
+.progress-board-name {
+  margin-left: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-sub);
+}
+.progress-scroll {
+  overflow-x: auto;
+  max-height: 68vh;
+  overflow-y: auto;
+}
+
+/* ── 공부중 전광판 — 잔디 히트맵 ──
+   가로는 활동, 세로는 학생 한 명씩. 표 대신 작은 네모를 촘촘히 깔아
+   '누가 어디까지 냈는지'를 색만으로 훑게 합니다. 자세한 내용은 칸을
+   눌러 여는 작은 창(.progress-pop)이 맡습니다. */
+/* 한 줄이 활동 하나, 한 칸이 학생 한 명(가로 배치).
+   학생 이름은 칸에 넣지 않습니다 — 반 인원만큼 칸이 늘어서므로 이름을
+   넣으면 잔디가 아니라 표가 됩니다. 누구인지는 툴팁·정보창이 알려 줍니다. */
+.progress-grass {
+  display: grid;
+  grid-template-columns: max-content repeat(var(--students), 22px);
+  gap: 5px 4px;
+  align-items: center;
+  padding: 2px 2px 6px;
+  width: max-content;
+}
+/* 활동 이름표 — 가로 스크롤에도 왼쪽에 붙어 있게 */
+.grass-act {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  /* 폭을 고정해 모든 줄의 칸이 세로로 맞고, 긴 활동 제목은 말줄임표로
+     잘립니다(제목이 길다고 격자가 밀려나지 않게). */
+  width: 184px;
+  padding-right: 12px;
+}
+.grass-act-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.grass-act-no {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--primary-dark);
+  white-space: nowrap;
+}
+.grass-act-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11.5px;
+  color: var(--text-sub);
+}
+.grass-act-count {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+  white-space: nowrap;
+}
+
+/* ── 책방의 읽는중 전광판만 쓰는 것들 ──
+   격자·칸·툴팁은 공부방 전광판의 것을 그대로 씁니다(두 방의 전광판이 서로
+   다른 모양이면 교사가 같은 것을 두 번 익혀야 합니다). 여기 더한 것은
+   ① 단계 머리의 알파벳 ② 학생 이름 줄 ③ 칸 색 둘입니다. */
+/* 단계 이름표는 **한 줄, 세네 칸 고정 격자**입니다.
+   공부방(.grass-act)은 세로 두 줄(활동 번호 줄 + 활동 이름)인데, 여기는
+   아래 줄에 깔던 물음이 여덟 줄 모두 말줄임으로 잘려 '무엇을 묻는지'는
+   어차피 안 보이면서 격자만 두 배로 길어져 걷어 냈습니다.
+   **칸을 px로 못 박는 까닭**: 줄마다 따로 선 격자라 `auto`로 두면 칸 너비가
+   줄마다 제 내용에 맞춰져(`0/29`와 `26/29`, `표지`와 `참고문헌`) 자물쇠와
+   숫자가 여덟 줄에서 저마다 다른 자리에 섭니다. 가장 긴 항목에 맞춰 못
+   박아야 세로로 줄이 맞습니다. */
+.bookboard .grass-act {
+  display: grid;
+  grid-template-columns: 17px 1fr 58px 38px;
+  gap: 7px;
+  align-items: center;
+  /* 208px으로 뒀더니 이름 칸이 60px이라 가장 긴 이름(62px — '8. 시각자료')이
+     2px 모자라 말줄임으로 잘렸습니다(실측). 가장 긴 것에 맞추고 조금 남깁니다.
+     활동마다 단계 이름 길이가 달라 폭은 부르는 쪽이 `--head-w`로 넘깁니다. */
+  width: var(--head-w, 232px);
+  padding-right: 14px;
+}
+/* 잠금이 없는 활동(RAFT)은 배지 칸을 통째로 뺍니다 — 비워 두면 이름과
+   진행률 사이가 까닭 없이 벌어집니다.
+   **반드시 위 기본 규칙 뒤에 두세요** — 특이도가 같아(0,2,0) 앞에 두면
+   기본의 네 칸이 이겨, 없는 배지 칸이 96px을 차지한 채 이름 칸만
+   28px으로 짜부라집니다(실제로 그랬습니다). */
+.bookboard--nolock .grass-act { grid-template-columns: 17px 1fr 38px; }
+.bookboard .grass-act-no {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--text);
+}
+/* 상태 알약은 칸을 꽉 채워 '열림'과 '잠김'의 좌우 끝이 맞습니다 */
+.bookboard .progress-act-state {
+  justify-content: center;
+  width: 100%;
+  padding-left: 0;
+  padding-right: 0;
+}
+/* 진행률은 오른쪽 끝에 붙이고 숫자 폭을 고정합니다 — 자릿수가 달라도
+   (`0/29` · `26/29`) 오른쪽 끝이 한 줄로 섭니다. */
+.bookboard .grass-act-count {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+/* CATAPULT의 한 글자 — 학생 화면·단계 열기 칩의 것과 같은 글자입니다 */
+.grass-act-letter:empty { background: none; }
+.grass-act-letter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 17px;
+  flex: none;
+  border-radius: 5px;
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  font-size: 10.5px;
+  font-weight: 800;
+}
+/* 이름 줄 — 칸이 22px이라 가로로는 못 적어 세로쓰기입니다. 세로로 구를 때
+   위에 붙어 있어야 어느 칸이 누구인지 잃지 않습니다. */
+.grass-name {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  height: 68px;
+  padding: 2px 0 4px;
+  border: none;
+  background: var(--bg);
+  writing-mode: vertical-rl;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  justify-self: center;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+  cursor: pointer;
+}
+.grass-name:hover { color: var(--primary-dark); }
+/* 이름 줄과 단계 이름표가 만나는 왼쪽 위 빈칸 — 두 sticky가 겹치는
+   자리라 둘보다 위에 있어야 글자가 비쳐 보이지 않습니다. */
+.grass-corner {
+  position: sticky;
+  top: 0;
+  left: 0;
+  z-index: 3;
+}
+/* 붙어 있는 칸(sticky)들의 바탕은 **그 모달의 바탕과 같아야** 합니다.
+   공부방 전광판의 .grass-act는 크림색(--bg)을 쓰는데, 이 화면은 이름 줄이
+   스물아홉 칸으로 늘어서서 그 색이 칸마다 하나씩 끊겨 이름표가 아니라
+   **알약 스물아홉 개**로 보였습니다(실측). 머리줄은 배경이 이어져야
+   머리줄입니다.
+   **뿌리 클래스는 `.bookboard`입니다.** `.paratext-progress`로 지었다가
+   되돌렸습니다 — 그 이름은 이미 활동 만들기 창들(ParatextForm·RaftForm·
+   KwlsForm·MindmapForm)과 학생 카드가 쓰는 진행 배지라, 모달에 붙이자
+   창 전체가 --primary-light로 물들었습니다(모둠 메모의 `.memo-list` 충돌과
+   같은 함정입니다). `.book-progress`도 피했습니다 — `.book-progress-legend`·
+   `-done`·`-sum`이 이미 따로 있어, 뿌리로 쓰면 그것들이 이 모달의 자식처럼
+   읽힙니다. */
+.reading-board .grass-name,
+.bookboard .grass-act { background: #fff; }
+/* 쓰는 중 · 시작 전 — 학생 카드의 네모(.paratext-mark)와 같은 색.
+   공부방의 --open(연한 주황 = 열려 있는데 덜 씀)을 여기서 쓰지 않는 까닭:
+   책방은 그 상태를 '쓰는 중'과 '시작 전' 둘로 나눠 보여 줍니다. */
+.grass-cell--doing { background: #f3c99a; border-color: #e2b077; }
+.grass-cell--empty { background: var(--neutral); border-color: var(--border); }
+
+.grass-cell {
+  width: 22px;
+  height: 22px;
+  justify-self: center;
+  border-radius: 5px;
+  border: 1px solid transparent;
+  padding: 0;
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.12s;
+}
+.grass-cell:hover { transform: scale(1.12); }
+.grass-cell.active {
+  box-shadow: 0 0 0 2px var(--primary);
+}
+.grass-cell--done { background: #7fb98a; border-color: #6aa877; }
+.grass-cell--open { background: #f6dfd0; border-color: #eccdb7; }
+/* 오늘 결석 — '안 낸' 것이 아니라 '낼 수 없었던' 칸이라 주황에서 빼 둡니다.
+   잠김(빗금)과 같은 회색 계열이되 빗금은 없습니다. 두 상태가 겹칠 일은
+   없습니다(cellState에서 잠김이 이깁니다). */
+.grass-cell--absent { background: #dfdedb; border-color: #cbcac5; }
+.grass-cell--locked {
+  background: var(--neutral);
+  border-color: var(--border);
+  /* 잠긴 칸은 색만으로는 '아직 안 씀'과 헷갈려 빗금을 얹습니다 */
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(0, 0, 0, 0.13) 0 2px,
+    transparent 2px 5px
+  );
+}
+
+/* 칸 위 툴팁 — 칸 바로 위 가운데 */
+.progress-tip {
+  position: fixed;
+  z-index: 1200;
+  transform: translateX(-50%);
+  max-width: 260px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--dark);
+  color: #faf9f5;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.45;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
+}
+
+/* 칸을 누르면 뜨는 작은 정보창 — 누른 칸 옆에 붙습니다 */
+.progress-pop {
+  position: fixed;
+  z-index: 1201;
+  width: 250px;
+  padding: 12px 13px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid var(--border);
+  box-shadow: 0 12px 32px rgba(46, 36, 26, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.progress-pop-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.progress-pop-who {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+.progress-pop-who small { font-size: 11px; color: var(--text-sub); }
+.progress-pop-who strong { font-size: 14px; color: var(--dark); }
+.progress-pop-close {
+  border: none;
+  background: none;
+  font-size: 17px;
+  line-height: 1;
+  color: var(--text-sub);
+  cursor: pointer;
+  padding: 0 2px;
+}
+/* 학생 한 명의 요약 — 격자가 담지 못하는 것만(누구인지·분량·마지막 기록) */
+.progress-pop-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12.5px;
+}
+.progress-pop-rows > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.progress-pop-rows dt { color: var(--text-sub); font-weight: 700; flex-shrink: 0; }
+.progress-pop-rows dd { color: var(--text); text-align: right; }
+.progress-pop-rows dd strong { font-size: 14px; color: var(--dark); }
+.progress-pop-rows dd small { color: var(--text-sub); font-weight: 600; }
+.progress-pop-open {
+  margin-top: 2px;
+  padding: 8px;
+  border: 1px solid var(--primary);
+  border-radius: 10px;
+  background: var(--primary-light);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--primary-dark);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.progress-pop-open:hover { background: #f3d9cb; }
+.progress-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  font-size: 13.5px;
+}
+.progress-table th,
+.progress-table td {
+  border-bottom: 1px solid var(--border);
+  padding: 8px 10px;
+  text-align: center;
+}
+/* 학생 이름 열 — 가로 스크롤에도 왼쪽에 붙어 있게 */
+.progress-name-col {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--bg);
+  text-align: left !important;
+  white-space: nowrap;
+  min-width: 130px;
+}
+.progress-table thead .progress-name-col {
+  z-index: 2;
+}
+.progress-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  vertical-align: bottom;
+}
+.progress-act-col {
+  min-width: 104px;
+}
+.progress-act-no {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--primary-dark, #c15a2a);
+}
+.progress-act-name {
+  display: block;
+  max-width: 120px;
+  margin: 0 auto 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 700;
+}
+/* 전광판은 결과만 보는 자리 — 잠금 조작은 수업 화면의 '활동 열기' 줄에서.
+   여기서는 지금 열려 있는지만 글자로 알려 줍니다. */
+/* 활동의 두 상태 — '편집'(학생이 쓸 수 있음) / '잠김'(읽기만).
+   기본값을 '편집' 쪽 색으로 두어, 회색인 '잠김'과 한눈에 갈립니다. */
+.progress-act-state {
+  border: 1px solid #efc19a;
+  color: var(--primary-dark);
+  background: var(--primary-light);
+  white-space: nowrap;
+}
+.progress-act-state.locked {
+  background: var(--neutral);
+  border-color: var(--border);
+  color: var(--text-sub);
+}
+.progress-act-count {
+  display: block;
+  margin-top: 5px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.progress-student-no {
+  margin-right: 6px;
+  font-size: 12px;
+  color: var(--text-sub);
+}
+.progress-student-name {
+  font-weight: 600;
+}
+/* 칸은 배경을 비워 두고, 안에 든 네모 색으로만 상태를 읽습니다
+   (칸 전체를 칠하면 세 가지 색이 표처럼 번져 한눈에 안 들어옵니다) */
+.progress-cell {
+  padding: 6px 10px;
+}
+.progress-mark {
+  display: inline-block;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  vertical-align: middle;
+}
+/* 10자 이상 씀 */
+.progress-mark--done {
+  background: #d8efdf;
+  border: 1px solid #a6d8b6;
+}
+/* 열려 있는데 아직 덜 씀 */
+.progress-mark--open {
+  background: #fbe3d0;
+  border: 1px solid #efc19a;
+}
+/* 오늘 결석이라 못 씀 */
+.progress-mark--absent {
+  background: #dfdedb;
+  border: 1px solid #cbcac5;
+}
+/* 아직 열어 주지 않음 — 색만으로는 '주황(작성 전)'과 헷갈릴 수 있어
+   대각선을 넣어 모양으로도 구분되게 합니다(색맹·흑백 인쇄에도 안전) */
+.progress-mark--locked {
+  background-color: #e4e4e1;
+  border: 1px solid #cdcdc8;
+  background-image: linear-gradient(
+    135deg,
+    transparent calc(50% - 1px),
+    #aeaea8 calc(50% - 1px),
+    #aeaea8 calc(50% + 1px),
+    transparent calc(50% + 1px)
+  );
+}
+/* 아래 둘은 책방(읽는중 전광판)에만 씁니다 — 색은 학생 카드의 여덟 네모
+   (.paratext-mark)와 **같은 값**입니다. 같은 화면에서 카드를 보다가 격자를
+   여는데 색이 다르면 두 번 익혀야 합니다. */
+/* 쓰는 중 — 한 단계가 여러 칸인 것이 셋 있어(제목·목차·머리말) '반쯤 쓴'
+   상태가 실제로 자주 생깁니다. 공부방에는 이 상태가 없습니다. */
+.progress-mark--doing {
+  background: #f3c99a;
+  border: 1px solid #e2b077;
+}
+/* 아직 시작 전 */
+.progress-mark--empty {
+  background: var(--neutral);
+  border: 1px solid var(--border);
+}
+/* 자리 없음(브레인 라이팅 — 모둠이 작아 그 차례가 없는 칸) — 빈 점선 네모 */
+.progress-mark--none,
+.grass-cell--none {
+  background: transparent;
+  border: 1px dashed var(--border);
+}
+.grass-cell--none { cursor: default; }
+.grass-cell--none:hover { transform: none; }
+.progress-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 12px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+/* 범례 끝에 붙는 한 줄 요약 — 네모가 아니라 문장이라 옅게, 왼쪽에 여백을
+   더 둡니다(범례 항목들과 한 덩이로 읽히지 않게) */
+.progress-legend-sum {
+  margin-left: auto;
+  font-weight: 700;
+  color: var(--text-faint);
+}
+.progress-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+/* 범례의 네모는 표의 것보다 작게 */
+.progress-legend .progress-mark {
+  width: 15px;
+  height: 15px;
+  border-radius: 4px;
+}
+

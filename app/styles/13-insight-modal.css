@@ -1,0 +1,155 @@
+/* 한 줄 정리(인사이트) 창 — 원래 app/globals.css 4484~4637줄. 차례는 globals.css의 @import 순서가 정합니다. */
+/* ===================== 한 줄 정리(인사이트) 모달 ===================== */
+.modal-reflect {
+  max-width: 680px;
+}
+
+.reflect-lead {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--text-sub);
+  margin-bottom: 20px;
+}
+
+.reflect-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.reflect-field label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--primary-dark);
+}
+
+.reflect-field label .hint {
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--text-sub);
+}
+
+.reflect-field textarea {
+  width: 100%;
+  min-height: 120px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1.7;
+  resize: vertical;
+}
+
+/* '더 알고 싶은 점'은 선택 입력이라 조금 낮게 */
+.reflect-field.reflect-field-optional textarea {
+  min-height: 88px;
+}
+
+.reflect-field textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+/* 카드 하단 인사이트 대기 배지 */
+.reflect-pending-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 10px;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-weight: 500;
+}
+
+.reflect-pending-badge.mine {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+}
+
+.reflect-pending-badge.teacher {
+  background: #e8f0fe;
+  color: #3a5fb7;
+}
+
+/* 모달 내 인사이트 대기 알림 배너 */
+.reflect-reminder {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  font-size: 13px;
+}
+
+.reflect-reminder.mine {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  border-left: 3px solid var(--primary);
+}
+
+.reflect-reminder.teacher {
+  background: #e8f0fe;
+  color: #3a5fb7;
+  border-left: 3px solid #4a6fcf;
+}
+
+.reflect-reminder-btn {
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 4px 10px;
+}
+
+.btn-later {
+  background: #e8956c;
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-btn);
+  padding: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-later:hover { background: #df8458; }
+.btn-later:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.reflect-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+/* 저장된 한 줄 정리 — 질문 상세 왼쪽에 표시 */
+.qa-reflection {
+  margin-top: 16px;
+  background: var(--primary-light);
+  border-left: 3px solid var(--primary);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.qa-reflection h4 {
+  font-size: 13px;
+  color: var(--primary-dark);
+  margin-bottom: 6px;
+}
+
+.qa-reflection p {
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.qa-reflection-next {
+  margin-top: 8px;
+  color: var(--text-sub);
+  font-size: 13px;
+}
+

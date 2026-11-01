@@ -1,0 +1,93 @@
+/* 내 인사이트 모음 — 원래 app/globals.css 3238~3329줄. 차례는 globals.css의 @import 순서가 정합니다. */
+/* ===================== 내 인사이트 모음 모달 ===================== */
+.modal-insight {
+  width: min(560px, 92vw);
+  max-height: 82vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 제목 줄: 아이콘 + "내 인사이트" + 개수 배지를 세로 중앙으로 정렬 */
+.modal-insight .modal-head h3 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.insight-modal-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--neutral, #f0eee7);
+  color: var(--text-sub);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.insight-modal-empty {
+  color: var(--text-sub);
+  font-size: 14px;
+  line-height: 1.6;
+  padding: 8px 2px 4px;
+}
+
+.insight-modal-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.insight-modal-item {
+  width: 100%;
+  text-align: left;
+  background: var(--card-bg, #faf9f6);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  cursor: pointer;
+}
+.insight-modal-item:hover {
+  border-color: var(--primary, #e07a5f);
+}
+
+.insight-modal-item-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.insight-modal-item-top time {
+  font-size: 12px;
+  color: var(--text-sub);
+}
+
+.insight-modal-item-title {
+  margin: 0 0 6px;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.insight-modal-item-learned,
+.insight-modal-item-next {
+  margin: 2px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-sub);
+  word-break: keep-all;
+}
+
+@media (max-width: 768px) {
+  .feed-actions .btn-insight-label { display: none; }
+  .feed-actions .btn-insight { padding-left: 10px; padding-right: 10px; }
+}
+

@@ -1,0 +1,346 @@
+/* 파일·이미지 첨부 · 질문 상태 토글 · 나도 궁금해요 · 그리기 — 원래 app/globals.css 5060~5404줄. 차례는 globals.css의 @import 순서가 정합니다. */
+/* ===================== 파일 첨부 ===================== */
+.attach-files-section {
+  margin-top: 10px;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+
+.attach-files-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.attach-files-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-sub);
+  margin: 0 0 6px;
+}
+
+.attach-add-btn {
+  cursor: pointer;
+  font-size: 12px;
+  padding: 3px 10px;
+}
+
+.attach-file-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.attach-file-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--card-bg);
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.attach-file-ext {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 5px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  background: var(--primary-light);
+  color: var(--primary);
+}
+.attach-file-ext.ext-csv  { background: #e8f5e9; color: #2e7d32; }
+.attach-file-ext.ext-xlsx,
+.attach-file-ext.ext-xls  { background: #e8f5e9; color: #1b5e20; }
+.attach-file-ext.ext-html,
+.attach-file-ext.ext-htm  { background: #fff3e0; color: #e65100; }
+.attach-file-ext.ext-txt  { background: #f3e5f5; color: #6a1b9a; }
+.attach-file-ext.ext-py   { background: #e3f2fd; color: #1565c0; }
+.attach-file-ext.ext-jpg,
+.attach-file-ext.ext-jpeg,
+.attach-file-ext.ext-png,
+.attach-file-ext.ext-gif,
+.attach-file-ext.ext-webp { background: #fce4ec; color: #880e4f; }
+
+.attach-file-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.attach-file-size {
+  font-size: 11px;
+  color: var(--text-sub);
+  flex-shrink: 0;
+}
+
+.attach-file-del {
+  flex-shrink: 0;
+  padding: 2px 7px;
+  font-size: 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-sub);
+  border-radius: 4px;
+  line-height: 1;
+}
+.attach-file-del:hover { background: var(--primary-light); color: var(--danger, #c0392b); }
+
+.attach-download-btn {
+  flex-shrink: 0;
+  font-size: 12px;
+  padding: 3px 10px;
+}
+
+
+/* ===================== 이미지 첨부 ===================== */
+.attach-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.attach-label {
+  display: inline-block;
+}
+
+.attach-preview {
+  max-height: 180px;
+  max-width: 100%;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  object-fit: contain;
+  align-self: flex-start;
+}
+
+/* 카드 본문: 텍스트(왼쪽) + 섬네일(오른쪽) */
+.card-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.card-main {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 첨부/그리기 이미지 섬네일 묶음 — 오른쪽 끝에서부터 순서대로 채워지고,
+   삽입한 이미지·그림이 모두 보이도록 오른쪽 정렬로 줄바꿈합니다. */
+.card-thumbs {
+  flex-shrink: 0;
+  max-width: 45%;
+  display: flex;
+  flex-wrap: wrap;
+  flex-direction: row-reverse;
+  justify-content: flex-start;
+  align-content: flex-start;
+  gap: 6px;
+}
+.card-thumb {
+  width: 60px;
+  height: 60px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  object-fit: cover;
+  background: #fff;
+  flex-shrink: 0;
+}
+
+/* ===================== 질문 상태 토글 (궁금해요/해결됐어요) ===================== */
+.status-toggle {
+  margin-left: auto;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 800;
+  border: 1.5px solid transparent;
+  transition: transform 0.12s, box-shadow 0.12s;
+  flex-shrink: 0;
+}
+
+.status-toggle:hover {
+  transform: scale(1.06);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
+}
+
+.status-toggle.open {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  border-color: #ecbfa9;
+}
+
+.status-toggle.resolved {
+  background: #e9f0e6;
+  color: #3d7a4a;
+  border-color: #b3d0b4;
+}
+
+.status-toggle.disabled,
+.status-toggle:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* 글쓴이가 아닌 사람에게는 상태만 보여 주는 배지 — 버튼처럼 보이지 않게
+   (display/gap은 위쪽 공용 .status-toggle 규칙이 이미 처리) */
+.status-toggle.readonly {
+  cursor: default;
+}
+.status-toggle.readonly:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+/* 카드의 상태 표시 — 클릭 불가(상태 변경은 상세 모달의 인사이트 흐름에서만) */
+.status-badge {
+  margin-left: auto;
+  padding: 2px 0;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  flex-shrink: 0;
+  cursor: default;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #3A312E;
+}
+
+/* 해결된 질문 카드는 왼쪽에 초록 띠 표시 */
+.question-card.is-resolved {
+  border-left: 4px solid #5c9e68;
+}
+
+/* 상세 모달 안의 토글: 오른쪽 위 닫기(×) 버튼과 겹치지 않게 여백 확보 */
+.qa-status {
+  margin-right: 22px;
+}
+
+/* ===================== 나도 궁금해요 버튼 ===================== */
+/* 카드 오른쪽 아래 + 상세 모달 왼쪽 하단에서 사용.
+   1인 1회 — 누르면 채워진(on) 상태가 되고 다시 누르면 취소됩니다. */
+.metoo-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1.5px solid #ecbfa9;
+  background: var(--primary-light);
+  color: #3A312E;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+  transition: transform 0.12s, background 0.15s, box-shadow 0.12s;
+}
+
+.metoo-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 3px 10px rgba(46, 36, 26, 0.12);
+}
+
+/* 내 질문 — 누를 수 없음(개수만 표시) */
+.metoo-btn.is-self {
+  opacity: 0.5;
+  cursor: default;
+}
+.metoo-btn.is-self:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+/* 내가 이미 누른 상태 — 테라코타로 채움 */
+.metoo-btn.on {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+.metoo-count {
+  min-width: 22px;
+  text-align: center;
+  background: #fff;
+  border-radius: 999px;
+  padding: 1px 7px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.metoo-btn.on .metoo-count {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+}
+
+/* ===================== 그리기 캔버스 ===================== */
+.modal-canvas {
+  max-width: 880px;
+}
+
+.canvas-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.color-row {
+  display: flex;
+  gap: 8px;
+}
+
+.color-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px var(--border);
+}
+
+.color-swatch.active {
+  box-shadow: 0 0 0 3px var(--primary);
+}
+
+.tool-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.tool-active {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary-dark);
+  font-weight: 700;
+}
+
+.draw-canvas {
+  width: 100%;
+  border: 1.5px dashed var(--border);
+  border-radius: 10px;
+  background: #fff;
+  cursor: crosshair;
+  touch-action: none; /* 터치로 그릴 때 화면 스크롤 방지 */
+  display: block;
+}
+
+.canvas-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+

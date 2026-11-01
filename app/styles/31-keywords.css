@@ -1,0 +1,249 @@
+/* 키워드 사이드바 · 키워드 관리 — 원래 app/globals.css 19603~19850줄. 차례는 globals.css의 @import 순서가 정합니다. */
+/* ===================== 키워드 사이드바 헤더 ===================== */
+.keyword-col-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px 10px;
+  margin-bottom: 0;
+}
+
+/* 헤더 안에 있을 때는 h2의 자체 패딩 제거 (부모에서 처리) */
+.keyword-col-head h2 {
+  padding: 0;
+}
+
+.keyword-manage-btn {
+  background: none;
+  border: none;
+  font-size: 15px;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 8px;
+  color: var(--text-sub);
+  transition: background 0.12s;
+}
+
+.keyword-manage-btn:hover {
+  background: var(--neutral);
+  color: var(--primary);
+}
+
+/* ── 사이드바 내 인사이트 섹션 ── */
+.reflect-sidebar-section {
+  margin-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 12px;
+}
+
+.reflect-sidebar-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  background: none;
+  border: none;
+  color: #87867f;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  padding: 0 10px 8px;
+  cursor: pointer;
+  text-align: left;
+}
+.reflect-sidebar-toggle:hover { color: #c5c4bc; }
+
+.reflect-sidebar-count {
+  background: rgba(255, 255, 255, 0.12);
+  color: #c5c4bc;
+  border-radius: 999px;
+  font-size: 11px;
+  padding: 1px 6px;
+  font-family: var(--font-sans, sans-serif);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.reflect-sidebar-chevron {
+  margin-left: auto;
+  font-size: 10px;
+  opacity: 0.6;
+}
+
+.reflect-sidebar-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.reflect-sidebar-item {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--sidebar-text);
+  transition: background 0.12s;
+}
+.reflect-sidebar-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.reflect-sidebar-kw {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  color: #e8956c;
+  letter-spacing: 0.3px;
+  margin-bottom: 3px;
+}
+
+.reflect-sidebar-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #e8e8e4;
+  margin: 0 0 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.reflect-sidebar-learned {
+  font-size: 11px;
+  color: #87867f;
+  margin: 0 0 4px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.45;
+}
+
+.reflect-sidebar-time {
+  font-size: 10px;
+  color: #5c5b55;
+}
+
+/* ===================== 키워드 관리 모달 ===================== */
+.modal-keyword-mgr {
+  max-width: 480px;
+  width: 100%;
+}
+
+.keyword-mgr-desc {
+  font-size: 13px;
+  color: var(--text-sub);
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+
+.keyword-mgr-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 16px;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.keyword-mgr-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.keyword-mgr-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  flex: 1;
+  min-width: 0;
+}
+
+.keyword-mgr-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.keyword-mgr-action-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 4px 7px;
+  border-radius: 6px;
+  transition: background 0.12s;
+}
+
+.keyword-mgr-action-btn:hover {
+  background: var(--bg-deep);
+}
+
+.keyword-mgr-edit-row,
+.keyword-mgr-confirm-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.keyword-mgr-warn {
+  font-size: 12px;
+  color: var(--danger);
+  white-space: nowrap;
+}
+
+.keyword-mgr-input {
+  flex: 1;
+  font-size: 14px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1.5px solid var(--border);
+  background: #fff;
+  min-width: 0;
+  width: auto;
+}
+
+.keyword-mgr-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(217, 119, 87, 0.18);
+}
+
+.keyword-mgr-btn {
+  flex-shrink: 0;
+  min-width: 60px;
+  padding: 7px 12px;
+  font-size: 13px;
+}
+
+.keyword-mgr-empty {
+  font-size: 13px;
+  color: var(--text-sub);
+  padding: 12px;
+  text-align: center;
+}
+
+.keyword-mgr-add-row {
+  display: flex;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+
