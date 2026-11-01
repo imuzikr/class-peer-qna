@@ -30,6 +30,7 @@
 - **프레임워크**: Next.js 15.5 App Router, React 18 (Client Components)
 - **DB**: Firebase Firestore (실서비스) / 브라우저 인메모리 Mock (데모 모드)
 - **스타일**: 단일 CSS 파일 `app/globals.css` (CSS Variables + Flexbox)
+  > 지금은 `app/globals.css`가 `app/styles/`의 파일 60개를 차례대로 불러오는 입구입니다([ui.md](ui.md) 'CSS 파일 구조').
 - **배포**: Vercel
 
 ## 실행
@@ -107,7 +108,7 @@ Firebase를 import하는 `lib/store.js`·`lib/data/*`도 못 읽습니다 — �
 | `lib/roster.js` · `lib/useClassRoster.js` | 교사 화면의 반 명단(소속 × 실명 × 과일 누적, **학번순**) — 셈과 구독 훅 |
 | `lib/user.js` | `getCurrentUser()`, `isAdmin()` — 세션 기반 사용자 |
 | `lib/firebase.js` | Firebase 초기화. `isFirebaseConfigured` 플래그로 모드 분기 |
-| `app/globals.css` | 전체 스타일. 모바일 반응형은 파일 하단 `@media (max-width: 768px)` |
+| `app/globals.css` | 전체 스타일. 모바일 반응형은 파일 하단 `@media (max-width: 768px)` (→ 지금은 입구 파일, 아래 안내) |
 | `components/QuestionModal.jsx` | 질문 상세 모달 (2열 데스크톱 / 단일스크롤 모바일) |
 | `components/RichTextEditor.jsx` | 서식 입력 에디터 (variant: full/chat) |
 | `components/KwlPanel.jsx` | KWL 사이드 패널 (오늘 탭 + 기록 탭) |

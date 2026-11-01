@@ -17,7 +17,7 @@
 | 독서 활동 하나하나(닿소리 · RAFT · 마인드맵 · 내 생각은요 · 물음표 · 해시태그 · 가로세로 · 브레인 라이팅) | [books-activities.md](books-activities.md) |
 | 출석 · 자리표 · 반 관리 · 모둠 · 과일 · 과일 바구니 | [classroom.md](classroom.md) |
 | 손들기 · 돌발 퀴즈 · 떠 있는 동그라미 · 메신저 · 투표 | [realtime.md](realtime.md) |
-| 상단바 · 서식 에디터 · 모달 · 팝오버 · 아이콘 · 단추 크기 · CSS 함정 · 시각화 · 엑셀 | [ui.md](ui.md) |
+| CSS 파일 구조(`app/styles/`) · 상단바 · 서식 에디터 · 모달 · 팝오버 · 아이콘 · 단추 크기 · CSS 함정 · 시각화 · 엑셀 | [ui.md](ui.md) |
 
 ## 데이터(컬렉션)가 있는 문서
 

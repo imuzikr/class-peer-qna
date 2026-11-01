@@ -16,7 +16,7 @@
   `lib/firebase.js`의 `isFirebaseConfigured`가 거짓이면 저절로, 새로고침하면 초기화)
 - **파일**: Cloud Storage — 게이트웨이 함수를 거치는 보호된 첨부([docs/attachments.md](docs/attachments.md))
 - **서버**: Cloud Functions(`functions/`, 서울 리전, `maxInstances: 10`)
-- **스타일**: 단일 CSS `app/globals.css` (CSS 변수 · 모바일은 아래쪽 `@media (max-width: 768px)`)
+- **스타일**: `app/globals.css`(입구) → `app/styles/NN-*.css` 60개를 **차례대로** `@import` (CSS 변수는 `01-base.css`)
 - **배포**: 앱은 `main` 푸시 때 Vercel이 자동 배포 · 규칙과 함수는 `npm run deploy`
 
 ## 실행 · 시험
@@ -120,7 +120,10 @@ npm run test:attachments:pilot  # 보호된 첨부 에뮬레이터 검증 (demo-
 - 첨부 그림은 `SecureImage` · `SecureHtml`로 그립니다(식별자를 `<img src>`에 곧바로 넣지 않음).
 - 과일 그림은 `RewardFruits.jsx`의 `nextFruit`·`lastFruit`, 이름표 자리는 🍊. 축포는 `TopNav`에 하나.
 - 채팅 입력은 Enter가 줄바꿈, Ctrl/⌘+Enter가 전송.
-- CSS에 760px 블록이 768px 블록과 따로 있습니다. 새 클래스 이름은 `grep`으로 먼저
+- **CSS는 `app/styles/`의 기능별 파일**이고 `app/globals.css`가 차례대로 `@import`합니다.
+  **@import 차례를 바꾸지 마세요** — 같은 선택자가 여러 파일에 나뉜 곳이 있어 차례가 곧
+  우선순위입니다. 새 규칙은 그 기능의 파일에 적습니다([docs/ui.md](docs/ui.md) 'CSS 파일 구조').
+- 반응형 `@media` 블록은 한곳에 모여 있지 않고 각 파일에 흩어져 있습니다. 760px 블록이 768px 블록과 따로 있습니다. 새 클래스 이름은 `grep`으로 먼저
   겹치는지 봅니다(`.memo-*` · `.paratext-progress` · `.book-progress` 충돌을 실제로 겪음).
 - pdf.js는 **`legacy` 빌드만**(`pdfjs-dist/legacy/build/…`), 워커는 `public/`에 복사해 씁니다.
 
@@ -168,7 +171,7 @@ npm run test:attachments:pilot  # 보호된 첨부 에뮬레이터 검증 (demo-
 | `lib/dates.js` · `lib/roster.js` · `lib/mockDocs.js` · `lib/modal.js` · `lib/popover.js` | 위 '두루 걸리는 규칙'의 한 곳들 |
 | `components/TopNav.jsx` | 상단바 — 수업 노트 서랍 · 축포 · 손들기 · 전광판 · 떠 있는 동그라미를 다는 자리 |
 | `components/RichTextEditor.jsx` | 서식 에디터 (variant: full/chat) |
-| `app/globals.css` | 전체 스타일 |
+| `app/globals.css` · `app/styles/` | 스타일 입구 · 기능별 CSS 파일(원래 한 파일을 차례 그대로 자른 것) |
 
 ## 문서 지도
 
