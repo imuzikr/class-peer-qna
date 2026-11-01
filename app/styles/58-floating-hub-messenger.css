@@ -667,21 +667,11 @@ button.msgr-receipt:hover { color: var(--text-sub); }
 .msgr-notice-card.is-open .msgr-notice-text { display: block; }
 
 /* ── 한 눈에 보기 (EntryOverviewModal) ──────────────────────────────
-   책방 교사 화면의 가운데 칸 머리 오른쪽 '한 눈에 보기'가 여는 창.
+   책방 교사 화면 머리말 오른쪽 끝의 '한 눈에 보기'(BookBoardHead — 곁텍스트 · RAFT ·
+   KWLS · 물음표 공통, 버튼은 .entry-overview-btn)가 여는 창.
    한 학생이 쓴 것을 영역별 카드로 한 창에 보고, 아래 이전 · 다음으로
    왼쪽 목록 차례대로 넘깁니다. 구르는 것은 본문 한 칸뿐입니다 — 머리줄과
    넘기는 줄은 늘 제자리여야 손이 같은 곳을 짚습니다(수업 화면 창과 같음). */
-.entry-detail-head .eov-open-btn { margin-left: auto; flex-shrink: 0; }
-/* 모둠 RAFT — 모둠 칩(+ 전광판)이 이름 · 학번 · 주제 옆에 섭니다. 제 줄에서
-   쓰던 아래 여백은 이 머리 안에서는 풉니다. */
-.entry-detail-tools {
-  margin-left: auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-.entry-detail-tools .eov-open-btn { margin-left: 0; }
 .entry-detail-head .group-filter,
 .entry-detail-head .group-filter-row { margin-bottom: 0; }
 /* 모둠 RAFT의 왼쪽 모둠 카드 — 카드는 고르는 단추가 아니라 담는 칸이고(div),

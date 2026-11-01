@@ -30,11 +30,10 @@ import {
   paratextCharCount,
   paratextRows,
   paratextCellState,
-  safeBookUrl,
 } from "@/lib/paratext";
-import { IconBook, IconLock, IconPeople } from "./StatusIcons";
 import CastStageModal from "./CastStageModal";
 import EntryOverviewModal from "./EntryOverviewModal";
+import BookBoardHead, { BOOK_NO_STUDENTS } from "./BookHeadParts";
 
 export default function ParatextBoard({
   activity,
@@ -71,7 +70,6 @@ export default function ParatextBoard({
 
   useEffect(() => subscribeParatextEntries(activity.id, setEntries), [activity.id]);
 
-  const bookUrl = safeBookUrl(activity.bookUrl);
   const cast = useEntryCast(classId, user);
 
   // 명단이 있으면 명단 순서대로, 없으면(명부를 아직 못 읽었으면) 쓴 학생만.
@@ -205,88 +203,27 @@ export default function ParatextBoard({
     castSection(castCard, next, stageOpen);
   }
 
-  const boardBtn = cards.length > 0 && (
-    <button
-      type="button"
-      className="group-filter-act"
-      onClick={() => setBoardOpen(true)}
-      title="여덟 단계 × 반 전체를 한 격자로 봅니다"
-    >
-      살펴보기
-    </button>
-  );
-
   return (
     <main className="books-main book-workspace-main book-entry-workspace-main">
-      <div className="books-head">
-        {/* 제목 · 돌아가는 길 · 도구 순서 — 닿소리 머리말(BookGroupBoard)과
-            같은 차례입니다. 화면을 한 단계 되돌리는 버튼은 '무엇을 읽는
-            활동인가'를 알려 주는 배지와 성격이 달라, 도구들과 함께 첫 줄에
-            둡니다(둘째 줄에 두면 그 줄에서만 작게 그려집니다). */}
-        {/* 제목은 늘 활동 이름입니다 — 학생은 왼쪽 목록이 말해 주므로
-            제목이 학생 이름으로 바뀌면 지금 어느 활동인지 알 수 없어집니다.
-            '← 학생 목록'도 없앴습니다(목록이 늘 왼쪽에 서 있습니다). */}
-        <div className="books-head-title">
-          <h1 className="book-group-title">{activity.title}</h1>
-          <button type="button" className="btn-ghost" onClick={onBack}>← 활동 목록</button>
-          {classTools}
-        </div>
-        <div className="books-head-row">
-          <div className="books-head-main">
-            {/* 모둠 짜기 — 닿소리 머리말과 **같은 자리·같은 말**입니다.
-                모둠으로 진행하는 활동인데 짜는 길이 만들기 창에만 있어,
-                한 번 만들고 나면 교사가 모둠을 고칠 수 없었습니다. */}
-            {grouped && !freeMode && (
-              <button type="button" className="btn-ghost" onClick={() => setComposing(true)}>
-                <IconPeople size={15} /> 활동 모둠
-              </button>
-            )}
-            {/* 주제어를 비워 두면 학생마다 제 책을 적습니다 —
-                빈 배지를 두는 대신 그 사실을 적어 둡니다 */}
-            <span className={`book-group-topic${(activity.topic ?? "").trim() ? "" : " soft"}`}>
-              {(activity.topic ?? "").trim() || "학생마다 다른 책"}
-            </span>
-            {/* 반 표시 — 고를 반이 둘 이상이면 고르개(반을 바꾸면 그 반의
-                활동 목록으로 갑니다), 하나면 이름 배지입니다. */}
-            {classPicker ?? (className && <span className="book-group-class">{className}</span>)}
-            <span className="paratext-sum">
-              시작 {startedCount}명 · 완성 {doneCount}명 / 전체 {cards.length}명
-            </span>
-            {boardBtn}
-            {/* 잠김 안내도 이 줄에 — 예전엔 머리말 아래 제 줄을 차지했는데,
-                이 줄은 배지 두어 개뿐이라 오른쪽이 비어 있었습니다.
-                '지금 잠겨 있다'는 활동에 붙는 상태라 배지와 같은 성격입니다. */}
-            {activity.locked && (
-              <span className="book-locked-note book-locked-chip">
-                <IconLock size={14} /> 지금은 잠겨 있어 학생이 고칠 수 없어요.
-              </span>
-            )}
-          </div>
-          {bookUrl && (
-            <a
-              className="btn-primary book-info-btn"
-              href={bookUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <IconBook size={15} /> 도서 정보
-            </a>
-          )}
-          <button
-            type="button"
-            className="btn-ghost entry-overview-btn"
-            onClick={() => setOverviewOpen(true)}
-            disabled={!open}
-            title="선택한 학생의 활동을 한꺼번에 봅니다"
-          >
-            한 눈에 보기
-          </button>
-        </div>
-      </div>
+      {/* 머리말 — 독서 활동 교사 화면이 모두 같은 조각 · 같은 차례입니다(BookBoardHead). */}
+      <BookBoardHead
+        activity={activity}
+        onBack={onBack}
+        classTools={classTools}
+        classPicker={classPicker}
+        className={className}
+        onCompose={grouped && !freeMode ? () => setComposing(true) : null}
+        topicFallback="학생마다 다른 책"
+        summary={`시작 ${startedCount}명 · 완성 ${doneCount}명 / 전체 ${cards.length}명`}
+        onOpenBoard={cards.length > 0 ? () => setBoardOpen(true) : null}
+        boardTitle="여덟 단계 × 반 전체를 한 격자로 봅니다"
+        onOverview={() => setOverviewOpen(true)}
+        overviewDisabled={!open}
+      />
 
       {cards.length === 0 ? (
         <p className="empty-note">
-          아직 이 반에 들어온 학생이 없어요. 학생이 반에 들어오면 카드가 생깁니다.
+          {BOOK_NO_STUDENTS}
         </p>
       ) : (
         <div className="book-workspace">

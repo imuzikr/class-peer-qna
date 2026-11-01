@@ -34,6 +34,16 @@
   gap: 12px;
   min-width: 0;
 }
+/* 교사 머리말 오른쪽 끝의 도구 한 덩이(BookBoardHead) — 도서 정보 · 한 눈에 보기 ·
+   활동별 도구(보기 전환 · 전체 보기 · 방송 막대). 줄이 접히면 다음 줄 오른쪽 끝으로. */
+.books-head-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+.books-head-tools:empty { display: none; }
 .books-head-main h1 {
   display: inline-flex;
   align-items: center;

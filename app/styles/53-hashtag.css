@@ -32,7 +32,6 @@
   background: #c04a3f;
   color: #fff;
 }
-.paratext-saved.err { color: var(--danger); }
 
 /* 세 덩이 — 위에 **한 열**로 이 글의 공통 정보(① 읽은 글 · ② 대표 이미지),
    그 아래 **두 열**(왼쪽 ③ 해시태그 칩 · 오른쪽 ④ 태그마다 생각 쓰기),

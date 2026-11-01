@@ -118,6 +118,8 @@ npm run test:attachments:pilot  # 보호된 첨부 에뮬레이터 검증 (demo-
 - 저장된 서식 글이 뿌려지는 자리를 새로 만들면 코드 블록 · 목록 서식 규칙에 그 선택자를
   더합니다([docs/ui.md](docs/ui.md)).
 - 첨부 그림은 `SecureImage` · `SecureHtml`로 그립니다(식별자를 `<img src>`에 곧바로 넣지 않음).
+- 독서 활동 화면의 머리말 · 저장 표시 · 잠김 안내 · 도서 정보는 `components/BookHeadParts.jsx`의 조각으로 그립니다 —
+  새 활동도 그대로 씁니다([docs/books.md](docs/books.md) '독서 활동 공통 조각').
 - 과일 그림은 `RewardFruits.jsx`의 `nextFruit`·`lastFruit`, 이름표 자리는 🍊. 축포는 `TopNav`에 하나.
 - 채팅 입력은 Enter가 줄바꿈, Ctrl/⌘+Enter가 전송.
 - **CSS는 `app/styles/`의 기능별 파일**이고 `app/globals.css`가 차례대로 `@import`합니다.

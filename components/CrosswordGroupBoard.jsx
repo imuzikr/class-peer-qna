@@ -58,6 +58,8 @@ import CrosswordGrid from "./CrosswordGrid";
 import ConfirmModal from "./ConfirmModal";
 import FloatingPanel from "./FloatingPanel";
 import XwGroupHintPopover, { pointAnchor } from "./XwGroupHintPopover";
+import { BOOK_LOCKED_TEACHER } from "./BookHeadParts";
+import { IconLock } from "./StatusIcons";
 
 const DIR_LABEL = { across: "가로", down: "세로" };
 
@@ -302,6 +304,12 @@ export default function CrosswordGroupBoard({ activity, onBack, onToast, classPi
         <span className={`xw-badge xwg-stage${stage === "solve" ? " done" : ""}`}>
           {stage === "solve" ? "낱말 채우기 중" : stage === "hint" ? "힌트 쓰는 중" : "준비"}
         </span>
+        {/* 잠김 안내 — 다른 독서 활동의 교사 머리말과 같은 칩(BookBoardHead와 같은 말) */}
+        {activity.locked && (
+          <span className="book-locked-note book-locked-chip">
+            <IconLock size={14} /> {BOOK_LOCKED_TEACHER}
+          </span>
+        )}
       </div>
 
       <div className="xwg xwg--teacher">

@@ -24,8 +24,9 @@ import {
 } from "@/lib/brainwrite";
 import { useBookGroups, myBookGroup } from "@/lib/bookGroups";
 import { safeBookUrl } from "@/lib/paratext";
-import { IconBook, IconLock } from "./StatusIcons";
+import { IconLock } from "./StatusIcons";
 import GroupJoinRow from "./GroupJoinRow";
+import { BookInfoLink, BookLockedNote } from "./BookHeadParts";
 
 const SAVE_MS = 800;
 
@@ -123,13 +124,12 @@ export default function BrainWriteForm({ activity, user, onBack }) {
               </span>
             )}
           </div>
-          {bookUrl && (
-            <a className="btn-primary book-info-btn" href={bookUrl} target="_blank" rel="noopener noreferrer">
-              <IconBook size={15} /> 도서 정보
-            </a>
-          )}
+          <BookInfoLink url={bookUrl} />
         </div>
       </div>
+
+      {/* 잠김 안내 — 다른 독서 활동의 학생 화면과 같은 한 줄(BookLockedNote) */}
+      {locked && <BookLockedNote />}
 
       {prompt && (
         <p className="bw-prompt">

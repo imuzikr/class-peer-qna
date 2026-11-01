@@ -28,10 +28,10 @@ import {
   paratextDoneCount,
   safeBookUrl,
 } from "@/lib/paratext";
-import { IconBook, IconLock } from "./StatusIcons";
 import GroupMatesRow from "./GroupMatesRow";
 import GroupJoinRow from "./GroupJoinRow";
 import { isGroupedActivity, useBookGroups, myBookGroup, groupMembers } from "@/lib/bookGroups";
+import { BookSaveStatus, BookLockedNote, BookInfoLink } from "./BookHeadParts";
 
 const SAVE_DELAY = 900; // ms — 이만큼 입력이 없으면 저장
 
@@ -47,7 +47,7 @@ function sectionPreview(section, answers) {
 export default function ParatextForm({ activity, user, onBack }) {
   const [answers, setAnswers] = useState(emptyParatextAnswers);
   const [loaded, setLoaded] = useState(false);
-  const [status, setStatus] = useState("idle"); // idle | saving | saved
+  const [status, setStatus] = useState("idle"); // idle | saving | saved | error
   const [openIndex, setOpenIndex] = useState(null); // 모달로 연 항목 (PARATEXT_SECTIONS 인덱스)
   // 내가 적은 주제어(도서명) — 교사가 활동에 주제어를 넣지 않았을 때 씁니다.
   // 읽는 책이 학생마다 다를 수 있어, 그때는 각자 적습니다.
@@ -111,8 +111,10 @@ export default function ParatextForm({ activity, user, onBack }) {
       try {
         await saveParatextEntry(activity.id, user, answers);
         setStatus("saved");
-      } catch {
-        setStatus("idle");
+      } catch (e) {
+        // 실패를 숨기지 않습니다 — 'idle'로 돌리면 학생은 저장된 줄 압니다.
+        console.warn("[곁텍스트] 저장 실패:", e?.code, e?.message);
+        setStatus("error");
       }
     }, SAVE_DELAY);
     return () => clearTimeout(timerRef.current);
@@ -170,41 +172,18 @@ export default function ParatextForm({ activity, user, onBack }) {
                 <span className="book-group-topic">{shownTopic}</span>
               ))}
           </div>
-          {bookUrl && (
-            <a
-              className="btn-primary book-info-btn"
-              href={bookUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <IconBook size={15} /> 도서 정보
-            </a>
-          )}
+          <BookInfoLink url={bookUrl} />
         </div>
         )}
         <div className="paratext-status">
           <span className="paratext-progress">
             {done} / {PARATEXT_SECTION_COUNT}칸
           </span>
-          {locked ? (
-            <span className="paratext-saved locked">
-              <IconLock size={14} /> 잠김
-            </span>
-          ) : (
-            status !== "idle" && (
-              <span className="paratext-saved">
-                {status === "saving" ? "저장 중…" : "저장됨"}
-              </span>
-            )
-          )}
+          <BookSaveStatus status={status} locked={locked} />
         </div>
       </div>
 
-      {locked && (
-        <p className="book-locked-note">
-          <IconLock size={15} /> 지금은 잠겨 있어 고칠 수 없어요. 쓴 내용은 그대로 남아 있습니다.
-        </p>
-      )}
+      {locked && <BookLockedNote />}
 
       <p className="books-intro">
         아직 본문은 읽지 마세요. 표지·제목·목차처럼 <b>본문을 둘러싼 것</b>만 보고
@@ -309,17 +288,7 @@ function SectionModal({ section, index, total, answers, locked, status, onChange
 
         <div className="paratext-write-meta">
           <span className="paratext-step">{index + 1}/{total}</span>
-          {locked ? (
-            <span className="paratext-saved locked">
-              <IconLock size={14} /> 잠김
-            </span>
-          ) : (
-            status !== "idle" && (
-              <span className="paratext-saved">
-                {status === "saving" ? "저장 중…" : "저장됨"}
-              </span>
-            )
-          )}
+          <BookSaveStatus status={status} locked={locked} />
         </div>
 
         <p className="paratext-prompt">

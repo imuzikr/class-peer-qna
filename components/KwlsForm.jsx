@@ -24,14 +24,14 @@ import {
   kwlsPhaseDone,
 } from "@/lib/kwls";
 import { safeBookUrl } from "@/lib/paratext";
-import { IconBook, IconLock } from "./StatusIcons";
+import { BookSaveStatus, BookLockedNote, BookInfoLink } from "./BookHeadParts";
 
 const SAVE_DELAY = 900; // ms — 이만큼 입력이 없으면 저장
 
 export default function KwlsForm({ activity, user, onBack }) {
   const [answers, setAnswers] = useState(emptyKwlsAnswers);
   const [loaded, setLoaded] = useState(false);
-  const [status, setStatus] = useState("idle"); // idle | saving | saved
+  const [status, setStatus] = useState("idle"); // idle | saving | saved | error
   // 내가 적은 주제어(도서명) — 교사가 활동에 주제어를 넣지 않았을 때 씁니다.
   // 다루는 책·주제가 학생마다 다를 수 있어, 그때는 각자 적습니다
   // (곁텍스트 읽기와 같은 방식 — 같은 entries/{uid}.topic 자리를 씁니다).
@@ -87,8 +87,10 @@ export default function KwlsForm({ activity, user, onBack }) {
         // 두 곳에서 쓴 성찰을 한 흐름으로 보기 위함(store.js 주석 참고).
         await saveKwlsActivityEntry(activity, user, answers, myTopic);
         setStatus("saved");
-      } catch {
-        setStatus("idle");
+      } catch (e) {
+        // 실패를 숨기지 않습니다 — 'idle'로 돌리면 학생은 저장된 줄 압니다.
+        console.warn("[KWLS] 저장 실패:", e?.code, e?.message);
+        setStatus("error");
       }
     }, SAVE_DELAY);
     return () => clearTimeout(timerRef.current);
@@ -149,41 +151,18 @@ export default function KwlsForm({ activity, user, onBack }) {
                 <span className="book-group-topic">{shownTopic}</span>
               ))}
           </div>
-          {bookUrl && (
-            <a
-              className="btn-primary book-info-btn"
-              href={bookUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <IconBook size={15} /> 도서 정보
-            </a>
-          )}
+          <BookInfoLink url={bookUrl} />
         </div>
         )}
         <div className="paratext-status">
           <span className="paratext-progress">
             {filled} / {KWLS_COLUMN_COUNT}칸 · {chars}자
           </span>
-          {locked ? (
-            <span className="paratext-saved locked">
-              <IconLock size={14} /> 잠김
-            </span>
-          ) : (
-            status !== "idle" && (
-              <span className="paratext-saved">
-                {status === "saving" ? "저장 중…" : "저장됨"}
-              </span>
-            )
-          )}
+          <BookSaveStatus status={status} locked={locked} />
         </div>
       </div>
 
-      {locked && (
-        <p className="book-locked-note">
-          <IconLock size={15} /> 지금은 잠겨 있어 고칠 수 없어요. 쓴 내용은 그대로 남아 있습니다.
-        </p>
-      )}
+      {locked && <BookLockedNote />}
 
 
       {topicAsk && (

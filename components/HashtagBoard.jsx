@@ -41,12 +41,12 @@ import {
   normalizeHashtagPost,
 } from "@/lib/hashtag";
 import { useEntryCast } from "@/lib/useEntryCast";
-import { IconLock } from "./StatusIcons";
 import BookStudentRail from "./BookStudentRail";
 import HashtagSlide from "./HashtagSlide";
 import HashtagComments from "./HashtagComments";
 import WordCloud from "./WordCloud";
 import CastStageModal from "./CastStageModal";
+import BookBoardHead, { BOOK_NO_STUDENTS } from "./BookHeadParts";
 
 // 네모 여섯 개 — 해시태그 칸마다(왼쪽 목록의 칸 색).
 const ROWS = Array.from({ length: HASHTAG_COUNT }, (_, i) => ({
@@ -196,21 +196,18 @@ export default function HashtagBoard({
 
   return (
     <main className="books-main book-workspace-main">
-      <div className="books-head">
-        <div className="books-head-title">
-          <h1 className="book-group-title">{activity.title}</h1>
-          <button type="button" className="btn-ghost" onClick={onBack}>← 활동 목록</button>
-          {classTools}
-        </div>
-        <div className="books-head-row">
-          <div className="books-head-main">
-            {classPicker ?? (className && <span className="book-group-class">{className}</span>)}
-            <span className="paratext-sum">
-              시작 {startedCount}명 · 완성 {doneCount}명 / 전체 {cards.length}명
-            </span>
-            {/* 공개하기 — 활동 전체에 한 번에. 지금 상태는 글자(공개 중 / 공개
-                전)가, 할 일은 단추 글자가 말합니다(잠김 배지와 단추를 가른 것과
-                같은 까닭). */}
+      {/* 머리말 — 독서 활동 교사 화면이 모두 같은 조각 · 같은 차례입니다(BookBoardHead). */}
+      <BookBoardHead
+        activity={activity}
+        onBack={onBack}
+        classTools={classTools}
+        classPicker={classPicker}
+        className={className}
+        summary={`시작 ${startedCount}명 · 완성 ${doneCount}명 / 전체 ${cards.length}명`}
+        actions={
+          /* 공개하기 — 활동 전체에 한 번에. 지금 상태는 글자(공개 중 / 공개 전)가,
+             할 일은 단추 글자가 말합니다(잠김 배지와 단추를 가른 것과 같은 까닭). */
+          <>
             <span className={`book-group-class${published ? " ht-pub-on" : ""}`}>
               {published ? "친구 해시태그 공개 중" : "공개 전 — 학생마다 제 것만"}
             </span>
@@ -227,18 +224,15 @@ export default function HashtagBoard({
             >
               {published ? "공개 거두기" : "공개하기"}
             </button>
-            {locked && (
-              <span className="book-locked-note book-locked-chip">
-                <IconLock size={14} /> 지금은 잠겨 있어 학생이 고칠 수 없어요.
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
+          </>
+        }
+        locked={locked}
+        bookUrl={null}
+      />
 
       {cards.length === 0 ? (
         <p className="empty-note">
-          아직 이 반에 들어온 학생이 없어요. 학생이 반에 들어오면 목록이 생깁니다.
+          {BOOK_NO_STUDENTS}
         </p>
       ) : (
         <div className="book-workspace">

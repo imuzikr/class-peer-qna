@@ -25,7 +25,7 @@ import {
 import { uploadImage, deleteUploadedFile } from "@/lib/storageUpload";
 import { safeBookUrl } from "@/lib/paratext";
 import MindmapCanvas from "./MindmapCanvas";
-import { IconBook, IconLock } from "./StatusIcons";
+import { BookSaveStatus, BookLockedNote, BookInfoLink } from "./BookHeadParts";
 
 const SAVE_DELAY = 900; // ms — 이만큼 입력이 없으면 저장
 
@@ -34,7 +34,7 @@ export default function MindmapForm({ activity, user, onBack }) {
   const [loaded, setLoaded] = useState(false);
   const [open, setOpen] = useState(false); // 내 카드를 눌러 판으로 들어왔는지
   const [selectedId, setSelectedId] = useState(ROOT_ID);
-  const [status, setStatus] = useState("idle"); // idle | saving | saved
+  const [status, setStatus] = useState("idle"); // idle | saving | saved | error
   // 내가 적은 주제어 — 교사가 활동에 주제어를 넣지 않았을 때 씁니다.
   // 다루는 주제가 학생마다 다를 수 있어, 그때는 각자 적습니다
   // (곁텍스트 읽기와 같은 방식 — 같은 entries/{uid}.topic 자리를 씁니다).
@@ -103,8 +103,10 @@ export default function MindmapForm({ activity, user, onBack }) {
       try {
         await saveParatextEntry(activity.id, user, map);
         setStatus("saved");
-      } catch {
-        setStatus("idle");
+      } catch (e) {
+        // 실패를 숨기지 않습니다 — 'idle'로 돌리면 학생은 저장된 줄 압니다.
+        console.warn("[마인드맵] 저장 실패:", e?.code, e?.message);
+        setStatus("error");
       }
     }, SAVE_DELAY);
     return () => clearTimeout(timerRef.current);
@@ -142,17 +144,7 @@ export default function MindmapForm({ activity, user, onBack }) {
       <span className="paratext-progress">
         {layoutKo} · 가지 {branches}개 · {depth}단계
       </span>
-      {locked ? (
-        <span className="paratext-saved locked">
-          <IconLock size={14} /> 잠김
-        </span>
-      ) : (
-        status !== "idle" && (
-          <span className="paratext-saved">
-            {status === "saving" ? "저장 중…" : "저장됨"}
-          </span>
-        )
-      )}
+      <BookSaveStatus status={status} locked={locked} />
     </div>
   );
 
@@ -205,26 +197,13 @@ export default function MindmapForm({ activity, user, onBack }) {
                 <span className="book-group-topic">{shownTopic}</span>
               ))}
           </div>
-          {bookUrl && !open && (
-            <a
-              className="btn-primary book-info-btn"
-              href={bookUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <IconBook size={15} /> 도서 정보
-            </a>
-          )}
+          {!open && <BookInfoLink url={bookUrl} />}
         </div>
         )}
         {!open && statusLine}
       </div>
 
-      {locked && (
-        <p className="book-locked-note">
-          <IconLock size={15} /> 지금은 잠겨 있어 고칠 수 없어요. 만든 마인드맵은 그대로 남아 있습니다.
-        </p>
-      )}
+      {locked && <BookLockedNote>지금은 잠겨 있어 고칠 수 없어요. 만든 마인드맵은 그대로 남아 있습니다.</BookLockedNote>}
 
       {topicAsk && (
         <TopicAskModal

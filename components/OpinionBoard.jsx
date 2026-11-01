@@ -64,10 +64,10 @@ import {
   placeFromPixels,
   zoneOfNote,
 } from "@/lib/opinion";
-import { safeBookUrl } from "@/lib/paratext";
 import { backdropClose } from "@/lib/modal";
 import ConfirmModal from "./ConfirmModal";
-import { IconAnswer, IconBook, IconLock, IconUnlock } from "./StatusIcons";
+import { IconAnswer, IconUnlock } from "./StatusIcons";
+import BookBoardHead from "./BookHeadParts";
 
 // 닉네임을 이 기기에 기억 — 다음 활동에서도 같은 이름으로 시작하게
 const nickStoreKey = (uid) => `opinion_nick:${uid}`;
@@ -367,8 +367,6 @@ export default function OpinionBoard({
     setOpenId(null);
   }
 
-  const bookUrl = safeBookUrl(activity.bookUrl);
-  const topic = (activity.topic ?? "").trim();
   const prompt = (activity.prompt ?? "").trim();
   const studentTotal = roster.length;
 
@@ -380,36 +378,25 @@ export default function OpinionBoard({
 
   return (
     <main className="books-main opinion-main">
-      <div className="books-head">
-        <div className="books-head-title">
-          <h1 className="book-group-title">{activity.title}</h1>
-          <button type="button" className="btn-ghost" onClick={onBack}>← 활동 목록</button>
-          {classTools}
-        </div>
-        <div className="books-head-row">
-          <div className="books-head-main">
-            {topic && <span className="book-group-topic">{topic}</span>}
-            {classPicker ?? (className && <span className="book-group-class">{className}</span>)}
-            <span className="paratext-sum">
-              {unit} {notes.length}{isList ? "개" : "장"}
-              {isTeacher && studentTotal > 0
-                ? ` · 쓴 학생 ${rosterWriters} / ${studentTotal}명`
-                : !isTeacher && myCount > 0
-                  ? ` · 내 ${unit} ${myCount}${isList ? "개" : "장"}`
-                  : ""}
-            </span>
-            {locked && (
-              <span className="book-locked-note book-locked-chip">
-                <IconLock size={14} />
-                {isTeacher ? " 잠겨 있어 학생은 붙이거나 고칠 수 없어요." : " 지금은 잠겨 있어 읽기만 할 수 있어요."}
-              </span>
-            )}
-          </div>
-          {bookUrl && (
-            <a className="btn-primary book-info-btn" href={bookUrl} target="_blank" rel="noopener noreferrer">
-              <IconBook size={15} /> 도서 정보
-            </a>
-          )}
+      {/* 머리말 — 독서 활동 교사 화면과 같은 조각 · 같은 차례입니다(BookBoardHead).
+          교사 · 학생이 같은 판이라 학생에게도 같은 머리말이 섭니다(반 고르개 · 기록 관리는 교사만). */}
+      <BookBoardHead
+        activity={activity}
+        onBack={onBack}
+        classTools={classTools}
+        classPicker={classPicker}
+        className={className}
+        summary={
+          `${unit} ${notes.length}${isList ? "개" : "장"}` +
+          (isTeacher && studentTotal > 0
+            ? ` · 쓴 학생 ${rosterWriters} / ${studentTotal}명`
+            : !isTeacher && myCount > 0
+              ? ` · 내 ${unit} ${myCount}${isList ? "개" : "장"}`
+              : "")
+        }
+        locked={locked}
+        lockedText={isTeacher ? "잠겨 있어 학생은 붙이거나 고칠 수 없어요." : "지금은 잠겨 있어 읽기만 할 수 있어요."}
+        right={
           <div className="opinion-layout-toggle" role="group" aria-label="보기 방식">
             <button type="button" aria-pressed={!isList} onClick={() => pickLayout("memo")}>
               메모지형
@@ -418,8 +405,8 @@ export default function OpinionBoard({
               목록형
             </button>
           </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* 함께 생각할 물음 — 교사가 적어 두었을 때만 판 바로 위 한 줄.
           예전에는 이 줄에 안내('메모를 누르면 크게…')·학생 메모 방식·

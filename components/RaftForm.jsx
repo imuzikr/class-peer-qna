@@ -34,7 +34,7 @@ import {
   raftWritingChars,
 } from "@/lib/raft";
 import { safeBookUrl } from "@/lib/paratext";
-import { IconBook, IconLock, IconUnlock } from "./StatusIcons";
+import { IconLock, IconUnlock } from "./StatusIcons";
 import GroupMatesRow from "./GroupMatesRow";
 import GroupJoinRow from "./GroupJoinRow";
 import PeerReviewModal, { PeerReviewList } from "./PeerReviewModal";
@@ -45,6 +45,7 @@ import {
   groupMembers,
   isPeerReviewOpen,
 } from "@/lib/bookGroups";
+import { BookInfoLink, BookLockedNote } from "./BookHeadParts";
 
 const SAVE_DELAY = 900; // ms — 이만큼 입력이 없으면 저장
 
@@ -238,24 +239,11 @@ export default function RaftForm({ activity, user, onBack }) {
               </p>
             )}
           </div>
-          {bookUrl && (
-            <a
-              className="btn-primary book-info-btn"
-              href={bookUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <IconBook size={15} /> 도서 정보
-            </a>
-          )}
+          <BookInfoLink url={bookUrl} />
         </div>
       </div>
 
-      {locked && (
-        <p className="book-locked-note">
-          <IconLock size={15} /> 지금은 잠겨 있어 고칠 수 없어요. 쓴 내용은 그대로 남아 있습니다.
-        </p>
-      )}
+      {locked && <BookLockedNote />}
 
       {!loaded ? (
         <p className="empty-note">불러오는 중이에요…</p>

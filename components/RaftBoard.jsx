@@ -33,8 +33,7 @@ import {
   raftRows,
   raftCellState,
 } from "@/lib/raft";
-import { safeBookUrl } from "@/lib/paratext";
-import { IconBook, IconLock, IconLockState, IconPeople } from "./StatusIcons";
+import { IconLockState } from "./StatusIcons";
 import CastStageModal from "./CastStageModal";
 import EntryOverviewModal from "./EntryOverviewModal";
 import GroupComposer from "./GroupComposer";
@@ -44,6 +43,7 @@ import BookStudentRail from "./BookStudentRail";
 import EntryProgressPanel from "./EntryProgressPanel";
 import { PeerReviewList, PeerReviewRow, peerReviewSlots } from "./PeerReviewModal";
 import { isGroupedActivity, useBookGroups, isPeerReviewOpen, myBookGroup, groupMembers } from "@/lib/bookGroups";
+import BookBoardHead, { BOOK_NO_STUDENTS } from "./BookHeadParts";
 
 // 방송할 수 있는 영역 — 네 요소 + 글쓰기
 const REGIONS = [
@@ -100,7 +100,6 @@ export default function RaftBoard({
 
   useEffect(() => subscribeParatextEntries(activity.id, setEntries), [activity.id]);
 
-  const bookUrl = safeBookUrl(activity.bookUrl);
   const cast = useEntryCast(classId, user);
 
   const cards = useMemo(() => {
@@ -261,107 +260,47 @@ export default function RaftBoard({
     [reviews, open]
   );
 
-  // 살펴보기는 반 전체의 진행을 보여 줍니다.
-  const boardBtn = cards.length > 0 && (
-    <button
-      type="button"
-      className="group-filter-act"
-      onClick={() => setBoardOpen(true)}
-      title="R·A·F·T와 글쓰기 × 반 전체를 한 격자로 봅니다"
-    >
-      살펴보기
-    </button>
-  );
-
   return (
     <main className="books-main book-workspace-main book-entry-workspace-main">
-      <div className="books-head">
-        {/* 제목 · 돌아가는 길 · 도구 순서 — 닿소리 머리말(BookGroupBoard)과
-            같은 차례입니다. 아래 둘째 줄은 딸림 정보(주제어·반)만 두는 자리라
-            화면을 옮기는 버튼은 여기 첫 줄에 둡니다. */}
-        {/* 제목은 늘 활동 이름입니다 — 학생은 왼쪽 목록이 말해 주므로
-            제목이 학생 이름으로 바뀌면 지금 어느 활동인지 알 수 없어집니다. */}
-        <div className="books-head-title">
-          <h1 className="book-group-title">{activity.title}</h1>
-          <button type="button" className="btn-ghost" onClick={onBack}>← 활동 목록</button>
-          {classTools}
-        </div>
-        <div className="books-head-row">
-          <div className="books-head-main">
-            {/* 모둠 짜기 — 닿소리 머리말과 **같은 자리·같은 말**입니다.
-                모둠으로 진행하는 활동인데 짜는 길이 만들기 창에만 있어,
-                한 번 만들고 나면 교사가 모둠을 고칠 수 없었습니다. */}
-            {grouped && !freeMode && (
-              <button type="button" className="btn-ghost" onClick={() => setComposing(true)}>
-                <IconPeople size={15} /> 활동 모둠
-              </button>
-            )}
-            {/* 주제어를 비워 두면 학생마다 제 책으로 씁니다 —
-                빈 배지를 두는 대신 그 사실을 적어 둡니다 */}
-            <span className={`book-group-topic${(activity.topic ?? "").trim() ? "" : " soft"}`}>
-              {(activity.topic ?? "").trim() || "학생마다 다른 책"}
-            </span>
-            {classPicker ?? (className && <span className="book-group-class">{className}</span>)}
-            {/* 진행 요약도 이 줄에 — 배지 두어 개뿐이라 오른쪽이 비어 있는데
-                아래에 제 줄을 차지하고 있었습니다(곁텍스트는 처음부터 이
-                자리였습니다 — 네 화면의 머리말이 같아야 합니다). */}
-            <span className="paratext-sum">
-              시작 {startedCount}명 · 완성 {doneCount}명 / 전체 {cards.length}명
-            </span>
-            {boardBtn}
-            {/* 동료 평가 열기/잠그기 — 활동 전체 잠금과 별개입니다.
-                '이제 그만 쓰고 이야기하자'로 닫는 자리라, 글쓰기까지 함께
-                잠기면 안 됩니다. */}
-            {grouped && (
-              <button
-                type="button"
-                className={`btn-ghost peer-lock-btn${peerLocked ? " on" : ""}`}
-                onClick={() => setPeerReviewLocked(activity.id, !peerLocked)}
-                title={
-                  peerLocked
-                    ? "동료 평가를 다시 열어 줍니다"
-                    : "동료 평가를 잠급니다 — 쓴 것은 그대로 남습니다"
-                }
-              >
-                <IconLockState locked={peerLocked} size={14} />
-                {peerLocked ? "동료 평가 잠김" : "동료 평가 열림"}
-                {reviews.length > 0 && <em>{reviews.length}</em>}
-              </button>
-            )}
-            {/* 잠김 안내도 이 줄에 — 예전엔 머리말 아래 제 줄을 차지했는데,
-                이 줄은 배지 두어 개뿐이라 오른쪽이 비어 있었습니다.
-                '지금 잠겨 있다'는 활동에 붙는 상태라 배지와 같은 성격입니다. */}
-            {activity.locked && (
-              <span className="book-locked-note book-locked-chip">
-                <IconLock size={14} /> 지금은 잠겨 있어 학생이 고칠 수 없어요.
-              </span>
-            )}
-          </div>
-          {bookUrl && (
-            <a
-              className="btn-primary book-info-btn"
-              href={bookUrl}
-              target="_blank"
-              rel="noopener noreferrer"
+      {/* 머리말 — 독서 활동 교사 화면이 모두 같은 조각 · 같은 차례입니다(BookBoardHead). */}
+      <BookBoardHead
+        activity={activity}
+        onBack={onBack}
+        classTools={classTools}
+        classPicker={classPicker}
+        className={className}
+        onCompose={grouped && !freeMode ? () => setComposing(true) : null}
+        topicFallback="학생마다 다른 책"
+        summary={`시작 ${startedCount}명 · 완성 ${doneCount}명 / 전체 ${cards.length}명`}
+        onOpenBoard={cards.length > 0 ? () => setBoardOpen(true) : null}
+        boardTitle="R·A·F·T와 글쓰기 × 반 전체를 한 격자로 봅니다"
+        actions={
+          /* 동료 평가 열기/잠그기 — 활동 전체 잠금과 별개입니다. '이제 그만 쓰고
+             이야기하자'로 닫는 자리라, 글쓰기까지 함께 잠기면 안 됩니다. */
+          grouped && (
+            <button
+              type="button"
+              className={`btn-ghost peer-lock-btn${peerLocked ? " on" : ""}`}
+              onClick={() => setPeerReviewLocked(activity.id, !peerLocked)}
+              title={
+                peerLocked
+                  ? "동료 평가를 다시 열어 줍니다"
+                  : "동료 평가를 잠급니다 — 쓴 것은 그대로 남습니다"
+              }
             >
-              <IconBook size={15} /> 도서 정보
-            </a>
-          )}
-          <button
-            type="button"
-            className="btn-ghost entry-overview-btn"
-            onClick={() => setOverviewOpen(true)}
-            disabled={!open}
-            title="선택한 학생의 활동을 한꺼번에 봅니다"
-          >
-            한 눈에 보기
-          </button>
-        </div>
-      </div>
+              <IconLockState locked={peerLocked} size={14} />
+              {peerLocked ? "동료 평가 잠김" : "동료 평가 열림"}
+              {reviews.length > 0 && <em>{reviews.length}</em>}
+            </button>
+          )
+        }
+        onOverview={() => setOverviewOpen(true)}
+        overviewDisabled={!open}
+      />
 
       {cards.length === 0 ? (
         <p className="empty-note">
-          아직 이 반에 들어온 학생이 없어요. 학생이 반에 들어오면 카드가 생깁니다.
+          {BOOK_NO_STUDENTS}
         </p>
       ) : (
         /* ── 세 칸 — 왼쪽 학생 목록 · 가운데 그 학생의 다섯 영역 · 오른쪽 진행 ──

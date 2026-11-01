@@ -33,7 +33,7 @@ import { CELL_COUNT, CONSONANT_LABELS, cellKey } from "@/lib/consonants";
 import { barTint, memberLegend, rowColor } from "@/lib/bookColors";
 import GroupComposer from "./GroupComposer";
 import ConsonantCanvas from "./ConsonantCanvas";
-import { IconPeople, IconLock } from "./StatusIcons";
+import BookBoardHead from "./BookHeadParts";
 
 export default function BookGroupBoard({
   activity,
@@ -201,46 +201,25 @@ export default function BookGroupBoard({
     }
   }
 
+  // 머리말 — 독서 활동 교사 화면이 모두 같은 조각 · 같은 차례입니다(BookBoardHead).
+  // 개별 활동은 주제어를 비워 둘 수 있어(학생이 자기 판에 적음) 빈 주제어는 안 그립니다.
   const head = (
-    <div className="books-head">
-      {/* 제목 · 돌아가는 길 · 도구 순서 — 공부방 머리말과 같은 차례입니다.
-          화면을 한 단계 되돌리는 버튼이 도구보다 앞섭니다. */}
-      <div className="books-head-title">
-        <h1 className="book-group-title">{activity.title}</h1>
-        <button type="button" className="btn-ghost" onClick={onBack}>← 활동 목록</button>
-        {classTools}
-      </div>
-      <div className="books-head-row">
-        <div className="books-head-main">
-          {isTeacher && !freeMode && !perStudent && (
-            <button type="button" className="btn-ghost" onClick={() => setComposing(true)}>
-              <IconPeople size={15} /> 활동 모둠
-            </button>
-          )}
-          {/* 개별 활동은 주제어를 비워 둘 수 있습니다(학생이 자기 판에 적음) */}
-          {(activity.topic ?? "").trim() && (
-            <span className="book-group-topic">{activity.topic}</span>
-          )}
-          {/* 이 활동이 어느 반 것인지 — 학생에게 안 보이면 반이 다른 경우가 많아 표시 */}
-          {/* 반 표시 — 고를 반이 둘 이상이면 고르개(반을 바꾸면 그 반의
-              활동 목록으로 갑니다), 하나면 이름 배지입니다. */}
-          {classPicker ?? (className && <span className="book-group-class">{className}</span>)}
-          {/* 잠김 안내도 이 줄에 — 예전엔 머리말 아래 제 줄을 하나 차지했는데,
-              이 줄은 배지 한두 개뿐이라 오른쪽이 통째로 비어 있었습니다.
-              '지금 잠겨 있다'는 활동에 붙는 상태라 배지들과 같은 성격입니다. */}
-          {activity.locked && (
-            <span className="book-locked-note book-locked-chip">
-              <IconLock size={14} /> 지금은 잠겨 있어 새 단어를 넣을 수 없어요.
-            </span>
-          )}
-        </div>
-        {isTeacher && (
+    <BookBoardHead
+      activity={activity}
+      onBack={onBack}
+      classTools={classTools}
+      classPicker={classPicker}
+      className={className}
+      onCompose={isTeacher && !freeMode && !perStudent ? () => setComposing(true) : null}
+      lockedText="지금은 잠겨 있어 새 단어를 넣을 수 없어요."
+      right={
+        isTeacher && (
           <button type="button" className="btn-primary book-allview-btn" onClick={onOpenAll}>
             전체 보기
           </button>
-        )}
-      </div>
-    </div>
+        )
+      }
+    />
   );
 
   const composer = composing && (

@@ -30,10 +30,9 @@ import { useEntryCast } from "@/lib/useEntryCast";
 import CastStageModal from "./CastStageModal";
 import BrainWriteProgressBoard from "./BrainWriteProgressBoard";
 import { useBookGroups } from "@/lib/bookGroups";
-import { safeBookUrl } from "@/lib/paratext";
-import { IconBook, IconLock, IconPeople } from "./StatusIcons";
 import EntryProgressPanel from "./EntryProgressPanel";
 import GroupComposer from "./GroupComposer";
+import BookBoardHead, { BOOK_NO_STUDENTS } from "./BookHeadParts";
 
 export default function BrainWriteBoard({
   activity,
@@ -105,7 +104,6 @@ export default function BrainWriteBoard({
   const doneCount = cards.filter((c) => c.slots.length > 0 && c.slots.every((p) => p.done)).length;
   const studentQuestions = activity.questionMode === "student";
   const prompt = studentQuestions ? "" : String(activity.prompt ?? "").trim();
-  const bookUrl = safeBookUrl(activity.bookUrl);
 
   // ── 방송 — 한 학생의 컬럼 한 장 ──
   const cast = useEntryCast(classId, user);
@@ -151,47 +149,18 @@ export default function BrainWriteBoard({
 
   return (
     <main className="books-main book-workspace-main">
-      <div className="books-head">
-        <div className="books-head-title">
-          <h1 className="book-group-title">{activity.title}</h1>
-          <button type="button" className="btn-ghost" onClick={onBack}>← 활동 목록</button>
-          {classTools}
-        </div>
-        <div className="books-head-row">
-          <div className="books-head-main">
-            {classPicker ?? (className && <span className="book-group-class">{className}</span>)}
-            {!freeMode && (
-              <button type="button" className="btn-ghost" onClick={() => setComposing(true)}>
-                <IconPeople size={15} /> 활동 모둠
-              </button>
-            )}
-            {(activity.topic ?? "").trim() && <span className="book-group-topic">{activity.topic}</span>}
-            <span className="paratext-sum">
-              시작 {startedCount}명 · 완성 {doneCount}명 / 전체 {cards.length}명
-            </span>
-            {cards.length > 0 && (
-              <button
-                type="button"
-                className="group-filter-act"
-                onClick={() => setBoardOpen(true)}
-                title="이어 쓰는 차례 × 반 전체를 한 격자로 봅니다"
-              >
-                살펴보기
-              </button>
-            )}
-            {activity.locked && (
-              <span className="book-locked-note book-locked-chip">
-                <IconLock size={14} /> 지금은 잠겨 있어 학생이 고칠 수 없어요.
-              </span>
-            )}
-          </div>
-          {bookUrl && (
-            <a className="btn-primary book-info-btn" href={bookUrl} target="_blank" rel="noopener noreferrer">
-              <IconBook size={15} /> 도서 정보
-            </a>
-          )}
-        </div>
-      </div>
+      {/* 머리말 — 독서 활동 교사 화면이 모두 같은 조각 · 같은 차례입니다(BookBoardHead). */}
+      <BookBoardHead
+        activity={activity}
+        onBack={onBack}
+        classTools={classTools}
+        classPicker={classPicker}
+        className={className}
+        onCompose={!freeMode ? () => setComposing(true) : null}
+        summary={`시작 ${startedCount}명 · 완성 ${doneCount}명 / 전체 ${cards.length}명`}
+        onOpenBoard={cards.length > 0 ? () => setBoardOpen(true) : null}
+        boardTitle="이어 쓰는 차례 × 반 전체를 한 격자로 봅니다"
+      />
 
       {prompt && (
         <p className="bw-prompt">
@@ -201,7 +170,7 @@ export default function BrainWriteBoard({
       )}
 
       {cards.length === 0 ? (
-        <p className="empty-note">아직 이 반에 들어온 학생이 없어요.</p>
+        <p className="empty-note">{BOOK_NO_STUDENTS}</p>
       ) : (
         <div className="book-workspace">
           <aside className="book-group-rail raft-group-rail" aria-label="모둠">

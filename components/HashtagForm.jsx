@@ -66,7 +66,7 @@ import HashtagInfographic from "./HashtagInfographic";
 import HashtagComments from "./HashtagComments";
 import ConfirmModal from "./ConfirmModal";
 import WordCloud from "./WordCloud";
-import { IconLock } from "./StatusIcons";
+import { BookSaveStatus, BookLockedNote } from "./BookHeadParts";
 
 const SAVE_DELAY = 900; // ms — 이만큼 입력이 없으면 저장
 
@@ -346,17 +346,7 @@ export default function HashtagForm({ activity, user, onBack }) {
           <span className="paratext-progress">
             해시태그 {progress.tagged}개 · 완성 {progress.done} / {HASHTAG_COUNT}
           </span>
-          {locked ? (
-            <span className="paratext-saved locked">
-              <IconLock size={14} /> 잠김
-            </span>
-          ) : (
-            status !== "idle" && (
-              <span className={`paratext-saved${status === "error" ? " err" : ""}`}>
-                {status === "saving" ? "저장 중…" : status === "error" ? "저장하지 못했어요" : "저장됨"}
-              </span>
-            )
-          )}
+          <BookSaveStatus status={status} locked={locked} />
         </div>
       </div>
 
@@ -389,11 +379,7 @@ export default function HashtagForm({ activity, user, onBack }) {
         <p className="ht-pubnote">친구 해시태그는 선생님이 공개하면 서로 보고 댓글을 달 수 있어요.</p>
       )}
 
-      {locked && (
-        <p className="book-locked-note">
-          <IconLock size={15} /> 지금은 잠겨 있어 고칠 수 없어요. 쓴 내용은 그대로 남아 있습니다.
-        </p>
-      )}
+      {locked && <BookLockedNote />}
 
       {!loaded ? (
         <p className="empty-note">불러오는 중이에요…</p>

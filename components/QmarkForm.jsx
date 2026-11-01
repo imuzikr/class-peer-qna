@@ -42,14 +42,14 @@ import {
   qmarkThoughtDone,
 } from "@/lib/qmark";
 import { safeBookUrl } from "@/lib/paratext";
-import { IconBook, IconLock } from "./StatusIcons";
+import { BookSaveStatus, BookLockedNote, BookInfoLink } from "./BookHeadParts";
 
 const SAVE_DELAY = 900; // ms — 이만큼 입력이 없으면 저장
 
 export default function QmarkForm({ activity, user, onBack }) {
   const [answers, setAnswers] = useState(emptyQmarkAnswers);
   const [loaded, setLoaded] = useState(false);
-  const [status, setStatus] = useState("idle"); // idle | saving | saved
+  const [status, setStatus] = useState("idle"); // idle | saving | saved | error
   // 내가 적은 도서명 — 교사가 주제어를 비워 두었을 때(KWLS와 같은 자리)
   const [myTopic, setMyTopic] = useState("");
   const [topicAsk, setTopicAsk] = useState(false);
@@ -99,8 +99,10 @@ export default function QmarkForm({ activity, user, onBack }) {
       try {
         await saveParatextEntry(activity.id, user, normalizeQmarkAnswers(answers));
         setStatus("saved");
-      } catch {
-        setStatus("idle");
+      } catch (e) {
+        // 실패를 숨기지 않습니다 — 'idle'로 돌리면 학생은 저장된 줄 압니다.
+        console.warn("[물음표] 저장 실패:", e?.code, e?.message);
+        setStatus("error");
       }
     }, SAVE_DELAY);
     return () => clearTimeout(timerRef.current);
@@ -165,11 +167,7 @@ export default function QmarkForm({ activity, user, onBack }) {
                   <span className="book-group-topic">{shownTopic}</span>
                 ))}
             </div>
-            {bookUrl && (
-              <a className="btn-primary book-info-btn" href={bookUrl} target="_blank" rel="noopener noreferrer">
-                <IconBook size={15} /> 도서 정보
-              </a>
-            )}
+            <BookInfoLink url={bookUrl} />
           </div>
         )}
         <div className="paratext-status">
@@ -179,23 +177,11 @@ export default function QmarkForm({ activity, user, onBack }) {
               : `물음표 ${askCount}개${askDone ? " ✓" : ""} · 고른 물음 ${picked} / ${QMARK_MIN_PICKS} · 나의 생각 ${thoughtDone ? "✓" : "–"}`}
             {" · "}{qmarkChars(answers)}자
           </span>
-          {locked ? (
-            <span className="paratext-saved locked">
-              <IconLock size={14} /> 잠김
-            </span>
-          ) : (
-            status !== "idle" && (
-              <span className="paratext-saved">{status === "saving" ? "저장 중…" : "저장됨"}</span>
-            )
-          )}
+          <BookSaveStatus status={status} locked={locked} />
         </div>
       </div>
 
-      {locked && (
-        <p className="book-locked-note">
-          <IconLock size={15} /> 지금은 잠겨 있어 고칠 수 없어요. 쓴 내용은 그대로 남아 있습니다.
-        </p>
-      )}
+      {locked && <BookLockedNote />}
 
       {topicAsk && (
         <TopicAskModal initial={myTopic} onSave={saveTopic} onClose={() => setTopicAsk(false)} />

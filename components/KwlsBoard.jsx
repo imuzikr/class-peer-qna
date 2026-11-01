@@ -27,12 +27,11 @@ import {
   kwlsRows,
   kwlsCellState,
 } from "@/lib/kwls";
-import { safeBookUrl } from "@/lib/paratext";
-import { IconBook, IconLock } from "./StatusIcons";
 import KwlsProgressBoard from "./KwlsProgressBoard";
 import BookStudentRail from "./BookStudentRail";
 import CastStageModal from "./CastStageModal";
 import EntryOverviewModal from "./EntryOverviewModal";
+import BookBoardHead, { BOOK_NO_STUDENTS } from "./BookHeadParts";
 
 // 방송할 수 있는 영역 — 네 칸 그대로
 const REGIONS = KWLS_COLUMNS;
@@ -67,7 +66,6 @@ export default function KwlsBoard({
     [classId, activity.id]
   );
 
-  const bookUrl = safeBookUrl(activity.bookUrl);
   const cast = useEntryCast(classId, user);
 
   const cards = useMemo(() => {
@@ -158,76 +156,26 @@ export default function KwlsBoard({
 
   const openAnswers = open?.entry?.answers ?? {};
 
-  // 전광판 — 모둠이 없는 활동이라 칩 줄이 아예 없습니다. 단추 하나를
-  // 세우려고 줄 하나를 쓰지 않게 머리말의 진행 요약 옆에 둡니다
-  // (곁텍스트·RAFT도 칩이 없을 때는 같은 자리입니다).
-  const boardBtn = cards.length > 0 && (
-    <button
-      type="button"
-      className="group-filter-act"
-      onClick={() => setBoardOpen(true)}
-      title="K·W·L·S 네 칸 × 반 전체를 한 격자로 봅니다"
-    >
-      살펴보기
-    </button>
-  );
-
   return (
     <main className="books-main book-workspace-main">
-      <div className="books-head">
-        {/* 제목 · 돌아가는 길 · 도구 순서 — 닿소리 머리말(BookGroupBoard)과
-            같은 차례입니다. 아래 둘째 줄은 딸림 정보(주제어·반)만 두는 자리라
-            화면을 옮기는 버튼은 여기 첫 줄에 둡니다. */}
-        {/* 제목은 늘 활동 이름입니다 — 학생은 왼쪽 목록이 말해 주므로
-            제목이 학생 이름으로 바뀌면 지금 어느 활동인지 알 수 없어집니다. */}
-        <div className="books-head-title">
-          <h1 className="book-group-title">{activity.title}</h1>
-          <button type="button" className="btn-ghost" onClick={onBack}>← 활동 목록</button>
-          {classTools}
-        </div>
-        <div className="books-head-row">
-          <div className="books-head-main">
-            {/* 주제어를 비워 두면 학생마다 제 주제로 합니다 —
-                빈 배지를 두는 대신 그 사실을 적어 둡니다 */}
-            <span className={`book-group-topic${(activity.topic ?? "").trim() ? "" : " soft"}`}>
-              {(activity.topic ?? "").trim() || "학생마다 다른 주제"}
-            </span>
-            {/* 반 표시 — 고를 반이 둘 이상이면 고르개(반을 바꾸면 그 반의
-                활동 목록으로 갑니다), 하나면 이름 배지입니다. */}
-            {classPicker ?? (className && <span className="book-group-class">{className}</span>)}
-            {/* 진행 요약도 이 줄에 — 배지 두어 개뿐이라 오른쪽이 비어 있는데
-                아래에 제 줄을 차지하고 있었습니다(곁텍스트는 처음부터 이
-                자리였습니다 — 네 화면의 머리말이 같아야 합니다). */}
-            <span className="paratext-sum">
-              시작 {startedCount}명 · 읽기 전 마침 {readyCount}명 · 완성 {doneCount}명 /
-              {" "}전체 {cards.length}명
-            </span>
-            {boardBtn}
-            {/* 잠김 안내도 이 줄에 — 예전엔 머리말 아래 제 줄을 차지했는데,
-                이 줄은 배지 두어 개뿐이라 오른쪽이 비어 있었습니다.
-                '지금 잠겨 있다'는 활동에 붙는 상태라 배지와 같은 성격입니다. */}
-            {activity.locked && (
-              <span className="book-locked-note book-locked-chip">
-                <IconLock size={14} /> 지금은 잠겨 있어 학생이 고칠 수 없어요.
-              </span>
-            )}
-          </div>
-          {bookUrl && (
-            <a
-              className="btn-primary book-info-btn"
-              href={bookUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <IconBook size={15} /> 도서 정보
-            </a>
-          )}
-        </div>
-      </div>
+      {/* 머리말 — 독서 활동 교사 화면이 모두 같은 조각 · 같은 차례입니다(BookBoardHead). */}
+      <BookBoardHead
+        activity={activity}
+        onBack={onBack}
+        classTools={classTools}
+        classPicker={classPicker}
+        className={className}
+        topicFallback="학생마다 다른 주제"
+        summary={`시작 ${startedCount}명 · 읽기 전 마침 ${readyCount}명 · 완성 ${doneCount}명 / 전체 ${cards.length}명`}
+        onOpenBoard={cards.length > 0 ? () => setBoardOpen(true) : null}
+        boardTitle="K·W·L·S 네 칸 × 반 전체를 한 격자로 봅니다"
+        onOverview={() => setOverviewOpen(true)}
+        overviewDisabled={!open}
+      />
 
       {cards.length === 0 ? (
         <p className="empty-note">
-          아직 이 반에 들어온 학생이 없어요. 학생이 반에 들어오면 카드가 생깁니다.
+          {BOOK_NO_STUDENTS}
         </p>
       ) : (
         /* ── 세 칸 — 왼쪽 학생 목록 · 가운데 그 학생의 네 칸 · 오른쪽 진행 ──
@@ -261,14 +209,6 @@ export default function KwlsBoard({
                     {kwlsFilledCount(openAnswers)} / {KWLS_COLUMN_COUNT}칸 ·
                     {" "}글 {kwlsChars(openAnswers)}자
                   </span>
-                  <button
-                    type="button"
-                    className="btn-ghost eov-open-btn"
-                    onClick={() => setOverviewOpen(true)}
-                    title="이 학생이 쓴 것을 큰 창에서 한꺼번에 봅니다 — 이전 · 다음으로 다른 학생도"
-                  >
-                    한 눈에 보기
-                  </button>
                 </div>
 
                 <div className="entry-detail-grid kwls-detail-grid">

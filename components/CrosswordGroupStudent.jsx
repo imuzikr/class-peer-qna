@@ -54,6 +54,7 @@ import {
 } from "@/lib/crossword";
 import CrosswordGrid from "./CrosswordGrid";
 import CrosswordTyping from "./CrosswordTyping";
+import { BookLockedNote } from "./BookHeadParts";
 
 // 미니맵의 '맞힌 낱말' 색 — 가운데 판의 초록 · 풀이 막대와 같은 값
 const MAP_TINT = { bg: "#e8f7ed", border: "#6fbf8a" };
@@ -312,16 +313,21 @@ export default function CrosswordGroupStudent({ activity, groupId, user, onBack 
     );
   }
 
+  // 잠기면 다른 독서 활동의 학생 화면과 같은 안내 한 줄이 머리말 아래에 섭니다
+  // (예전에는 칸이 말없이 안 눌리고 툴팁에만 까닭이 있었습니다).
   const head = (
-    <div className="canvas-head">
-      <div className="canvas-head-title">
-        <strong>가로세로 낱말퀴즈</strong>
-        <span>{activity.title}{myGroup?.groupName && !solo ? ` · ${myGroup.groupName}` : ""}</span>
+    <>
+      <div className="canvas-head">
+        <div className="canvas-head-title">
+          <strong>가로세로 낱말퀴즈</strong>
+          <span>{activity.title}{myGroup?.groupName && !solo ? ` · ${myGroup.groupName}` : ""}</span>
+        </div>
+        <div className="canvas-head-pair">
+          <button type="button" className="btn-ghost" onClick={onBack}>← 활동 목록</button>
+        </div>
       </div>
-      <div className="canvas-head-pair">
-        <button type="button" className="btn-ghost" onClick={onBack}>← 활동 목록</button>
-      </div>
-    </div>
+      {locked && <BookLockedNote />}
+    </>
   );
 
   if (!puzzle) {

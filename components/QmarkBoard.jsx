@@ -34,12 +34,11 @@ import {
   qmarkRows,
   qmarkStarted,
 } from "@/lib/qmark";
-import { safeBookUrl } from "@/lib/paratext";
-import { IconBook, IconLock } from "./StatusIcons";
 import QmarkProgressBoard from "./QmarkProgressBoard";
 import BookStudentRail from "./BookStudentRail";
 import CastStageModal from "./CastStageModal";
 import EntryOverviewModal from "./EntryOverviewModal";
+import BookBoardHead, { BOOK_NO_STUDENTS } from "./BookHeadParts";
 
 const REGIONS = QMARK_REGIONS;
 const REGION_COUNT = REGIONS.length; // 2
@@ -63,7 +62,6 @@ export default function QmarkBoard({
 
   useEffect(() => subscribeParatextEntries(activity.id, setEntries), [activity.id]);
 
-  const bookUrl = safeBookUrl(activity.bookUrl);
   const cast = useEntryCast(classId, user);
 
   const cards = useMemo(() => {
@@ -134,17 +132,6 @@ export default function QmarkBoard({
 
   const openAnswers = normalizeQmarkAnswers(open?.entry?.answers);
 
-  const boardBtn = cards.length > 0 && (
-    <button
-      type="button"
-      className="group-filter-act"
-      onClick={() => setBoardOpen(true)}
-      title="궁금증 · 이유 · 나의 생각 × 반 전체를 한 격자로 봅니다"
-    >
-      살펴보기
-    </button>
-  );
-
   function castBtn(i, live) {
     if (!cast.canCast) return null;
     return (
@@ -166,40 +153,24 @@ export default function QmarkBoard({
 
   return (
     <main className="books-main book-workspace-main">
-      <div className="books-head">
-        <div className="books-head-title">
-          <h1 className="book-group-title">{activity.title}</h1>
-          <button type="button" className="btn-ghost" onClick={onBack}>← 활동 목록</button>
-          {classTools}
-        </div>
-        <div className="books-head-row">
-          <div className="books-head-main">
-            <span className={`book-group-topic${(activity.topic ?? "").trim() ? "" : " soft"}`}>
-              {(activity.topic ?? "").trim() || "학생마다 다른 주제"}
-            </span>
-            {classPicker ?? (className && <span className="book-group-class">{className}</span>)}
-            <span className="paratext-sum">
-              시작 {startedCount}명 · 물음표 {askedCount}명 · 완성 {doneCount}명 /
-              {" "}전체 {cards.length}명
-            </span>
-            {boardBtn}
-            {activity.locked && (
-              <span className="book-locked-note book-locked-chip">
-                <IconLock size={14} /> 지금은 잠겨 있어 학생이 고칠 수 없어요.
-              </span>
-            )}
-          </div>
-          {bookUrl && (
-            <a className="btn-primary book-info-btn" href={bookUrl} target="_blank" rel="noopener noreferrer">
-              <IconBook size={15} /> 도서 정보
-            </a>
-          )}
-        </div>
-      </div>
+      {/* 머리말 — 독서 활동 교사 화면이 모두 같은 조각 · 같은 차례입니다(BookBoardHead). */}
+      <BookBoardHead
+        activity={activity}
+        onBack={onBack}
+        classTools={classTools}
+        classPicker={classPicker}
+        className={className}
+        topicFallback="학생마다 다른 주제"
+        summary={`시작 ${startedCount}명 · 물음표 ${askedCount}명 · 완성 ${doneCount}명 / 전체 ${cards.length}명`}
+        onOpenBoard={cards.length > 0 ? () => setBoardOpen(true) : null}
+        boardTitle="궁금증 · 이유 · 나의 생각 × 반 전체를 한 격자로 봅니다"
+        onOverview={() => setOverviewOpen(true)}
+        overviewDisabled={!open}
+      />
 
       {cards.length === 0 ? (
         <p className="empty-note">
-          아직 이 반에 들어온 학생이 없어요. 학생이 반에 들어오면 카드가 생깁니다.
+          {BOOK_NO_STUDENTS}
         </p>
       ) : (
         <div className="book-workspace">
@@ -229,14 +200,6 @@ export default function QmarkBoard({
                     <span className="book-group-topic">{open.entry.topic}</span>
                   )}
                   <span className="book-group-class">{railMeta(openAnswers)}</span>
-                  <button
-                    type="button"
-                    className="btn-ghost eov-open-btn"
-                    onClick={() => setOverviewOpen(true)}
-                    title="이 학생이 쓴 것을 큰 창에서 한꺼번에 봅니다 — 이전 · 다음으로 다른 학생도"
-                  >
-                    한 눈에 보기
-                  </button>
                 </div>
 
                 <div className="entry-detail-grid qmark-detail-grid">

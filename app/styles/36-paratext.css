@@ -40,6 +40,8 @@
   color: var(--text-sub);
 }
 .paratext-saved.locked { color: var(--danger); }
+/* 저장 실패 — 독서 활동의 학생 화면이 함께 씁니다(BookSaveStatus · RAFT 카드 표시) */
+.paratext-saved.err { color: var(--danger); }
 
 /* 여덟 항목을 카드로 — 넓은 화면에서는 두 줄로 접힙니다 */
 .paratext-grid {

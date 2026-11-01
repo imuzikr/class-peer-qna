@@ -30,11 +30,10 @@ import {
   normalizeMindmap,
   normalizeVerticalGap,
 } from "@/lib/mindmap";
-import { safeBookUrl } from "@/lib/paratext";
 import MindmapCanvas from "./MindmapCanvas";
 import { readImageAsDataUrl } from "@/lib/image";
 import CastBar from "./CastBar";
-import { IconBook, IconLock } from "./StatusIcons";
+import BookBoardHead, { BOOK_NO_STUDENTS } from "./BookHeadParts";
 
 // 방송에서 마인드맵은 통째로 하나 — 나눌 영역이 없어 키를 고정합니다.
 const REGION_KEY = "map";
@@ -70,7 +69,6 @@ export default function MindmapBoard({
     setSelectedId(null);
   }, [openUid]);
 
-  const bookUrl = safeBookUrl(activity.bookUrl);
   const cast = useEntryCast(classId, user);
 
   const cards = useMemo(() => {
@@ -139,43 +137,19 @@ export default function MindmapBoard({
 
   return (
     <main className="books-main mindmap-board-main">
-      <div className="books-head">
-        {/* 제목 · 돌아가는 길 · 도구 순서 — 닿소리 머리말(BookGroupBoard)과
-            같은 차례입니다. 아래 둘째 줄은 딸림 정보(주제어·반)만 두는 자리라
-            화면을 옮기는 버튼은 여기 첫 줄에 둡니다. */}
-        <div className="books-head-title">
-          <h1 className="book-group-title">{activity.title}</h1>
-          <button type="button" className="btn-ghost" onClick={onBack}>← 활동 목록</button>
-          {classTools}
-        </div>
-        <div className="books-head-row">
-          <div className="books-head-main">
-            {/* 주제어를 비워 두면 학생마다 제 주제로 합니다 —
-                빈 배지를 두는 대신 그 사실을 적어 둡니다 */}
-            <span className={`book-group-topic${(activity.topic ?? "").trim() ? "" : " soft"}`}>
-              {(activity.topic ?? "").trim() || "학생마다 다른 주제"}
-            </span>
-            {/* 반 표시 — 고를 반이 둘 이상이면 고르개(반을 바꾸면 그 반의
-                활동 목록으로 갑니다), 하나면 이름 배지입니다. */}
-            {classPicker ?? (className && <span className="book-group-class">{className}</span>)}
-            {/* 진행 요약도 이 줄에 — 배지 두어 개뿐이라 오른쪽이 비어 있는데
-                아래에 제 줄을 차지하고 있었습니다(곁텍스트는 처음부터 이
-                자리였습니다 — 네 화면의 머리말이 같아야 합니다). */}
-            <span className="paratext-sum">
-              시작 {startedCount}명 / 전체 {cards.length}명
-            </span>
-            {/* 잠김 안내도 이 줄에 — 예전엔 머리말 아래 제 줄을 차지했는데,
-                이 줄은 배지 두어 개뿐이라 오른쪽이 비어 있었습니다.
-                '지금 잠겨 있다'는 활동에 붙는 상태라 배지와 같은 성격입니다. */}
-            {activity.locked && (
-              <span className="book-locked-note book-locked-chip">
-                <IconLock size={14} /> 지금은 잠겨 있어 학생이 고칠 수 없어요.
-              </span>
-            )}
-          </div>
-          {/* 방송 막대는 배지와 같은 줄에 — 배지 몇 개뿐인 줄 아래에 또 한 줄을
-              깔면 본문이 그만큼 밀립니다(ParatextBoard와 같은 짜임) */}
-          {cast.target && castCard && (
+      {/* 머리말 — 독서 활동 교사 화면이 모두 같은 조각 · 같은 차례입니다(BookBoardHead). */}
+      <BookBoardHead
+        activity={activity}
+        onBack={onBack}
+        classTools={classTools}
+        classPicker={classPicker}
+        className={className}
+        topicFallback="학생마다 다른 주제"
+        summary={`시작 ${startedCount}명 / 전체 ${cards.length}명`}
+        wide={
+          /* 방송 막대 — 배지와 같은 줄의 남는 폭에(배지 몇 개뿐인 줄 아래에 또 한
+             줄을 깔면 본문이 그만큼 밀립니다) */
+          cast.target && castCard && (
             <CastBar
               who={castCard.name}
               label="마인드맵"
@@ -185,23 +159,13 @@ export default function MindmapBoard({
               onNext={null}
               onStop={cast.stop}
             />
-          )}
-          {bookUrl && (
-            <a
-              className="btn-primary book-info-btn"
-              href={bookUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <IconBook size={15} /> 도서 정보
-            </a>
-          )}
-        </div>
-      </div>
+          )
+        }
+      />
 
       {cards.length === 0 ? (
         <p className="empty-note">
-          아직 이 반에 들어온 학생이 없어요. 학생이 반에 들어오면 목록이 생깁니다.
+          {BOOK_NO_STUDENTS}
         </p>
       ) : (
         <div className="mindmap-board-body">

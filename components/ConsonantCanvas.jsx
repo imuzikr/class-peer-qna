@@ -54,7 +54,7 @@ import {
 } from "@/lib/consonants";
 import { memberColor, memberLegend } from "@/lib/bookColors";
 import { eunNeun } from "@/lib/korean";
-import { IconLock } from "./StatusIcons";
+import { BookLockedNote } from "./BookHeadParts";
 
 export default function ConsonantCanvas({
   activity,
@@ -266,9 +266,7 @@ export default function ConsonantCanvas({
       )}
 
       {activity.locked ? (
-        <p className="book-locked-note">
-          <IconLock size={15} /> 잠긴 활동이라 새 단어를 넣을 수 없어요.
-        </p>
+        <BookLockedNote>지금은 잠겨 있어 새 단어를 넣을 수 없어요. 넣은 낱말은 그대로 남아 있습니다.</BookLockedNote>
       ) : !mineOnly ? (
         !embedded && (
           <p className="book-locked-note">
