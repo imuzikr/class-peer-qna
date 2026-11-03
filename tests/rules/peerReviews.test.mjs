@@ -5,7 +5,8 @@
 //   ① 같은 모둠 친구에게만 쓴다 (문서에 적힌 groupId의 명단으로 판정)
 //   ② 읽는 사람은 받은 학생·쓴 학생·담당 교사 + **같은 모둠 친구**(기본값 —
 //      늘 — 옛 `peerReviewShared: false`도 안 봄). 다른 모둠 · 반 전체는 못 봅니다.
-//   ③ 동료 평가 잠금(peerReviewLocked)은 활동 전체 잠금과 별개
+//   ③ 동료 평가 잠금(peerReviewLocked)은 활동 전체 잠금과 별개 — 활동이 잠겨도
+//     동료 평가가 열려 있으면 쓴다(선생님 요청, 2026-11-03)
 // =============================================================
 import { describe, it, before, after, beforeEach } from "node:test";
 import { assertSucceeds, assertFails } from "@firebase/rules-unit-testing";
@@ -251,13 +252,15 @@ describe("동료 평가 규칙", () => {
         review("stu2", "stu1", { activityId: "peerlocked1" })
       )
     );
-    // 활동 전체가 잠긴 경우
-    await assertFails(
-      setDoc(
-        doc(db, "bookActivities", "locked1", "peerReviews", rid("stu2", "stu1")),
-        review("stu2", "stu1", { activityId: "locked1" })
-      )
-    );
+  });
+
+  // 글쓰기를 잠가 둔 채 발표를 듣고 한 마디를 남기는 수업 — 활동 잠금(locked)은
+  // 동료 평가를 막지 않습니다. 동료 평가는 peerReviewLocked 하나로만 여닫습니다.
+  it("활동 전체가 잠겨도 동료 평가가 열려 있으면 쓰고 고친다", async () => {
+    const db = asStudent(env, "stu1").firestore();
+    const ref = doc(db, "bookActivities", "locked1", "peerReviews", rid("stu2", "stu1"));
+    await assertSucceeds(setDoc(ref, review("stu2", "stu1", { activityId: "locked1" })));
+    await assertSucceeds(setDoc(ref, review("stu2", "stu1", { activityId: "locked1", html: "<p>고쳐 썼어요</p>" })));
   });
 
   it("지우기는 쓴 사람과 담당 교사만", async () => {

@@ -82,7 +82,9 @@ export default function RaftForm({ activity, user, onBack }) {
 
   // 동료 평가 — 모둠이 있을 때만. **기본은 잠김**이고, 교사가 열어 주어야
   // 쓸 수 있습니다(잠긴 동안에도 이미 쓴 것과 받은 것은 그대로 보입니다).
-  const peerLocked = !isPeerReviewOpen(activity) || locked;
+  // 동료 평가는 활동 잠금(locked)과 독립 — peerReviewLocked 하나로만 여닫습니다
+  // (선생님 요청: 글쓰기를 잠가 둔 채 발표를 듣고 한 마디를 남기는 수업).
+  const peerLocked = !isPeerReviewOpen(activity);
   const [peerOpen, setPeerOpen] = useState(null); // null | { uid } — 열 때 고를 사람
   const [myReviews, setMyReviews] = useState([]);
   const [gotReviews, setGotReviews] = useState([]);
@@ -352,7 +354,8 @@ export default function RaftForm({ activity, user, onBack }) {
               <strong>{RAFT_WRITING.ko}</strong>
               <span className="raft-write-meta">
                 <SaveMark state={cardStatus[RAFT_WRITING.key]} />
-                <span className="raft-write-count">{chars}자</span>
+                {/* 교사 화면 글쓰기 칸 머리의 '글 n자'와 같은 알약 */}
+                <span className="book-group-class raft-write-count">글 {chars}자</span>
               </span>
             </header>
             <p className="raft-col-prompt">

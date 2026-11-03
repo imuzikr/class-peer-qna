@@ -1025,7 +1025,7 @@ button.msgr-receipt:hover { color: var(--text-sub); }
   padding: 8px 14px;
 }
 .raft-col-head .raft-card-saved { margin-left: auto; flex-shrink: 0; font-size: 12px; }
-.raft-write-meta { display: inline-flex; align-items: baseline; gap: 10px; }
+.raft-write-meta { display: inline-flex; align-items: center; gap: 10px; }
 .raft-write-meta .raft-card-saved { font-size: 12px; }
 @media (max-width: 760px) {
   .raft-summary-row { flex-wrap: wrap; }

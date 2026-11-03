@@ -114,7 +114,8 @@
   gap: 10px;
 }
 .raft-write-head strong { font-size: 15px; font-weight: 800; color: var(--text); }
-.raft-write-count { font-size: 12px; font-weight: 800; color: var(--text-sub); }
+/* 글자 수 — 교사 화면 글쓰기 칸 머리와 같은 회색 알약(.book-group-class)이라 크기·색은 그쪽이 정합니다 */
+.raft-write-count { flex-shrink: 0; }
 
 /* 교사 카드의 네 요소 네모 */
 .raft-marks {
