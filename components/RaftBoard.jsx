@@ -374,6 +374,12 @@ export default function RaftBoard({
                             <strong>{r.ko}</strong>
                             {r.en && <em>{r.en}</em>}
                           </span>
+                          {/* 글쓰기 칸만 — 글자 수를 칸 머리 오른쪽에(위 머리줄의 '글 n자'와 같은 셈 · 같은 알약) */}
+                          {isWriting && (
+                            <span className="book-group-class entry-region-count">
+                              글 {raftWritingChars(openAnswers)}자
+                            </span>
+                          )}
                           {cast.canCast && (
                             <button
                               type="button"

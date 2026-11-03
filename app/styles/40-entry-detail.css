@@ -31,6 +31,9 @@
 .entry-region.live .paratext-letter { background: #8a8a82; }
 /* 영역 머리말의 방송 버튼은 오른쪽 끝으로 */
 .entry-region .paratext-card-head .dash-cast-btn { margin-left: auto; flex-shrink: 0; }
+/* 칸 머리 오른쪽의 글자 수(RAFT 글쓰기) — 방송 버튼이 있으면 그 바로 앞에 붙습니다 */
+.entry-region .paratext-card-head .entry-region-count { margin-left: auto; flex-shrink: 0; }
+.entry-region .paratext-card-head .entry-region-count + .dash-cast-btn { margin-left: 0; }
 .entry-region-body {
   display: flex;
   flex-direction: column;
