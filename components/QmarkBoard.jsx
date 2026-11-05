@@ -39,6 +39,7 @@ import BookStudentRail from "./BookStudentRail";
 import CastStageModal from "./CastStageModal";
 import EntryOverviewModal from "./EntryOverviewModal";
 import BookBoardHead, { BOOK_NO_STUDENTS } from "./BookHeadParts";
+import { OVERVIEW_CAST_KEY, buildOverviewCast } from "@/lib/overviewCast";
 
 const REGIONS = QMARK_REGIONS;
 const REGION_COUNT = REGIONS.length; // 2
@@ -91,9 +92,11 @@ export default function QmarkBoard({
   const castIndex = cast.target ? REGIONS.findIndex((r) => r.key === cast.target.key) : -1;
 
   const livePayload = useMemo(() => {
+    // 한 눈에 보기 창 전체를 띄우는 중이면 그 꾸러미(학생이 고치면 따라감)
+    if (castCard && cast.target?.key === OVERVIEW_CAST_KEY) return overviewCastOf(activity, castCard);
     if (!castCard || castIndex < 0) return null;
     return buildPayload(activity, castCard, castIndex);
-  }, [castCard, castIndex, activity]);
+  }, [castCard, castIndex, activity, cast.target?.key]);
   cast.useLiveUpdate(livePayload);
 
   function castRegion(card, index, openStage = true) {
@@ -316,17 +319,12 @@ export default function QmarkBoard({
           onPick={setOpenUid}
           onClose={() => setOverviewOpen(false)}
           canCast={cast.canCast}
-          isCasting={cast.isCasting}
-          onCast={(c, key) => castRegion(c, REGIONS.findIndex((r) => r.key === key), false)}
-          onOpenStage={() => { setOverviewOpen(false); setStageOpen(true); }}
-          sectionsOf={(c) =>
-            REGIONS.map((r, i) => ({
-              ...buildPayload(activity, c, i),
-              key: r.key,
-              wide: true,
-            }))
-          }
-          summaryOf={(c) => railMeta(c.entry?.answers)}
+          castingUid={cast.target?.key === OVERVIEW_CAST_KEY ? cast.target.uid : null}
+          onCast={(c) => { cast.cast({ uid: c.uid, key: OVERVIEW_CAST_KEY }, overviewCastOf(activity, c)); setOpenUid(c.uid); }}
+          onStopCast={cast.stop}
+          classId={classId}
+          sectionsOf={(c) => ovSections(activity, c)}
+          summaryOf={ovSummary}
         />
       )}
 
@@ -378,4 +376,22 @@ function buildPayload(activity, card, index) {
     columns: 2,
     fields: qmarkRegionFields(answers, r.key),
   };
+}
+
+// 한 눈에 보기의 영역 · 요약 — 창(EntryOverviewModal)과 창 전체 방송(mode "overview")이
+// **같은 값**을 씁니다(교사가 보는 것이 곧 칠판에 뜬 것).
+function ovSections(activity, c) {
+  return REGIONS.map((r, i) => ({ ...buildPayload(activity, c, i), key: r.key, wide: true }));
+}
+function ovSummary(c) {
+  return railMeta(c.entry?.answers);
+}
+function overviewCastOf(activity, c) {
+  return buildOverviewCast({
+    activityTitle: activity.title,
+    card: c,
+    sections: ovSections(activity, c),
+    summary: ovSummary(c),
+    gridCols: 2,
+  });
 }

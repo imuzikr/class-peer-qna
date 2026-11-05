@@ -34,6 +34,7 @@ import {
 import CastStageModal from "./CastStageModal";
 import EntryOverviewModal from "./EntryOverviewModal";
 import BookBoardHead, { BOOK_NO_STUDENTS } from "./BookHeadParts";
+import { OVERVIEW_CAST_KEY, buildOverviewCast } from "@/lib/overviewCast";
 
 export default function ParatextBoard({
   activity,
@@ -145,6 +146,8 @@ export default function ParatextBoard({
   const castCard = cast.target ? cards.find((c) => c.uid === cast.target.uid) ?? null : null;
   const livePayload = useMemo(() => {
     if (!castCard || !cast.target) return null;
+    // 한 눈에 보기 창 전체를 띄우는 중이면 그 꾸러미(학생이 고치면 따라감)
+    if (cast.target.key === OVERVIEW_CAST_KEY) return overviewCastOf(activity, castCard);
     const at = PARATEXT_SECTIONS.findIndex((s) => s.key === cast.target.key);
     if (at < 0) return null;
     return buildPayload(activity, castCard, at);
@@ -369,19 +372,12 @@ export default function ParatextBoard({
           onPick={pickStudent}
           onClose={() => setOverviewOpen(false)}
           canCast={cast.canCast}
-          isCasting={cast.isCasting}
-          onCast={(c, key) => castSection(c, PARATEXT_SECTIONS.findIndex((r) => r.key === key), false)}
-          onOpenStage={() => { setOverviewOpen(false); setStageOpen(true); }}
-          sectionsOf={(c) =>
-            PARATEXT_SECTIONS.map((r, i) => ({
-              ...buildPayload(activity, c, i),
-              key: r.key,
-              // 제목 단계는 칸이 다섯이라 한 줄을 통째로 씁니다(선생님 요청).
-              // 그 뒤로는 다시 두 열입니다.
-              wide: r.key === "title",
-            }))
-          }
-          summaryOf={(c) => `${paratextDoneCount(c.entry?.answers)} / ${PARATEXT_SECTION_COUNT}칸 · ${paratextCharCount(c.entry?.answers)}자`}
+          castingUid={cast.target?.key === OVERVIEW_CAST_KEY ? cast.target.uid : null}
+          onCast={(c) => { cast.cast({ uid: c.uid, key: OVERVIEW_CAST_KEY }, overviewCastOf(activity, c)); setOpenUid(c.uid); }}
+          onStopCast={cast.stop}
+          classId={classId}
+          sectionsOf={(c) => ovSections(activity, c)}
+          summaryOf={ovSummary}
         />
       )}
 
@@ -447,3 +443,21 @@ function buildPayload(activity, card, index) {
   };
 }
 
+// 한 눈에 보기의 영역 · 요약 — 창(EntryOverviewModal)과 창 전체 방송(mode "overview")이
+// **같은 값**을 씁니다(교사가 보는 것이 곧 칠판에 뜬 것).
+function ovSections(activity, c) {
+  // 제목 단계는 칸이 다섯이라 한 줄을 통째로 씁니다(선생님 요청). 그 뒤로는 다시 두 열입니다.
+  return PARATEXT_SECTIONS.map((r, i) => ({ ...buildPayload(activity, c, i), key: r.key, wide: r.key === "title" }));
+}
+function ovSummary(c) {
+  return `${paratextDoneCount(c.entry?.answers)} / ${PARATEXT_SECTION_COUNT}칸 · ${paratextCharCount(c.entry?.answers)}자`;
+}
+function overviewCastOf(activity, c) {
+  return buildOverviewCast({
+    activityTitle: activity.title,
+    card: c,
+    sections: ovSections(activity, c),
+    summary: ovSummary(c),
+    gridCols: 2,
+  });
+}

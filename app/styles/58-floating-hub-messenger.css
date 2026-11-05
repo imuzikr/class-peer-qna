@@ -911,13 +911,12 @@ button.msgr-receipt:hover { color: var(--text-sub); }
 @container (max-width: 480px) {
   .eov-grid.eov-grid--4 { grid-template-columns: minmax(0, 1fr); }
 }
-/* 영역 카드의 '수업 시작' — 글자 수 알약 오른쪽 */
-.eov-card-head .eov-cast { flex-shrink: 0; }
-/* 네 칸일 때 카드가 좁아(260px 남짓) 머리가 한 줄에 다 안 들어갑니다 — 이름이
-   한 글자씩 세로로 쪼개지지 않게 첫 줄은 글자 · 이름, 둘째 줄 오른쪽에 글자 수 ·
-   수업 시작을 둡니다. */
+/* 머리의 '수업 시작'(창 전체 방송) — 진행 요약 · 차례 오른쪽 */
+.eov-meta .eov-cast { flex-shrink: 0; }
+/* 네 칸일 때 카드가 좁아(260px 남짓) 이름이 한 글자씩 세로로 쪼개지지 않게 —
+   이름 칸에 바닥 폭을 두고, 모자라면 글자 수 알약이 다음 줄 오른쪽으로 내려갑니다. */
 .eov-grid--4 .eov-card-head { flex-wrap: wrap; row-gap: 8px; }
-.eov-grid--4 .eov-card-head .paratext-card-title { flex: 1 0 calc(100% - 46px); min-width: 0; }
+.eov-grid--4 .eov-card-head .paratext-card-title { flex: 1 1 120px; min-width: 0; }
 .eov-card.done { border-color: #a6d8b6; }
 .eov-card.done .paratext-letter { background: #3d8a72; }
 .eov-card.empty { background: #fcfbf8; }
@@ -1151,3 +1150,30 @@ button.msgr-receipt:hover { color: var(--text-sub); }
 .xwg-hintpop-foot { margin: 0; font-size: 12px; color: var(--text-faint); }
 .xwg-hintpop-board .xw-cell.key .xw-ch { color: var(--text-sub); }
 
+
+/* 한 눈에 보기 창 전체 방송(학생 화면, PresentationOverlay의 mode "overview") —
+   교사 창과 같은 카드(EntryOverviewCards)에 칠판용으로 글자만 키웁니다. 네 칸 격자의
+   접힘은 이 칸의 폭으로(컨테이너 질의 — 학생 폰에서는 한 칸). */
+.entry-overview-cast {
+  container-type: inline-size;
+  width: min(1600px, 100%);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.eov-cast-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.eov-cast-head h3 {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: clamp(22px, 2vw, 34px);
+  color: var(--text);
+}
+.eov-cast-head h3 em {
+  margin-left: 8px;
+  font-style: normal;
+  font-size: 0.6em;
+  color: var(--text-faint);
+}
+.entry-overview-cast .eov-text { font-size: clamp(16px, 1.25vw, 22px); }
+.entry-overview-cast .paratext-card-title strong { font-size: clamp(15px, 1.1vw, 19px); }

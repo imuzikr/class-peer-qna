@@ -32,6 +32,7 @@ import BookStudentRail from "./BookStudentRail";
 import CastStageModal from "./CastStageModal";
 import EntryOverviewModal from "./EntryOverviewModal";
 import BookBoardHead, { BOOK_NO_STUDENTS } from "./BookHeadParts";
+import { OVERVIEW_CAST_KEY, buildOverviewCast } from "@/lib/overviewCast";
 
 // 방송할 수 있는 영역 — 네 칸 그대로
 const REGIONS = KWLS_COLUMNS;
@@ -105,9 +106,11 @@ export default function KwlsBoard({
   const castIndex = cast.target ? REGIONS.findIndex((r) => r.key === cast.target.key) : -1;
 
   const livePayload = useMemo(() => {
+    // 한 눈에 보기 창 전체를 띄우는 중이면 그 꾸러미(학생이 고치면 따라감)
+    if (castCard && cast.target?.key === OVERVIEW_CAST_KEY) return overviewCastOf(activity, castCard);
     if (!castCard || castIndex < 0) return null;
     return buildPayload(activity, castCard, castIndex);
-  }, [castCard, castIndex, activity]);
+  }, [castCard, castIndex, activity, cast.target?.key]);
   cast.useLiveUpdate(livePayload);
 
   function castRegion(card, index, openStage = true) {
@@ -295,17 +298,12 @@ export default function KwlsBoard({
           onClose={() => setOverviewOpen(false)}
           gridCols={4}
           canCast={cast.canCast}
-          isCasting={cast.isCasting}
-          onCast={(c, key) => castRegion(c, REGIONS.findIndex((r) => r.key === key), false)}
-          onOpenStage={() => { setOverviewOpen(false); setStageOpen(true); }}
-          sectionsOf={(c) =>
-            REGIONS.map((r, i) => ({
-              ...buildPayload(activity, c, i),
-              key: r.key,
-              wide: false,
-            }))
-          }
-          summaryOf={(c) => `${kwlsFilledCount(c.entry?.answers)} / ${KWLS_COLUMN_COUNT}칸 · 글 ${kwlsChars(c.entry?.answers)}자`}
+          castingUid={cast.target?.key === OVERVIEW_CAST_KEY ? cast.target.uid : null}
+          onCast={(c) => { cast.cast({ uid: c.uid, key: OVERVIEW_CAST_KEY }, overviewCastOf(activity, c)); setOpenUid(c.uid); }}
+          onStopCast={cast.stop}
+          classId={classId}
+          sectionsOf={(c) => ovSections(activity, c)}
+          summaryOf={ovSummary}
         />
       )}
 
@@ -339,4 +337,22 @@ function buildPayload(activity, card, index) {
     total: REGION_COUNT,
     fields: [{ label: "", text: String(answers[r.key] ?? "").trim() }],
   };
+}
+
+// 한 눈에 보기의 영역 · 요약 — 창(EntryOverviewModal)과 창 전체 방송(mode "overview")이
+// **같은 값**을 씁니다(교사가 보는 것이 곧 칠판에 뜬 것).
+function ovSections(activity, c) {
+  return REGIONS.map((r, i) => ({ ...buildPayload(activity, c, i), key: r.key, wide: false }));
+}
+function ovSummary(c) {
+  return `${kwlsFilledCount(c.entry?.answers)} / ${KWLS_COLUMN_COUNT}칸 · 글 ${kwlsChars(c.entry?.answers)}자`;
+}
+function overviewCastOf(activity, c) {
+  return buildOverviewCast({
+    activityTitle: activity.title,
+    card: c,
+    sections: ovSections(activity, c),
+    summary: ovSummary(c),
+    gridCols: 4,
+  });
 }

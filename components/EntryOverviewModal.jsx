@@ -8,10 +8,12 @@
 // 글을 고치지 않고 읽으며, 아래 ← 이전 학생 · 다음 학생 →(키보드 ← →)로 왼쪽
 // 목록의 차례 그대로 넘깁니다(선생님 요청).
 //
-// **영역 카드마다 '수업 시작'**(선생님 요청, 2026-11-05) — 이 창을 연 채로 그
-// 영역을 학급 화면에 띄웁니다(창은 그대로, 수업 화면 창은 안 엶). 띄우는 중인
-// 카드의 단추는 '수업 화면 보기'가 되어 이 창을 닫고 수업 화면 창을 엽니다 —
-// 끄는 길은 늘 그 창의 '수업 종료'와 상단바의 '방송 종료' 알약입니다.
+// **머리의 '수업 시작'은 창 전체를 띄웁니다**(선생님 요청, 2026-11-05) — 영역
+// 하나가 아니라 이 학생의 모든 영역(KWLS면 K · W · L · S 네 칸 함께)을 학급
+// 화면에 같은 카드 모양으로(mode "overview", lib/overviewCast.js). 띄우는 동안
+// 이전 · 다음 학생으로 넘기면 방송도 그 학생으로 따라가고, 이 창을 굴리면 학생
+// 화면도 같은 비율로 굴러갑니다. 단추는 '수업 종료'가 되어 그 자리에서 끕니다
+// (상단바의 '방송 종료' 알약으로도 꺼짐).
 //
 // 영역은 보드의 방송 꾸러미(`buildPayload`)를 그대로 받습니다 — 칠판에 뜨는
 // 칸 이름 · 물음 · 글과 이 창의 것이 같아야 해서입니다.
@@ -21,15 +23,13 @@
 // =============================================================
 import { useEffect, useMemo, useRef } from "react";
 import { backdropClose } from "@/lib/modal";
+import { setBroadcastScroll } from "@/lib/store";
+import EntryOverviewCards, { sectionChars } from "./EntryOverviewCards";
 
 function isTyping(el) {
   if (!el) return false;
   const tag = el.tagName;
   return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el.isContentEditable;
-}
-
-function sectionChars(sec) {
-  return (sec.fields ?? []).reduce((n, f) => n + String(f.text ?? "").replace(/\s/g, "").length, 0);
 }
 
 export default function EntryOverviewModal({
@@ -49,11 +49,12 @@ export default function EntryOverviewModal({
   footOf = null,
   // 영역 카드를 한 줄에 몇 장 — 2(기본) · 4(KWLS의 K · W · L · S)
   gridCols = 2,
-  // 방송 — 없으면 단추를 안 그립니다. onCast(card, 영역 key), isCasting(uid, key)
+  // 방송 — 창 전체를 띄웁니다. castingUid = 지금 이 창 모양으로 띄우는 학생(없으면 null)
   canCast = false,
-  onCast = null,
-  isCasting = null,
-  onOpenStage = null,
+  castingUid = null,
+  onCast = null,       // (card) → 이 학생의 창 전체를 띄움
+  onStopCast = null,
+  classId = null,      // 굴림 따라가기(setBroadcastScroll)
 }) {
   const at = Math.max(0, cards.findIndex((c) => c.uid === uid));
   const card = cards[at] ?? null;
@@ -65,10 +66,40 @@ export default function EntryOverviewModal({
   const written = sections.filter((s) => sectionChars(s) > 0).length;
   const lead = card && leadOf ? leadOf(card) : null;
 
-  // 학생을 넘기면 맨 위에서 다시 읽습니다
+  const castingThis = !!castingUid && castingUid === card?.uid;
+
+  // 학생을 넘기면 맨 위에서 다시 읽습니다. 띄우는 중이면 방송도 그 학생으로
+  // 따라갑니다 — **창 안에서 넘길 때만**(창을 새로 열 때 남의 방송을 바꾸지 않게).
+  const lastUidRef = useRef(card?.uid);
   useEffect(() => {
     bodyRef.current?.scrollTo?.({ top: 0 });
+    const was = lastUidRef.current;
+    lastUidRef.current = card?.uid;
+    if (card && was && was !== card.uid && castingUid && castingUid === was) onCast?.(card);
+    // 학생이 바뀔 때만 따라갑니다 — castingUid · onCast가 바뀔 때마다 다시 보내지 않게.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [card?.uid]);
+
+  // 띄우는 동안 이 창을 굴리면 학생 화면도 같은 비율로(수업 화면 창과 같은 방식 —
+  // 0.15초에 한 번, 1% 아래 차이는 안 보냄)
+  useEffect(() => {
+    const el = bodyRef.current;
+    if (!el || !classId || !castingThis) return undefined;
+    const key = { mode: "overview", writerName: card?.name ?? "" };
+    let timer = null;
+    let last = -1;
+    const send = () => {
+      timer = null;
+      const room = el.scrollHeight - el.clientHeight;
+      const ratio = room > 0 ? el.scrollTop / room : 0;
+      if (Math.abs(last - ratio) < 0.01 && ratio > 0 && ratio < 1) return;
+      last = ratio;
+      setBroadcastScroll(classId, key, ratio).catch(() => {});
+    };
+    const onScroll = () => { if (!timer) timer = setTimeout(send, 150); };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => { el.removeEventListener("scroll", onScroll); if (timer) clearTimeout(timer); };
+  }, [classId, castingThis, card?.name]);
 
   // ← →는 학생 넘기기. Esc는 공통 처리(backdropClose)가 맡습니다.
   useEffect(() => {
@@ -112,6 +143,21 @@ export default function EntryOverviewModal({
             {cards.length > 1 && (
               <span className="eov-count">{at + 1} / {cards.length}</span>
             )}
+            {canCast && onCast && (
+              <button
+                type="button"
+                className={`btn-ghost dash-cast-btn eov-cast${castingThis ? " on" : ""}`}
+                onClick={() => (castingThis ? onStopCast?.() : onCast(card))}
+                title={
+                  castingThis
+                    ? "학급 화면을 원래대로 되돌립니다"
+                    : "이 창에 보이는 그대로(모든 영역) 학급 전체 화면에 띄웁니다 — 넘기면 방송도 따라갑니다"
+                }
+              >
+                {castingThis && <span className="broadcast-live-dot" aria-hidden="true" />}
+                {castingThis ? "수업 종료" : "수업 시작"}
+              </button>
+            )}
           </div>
           <button type="button" className="btn-close" onClick={onClose} aria-label="닫기">×</button>
         </div>
@@ -144,66 +190,7 @@ export default function EntryOverviewModal({
           {!card.entry && (
             <p className="eov-empty-note">아직 시작하지 않았어요 — 쓴 것이 생기면 여기에 바로 보입니다.</p>
           )}
-          <div className={`eov-grid${gridCols === 4 ? " eov-grid--4" : ""}`}>
-            {sections.map((s) => {
-              const chars = sectionChars(s);
-              const fields = s.fields ?? [];
-              return (
-                <section
-                  key={s.key}
-                  data-sec={s.key}
-                  className={`eov-card${chars > 0 ? " done" : " empty"}${s.wide ? " wide" : ""}`}
-                >
-                  <header className="eov-card-head">
-                    {s.letter && <span className="paratext-letter" aria-hidden="true">{s.letter}</span>}
-                    <span className="paratext-card-title">
-                      <strong>{s.label}</strong>
-                      {s.labelEn && <em>{s.labelEn}</em>}
-                    </span>
-                    <span className={`eov-state${chars > 0 ? " done" : ""}`}>
-                      {chars > 0 ? `${chars}자` : "비어 있음"}
-                    </span>
-                    {canCast && onCast && (() => {
-                      const live = !!isCasting?.(card.uid, s.key);
-                      return (
-                        <button
-                          type="button"
-                          className={`btn-ghost dash-cast-btn eov-cast${live ? " on" : ""}`}
-                          onClick={() => (live ? onOpenStage?.() : onCast(card, s.key))}
-                          title={
-                            live
-                              ? "지금 띄우는 중 — 눌러서 수업 화면 창을 엽니다(끝내기는 그 창의 수업 종료)"
-                              : "이 영역을 학급 전체 화면에 띄웁니다 — 이 창은 그대로입니다"
-                          }
-                        >
-                          {live && <span className="broadcast-live-dot" aria-hidden="true" />}
-                          {live ? "수업 화면 보기" : "수업 시작"}
-                        </button>
-                      );
-                    })()}
-                  </header>
-                  {s.prompt && <p className="eov-prompt">{s.prompt}</p>}
-                  <div className={`eov-fields${s.columns === 2 ? " cols" : ""}`}>
-                    {fields.length === 0 ? (
-                      <p className="eov-text empty">아직 쓰지 않았어요</p>
-                    ) : (
-                      fields.map((f, i) => {
-                        const text = String(f.text ?? "").trim();
-                        return (
-                          <div key={i} className="eov-field">
-                            {f.label && <span className="eov-label">{f.label}</span>}
-                            <p className={`eov-text${text ? "" : " empty"}`}>
-                              {text || "아직 쓰지 않았어요"}
-                            </p>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                </section>
-              );
-            })}
-          </div>
+          <EntryOverviewCards sections={sections} gridCols={gridCols} />
           {footOf && footOf(card)}
         </div>
 

@@ -18,9 +18,12 @@ import WordCloud from "./WordCloud";
 import HashtagSlide from "./HashtagSlide";
 import { IconGroup } from "./StatusIcons";
 import EntryCastCard from "./EntryCastCard";
+import EntryOverviewCards from "./EntryOverviewCards";
+import { PeerReviewRow } from "./PeerReviewModal";
+import { cleanOverviewSections } from "@/lib/overviewCast";
 
 // 이 화면이 그릴 줄 아는 방송 종류. 새 종류를 추가하면 여기에도 넣어야 합니다.
-const KNOWN_MODES = ["consonant", "entry", "wall", "mindmap", "lesson", "carousel", "single", "hashtag"];
+const KNOWN_MODES = ["consonant", "entry", "wall", "mindmap", "lesson", "carousel", "single", "hashtag", "overview"];
 
 // noteOpen — 학생이 수업 노트 서랍을 열어 두었는지. 열려 있으면 발표 화면을
 // 그만큼 좁힙니다(덮는 게 아니라 밀어냅니다). 서랍은 이 컴포넌트 밖에서
@@ -277,6 +280,45 @@ export default function PresentationOverlay({ broadcast, noteOpen = false, noteW
         </div>
         <div className="broadcast-body">
           <HashtagSlide slide={broadcast} variant="cast" />
+        </div>
+      </div>
+    );
+  }
+
+  // 한 눈에 보기 창 전체 — 한 학생이 쓴 모든 영역을 교사 창과 **같은 카드**로
+  // (EntryOverviewCards). 방송은 남이 쓴 값이라 한 번 더 걸러 그립니다.
+  if (broadcast.mode === "overview") {
+    const sections = cleanOverviewSections(broadcast.sections);
+    const peers = Array.isArray(broadcast.peers) ? broadcast.peers.slice(0, 12) : null;
+    return (
+      <div
+        className={`broadcast-overlay broadcast-overlay--entry broadcast-overlay--overview${shrink}`}
+        role="alertdialog"
+        aria-modal="true"
+        aria-label="선생님이 보여주는 친구의 글"
+      >
+        <div className="broadcast-bar">
+          <span className="broadcast-live-dot" aria-hidden="true" />
+          선생님이 친구의 글을 보여주고 있어요
+          {broadcast.activityTitle && <span className="broadcast-board">{broadcast.activityTitle}</span>}
+          {broadcast.writerName && <span className="broadcast-progress">{broadcast.writerName}</span>}
+        </div>
+        <div className="broadcast-body">
+          <div className="entry-overview-cast">
+            <header className="eov-cast-head">
+              <h3>
+                {broadcast.writerName}
+                {broadcast.studentId && <em>{broadcast.studentId}</em>}
+              </h3>
+              {broadcast.topic && <span className="book-group-topic">{broadcast.topic}</span>}
+              {broadcast.summary && <span className="book-group-class">{broadcast.summary}</span>}
+            </header>
+            {broadcast.lead?.text && (
+              <p className={`raft-sentence${broadcast.lead.done ? " done" : ""} eov-lead`}>{broadcast.lead.text}</p>
+            )}
+            <EntryOverviewCards sections={sections} gridCols={broadcast.gridCols === 4 ? 4 : 2} />
+            {peers && <PeerReviewRow slots={peers} />}
+          </div>
         </div>
       </div>
     );

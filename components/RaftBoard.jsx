@@ -44,6 +44,7 @@ import EntryProgressPanel from "./EntryProgressPanel";
 import { PeerReviewList, PeerReviewRow, peerReviewSlots } from "./PeerReviewModal";
 import { isGroupedActivity, useBookGroups, isPeerReviewOpen, myBookGroup, groupMembers } from "@/lib/bookGroups";
 import BookBoardHead, { BOOK_NO_STUDENTS } from "./BookHeadParts";
+import { OVERVIEW_CAST_KEY, buildOverviewCast } from "@/lib/overviewCast";
 
 // 방송할 수 있는 영역 — 네 요소 + 글쓰기
 const REGIONS = [
@@ -187,9 +188,11 @@ export default function RaftBoard({
   const castIndex = cast.target ? REGIONS.findIndex((r) => r.key === cast.target.key) : -1;
 
   const livePayload = useMemo(() => {
+    // 한 눈에 보기 창 전체를 띄우는 중이면 그 꾸러미(학생이 고치면 따라감)
+    if (castCard && cast.target?.key === OVERVIEW_CAST_KEY) return overviewCastOf(activity, castCard, peersOf(castCard));
     if (!castCard || castIndex < 0) return null;
     return buildPayload(activity, castCard, castIndex, peersOf(castCard));
-  }, [castCard, castIndex, activity, peersOf]);
+  }, [castCard, castIndex, activity, peersOf, cast.target?.key]);
   cast.useLiveUpdate(livePayload);
 
   function castRegion(card, index, openStage = true) {
@@ -246,13 +249,6 @@ export default function RaftBoard({
   // ○○에게, ○○ 형식으로, ○○에 대해 씁니다')이 담고, 카드는 **글쓰기 하나**만
   // 바로 섭니다(선생님 요청 — 네 칸 격자는 문장과 같은 말을 되풀이했습니다).
   // 카드가 하나라 위의 영역 바로가기 줄도 안 섭니다(EntryOverviewModal).
-  const overviewSections = useCallback(
-    (card) => {
-      const i = REGIONS.findIndex((r) => r.key === RAFT_WRITING.key);
-      return [{ ...buildPayload(activity, card, i), key: RAFT_WRITING.key, wide: true }];
-    },
-    [activity]
-  );
 
   const openAnswers = open?.entry?.answers ?? {};
   const openReviews = useMemo(
@@ -468,13 +464,12 @@ export default function RaftBoard({
           onPick={pickStudent}
           onClose={() => setOverviewOpen(false)}
           canCast={cast.canCast}
-          isCasting={cast.isCasting}
-          onCast={(c, key) => castRegion(c, REGIONS.findIndex((r) => r.key === key), false)}
-          onOpenStage={() => { setOverviewOpen(false); setStageOpen(true); }}
-          sectionsOf={overviewSections}
-          summaryOf={(c) =>
-            `${raftPlanCount(c.entry?.answers)} / ${RAFT_COLUMN_COUNT}칸 · 글 ${raftWritingChars(c.entry?.answers)}자`
-          }
+          castingUid={cast.target?.key === OVERVIEW_CAST_KEY ? cast.target.uid : null}
+          onCast={(c) => { cast.cast({ uid: c.uid, key: OVERVIEW_CAST_KEY }, overviewCastOf(activity, c, peersOf(c))); setOpenUid(c.uid); }}
+          onStopCast={cast.stop}
+          classId={classId}
+          sectionsOf={(c) => ovSections(activity, c)}
+          summaryOf={ovSummary}
           footOf={grouped ? (c) => (
             <PeerReviewRow slots={peersOf(c)} />
           ) : null}
@@ -550,4 +545,25 @@ function buildPayload(activity, card, index, peers = null) {
     // 모둠 친구들이 남긴 한 마디 — 카드 아래에 섭니다(글자 크기는 그대로, 굴려서 읽음).
     ...(r.key === RAFT_WRITING.key && Array.isArray(peers) ? { peers } : {}),
   };
+}
+
+// 한 눈에 보기의 영역 · 요약 — 창(EntryOverviewModal)과 창 전체 방송(mode "overview")이
+// **같은 값**을 씁니다(교사가 보는 것이 곧 칠판에 뜬 것).
+function ovSections(activity, c) {
+  const i = REGIONS.findIndex((r) => r.key === RAFT_WRITING.key);
+  return [{ ...buildPayload(activity, c, i), key: RAFT_WRITING.key, wide: true }];
+}
+function ovSummary(c) {
+  return `${raftPlanCount(c.entry?.answers)} / ${RAFT_COLUMN_COUNT}칸 · 글 ${raftWritingChars(c.entry?.answers)}자`;
+}
+function overviewCastOf(activity, c, peers = null) {
+  return buildOverviewCast({
+    activityTitle: activity.title,
+    card: c,
+    sections: ovSections(activity, c),
+    summary: ovSummary(c),
+    gridCols: 2,
+    lead: { text: raftSentence(c.entry?.answers ?? {}), done: raftPlanCount(c.entry?.answers) === RAFT_COLUMN_COUNT },
+    peers,
+  });
 }
