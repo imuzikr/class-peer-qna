@@ -315,6 +315,10 @@ export default function QmarkBoard({
           uid={open.uid}
           onPick={setOpenUid}
           onClose={() => setOverviewOpen(false)}
+          canCast={cast.canCast}
+          isCasting={cast.isCasting}
+          onCast={(c, key) => castRegion(c, REGIONS.findIndex((r) => r.key === key), false)}
+          onOpenStage={() => { setOverviewOpen(false); setStageOpen(true); }}
           sectionsOf={(c) =>
             REGIONS.map((r, i) => ({
               ...buildPayload(activity, c, i),

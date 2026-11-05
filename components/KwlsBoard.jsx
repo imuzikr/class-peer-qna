@@ -293,6 +293,11 @@ export default function KwlsBoard({
           uid={open.uid}
           onPick={setOpenUid}
           onClose={() => setOverviewOpen(false)}
+          gridCols={4}
+          canCast={cast.canCast}
+          isCasting={cast.isCasting}
+          onCast={(c, key) => castRegion(c, REGIONS.findIndex((r) => r.key === key), false)}
+          onOpenStage={() => { setOverviewOpen(false); setStageOpen(true); }}
           sectionsOf={(c) =>
             REGIONS.map((r, i) => ({
               ...buildPayload(activity, c, i),

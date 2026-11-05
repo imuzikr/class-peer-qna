@@ -368,6 +368,10 @@ export default function ParatextBoard({
           uid={open.uid}
           onPick={pickStudent}
           onClose={() => setOverviewOpen(false)}
+          canCast={cast.canCast}
+          isCasting={cast.isCasting}
+          onCast={(c, key) => castSection(c, PARATEXT_SECTIONS.findIndex((r) => r.key === key), false)}
+          onOpenStage={() => { setOverviewOpen(false); setStageOpen(true); }}
           sectionsOf={(c) =>
             PARATEXT_SECTIONS.map((r, i) => ({
               ...buildPayload(activity, c, i),

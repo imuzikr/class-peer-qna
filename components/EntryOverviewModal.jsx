@@ -3,11 +3,15 @@
 // =============================================================
 // 한 눈에 보기 — 한 학생이 쓴 것을 영역별 카드로 한 창에 (교사)
 // -------------------------------------------------------------
-// 책방 교사 화면(곁텍스트 · RAFT · KWLS · 물음표)의 가운데 칸은 영역마다
-// '수업 시작' 단추가 달린 작업 자리라, 양옆 패널이 서면 좁아 한 학생의 글을
-// 처음부터 끝까지 이어 읽기 어려웠습니다. 이 창은 **읽기만** 합니다 —
-// 방송 · 과일은 없고, 아래 ← 이전 학생 · 다음 학생 →(키보드 ← →)로 왼쪽
+// 책방 교사 화면(곁텍스트 · RAFT · KWLS · 물음표)의 가운데 칸은 양옆 패널이
+// 서면 좁아 한 학생의 글을 처음부터 끝까지 이어 읽기 어려웠습니다. 이 창은
+// 글을 고치지 않고 읽으며, 아래 ← 이전 학생 · 다음 학생 →(키보드 ← →)로 왼쪽
 // 목록의 차례 그대로 넘깁니다(선생님 요청).
+//
+// **영역 카드마다 '수업 시작'**(선생님 요청, 2026-11-05) — 이 창을 연 채로 그
+// 영역을 학급 화면에 띄웁니다(창은 그대로, 수업 화면 창은 안 엶). 띄우는 중인
+// 카드의 단추는 '수업 화면 보기'가 되어 이 창을 닫고 수업 화면 창을 엽니다 —
+// 끄는 길은 늘 그 창의 '수업 종료'와 상단바의 '방송 종료' 알약입니다.
 //
 // 영역은 보드의 방송 꾸러미(`buildPayload`)를 그대로 받습니다 — 칠판에 뜨는
 // 칸 이름 · 물음 · 글과 이 창의 것이 같아야 해서입니다.
@@ -43,6 +47,13 @@ export default function EntryOverviewModal({
   leadOf = null,
   // card → 영역 카드 아래에 붙는 것(모둠 RAFT의 '모둠 친구들이 남긴 한 마디')
   footOf = null,
+  // 영역 카드를 한 줄에 몇 장 — 2(기본) · 4(KWLS의 K · W · L · S)
+  gridCols = 2,
+  // 방송 — 없으면 단추를 안 그립니다. onCast(card, 영역 key), isCasting(uid, key)
+  canCast = false,
+  onCast = null,
+  isCasting = null,
+  onOpenStage = null,
 }) {
   const at = Math.max(0, cards.findIndex((c) => c.uid === uid));
   const card = cards[at] ?? null;
@@ -133,7 +144,7 @@ export default function EntryOverviewModal({
           {!card.entry && (
             <p className="eov-empty-note">아직 시작하지 않았어요 — 쓴 것이 생기면 여기에 바로 보입니다.</p>
           )}
-          <div className="eov-grid">
+          <div className={`eov-grid${gridCols === 4 ? " eov-grid--4" : ""}`}>
             {sections.map((s) => {
               const chars = sectionChars(s);
               const fields = s.fields ?? [];
@@ -152,6 +163,24 @@ export default function EntryOverviewModal({
                     <span className={`eov-state${chars > 0 ? " done" : ""}`}>
                       {chars > 0 ? `${chars}자` : "비어 있음"}
                     </span>
+                    {canCast && onCast && (() => {
+                      const live = !!isCasting?.(card.uid, s.key);
+                      return (
+                        <button
+                          type="button"
+                          className={`btn-ghost dash-cast-btn eov-cast${live ? " on" : ""}`}
+                          onClick={() => (live ? onOpenStage?.() : onCast(card, s.key))}
+                          title={
+                            live
+                              ? "지금 띄우는 중 — 눌러서 수업 화면 창을 엽니다(끝내기는 그 창의 수업 종료)"
+                              : "이 영역을 학급 전체 화면에 띄웁니다 — 이 창은 그대로입니다"
+                          }
+                        >
+                          {live && <span className="broadcast-live-dot" aria-hidden="true" />}
+                          {live ? "수업 화면 보기" : "수업 시작"}
+                        </button>
+                      );
+                    })()}
                   </header>
                   {s.prompt && <p className="eov-prompt">{s.prompt}</p>}
                   <div className={`eov-fields${s.columns === 2 ? " cols" : ""}`}>

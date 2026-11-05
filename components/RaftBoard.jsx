@@ -467,6 +467,10 @@ export default function RaftBoard({
           uid={open.uid}
           onPick={pickStudent}
           onClose={() => setOverviewOpen(false)}
+          canCast={cast.canCast}
+          isCasting={cast.isCasting}
+          onCast={(c, key) => castRegion(c, REGIONS.findIndex((r) => r.key === key), false)}
+          onOpenStage={() => { setOverviewOpen(false); setStageOpen(true); }}
           sectionsOf={overviewSections}
           summaryOf={(c) =>
             `${raftPlanCount(c.entry?.answers)} / ${RAFT_COLUMN_COUNT}칸 · 글 ${raftWritingChars(c.entry?.answers)}자`
