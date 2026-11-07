@@ -24,7 +24,7 @@ import {
   markRaftFeedbackSeen,
 } from "@/lib/store";
 import { isRaftFeedbackNew, normalizeRaftFeedback, placeFeedbackNotes } from "@/lib/raftFeedback";
-import { RaftFeedbackIcons, RaftFeedbackPopover, RaftFeedbackText } from "./RaftFeedback";
+import { RaftFeedbackButton, RaftFeedbackList, RaftFeedbackPopover, RaftFeedbackText } from "./RaftFeedback";
 import TopicAskModal from "./TopicAskModal";
 import {
   RAFT_COLUMNS,
@@ -189,7 +189,7 @@ export default function RaftForm({ activity, user, onBack }) {
   const planDone = planCount === RAFT_COLUMN_COUNT;
   const chars = raftWritingChars(answers);
 
-  // ── 선생님 피드백 메모 — 읽기만. 안 본 메모(새 피드백)에는 아이콘에 점이 섭니다 ──
+  // ── 선생님 피드백 메모 — 읽기만. 안 본 메모(새 피드백)는 「피드백 n개」 단추에 '새 n' ──
   const myUid = user?.uid ?? null;
   const [rawFeedback, setRawFeedback] = useState([]);
   useEffect(() => {
@@ -205,14 +205,31 @@ export default function RaftForm({ activity, user, onBack }) {
   const [fbPop, setFbPop] = useState(null); // { id, anchor }
   const fbOpenNote = fbPop ? feedback.find((n) => n.id === fbPop.id) ?? null : null;
   function openFeedback(id, el) {
+    setFbList(null);
     setFbPop((p) => (p?.id === id && p.anchor === el ? null : { id, anchor: el }));
     const n = feedback.find((x) => x.id === id);
     // 열어 본 순간 '봤다' — 선생님이 고치면(rev가 오르면) 다시 새 피드백이 됩니다
     if (n && isRaftFeedbackNew(n)) markRaftFeedbackSeen(activity.id, myUid, n.id, n.rev).catch(() => {});
   }
+  // 「피드백 n개」 목록 — 메모 글이 다 보이므로 여는 순간 모두 '봤다'. 다만 이번에 연 목록
+  // 안에서는 '새 피드백' 표시를 남겨 둡니다(열자마자 사라지면 무엇이 새것이었는지 모름).
+  const [fbList, setFbList] = useState(null); // { anchor, fresh: Set(id) }
+  function toggleFeedbackList(el) {
+    setFbPop(null);
+    if (fbList) { setFbList(null); return; }
+    const fresh = feedback.filter(isRaftFeedbackNew);
+    setFbList({ anchor: el, fresh: new Set(fresh.map((n) => n.id)) });
+    fresh.forEach((n) => markRaftFeedbackSeen(activity.id, myUid, n.id, n.rev).catch(() => {}));
+  }
+  // 목록에서 한 줄 — 그 형광펜을 짚어 줍니다(글이 읽기 화면일 때). 목록은 그대로.
+  const [fbPointed, setFbPointed] = useState(null);
+  function pointFeedback(id) {
+    setFbPointed(id);
+    document.querySelector(`.raft-fb-text mark[data-fid="${id}"]`)?.scrollIntoView({ block: "center", behavior: "smooth" });
+  }
   // 피드백이 있고 활동이 잠겼으면(선생님이 피드백을 남길 때 잠급니다) 글을 형광펜과 함께
   // 읽기 화면으로 보여 줍니다 — 형광펜을 눌러도 메모가 열립니다. 잠기지 않았으면 지금처럼
-  // 쓰는 칸이고, 메모는 아이콘으로 엽니다(칠한 부분은 메모 창 위에 그대로 보임).
+  // 쓰는 칸이고, 메모는 「피드백 n개」 목록으로 읽습니다(줄마다 칠한 부분이 함께 보임).
   const showMarked = locked && feedback.length > 0;
 
   return (
@@ -380,13 +397,13 @@ export default function RaftForm({ activity, user, onBack }) {
           </div>
 
           <section className="raft-write raft-fb-region">
-            {/* 박스 바깥 위쪽 오른쪽 — [피드백 메모 아이콘들][글 n자](선생님 요청 — 교사 화면과 같은 자리) */}
+            {/* 박스 바깥 위쪽 오른쪽 — [피드백 n개][글 n자](선생님 요청 — 교사 화면과 같은 자리) */}
             <div className="raft-outside-tools">
-              <RaftFeedbackIcons
+              <RaftFeedbackButton
                 notes={feedback}
-                activeId={fbPop?.id ?? null}
-                onPick={openFeedback}
                 isNew={isRaftFeedbackNew}
+                open={!!fbList}
+                onToggle={toggleFeedbackList}
               />
               <span className="book-group-class raft-count-outside">글 {chars}자</span>
             </div>
@@ -406,7 +423,7 @@ export default function RaftForm({ activity, user, onBack }) {
               <RaftFeedbackText
                 text={writingRaw}
                 notes={feedback}
-                activeId={fbPop?.id ?? null}
+                activeId={fbPop?.id ?? (fbList ? fbPointed : null)}
                 onOpenNote={openFeedback}
               />
             ) : (
@@ -420,10 +437,21 @@ export default function RaftForm({ activity, user, onBack }) {
             )}
             {feedback.length > 0 && (
               <p className="raft-fb-help">
-                선생님이 남긴 피드백이 {feedback.length}개 있어요. 메모장 아이콘{showMarked ? "이나 형광펜" : ""}을 누르면 읽을 수 있어요.
+                선생님이 남긴 피드백이 {feedback.length}개 있어요. 위의 ‘피드백 {feedback.length}개’{showMarked ? "나 형광펜" : ""}을 누르면 읽을 수 있어요.
               </p>
             )}
           </section>
+          {fbList && feedback.length > 0 && (
+            <RaftFeedbackList
+              anchor={fbList.anchor}
+              notes={feedback}
+              isNew={(n) => fbList.fresh.has(n.id)}
+              activeId={fbPointed}
+              onPick={pointFeedback}
+              onClose={() => { setFbList(null); setFbPointed(null); }}
+              title="선생님 피드백"
+            />
+          )}
           {fbOpenNote && fbPop?.anchor && (
             <RaftFeedbackPopover
               anchor={fbPop.anchor}

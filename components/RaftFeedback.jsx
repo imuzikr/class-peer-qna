@@ -5,8 +5,8 @@
 // -------------------------------------------------------------
 //  · RaftFeedbackText  — 형광펜을 칠한 글. 교사는 드래그로 새 범위를 고릅니다(onSelectRange).
 //                        형광펜을 누르면 그 메모가 열립니다(onOpenNote).
-//  · RaftFeedbackIcons — 박스 바깥 위쪽 '글 n자' 알약 왼쪽의 작은 메모장 아이콘들(번호).
-//                        학생 화면은 안 본 메모에 '새 피드백' 점.
+//  · RaftFeedbackButton — 박스 바깥 위쪽 '글 n자' 왼쪽의 「피드백 n개」 단추(학생은 '새 n').
+//  · RaftFeedbackList   — 그 단추가 여는 메모 목록(번호 · 칠한 부분 · 메모 글).
 //  · RaftFeedbackPopover — 메모 창(팝오버). 교사: 쓰기 · 고치기 · 지우기 / 학생: 읽기만.
 // 셈(자리 · 조각 나누기 · 겹침)은 lib/raftFeedback.js에 있습니다.
 // 글자 차례(start · end)는 글 문자열 그대로의 차례입니다 — 그래서 글은 **다듬지 않은
@@ -79,32 +79,74 @@ export function RaftFeedbackText({ text, notes = [], pending = null, activeId = 
   );
 }
 
-export function RaftFeedbackIcons({ notes = [], activeId = null, onPick, isNew = null }) {
+// 박스 바깥 위쪽 '글 n자' 왼쪽의 단추 하나 — 「피드백 n개」. 누르면 메모 목록(RaftFeedbackList).
+// 한때 메모마다 아이콘(📝1 📝2 …)을 늘어놓았는데, 메모가 많으면 줄이 넘쳐 위 칸에 얹혀
+// 단추 하나로 모았습니다(선생님 요청). 학생은 안 본 메모가 있으면 빨간 '새 n'.
+export function RaftFeedbackButton({ notes = [], isNew = null, open = false, onToggle }) {
   if (!notes.length) return null;
+  const fresh = isNew ? notes.filter(isNew).length : 0;
   return (
-    <span className="raft-fb-icons" role="group" aria-label="선생님 피드백 메모">
-      {notes.map((n) => {
-        const fresh = !!isNew?.(n);
-        return (
-          <button
-            key={n.id}
-            type="button"
-            className={`raft-fb-icon${activeId === n.id ? " on" : ""}`}
-            onClick={(e) => onPick(n.id, e.currentTarget)}
-            title={`피드백 ${n.no}${fresh ? " — 새 피드백" : ""}`}
-            aria-label={`피드백 메모 ${n.no}${fresh ? " (새 피드백)" : ""}`}
-          >
-            <IconQuizMemo size={18} />
-            <b>{n.no}</b>
-            {fresh && <span className="raft-fb-dot" aria-hidden="true" />}
-          </button>
-        );
-      })}
-    </span>
+    <button
+      type="button"
+      className={`raft-fb-btn${open ? " on" : ""}`}
+      onClick={(e) => onToggle(e.currentTarget)}
+      aria-expanded={open}
+      aria-haspopup="dialog"
+      title={fresh ? `새 피드백 ${fresh}개 — 눌러서 읽기` : "피드백 메모 목록"}
+    >
+      <IconQuizMemo size={18} />
+      피드백 {notes.length}개
+      {fresh > 0 && <span className="raft-fb-btn-new">새 {fresh}</span>}
+    </button>
   );
 }
 
-// 메모 창 — anchor(형광펜 · 아이콘 요소) 옆에 뜹니다(lib/popover.js).
+// 메모 목록 — 단추 옆에 뜨는 팝오버. 줄마다 번호 · 칠한 부분 · 메모 글(다 보임).
+//   onPick(id) — 줄을 누름(교사: 그 형광펜에서 메모 창을 엶 · 학생: 그 형광펜을 짚어 줌)
+export function RaftFeedbackList({ anchor, notes = [], isNew = null, activeId = null, onPick, onClose, title = "피드백 메모" }) {
+  const ref = useRef(null);
+  const pos = usePopoverAnchor(anchor, { w: 360, h: Math.min(460, 90 + notes.length * 92), gap: 10 });
+  usePopoverDismiss(true, ref, onClose, ".raft-fb-btn, .raft-fb-mark");
+  return createPortal(
+    <div
+      ref={ref}
+      className="raft-fb-pop raft-fb-list"
+      role="dialog"
+      aria-label={title}
+      style={{ left: pos.x, top: pos.y, maxHeight: pos.maxH }}
+    >
+      <div className="raft-fb-pop-head">
+        <IconQuizMemo size={18} />
+        <strong>{title} {notes.length}개</strong>
+        <button type="button" className="raft-fb-pop-x" onClick={onClose} aria-label="닫기">×</button>
+      </div>
+      <ol className="raft-fb-rows">
+        {notes.map((n) => {
+          const fresh = !!isNew?.(n);
+          return (
+            <li key={n.id}>
+              <button
+                type="button"
+                className={`raft-fb-row${activeId === n.id ? " on" : ""}${fresh ? " fresh" : ""}`}
+                onClick={() => onPick(n.id)}
+              >
+                <b className="raft-fb-row-no">{n.no}</b>
+                <span className="raft-fb-row-body">
+                  <span className="raft-fb-row-quote">{n.quote}</span>
+                  <span className="raft-fb-row-text">{n.text}</span>
+                </span>
+                {fresh && <span className="raft-fb-row-new">새 피드백</span>}
+              </button>
+            </li>
+          );
+        })}
+      </ol>
+    </div>,
+    document.body
+  );
+}
+
+// 메모 창 — anchor(형광펜 · 목록 단추 요소) 옆에 뜹니다(lib/popover.js).
 //   note      열린 메모(새로 쓰는 중이면 null) · quote  칠한 부분
 //   canEdit   교사 — 쓰기 · 고치기 · 지우기 / 아니면 읽기만
 export function RaftFeedbackPopover({ anchor, note = null, quote = "", canEdit = false, onSave, onDelete, onClose }) {
@@ -122,8 +164,8 @@ export function RaftFeedbackPopover({ anchor, note = null, quote = "", canEdit =
   useEffect(() => { setDraft(noteText); setAskDelete(false); setError(""); }, [noteId, noteText]);
 
   // 바깥 · Esc로 닫되, 고쳐 쓰던 글이 있으면 닫지 않습니다(글이 날아가지 않게 — '취소'로 닫음).
-  // 아이콘 · 형광펜을 누르면 그 메모로 옮겨 가므로 닫지 않습니다(깜빡임 방지).
-  usePopoverDismiss(true, ref, () => { if (!dirty) onClose(); }, ".raft-fb-icon, .raft-fb-mark");
+  // 형광펜 · 목록 단추를 누르면 그쪽으로 옮겨 가므로 닫지 않습니다(깜빡임 방지).
+  usePopoverDismiss(true, ref, () => { if (!dirty) onClose(); }, ".raft-fb-btn, .raft-fb-mark");
 
   async function save() {
     const t = draft.trim();

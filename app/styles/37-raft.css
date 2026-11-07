@@ -139,10 +139,10 @@
    교사 피드백 메모 — 형광펜 + 메모장 아이콘 + 메모 창 (RaftFeedback.jsx)
    교사 RaftBoard의 글쓰기 칸(.entry-region.raft-fb-region) · 학생 RaftForm(.raft-write.raft-fb-region)
    ============================================================= */
-/* 박스 바깥 위쪽 오른쪽 한 줄 — [피드백 메모 아이콘들][글 n자](선생님 요청 — 교사 · 학생 같음).
+/* 박스 바깥 위쪽 오른쪽 한 줄 — [피드백 n개][글 n자](선생님 요청 — 교사 · 학생 같음).
    한때 메모 아이콘은 칸 머리 '수업 시작' 왼쪽이었는데, 글자 수 옆으로 모았습니다. 글을 안
-   가리고, 칸 머리는 제목 · '수업 시작'(학생은 저장 표시)만 남습니다. 줄 높이(아이콘 30px)만큼
-   박스를 내려 위 칸과 안 겹치게 합니다. 아이콘이 많아 한 줄을 넘으면 위로 줄을 더 쌓습니다. */
+   가리고, 칸 머리는 제목 · '수업 시작'(학생은 저장 표시)만 남습니다. 줄 높이(단추 30px)만큼
+   박스를 내려 위 칸과 안 겹치게 합니다. */
 .raft-fb-region { position: relative; }
 .entry-region.raft-fb-region { margin-top: 32px; }
 .raft-write.raft-fb-region { margin-top: 46px; }
@@ -159,33 +159,89 @@
 .raft-count-outside { flex-shrink: 0; }
 .raft-write-head .raft-write-meta { margin-left: auto; }
 
-.raft-fb-icons { display: inline-flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; }
-.raft-fb-icon {
-  position: relative;
+/* 「피드백 n개」 단추 — '글 n자' 알약 왼쪽. 한때 메모마다 아이콘(📝1 📝2 …)이 늘어섰는데,
+   많아지면 줄이 넘쳐 위 칸에 얹혀 단추 하나로 모았습니다(선생님 요청). */
+.raft-fb-btn {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: 5px;
   height: 30px;
-  padding: 0 7px 0 5px;
-  border: 1px solid var(--border);
+  padding: 0 10px 0 7px;
+  border: 1px solid #ecd9a0;
   border-radius: 8px;
-  background: #fffdf6;
+  background: #fffdf3;
   font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #7d5811;
+  white-space: nowrap;
   cursor: pointer;
 }
-.raft-fb-icon b { font-size: 12px; font-weight: 800; color: #7d5811; }
-.raft-fb-icon:hover { border-color: #e0c06a; }
-.raft-fb-icon.on { border-color: #e0a92c; background: #fff4cc; box-shadow: 0 0 0 2px #fbe39a; }
-/* 새 피드백 점(학생) — 아이콘 오른쪽 위 */
-.raft-fb-dot {
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
+.raft-fb-btn:hover { border-color: #e0c06a; }
+.raft-fb-btn.on { border-color: #e0a92c; background: #fff4cc; box-shadow: 0 0 0 2px #fbe39a; }
+/* 학생 — 안 본 메모 수(빨강) */
+.raft-fb-btn-new {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
   background: #e5484d;
-  border: 2px solid #fff;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+/* 메모 목록(팝오버) — 줄마다 번호 · 칠한 부분(한 줄) · 메모 글(다) */
+.raft-fb-pop.raft-fb-list { width: 360px; }
+.raft-fb-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.raft-fb-row {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid #f0e3bd;
+  border-radius: 10px;
+  background: #fff;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.raft-fb-row:hover { border-color: #e0c06a; }
+.raft-fb-row.on { border-color: #e0a92c; background: #fff8dc; }
+.raft-fb-row.fresh { border-color: #f1b8b9; }
+.raft-fb-row-no {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffe9a8;
+  color: #7d5811;
+  font-size: 12px;
+}
+.raft-fb-row-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.raft-fb-row-quote {
+  font-size: 12px;
+  color: var(--text-sub);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-left: 3px solid #f2c94c;
+  padding-left: 6px;
+}
+.raft-fb-row-text { font-size: 13.5px; line-height: 1.55; color: var(--text); white-space: pre-wrap; word-break: break-word; }
+.raft-fb-row-new {
+  flex-shrink: 0;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: #fde8e8;
+  color: #b42f33;
+  font-size: 11px;
+  font-weight: 800;
 }
 .raft-fb-new {
   display: inline-flex;

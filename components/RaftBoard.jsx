@@ -55,7 +55,7 @@ import {
   placeFeedbackNotes,
   trimFeedbackRange,
 } from "@/lib/raftFeedback";
-import { PENDING_ID, RaftFeedbackIcons, RaftFeedbackPopover, RaftFeedbackText } from "./RaftFeedback";
+import { PENDING_ID, RaftFeedbackButton, RaftFeedbackList, RaftFeedbackPopover, RaftFeedbackText } from "./RaftFeedback";
 
 // 방송할 수 있는 영역 — 네 요소 + 글쓰기
 const REGIONS = [
@@ -268,8 +268,8 @@ export default function RaftBoard({
   );
 
   // ── 피드백 메모(형광펜 + 메모) — 가운데에 연 학생 하나만 구독합니다 ──
-  // 글쓰기 칸에서 드래그하면 형광펜과 메모 창이 열리고, 저장하면 칸 머리('수업 시작'
-  // 왼쪽)에 번호 붙은 메모장 아이콘이 섭니다(lib/raftFeedback.js · RaftFeedback.jsx).
+  // 글쓰기 칸에서 드래그하면 형광펜과 메모 창이 열리고, 저장하면 박스 바깥 위쪽 '글 n자'
+  // 왼쪽의 「피드백 n개」 단추가 그 수를 셉니다 — 누르면 메모 목록(lib/raftFeedback.js · RaftFeedback.jsx).
   const openStudentUid = open?.uid ?? null;
   const [rawFeedback, setRawFeedback] = useState([]);
   useEffect(() => {
@@ -286,7 +286,9 @@ export default function RaftBoard({
   // 열린 메모 창 — { id(새것은 PENDING_ID), range?, anchor(요소) }
   const [fbPop, setFbPop] = useState(null);
   const [fbNote, setFbNote] = useState("");
-  useEffect(() => { setFbPop(null); setFbNote(""); }, [openStudentUid]);
+  // 「피드백 n개」 단추가 연 목록 — 단추 요소(목록 창의 자리)
+  const [fbList, setFbList] = useState(null);
+  useEffect(() => { setFbPop(null); setFbList(null); setFbNote(""); }, [openStudentUid]);
   // 새 범위는 형광펜(<mark data-fid="__new">)이 그려진 뒤에 그 요소에 창을 붙입니다
   useLayoutEffect(() => {
     if (fbPop?.id !== PENDING_ID || fbPop.anchor) return;
@@ -302,11 +304,25 @@ export default function RaftBoard({
       return;
     }
     setFbNote("");
+    setFbList(null);
     setFbPop({ id: PENDING_ID, range, anchor: null });
   }
   function openFeedback(id, el) {
     setFbNote("");
+    setFbList(null);
     setFbPop((p) => (p?.id === id && p.anchor === el ? null : { id, anchor: el }));
+  }
+  function toggleFeedbackList(el) {
+    setFbPop(null);
+    setFbList((cur) => (cur ? null : el));
+  }
+  // 목록에서 한 줄 — 그 형광펜으로 굴러가 메모 창을 엽니다(형광펜이 없으면 단추 옆)
+  function pickFromList(id) {
+    const btn = fbList;
+    setFbList(null);
+    const mark = document.querySelector(`.raft-fb-text mark[data-fid="${id}"]`);
+    mark?.scrollIntoView({ block: "center", behavior: "smooth" });
+    setFbPop({ id, anchor: mark ?? btn });
   }
   const fbOpenNote = fbPop && fbPop.id !== PENDING_ID ? feedback.find((n) => n.id === fbPop.id) ?? null : null;
   const fbQuote = fbPop?.id === PENDING_ID
@@ -442,14 +458,14 @@ export default function RaftBoard({
                         key={r.key}
                         className={`entry-region${text ? " done" : ""}${live ? " live" : ""}${isWriting ? " wide raft-fb-region" : ""}`}
                       >
-                        {/* 박스 바깥 위쪽 오른쪽 — [피드백 메모 아이콘들][글 n자](선생님 요청).
+                        {/* 박스 바깥 위쪽 오른쪽 — [피드백 n개][글 n자](선생님 요청).
                             칸 머리 오른쪽은 '수업 시작'만 둡니다 */}
                         {isWriting && (
                           <div className="raft-outside-tools">
-                            <RaftFeedbackIcons
+                            <RaftFeedbackButton
                               notes={feedback}
-                              activeId={fbPop?.id ?? null}
-                              onPick={openFeedback}
+                              open={!!fbList}
+                              onToggle={toggleFeedbackList}
                             />
                             <span className="book-group-class raft-count-outside">
                               글 {raftWritingChars(openAnswers)}자
@@ -544,7 +560,16 @@ export default function RaftBoard({
       {/* 수업 화면 — 지금 띄우는 것을 교사도 크게 보고, **같은 영역을
           학생별로** 넘기며 그 자리에서 과일을 줍니다. 닫아도 방송은
           그대로이고, 머리말 막대의 '수업 화면 보기'로 다시 엽니다. */}
-      {/* 피드백 메모 창 — 형광펜 · 아이콘 옆에 뜹니다(body에 포털) */}
+      {/* 피드백 목록 · 메모 창 — 단추 · 형광펜 옆에 뜹니다(body에 포털) */}
+      {fbList && open && feedback.length > 0 && (
+        <RaftFeedbackList
+          anchor={fbList}
+          notes={feedback}
+          activeId={fbPop?.id ?? null}
+          onPick={pickFromList}
+          onClose={() => setFbList(null)}
+        />
+      )}
       {fbPop?.anchor && open && (fbPop.id === PENDING_ID || fbOpenNote) && (
         <RaftFeedbackPopover
           anchor={fbPop.anchor}
