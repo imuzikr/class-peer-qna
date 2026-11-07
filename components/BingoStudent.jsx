@@ -5,8 +5,9 @@
 // 가로세로 낱말 퀴즈의 학생 화면(CrosswordGroupStudent)과 같은 세 칸입니다.
 //   왼쪽  — 나의(우리 모둠) 빙고 한눈에(미니맵 · 진행 막대) · 빙고 중에는 가장 앞선
 //           친구(모둠)의 판
-//   가운데 — 나의(우리 모둠) 빙고판. 판 채우기 단계에는 칸을 누르고 오른쪽 낱말을
-//           눌러 채웁니다(모둠은 모둠원이 함께 — 칸 하나씩 저장해 서로 안 덮음).
+//   가운데 — 나의(우리 모둠) 빙고판. 판 채우기 단계에는 오른쪽 낱말을 누르고 넣을 칸을
+//           눌러 채웁니다(칸을 먼저 골라도 됨 · 모둠은 모둠원이 함께 — 칸 하나씩 저장해
+//           서로 안 덮음).
 //           빙고 중에는 굳고, 선생님이 부른 낱말이 저절로 표시됩니다.
 //   오른쪽 — 판 채우기: 낱말 상자 · 빙고 중: 불린 낱말(최근 것이 위)
 // =============================================================
@@ -35,6 +36,8 @@ export default function BingoStudent({ activity, groupId, onBack }) {
   const [groups, setGroups] = useState([]);
   const [rawBoards, setRawBoards] = useState([]);
   const [sel, setSel] = useState(null);
+  // 먼저 고른 낱말 — 그다음 누른 칸에 들어갑니다(선생님 요청: 낱말 → 칸 차례)
+  const [pick, setPick] = useState("");
   const [note, setNote] = useState("");
   const [confirmClear, setConfirmClear] = useState(false);
 
@@ -80,26 +83,29 @@ export default function BingoStudent({ activity, groupId, onBack }) {
       setNote("저장하지 못했어요 — 잠시 뒤 다시 눌러 주세요.");
     }
   }
-  const nextEmpty = (from, list) => {
-    for (let k = 1; k <= BINGO_CELLS; k++) {
-      const i = (from + k) % BINGO_CELLS;
-      if (!list[i]) return i;
-    }
-    return null;
-  };
-
+  // 칸 누르기 — 고른 낱말이 있으면 그 칸에 넣고(이미 든 낱말은 바뀜), 없으면 칸을 고릅니다
+  // (고른 칸은 '칸 비우기' · Delete로 비우거나, 다음에 누른 낱말로 채웁니다).
   function pickCell(i) {
     if (!canEdit) return;
+    if (pick) {
+      write({ [String(i)]: pick });
+      setPick("");
+      setSel(null);
+      return;
+    }
     setSel((cur) => (cur === i ? null : i));
   }
-  function placeWord(word) {
+  // 낱말 누르기 — 칸을 먼저 골라 두었으면 곧바로 그 칸에, 아니면 낱말을 집어 듭니다
+  // (같은 낱말을 다시 누르면 내려놓음). 판에 이미 놓인 낱말은 못 고릅니다.
+  function pickWord(word) {
     if (!canEdit || used.has(word)) return;
-    const at = sel != null ? sel : cells.findIndex((w) => !w);
-    if (at < 0 || at == null) { setNote("빈칸이 없어요. 바꿀 칸을 먼저 눌러 주세요."); return; }
-    write({ [String(at)]: word });
-    const after = [...cells];
-    after[at] = word;
-    setSel(nextEmpty(at, after));
+    if (sel != null) {
+      write({ [String(sel)]: word });
+      setSel(null);
+      setPick("");
+      return;
+    }
+    setPick((cur) => (cur === word ? "" : word));
   }
   function clearCell() {
     if (!canEdit || sel == null || !cells[sel]) return;
@@ -111,12 +117,14 @@ export default function BingoStudent({ activity, groupId, onBack }) {
     if (!Object.keys(set).length) { setNote(mine.filled === BINGO_CELLS ? "이미 다 채웠어요." : "넣을 낱말이 더 없어요."); return; }
     write(set);
     setSel(null);
+    setPick("");
   }
   function clearAll() {
     setConfirmClear(false);
     const del = cells.map((w, i) => (w ? String(i) : null)).filter(Boolean);
     if (del.length) write({}, del);
     setSel(null);
+    setPick("");
   }
 
   // 판 위에서 Delete · Backspace로 고른 칸 비우기
@@ -209,8 +217,8 @@ export default function BingoStudent({ activity, groupId, onBack }) {
             <section className="xw-card">
               <header className="xw-card-head"><h3>이렇게 해요</h3></header>
               <ol className="bingo-how">
-                <li>판의 칸을 누르고, 오른쪽 낱말 상자에서 낱말을 누르면 그 칸에 들어가요.</li>
-                <li>칸을 고르지 않고 낱말을 누르면 앞쪽 빈칸부터 채워요.</li>
+                <li>오른쪽 낱말 상자에서 낱말을 누르고, 판에서 넣을 칸을 누르면 그 칸이 채워져요.</li>
+                <li>이미 채운 칸을 누르면 새 낱말로 바뀌어요. 칸만 눌러 고른 뒤 ‘칸 비우기’로 비울 수도 있어요.</li>
                 <li>선생님이 ‘빙고 시작’을 누르면 판이 굳고, 부르는 낱말이 저절로 표시돼요.</li>
                 {!solo && <li>모둠원이 함께 한 판을 채워요 — 친구가 넣은 낱말도 곧바로 보여요.</li>}
               </ol>
@@ -236,7 +244,7 @@ export default function BingoStudent({ activity, groupId, onBack }) {
             </p>
           )}
           {/* 칸 버튼이 포커스를 가지므로 Delete · Backspace를 여기서 받습니다 */}
-          <div className="bingo-board-wrap" onKeyDown={onBoardKey}>
+          <div className={`bingo-board-wrap${pick ? " picking" : ""}`} onKeyDown={onBoardKey}>
             <BingoGrid
               cells={cells}
               marked={mine.marked}
@@ -250,11 +258,13 @@ export default function BingoStudent({ activity, groupId, onBack }) {
             <div className="xw-gen-row">
               <div className="xw-gen-inner">
               <span className="xw-gen-note">
-                {sel != null
-                  ? selWord
-                    ? <>고른 칸: <strong>{selWord}</strong> — 다른 낱말을 누르면 바뀌어요.</>
-                    : "고른 칸이 비어 있어요 — 오른쪽 낱말을 눌러 넣으세요."
-                  : "칸을 눌러 고르거나, 낱말을 눌러 앞쪽 빈칸부터 채워요."}
+                {pick
+                  ? <>고른 낱말: <strong>{pick}</strong> — 판에서 넣을 칸을 누르세요.</>
+                  : sel != null
+                    ? selWord
+                      ? <>고른 칸: <strong>{selWord}</strong> — 낱말을 누르면 바뀌어요.</>
+                      : "고른 칸이 비어 있어요 — 오른쪽 낱말을 눌러 넣으세요."
+                    : "오른쪽에서 낱말을 누르고, 넣을 칸을 누르세요."}
               </span>
               <div className="xw-gen-btns">
                 <button type="button" className="xw-gen-btn xw-gen-btn--off" onClick={clearCell} disabled={sel == null || !selWord}>
@@ -311,7 +321,7 @@ export default function BingoStudent({ activity, groupId, onBack }) {
                 <span className="xw-badge">{bingo.words.length}개</span>
               </header>
               <p className="xw-card-note">
-                {activity.sourceTitle ? `‘${activity.sourceTitle}’에 나온 낱말이에요. ` : ""}판에 넣은 낱말은 흐리게 보여요.
+                우리 반 친구들이 {activity.sourceTitle ? `‘${activity.sourceTitle}’` : "닿소리 채우기"}에 쓴 낱말 전부예요. 낱말을 누르고 판에서 넣을 칸을 누르세요. 판에 넣은 낱말은 흐리게 보여요.
               </p>
               {bingo.words.length === 0 ? (
                 <p className="xw-empty">낱말 상자가 비어 있어요. 선생님께 말씀해 주세요.</p>
@@ -321,9 +331,10 @@ export default function BingoStudent({ activity, groupId, onBack }) {
                     <button
                       key={w}
                       type="button"
-                      className={`bingo-chip${used.has(w) ? " used" : ""}`}
-                      onClick={() => placeWord(w)}
+                      className={`bingo-chip${used.has(w) ? " used" : ""}${pick === w ? " on" : ""}`}
+                      onClick={() => pickWord(w)}
                       disabled={!canEdit || used.has(w)}
+                      aria-pressed={pick === w}
                     >
                       {w}
                     </button>

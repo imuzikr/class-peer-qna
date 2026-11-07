@@ -145,6 +145,10 @@
 .bingo-chip:hover:not(:disabled) { border-color: var(--primary); }
 .bingo-chip:disabled { cursor: default; }
 .bingo-chip.used { opacity: 0.4; text-decoration: line-through; }
+/* 집어 든 낱말 — 다음에 누른 칸에 들어갑니다. 그동안 판의 칸에 살구 테두리를 띄워 '여기를 누르세요' */
+.bingo-chip.on { background: var(--primary); border-color: var(--primary); color: #fff; }
+.bingo-board-wrap.picking .bingo-cell:not(:disabled) { border-color: var(--primary); border-style: dashed; }
+.bingo-board-wrap.picking .bingo-cell.filled:not(:disabled) { border-style: solid; }
 .bingo-chip.called { background: #e8f7ed; border-color: #a6d8b6; color: #2f7a45; }
 .bingo-chip.last { background: var(--primary); border-color: var(--primary); color: #fff; }
 .bingo-chip-no {
