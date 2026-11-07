@@ -1745,6 +1745,43 @@ service cloud.firestore {
                       && !isBookActivityLocked(aId);
         // 지우기는 담당 교사만 — 학생이 실수로 제출물을 통째로 날리지 못하게
         allow delete: if isAdmin() || ownsBookActivityEditable(aId);
+
+        // ── RAFT 글쓰기 — 교사 피드백 메모(형광펜 + 메모) ──
+        // 경로의 sId가 그 글의 학생입니다. [읽기] 그 학생 · 담당 교사(모둠 친구는 못 봄)
+        // [쓰기 · 지우기] 담당 교사만 — 모양을 못 박고(lib/raftFeedback.js의 천장과 같아야),
+        //   만들 때 rev 1 · seenRev 0, 고칠 때 rev를 하나 올리고 seenRev는 그대로.
+        // [학생] '봤다' 한 칸만(seenRev = rev) — 잠긴 활동에서도 엽니다(피드백을 남길 때
+        //   교사가 활동을 잠그는 것이 약속이라, 잠김을 따지면 '새 피드백' 점이 안 꺼집니다).
+        match /raftFeedback/{fId} {
+          function feedbackShapeOk() {
+            let d = request.resource.data;
+            return d.keys().hasOnly(['activityId','studentUid','start','end','quote','text','rev','seenRev','byUid','createdAt','updatedAt'])
+                   && d.activityId == aId
+                   && d.studentUid == sId
+                   && d.start is int && d.end is int
+                   && d.start >= 0 && d.end > d.start && d.end <= 50000
+                   && d.quote is string && d.quote.size() > 0 && d.quote.size() <= 3000
+                   && d.text is string && d.text.size() > 0 && d.text.size() <= 500
+                   && d.rev is int && d.seenRev is int
+                   && d.byUid == uid();
+          }
+          allow read: if signedIn() && (isAdmin() || ownsBookActivity(aId) || sId == uid());
+          allow create: if signedIn()
+                        && (isAdmin() || ownsBookActivityEditable(aId))
+                        && feedbackShapeOk()
+                        && request.resource.data.rev == 1
+                        && request.resource.data.seenRev == 0;
+          allow update: if signedIn() && (
+            ((isAdmin() || ownsBookActivityEditable(aId))
+              && feedbackShapeOk()
+              && changedOnly(['text','rev','byUid','updatedAt'])
+              && request.resource.data.rev == resource.data.rev + 1)
+            || (sId == uid()
+              && changedOnly(['seenRev'])
+              && request.resource.data.seenRev == resource.data.rev)
+          );
+          allow delete: if isAdmin() || ownsBookActivityEditable(aId);
+        }
       }
 
       // ── 내 생각은요... — 반 전체가 함께 쓰는 메모판 ─────────────────
@@ -2045,6 +2082,11 @@ service cloud.firestore {
     //   셉니다 — subscribeMyOpinionReplies). 경로 규칙의 반 전체 읽기보다 좁습니다.
     match /{path=**}/opinionNotes/{nId} {
       allow read: if signedIn() && resource.data.authorId == uid();
+    }
+    // · raftFeedback: RAFT 교사 피드백 메모 — 제 글에 달린 것만(상단바 알림 벨이 안 본
+    //   메모를 셉니다 — subscribeMyNewRaftFeedback). 경로 규칙과 같은 범위(학생 본인).
+    match /{path=**}/raftFeedback/{fId} {
+      allow read: if signedIn() && resource.data.studentUid == uid();
     }
     match /{path=**}/answers/{aId} {
       allow read: if signedIn();

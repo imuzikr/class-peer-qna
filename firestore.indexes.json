@@ -197,6 +197,25 @@
           "queryScope": "COLLECTION_GROUP"
         }
       ]
+    },
+    {
+      "//": "subscribeMyNewRaftFeedback — 상단바 알림 벨의 RAFT 교사 피드백: collectionGroup raftFeedback, studentUid== (코드보다 먼저 배포). 컬렉션 범위도 함께 적어 둡니다 — 단일 필드 예외는 그 필드의 자동 색인을 통째로 갈아 끼웁니다",
+      "collectionGroup": "raftFeedback",
+      "fieldPath": "studentUid",
+      "indexes": [
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION"
+        },
+        {
+          "order": "DESCENDING",
+          "queryScope": "COLLECTION"
+        },
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION_GROUP"
+        }
+      ]
     }
   ]
 }

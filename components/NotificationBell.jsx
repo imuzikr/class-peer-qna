@@ -8,6 +8,8 @@
 //  · groupMemos 중 내가 받은 안 읽은 것 — 모둠 친구가 직접 씁니다
 //  · '내 생각은요' 내 메모 중 안 본 선생님 댓글 — 교사가 메모 문서에 씁니다
 //    (subscribeMyOpinionReplies · 읽음은 그 메모의 replySeenAt)
+//  · RAFT 글쓰기 — 내 글에 선생님이 남긴 피드백 메모 중 안 본 것
+//    (subscribeMyNewRaftFeedback · 읽음은 그 메모의 seenRev = rev)
 //
 // 왜 나뉘어 있나: 알림함은 **본인만** 읽고 쓸 수 있게 잠가 둔 자리라
 // (교사도 못 읽습니다) 학생끼리 서로의 알림함에 쓰게 열 수 없습니다.
@@ -25,6 +27,8 @@ import {
   subscribeMyUnreadMemos,
   subscribeMyOpinionReplies,
   markOpinionReplySeen,
+  subscribeMyNewRaftFeedback,
+  markRaftFeedbackSeen,
   markGroupMemoRead,
   markNotificationRead,
   markAllNotificationsRead,
@@ -40,6 +44,7 @@ const LABELS = {
   class_notice: { icon: "📢", text: "선생님 공지" },
   group_memo: { icon: "✉️", text: "모둠 친구의 메모" },
   opinion_reply: { icon: "💬", text: "내 생각에 선생님 댓글" },
+  raft_feedback: { icon: "📝", text: "내 글에 선생님 피드백" },
 };
 
 export default function NotificationBell({ uid }) {
@@ -47,6 +52,7 @@ export default function NotificationBell({ uid }) {
   const [notifs, setNotifs] = useState([]);
   const [memos, setMemos] = useState([]);
   const [replies, setReplies] = useState([]);
+  const [feedbacks, setFeedbacks] = useState([]);
   const [open, setOpen] = useState(false);
   const wrapRef = useRef(null);
 
@@ -63,6 +69,11 @@ export default function NotificationBell({ uid }) {
   useEffect(() => {
     if (!uid) { setReplies([]); return; }
     return subscribeMyOpinionReplies(uid, setReplies);
+  }, [uid]);
+
+  useEffect(() => {
+    if (!uid) { setFeedbacks([]); return; }
+    return subscribeMyNewRaftFeedback(uid, setFeedbacks);
   }, [uid]);
 
   // 두 갈래를 한 목록으로 — 최신순. 메모는 알림함 문서가 아니므로 여기서
@@ -91,10 +102,21 @@ export default function NotificationBell({ uid }) {
       text: String(r.reply ?? ""),
       original: String(r.text ?? ""),
     }));
-    return [...a, ...b, ...c].sort(
+    // RAFT 피드백 메모 — 줄에는 칠한 부분(내 글)과 메모 글(선생님 댓글과 같은 모양)
+    const d = feedbacks.map((f) => ({
+      id: f.id,
+      _src: "raft",
+      type: "raft_feedback",
+      createdAt: f.updatedAt ?? f.createdAt,
+      activityId: f.activityId,
+      rev: f.rev,
+      text: String(f.text ?? ""),
+      original: String(f.quote ?? ""),
+    }));
+    return [...a, ...b, ...c, ...d].sort(
       (x, y) => (toDate(y.createdAt)?.getTime() ?? 0) - (toDate(x.createdAt)?.getTime() ?? 0)
     );
-  }, [notifs, memos, replies]);
+  }, [notifs, memos, replies, feedbacks]);
 
   // 읽은 지 오래된 알림 정리 — 접속할 때 한 번, 자기 것만. 화면에는 최근
   // 20개만 보여서 눈에 안 띌 뿐 문서는 계속 쌓입니다(반 공지가 생기면서
@@ -138,6 +160,13 @@ export default function NotificationBell({ uid }) {
       router.push(`/books?activity=${n.activityId}&note=${n.id}`);
       return;
     }
+    // RAFT 피드백 — 그 활동(내 글)으로 갑니다. 읽음은 그 화면에서 메모를 열 때('새 피드백' 점과 같은 칸)
+    if (n._src === "raft") {
+      if (!n.activityId) return;
+      setOpen(false);
+      router.push(`/books?activity=${n.activityId}`);
+      return;
+    }
     // 반 공지는 열어 볼 글이 없습니다 — 내용이 알림 자체에 다 들어 있습니다.
     if (n.type === "class_notice" || !n.questionId) return;
     setOpen(false);
@@ -150,6 +179,7 @@ export default function NotificationBell({ uid }) {
     e.stopPropagation();
     if (n._src === "memo") markGroupMemoRead(n.id).catch(() => {});
     else if (n._src === "opinion") markOpinionReplySeen(n.activityId, n.id).catch(() => {});
+    else if (n._src === "raft") markRaftFeedbackSeen(n.activityId, uid, n.id, n.rev).catch(() => {});
     else markNotificationRead(uid, n.id).catch(() => {});
   }
 
@@ -161,6 +191,7 @@ export default function NotificationBell({ uid }) {
         markAllNotificationsRead(uid),
         ...memos.map((m) => markGroupMemoRead(m.id)),
         ...replies.map((r) => markOpinionReplySeen(r.activityId, r.id)),
+        ...feedbacks.map((f) => markRaftFeedbackSeen(f.activityId, uid, f.id, f.rev)),
       ]);
     } catch {
       /* 실패하면 목록이 그대로 남습니다 — 다시 누르면 됩니다 */
@@ -185,7 +216,7 @@ export default function NotificationBell({ uid }) {
       </button>
 
       {open && (
-        <div className={`notif-dropdown${replies.length ? " notif-dropdown--wide" : ""}`} role="menu">
+        <div className={`notif-dropdown${replies.length || feedbacks.length ? " notif-dropdown--wide" : ""}`} role="menu">
           {items.length === 0 ? (
             <p className="notif-empty">읽지 않은 알림이 없어요.</p>
           ) : (
@@ -205,7 +236,7 @@ export default function NotificationBell({ uid }) {
               {items.map((n) => {
                 const label = LABELS[n.type] ?? { icon: "🔔", text: "알림" };
                 const isMemo = n._src === "memo";
-                const isReply = n._src === "opinion";
+                const isReply = n._src === "opinion" || n._src === "raft";
                 // 반 공지 · 모둠 메모 · 선생님 댓글은 본문이 알림 줄에 그대로 들어갑니다
                 const isNotice = n.type === "class_notice" || isMemo || isReply;
                 // 반 공지는 열어 볼 글이 없어 눌러도 갈 곳이 없습니다 —
@@ -224,7 +255,7 @@ export default function NotificationBell({ uid }) {
                       <span className="notif-op-text">{n.original || "(내용 없음)"}</span>
                     </span>
                     <span className="notif-op-block notif-op-block--reply">
-                      <span className="notif-op-label">선생님 댓글</span>
+                      <span className="notif-op-label">{n._src === "raft" ? "선생님 피드백" : "선생님 댓글"}</span>
                       <span className="notif-op-text">{n.text}</span>
                     </span>
                   </>
