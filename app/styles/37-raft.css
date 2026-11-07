@@ -139,21 +139,24 @@
    교사 피드백 메모 — 형광펜 + 메모장 아이콘 + 메모 창 (RaftFeedback.jsx)
    교사 RaftBoard의 글쓰기 칸(.entry-region.raft-fb-region) · 학생 RaftForm(.raft-write.raft-fb-region)
    ============================================================= */
-/* 글자 수 알약은 박스 바깥 위쪽 오른쪽(선생님 요청) — 칸 머리 오른쪽을 메모 아이콘 ·
-   '수업 시작'에 내주고, 글도 안 가립니다. 알약 높이만큼 박스를 내려 위 칸과 안 겹치게. */
+/* 박스 바깥 위쪽 오른쪽 한 줄 — [피드백 메모 아이콘들][글 n자](선생님 요청 — 교사 · 학생 같음).
+   한때 메모 아이콘은 칸 머리 '수업 시작' 왼쪽이었는데, 글자 수 옆으로 모았습니다. 글을 안
+   가리고, 칸 머리는 제목 · '수업 시작'(학생은 저장 표시)만 남습니다. 줄 높이(아이콘 30px)만큼
+   박스를 내려 위 칸과 안 겹치게 합니다. 아이콘이 많아 한 줄을 넘으면 위로 줄을 더 쌓습니다. */
 .raft-fb-region { position: relative; }
-.entry-region.raft-fb-region { margin-top: 26px; }
-.raft-write.raft-fb-region { margin-top: 40px; }
-.raft-count-outside {
+.entry-region.raft-fb-region { margin-top: 32px; }
+.raft-write.raft-fb-region { margin-top: 46px; }
+.raft-outside-tools {
   position: absolute;
   right: 2px;
-  bottom: calc(100% + 6px);
-  flex-shrink: 0;
+  bottom: calc(100% + 4px);
+  max-width: calc(100% - 4px);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
 }
-/* 칸 머리 — [제목] … [메모 아이콘들][수업 시작]. 아이콘 묶음이 오른쪽으로 밀고, 방송
-   단추는 그 바로 뒤에 붙습니다(아이콘이 없어도 묶음 자리가 밀어 주므로 단추는 오른쪽 끝). */
-.entry-region .paratext-card-head .raft-fb-head-tools { margin-left: auto; display: inline-flex; align-items: center; min-width: 0; }
-.entry-region .paratext-card-head .raft-fb-head-tools + .dash-cast-btn { margin-left: 0; }
+.raft-count-outside { flex-shrink: 0; }
 .raft-write-head .raft-write-meta { margin-left: auto; }
 
 .raft-fb-icons { display: inline-flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; }

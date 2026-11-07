@@ -442,12 +442,19 @@ export default function RaftBoard({
                         key={r.key}
                         className={`entry-region${text ? " done" : ""}${live ? " live" : ""}${isWriting ? " wide raft-fb-region" : ""}`}
                       >
-                        {/* 글자 수는 박스 바깥 위쪽 오른쪽(선생님 요청) — 칸 머리 오른쪽은
-                            피드백 메모 아이콘 · '수업 시작' 자리입니다 */}
+                        {/* 박스 바깥 위쪽 오른쪽 — [피드백 메모 아이콘들][글 n자](선생님 요청).
+                            칸 머리 오른쪽은 '수업 시작'만 둡니다 */}
                         {isWriting && (
-                          <span className="book-group-class raft-count-outside">
-                            글 {raftWritingChars(openAnswers)}자
-                          </span>
+                          <div className="raft-outside-tools">
+                            <RaftFeedbackIcons
+                              notes={feedback}
+                              activeId={fbPop?.id ?? null}
+                              onPick={openFeedback}
+                            />
+                            <span className="book-group-class raft-count-outside">
+                              글 {raftWritingChars(openAnswers)}자
+                            </span>
+                          </div>
                         )}
                         <header className="paratext-card-head">
                           {r.letter && (
@@ -457,16 +464,6 @@ export default function RaftBoard({
                             <strong>{r.ko}</strong>
                             {r.en && <em>{r.en}</em>}
                           </span>
-                          {/* 글쓰기 칸만 — 피드백 메모 아이콘('수업 시작' 바로 왼쪽, 글을 안 가리게) */}
-                          {isWriting && (
-                            <span className="raft-fb-head-tools">
-                              <RaftFeedbackIcons
-                                notes={feedback}
-                                activeId={fbPop?.id ?? null}
-                                onPick={openFeedback}
-                              />
-                            </span>
-                          )}
                           {cast.canCast && (
                             <button
                               type="button"

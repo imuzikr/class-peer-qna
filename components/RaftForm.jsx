@@ -380,19 +380,21 @@ export default function RaftForm({ activity, user, onBack }) {
           </div>
 
           <section className="raft-write raft-fb-region">
-            {/* 글자 수는 박스 바깥 위쪽 오른쪽(선생님 요청 — 교사 화면과 같은 자리 · 같은 알약) */}
-            <span className="book-group-class raft-count-outside">글 {chars}자</span>
+            {/* 박스 바깥 위쪽 오른쪽 — [피드백 메모 아이콘들][글 n자](선생님 요청 — 교사 화면과 같은 자리) */}
+            <div className="raft-outside-tools">
+              <RaftFeedbackIcons
+                notes={feedback}
+                activeId={fbPop?.id ?? null}
+                onPick={openFeedback}
+                isNew={isRaftFeedbackNew}
+              />
+              <span className="book-group-class raft-count-outside">글 {chars}자</span>
+            </div>
             <header className="raft-write-head">
               <strong>{RAFT_WRITING.ko}</strong>
               {newFeedback > 0 && <span className="raft-fb-new">새 피드백 {newFeedback}</span>}
               <span className="raft-write-meta">
                 <SaveMark state={cardStatus[RAFT_WRITING.key]} />
-                <RaftFeedbackIcons
-                  notes={feedback}
-                  activeId={fbPop?.id ?? null}
-                  onPick={openFeedback}
-                  isNew={isRaftFeedbackNew}
-                />
               </span>
             </header>
             <p className="raft-col-prompt">
