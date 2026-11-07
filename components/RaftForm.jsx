@@ -20,7 +20,11 @@ import {
   subscribeMyPeerReviews,
   subscribeReceivedPeerReviews,
   subscribeGroupPeerReviews,
+  subscribeRaftFeedback,
+  markRaftFeedbackSeen,
 } from "@/lib/store";
+import { isRaftFeedbackNew, normalizeRaftFeedback, placeFeedbackNotes } from "@/lib/raftFeedback";
+import { RaftFeedbackIcons, RaftFeedbackPopover, RaftFeedbackText } from "./RaftFeedback";
 import TopicAskModal from "./TopicAskModal";
 import {
   RAFT_COLUMNS,
@@ -184,6 +188,32 @@ export default function RaftForm({ activity, user, onBack }) {
   const planCount = useMemo(() => raftPlanCount(answers), [answers]);
   const planDone = planCount === RAFT_COLUMN_COUNT;
   const chars = raftWritingChars(answers);
+
+  // ── 선생님 피드백 메모 — 읽기만. 안 본 메모(새 피드백)에는 아이콘에 점이 섭니다 ──
+  const myUid = user?.uid ?? null;
+  const [rawFeedback, setRawFeedback] = useState([]);
+  useEffect(() => {
+    if (!myUid) { setRawFeedback([]); return undefined; }
+    return subscribeRaftFeedback(activity.id, myUid, setRawFeedback);
+  }, [activity.id, myUid]);
+  const writingRaw = String(answers[RAFT_WRITING.key] ?? "");
+  const feedback = useMemo(
+    () => placeFeedbackNotes(writingRaw, rawFeedback.map((x) => normalizeRaftFeedback(x, x.id))),
+    [writingRaw, rawFeedback]
+  );
+  const newFeedback = feedback.filter(isRaftFeedbackNew).length;
+  const [fbPop, setFbPop] = useState(null); // { id, anchor }
+  const fbOpenNote = fbPop ? feedback.find((n) => n.id === fbPop.id) ?? null : null;
+  function openFeedback(id, el) {
+    setFbPop((p) => (p?.id === id && p.anchor === el ? null : { id, anchor: el }));
+    const n = feedback.find((x) => x.id === id);
+    // 열어 본 순간 '봤다' — 선생님이 고치면(rev가 오르면) 다시 새 피드백이 됩니다
+    if (n && isRaftFeedbackNew(n)) markRaftFeedbackSeen(activity.id, myUid, n.id, n.rev).catch(() => {});
+  }
+  // 피드백이 있고 활동이 잠겼으면(선생님이 피드백을 남길 때 잠급니다) 글을 형광펜과 함께
+  // 읽기 화면으로 보여 줍니다 — 형광펜을 눌러도 메모가 열립니다. 잠기지 않았으면 지금처럼
+  // 쓰는 칸이고, 메모는 아이콘으로 엽니다(칠한 부분은 메모 창 위에 그대로 보임).
+  const showMarked = locked && feedback.length > 0;
 
   return (
     <main className="books-main raft-main">
@@ -349,13 +379,20 @@ export default function RaftForm({ activity, user, onBack }) {
             ))}
           </div>
 
-          <section className="raft-write">
+          <section className="raft-write raft-fb-region">
+            {/* 글자 수는 박스 바깥 위쪽 오른쪽(선생님 요청 — 교사 화면과 같은 자리 · 같은 알약) */}
+            <span className="book-group-class raft-count-outside">글 {chars}자</span>
             <header className="raft-write-head">
               <strong>{RAFT_WRITING.ko}</strong>
+              {newFeedback > 0 && <span className="raft-fb-new">새 피드백 {newFeedback}</span>}
               <span className="raft-write-meta">
                 <SaveMark state={cardStatus[RAFT_WRITING.key]} />
-                {/* 교사 화면 글쓰기 칸 머리의 '글 n자'와 같은 알약 */}
-                <span className="book-group-class raft-write-count">글 {chars}자</span>
+                <RaftFeedbackIcons
+                  notes={feedback}
+                  activeId={fbPop?.id ?? null}
+                  onPick={openFeedback}
+                  isNew={isRaftFeedbackNew}
+                />
               </span>
             </header>
             <p className="raft-col-prompt">
@@ -363,14 +400,36 @@ export default function RaftForm({ activity, user, onBack }) {
                 ? RAFT_WRITING.prompt
                 : "먼저 위 네 칸을 정하면 무엇을 쓸지 뚜렷해집니다."}
             </p>
-            <textarea
-              rows={14}
-              value={answers[RAFT_WRITING.key] ?? ""}
-              onChange={(e) => edit(RAFT_WRITING.key, e.target.value)}
-              placeholder={RAFT_WRITING.placeholder}
-              disabled={locked}
-            />
+            {showMarked ? (
+              <RaftFeedbackText
+                text={writingRaw}
+                notes={feedback}
+                activeId={fbPop?.id ?? null}
+                onOpenNote={openFeedback}
+              />
+            ) : (
+              <textarea
+                rows={14}
+                value={answers[RAFT_WRITING.key] ?? ""}
+                onChange={(e) => edit(RAFT_WRITING.key, e.target.value)}
+                placeholder={RAFT_WRITING.placeholder}
+                disabled={locked}
+              />
+            )}
+            {feedback.length > 0 && (
+              <p className="raft-fb-help">
+                선생님이 남긴 피드백이 {feedback.length}개 있어요. 메모장 아이콘{showMarked ? "이나 형광펜" : ""}을 누르면 읽을 수 있어요.
+              </p>
+            )}
           </section>
+          {fbOpenNote && fbPop?.anchor && (
+            <RaftFeedbackPopover
+              anchor={fbPop.anchor}
+              note={fbOpenNote}
+              quote={fbOpenNote.quote}
+              onClose={() => setFbPop(null)}
+            />
+          )}
         </>
       )}
 

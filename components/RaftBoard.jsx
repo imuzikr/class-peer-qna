@@ -13,9 +13,13 @@
 // 방송에는 '나는 …이 되어, …에게, … 형식으로' 문장을 함께 실어, 낱말 하나만
 // 크게 떠서 무슨 말인지 모르는 일이 없게 합니다.
 // =============================================================
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import {
   subscribeParatextEntries,
+  subscribeRaftFeedback,
+  addRaftFeedback,
+  updateRaftFeedback,
+  deleteRaftFeedback,
   subscribeAllPeerReviews,
   setPeerReviewLocked,
   composeBookGroups,
@@ -45,6 +49,13 @@ import { PeerReviewList, PeerReviewRow, peerReviewSlots } from "./PeerReviewModa
 import { isGroupedActivity, useBookGroups, isPeerReviewOpen, myBookGroup, groupMembers } from "@/lib/bookGroups";
 import BookBoardHead, { BOOK_NO_STUDENTS } from "./BookHeadParts";
 import { OVERVIEW_CAST_KEY, buildOverviewCast } from "@/lib/overviewCast";
+import {
+  feedbackOverlaps,
+  normalizeRaftFeedback,
+  placeFeedbackNotes,
+  trimFeedbackRange,
+} from "@/lib/raftFeedback";
+import { PENDING_ID, RaftFeedbackIcons, RaftFeedbackPopover, RaftFeedbackText } from "./RaftFeedback";
 
 // 방송할 수 있는 영역 — 네 요소 + 글쓰기
 const REGIONS = [
@@ -256,6 +267,75 @@ export default function RaftBoard({
     [reviews, open]
   );
 
+  // ── 피드백 메모(형광펜 + 메모) — 가운데에 연 학생 하나만 구독합니다 ──
+  // 글쓰기 칸에서 드래그하면 형광펜과 메모 창이 열리고, 저장하면 칸 머리('수업 시작'
+  // 왼쪽)에 번호 붙은 메모장 아이콘이 섭니다(lib/raftFeedback.js · RaftFeedback.jsx).
+  const openStudentUid = open?.uid ?? null;
+  const [rawFeedback, setRawFeedback] = useState([]);
+  useEffect(() => {
+    setRawFeedback([]);
+    if (!openStudentUid) return undefined;
+    return subscribeRaftFeedback(activity.id, openStudentUid, setRawFeedback);
+  }, [activity.id, openStudentUid]);
+  // 글자 차례가 맞으려면 **다듬지 않은 원문**이어야 합니다(앞 빈칸을 걷으면 어긋남)
+  const writingRaw = String(openAnswers[RAFT_WRITING.key] ?? "");
+  const feedback = useMemo(
+    () => placeFeedbackNotes(writingRaw, rawFeedback.map((x) => normalizeRaftFeedback(x, x.id))),
+    [writingRaw, rawFeedback]
+  );
+  // 열린 메모 창 — { id(새것은 PENDING_ID), range?, anchor(요소) }
+  const [fbPop, setFbPop] = useState(null);
+  const [fbNote, setFbNote] = useState("");
+  useEffect(() => { setFbPop(null); setFbNote(""); }, [openStudentUid]);
+  // 새 범위는 형광펜(<mark data-fid="__new">)이 그려진 뒤에 그 요소에 창을 붙입니다
+  useLayoutEffect(() => {
+    if (fbPop?.id !== PENDING_ID || fbPop.anchor) return;
+    const el = document.querySelector(`.raft-fb-text mark[data-fid="${PENDING_ID}"]`);
+    if (el) setFbPop((p) => (p && p.id === PENDING_ID ? { ...p, anchor: el } : p));
+  }, [fbPop]);
+
+  function selectFeedbackRange(s, e) {
+    const range = trimFeedbackRange(writingRaw, s, e);
+    if (!range) return;
+    if (feedbackOverlaps(feedback.map((n) => n.range), range[0], range[1])) {
+      setFbNote("이미 메모가 있는 부분이에요 — 겹치지 않게 골라 주세요.");
+      return;
+    }
+    setFbNote("");
+    setFbPop({ id: PENDING_ID, range, anchor: null });
+  }
+  function openFeedback(id, el) {
+    setFbNote("");
+    setFbPop((p) => (p?.id === id && p.anchor === el ? null : { id, anchor: el }));
+  }
+  const fbOpenNote = fbPop && fbPop.id !== PENDING_ID ? feedback.find((n) => n.id === fbPop.id) ?? null : null;
+  const fbQuote = fbPop?.id === PENDING_ID
+    ? writingRaw.slice(fbPop.range[0], fbPop.range[1])
+    : fbOpenNote?.quote ?? "";
+  // 메모가 지워지면(다른 기기 포함) 창도 닫습니다
+  useEffect(() => {
+    if (fbPop && fbPop.id !== PENDING_ID && !fbOpenNote) setFbPop(null);
+  }, [fbPop, fbOpenNote]);
+
+  async function saveFeedback(text) {
+    if (!open || !fbPop) return;
+    if (fbPop.id === PENDING_ID) {
+      const [start, end] = fbPop.range;
+      await addRaftFeedback(activity.id, open.uid, { start, end, quote: writingRaw.slice(start, end), text }, user);
+      onToast?.("피드백 메모를 남겼어요.");
+    } else if (fbOpenNote) {
+      await updateRaftFeedback(activity.id, open.uid, fbOpenNote.id, text, fbOpenNote.rev, user);
+      onToast?.("피드백 메모를 고쳤어요.");
+    }
+    setFbPop(null);
+  }
+  async function removeFeedback() {
+    if (!open || !fbOpenNote) return;
+    await deleteRaftFeedback(activity.id, open.uid, fbOpenNote.id);
+    setFbPop(null);
+    onToast?.("피드백 메모를 지웠어요.");
+  }
+
   return (
     <main className="books-main book-workspace-main book-entry-workspace-main">
       {/* 머리말 — 독서 활동 교사 화면이 모두 같은 조각 · 같은 차례입니다(BookBoardHead). */}
@@ -360,8 +440,15 @@ export default function RaftBoard({
                     return (
                       <section
                         key={r.key}
-                        className={`entry-region${text ? " done" : ""}${live ? " live" : ""}${isWriting ? " wide" : ""}`}
+                        className={`entry-region${text ? " done" : ""}${live ? " live" : ""}${isWriting ? " wide raft-fb-region" : ""}`}
                       >
+                        {/* 글자 수는 박스 바깥 위쪽 오른쪽(선생님 요청) — 칸 머리 오른쪽은
+                            피드백 메모 아이콘 · '수업 시작' 자리입니다 */}
+                        {isWriting && (
+                          <span className="book-group-class raft-count-outside">
+                            글 {raftWritingChars(openAnswers)}자
+                          </span>
+                        )}
                         <header className="paratext-card-head">
                           {r.letter && (
                             <span className="paratext-letter" aria-hidden="true">{r.letter}</span>
@@ -370,10 +457,14 @@ export default function RaftBoard({
                             <strong>{r.ko}</strong>
                             {r.en && <em>{r.en}</em>}
                           </span>
-                          {/* 글쓰기 칸만 — 글자 수를 칸 머리 오른쪽에(위 머리줄의 '글 n자'와 같은 셈 · 같은 알약) */}
+                          {/* 글쓰기 칸만 — 피드백 메모 아이콘('수업 시작' 바로 왼쪽, 글을 안 가리게) */}
                           {isWriting && (
-                            <span className="book-group-class entry-region-count">
-                              글 {raftWritingChars(openAnswers)}자
+                            <span className="raft-fb-head-tools">
+                              <RaftFeedbackIcons
+                                notes={feedback}
+                                activeId={fbPop?.id ?? null}
+                                onPick={openFeedback}
+                              />
                             </span>
                           )}
                           {cast.canCast && (
@@ -393,9 +484,27 @@ export default function RaftBoard({
                           )}
                         </header>
                         <div className="entry-region-body">
-                          <p className={`paratext-read-text${text ? "" : " empty"}`}>
-                            {text || "아직 쓰지 않았어요"}
-                          </p>
+                          {isWriting ? (
+                            <>
+                              <RaftFeedbackText
+                                text={writingRaw}
+                                notes={feedback}
+                                pending={fbPop?.id === PENDING_ID ? fbPop.range : null}
+                                activeId={fbPop?.id ?? null}
+                                onSelectRange={selectFeedbackRange}
+                                onOpenNote={openFeedback}
+                              />
+                              <p className={`raft-fb-help${fbNote ? " warn" : ""}`}>
+                                {fbNote || (text
+                                  ? "피드백할 부분을 드래그하면 형광펜이 칠해지고 메모를 남길 수 있어요. 학생이 글을 고치지 못하게 활동을 잠근 뒤 남기세요."
+                                  : "")}
+                              </p>
+                            </>
+                          ) : (
+                            <p className={`paratext-read-text${text ? "" : " empty"}`}>
+                              {text || "아직 쓰지 않았어요"}
+                            </p>
+                          )}
                         </div>
                       </section>
                     );
@@ -438,6 +547,19 @@ export default function RaftBoard({
       {/* 수업 화면 — 지금 띄우는 것을 교사도 크게 보고, **같은 영역을
           학생별로** 넘기며 그 자리에서 과일을 줍니다. 닫아도 방송은
           그대로이고, 머리말 막대의 '수업 화면 보기'로 다시 엽니다. */}
+      {/* 피드백 메모 창 — 형광펜 · 아이콘 옆에 뜹니다(body에 포털) */}
+      {fbPop?.anchor && open && (fbPop.id === PENDING_ID || fbOpenNote) && (
+        <RaftFeedbackPopover
+          anchor={fbPop.anchor}
+          note={fbOpenNote}
+          quote={fbQuote}
+          canEdit
+          onSave={saveFeedback}
+          onDelete={removeFeedback}
+          onClose={() => setFbPop(null)}
+        />
+      )}
+
       {stageOpen && cast.target && castCard && castIndex >= 0 && (
         <CastStageModal
           payload={livePayload}

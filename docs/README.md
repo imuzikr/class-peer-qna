@@ -27,7 +27,7 @@
 | `studyBoards` · `studyTemplates` · `studyBoards/{id}/cards` | [study.md](study.md) |
 | `kwl` · `classes/{cId}/cornellNotes` · `lessonMemos` · `classes/{cId}.task` | [lesson.md](lesson.md) |
 | `bookActivities` (휴지통 · `grouped` · `peerReviews` · `entries`) | [books.md](books.md) |
-| `bookActivities/{id}/groups/{gId}/words` · `opinionNotes` · `hashtagPosts` · `hashtagComments` · `xwHints` · `xwBoard` · `xwProgress` · `xwSolves` · `bwNotes` | [books-activities.md](books-activities.md) |
+| `bookActivities/{id}/groups/{gId}/words` · `opinionNotes` · `hashtagPosts` · `hashtagComments` · `xwHints` · `xwBoard` · `xwProgress` · `xwSolves` · `bwNotes` · `entries/{uid}/raftFeedback` | [books-activities.md](books-activities.md) |
 | `rewards` · `rewardEvents` · `fruitBasket` · `fruitEvents` · `seatLayouts` · `groupAssignments` · `groupMemos` · `attendanceRecords` · `memberships` | [classroom.md](classroom.md) |
 | `questionSignals` · `signalMessages` · `popQuizzes` · `chatMessages` · `chatReads` · `chatRoomReads` · `classNotices` · `polls` | [realtime.md](realtime.md) |
 | `classes/{cId}.pyTarget` | [python.md](python.md) |
