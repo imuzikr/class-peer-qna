@@ -67,6 +67,7 @@ export default function BookActivityEditModal({ activity, onClose, onDone }) {
     !perStudent &&
     activity.type !== "opinion" &&
     activity.type !== "crossword" && // 가로세로는 닿소리의 주제어를 가져온 것뿐
+    activity.type !== "bingo" && // 낱말 빙고도 같음
     !isBrainwrite &&
     !isHashtag &&
     !BOOK_STUDENT_TOPIC_TYPES.includes(activity.type);
@@ -132,7 +133,7 @@ export default function BookActivityEditModal({ activity, onClose, onDone }) {
                 type="text"
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
-                placeholder={topicRequired ? "예: 어린 왕자" : activity.type === "crossword" || isBrainwrite ? "예: 어린 왕자" : "비워 두면 학생이 직접 적어요"}
+                placeholder={topicRequired ? "예: 어린 왕자" : activity.type === "crossword" || activity.type === "bingo" || isBrainwrite ? "예: 어린 왕자" : "비워 두면 학생이 직접 적어요"}
                 maxLength={30}
               />
             </label>

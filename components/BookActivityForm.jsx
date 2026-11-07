@@ -48,6 +48,7 @@ const TYPES = [
   { key: "qmark", label: "물음표로 책 읽기", desc: "궁금한 곳에 물음표를 붙이고, 물음과 이유 · 나의 생각을 정리합니다", defaultTitle: "물음표로 책 읽기" },
   { key: "crossword", label: "가로세로 낱말 퀴즈", desc: "닿소리 채우기에서 모은 낱말로 힌트를 쓰고 퀴즈를 풉니다", defaultTitle: "가로세로 낱말 퀴즈" },
   { key: "brainwrite", label: "브레인 라이팅", desc: "질문 하나에 모둠원이 칸을 돌아가며 앞 사람의 글에 생각을 잇습니다", defaultTitle: "브레인 라이팅" },
+  { key: "bingo", label: "낱말 빙고", desc: "닿소리 채우기에서 모은 낱말로 5×5 판을 채우고 빙고를 합니다", defaultTitle: "낱말 빙고" },
 ];
 // 모둠을 정하는 일은 **세 번의 물음**입니다. 한 줄에 다섯 갈래를 늘어놓았더니
 // '기본 모둠'과 '활동 모둠'이 나란히 있어 무엇이 무엇인지 알기 어려웠습니다.
@@ -141,8 +142,16 @@ export default function BookActivityForm({
   // (수업은 대개 방금 한 닿소리로 퀴즈를 냅니다).
   const [sourceId, setSourceId] = useState(() => consonantActivities.at(-1)?.id ?? "");
   const isCrossword = type === "crossword";
-  const source = isCrossword ? consonantActivities.find((a) => a.id === sourceId) ?? null : null;
-  const sourceBad = isCrossword && !source;
+  // 낱말 빙고 — 가로세로처럼 닿소리 채우기 하나를 골라 그 낱말을 씁니다
+  const isBingo = type === "bingo";
+  const usesSource = isCrossword || isBingo;
+  const source = usesSource ? consonantActivities.find((a) => a.id === sourceId) ?? null : null;
+  // 빙고의 진행 방식 — 처음엔 고른 닿소리를 따르고(null), 교사가 고르면 그대로
+  const [bingoPick, setBingoPick] = useState(null);
+  const bingoMode = bingoPick ?? (source?.groupMode === "solo" ? "solo" : "group");
+  // 모둠 빙고의 모둠 — 닿소리가 모둠 활동이면 그 모둠, 개별 활동이었으면 반의 기본 모둠
+  const bingoNoGroups = isBingo && bingoMode === "group" && source?.groupMode === "solo" && baseGroupCount === 0;
+  const sourceBad = (usesSource && !source) || bingoNoGroups;
 
   const names = parseNames(namesRaw);
   // 학생이 눌러볼 도서 정보 주소를 받는 종류 — 가로세로(닿소리의 낱말을 가져옴)만 빼고
@@ -195,7 +204,7 @@ export default function BookActivityForm({
   // lib/store.js의 BOOK_STUDENT_TOPIC_TYPES에 적어 두었습니다).
   // '내 생각은요...'는 물음이 주제 노릇을 해서 주제어를 비워 둘 수 있습니다.
   const topicRequired =
-    !perStudent && !isOpinion && !isHashtag && !isCrossword && !isBrainwrite && !BOOK_STUDENT_TOPIC_TYPES.includes(type);
+    !perStudent && !isOpinion && !isHashtag && !usesSource && !isBrainwrite && !BOOK_STUDENT_TOPIC_TYPES.includes(type);
   const promptBad = isBrainwrite && questionMode !== "student" && !prompt.trim();
 
   async function handleSubmit(e) {
@@ -230,7 +239,8 @@ export default function BookActivityForm({
         layout: isOpinion ? opLayout : undefined,
         nameMode: isOpinion ? nameMode : undefined,
         guide: isHashtag ? guide.trim() : "",
-        sourceActivityId: isCrossword ? sourceId : null,
+        sourceActivityId: usesSource ? sourceId : null,
+        bingoMode: isBingo ? bingoMode : null,
       });
     } finally {
       setSaving(false);
@@ -284,7 +294,7 @@ export default function BookActivityForm({
           </label>
           {/* 가로세로는 주제어를 받지 않습니다 — 고른 닿소리의 주제어를 그대로 씁니다.
               브레인 라이팅도 받지 않습니다 — 질문이 그 자리를 합니다(선생님 요청). */}
-          {!isHashtag && !isCrossword && !isBrainwrite && (
+          {!isHashtag && !usesSource && !isBrainwrite && (
             <label className="book-field">
               <span>
                 주제어 · 도서명
@@ -328,7 +338,7 @@ export default function BookActivityForm({
           )}
         </div>
 
-        {isCrossword && (
+        {usesSource && (
           <label className="book-field">
             <span>낱말을 가져올 닿소리 채우기</span>
             {consonantActivities.length > 0 ? (
@@ -347,14 +357,47 @@ export default function BookActivityForm({
               </select>
             )}
             <em className="book-help">
-              {consonantActivities.length === 0
+              {isBingo
+                ? consonantActivities.length === 0
+                  ? "닿소리 채우기를 먼저 해야 그 낱말로 빙고를 할 수 있어요."
+                  : "그 활동에 나온 낱말이 낱말 상자에 담겨요. 학생은 상자에서 25칸을 골라 판을 채우고, 선생님이 낱말을 부르면 빙고를 해요."
+                : consonantActivities.length === 0
                 ? "닿소리 채우기를 먼저 해야 그 낱말로 퀴즈를 만들 수 있어요."
                 : source?.groupMode === "solo"
                   ? "그 활동처럼 학생마다 판이 하나씩 — 학생 한 명이 낱말 하나의 힌트를 쓰고, 혼자 퀴즈를 풉니다."
                   : "그 활동의 모둠을 그대로 가져옵니다 — 모둠원 수만큼 낱말을 맡아 힌트를 쓰고, 모둠이 함께 퀴즈를 풉니다."}
-              {" "}만든 뒤 활동을 열어 ‘가로세로 낱말 퀴즈 생성’을 누르면 그 활동의 낱말로 판이 짜입니다.
+              {!isBingo && " 만든 뒤 활동을 열어 ‘가로세로 낱말 퀴즈 생성’을 누르면 그 활동의 낱말로 판이 짜입니다."}
             </em>
           </label>
+        )}
+
+        {/* 낱말 빙고의 진행 방식 — 판을 학생마다(개별) 또는 모둠마다(모둠) 하나씩 */}
+        {isBingo && source && (
+          <div className="book-field">
+            <span>진행 방식</span>
+            <div className="book-seg" role="group" aria-label="빙고 진행 방식">
+              {[["group", "모둠 활동"], ["solo", "개별 활동"]].map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={`book-seg-btn${bingoMode === value ? " active" : ""}`}
+                  aria-pressed={bingoMode === value}
+                  onClick={() => setBingoPick(value)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <em className="book-help">
+              {bingoMode === "solo"
+                ? "반 학생마다 판이 하나씩 — 혼자 채우고 혼자 빙고를 해요."
+                : source.groupMode !== "solo"
+                  ? "그 닿소리 채우기의 모둠을 그대로 가져와요 — 모둠원이 판 하나를 함께 채워요."
+                  : bingoNoGroups
+                    ? "그 닿소리 채우기는 개별 활동이라 반의 기본 모둠을 써야 하는데, 아직 기본 모둠이 없어요."
+                    : `그 닿소리 채우기는 개별 활동이라 반의 기본 모둠 ${baseGroupCount}개를 써요 — 모둠원이 판 하나를 함께 채워요.`}
+            </em>
+          </div>
         )}
 
         {isHashtag && (
@@ -712,6 +755,8 @@ export default function BookActivityForm({
                 ? "해시태그 활동 만들기"
                 : isCrossword
                 ? "가로세로 퀴즈 활동 만들기"
+                : isBingo
+                ? "낱말 빙고 만들기"
                 : !canGroup || perStudent
                 ? "학생별 활동으로 만들기"
                 : fromBase

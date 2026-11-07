@@ -14,7 +14,7 @@
 | 파이썬 셀 창 · 예시 코드 · 실행 엔진 · 실행기 2단 | [python.md](python.md) |
 | 수업 노트(코넬) · KWLS 기록 · 기록 관리 · 수업 중 내보내기와 서랍 · 활동보기 · 수업 메모 | [lesson.md](lesson.md) |
 | 책방 공통(교사 세 칸 화면 · 모둠 진행 · 동료 평가 · 한 눈에 보기 · 수업 화면 창 · 전광판 · 휴지통) | [books.md](books.md) |
-| 독서 활동 하나하나(닿소리 · RAFT · 마인드맵 · 내 생각은요 · 물음표 · 해시태그 · 가로세로 · 브레인 라이팅) | [books-activities.md](books-activities.md) |
+| 독서 활동 하나하나(닿소리 · RAFT · 마인드맵 · 내 생각은요 · 물음표 · 해시태그 · 가로세로 · 브레인 라이팅 · 낱말 빙고) | [books-activities.md](books-activities.md) |
 | 출석 · 자리표 · 반 관리 · 모둠 · 과일 · 과일 바구니 | [classroom.md](classroom.md) |
 | 손들기 · 돌발 퀴즈 · 떠 있는 동그라미 · 메신저 · 투표 | [realtime.md](realtime.md) |
 | CSS 파일 구조(`app/styles/`) · 상단바 · 서식 에디터 · 모달 · 팝오버 · 아이콘 · 단추 크기 · CSS 함정 · 시각화 · 엑셀 | [ui.md](ui.md) |
@@ -27,7 +27,7 @@
 | `studyBoards` · `studyTemplates` · `studyBoards/{id}/cards` | [study.md](study.md) |
 | `kwl` · `classes/{cId}/cornellNotes` · `lessonMemos` · `classes/{cId}.task` | [lesson.md](lesson.md) |
 | `bookActivities` (휴지통 · `grouped` · `peerReviews` · `entries`) | [books.md](books.md) |
-| `bookActivities/{id}/groups/{gId}/words` · `opinionNotes` · `hashtagPosts` · `hashtagComments` · `xwHints` · `xwBoard` · `xwProgress` · `xwSolves` · `bwNotes` | [books-activities.md](books-activities.md) |
+| `bookActivities/{id}/groups/{gId}/words` · `opinionNotes` · `hashtagPosts` · `hashtagComments` · `xwHints` · `xwBoard` · `xwProgress` · `xwSolves` · `bwNotes` · `bingoBoards` | [books-activities.md](books-activities.md) |
 | `rewards` · `rewardEvents` · `fruitBasket` · `fruitEvents` · `seatLayouts` · `groupAssignments` · `groupMemos` · `attendanceRecords` · `memberships` | [classroom.md](classroom.md) |
 | `questionSignals` · `signalMessages` · `popQuizzes` · `chatMessages` · `chatReads` · `chatRoomReads` · `classNotices` · `polls` | [realtime.md](realtime.md) |
 | `classes/{cId}.pyTarget` | [python.md](python.md) |

@@ -1691,6 +1691,29 @@ service cloud.firestore {
         allow delete: if isAdmin() || ownsBookActivityEditable(aId);
       }
 
+      // ── 낱말 빙고 — 판 하나(모둠 · 학생, 문서 id = 모둠(판) 문서 id) ──
+      // 숨길 정답이 없어 반 전체가 읽습니다(가장 앞선 친구 · 모둠의 판, 교사의 순위).
+      // [쓰기] 그 판의 구성원만 · 잠기기 전 · **판 채우기 단계(bingo.stage == 'fill')에서만**
+      //        — 빙고가 시작되면 판이 굳어, 불린 낱말을 보고 판을 고치지 못합니다.
+      //        칸 맵은 "0" ~ "24"만(lib/bingo.js의 BINGO_CELL_KEYS와 같아야 합니다).
+      // [지우기] 담당 교사(휴지통의 완전 삭제)
+      function bingoStage(aId) {
+        return get(/databases/$(database)/documents/bookActivities/$(aId)).data.get('bingo', {}).get('stage', '');
+      }
+      match /bingoBoards/{gId} {
+        allow read: if signedIn() && (isAdmin() || ownsBookActivity(aId) || isBookActivityMember(aId));
+        allow create, update: if signedIn()
+                      && isMyBookGroup(aId, gId)
+                      && !isBookActivityLocked(aId)
+                      && bingoStage(aId) == 'fill'
+                      && request.resource.data.keys().hasOnly(['groupId','cells','updatedAt'])
+                      && request.resource.data.groupId == gId
+                      && request.resource.data.cells is map
+                      && request.resource.data.cells.keys().hasOnly(['0','1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','23','24'])
+                      && request.resource.data.updatedAt == request.time;
+        allow delete: if isAdmin() || ownsBookActivityEditable(aId);
+      }
+
       // ── 곁텍스트 읽기 — 개인 활동 기록 ──
       // 문서 ID를 학생 uid로 고정해 '한 사람이 여러 장을 만드는 일'을 막습니다.
       // 모둠 활동과 달리 제출물이라, 남의 답은 같은 반이어도 보이지 않습니다

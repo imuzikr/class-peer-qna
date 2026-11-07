@@ -16,7 +16,7 @@
   `lib/firebase.js`의 `isFirebaseConfigured`가 거짓이면 저절로, 새로고침하면 초기화)
 - **파일**: Cloud Storage — 게이트웨이 함수를 거치는 보호된 첨부([docs/attachments.md](docs/attachments.md))
 - **서버**: Cloud Functions(`functions/`, 서울 리전, `maxInstances: 10`)
-- **스타일**: `app/globals.css`(입구) → `app/styles/NN-*.css` 60개를 **차례대로** `@import` (CSS 변수는 `01-base.css`)
+- **스타일**: `app/globals.css`(입구) → `app/styles/NN-*.css` 61개를 **차례대로** `@import` (CSS 변수는 `01-base.css`)
 - **배포**: 앱은 `main` 푸시 때 Vercel이 자동 배포 · 규칙과 함수는 `npm run deploy`
 
 ## 실행 · 시험
@@ -187,7 +187,7 @@ npm run test:attachments:pilot  # 보호된 첨부 에뮬레이터 검증 (demo-
 | 파이썬 셀 창 · 예시 코드 · 실행 엔진 · 실행기 2단 | [docs/python.md](docs/python.md) |
 | 수업 노트 · KWLS 기록 · 기록 관리 · 내보내기와 서랍 · 활동보기 · 수업 메모 | [docs/lesson.md](docs/lesson.md) |
 | 책방 공통(교사 세 칸 · 모둠 진행 · 동료 평가 · 수업 화면 창 · 전광판 · 휴지통) | [docs/books.md](docs/books.md) |
-| 독서 활동별(닿소리 · RAFT · 마인드맵 · 내 생각은요 · 물음표 · 해시태그 · 가로세로 · 브레인 라이팅) | [docs/books-activities.md](docs/books-activities.md) |
+| 독서 활동별(닿소리 · RAFT · 마인드맵 · 내 생각은요 · 물음표 · 해시태그 · 가로세로 · 브레인 라이팅 · 낱말 빙고) | [docs/books-activities.md](docs/books-activities.md) |
 | 출석 · 자리표 · 반 관리 · 모둠 · 과일 · 과일 바구니 | [docs/classroom.md](docs/classroom.md) |
 | 손들기 · 돌발 퀴즈 · 떠 있는 동그라미 · 메신저 · 투표 | [docs/realtime.md](docs/realtime.md) |
 | CSS 파일 구조(`app/styles/`) · 상단바 · 서식 에디터 · 모달 · 팝오버 · 아이콘 · CSS 함정 · 시각화 · 엑셀 | [docs/ui.md](docs/ui.md) |

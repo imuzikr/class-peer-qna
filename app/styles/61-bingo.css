@@ -1,0 +1,211 @@
+/* =============================================================
+   낱말 빙고 (BingoBoard · BingoStudent · BingoGrid)
+   화면의 뼈대(카드 · 세 칸 · 왼쪽 순위 · 단추 줄)는 가로세로 낱말 퀴즈의 클래스를
+   그대로 씁니다(56-crossword.css · 57-crossword-group.css — .xw-card · .xwg · .xwg-rank ·
+   .xw-gen-*). 여기에는 빙고판 · 낱말 칩 · 부른 낱말만 둡니다.
+   ============================================================= */
+
+/* ── 판 ── 5×5, 카드 폭에 맞춰 칸이 함께 커지고 줄어듭니다(글자는 판 폭의 cqw) */
+.bingo-board-wrap { display: flex; justify-content: center; }
+.bingo-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+  width: min(100%, 520px);
+  margin: 0 auto;
+  container-type: inline-size;
+}
+.bingo-cell {
+  aspect-ratio: 1 / 1;
+  min-width: 0;
+  padding: 4px;
+  border: 1.5px solid #d5cfc5;
+  border-radius: 10px;
+  background: #fff;
+  color: var(--text);
+  font-family: inherit;
+  font-size: clamp(11px, 3.7cqw, 19px);
+  font-weight: 800;
+  line-height: 1.2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  overflow: hidden;
+  transition: background 0.2s, border-color 0.2s;
+}
+.bingo-cell.empty { border-style: dashed; background: var(--bg); }
+.bingo-cell:not(:disabled) { cursor: pointer; }
+.bingo-cell:not(:disabled):hover { border-color: var(--primary); }
+.bingo-cell:disabled { cursor: default; color: var(--text); }
+.bingo-cell.sel { border-color: var(--primary); background: #fff4e8; box-shadow: 0 0 0 2px var(--primary); }
+.bingo-cell.marked { background: #e8f7ed; border-color: #a6d8b6; color: #2f7a45; }
+.bingo-cell.line { background: #6fbf8a; border-color: #4fa56d; color: #fff; }
+.bingo-cell.last { box-shadow: 0 0 0 3px var(--primary); }
+.bingo-word { display: block; max-width: 100%; }
+
+/* 미니맵 — 글자 없이 색만(채운 칸 회색 · 불린 칸 옅은 색 · 빙고 줄 짙은 색) */
+.bingo-grid--mini {
+  grid-template-columns: repeat(5, 12px);
+  gap: 2px;
+  width: max-content;
+  margin: 0;
+  container-type: normal;
+}
+.bingo-grid--mini .bingo-cell {
+  padding: 0;
+  border-width: 1px;
+  border-radius: 2px;
+  border-style: solid;
+  border-color: #d5cfc5;
+  background: #fff;
+}
+.bingo-grid--mini .bingo-cell.filled { background: #e9e6e1; }
+.bingo-grid--mini .bingo-cell.sel { box-shadow: 0 0 0 1.5px var(--primary); }
+.xwg-rank .bingo-grid--mini { align-self: center; }
+/* 학생 왼쪽 칸 — 나의 판 · 가장 앞선 친구는 조금 크게, 카드 가운데 */
+.xwg-mymap .bingo-grid--mini,
+.xwg-leader .bingo-grid--mini { grid-template-columns: repeat(5, 18px); margin: 0 auto; }
+
+.bingo-rank-at { font-size: 11.5px; font-weight: 700; color: #2f7a45; align-self: center; }
+
+/* 범례 */
+.bingo-swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin: 0 4px 0 8px;
+  border-radius: 3px;
+  border: 1px solid #d5cfc5;
+  vertical-align: -1px;
+}
+.bingo-swatch:first-child { margin-left: 0; }
+.bingo-swatch.filled { background: #e9e6e1; }
+.bingo-swatch.marked { background: #e8f7ed; border-color: #a6d8b6; }
+.bingo-swatch.line { background: #6fbf8a; border-color: #4fa56d; }
+.bingo-swatch.sel { background: #fff4e8; border-color: var(--primary); }
+.bingo-swatch.last { background: #fff; border: 2px solid var(--primary); }
+
+/* ── 방금 부른 낱말 ── 학급 화면에서도 읽히게 크게 */
+.bingo-last {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--primary-light);
+  color: var(--text-sub);
+  font-size: 14px;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+.bingo-last strong { font-size: 24px; font-weight: 900; color: var(--primary-dark); }
+.bingo-last em { font-style: normal; font-size: 12px; color: var(--text-faint); }
+.bingo-last.won { background: #e8f7ed; color: #2f7a45; }
+.bingo-last.won strong { color: #2f7a45; }
+
+/* ── 빙고 목표(교사) ── */
+.bingo-goal { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px; }
+.bingo-goal-label { font-size: 13px; font-weight: 700; color: var(--text); }
+.bingo-goal-seg { flex: 1 1 auto; }
+.bingo-goal-seg .book-seg-btn { flex: 0 0 56px; }
+.bingo-reset {
+  margin-left: auto;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--primary-dark);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.bingo-reset:disabled { opacity: 0.5; cursor: default; }
+
+/* ── 낱말 칩(낱말 상자 · 부르기) ── */
+.bingo-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.bingo-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 11px;
+  border-radius: 999px;
+  border: 1.5px solid var(--border);
+  background: #fff;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text);
+  cursor: pointer;
+}
+.bingo-chip:hover:not(:disabled) { border-color: var(--primary); }
+.bingo-chip:disabled { cursor: default; }
+.bingo-chip.used { opacity: 0.4; text-decoration: line-through; }
+.bingo-chip.called { background: #e8f7ed; border-color: #a6d8b6; color: #2f7a45; }
+.bingo-chip.last { background: var(--primary); border-color: var(--primary); color: #fff; }
+.bingo-chip-no {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #fff;
+  color: #2f7a45;
+  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.bingo-chip.last .bingo-chip-no { color: var(--primary-dark); }
+.bingo-chip-count { font-style: normal; font-size: 11px; font-weight: 600; color: var(--text-faint); }
+.bingo-chip.called .bingo-chip-count,
+.bingo-chip.last .bingo-chip-count { color: inherit; opacity: 0.75; }
+
+/* ── 불린 낱말(학생 오른쪽) ── 최근 것이 위 */
+.bingo-called { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.bingo-called li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--bg);
+  font-size: 14px;
+  color: var(--text);
+}
+.bingo-called li b {
+  min-width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--neutral);
+  color: var(--text-sub);
+  font-size: 11.5px;
+}
+.bingo-called li span { flex: 1; min-width: 0; font-weight: 700; }
+.bingo-called li em { font-style: normal; font-size: 11.5px; font-weight: 700; color: #2f7a45; }
+.bingo-called li.hit { background: #f3faf5; }
+.bingo-called li.hit b { background: #6fbf8a; color: #fff; }
+.bingo-called li.last { box-shadow: inset 0 0 0 2px var(--primary); }
+
+.bingo-how { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; line-height: 1.55; color: var(--text-sub); }
+
+/* 개별 활동 — 만든 뒤 반에 들어온 학생의 판 만들기(닿소리 .book-rail-missing과 같은 옅은 살구) */
+.bingo-missing {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--primary-light);
+  border-radius: 10px;
+  background: #fdf6ef;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--primary-dark);
+  cursor: pointer;
+}
+.bingo-missing:disabled { opacity: 0.5; cursor: default; }
