@@ -227,7 +227,6 @@ export default function HashtagBoard({
           </>
         }
         locked={locked}
-        bookUrl={null}
       />
 
       {cards.length === 0 ? (

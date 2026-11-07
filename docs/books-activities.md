@@ -711,7 +711,8 @@
   입력칸을 함께 걷었습니다. 저장 문서의 `title`·`summary`는 **그대로 둡니다** —
   지난 기록을 지우지 않으려고요(쓰는 화면이 없을 뿐, 규칙·모양은 그대로).
   **보고서를 되살리지 마세요** — 되살리려면 선생님께 먼저 여쭙니다.
-- 자료: 활동 문서에 `guide`(안내, 200자) · **`published`**(친구 해시태그 공개).
+- 자료: 활동 문서에 `guide`(안내, 200자) · **`published`**(친구 해시태그 공개) ·
+  `bookUrl`(도서 정보 사이트, 선택 — 학생 머리의 저장 표시 옆 · 교사 머리말에 '도서 정보').
   학생 기록 `bookActivities/{id}/hashtagPosts/{uid}`(문서 id = uid, 한 사람에 한 장)
   `{ authorId, authorName, studentId, title, source{kind,title,author,date,url},
   image{url,caption,credit}, tags[10]{tag,quote,insight}, summary, seenCommentsAt }`.

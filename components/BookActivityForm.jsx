@@ -145,8 +145,9 @@ export default function BookActivityForm({
   const sourceBad = isCrossword && !source;
 
   const names = parseNames(namesRaw);
-  // 학생이 눌러볼 도서 정보 주소를 받는 종류 — 혼자 읽고 쓰는 활동들입니다.
-  const hasBookUrl = ["paratext", "raft", "kwls", "mindmap", "opinion", "qmark", "brainwrite"].includes(type);
+  // 학생이 눌러볼 도서 정보 주소를 받는 종류 — 가로세로(닿소리의 낱말을 가져옴)만 빼고
+  // 모두입니다. 닿소리 채우기 · 여섯 개의 해시태그도 받습니다(선생님 요청).
+  const hasBookUrl = ["consonant", "paratext", "raft", "kwls", "mindmap", "opinion", "qmark", "hashtag", "brainwrite"].includes(type);
   // 브레인 라이팅 — 모든 컬럼의 머리에 서는 질문 하나(필수)
   const isBrainwrite = type === "brainwrite";
   const isOpinion = type === "opinion";

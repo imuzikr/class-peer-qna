@@ -50,7 +50,7 @@ export default function BookActivityEditModal({ activity, onClose, onDone }) {
   const [noteMode, setNoteMode] = useState(() => opinionNoteMode(activity));
   const [opLayout, setOpLayout] = useState(() => opinionLayout(activity));
   const zonesBad = isOpinion && zoneNames.some((n) => !n.trim());
-  // 여섯 개의 해시태그 — 주제어·도서 주소 대신 안내 문구 하나
+  // 여섯 개의 해시태그 — 주제어 대신 안내 문구 하나(도서 주소는 받습니다)
   const isHashtag = activity.type === "hashtag";
   const [guide, setGuide] = useState(activity.guide ?? "");
   // 브레인 라이팅 — 모든 컬럼의 머리에 서는 질문(비우면 저장을 막음)
@@ -85,7 +85,7 @@ export default function BookActivityEditModal({ activity, onClose, onDone }) {
         isOpinion
           ? { title: nextTitle, topic, bookUrl, zoneNames, prompt, noteMode, layout: opLayout }
           : isHashtag
-          ? { title: nextTitle, topic: "", bookUrl: "", guide }
+          ? { title: nextTitle, topic: "", bookUrl, guide }
           : isBrainwrite
           ? { title: nextTitle, topic, bookUrl, prompt, questionMode }
           : { title: nextTitle, topic, bookUrl },
@@ -181,7 +181,8 @@ export default function BookActivityEditModal({ activity, onClose, onDone }) {
           </label>
         )}
 
-        {isSolo && !isHashtag && (
+        {/* 도서 정보 주소 — 가로세로(닿소리의 낱말을 가져온 퀴즈)만 받지 않습니다 */}
+        {(isSolo || activity.type === "consonant") && (
           <label className="book-field">
             <span>
               도서 정보 사이트 <em className="book-optional">선택</em>

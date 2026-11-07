@@ -66,7 +66,7 @@ import HashtagInfographic from "./HashtagInfographic";
 import HashtagComments from "./HashtagComments";
 import ConfirmModal from "./ConfirmModal";
 import WordCloud from "./WordCloud";
-import { BookSaveStatus, BookLockedNote } from "./BookHeadParts";
+import { BookSaveStatus, BookLockedNote, BookInfoLink } from "./BookHeadParts";
 
 const SAVE_DELAY = 900; // ms — 이만큼 입력이 없으면 저장
 
@@ -347,6 +347,7 @@ export default function HashtagForm({ activity, user, onBack }) {
             해시태그 {progress.tagged}개 · 완성 {progress.done} / {HASHTAG_COUNT}
           </span>
           <BookSaveStatus status={status} locked={locked} />
+          <BookInfoLink url={activity.bookUrl} />
         </div>
       </div>
 
