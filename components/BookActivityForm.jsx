@@ -384,7 +384,7 @@ export default function BookActivityForm({
         {isBingo && source && (
           <div className="book-field">
             <span>진행 방식</span>
-            <div className="book-seg" role="group" aria-label="빙고 진행 방식">
+            <div className="book-seg book-seg--fill" role="group" aria-label="빙고 진행 방식">
               {[["group", "모둠 활동"], ["solo", "개별 활동"]].map(([value, label]) => (
                 <button
                   key={value}
@@ -414,7 +414,7 @@ export default function BookActivityForm({
           <div className="book-field-row">
             <div className="book-field">
               <span>판 크기</span>
-              <div className="book-seg" role="group" aria-label="빙고판 크기">
+              <div className="book-seg book-seg--fill" role="group" aria-label="빙고판 크기">
                 {BINGO_SIZES.map((n) => (
                   <button
                     key={n}
@@ -433,7 +433,7 @@ export default function BookActivityForm({
             </div>
             <div className="book-field">
               <span>낱말 부르기</span>
-              <div className="book-seg" role="group" aria-label="낱말 부르기">
+              <div className="book-seg book-seg--fill" role="group" aria-label="낱말 부르기">
                 {[["teacher", "선생님이 진행"], ["student", "학생이 진행"]].map(([value, label]) => (
                   <button
                     key={value}

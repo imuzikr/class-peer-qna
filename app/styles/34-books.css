@@ -305,6 +305,11 @@
    .book-seg-btn의 max-width(180)나 gap을 고치면 이 값도 함께 고치세요. */
 .book-seg--tight { flex-wrap: nowrap; max-width: 366px; }
 .book-seg--tight .book-seg-btn { flex: 1 1 0; min-width: 0; max-width: none; }
+/* 칸을 꽉 채우는 줄 — 단추가 칸 폭을 똑같이 나눕니다(선생님 요청 — 낱말 빙고의 진행 방식 ·
+   판 크기 · 낱말 부르기. 한때 180px 천장 탓에 오른쪽이 비었습니다). 다른 활동의 두 갈래 줄은
+   위의 180px 천장 그대로입니다(다섯 갈래 줄과 폭을 맞춘 약속 — .book-seg--tight). */
+.book-seg.book-seg--fill { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
+.book-seg--fill .book-seg-btn { min-width: 0; max-width: none; }
 /* 모둠 설정의 아랫부분 — 고른 갈래에 따라 내용이 통째로 바뀌는 자리입니다.
    '이 활동만의 모둠'이 가장 크고(줄 둘 + 안내 두 줄 = 164px), '기본 모둠
    그대로'·'개별 활동'은 안내문 한 덩이뿐이라 60~100px입니다. 그대로 두면
