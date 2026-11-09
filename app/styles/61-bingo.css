@@ -132,8 +132,11 @@
 .bingo-opt { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px; min-width: 0; }
 .bingo-goal-label { font-size: 13px; font-weight: 700; color: var(--text); }
 .bingo-goal-seg .book-seg-btn { flex: 0 0 56px; }
-/* 이어 놓인 두 단추는 같은 폭(CLAUDE.md) — 긴 글자('선생님이 진행')에 맞춘 두 칸 */
-.book-seg.bingo-lead-seg { display: grid; grid-template-columns: repeat(2, 1fr); }
+/* 이어 놓인 두 단추는 같은 폭(CLAUDE.md의 repeat(n, minmax(0, 1fr))). 묶음은 줄어들지 않고
+   (flex: none — 긴 글자 '선생님이 진행' 두 칸만큼), 자리가 모자라면 묶음째 다음 줄로 내려갑니다.
+   한때 repeat(2, 1fr)라 좁은 폭(가운데 칸 250px 안팎)에서 긴 쪽이 글자 폭을 지키고 짧은 쪽이
+   나머지를 받아 두 단추 폭이 달랐습니다(검토에서 찾음). */
+.book-seg.bingo-lead-seg { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); flex: none; }
 .bingo-lead-seg .book-seg-btn { max-width: none; padding: 8px 12px; }
 .bingo-reset {
   margin-left: auto;

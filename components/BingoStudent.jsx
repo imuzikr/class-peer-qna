@@ -20,6 +20,7 @@ import {
   BINGO_DEFAULT_GOAL,
   BINGO_DEFAULT_SIZE,
   bingoAhead,
+  bingoBoardWords,
   bingoCallableWords,
   bingoCellCount,
   bingoLineCount,
@@ -123,6 +124,14 @@ export default function BingoStudent({ activity, groupId, user, onBack }) {
   const callableWords = useMemo(() => new Set(bingoCallableWords(cells, bingo)), [cells, bingo]);
   const callable = (i) => !!cells[i] && callableWords.has(cells[i]);
   const anyCallable = callableWords.size > 0;
+  // 판에 놓인 낱말을 모두 불렀나 — 그러면 내 차례여도 선생님도 더 고를 낱말이 없습니다
+  // (교사 화면의 exhausted와 같은 셈)
+  const exhausted = useMemo(() => {
+    if (!playing) return false;
+    const done = new Set(called);
+    const live = groups.filter((g) => !g.retired && (g.memberUids ?? []).length > 0);
+    return bingoBoardWords(live.map((g) => cellsBy.get(g.id) ?? []), bingo?.words ?? []).every((x) => done.has(x.word));
+  }, [playing, called, groups, cellsBy, bingo]);
   const selIdx = myTurn && callSel && callSel.at === called.length && callable(callSel.i) ? callSel.i : null;
 
   async function write(set, del = []) {
@@ -328,7 +337,9 @@ export default function BingoStudent({ activity, groupId, user, onBack }) {
                 <strong>내 차례예요!</strong>{" "}
                 {anyCallable
                   ? "내 판에서 아직 안 불린 낱말을 누른 뒤 ‘부르기’를 누르세요."
-                  : mine.filled === 0
+                  : exhausted
+                    ? "판에 놓인 낱말을 모두 불렀어요 — 더 부를 낱말이 없어요."
+                    : mine.filled === 0
                     ? "내 판에 낱말이 없어요 — 선생님이 대신 골라 주실 거예요."
                     : "내 판의 낱말을 모두 불렀어요 — 선생님이 대신 골라 주실 거예요."}
               </p>

@@ -169,7 +169,8 @@ export default function BingoBoard({
 
   // 학생이 진행 — 지금 차례 · 결석. 결석은 **출석을 마친 날**에만 압니다: 출석을 받는 중에는
   // 아직 안 찍은 학생을 결석으로 보지 않고, 기록이 하나도 없으면(빈 Set) 모르는 것으로 봅니다
-  // (BookGroupBoard와 같은 기준 — 한때 출석을 받는 중에 안 찍은 학생이 모두 결석으로 떴습니다).
+  // (출석 중을 '모름'으로 보는 것은 '멋진 순간' 패널의 attendanceDone과, 빈 Set을 '모름'으로 보는
+  // 것은 BookGroupBoard와 같음 — 한때 출석을 받는 중에 안 찍은 학생이 모두 결석으로 떴습니다).
   const order = bingo?.order ?? [];
   const turnUid = bingoTurnUid(bingo);
   const absentKnown = !attendanceOpen && !!presentUids && presentUids.size > 0;
@@ -184,11 +185,14 @@ export default function BingoBoard({
     () => (turnUid ? bingoCallableWords(cellsBy.get(turnGroupId) ?? [], bingo) : []),
     [turnUid, turnGroupId, cellsBy, bingo]
   );
-  const turnStuck = !!turnUid && groupsLoaded && boardsLoaded && turnLeft.length === 0;
+  // 판에 놓인 낱말을 모두 불렀나(판에 놓인 낱말이 하나도 없을 때도) — 그러면 누구 차례든
+  // 더 고를 낱말이 없으므로 '대신 골라 주세요'를 띄우지 않습니다(검토에서 찾음).
+  const exhausted = playing && groupsLoaded && boardsLoaded && calledOnBoards >= boardWords.length;
+  const turnStuck = !!turnUid && groupsLoaded && boardsLoaded && !exhausted && turnLeft.length === 0;
   // 잠긴 활동에서는 학생이 부를 수 없습니다(규칙도 같음) — 선생님이 대신 고릅니다
   const turnLocked = !!turnUid && !!activity.locked;
-  // 되묻지 않고 곧바로 대신 고를 때 — 결석 · 부를 낱말 없음 · 잠김
-  const proxyNow = turnAbsent || turnStuck || turnLocked;
+  // 되묻지 않고 곧바로 대신 고를 때 — 결석 · 부를 낱말 없음 · 잠김(더 부를 낱말이 있을 때만)
+  const proxyNow = !exhausted && (turnAbsent || turnStuck || turnLocked);
 
   // 개별 활동 — 만든 뒤 반에 들어온 학생에게는 판이 없습니다(닿소리와 같음). 판 목록의 첫 답
   // 전에는 세지 않습니다(모두 '판이 없는 학생'으로 잠깐 뜨지 않게).
@@ -196,7 +200,9 @@ export default function BingoBoard({
   const missing = solo && groupsLoaded ? (roster ?? []).filter((s) => s?.uid && !haveUids.has(s.uid)) : [];
 
   // 상태 고치기 — 저장된 상태를 읽어 고칩니다(학생이 같은 문서에 부름을 이어 쓰므로).
-  //   돌려주는 값: 새 상태 · 고칠 것이 없었으면 null · 저장 실패면 undefined(안내를 띄움)
+  //   돌려주는 값: 새 상태 · 고칠 것이 없었으면 null · 저장 실패면 undefined(토스트를 띄움)
+  // 기다린 뒤의 알림은 토스트로 — 안내 줄의 알림은 누를 때의 상태에 붙어서, 기다리는 사이 학생이
+  // 부르면 보이지 않습니다(검토에서 찾음).
   async function change(fn, msg) {
     setBusy(true);
     try {
@@ -205,7 +211,7 @@ export default function BingoBoard({
       return next;
     } catch (e) {
       console.warn("[빙고] 저장하지 못했어요:", e?.code, e?.message);
-      setNote("저장하지 못했어요. 잠시 뒤 다시 눌러 주세요.");
+      onToast?.("저장하지 못했어요. 잠시 뒤 다시 눌러 주세요.");
       return undefined;
     } finally {
       setBusy(false);
@@ -283,10 +289,10 @@ export default function BingoBoard({
     setNote("");
     try {
       const n = await refreshBingoWords(activity);
-      setNote(`낱말 상자를 새로 채웠어요 — 낱말 ${n}개.`);
+      onToast?.(`낱말 상자를 새로 채웠어요 — 낱말 ${n}개.`);
     } catch (e) {
       console.warn("[빙고] 낱말을 가져오지 못했어요:", e?.code, e?.message);
-      setNote("낱말을 가져오지 못했어요. 잠시 뒤 다시 눌러 주세요.");
+      onToast?.("낱말을 가져오지 못했어요. 잠시 뒤 다시 눌러 주세요.");
     } finally {
       setBusy(false);
     }
@@ -312,6 +318,10 @@ export default function BingoBoard({
   else if (!bingo) guide = "낱말 상자가 비어 있어요. ‘낱말 새로 가져오기’를 눌러 닿소리 채우기의 낱말을 들여오세요.";
   else if (!playing) {
     guide = `${solo ? "학생" : "모둠"}마다 낱말 상자에서 ${cellCount}칸을 골라 채워요(다 채움 ${fullCount} / ${ranks.length}). 다 채웠으면 ‘빙고 시작’을 누르세요 — 시작하면 판은 굳어요.`;
+  } else if (exhausted) {
+    guide = boardWords.length === 0
+      ? "판에 놓인 낱말이 없어 부를 낱말이 없어요. ‘판 채우기로 돌아가기’로 판을 먼저 채워 주세요."
+      : `판에 놓인 낱말 ${boardWords.length}개를 모두 불렀어요. 다시 하려면 ‘부른 낱말 모두 지우기’, 판을 바꾸려면 ‘판 채우기로 돌아가기’를 누르세요.`;
   } else if (studentLead && turnUid) {
     const now = `지금 차례: ${turnNo}번째 ${nameOf(turnUid)}`;
     guide = turnLocked

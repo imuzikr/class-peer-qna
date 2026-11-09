@@ -334,6 +334,16 @@ test("부르는 차례 — 디렉터리가 아직 안 와 명단 줄에 학번�
   assert.deepEqual(bingoTurnOrder(boards, fresh), ["b", "c", "a"]);
 });
 
+test("부르는 차례 — 학번이 없을 뿐인 학생은 명단의 지금 이름으로(판에 베낀 옛 이름 · 자리표시가 아니라)", () => {
+  const boards = [
+    { memberUids: ["x"], members: [{ uid: "x", name: "이름 미설정", studentId: null }] },
+    { memberUids: ["y"], members: [{ uid: "y", name: "하윤(옛 이름)", studentId: null }] },
+  ];
+  // 디렉터리가 온 뒤의 명단 — 학번은 없고 지금 이름만
+  const roster = [{ uid: "x", name: "다온", studentId: null }, { uid: "y", name: "가람", studentId: null }];
+  assert.deepEqual(bingoTurnOrder(boards, roster), ["y", "x"]); // 가람 → 다온
+});
+
 test("한 판에서 아직 부를 수 있는 낱말 — 칸에 있고 · 상자에 있고 · 안 불린 것, 겹치지 않게", () => {
   const b = playing({ called: ["가"] });
   assert.deepEqual(bingoCallableWords(["가", "나", "", "나", "없음", "다"], b), ["나", "다"]);
