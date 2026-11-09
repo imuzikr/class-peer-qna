@@ -8,6 +8,7 @@ import {
   rankBingo, rankBingoFill, bingoAhead, bingoRandomFill, nextBingoCall, normalizeBingoGoal,
   bingoBoardWords, bingoTurnOrder, bingoTurnUid, bingoTurnsUntil, bingoCall, bingoUndo,
   bingoStartPatch, bingoLeadPatch, bingoPicksBy, bingoCallableWords,
+  bingoBoxWords, bingoRecommendedBox,
 } from "../../lib/bingo.js";
 
 function seeded(seed = 7) {
@@ -349,4 +350,40 @@ test("한 판에서 아직 부를 수 있는 낱말 — 칸에 있고 · 상자�
   assert.deepEqual(bingoCallableWords(["가", "나", "", "나", "없음", "다"], b), ["나", "다"]);
   assert.deepEqual(bingoCallableWords([], b), []);
   assert.deepEqual(bingoCallableWords(["가"], b), []);
+});
+
+// ── 낱말 상자 — 많이 쓴 낱말만(선생님 요청) ─────────────────────
+test("낱말 상자는 많이 쓴 차례 — 그 낱말을 쓴 판(모둠) 수, 같으면 처음 나온 차례 · 한 판이 두 번 써도 한 번", () => {
+  const docs = [
+    { text: "가", groupId: "g1" },
+    { text: "나", groupId: "g1" },
+    { text: "나", groupId: "g2" },
+    { text: "다", groupId: "g2" },
+    { text: "다", groupId: "g2" }, // 같은 판이 두 번 — 한 번으로
+    { text: "라", groupId: "g3" },
+    { text: "나", groupId: "g3" },
+  ];
+  assert.deepEqual(bingoWordPool(docs), ["나", "가", "다", "라"]);
+  // 이미 정한 상자(문자열 · 모두 한 번씩)는 차례 그대로
+  assert.deepEqual(bingoWordPool(["다", "가", "나"]), ["다", "가", "나"]);
+});
+
+test("상자 크기 — 5×5는 35개 · 4×4는 22개, 옛 활동(칸 없음)은 상자 전부", () => {
+  assert.equal(bingoRecommendedBox(5), 35);
+  assert.equal(bingoRecommendedBox(4), 22);
+  const old = normalizeBingo({ words: ["가"] });
+  assert.equal(old.box, 0);
+  assert.equal(old.ranked, false);
+  const fresh = normalizeBingo({ words: ["가"], box: 35, ranked: true });
+  assert.equal(fresh.box, 35);
+  assert.equal(fresh.ranked, true);
+  assert.equal(normalizeBingo({ box: -3 }).box, 0);
+  assert.equal(normalizeBingo({ box: "x" }).box, 0);
+});
+
+test("판을 채울 때 고르는 낱말 — 많이 쓴 앞의 box개를 ㄱ~ㅎ 차례로, box가 없으면 상자 전부", () => {
+  const b = normalizeBingo({ words: ["하늘", "가방", "나무", "다리"], box: 2, ranked: true });
+  assert.deepEqual(bingoBoxWords(b), ["가방", "하늘"]);
+  assert.deepEqual(bingoBoxWords({ ...b, box: 0 }), ["가방", "나무", "다리", "하늘"]);
+  assert.deepEqual(bingoBoxWords(null), []);
 });

@@ -34,12 +34,14 @@ import {
   BINGO_DEFAULT_SIZE,
   BINGO_GOALS,
   bingoBoardWords,
+  bingoBoxWords,
   bingoCall,
   bingoCallableWords,
   bingoCellCount,
   bingoLeadPatch,
   bingoPicksBy,
   bingoProgress,
+  bingoRecommendedBox,
   bingoStartPatch,
   bingoTurnOrder,
   bingoTurnUid,
@@ -166,6 +168,9 @@ export default function BingoBoard({
   const boardsWith = useMemo(() => new Map(boardWords.map((x) => [x.word, x.boards])), [boardWords]);
   const calledOrder = useMemo(() => new Map(called.map((w, i) => [w, i + 1])), [called]);
   const calledOnBoards = boardWords.filter((x) => calledOrder.has(x.word)).length;
+  // 판을 채울 때 학생이 고르는 낱말 — 많이 쓴 차례로 앞의 box개(ㄱ~ㅎ로 보임). 학생 화면과 같은 셈.
+  const boxWords = useMemo(() => bingoBoxWords(bingo), [bingo]);
+  const recBox = bingoRecommendedBox(size);
 
   // 학생이 진행 — 지금 차례 · 결석. 결석은 **출석을 마친 날**에만 압니다: 출석을 받는 중에는
   // 아직 안 찍은 학생을 결석으로 보지 않고, 기록이 하나도 없으면(빈 Set) 모르는 것으로 봅니다
@@ -283,6 +288,27 @@ export default function BingoBoard({
       (cur) => bingoLeadPatch(cur, lead, groupsLoaded ? bingoTurnOrder(liveGroups, roster) : null),
       lead === "student" ? "학생이 진행으로 바꿨어요 — 학번 차례대로 학생이 낱말을 불러요." : "선생님이 진행으로 바꿨어요."
     );
+  }
+  // 낱말 상자 크기 — 판 채우기 동안만(선생님 요청: 많이 쓴 낱말만 쓰면 빙고가 늘어지지 않음).
+  // 상자가 많이 쓴 차례로 정렬되기 전에 만든 활동이면 닿소리에서 다시 읽어 정렬하면서 정합니다.
+  async function setBox(n) {
+    if (!bingo || playing || busy || bingo.box === n) return;
+    setNote("");
+    const msg = n > 0 ? `닿소리 채우기에서 많이 쓴 낱말 ${n}개만 고르게 했어요.` : "낱말 상자를 전부 쓰게 했어요.";
+    if (n > 0 && !bingo.ranked && activity.sourceActivityId) {
+      setBusy(true);
+      try {
+        await refreshBingoWords(activity, n);
+        onToast?.(msg);
+      } catch (e) {
+        console.warn("[빙고] 낱말을 가져오지 못했어요:", e?.code, e?.message);
+        onToast?.("낱말을 가져오지 못했어요. 잠시 뒤 다시 눌러 주세요.");
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
+    change(() => ({ box: n }), msg);
   }
   async function refreshWords() {
     setBusy(true);
@@ -514,6 +540,29 @@ export default function BingoBoard({
                     ))}
                   </div>
                 </div>
+                {/* 낱말 상자 — 판 채우기 동안 많이 쓴 N개만 / 전부(선생님 요청). 상자가 추천 수보다 클 때만 */}
+                {!playing && words.length > recBox && (
+                  <div className="bingo-opt">
+                    <span className="bingo-goal-label">낱말 상자</span>
+                    <div className="book-seg bingo-box-seg" role="group" aria-label="낱말 상자">
+                      {[[recBox, `많이 쓴 ${recBox}개`], [0, `전체 ${words.length}개`]].map(([n, label]) => {
+                        const on = (bingo.box > 0) === (n > 0);
+                        return (
+                          <button
+                            key={n}
+                            type="button"
+                            className={`book-seg-btn${on ? " active" : ""}`}
+                            aria-pressed={on}
+                            disabled={busy}
+                            onClick={() => setBox(n)}
+                          >
+                            {label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
                 {playing && called.length > 0 && (
                   <button type="button" className="bingo-reset" onClick={() => setConfirm("reset")} disabled={busy}>
                     부른 낱말 모두 지우기
@@ -640,14 +689,21 @@ export default function BingoBoard({
             <section className="xw-card">
               <header className="xw-card-head">
                 <h3>낱말 상자</h3>
-                <span className="xw-badge">낱말 {words.length}개</span>
+                <span className="xw-badge">
+                  낱말 {boxWords.length}개{boxWords.length < words.length ? ` / 전체 ${words.length}개` : ""}
+                </span>
               </header>
-              <p className="xw-card-note">학생이 판을 채울 때 고르는 낱말이에요. 숫자는 지금 그 낱말을 놓은 판 수예요.</p>
+              <p className="xw-card-note">
+                {boxWords.length < words.length
+                  ? `학생이 판을 채울 때 고르는 낱말이에요 — 닿소리 채우기에서 많이 쓴 차례로 ${boxWords.length}개(ㄱ~ㅎ 차례로 보여요).`
+                  : "학생이 판을 채울 때 고르는 낱말이에요 — 닿소리 채우기의 낱말 전부."}
+                {" "}숫자는 지금 그 낱말을 놓은 판 수예요.
+              </p>
               {words.length === 0 ? (
                 <p className="xw-empty">낱말이 없어요. 닿소리 채우기에 낱말이 모이면 ‘낱말 새로 가져오기’를 눌러 주세요.</p>
               ) : (
                 <div className="bingo-chips">
-                  {words.map((w) => (
+                  {boxWords.map((w) => (
                     <span key={w} className="bingo-chip bingo-chip--view">
                       {w}
                       <em className="bingo-chip-count">{boardsWith.get(w) ?? 0}</em>
@@ -655,7 +711,7 @@ export default function BingoBoard({
                   ))}
                 </div>
               )}
-              {words.length > 0 && words.length < cellCount && (
+              {boxWords.length > 0 && boxWords.length < cellCount && (
                 <p className="xw-card-note">낱말이 {cellCount}개보다 적어 판을 다 채울 수 없어요 — 빈칸은 표시되지 않아요.</p>
               )}
             </section>

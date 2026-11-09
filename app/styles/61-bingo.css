@@ -132,12 +132,14 @@
 .bingo-opt { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px; min-width: 0; }
 .bingo-goal-label { font-size: 13px; font-weight: 700; color: var(--text); }
 .bingo-goal-seg .book-seg-btn { flex: 0 0 56px; }
-/* 이어 놓인 두 단추는 같은 폭(CLAUDE.md의 repeat(n, minmax(0, 1fr))). 묶음은 줄어들지 않고
-   (flex: none — 긴 글자 '선생님이 진행' 두 칸만큼), 자리가 모자라면 묶음째 다음 줄로 내려갑니다.
-   한때 repeat(2, 1fr)라 좁은 폭(가운데 칸 250px 안팎)에서 긴 쪽이 글자 폭을 지키고 짧은 쪽이
-   나머지를 받아 두 단추 폭이 달랐습니다(검토에서 찾음). */
-.book-seg.bingo-lead-seg { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); flex: none; }
-.bingo-lead-seg .book-seg-btn { max-width: none; padding: 8px 12px; }
+/* 이어 놓인 두 단추는 같은 폭(CLAUDE.md의 repeat(n, minmax(0, 1fr))) — 낱말 부르기 · 낱말 상자.
+   묶음은 줄어들지 않고(flex: none — 긴 글자 두 칸만큼), 자리가 모자라면 묶음째 다음 줄로
+   내려갑니다. 한때 repeat(2, 1fr)라 좁은 폭(가운데 칸 250px 안팎)에서 긴 쪽이 글자 폭을 지키고
+   짧은 쪽이 나머지를 받아 두 단추 폭이 달랐습니다(검토에서 찾음). */
+.book-seg.bingo-lead-seg,
+.book-seg.bingo-box-seg { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); flex: none; }
+.bingo-lead-seg .book-seg-btn,
+.bingo-box-seg .book-seg-btn { max-width: none; padding: 8px 12px; }
 .bingo-reset {
   margin-left: auto;
   padding: 0;
@@ -200,9 +202,10 @@
 
 /* ── 빙고 중 교사 — 판 왼쪽 · 판에 놓인 낱말(ㄱ~ㅎ 알약) 오른쪽(선생님 요청) ──
    판이 520px까지 크고 나머지 폭을 낱말 목록이 씁니다. 둘이 한 줄에 안 들면(판 340 + 목록 260)
-   목록이 판 아래로 내려가고 판은 가운데. 목록이 판보다 길어 내려 보는 동안 판이 따라오게
-   나란히 설 때만 판을 붙여 둡니다(sticky — 위아래로 섰을 때 붙이면 목록을 덮음).
-   창이 아니라 이 줄의 폭으로 가릅니다(@container bingostage — 책방은 양옆 패널이 섬). */
+   목록이 판 아래로 내려가고 판은 가운데. 나란히 설 때는 목록 상자가 **판 높이만큼만** 서고
+   낱말은 그 안에서 따로 굴러갑니다(아래 @container — 선생님 요청: 한때 판만 붙어 있고 목록과
+   왼쪽 순위가 함께 굴렀습니다). 창이 아니라 이 줄의 폭으로 가릅니다(@container bingostage —
+   책방은 양옆 패널이 섬). */
 .bingo-stage {
   container: bingostage / inline-size;
   display: flex;
@@ -223,7 +226,17 @@
   border: 1px solid var(--border);
 }
 @container bingostage (min-width: 640px) {
-  .bingo-stage-board { position: sticky; top: 8px; }
+  /* contain: size — 목록 길이가 줄 높이에 끼지 않게(줄 높이 = 판 높이), stretch로 그 높이까지.
+     판이 아직 없을 때(안내 글 한 줄)도 목록이 너무 낮아지지 않게 바닥 높이를 둡니다. */
+  .bingo-callbox { align-self: stretch; contain: size; min-height: 320px; }
+  .bingo-callbox .bingo-chips--call {
+    flex: 1 1 0;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain; /* 목록 끝에서 휠이 페이지로 넘어가지 않게 */
+    align-content: flex-start;
+    padding-right: 4px;
+  }
 }
 /* 학생이 진행인데 지금 차례 학생이 결석 — 선생님이 이 목록에서 대신 고를 차례 */
 .bingo-callbox.proxy { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary-light); }

@@ -21,6 +21,7 @@ import {
   BINGO_DEFAULT_SIZE,
   bingoAhead,
   bingoBoardWords,
+  bingoBoxWords,
   bingoCallableWords,
   bingoCellCount,
   bingoLineCount,
@@ -78,6 +79,9 @@ export default function BingoStudent({ activity, groupId, user, onBack }) {
   const cells = useMemo(() => cellsBy.get(groupId) ?? Array(cellCount).fill(""), [cellsBy, groupId, cellCount]);
   const mine = useMemo(() => bingoProgress(cells, called, goal, size), [cells, called, goal, size]);
   const used = useMemo(() => bingoUsedWords(cells), [cells]);
+  // 판을 채울 때 고르는 낱말 — 닿소리 채우기에서 많이 쓴 차례로 앞의 box개(ㄱ~ㅎ로 보임).
+  // 상자를 줄이면 판끼리 겹치는 낱말이 많아져 빙고가 늘어지지 않습니다(lib/bingo.js의 BINGO_BOX).
+  const boxWords = useMemo(() => bingoBoxWords(bingo), [bingo]);
   // 이름 — 판의 members(만들 때 베낀 반 명단). 학생은 반 명단을 따로 읽지 않습니다.
   const people = useMemo(() => {
     const m = new Map();
@@ -173,7 +177,7 @@ export default function BingoStudent({ activity, groupId, user, onBack }) {
   }
   function fillRandom() {
     if (!canEdit) return;
-    const set = bingoRandomFill(cells, bingo.words, Math.random, size);
+    const set = bingoRandomFill(cells, boxWords, Math.random, size);
     if (!Object.keys(set).length) { setNote(mine.filled === cellCount ? "이미 다 채웠어요." : "넣을 낱말이 더 없어요."); return; }
     write(set);
     setSel(null);
@@ -489,16 +493,16 @@ export default function BingoStudent({ activity, groupId, user, onBack }) {
             <section className="xw-card">
               <header className="xw-card-head">
                 <h3>낱말 상자</h3>
-                <span className="xw-badge">{bingo.words.length}개</span>
+                <span className="xw-badge">{boxWords.length}개</span>
               </header>
               <p className="xw-card-note">
-                우리 반 친구들이 {activity.sourceTitle ? `‘${activity.sourceTitle}’` : "닿소리 채우기"}에 쓴 낱말 전부예요. 낱말을 누르고 판에서 넣을 칸을 누르세요. 판에 넣은 낱말은 흐리게 보여요.
+                우리 반 친구들이 {activity.sourceTitle ? `‘${activity.sourceTitle}’` : "닿소리 채우기"}에 {boxWords.length < bingo.words.length ? `많이 쓴 낱말 ${boxWords.length}개` : "쓴 낱말 전부"}예요. 낱말을 누르고 판에서 넣을 칸을 누르세요. 판에 넣은 낱말은 흐리게 보여요.
               </p>
-              {bingo.words.length === 0 ? (
+              {boxWords.length === 0 ? (
                 <p className="xw-empty">낱말 상자가 비어 있어요. 선생님께 말씀해 주세요.</p>
               ) : (
                 <div className="bingo-chips">
-                  {bingo.words.map((w) => (
+                  {boxWords.map((w) => (
                     <button
                       key={w}
                       type="button"
@@ -512,7 +516,7 @@ export default function BingoStudent({ activity, groupId, user, onBack }) {
                   ))}
                 </div>
               )}
-              {bingo.words.length > 0 && bingo.words.length < cellCount && (
+              {boxWords.length > 0 && boxWords.length < cellCount && (
                 <p className="xw-card-note">낱말이 {cellCount}개보다 적어 판을 다 채울 수 없어요 — 빈칸은 표시되지 않아요.</p>
               )}
             </section>
