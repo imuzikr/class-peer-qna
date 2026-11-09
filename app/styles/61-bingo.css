@@ -132,7 +132,9 @@
 .bingo-opt { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px; min-width: 0; }
 .bingo-goal-label { font-size: 13px; font-weight: 700; color: var(--text); }
 .bingo-goal-seg .book-seg-btn { flex: 0 0 56px; }
-.bingo-lead-seg .book-seg-btn { flex: 0 0 auto; max-width: none; padding: 8px 12px; }
+/* 이어 놓인 두 단추는 같은 폭(CLAUDE.md) — 긴 글자('선생님이 진행')에 맞춘 두 칸 */
+.book-seg.bingo-lead-seg { display: grid; grid-template-columns: repeat(2, 1fr); }
+.bingo-lead-seg .book-seg-btn { max-width: none; padding: 8px 12px; }
 .bingo-reset {
   margin-left: auto;
   padding: 0;

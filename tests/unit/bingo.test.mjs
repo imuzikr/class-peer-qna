@@ -7,7 +7,7 @@ import {
   bingoWordPool, normalizeBingo, normalizeBingoCells, bingoProgress,
   rankBingo, rankBingoFill, bingoAhead, bingoRandomFill, nextBingoCall, normalizeBingoGoal,
   bingoBoardWords, bingoTurnOrder, bingoTurnUid, bingoTurnsUntil, bingoCall, bingoUndo,
-  bingoStartPatch, bingoLeadPatch, bingoPicksBy,
+  bingoStartPatch, bingoLeadPatch, bingoPicksBy, bingoCallableWords,
 } from "../../lib/bingo.js";
 
 function seeded(seed = 7) {
@@ -297,4 +297,46 @@ test("시작 · 진행 바꾸기 — 시작하면 차례를 새로, 학생이 �
   // 지금 차례였던 학생이 없으면 처음부터
   assert.deepEqual(bingoLeadPatch(b, "student", ["s1", "s2"]), { lead: "student", order: ["s1", "s2"], turn: 0 });
   assert.deepEqual(bingoLeadPatch(b, "teacher", ["s1"]), { lead: "teacher" });
+});
+
+// ── 머지 전 검토에서 찾은 것 ─────────────────────────────────
+test("차례 번호 -0(소수로 적힘) · NaN은 정수 0으로 — 교사가 고쳐 쓰면 규칙의 `turn is int`가 다시 통과", () => {
+  const b = normalizeBingo({ stage: "play", lead: "student", words: ["가"], order: ["s1", "s2"], turn: -0 });
+  assert.ok(Object.is(b.turn, 0));
+  assert.ok(Object.is(normalizeBingo({ order: ["s1"], turn: "x" }).turn, 0));
+});
+
+test("되돌리기 — 누를 때 본 낱말이 아직 마지막일 때만(그사이 다음 학생이 부른 낱말은 지우지 않음)", () => {
+  const b = playing({ called: ["가", "나"], by: ["s1", "s2"], turn: 2 });
+  assert.equal(bingoUndo(b, "가"), null);
+  assert.deepEqual(bingoUndo(b, "나"), { called: ["가"], by: ["s1"], turn: 1 });
+  // 낱말을 안 주면 예전처럼 마지막 것을
+  assert.deepEqual(bingoUndo(b), { called: ["가"], by: ["s1"], turn: 1 });
+});
+
+test("진행 바꾸기 — 판 목록을 아직 모르면(null) 저장된 차례를 그대로, 빈 배열은 '정말 없음'", () => {
+  const b = playing({ lead: "teacher", order: ["s1", "s2", "s3"], turn: 2 });
+  assert.deepEqual(bingoLeadPatch(b, "student", null), { lead: "student" });
+  assert.deepEqual(bingoLeadPatch(b, "student", []), { lead: "student", order: [], turn: 0 });
+});
+
+test("부르는 차례 — 디렉터리가 아직 안 와 명단 줄에 학번이 없으면 판의 members 학번으로", () => {
+  const boards = [
+    { memberUids: ["b"], members: [{ uid: "b", name: "나", studentId: "20202" }] },
+    { memberUids: ["a"], members: [{ uid: "a", name: "가", studentId: "20201" }] },
+    { memberUids: ["c"], members: [{ uid: "c", name: "다", studentId: "20203" }] },
+  ];
+  // buildClassRoster가 디렉터리 없이 만든 줄 — 학번 null · '이름 미설정'
+  const placeholder = ["c", "b", "a"].map((uid) => ({ uid, name: "이름 미설정", studentId: null }));
+  assert.deepEqual(bingoTurnOrder(boards, placeholder), ["a", "b", "c"]);
+  // 명단에 학번이 있으면 명단이 먼저(만든 뒤 학번이 바뀐 경우)
+  const fresh = [{ uid: "a", name: "가", studentId: "20209" }, { uid: "b", name: "나", studentId: "20202" }, { uid: "c", name: "다", studentId: "20203" }];
+  assert.deepEqual(bingoTurnOrder(boards, fresh), ["b", "c", "a"]);
+});
+
+test("한 판에서 아직 부를 수 있는 낱말 — 칸에 있고 · 상자에 있고 · 안 불린 것, 겹치지 않게", () => {
+  const b = playing({ called: ["가"] });
+  assert.deepEqual(bingoCallableWords(["가", "나", "", "나", "없음", "다"], b), ["나", "다"]);
+  assert.deepEqual(bingoCallableWords([], b), []);
+  assert.deepEqual(bingoCallableWords(["가"], b), []);
 });

@@ -1543,7 +1543,9 @@ service cloud.firestore {
       //   · 빙고 중(stage == 'play') · 잠기기 전 · 이 반 학생 · order[turn]이 나
       //   · called = 지금 목록 + 낱말 하나(낱말 상자 words에 있고 아직 안 불린 것)
       //   · by = 지금 목록 + 나(지금 by가 called와 같은 길이일 때만) ·
-      //     turn = (turn + 1) % order 길이 — 마지막 번호 다음은 처음
+      //     turn = (turn + 1) % order 길이 — 마지막 번호 다음은 처음. 새 turn도 **정수**여야 합니다
+      //     (규칙의 == 는 1.0 == 1, -0.0 == 0을 같다고 봅니다. 소수로 적히면 다음 학생부터
+      //     `turn is int`에 걸려 모두의 부르기가 막힘 — 검토에서 찾음)
       // '내 판에 있는 낱말인가'는 보지 않습니다(화면이 내 판의 칸만 누르게 함). 판 id를 알려면
       // get()이 하나 더 들고, 상자의 낱말이라 남의 판이나 상태를 망가뜨릴 수는 없습니다.
       function bingoTurnCall() {
@@ -1567,6 +1569,7 @@ service cloud.firestore {
           && !c0.hasAny([after.called[c0.size()]])
           && before.get('by', []).size() == c0.size()
           && after.get('by', []) == before.get('by', []).concat([uid()])
+          && after.get('turn', -1) is int
           && after.get('turn', -1) == (turn + 1) % order.size()
           && isClassMember(resource.data.classId);
       }

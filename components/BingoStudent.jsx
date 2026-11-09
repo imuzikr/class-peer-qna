@@ -20,6 +20,7 @@ import {
   BINGO_DEFAULT_GOAL,
   BINGO_DEFAULT_SIZE,
   bingoAhead,
+  bingoCallableWords,
   bingoCellCount,
   bingoLineCount,
   bingoProgress,
@@ -114,12 +115,14 @@ export default function BingoStudent({ activity, groupId, user, onBack }) {
   const order = bingo?.order ?? [];
   const turnUid = bingoTurnUid(bingo);
   const myTurn = !!myUid && turnUid === myUid && !locked;
+  // 내 차례인데 활동이 잠겨 있음 — 부를 수 없어 선생님이 대신 고릅니다(교사 화면도 같은 안내)
+  const myTurnLocked = !!myUid && turnUid === myUid && locked;
   const until = myUid ? bingoTurnsUntil(bingo, myUid) : null;
-  const calledSet = useMemo(() => new Set(called), [called]);
-  const pool = useMemo(() => new Set(bingo?.words ?? []), [bingo]);
-  // 내 판에서 부를 수 있는 칸 — 낱말이 있고, 상자의 낱말이고, 아직 안 불린 것
-  const callable = (i) => !!cells[i] && pool.has(cells[i]) && !calledSet.has(cells[i]);
-  const anyCallable = cells.some((w, i) => callable(i));
+  // 내 판에서 부를 수 있는 칸 — 낱말이 있고, 상자의 낱말이고, 아직 안 불린 것(교사 화면이 '부를
+  // 낱말 없음'을 가리는 셈과 같은 함수 — lib/bingo.js의 bingoCallableWords)
+  const callableWords = useMemo(() => new Set(bingoCallableWords(cells, bingo)), [cells, bingo]);
+  const callable = (i) => !!cells[i] && callableWords.has(cells[i]);
+  const anyCallable = callableWords.size > 0;
   const selIdx = myTurn && callSel && callSel.at === called.length && callable(callSel.i) ? callSel.i : null;
 
   async function write(set, del = []) {
@@ -312,7 +315,7 @@ export default function BingoStudent({ activity, groupId, user, onBack }) {
               {mine.bingo
                 ? <>🎉 <strong>빙고!</strong> {mine.count}줄 완성</>
                 : lastWord
-                  ? <>방금 불린 낱말 <strong>{lastWord}</strong> <em>{called.length}번째{lastBy ? ` · ${lastBy === myUid ? "내가 골랐어요" : `${nameOf(lastBy)} 차례`}` : ""}</em></>
+                  ? <>방금 불린 낱말 <strong>{lastWord}</strong> <em>{called.length}번째{lastBy ? ` · ${lastBy === myUid ? "내 차례" : `${nameOf(lastBy)} 차례`}` : ""}</em></>
                   : studentLead
                     ? "첫 번호부터 학번 차례대로 낱말을 불러요."
                     : "선생님이 낱말을 부르기를 기다려요."}
@@ -325,7 +328,13 @@ export default function BingoStudent({ activity, groupId, user, onBack }) {
                 <strong>내 차례예요!</strong>{" "}
                 {anyCallable
                   ? "내 판에서 아직 안 불린 낱말을 누른 뒤 ‘부르기’를 누르세요."
-                  : "내 판의 낱말을 모두 불렀어요 — 선생님이 대신 골라 주실 거예요."}
+                  : mine.filled === 0
+                    ? "내 판에 낱말이 없어요 — 선생님이 대신 골라 주실 거예요."
+                    : "내 판의 낱말을 모두 불렀어요 — 선생님이 대신 골라 주실 거예요."}
+              </p>
+            ) : myTurnLocked ? (
+              <p className="bingo-waitturn">
+                <strong>내 차례</strong>지만 지금은 활동이 잠겨 있어 부를 수 없어요 — 선생님이 대신 골라 주실 거예요.
               </p>
             ) : turnUid ? (
               <p className="bingo-waitturn">
@@ -430,7 +439,9 @@ export default function BingoStudent({ activity, groupId, user, onBack }) {
                   <p className="xw-card-note">
                     {myTurn
                       ? "지금 내 차례예요!"
-                      : until === 1
+                      : myTurnLocked
+                        ? "내 차례지만 활동이 잠겨 있어요."
+                        : until === 1
                         ? "다음이 내 차례예요."
                         : until != null
                           ? `내 앞에 ${until}명 남았어요.`

@@ -815,6 +815,7 @@ function BooksPageInner() {
           user={user}
           roster={roster}
           presentUids={todayPresentUids}
+          attendanceOpen={attendanceOpenToday}
           onBack={goToList}
           onToast={setToast}
           classTools={classTools}

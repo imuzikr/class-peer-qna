@@ -35,6 +35,7 @@ import {
   BINGO_GOALS,
   bingoBoardWords,
   bingoCall,
+  bingoCallableWords,
   bingoCellCount,
   bingoLeadPatch,
   bingoPicksBy,
@@ -65,6 +66,8 @@ export default function BingoBoard({
   roster = [],
   // 오늘 출석한 학생(Set) — 출석을 안 받은 날은 null(결석을 모름)
   presentUids = null,
+  // 오늘 출석을 받는 중인가 — 그동안은 아직 안 찍은 학생을 결석으로 보지 않습니다
+  attendanceOpen = false,
   classPicker = null,
   classTools = null,
 }) {
@@ -72,12 +75,25 @@ export default function BingoBoard({
   const [rawBoards, setRawBoards] = useState([]);
   const [picked, setPicked] = useState(null);
   const [busy, setBusy] = useState(false);
-  const [note, setNote] = useState("");
+  // 안내 한 줄의 알림 — 그때의 상태(noteKey)에만 붙습니다(아래 note)
+  const [noteAt, setNoteAt] = useState({ text: "", key: "" });
   // 'start' | 'back' | 'reset' | { word, uid } — 학생 차례에 선생님이 대신 부르기
   const [confirm, setConfirm] = useState(null);
+  // 구독의 첫 답이 이 활동에서 왔는가 — 빈 목록이 '없음'인지 '아직 모름'인지 가립니다(CLAUDE.md
+  // 'Firestore 함정'). 첫 답 전에 차례를 짜면 빈 차례가 저장됩니다(검토에서 찾음).
+  const [groupsFor, setGroupsFor] = useState(null);
+  const [boardsFor, setBoardsFor] = useState(null);
 
-  useEffect(() => subscribeBookGroups(activity.id, setGroups), [activity.id]);
-  useEffect(() => subscribeBingoBoards(activity.id, setRawBoards), [activity.id]);
+  useEffect(
+    () => subscribeBookGroups(activity.id, (list) => { setGroups(list); setGroupsFor(activity.id); }),
+    [activity.id]
+  );
+  useEffect(
+    () => subscribeBingoBoards(activity.id, (list) => { setRawBoards(list); setBoardsFor(activity.id); }),
+    [activity.id]
+  );
+  const groupsLoaded = groupsFor === activity.id;
+  const boardsLoaded = boardsFor === activity.id;
 
   const solo = activity.groupMode === "solo";
   const bingo = useMemo(() => normalizeBingo(activity.bingo), [activity.bingo]);
@@ -89,6 +105,12 @@ export default function BingoBoard({
   const goal = bingo?.goal ?? BINGO_DEFAULT_GOAL;
   const lastWord = called.at(-1) ?? "";
   const lastBy = bingo?.by.at(-1) ?? "";
+  // 알림(저장 실패 · 더 부를 낱말 없음 등)은 그때의 단계 · 부른 낱말 · 차례에만 붙어, 그것이
+  // 바뀌면 저절로 사라집니다 — 한때 안내 줄에 남아 다음 차례의 '결석 · 대신 고르기' 안내를
+  // 가렸습니다(검토에서 찾음). 경합 알림(그사이 …)은 한 번 알리고 마는 일이라 토스트로 띄웁니다.
+  const noteKey = `${bingo?.stage ?? ""}|${called.length}|${bingo?.turn ?? 0}`;
+  const note = noteAt.key === noteKey ? noteAt.text : "";
+  const setNote = (text) => setNoteAt({ text, key: noteKey });
 
   const liveGroups = useMemo(
     () => groups.filter((g) => !g.retired && (g.memberUids ?? []).length > 0)
@@ -145,17 +167,33 @@ export default function BingoBoard({
   const calledOrder = useMemo(() => new Map(called.map((w, i) => [w, i + 1])), [called]);
   const calledOnBoards = boardWords.filter((x) => calledOrder.has(x.word)).length;
 
-  // 학생이 진행 — 지금 차례 · 결석(오늘 출석을 받았을 때만 앎)
+  // 학생이 진행 — 지금 차례 · 결석. 결석은 **출석을 마친 날**에만 압니다: 출석을 받는 중에는
+  // 아직 안 찍은 학생을 결석으로 보지 않고, 기록이 하나도 없으면(빈 Set) 모르는 것으로 봅니다
+  // (BookGroupBoard와 같은 기준 — 한때 출석을 받는 중에 안 찍은 학생이 모두 결석으로 떴습니다).
   const order = bingo?.order ?? [];
   const turnUid = bingoTurnUid(bingo);
-  const isAbsent = (uid) => !!presentUids && !presentUids.has(uid);
+  const absentKnown = !attendanceOpen && !!presentUids && presentUids.size > 0;
+  const isAbsent = (uid) => absentKnown && !presentUids.has(uid);
   const turnAbsent = !!turnUid && isAbsent(turnUid);
   const turnGroupId = turnUid ? liveGroups.find((g) => g.memberUids.includes(turnUid))?.id ?? null : null;
   const picks = useMemo(() => bingoPicksBy(bingo), [bingo]);
+  // 지금 차례 학생의 판에 아직 부를 수 있는 낱말. 하나도 없으면(빈 판 · 다 불림) 학생은 고를 것이
+  // 없어 차례가 멈춥니다 — 학생 화면은 '선생님이 대신 골라 주실 거예요'라고 하므로, 교사 화면도
+  // 결석처럼 곧바로 대신 고르라고 알립니다(검토에서 찾음). 구독의 첫 답 전에는 판단하지 않음.
+  const turnLeft = useMemo(
+    () => (turnUid ? bingoCallableWords(cellsBy.get(turnGroupId) ?? [], bingo) : []),
+    [turnUid, turnGroupId, cellsBy, bingo]
+  );
+  const turnStuck = !!turnUid && groupsLoaded && boardsLoaded && turnLeft.length === 0;
+  // 잠긴 활동에서는 학생이 부를 수 없습니다(규칙도 같음) — 선생님이 대신 고릅니다
+  const turnLocked = !!turnUid && !!activity.locked;
+  // 되묻지 않고 곧바로 대신 고를 때 — 결석 · 부를 낱말 없음 · 잠김
+  const proxyNow = turnAbsent || turnStuck || turnLocked;
 
-  // 개별 활동 — 만든 뒤 반에 들어온 학생에게는 판이 없습니다(닿소리와 같음).
+  // 개별 활동 — 만든 뒤 반에 들어온 학생에게는 판이 없습니다(닿소리와 같음). 판 목록의 첫 답
+  // 전에는 세지 않습니다(모두 '판이 없는 학생'으로 잠깐 뜨지 않게).
   const haveUids = useMemo(() => new Set(groups.filter((g) => !g.retired).flatMap((g) => g.memberUids ?? [])), [groups]);
-  const missing = solo ? (roster ?? []).filter((s) => s?.uid && !haveUids.has(s.uid)) : [];
+  const missing = solo && groupsLoaded ? (roster ?? []).filter((s) => s?.uid && !haveUids.has(s.uid)) : [];
 
   // 상태 고치기 — 저장된 상태를 읽어 고칩니다(학생이 같은 문서에 부름을 이어 쓰므로).
   //   돌려주는 값: 새 상태 · 고칠 것이 없었으면 null · 저장 실패면 undefined(안내를 띄움)
@@ -180,31 +218,37 @@ export default function BingoBoard({
     if (!playing || !word || calledOrder.has(word) || busy) return;
     setNote("");
     const next = await change((cur) => bingoCall(cur, word, expect));
-    if (next === null) setNote("그사이 차례가 넘어갔거나 이미 불린 낱말이에요. 다시 골라 주세요.");
+    if (next === null) onToast?.("그사이 차례가 넘어갔거나 이미 불린 낱말이에요. 다시 골라 주세요.");
   }
   // 판에 놓인 낱말 알약 — 선생님이 진행이면 곧바로 부르고, 학생이 진행이면 지금 차례 학생
-  // 대신 부릅니다. 결석이면 곧바로, 아니면 한 번 되묻습니다(그 학생이 고르는 중일 수 있음).
+  // 대신 부릅니다. 결석 · 부를 낱말 없음 · 잠김이면 곧바로, 아니면 한 번 되묻습니다(그 학생이
+  // 고르는 중일 수 있음).
   function pickPill(word) {
     if (!playing || busy || calledOrder.has(word)) return;
     if (!studentLead || !turnUid) { callWord(word); return; }
-    if (turnAbsent) { callWord(word, turnUid); return; }
+    if (proxyNow) { callWord(word, turnUid); return; }
     setConfirm({ word, uid: turnUid });
   }
   // 무작위로 부르기 — 판에 놓인 안 부른 낱말에서만. 학생이 진행이면 지금 차례 학생 대신 —
   // 그 학생의 판에 남은 낱말이 있으면 거기서(제 판에서 고르는 셈), 없으면 판에 놓인 낱말 전체에서.
   function callRandom() {
     const proxy = studentLead && turnUid;
-    const own = proxy ? nextBingoCall(bingoBoardWords([cellsBy.get(turnGroupId) ?? []], bingo?.words ?? []), called) : null;
+    const own = proxy ? nextBingoCall(turnLeft, called) : null;
     const w = own ?? nextBingoCall(boardWords, called);
     if (!w) { setNote("판에 놓인 낱말을 모두 불렀어요."); return; }
     callWord(w, proxy ? turnUid : null);
   }
-  function undoCall() {
-    if (!called.length) return;
+  // 하나 되돌리기 — 누를 때 화면에 보이던 마지막 낱말만 되돌립니다. 그사이 다음 학생이
+  // 불렀으면 그 학생의 부름을 지우지 않습니다(bingoUndo의 expectWord — 검토에서 찾음).
+  async function undoCall() {
+    if (!called.length || busy) return;
+    const want = lastWord;
     setNote("");
-    change((cur) => bingoUndo(cur), `‘${lastWord}’ 부르기를 되돌렸어요.`);
+    const next = await change((cur) => bingoUndo(cur, want), `‘${want}’ 부르기를 되돌렸어요.`);
+    if (next === null) onToast?.("그사이 새 낱말이 불렸어요 — 확인하고 다시 눌러 주세요.");
   }
   function start() {
+    if (!groupsLoaded) return;
     setConfirm(null);
     setNote("");
     change(
@@ -227,10 +271,10 @@ export default function BingoBoard({
   // 누가 부를지 — 판 채우기 동안에도, 빙고 중에도 바꿉니다(학생이 진행으로 바꾸면 차례를 새로 짜되
   // 지금 차례였던 학생부터 이어 감).
   function setLead(lead) {
-    if (!bingo || bingo.lead === lead || busy) return;
+    if (!bingo || bingo.lead === lead || busy || !groupsLoaded) return;
     setNote("");
     change(
-      (cur) => bingoLeadPatch(cur, lead, bingoTurnOrder(liveGroups, roster)),
+      (cur) => bingoLeadPatch(cur, lead, groupsLoaded ? bingoTurnOrder(liveGroups, roster) : null),
       lead === "student" ? "학생이 진행으로 바꿨어요 — 학번 차례대로 학생이 낱말을 불러요." : "선생님이 진행으로 바꿨어요."
     );
   }
@@ -269,9 +313,14 @@ export default function BingoBoard({
   else if (!playing) {
     guide = `${solo ? "학생" : "모둠"}마다 낱말 상자에서 ${cellCount}칸을 골라 채워요(다 채움 ${fullCount} / ${ranks.length}). 다 채웠으면 ‘빙고 시작’을 누르세요 — 시작하면 판은 굳어요.`;
   } else if (studentLead && turnUid) {
-    guide = turnAbsent
-      ? `지금 차례: ${turnNo}번째 ${nameOf(turnUid)} — 오늘 결석이에요. 오른쪽 목록에서 낱말을 눌러 대신 골라 주세요(‘무작위로 대신 고르기’는 그 학생의 판에서 골라요).`
-      : `지금 차례: ${turnNo}번째 ${nameOf(turnUid)} — 학생이 제 판에서 낱말을 고르면 모든 판에 곧바로 표시돼요. 결석이면 오른쪽 목록에서 대신 골라 주세요.`;
+    const now = `지금 차례: ${turnNo}번째 ${nameOf(turnUid)}`;
+    guide = turnLocked
+      ? `${now} — 활동이 잠겨 있어 학생은 부를 수 없어요. 오른쪽 목록에서 낱말을 눌러 대신 골라 주세요.`
+      : turnAbsent
+        ? `${now} — 오늘 결석이에요. 오른쪽 목록에서 낱말을 눌러 대신 골라 주세요(‘무작위로 대신 고르기’는 그 학생의 판에 남은 낱말에서 골라요).`
+        : turnStuck
+          ? `${now} — 그 학생의 판에 부를 낱말이 남지 않았어요. 오른쪽 목록에서 낱말을 눌러 대신 골라 주세요.`
+          : `${now} — 학생이 제 판에서 낱말을 고르면 모든 판에 곧바로 표시돼요. 결석이면 오른쪽 목록에서 대신 골라 주세요.`;
   } else if (studentLead) {
     guide = "부르는 차례에 든 학생이 없어요(판에 든 학생이 있어야 차례가 생겨요). 그동안은 오른쪽 목록에서 선생님이 불러요.";
   } else {
@@ -377,7 +426,7 @@ export default function BingoBoard({
             {/* 안내가 앞, 단추가 그 오른쪽(가로세로와 같은 줄) — 크기는 하나, 색으로만 가릅니다 */}
             <div className="xw-gen-row">
               <div className="xw-gen-inner">
-                <span className={`xw-gen-note${playing && turnAbsent && !note ? " bingo-note-away" : ""}`}>{guide}</span>
+                <span className={`xw-gen-note${playing && studentLead && proxyNow && !note ? " bingo-note-away" : ""}`}>{guide}</span>
                 <div className="xw-gen-btns">
                   {playing ? (
                     <>
@@ -386,7 +435,9 @@ export default function BingoBoard({
                         className="xw-gen-btn xw-gen-btn--make"
                         onClick={callRandom}
                         disabled={busy || calledOnBoards >= boardWords.length}
-                        title={studentLead && turnUid ? `${nameOf(turnUid)} 대신 — 그 학생의 판에 남은 낱말에서 무작위로` : "판에 놓인 안 부른 낱말에서 무작위로"}
+                        title={studentLead && turnUid
+                          ? `${nameOf(turnUid)} 대신 — ${turnLeft.length ? "그 학생의 판에 남은 낱말에서" : "판에 놓인 안 부른 낱말에서"} 무작위로`
+                          : "판에 놓인 안 부른 낱말에서 무작위로"}
                       >
                         {studentLead && turnUid ? "무작위로 대신 고르기" : "무작위로 부르기"}
                       </button>
@@ -403,7 +454,7 @@ export default function BingoBoard({
                         type="button"
                         className="xw-gen-btn xw-gen-btn--make"
                         onClick={() => (fullCount < ranks.length ? setConfirm("start") : start())}
-                        disabled={busy || !bingo || ranks.length === 0}
+                        disabled={busy || !bingo || !groupsLoaded || ranks.length === 0}
                       >
                         빙고 시작
                       </button>
@@ -445,7 +496,7 @@ export default function BingoBoard({
                         type="button"
                         className={`book-seg-btn${bingo.lead === value ? " active" : ""}`}
                         aria-pressed={bingo.lead === value}
-                        disabled={busy}
+                        disabled={busy || !groupsLoaded}
                         onClick={() => setLead(value)}
                       >
                         {label}
@@ -478,7 +529,9 @@ export default function BingoBoard({
                 <p className="bingo-turns-head">
                   <strong>부르는 차례</strong>
                   <span>{turnNo} / {order.length}번째 · 학번순 — 마지막 번호 다음은 처음부터</span>
-                  {presentUids == null && <em>오늘 출석을 받으면 결석한 학생이 표시돼요</em>}
+                  {attendanceOpen
+                    ? <em>출석을 받는 중이에요 — 출석을 마치면 결석한 학생이 표시돼요</em>
+                    : !absentKnown && <em>오늘 출석을 받으면 결석한 학생이 표시돼요</em>}
                 </p>
                 <ol className="bingo-turns">
                   {order.map((uid, i) => {
@@ -489,7 +542,7 @@ export default function BingoBoard({
                       <li
                         key={uid}
                         className={`bingo-turn${now ? " now" : ""}${i < bingo.turn ? " done" : ""}${away ? " away" : ""}`}
-                        title={pick ? `${pick.n}번째로 ‘${pick.word}’을(를) 골랐어요` : "아직 고른 낱말이 없어요"}
+                        title={pick ? `${pick.n}번째 낱말 ‘${pick.word}’ — 이 학생 차례에 불렸어요` : "아직 이 학생 차례에 불린 낱말이 없어요"}
                         aria-current={now ? "step" : undefined}
                       >
                         <b>{i + 1}</b>
@@ -518,7 +571,7 @@ export default function BingoBoard({
                     <p className="xw-empty">왼쪽에 판이 생기면 눌러서 크게 볼 수 있어요.</p>
                   )}
                 </div>
-                <section className={`bingo-callbox${studentLead && turnAbsent ? " proxy" : ""}`} aria-label="판에 놓인 낱말">
+                <section className={`bingo-callbox${studentLead && proxyNow ? " proxy" : ""}`} aria-label="판에 놓인 낱말">
                   <header className="bingo-callbox-head">
                     <h4>판에 놓인 낱말</h4>
                     <span className="xw-badge">부름 {calledOnBoards} / {boardWords.length}</span>
@@ -526,7 +579,9 @@ export default function BingoBoard({
                   <p className="xw-card-note">
                     {studentLead
                       ? turnUid
-                        ? `학생이 고르면 그 낱말의 색이 바뀌어요. 누르면 ${nameOf(turnUid)} 대신 불러요 — 결석한 학생의 차례에만 쓰세요.`
+                        ? proxyNow
+                          ? `지금은 선생님이 ${nameOf(turnUid)} 대신 고를 차례예요 — 누르면 곧바로 불러요.`
+                          : `학생이 고르면 그 낱말의 색이 바뀌어요. 누르면 ${nameOf(turnUid)} 대신 불러요(한 번 되물어요).`
                         : "학생이 고른 낱말의 색이 바뀌어요. 누르면 선생님이 불러요."
                       : "ㄱ~ㅎ 차례예요. 누르면 부릅니다."}
                     {" "}작은 숫자는 그 낱말이 놓인 판 수, 동그라미는 부른 차례예요.
@@ -633,7 +688,7 @@ export default function BingoBoard({
         <ConfirmModal
           icon={<span aria-hidden="true">🎯</span>}
           title={`${nameOf(confirm.uid)} 대신 부를까요?`}
-          description={`지금은 ${nameOf(confirm.uid)}의 차례예요. 선생님이 ‘${confirm.word}’을(를) 대신 부르면 차례가 다음 학생으로 넘어가요. 결석한 학생의 차례에만 대신 골라 주세요.`}
+          description={`지금은 ${nameOf(confirm.uid)}의 차례예요. 선생님이 ‘${confirm.word}’을(를) 대신 부르면 차례가 다음 학생으로 넘어가요. 학생이 고르는 중이면 조금 기다려 주세요.`}
           confirmLabel="대신 부르기"
           onConfirm={() => {
             const c = confirm;

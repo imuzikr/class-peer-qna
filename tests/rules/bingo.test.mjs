@@ -148,6 +148,14 @@ describe("낱말 빙고 규칙", () => {
       await assertSucceeds(call(db2, ["사과", "배"], ["stu1", "stu2"], 2));
     });
 
+    it("새 차례 번호는 정수만 — -0(소수로 적힘)은 거부, 정수 0은 통과(마지막 번호 다음)", async () => {
+      // stu3(마지막 번호)의 차례 — 다음 차례는 0
+      await seed(env, (db) => updateDoc(doc(db, ...actPath), { "bingo.turn": 2 }));
+      const db3 = asStudent(env, "stu3").firestore();
+      await assertFails(call(db3, ["사과", "배"], ["stu1", "stu3"], -0));
+      await assertSucceeds(call(db3, ["사과", "배"], ["stu1", "stu3"], 0));
+    });
+
     it("by가 called와 길이가 다르면(옛 자료) 학생은 못 붙임 — 선생님이 상태를 고쳐 쓴 뒤에만", async () => {
       await seed(env, (db) => updateDoc(doc(db, ...actPath), { "bingo.by": [] }));
       await assertFails(call(asStudent(env, "stu2").firestore(), ["사과", "배"], ["stu2"], 2));
