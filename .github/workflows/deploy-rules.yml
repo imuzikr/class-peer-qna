@@ -1,0 +1,66 @@
+# =============================================================
+# Firestore 규칙 배포 — 손으로만 돌립니다(workflow_dispatch)
+# -------------------------------------------------------------
+# Claude의 클라우드 세션에는 Firebase 로그인이 없어 `npm run deploy`를 못 씁니다.
+# 그래서 서비스 계정 키를 GitHub에 맡겨 두고 여기서 규칙을 올립니다(docs/deploy.md
+# 'GitHub Actions로 규칙 배포').
+#   · 돌리는 법: Actions 탭 → 'Firestore 규칙 배포' → Run workflow(Claude 세션이 실행해도
+#     됩니다). 'Use workflow from'에서 고른 브랜치의 firestore.rules가 올라갑니다(기본 main).
+#   · 규칙 시험(npm run test:rules)을 먼저 돌리고, 통과해야만 배포합니다.
+#   · 차례는 규칙 → 앱입니다. 규칙을 바꾼 작업은 main에 머지하기 **전에** 그 작업
+#     브랜치로 돌리세요(main 푸시가 곧 Vercel 배포).
+#   · main에 올라간다고 저절로 돌지 않습니다 — 언제 올릴지는 사람이 정합니다.
+#   · Storage 규칙 · 색인 · 함수는 여기서 올리지 않습니다(npm run deploy의 몫).
+# 키: 환경 'firebase-rules'의 Secret FIREBASE_SERVICE_ACCOUNT(서비스 계정 키 JSON 전체).
+#   그 환경에 승인하는 사람(Required reviewers)을 두면 배포마다 승인을 기다리고, 승인
+#   전에는 이 작업이 키에 닿지 못합니다. 서비스 계정의 역할은 둘입니다 —
+#   Firebase 규칙 관리자(roles/firebaserules.admin) · 서비스 사용량 소비자
+#   (roles/serviceusage.serviceUsageConsumer: firebase-tools가 배포 전에 Firestore API가
+#   켜졌는지 묻는데, 이 권한이 없으면 403으로 멈춥니다).
+# =============================================================
+name: Firestore 규칙 배포
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# 두 번 눌러도 하나씩 차례로(앞의 것을 멈추지 않음)
+concurrency:
+  group: deploy-firestore-rules
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: firebase-rules
+    steps:
+      - uses: actions/checkout@v4
+      - name: 배포할 커밋
+        run: echo "${GITHUB_REF_NAME} @ ${GITHUB_SHA}" | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tests/rules/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      # 에뮬레이터 jar를 매번 받지 않게(CI와 같은 열쇠)
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/firebase/emulators
+          key: firebase-emulators-${{ hashFiles('tests/rules/package-lock.json') }}
+      - run: npm ci --prefix tests/rules
+      - name: 규칙 시험
+        run: npm run test:rules
+      - name: 서비스 계정 키로 로그인
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+      - name: Firestore 규칙 배포
+        # 시험에 쓴 그 firebase-tools(tests/rules의 package-lock으로 고정)로 올립니다
+        run: tests/rules/node_modules/.bin/firebase deploy --only firestore:rules --project class-peer-qna --non-interactive

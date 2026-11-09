@@ -45,6 +45,7 @@ npm run test:attachments:pilot  # 보호된 첨부 에뮬레이터 검증 (demo-
    첨부 업로드가 통째로 실패합니다(함수).
 2. 명령: `npm run deploy`(규칙 시험 → 규칙 + 함수) · `-- --rules-only` · `--functions-only` ·
    `--indexes-only` · `--skip-tests`. `firebase-tools`는 npx로 씁니다(devDependency 아님).
+   Claude 세션(Firebase 로그인 없음)에서는 GitHub Actions 'Firestore 규칙 배포'(`.github/workflows/deploy-rules.yml`, 손으로만 — [docs/deploy.md](docs/deploy.md)).
 3. **Storage 규칙은 `npm run deploy`가 저절로 올리지 않습니다** — 첨부 전환 절차의 별도 명령
    (`--attachments-storage-transition` · `--attachments-storage-final`)으로만.
 4. `firestore.rules`를 고치면 `npm run test:rules`를 돌리고 배포합니다.
