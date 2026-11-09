@@ -1533,6 +1533,43 @@ service cloud.firestore {
       allow create: if isAdmin()
                     || (isTeacher() && ownsClassEditable(request.resource.data.classId));
       allow update, delete: if isAdmin() || ownsClassEditable(resource.data.classId);
+      // 낱말 빙고 '학생이 진행' — 제 차례인 학생이 낱말 하나를 부릅니다(아래 bingoTurnCall).
+      allow update: if bingoTurnCall();
+
+      // ── 낱말 빙고 '학생이 진행'(bingo.lead == 'student') — 학생의 부르기 ──
+      // 활동 문서는 교사만 쓰지만 이것 하나만 학생에게 엽니다. 모양을 못 박습니다
+      // (lib/bingo.js의 bingoCall · lib/data/books.js의 callBingoTurn과 같아야 합니다):
+      //   · 바뀌는 것은 bingo의 called · by · turn 세 칸뿐 — 다른 칸 · 다른 필드는 그대로
+      //   · 빙고 중(stage == 'play') · 잠기기 전 · 이 반 학생 · order[turn]이 나
+      //   · called = 지금 목록 + 낱말 하나(낱말 상자 words에 있고 아직 안 불린 것)
+      //   · by = 지금 목록 + 나(지금 by가 called와 같은 길이일 때만) ·
+      //     turn = (turn + 1) % order 길이 — 마지막 번호 다음은 처음
+      // '내 판에 있는 낱말인가'는 보지 않습니다(화면이 내 판의 칸만 누르게 함). 판 id를 알려면
+      // get()이 하나 더 들고, 상자의 낱말이라 남의 판이나 상태를 망가뜨릴 수는 없습니다.
+      function bingoTurnCall() {
+        let before = resource.data.get('bingo', {});
+        let after = request.resource.data.get('bingo', {});
+        let c0 = before.get('called', []);
+        let order = before.get('order', []);
+        let turn = before.get('turn', 0);
+        return signedIn()
+          && resource.data.get('type', '') == 'bingo'
+          && resource.data.get('locked', false) != true
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['bingo'])
+          && after.diff(before).affectedKeys().hasOnly(['called', 'by', 'turn'])
+          && before.get('stage', '') == 'play'
+          && before.get('lead', 'teacher') == 'student'
+          && turn is int && turn >= 0 && turn < order.size()
+          && order[turn] == uid()
+          && after.get('called', []).size() == c0.size() + 1
+          && after.called == c0.concat([after.called[c0.size()]])
+          && before.get('words', []).hasAny([after.called[c0.size()]])
+          && !c0.hasAny([after.called[c0.size()]])
+          && before.get('by', []).size() == c0.size()
+          && after.get('by', []) == before.get('by', []).concat([uid()])
+          && after.get('turn', -1) == (turn + 1) % order.size()
+          && isClassMember(resource.data.classId);
+      }
 
       match /groups/{gId} {
         // 모둠 카드는 반 구성원 모두에게 공개 (누가 어느 모둠인지 확인)
@@ -1695,7 +1732,8 @@ service cloud.firestore {
       // 숨길 정답이 없어 반 전체가 읽습니다(가장 앞선 친구 · 모둠의 판, 교사의 순위).
       // [쓰기] 그 판의 구성원만 · 잠기기 전 · **판 채우기 단계(bingo.stage == 'fill')에서만**
       //        — 빙고가 시작되면 판이 굳어, 불린 낱말을 보고 판을 고치지 못합니다.
-      //        칸 맵은 "0" ~ "24"만(lib/bingo.js의 BINGO_CELL_KEYS와 같아야 합니다).
+      //        칸 맵은 "0" ~ "24"만(lib/bingo.js의 BINGO_CELL_KEYS와 같아야 합니다 —
+      //        4×4 판은 그 앞 "0" ~ "15"만 씁니다).
       // [지우기] 담당 교사(휴지통의 완전 삭제)
       function bingoStage(aId) {
         return get(/databases/$(database)/documents/bookActivities/$(aId)).data.get('bingo', {}).get('stage', '');

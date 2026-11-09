@@ -15,6 +15,8 @@
 //      안내 문구(선택)만 받습니다. 친구 해시태그는 만든 뒤 '공개하기'로 엽니다.
 //  · 가로세로 낱말 퀴즈 — **어느 닿소리 채우기의 낱말로 만들지**만 고릅니다.
 //      모둠(판)도 그 활동의 것을 그대로 가져와 여기서 정할 것이 없습니다.
+//  · 낱말 빙고 — 가로세로처럼 닿소리 채우기를 고르고, 진행 방식(모둠 · 개별)과
+//      판 크기(4×4 · 5×5) · 낱말 부르기(선생님이 진행 · 학생이 진행)를 고릅니다.
 //
 // 모둠 방식의 기본값은 **반의 기본 모둠**입니다(있을 때). 수업이 대체로 늘
 // 같은 모둠으로 돌아가는데 활동마다 다시 짜면 같은 일을 되풀이하게 됩니다.
@@ -36,6 +38,7 @@ import {
 } from "@/lib/opinion";
 import { HASHTAG_GUIDE_MAX } from "@/lib/hashtag";
 import { BW_PROMPT_MAX } from "@/lib/brainwrite";
+import { BINGO_DEFAULT_LEAD, BINGO_DEFAULT_SIZE, BINGO_SIZES } from "@/lib/bingo";
 
 const TYPES = [
   { key: "consonant", label: "닿소리 채우기", desc: "모둠이 함께 자음 칸을 낱말로 채웁니다", defaultTitle: "닿소리 채우기" },
@@ -48,7 +51,7 @@ const TYPES = [
   { key: "qmark", label: "물음표로 책 읽기", desc: "궁금한 곳에 물음표를 붙이고, 물음과 이유 · 나의 생각을 정리합니다", defaultTitle: "물음표로 책 읽기" },
   { key: "crossword", label: "가로세로 낱말 퀴즈", desc: "닿소리 채우기에서 모은 낱말로 힌트를 쓰고 퀴즈를 풉니다", defaultTitle: "가로세로 낱말 퀴즈" },
   { key: "brainwrite", label: "브레인 라이팅", desc: "질문 하나에 모둠원이 칸을 돌아가며 앞 사람의 글에 생각을 잇습니다", defaultTitle: "브레인 라이팅" },
-  { key: "bingo", label: "낱말 빙고", desc: "닿소리 채우기에서 모은 낱말로 5×5 판을 채우고 빙고를 합니다", defaultTitle: "낱말 빙고" },
+  { key: "bingo", label: "낱말 빙고", desc: "닿소리 채우기에서 모은 낱말로 4×4 · 5×5 판을 채우고 빙고를 합니다", defaultTitle: "낱말 빙고" },
 ];
 // 모둠을 정하는 일은 **세 번의 물음**입니다. 한 줄에 다섯 갈래를 늘어놓았더니
 // '기본 모둠'과 '활동 모둠'이 나란히 있어 무엇이 무엇인지 알기 어려웠습니다.
@@ -149,6 +152,10 @@ export default function BookActivityForm({
   // 빙고의 진행 방식 — 처음엔 고른 닿소리를 따르고(null), 교사가 고르면 그대로
   const [bingoPick, setBingoPick] = useState(null);
   const bingoMode = bingoPick ?? (source?.groupMode === "solo" ? "solo" : "group");
+  // 판 크기(4×4 · 5×5)와 누가 부를지(선생님이 진행 · 학생이 진행) — 선생님 요청.
+  // 크기는 만든 뒤 바꾸지 않습니다(칸 자리가 뒤섞임). 누가 부를지는 교사 화면에서도 바꿉니다.
+  const [bingoSize, setBingoSize] = useState(BINGO_DEFAULT_SIZE);
+  const [bingoLead, setBingoLead] = useState(BINGO_DEFAULT_LEAD);
   // 모둠 빙고의 모둠 — 닿소리가 모둠 활동이면 그 모둠, 개별 활동이었으면 반의 기본 모둠
   const bingoNoGroups = isBingo && bingoMode === "group" && source?.groupMode === "solo" && baseGroupCount === 0;
   const sourceBad = (usesSource && !source) || bingoNoGroups;
@@ -241,6 +248,8 @@ export default function BookActivityForm({
         guide: isHashtag ? guide.trim() : "",
         sourceActivityId: usesSource ? sourceId : null,
         bingoMode: isBingo ? bingoMode : null,
+        bingoSize: isBingo ? bingoSize : null,
+        bingoLead: isBingo ? bingoLead : null,
       });
     } finally {
       setSaving(false);
@@ -360,7 +369,7 @@ export default function BookActivityForm({
               {isBingo
                 ? consonantActivities.length === 0
                   ? "닿소리 채우기를 먼저 해야 그 낱말로 빙고를 할 수 있어요."
-                  : "그 활동에 나온 낱말이 낱말 상자에 담겨요. 학생은 상자에서 25칸을 골라 판을 채우고, 선생님이 낱말을 부르면 빙고를 해요."
+                  : `그 활동에 나온 낱말이 낱말 상자에 담겨요. 학생은 상자에서 ${bingoSize * bingoSize}칸을 골라 판을 채우고, 부르는 낱말로 빙고를 해요.`
                 : consonantActivities.length === 0
                 ? "닿소리 채우기를 먼저 해야 그 낱말로 퀴즈를 만들 수 있어요."
                 : source?.groupMode === "solo"
@@ -397,6 +406,52 @@ export default function BookActivityForm({
                     ? "그 닿소리 채우기는 개별 활동이라 반의 기본 모둠을 써야 하는데, 아직 기본 모둠이 없어요."
                     : `그 닿소리 채우기는 개별 활동이라 반의 기본 모둠 ${baseGroupCount}개를 써요 — 모둠원이 판 하나를 함께 채워요.`}
             </em>
+          </div>
+        )}
+
+        {/* 낱말 빙고의 판 크기 · 낱말 부르기 — 한 줄에 나란히(선생님 요청) */}
+        {isBingo && source && (
+          <div className="book-field-row">
+            <div className="book-field">
+              <span>판 크기</span>
+              <div className="book-seg" role="group" aria-label="빙고판 크기">
+                {BINGO_SIZES.map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    className={`book-seg-btn${bingoSize === n ? " active" : ""}`}
+                    aria-pressed={bingoSize === n}
+                    onClick={() => setBingoSize(n)}
+                  >
+                    {n}×{n}
+                  </button>
+                ))}
+              </div>
+              <em className="book-help">
+                {bingoSize * bingoSize}칸 판 · 가로 · 세로 · 대각선 {bingoSize * 2 + 2}줄. 만든 뒤에는 바꿀 수 없어요.
+              </em>
+            </div>
+            <div className="book-field">
+              <span>낱말 부르기</span>
+              <div className="book-seg" role="group" aria-label="낱말 부르기">
+                {[["teacher", "선생님이 진행"], ["student", "학생이 진행"]].map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className={`book-seg-btn${bingoLead === value ? " active" : ""}`}
+                    aria-pressed={bingoLead === value}
+                    onClick={() => setBingoLead(value)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <em className="book-help">
+                {bingoLead === "student"
+                  ? "학번 차례대로 한 번씩 제 판의 낱말을 골라 불러요 — 마지막 번호 다음은 처음부터. 결석한 학생의 차례는 선생님이 대신 골라요."
+                  : "선생님이 판에 놓인 낱말 가운데서 무작위로 부르거나 목록에서 골라 불러요."}
+              </em>
+            </div>
           </div>
         )}
 

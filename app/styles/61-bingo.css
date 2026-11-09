@@ -5,11 +5,12 @@
    .xw-gen-*). 여기에는 빙고판 · 낱말 칩 · 부른 낱말만 둡니다.
    ============================================================= */
 
-/* ── 판 ── 5×5, 카드 폭에 맞춰 칸이 함께 커지고 줄어듭니다(글자는 판 폭의 cqw) */
+/* ── 판 ── 4×4 · 5×5(열 수는 BingoGrid가 주는 --bingo-n), 카드 폭에 맞춰 칸이 함께 커지고
+   줄어듭니다(글자는 판 폭의 cqw — 칸이 큰 4×4는 그만큼 크게, 천장도 칸 크기에 맞춰) */
 .bingo-board-wrap { display: flex; justify-content: center; }
 .bingo-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--bingo-n, 5), minmax(0, 1fr));
   gap: 6px;
   width: min(100%, 520px);
   margin: 0 auto;
@@ -24,7 +25,7 @@
   background: #fff;
   color: var(--text);
   font-family: inherit;
-  font-size: clamp(11px, 3.7cqw, 19px);
+  font-size: clamp(11px, calc(18.5cqw / var(--bingo-n, 5)), calc(95px / var(--bingo-n, 5)));
   font-weight: 800;
   line-height: 1.2;
   display: flex;
@@ -46,9 +47,10 @@
 .bingo-cell.last { box-shadow: 0 0 0 3px var(--primary); }
 .bingo-word { display: block; max-width: 100%; }
 
-/* 미니맵 — 글자 없이 색만(채운 칸 회색 · 불린 칸 옅은 색 · 빙고 줄 짙은 색) */
+/* 미니맵 — 글자 없이 색만(채운 칸 회색 · 불린 칸 옅은 색 · 빙고 줄 짙은 색).
+   4×4는 칸을 키워 5×5 미니맵과 거의 같은 폭(68 · 66px)으로 섭니다. */
 .bingo-grid--mini {
-  grid-template-columns: repeat(5, 12px);
+  grid-template-columns: repeat(var(--bingo-n, 5), 12px);
   gap: 2px;
   width: max-content;
   margin: 0;
@@ -64,12 +66,28 @@
 }
 .bingo-grid--mini .bingo-cell.filled { background: #e9e6e1; }
 .bingo-grid--mini .bingo-cell.sel { box-shadow: 0 0 0 1.5px var(--primary); }
+.bingo-grid--mini.bingo-grid--4 { grid-template-columns: repeat(4, 15px); }
 .xwg-rank .bingo-grid--mini { align-self: center; }
 /* 학생 왼쪽 칸 — 나의 판 · 가장 앞선 친구는 조금 크게, 카드 가운데 */
 .xwg-mymap .bingo-grid--mini,
-.xwg-leader .bingo-grid--mini { grid-template-columns: repeat(5, 18px); margin: 0 auto; }
+.xwg-leader .bingo-grid--mini { grid-template-columns: repeat(var(--bingo-n, 5), 18px); margin: 0 auto; }
+.xwg-mymap .bingo-grid--mini.bingo-grid--4,
+.xwg-leader .bingo-grid--mini.bingo-grid--4 { grid-template-columns: repeat(4, 23px); }
 
 .bingo-rank-at { font-size: 11.5px; font-weight: 700; color: #2f7a45; align-self: center; }
+/* 0줄끼리 가르는 기준(가로 · 세로로 이어진 칸) — 빙고 표시보다 옅게 */
+.bingo-rank-run { color: var(--text-sub); }
+/* 학생이 진행 — 지금 차례인 판 */
+.bingo-rank-turn {
+  flex-shrink: 0;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
 
 /* 범례 */
 .bingo-swatch {
@@ -87,6 +105,9 @@
 .bingo-swatch.line { background: #6fbf8a; border-color: #4fa56d; }
 .bingo-swatch.sel { background: #fff4e8; border-color: var(--primary); }
 .bingo-swatch.last { background: #fff; border: 2px solid var(--primary); }
+/* 판에 놓인 낱말 알약의 범례 — 부른 낱말(초록) · 방금 부른 낱말(살구) */
+.bingo-swatch.called { background: #e8f7ed; border-color: #a6d8b6; }
+.bingo-swatch.just { background: var(--primary); border-color: var(--primary); }
 
 /* ── 방금 부른 낱말 ── 학급 화면에서도 읽히게 크게 */
 .bingo-last {
@@ -106,11 +127,12 @@
 .bingo-last.won { background: #e8f7ed; color: #2f7a45; }
 .bingo-last.won strong { color: #2f7a45; }
 
-/* ── 빙고 목표(교사) ── */
-.bingo-goal { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px; }
+/* ── 빙고 목표 · 낱말 부르기(교사) ── 이름표와 단추 묶음이 한 덩이로 접힙니다 */
+.bingo-goal { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 22px; }
+.bingo-opt { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px; min-width: 0; }
 .bingo-goal-label { font-size: 13px; font-weight: 700; color: var(--text); }
-.bingo-goal-seg { flex: 1 1 auto; }
 .bingo-goal-seg .book-seg-btn { flex: 0 0 56px; }
+.bingo-lead-seg .book-seg-btn { flex: 0 0 auto; max-width: none; padding: 8px 12px; }
 .bingo-reset {
   margin-left: auto;
   padding: 0;
@@ -167,6 +189,132 @@
 .bingo-chip-count { font-style: normal; font-size: 11px; font-weight: 600; color: var(--text-faint); }
 .bingo-chip.called .bingo-chip-count,
 .bingo-chip.last .bingo-chip-count { color: inherit; opacity: 0.75; }
+/* 판 채우기 동안 교사의 낱말 상자 — 보기만(누를 수 없음) */
+.bingo-chip--view { cursor: default; }
+.bingo-chip--view:hover { border-color: var(--border); }
+
+/* ── 빙고 중 교사 — 판 왼쪽 · 판에 놓인 낱말(ㄱ~ㅎ 알약) 오른쪽(선생님 요청) ──
+   판이 520px까지 크고 나머지 폭을 낱말 목록이 씁니다. 둘이 한 줄에 안 들면(판 340 + 목록 260)
+   목록이 판 아래로 내려가고 판은 가운데. 목록이 판보다 길어 내려 보는 동안 판이 따라오게
+   나란히 설 때만 판을 붙여 둡니다(sticky — 위아래로 섰을 때 붙이면 목록을 덮음).
+   창이 아니라 이 줄의 폭으로 가릅니다(@container bingostage — 책방은 양옆 패널이 섬). */
+.bingo-stage {
+  container: bingostage / inline-size;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 16px 20px;
+}
+.bingo-stage-board { flex: 1 1 340px; max-width: 520px; min-width: 0; margin-inline: auto; }
+.bingo-callbox {
+  flex: 1 1 260px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+@container bingostage (min-width: 640px) {
+  .bingo-stage-board { position: sticky; top: 8px; }
+}
+/* 학생이 진행인데 지금 차례 학생이 결석 — 선생님이 이 목록에서 대신 고를 차례 */
+.bingo-callbox.proxy { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary-light); }
+.bingo-callbox-head { display: flex; align-items: center; gap: 10px; }
+.bingo-callbox-head h4 { margin: 0; font-size: 15px; font-weight: 800; color: var(--text); }
+.bingo-callbox-head .xw-badge { margin-left: auto; }
+.bingo-chips--call .bingo-chip { background: #fff; }
+.bingo-chips--call .bingo-chip.called { background: #e8f7ed; }
+.bingo-chips--call .bingo-chip.last { background: var(--primary); }
+/* 안내 줄 — 지금 차례 학생이 결석이면 눈에 띄게 */
+.xw-gen-note.bingo-note-away { color: var(--primary-dark); font-weight: 700; }
+
+/* ── 학생이 진행 — 부르는 차례(교사 · 학번순 알약 줄) ──
+   지금 차례는 살구로 채우고, 이번 바퀴에 이미 고른 학생은 옅게, 결석은 점선 + '결석' */
+.bingo-turns-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+.bingo-turns-head {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  font-size: 12.5px;
+  color: var(--text-sub);
+}
+.bingo-turns-head strong { font-size: 13.5px; color: var(--text); }
+.bingo-turns-head em { margin-left: auto; font-style: normal; color: var(--text-faint); }
+.bingo-turns { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 5px; }
+.bingo-turn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px 3px 4px;
+  border-radius: 999px;
+  border: 1.5px solid var(--border);
+  background: #fff;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+}
+.bingo-turn b {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--neutral);
+  color: var(--text-sub);
+  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.bingo-turn em { font-style: normal; font-size: 10.5px; font-weight: 800; color: var(--danger); }
+.bingo-turn.done { opacity: 0.5; }
+.bingo-turn.away { border-style: dashed; border-color: var(--danger); }
+.bingo-turn.now { border-color: var(--primary); background: var(--primary); color: #fff; opacity: 1; }
+.bingo-turn.now b { background: #fff; color: var(--primary-dark); }
+.bingo-turn.now em { color: #fff; }
+
+/* ── 학생이 진행 — 학생 화면 ── 내 차례 알림 · 지금 누구 차례인지 */
+.bingo-myturn {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 2px solid var(--primary);
+  background: #fff4e8;
+  color: var(--primary-dark);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+.bingo-myturn strong { font-size: 17px; font-weight: 900; }
+.bingo-waitturn {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text-sub);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.bingo-waitturn strong { color: var(--text); }
+/* 학생 오른쪽 '부르는 차례' — 교사와 같은 알약 줄(.bingo-turns)에 '나'만 더 짙게 */
+.bingo-turn.me { border-color: var(--primary-dark); }
+.bingo-turn.me em { color: var(--primary-dark); }
+.bingo-turn.now.me em { color: #fff; }
+/* 내 차례 — 누를 수 있는 칸(내 판의 안 불린 낱말)에 살구 테두리 */
+.bingo-board-wrap.calling .bingo-cell:not(:disabled) { border-color: var(--primary); }
 
 /* ── 불린 낱말(학생 오른쪽) ── 최근 것이 위 */
 .bingo-called { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }

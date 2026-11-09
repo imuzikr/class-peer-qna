@@ -148,7 +148,7 @@ Firebase를 import하는 `lib/store.js`·`lib/data/*`도 못 읽습니다 — �
 | `components/FloatingHub.jsx` · `MessengerWindow.jsx` | 오른쪽 아래 **떠 있는 동그라미** — 큰 원(행성 궤도)으로 펼쳐 메신저 · 돌발 퀴즈 · 투표 · 수업 노트 · 출석 · 리포트 · 과일 바구니 / **간편 메신저**(선생님 ↔ 학생 1:1 · 기본 모둠), 셈은 `lib/messenger.js` |
 | `components/PollCenter.jsx` · `PollTeacherModal.jsx` · `PollStudentModal.jsx` · `PollParts.jsx` | **투표**(하나만 고르기 · 여러 개 고르기) — 동그라미의 '투표'가 여는 창 · 학생 불 · 교사의 결과 따라 적기, 셈은 `lib/poll.js` |
 | `components/CrosswordGroupStudent.jsx` · `CrosswordGroupBoard.jsx` · `CrosswordGrid.jsx` · `CrosswordTyping.jsx` | 독서 활동 '가로세로 낱말 퀴즈'(`type: 'crossword'` — 고른 닿소리 채우기의 낱말로, **모둠 · 개별 활동 공용** — 개별은 한 사람에 낱말 하나 · 왼쪽에 가장 많이 채운 친구의 미니맵) — 학생 세 칸(우리 모둠 낱말·힌트 쓰기 ｜ 함께 채우는 판 ｜ 힌트 목록) / 교사 두 칸(힌트 제출 · 모둠별 미니맵 ｜ 판) + 떠 있는 '낱말 힌트' 패널(`FloatingPanel`) / 판 그리기 공용 / **판에 직접 적기**(모둠 · 개별 공용, 한글 조합 처리) |
-| `components/BingoBoard.jsx` · `BingoStudent.jsx` · `BingoGrid.jsx` | 독서 활동 '낱말 빙고'(`type: 'bingo'` — 고른 닿소리 채우기의 낱말로 5×5 빙고, **모둠 · 개별 활동 공용**) — 학생 세 칸(나의 · 우리 모둠 빙고 한눈에 · 가장 앞선 친구 ｜ 판 ｜ 낱말 상자 · 불린 낱말) / 교사 두 칸(판별 미니맵 순위 ｜ 고른 판 · 진행 단추 · 낱말 부르기) / 판 그리기 공용, 셈은 `lib/bingo.js` |
+| `components/BingoBoard.jsx` · `BingoStudent.jsx` · `BingoGrid.jsx` | 독서 활동 '낱말 빙고'(`type: 'bingo'` — 고른 닿소리 채우기의 낱말로 4×4 · 5×5 빙고, **모둠 · 개별 활동 공용**, 선생님이 진행 · 학생이 진행) — 학생 세 칸(나의 · 우리 모둠 빙고 한눈에 · 가장 앞선 친구 ｜ 판(학생이 진행이면 내 차례에 내 판에서 부르기) ｜ 낱말 상자 · 불린 낱말 · 부르는 차례) / 교사 두 칸(판별 미니맵 순위 ｜ 고른 판 · 진행 단추 · 판에 놓인 낱말 ㄱ~ㅎ 알약 · 부르는 차례) / 판 그리기 공용, 셈은 `lib/bingo.js` |
 | `components/BrainWriteForm.jsx` · `BrainWriteBoard.jsx` | 독서 활동 '브레인 라이팅'(`type: 'brainwrite'` — 늘 모둠) — 학생 두 칸(우리 모둠 칸 목록 ｜ 고른 컬럼에 이어 쓰기) / 교사 세 칸(모둠 카드 ｜ 고른 학생의 컬럼 ｜ 학생별 조각 바), 셈은 `lib/brainwrite.js` |
 
 책방(`/books`)은 **활동 목록 → 활동** 두 단계입니다(URL은 `?activity=`).

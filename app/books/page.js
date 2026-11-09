@@ -814,6 +814,7 @@ function BooksPageInner() {
           classPicker={classPicker}
           user={user}
           roster={roster}
+          presentUids={todayPresentUids}
           onBack={goToList}
           onToast={setToast}
           classTools={classTools}
@@ -822,6 +823,7 @@ function BooksPageInner() {
         <BingoStudent
           activity={activeActivity}
           groupId={studentCanvasGroupId}
+          user={user}
           onBack={goToList}
         />
       ) : isBingo ? (
