@@ -264,7 +264,7 @@ export default function BingoStudent({ activity, groupId, user, onBack }) {
                 {playing ? `${mine.count} / ${goal}줄` : `${mine.filled} / ${cellCount}칸`}
               </span>
             </header>
-            <BingoGrid size={size} cells={cells} marked={mine.marked} lineCells={mine.lineCells} sel={sel} mini tint={MAP_TINT} />
+            <BingoGrid size={size} cells={cells} marked={mine.marked} lineCells={mine.lineCells} lines={mine.lines} sel={sel} mini tint={MAP_TINT} />
             <div className="xwg-bar" aria-hidden="true">
               <span style={{ width: `${playing ? linePct : fillPct}%` }} />
             </div>
@@ -293,7 +293,7 @@ export default function BingoStudent({ activity, groupId, user, onBack }) {
                       ? <span className="xwg-leader-me"> · 지금은 {solo ? "내가" : "우리가"} 앞서요!</span>
                       : null}
                   </p>
-                  <BingoGrid size={size} cells={leader.cells} marked={leader.marked} lineCells={leader.lineCells} mini tint={MAP_TINT} />
+                  <BingoGrid size={size} cells={leader.cells} marked={leader.marked} lineCells={leader.lineCells} lines={leader.lines} mini tint={MAP_TINT} />
                   <p className="xw-card-note">빙고한 {solo ? "친구" : "모둠"} {bingoFriends}{solo ? "명" : "개"} — 완성한 줄이 많은 차례로 정해요(0줄이면 가로 · 세로로 이어진 칸이 긴 차례).</p>
                 </>
               ) : (
@@ -365,6 +365,7 @@ export default function BingoStudent({ activity, groupId, user, onBack }) {
               cells={cells}
               marked={mine.marked}
               lineCells={mine.lineCells}
+              lines={mine.lines}
               lastWord={playing ? lastWord : ""}
               sel={canEdit ? sel : selIdx}
               onCellClick={canEdit ? pickCell : myTurn ? pickCallCell : null}

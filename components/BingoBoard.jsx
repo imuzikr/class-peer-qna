@@ -428,7 +428,7 @@ export default function BingoBoard({
                             {playing ? (p.bingo ? `빙고! ${p.count}줄` : `${p.count}줄`) : `${p.filled} / ${cellCount}칸`}
                           </span>
                         </span>
-                        <BingoGrid size={size} cells={p.cells} marked={p.marked} lineCells={p.lineCells} mini tint={color} />
+                        <BingoGrid size={size} cells={p.cells} marked={p.marked} lineCells={p.lineCells} lines={p.lines} mini tint={color} />
                         {playing && p.bingoAt ? (
                           <span className="bingo-rank-at">{p.bingoAt}번째 낱말에서 빙고</span>
                         ) : playing && p.count === 0 && p.run > 1 ? (
@@ -624,6 +624,7 @@ export default function BingoBoard({
                     cells={pickedRow.cells}
                     marked={pickedRow.marked}
                     lineCells={pickedRow.lineCells}
+                    lines={pickedRow.lines}
                     lastWord={playing ? lastWord : ""}
                   />
                 ) : (

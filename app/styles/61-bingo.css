@@ -11,10 +11,16 @@
 .bingo-grid {
   display: grid;
   grid-template-columns: repeat(var(--bingo-n, 5), minmax(0, 1fr));
+  /* 행도 명시 — 완성된 줄의 직선(.bingo-strike)이 행 번호로 자리를 잡습니다 */
+  grid-template-rows: repeat(var(--bingo-n, 5), auto);
   gap: 6px;
   width: min(100%, 520px);
   margin: 0 auto;
   container-type: inline-size;
+  position: relative;
+  /* 완성된 줄의 직선 — 회색(선생님 요청). 큰 판은 글자가 비치게 반투명, 굵기는 판 폭을 따라감 */
+  --strike-w: max(3px, 1.15cqw);
+  --strike-c: rgba(95, 95, 90, 0.62);
 }
 .bingo-cell {
   aspect-ratio: 1 / 1;
@@ -43,13 +49,42 @@
 .bingo-cell:disabled { cursor: default; color: var(--text); }
 .bingo-cell.sel { border-color: var(--primary); background: #fff4e8; box-shadow: 0 0 0 2px var(--primary); }
 .bingo-cell.marked { background: #e8f7ed; border-color: #a6d8b6; color: #2f7a45; }
-.bingo-cell.line { background: #6fbf8a; border-color: #4fa56d; color: #fff; }
+/* 완성된 줄의 칸은 불린 칸과 같은 색이고, 줄은 위에 긋는 회색 직선으로 보입니다(아래 .bingo-strike —
+   선생님 요청: 한때 줄의 칸을 짙은 초록으로 칠했는데 줄이 여럿이면 어느 줄인지 안 보였음) */
+.bingo-strike { position: absolute; z-index: 1; pointer-events: none; }
+.bingo-strike--row {
+  left: 3%;
+  right: 3%;
+  top: 50%;
+  height: var(--strike-w);
+  transform: translateY(-50%);
+  border-radius: 999px;
+  background: var(--strike-c);
+}
+.bingo-strike--col {
+  top: 3%;
+  bottom: 3%;
+  left: 50%;
+  width: var(--strike-w);
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: var(--strike-c);
+}
+.bingo-strike--diag { top: 0; left: 0; width: 100%; height: 100%; overflow: visible; }
+.bingo-strike--diag line {
+  stroke: var(--strike-c);
+  stroke-width: var(--strike-w);
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
 .bingo-cell.last { box-shadow: 0 0 0 3px var(--primary); }
 .bingo-word { display: block; max-width: 100%; }
 
 /* 미니맵 — 글자 없이 색만(채운 칸 회색 · 불린 칸 옅은 색 · 빙고 줄 짙은 색).
    4×4는 칸을 키워 5×5 미니맵과 거의 같은 폭(68 · 66px)으로 섭니다. */
 .bingo-grid--mini {
+  --strike-w: 2px;
+  --strike-c: #7d7d77;
   grid-template-columns: repeat(var(--bingo-n, 5), 12px);
   gap: 2px;
   width: max-content;
@@ -70,7 +105,7 @@
 .xwg-rank .bingo-grid--mini { align-self: center; }
 /* 학생 왼쪽 칸 — 나의 판 · 가장 앞선 친구는 조금 크게, 카드 가운데 */
 .xwg-mymap .bingo-grid--mini,
-.xwg-leader .bingo-grid--mini { grid-template-columns: repeat(var(--bingo-n, 5), 18px); margin: 0 auto; }
+.xwg-leader .bingo-grid--mini { grid-template-columns: repeat(var(--bingo-n, 5), 18px); margin: 0 auto; --strike-w: 2.5px; }
 .xwg-mymap .bingo-grid--mini.bingo-grid--4,
 .xwg-leader .bingo-grid--mini.bingo-grid--4 { grid-template-columns: repeat(4, 23px); }
 
@@ -102,7 +137,8 @@
 .bingo-swatch:first-child { margin-left: 0; }
 .bingo-swatch.filled { background: #e9e6e1; }
 .bingo-swatch.marked { background: #e8f7ed; border-color: #a6d8b6; }
-.bingo-swatch.line { background: #6fbf8a; border-color: #4fa56d; }
+/* 빙고 줄 — 판에 긋는 회색 직선과 같은 짧은 막대 */
+.bingo-swatch.line { width: 14px; height: 3px; border: none; border-radius: 999px; background: #7d7d77; vertical-align: 3px; }
 .bingo-swatch.sel { background: #fff4e8; border-color: var(--primary); }
 .bingo-swatch.last { background: #fff; border: 2px solid var(--primary); }
 /* 판에 놓인 낱말 알약의 범례 — 부른 낱말(초록) · 방금 부른 낱말(살구) */
