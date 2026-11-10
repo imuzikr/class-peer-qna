@@ -15,12 +15,16 @@
   grid-template-rows: repeat(var(--bingo-n, 5), auto);
   gap: 6px;
   width: min(100%, 520px);
-  margin: 0 auto;
+  /* 위아래 6px — 완성된 줄의 직선이 판 바깥으로 나갈 자리. 선생님 화면은 판과 위 '방금 부른 낱말'
+     띠 사이가 카드 간격 12px뿐이라, 이 자리가 없으면 직선 끝이 띠에 닿습니다 */
+  margin: 6px auto;
   container-type: inline-size;
   position: relative;
-  /* 완성된 줄의 직선 — 회색(선생님 요청). 큰 판은 글자가 비치게 반투명, 굵기는 판 폭을 따라감 */
+  /* 완성된 줄의 직선 — 붉은색(선생님 요청 — 한때 회색). 큰 판은 글자가 비치게 반투명, 굵기는
+     판 폭을 따라감. 판 바깥으로 나가는 길이(--strike-out)는 굵기의 2배 — 큰 판 12px · 미니맵 4~5px */
   --strike-w: max(3px, 1.15cqw);
-  --strike-c: rgba(95, 95, 90, 0.62);
+  --strike-c: rgba(224, 49, 49, 0.78);
+  --strike-out: calc(var(--strike-w) * 2);
 }
 .bingo-cell {
   aspect-ratio: 1 / 1;
@@ -49,12 +53,15 @@
 .bingo-cell:disabled { cursor: default; color: var(--text); }
 .bingo-cell.sel { border-color: var(--primary); background: #fff4e8; box-shadow: 0 0 0 2px var(--primary); }
 .bingo-cell.marked { background: #e8f7ed; border-color: #a6d8b6; color: #2f7a45; }
-/* 완성된 줄의 칸은 불린 칸과 같은 색이고, 줄은 위에 긋는 회색 직선으로 보입니다(아래 .bingo-strike —
-   선생님 요청: 한때 줄의 칸을 짙은 초록으로 칠했는데 줄이 여럿이면 어느 줄인지 안 보였음) */
+/* 완성된 줄의 칸은 불린 칸과 같은 색이고, 줄은 위에 긋는 붉은 직선으로 보입니다(아래 .bingo-strike —
+   선생님 요청: 한때 줄의 칸을 짙은 초록으로 칠했는데 줄이 여럿이면 어느 줄인지 안 보였음).
+   직선은 판 바깥까지 --strike-out만큼 더 나갑니다(선생님 요청 — 한때 판 끝보다 3% 안쪽에서
+   멈췄음). 한때 판 폭의 4%(큰 판 21px)였는데 판 둘레 여백(12~20px)을 넘어 위 띠와 카드 테두리에
+   닿았습니다 — 늘이려면 .bingo-grid의 위아래 margin도 함께 늘리세요. */
 .bingo-strike { position: absolute; z-index: 1; pointer-events: none; }
 .bingo-strike--row {
-  left: 3%;
-  right: 3%;
+  left: calc(-1 * var(--strike-out));
+  right: calc(-1 * var(--strike-out));
   top: 50%;
   height: var(--strike-w);
   transform: translateY(-50%);
@@ -62,15 +69,17 @@
   background: var(--strike-c);
 }
 .bingo-strike--col {
-  top: 3%;
-  bottom: 3%;
+  top: calc(-1 * var(--strike-out));
+  bottom: calc(-1 * var(--strike-out));
   left: 50%;
   width: var(--strike-w);
   transform: translateX(-50%);
   border-radius: 999px;
   background: var(--strike-c);
 }
-.bingo-strike--diag { top: 0; left: 0; width: 100%; height: 100%; overflow: visible; }
+/* 대각선 — SVG 상자를 판 바깥으로 넓히고 그 모서리끼리 잇습니다(BingoGrid). 둥근 끝이 굵기의 반만큼
+   더 나가므로 상자는 그만큼 덜 넓혀, 네 가지 직선의 끝이 모두 판에서 --strike-out 떨어진 곳에 섭니다 */
+.bingo-strike--diag { inset: calc(var(--strike-w) / 2 - var(--strike-out)); overflow: visible; }
 .bingo-strike--diag line {
   stroke: var(--strike-c);
   stroke-width: var(--strike-w);
@@ -80,11 +89,11 @@
 .bingo-cell.last { box-shadow: 0 0 0 3px var(--primary); }
 .bingo-word { display: block; max-width: 100%; }
 
-/* 미니맵 — 글자 없이 색만(채운 칸 회색 · 불린 칸 옅은 색 · 빙고 줄 짙은 색).
+/* 미니맵 — 글자 없이 색만(채운 칸 회색 · 불린 칸 옅은 색 · 빙고 줄은 붉은 직선).
    4×4는 칸을 키워 5×5 미니맵과 거의 같은 폭(68 · 66px)으로 섭니다. */
 .bingo-grid--mini {
   --strike-w: 2px;
-  --strike-c: #7d7d77;
+  --strike-c: #e03131;
   grid-template-columns: repeat(var(--bingo-n, 5), 12px);
   gap: 2px;
   width: max-content;
@@ -137,8 +146,8 @@
 .bingo-swatch:first-child { margin-left: 0; }
 .bingo-swatch.filled { background: #e9e6e1; }
 .bingo-swatch.marked { background: #e8f7ed; border-color: #a6d8b6; }
-/* 빙고 줄 — 판에 긋는 회색 직선과 같은 짧은 막대 */
-.bingo-swatch.line { width: 14px; height: 3px; border: none; border-radius: 999px; background: #7d7d77; vertical-align: 3px; }
+/* 빙고 줄 — 판에 긋는 붉은 직선과 같은 짧은 막대 */
+.bingo-swatch.line { width: 14px; height: 3px; border: none; border-radius: 999px; background: #e03131; vertical-align: 3px; }
 .bingo-swatch.sel { background: #fff4e8; border-color: var(--primary); }
 .bingo-swatch.last { background: #fff; border: 2px solid var(--primary); }
 /* 판에 놓인 낱말 알약의 범례 — 부른 낱말(초록) · 방금 부른 낱말(살구) */
