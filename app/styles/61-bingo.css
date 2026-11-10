@@ -198,14 +198,16 @@
 .bingo-chip.last .bingo-chip-count { color: inherit; opacity: 0.75; }
 /* 판 채우기 동안 교사의 낱말 상자 — 보기만(누를 수 없음) */
 .bingo-chip--view { cursor: default; }
-.bingo-chip--view:hover { border-color: var(--border); }
+/* 누를 수 없으니 마우스를 올려도 살구 테두리가 서지 않게 — .bingo-chip:hover:not(:disabled)보다 세게 */
+.bingo-chip.bingo-chip--view:hover:not(:disabled) { border-color: var(--border); }
 
 /* ── 빙고 중 교사 — 판 왼쪽 · 판에 놓인 낱말(ㄱ~ㅎ 알약) 오른쪽(선생님 요청) ──
+   판 채우기 동안은 같은 자리에 학생이 고르는 낱말 상자(선생님 요청 — 한때 판 아래 카드였음).
    판이 520px까지 크고 나머지 폭을 낱말 목록이 씁니다. 둘이 한 줄에 안 들면(판 340 + 목록 260)
    목록이 판 아래로 내려가고 판은 가운데. 나란히 설 때는 목록 상자가 **판 높이만큼만** 서고
-   낱말은 그 안에서 따로 굴러갑니다(아래 @container — 선생님 요청: 한때 판만 붙어 있고 목록과
-   왼쪽 순위가 함께 굴렀습니다). 창이 아니라 이 줄의 폭으로 가릅니다(@container bingostage —
-   책방은 양옆 패널이 섬). */
+   낱말이 넘치면 그 안에서 따로 굴러갑니다(아래 @container — 선생님 요청: 한때 판만 붙어 있고
+   목록과 왼쪽 순위가 함께 굴렀습니다). 창이 아니라 이 줄의 폭으로 가릅니다(@container
+   bingostage — 책방은 양옆 패널이 섬). */
 .bingo-stage {
   container: bingostage / inline-size;
   display: flex;
@@ -229,11 +231,14 @@
   /* contain: size — 목록 길이가 줄 높이에 끼지 않게(줄 높이 = 판 높이), stretch로 그 높이까지.
      판이 아직 없을 때(안내 글 한 줄)도 목록이 너무 낮아지지 않게 바닥 높이를 둡니다. */
   .bingo-callbox { align-self: stretch; contain: size; min-height: 320px; }
-  .bingo-callbox .bingo-chips--call {
+  /* 낱말(판 채우기의 낱말 상자 · 빙고 중의 판에 놓인 낱말)은 넘칠 때만 그 안에서 굴러갑니다.
+     overscroll-behavior를 두지 마세요 — 한때 contain으로 두었더니 목록이 짧아 굴릴 것이 없을 때
+     그 위에서 휠이 아예 먹지 않았습니다(선생님 신고). 지금은 넘치지 않으면 · 끝에 닿으면 휠이
+     페이지를 굴립니다. */
+  .bingo-callbox > .bingo-chips {
     flex: 1 1 0;
     min-height: 0;
     overflow-y: auto;
-    overscroll-behavior: contain; /* 목록 끝에서 휠이 페이지로 넘어가지 않게 */
     align-content: flex-start;
     padding-right: 4px;
   }

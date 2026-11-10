@@ -614,22 +614,23 @@ export default function BingoBoard({
               </div>
             )}
 
-            {playing ? (
-              /* 빙고 중 — 판 왼쪽, 판에 놓인 낱말(ㄱ~ㅎ 알약) 오른쪽(선생님 요청). 좁으면 위아래로 */
-              <div className="bingo-stage">
-                <div className="bingo-stage-board">
-                  {pickedRow ? (
-                    <BingoGrid
-                      size={size}
-                      cells={pickedRow.cells}
-                      marked={pickedRow.marked}
-                      lineCells={pickedRow.lineCells}
-                      lastWord={lastWord}
-                    />
-                  ) : (
-                    <p className="xw-empty">왼쪽에 판이 생기면 눌러서 크게 볼 수 있어요.</p>
-                  )}
-                </div>
+            {/* 판 왼쪽 · 오른쪽에 낱말(선생님 요청) — 판 채우기 동안은 학생이 고르는 낱말 상자, 빙고 중에는
+                판에 놓인 낱말(ㄱ~ㅎ 알약 · 눌러서 부름). 좁으면 위아래로 */}
+            <div className="bingo-stage">
+              <div className="bingo-stage-board">
+                {pickedRow ? (
+                  <BingoGrid
+                    size={size}
+                    cells={pickedRow.cells}
+                    marked={pickedRow.marked}
+                    lineCells={pickedRow.lineCells}
+                    lastWord={playing ? lastWord : ""}
+                  />
+                ) : (
+                  <p className="xw-empty">왼쪽에 판이 생기면 눌러서 크게 볼 수 있어요.</p>
+                )}
+              </div>
+              {playing ? (
                 <section className={`bingo-callbox${studentLead && proxyNow ? " proxy" : ""}`} aria-label="판에 놓인 낱말">
                   <header className="bingo-callbox-head">
                     <h4>판에 놓인 낱말</h4>
@@ -675,47 +676,41 @@ export default function BingoBoard({
                     <span className="bingo-swatch called" /> 부른 낱말 <span className="bingo-swatch just" /> 방금 부른 낱말
                   </p>
                 </section>
-              </div>
-            ) : pickedRow ? (
-              <BingoGrid size={size} cells={pickedRow.cells} marked={pickedRow.marked} lineCells={pickedRow.lineCells} />
-            ) : (
-              <p className="xw-empty">왼쪽에 판이 생기면 눌러서 크게 볼 수 있어요.</p>
-            )}
-          </section>
-
-          {/* 낱말 상자 — 판 채우기 동안 보기만(학생이 고르는 낱말). 빙고 중에는 판에 놓인 낱말만
-              부르므로 상자 전체는 접어 둡니다(아무 판에도 없는 낱말을 부르지 않게 — 선생님 요청). */}
-          {!playing && (
-            <section className="xw-card">
-              <header className="xw-card-head">
-                <h3>낱말 상자</h3>
-                <span className="xw-badge">
-                  낱말 {boxWords.length}개{boxWords.length < words.length ? ` / 전체 ${words.length}개` : ""}
-                </span>
-              </header>
-              <p className="xw-card-note">
-                {boxWords.length < words.length
-                  ? `학생이 판을 채울 때 고르는 낱말이에요 — 닿소리 채우기에서 많이 쓴 차례로 ${boxWords.length}개(ㄱ~ㅎ 차례로 보여요).`
-                  : "학생이 판을 채울 때 고르는 낱말이에요 — 닿소리 채우기의 낱말 전부."}
-                {" "}숫자는 지금 그 낱말을 놓은 판 수예요.
-              </p>
-              {words.length === 0 ? (
-                <p className="xw-empty">낱말이 없어요. 닿소리 채우기에 낱말이 모이면 ‘낱말 새로 가져오기’를 눌러 주세요.</p>
               ) : (
-                <div className="bingo-chips">
-                  {boxWords.map((w) => (
-                    <span key={w} className="bingo-chip bingo-chip--view">
-                      {w}
-                      <em className="bingo-chip-count">{boardsWith.get(w) ?? 0}</em>
+                /* 낱말 상자 — 판 채우기 동안 보기만(학생이 고르는 낱말). 빙고 중에는 판에 놓인 낱말만
+                   부르므로 상자는 접어 둡니다(아무 판에도 없는 낱말을 부르지 않게 — 선생님 요청). */
+                <section className="bingo-callbox" aria-label="낱말 상자">
+                  <header className="bingo-callbox-head">
+                    <h4>낱말 상자</h4>
+                    <span className="xw-badge">
+                      낱말 {boxWords.length}개{boxWords.length < words.length ? ` / 전체 ${words.length}개` : ""}
                     </span>
-                  ))}
-                </div>
+                  </header>
+                  <p className="xw-card-note">
+                    {boxWords.length < words.length
+                      ? `학생이 판을 채울 때 고르는 낱말이에요 — 닿소리 채우기에서 많이 쓴 차례로 ${boxWords.length}개(ㄱ~ㅎ 차례로 보여요).`
+                      : "학생이 판을 채울 때 고르는 낱말이에요 — 닿소리 채우기의 낱말 전부."}
+                    {" "}숫자는 지금 그 낱말을 놓은 판 수예요.
+                  </p>
+                  {words.length === 0 ? (
+                    <p className="xw-empty">낱말이 없어요. 닿소리 채우기에 낱말이 모이면 ‘낱말 새로 가져오기’를 눌러 주세요.</p>
+                  ) : (
+                    <div className="bingo-chips">
+                      {boxWords.map((w) => (
+                        <span key={w} className="bingo-chip bingo-chip--view">
+                          {w}
+                          <em className="bingo-chip-count">{boardsWith.get(w) ?? 0}</em>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {boxWords.length > 0 && boxWords.length < cellCount && (
+                    <p className="xw-card-note">낱말이 {cellCount}개보다 적어 판을 다 채울 수 없어요 — 빈칸은 표시되지 않아요.</p>
+                  )}
+                </section>
               )}
-              {boxWords.length > 0 && boxWords.length < cellCount && (
-                <p className="xw-card-note">낱말이 {cellCount}개보다 적어 판을 다 채울 수 없어요 — 빈칸은 표시되지 않아요.</p>
-              )}
-            </section>
-          )}
+            </div>
+          </section>
         </div>
       </div>
 
