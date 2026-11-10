@@ -11,7 +11,8 @@
 //   판 채우기(fill) — 학생(모둠)이 낱말 상자에서 칸을 골라 채웁니다. 왼쪽은 채운 칸이 많은
 //                    차례, 목표 줄 수(1~5줄)와 낱말 부르기(누가 부를지)를 여기서 정합니다.
 //   빙고(play)      — 판은 굳고(규칙도 같음), 부른 낱말이 든 칸이 모든 판에서 저절로 표시됩니다.
-//                    판 오른쪽은 **판에 놓인 낱말**(ㄱ~ㅎ 알약 — 불리면 색이 바뀜, 선생님 요청).
+//                    판 오른쪽은 **판에 놓인 낱말**(ㄱ~ㅎ 줄 목록 — 불리면 색이 바뀜, 선생님 요청.
+//                    학생 화면 '불린 낱말'과 같은 모양 — 한때 알약).
 //     선생님이 진행 — 그 목록에서 누르거나 '무작위로 부르기'(판에 놓인 안 부른 낱말에서만 —
 //                    아무 판에도 없는 낱말을 부르면 수업만 늘어집니다).
 //     학생이 진행   — 학번 차례대로 학생이 제 판의 낱말을 고릅니다(BingoStudent). 위에 부르는
@@ -231,10 +232,10 @@ export default function BingoBoard({
     const next = await change((cur) => bingoCall(cur, word, expect));
     if (next === null) onToast?.("그사이 차례가 넘어갔거나 이미 불린 낱말이에요. 다시 골라 주세요.");
   }
-  // 판에 놓인 낱말 알약 — 선생님이 진행이면 곧바로 부르고, 학생이 진행이면 지금 차례 학생
+  // 판에 놓인 낱말 한 줄 — 선생님이 진행이면 곧바로 부르고, 학생이 진행이면 지금 차례 학생
   // 대신 부릅니다. 결석 · 부를 낱말 없음 · 잠김이면 곧바로, 아니면 한 번 되묻습니다(그 학생이
   // 고르는 중일 수 있음).
-  function pickPill(word) {
+  function pickBoardWord(word) {
     if (!playing || busy || calledOrder.has(word)) return;
     if (!studentLead || !turnUid) { callWord(word); return; }
     if (proxyNow) { callWord(word, turnUid); return; }
@@ -615,7 +616,7 @@ export default function BingoBoard({
             )}
 
             {/* 판 왼쪽 · 오른쪽에 낱말(선생님 요청) — 판 채우기 동안은 학생이 고르는 낱말 상자, 빙고 중에는
-                판에 놓인 낱말(ㄱ~ㅎ 알약 · 눌러서 부름). 좁으면 위아래로 */}
+                판에 놓인 낱말(ㄱ~ㅎ 줄 목록 · 눌러서 부름). 좁으면 위아래로 */}
             <div className="bingo-stage">
               <div className="bingo-stage-board">
                 {pickedRow ? (
@@ -645,33 +646,37 @@ export default function BingoBoard({
                           : `학생이 고르면 그 낱말의 색이 바뀌어요. 누르면 ${nameOf(turnUid)} 대신 불러요(한 번 되물어요).`
                         : "학생이 고른 낱말의 색이 바뀌어요. 누르면 선생님이 불러요."
                       : "ㄱ~ㅎ 차례예요. 누르면 부릅니다."}
-                    {" "}작은 숫자는 그 낱말이 놓인 판 수, 동그라미는 부른 차례예요.
+                    {" "}동그라미 숫자는 부른 차례, ‘n판’은 그 낱말이 놓인 판 수예요.
                   </p>
                   {boardWords.length === 0 ? (
                     <p className="xw-empty">아직 판에 놓인 낱말이 없어요.</p>
                   ) : (
-                    <div className="bingo-chips bingo-chips--call">
+                    /* 학생 화면 '불린 낱말'과 같은 줄 모양(선생님 요청 — 한때 알약) — 동그라미(부른 차례) ·
+                       낱말 · 놓인 판 수. 상자 폭에 맞춰 여러 열로 서고 ㄱ~ㅎ는 왼쪽에서 오른쪽으로 */
+                    <ul className="bingo-wordlist">
                       {boardWords.map(({ word, boards }) => {
                         const n = calledOrder.get(word);
                         const who = n ? bingo.by[n - 1] : "";
                         return (
-                          <button
-                            key={word}
-                            type="button"
-                            className={`bingo-chip${n ? " called" : ""}${word === lastWord ? " last" : ""}`}
-                            onClick={() => pickPill(word)}
-                            disabled={!!n || busy}
-                            title={n
-                              ? `${n}번째로 불렀어요${who ? ` · ${nameOf(who)} 차례` : ""}`
-                              : studentLead && turnUid ? `${nameOf(turnUid)} 대신 부르기` : "눌러서 부르기"}
-                          >
-                            {n && <b className="bingo-chip-no">{n}</b>}
-                            {word}
-                            <em className="bingo-chip-count">{boards}</em>
-                          </button>
+                          <li key={word}>
+                            <button
+                              type="button"
+                              className={`bingo-wordrow${n ? " called" : ""}${word === lastWord ? " last" : ""}`}
+                              onClick={() => pickBoardWord(word)}
+                              disabled={!!n || busy}
+                              aria-label={`${word} — ${n ? `${n}번째로 불림 · ` : ""}${boards}판에 놓임`}
+                              title={n
+                                ? `${n}번째로 불렀어요${who ? ` · ${nameOf(who)} 차례` : ""}`
+                                : studentLead && turnUid ? `${nameOf(turnUid)} 대신 부르기` : "눌러서 부르기"}
+                            >
+                              <b aria-hidden="true">{n ?? ""}</b>
+                              <span>{word}</span>
+                              <em aria-hidden="true">{boards}판</em>
+                            </button>
+                          </li>
                         );
                       })}
-                    </div>
+                    </ul>
                   )}
                   <p className="xw-card-note xwg-legend">
                     <span className="bingo-swatch called" /> 부른 낱말 <span className="bingo-swatch just" /> 방금 부른 낱말
@@ -691,19 +696,22 @@ export default function BingoBoard({
                     {boxWords.length < words.length
                       ? `학생이 판을 채울 때 고르는 낱말이에요 — 닿소리 채우기에서 많이 쓴 차례로 ${boxWords.length}개(ㄱ~ㅎ 차례로 보여요).`
                       : "학생이 판을 채울 때 고르는 낱말이에요 — 닿소리 채우기의 낱말 전부."}
-                    {" "}숫자는 지금 그 낱말을 놓은 판 수예요.
+                    {" "}‘n판’은 지금 그 낱말을 놓은 판 수예요.
                   </p>
                   {words.length === 0 ? (
                     <p className="xw-empty">낱말이 없어요. 닿소리 채우기에 낱말이 모이면 ‘낱말 새로 가져오기’를 눌러 주세요.</p>
                   ) : (
-                    <div className="bingo-chips">
+                    /* 빙고 중의 '판에 놓인 낱말'과 같은 줄 모양 — 보기만이라 동그라미 · 누름은 없음 */
+                    <ul className="bingo-wordlist">
                       {boxWords.map((w) => (
-                        <span key={w} className="bingo-chip bingo-chip--view">
-                          {w}
-                          <em className="bingo-chip-count">{boardsWith.get(w) ?? 0}</em>
-                        </span>
+                        <li key={w}>
+                          <span className="bingo-wordrow view">
+                            <span>{w}</span>
+                            <em>{boardsWith.get(w) ?? 0}판</em>
+                          </span>
+                        </li>
                       ))}
-                    </div>
+                    </ul>
                   )}
                   {boxWords.length > 0 && boxWords.length < cellCount && (
                     <p className="xw-card-note">낱말이 {cellCount}개보다 적어 판을 다 채울 수 없어요 — 빈칸은 표시되지 않아요.</p>
